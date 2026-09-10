@@ -55,8 +55,9 @@ READY_FOR_SOL_ACCEPTANCE
 ## Git
 
 - 当前分支：main。
-- G01 返工及前置修复提交仍保留；G02 收口提交将在本报告和状态文件完成后形成。
+- G01 返工及前置修复提交仍保留；G02 收口提交：e4d9b03 feat: establish G02 canonical data and database foundations。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或用户临时文件。
+- 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
 ## 阻塞项
 

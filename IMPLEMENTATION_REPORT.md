@@ -98,8 +98,9 @@ G02 Canonical 数据与 SQLite 基础
 
 - 分支：main。
 - 未使用破坏性 Git 操作。
-- 本报告和 TASK_STATE.md 更新后形成 G02 收口提交。
+- G02 收口提交：e4d9b03 feat: establish G02 canonical data and database foundations。
 - 保护范围：计算表/、.venv/、tmp/ 未被修改；生成数据库不进入 Git。
+- 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
 ## Sol 验收重点
 
