@@ -34,8 +34,8 @@ READY_FOR_SOL_ACCEPTANCE
 ## Git
 
 - 当前分支：main。
-- 最近 commit：G00 收口提交完成后记录。
-- git status：G00 收口提交完成后复核。
+- 最近 commit：`7881697 chore: establish G00 desktop skeleton`。
+- git status：G00 收口提交后复核为 clean；用户参考文件仍由 `.gitignore` 保护。
 
 ## 已知问题
 

@@ -78,8 +78,8 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 ## Git
 
 - 分支：`main`
-- commit：G00 收口提交完成后补录实际提交号。
-- git status：收口提交完成后复核；`计算表/`、`tmp/` 和 `.venv/` 被忽略。
+- commit：`7881697 chore: establish G00 desktop skeleton`。
+- git status：收口提交后复核为 clean；`计算表/`、`tmp/` 和 `.venv/` 被忽略。
 
 ## 已知问题
 
@@ -93,4 +93,3 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 - `pyproject.toml` 的 Python 3.12 x64 约束、PySide6 依赖和可编辑安装路径。
 - Logo 源图未修改且副本哈希一致；`计算表/` 7 个用户文件未修改、未纳入 Git。
 - 结构化日志的 allow-list 是否满足不记录活动数据、企业信息和许可证明文的要求。
-
