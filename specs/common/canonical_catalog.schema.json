@@ -54,7 +54,7 @@
           "source_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9_.-]{2,127}$" },
           "source_type": {
             "type": "string",
-            "enum": ["OFFICIAL_STANDARD", "OFFICIAL_NOTICE", "SCIENTIFIC_REPORT", "OTHER"]
+            "enum": ["OFFICIAL_STANDARD", "GOVERNMENT_PUBLICATION", "SCIENTIFIC_REFERENCE", "OTHER"]
           },
           "document_no": { "type": "string", "minLength": 1 },
           "document_name": { "type": "string", "minLength": 1 },
@@ -67,7 +67,7 @@
           "official_url": { "type": ["string", "null"], "format": "uri" },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
           },
           "notes": { "type": "string" }
         }
@@ -106,12 +106,14 @@
           "standard_name",
           "standard_type",
           "version",
-          "status",
+          "official_status",
           "publication_date",
           "implementation_date",
           "ics",
           "ccs",
-          "authority",
+          "issuing_authority",
+          "competent_authority",
+          "technical_committee",
           "official_source_id",
           "official_source_url",
           "base_standard_ids",
@@ -126,12 +128,14 @@
           "standard_name": { "type": "string", "minLength": 1 },
           "standard_type": { "type": "string", "enum": ["COMMON_RULES", "INDUSTRY"] },
           "version": { "type": "string", "minLength": 1 },
-          "status": { "type": "string", "enum": ["ACTIVE", "UPCOMING", "RETIRED", "PENDING_REVIEW"] },
+          "official_status": { "type": "string", "enum": ["ACTIVE", "UPCOMING", "ABOLISHED", "UNKNOWN"] },
           "publication_date": { "type": "string", "format": "date" },
           "implementation_date": { "type": "string", "format": "date" },
           "ics": { "type": "string", "minLength": 1 },
           "ccs": { "type": "string", "minLength": 1 },
-          "authority": { "type": "string", "minLength": 1 },
+          "issuing_authority": { "type": "string", "minLength": 1 },
+          "competent_authority": { "type": "string", "minLength": 1 },
+          "technical_committee": { "type": "string", "minLength": 1 },
           "official_source_id": { "type": "string", "minLength": 1 },
           "official_source_url": { "type": "string", "format": "uri" },
           "base_standard_ids": {
@@ -200,7 +204,7 @@
           "source_location": { "type": "string", "minLength": 1 },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
           },
           "applicable_standard_ids": {
             "type": "array",
@@ -251,10 +255,22 @@
           "factor_year": { "type": "integer", "minimum": 1900, "maximum": 2500 },
           "valid_from": { "type": ["string", "null"], "format": "date" },
           "valid_to": { "type": ["string", "null"], "format": "date" },
-          "value_type": { "type": "string", "enum": ["OFFICIAL", "DEFAULT", "DERIVED", "SYSTEM"] },
+          "value_type": {
+            "type": "string",
+            "enum": [
+              "STANDARD_SPECIFIED",
+              "STANDARD_DEFAULT",
+              "GOVERNMENT_PUBLISHED",
+              "SCIENTIFIC_REFERENCE",
+              "MEASURED",
+              "DERIVED",
+              "SYSTEM_CONSTANT",
+              "HISTORICAL"
+            ]
+          },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
           },
           "applicable_standard_ids": {
             "type": "array",
@@ -291,7 +307,7 @@
           "source_location": { "type": "string", "minLength": 1 },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
           },
           "notes": { "type": "string" }
         }

@@ -70,23 +70,26 @@ def _insert_catalog(connection: sqlite3.Connection, catalog: dict[str, Any]) -> 
     for standard in sorted(catalog["standards"], key=lambda item: item["standard_id"]):
         connection.execute(
             "INSERT INTO standard_catalog("
-            "standard_id, standard_number, standard_name, standard_type, version, status, "
-            "publication_date, implementation_date, ics, ccs, authority, official_source_id, "
+            "standard_id, standard_number, standard_name, standard_type, version, official_status, "
+            "publication_date, implementation_date, ics, ccs, issuing_authority, "
+            "competent_authority, technical_committee, official_source_id, "
             "official_source_url, base_standard_ids_json, parameter_refs_json, "
             "emission_source_refs_json, calculation_status, notes"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 standard["standard_id"],
                 standard["standard_number"],
                 standard["standard_name"],
                 standard["standard_type"],
                 standard["version"],
-                standard["status"],
+                standard["official_status"],
                 standard["publication_date"],
                 standard["implementation_date"],
                 standard["ics"],
                 standard["ccs"],
-                standard["authority"],
+                standard["issuing_authority"],
+                standard["competent_authority"],
+                standard["technical_committee"],
                 standard["official_source_id"],
                 standard["official_source_url"],
                 _json(standard["base_standard_ids"]),

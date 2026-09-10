@@ -68,16 +68,78 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("audit_log", records_tables)
             self.assertNotIn("source_documents", records_tables)
 
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.11-g02")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.11-g02-rework.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
             try:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 12)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 13)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 6)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 6)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM conversion_rules").fetchone()[0], 13)
+            finally:
+                connection.close()
+
+    def test_catalog_sqlite_uses_g01_enums_and_distinguished_responsibilities(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = build_catalog_database(DEFAULT_SOURCE_PATH, Path(directory) / "catalog.sqlite")
+            connection = sqlite3.connect(path)
+            try:
+                columns = {
+                    row[1]
+                    for row in connection.execute("PRAGMA table_info(standard_catalog)")
+                }
+                self.assertIn("official_status", columns)
+                self.assertIn("issuing_authority", columns)
+                self.assertIn("competent_authority", columns)
+                self.assertIn("technical_committee", columns)
+                self.assertNotIn("status", columns)
+                self.assertNotIn("authority", columns)
+
+                standard = connection.execute(
+                    "SELECT official_status, issuing_authority, competent_authority, "
+                    "technical_committee, parameter_refs_json "
+                    "FROM standard_catalog WHERE standard_id=?",
+                    ("gbt_32151_34_2024",),
+                ).fetchone()
+                self.assertEqual(standard[0], "ACTIVE")
+                self.assertEqual(standard[1], "国家市场监督管理总局、国家标准化管理委员会")
+                self.assertEqual(standard[2], "中国钢铁工业协会")
+                self.assertEqual(standard[3], "中国钢铁工业协会")
+                self.assertIn("natural_gas_lhv", json.loads(standard[4]))
+
+                source = connection.execute(
+                    "SELECT source_type, publisher FROM source_documents WHERE source_id=?",
+                    ("SRC-ELEC-2023-47",),
+                ).fetchone()
+                self.assertEqual(source, ("GOVERNMENT_PUBLICATION", "生态环境部、国家统计局"))
+
+                heat = connection.execute(
+                    "SELECT source_id, source_location, value, value_type FROM factor_values WHERE factor_id=?",
+                    ("heat_default_2025",),
+                ).fetchone()
+                self.assertEqual(heat[0], "SRC-MEE-2023-332-ATT4")
+                self.assertIn("6.2.6.3", heat[1])
+                self.assertEqual(heat[2:], ("0.11", "STANDARD_DEFAULT"))
+
+                ddl = "\n".join(
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT sql FROM sqlite_master WHERE type='table' AND sql IS NOT NULL"
+                    )
+                )
+                for enum_value in (
+                    "GOVERNMENT_PUBLICATION",
+                    "SCIENTIFIC_REFERENCE",
+                    "ABOLISHED",
+                    "DEPRECATED",
+                    "STANDARD_DEFAULT",
+                    "GOVERNMENT_PUBLISHED",
+                ):
+                    self.assertIn(enum_value, ddl)
+                for legacy_value in ("OFFICIAL_NOTICE", "SCIENTIFIC_REPORT", "RETIRED", "PENDING_REVIEW"):
+                    self.assertNotIn(legacy_value, ddl)
             finally:
                 connection.close()
 

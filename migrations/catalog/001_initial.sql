@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS catalog_manifest (
 CREATE TABLE IF NOT EXISTS source_documents (
     source_id TEXT PRIMARY KEY,
     source_type TEXT NOT NULL CHECK (
-        source_type IN ('OFFICIAL_STANDARD', 'OFFICIAL_NOTICE', 'SCIENTIFIC_REPORT', 'OTHER')
+        source_type IN ('OFFICIAL_STANDARD', 'GOVERNMENT_PUBLICATION', 'SCIENTIFIC_REFERENCE', 'OTHER')
     ),
     document_no TEXT NOT NULL,
     document_name TEXT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS source_documents (
     version TEXT NOT NULL,
     official_url TEXT,
     review_status TEXT NOT NULL CHECK (
-        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'RETIRED')
+        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'DEPRECATED')
     ),
     notes TEXT NOT NULL
 );
@@ -56,12 +56,14 @@ CREATE TABLE IF NOT EXISTS standard_catalog (
     standard_name TEXT NOT NULL,
     standard_type TEXT NOT NULL CHECK (standard_type IN ('COMMON_RULES', 'INDUSTRY')),
     version TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'UPCOMING', 'RETIRED', 'PENDING_REVIEW')),
+    official_status TEXT NOT NULL CHECK (official_status IN ('ACTIVE', 'UPCOMING', 'ABOLISHED', 'UNKNOWN')),
     publication_date TEXT NOT NULL,
     implementation_date TEXT NOT NULL,
     ics TEXT NOT NULL,
     ccs TEXT NOT NULL,
-    authority TEXT NOT NULL,
+    issuing_authority TEXT NOT NULL,
+    competent_authority TEXT NOT NULL,
+    technical_committee TEXT NOT NULL,
     official_source_id TEXT NOT NULL REFERENCES source_documents(source_id),
     official_source_url TEXT NOT NULL,
     base_standard_ids_json TEXT NOT NULL,
@@ -97,7 +99,7 @@ CREATE TABLE IF NOT EXISTS parameter_definitions (
     source_id TEXT NOT NULL REFERENCES source_documents(source_id),
     source_location TEXT NOT NULL,
     review_status TEXT NOT NULL CHECK (
-        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'RETIRED')
+        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'DEPRECATED')
     ),
     applicable_standard_ids_json TEXT NOT NULL,
     notes TEXT NOT NULL
@@ -118,9 +120,20 @@ CREATE TABLE IF NOT EXISTS factor_values (
     factor_year INTEGER NOT NULL,
     valid_from TEXT,
     valid_to TEXT,
-    value_type TEXT NOT NULL CHECK (value_type IN ('OFFICIAL', 'DEFAULT', 'DERIVED', 'SYSTEM')),
+    value_type TEXT NOT NULL CHECK (
+        value_type IN (
+            'STANDARD_SPECIFIED',
+            'STANDARD_DEFAULT',
+            'GOVERNMENT_PUBLISHED',
+            'SCIENTIFIC_REFERENCE',
+            'MEASURED',
+            'DERIVED',
+            'SYSTEM_CONSTANT',
+            'HISTORICAL'
+        )
+    ),
     review_status TEXT NOT NULL CHECK (
-        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'RETIRED')
+        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'DEPRECATED')
     ),
     applicable_standard_ids_json TEXT NOT NULL,
     notes TEXT NOT NULL
@@ -141,7 +154,7 @@ CREATE TABLE IF NOT EXISTS conversion_rules (
     source_id TEXT NOT NULL REFERENCES source_documents(source_id),
     source_location TEXT NOT NULL,
     review_status TEXT NOT NULL CHECK (
-        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'RETIRED')
+        review_status IN ('VERIFIED', 'VERIFIED_WITH_INTERPRETATION', 'PENDING_SOURCE', 'DEPRECATED')
     ),
     notes TEXT NOT NULL
 );

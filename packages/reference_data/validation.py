@@ -11,12 +11,22 @@ from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from packages.core.decimal_policy import DecimalPolicy, DecimalPolicyError
+from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, SourceType, ValueType
 from packages.core.units import UnitError, UnitService
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SCHEMA_PATH = PROJECT_ROOT / "specs" / "common" / "canonical_catalog.schema.json"
 DEFAULT_SOURCE_PATH = PROJECT_ROOT / "data-source" / "carbon_accounting" / "catalog.json"
+
+
+G01_CANONICAL_ENUM_VALUES = {
+    "official_status": frozenset(item.value for item in OfficialStatus),
+    "source_type": frozenset(item.value for item in SourceType),
+    "review_status": frozenset(item.value for item in ReviewStatus),
+    "parameter_type": frozenset(item.value for item in ParameterType),
+    "value_type": frozenset(item.value for item in ValueType),
+}
 
 
 class CanonicalValidationError(ValueError):
@@ -199,6 +209,11 @@ def _parse_decimal(value: Any, path: str, policy: DecimalPolicy, errors: list[st
         return None
 
 
+def _validate_g01_enum(value: Any, field: str, path: str, errors: list[str]) -> None:
+    if value not in G01_CANONICAL_ENUM_VALUES[field]:
+        errors.append(f"{path}: value {value!r} is not a G01 {field} value")
+
+
 def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     policy = DecimalPolicy()
@@ -216,12 +231,30 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
     del conversions
 
     for row_number, source in enumerate(catalog.get("sources", [])):
-        if source.get("source_type") in {"OFFICIAL_STANDARD", "OFFICIAL_NOTICE", "SCIENTIFIC_REPORT"}:
+        _validate_g01_enum(
+            source.get("source_type"),
+            "source_type",
+            f"$.sources[{row_number}].source_type",
+            errors,
+        )
+        _validate_g01_enum(
+            source.get("review_status"),
+            "review_status",
+            f"$.sources[{row_number}].review_status",
+            errors,
+        )
+        if source.get("source_type") in {"OFFICIAL_STANDARD", "GOVERNMENT_PUBLICATION", "SCIENTIFIC_REFERENCE"}:
             url = source.get("official_url")
             if not isinstance(url, str) or not url.startswith("https://"):
                 errors.append(f"$.sources[{row_number}].official_url: official HTTPS URL is required")
 
     for row_number, standard in enumerate(catalog.get("standards", [])):
+        _validate_g01_enum(
+            standard.get("official_status"),
+            "official_status",
+            f"$.standards[{row_number}].official_status",
+            errors,
+        )
         source_id = standard.get("official_source_id")
         source = sources.get(source_id)
         if source is None:
@@ -232,14 +265,35 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
             if reference not in standards:
                 errors.append(f"$.standards[{row_number}].base_standard_ids: unknown standard {reference!r}")
         if standard.get("calculation_status") == "PLANNED":
-            if standard.get("parameter_refs") or standard.get("emission_source_refs"):
+            if standard.get("standard_id") == "gbt_32151_34_2024":
+                if standard.get("emission_source_refs"):
+                    errors.append(
+                        f"$.standards[{row_number}]: planned industry standard cannot carry emission-source references"
+                    )
+            elif standard.get("parameter_refs") or standard.get("emission_source_refs"):
                 errors.append(f"$.standards[{row_number}]: planned standard cannot carry calculation references")
-        else:
-            for reference in standard.get("parameter_refs", []):
-                if reference not in parameters:
-                    errors.append(f"$.standards[{row_number}].parameter_refs: unknown parameter {reference!r}")
+        for reference in standard.get("parameter_refs", []):
+            parameter = parameters.get(reference)
+            if parameter is None:
+                errors.append(f"$.standards[{row_number}].parameter_refs: unknown parameter {reference!r}")
+            elif standard.get("standard_id") not in parameter.get("applicable_standard_ids", []):
+                errors.append(
+                    f"$.standards[{row_number}].parameter_refs: parameter {reference!r} is not applicable"
+                )
 
     for row_number, parameter in enumerate(catalog.get("parameters", [])):
+        _validate_g01_enum(
+            parameter.get("parameter_type"),
+            "parameter_type",
+            f"$.parameters[{row_number}].parameter_type",
+            errors,
+        )
+        _validate_g01_enum(
+            parameter.get("review_status"),
+            "review_status",
+            f"$.parameters[{row_number}].review_status",
+            errors,
+        )
         if parameter.get("subject_id") not in subjects:
             errors.append(f"$.parameters[{row_number}].subject_id: unknown subject")
         if parameter.get("source_id") not in sources:
@@ -251,6 +305,18 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
                 errors.append(f"$.parameters[{row_number}].applicable_standard_ids: unknown standard")
 
     for row_number, factor in enumerate(catalog.get("factors", [])):
+        _validate_g01_enum(
+            factor.get("value_type"),
+            "value_type",
+            f"$.factors[{row_number}].value_type",
+            errors,
+        )
+        _validate_g01_enum(
+            factor.get("review_status"),
+            "review_status",
+            f"$.factors[{row_number}].review_status",
+            errors,
+        )
         parameter = parameters.get(factor.get("parameter_id"))
         if parameter is None:
             errors.append(f"$.factors[{row_number}].parameter_id: unknown parameter")
@@ -293,6 +359,12 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
                 errors.append(f"$.factors[{row_number}].applicable_standard_ids: unknown standard")
 
     for row_number, rule in enumerate(catalog.get("conversion_rules", [])):
+        _validate_g01_enum(
+            rule.get("review_status"),
+            "review_status",
+            f"$.conversion_rules[{row_number}].review_status",
+            errors,
+        )
         from_unit = rule.get("from_unit", "")
         to_unit = rule.get("to_unit", "")
         if not _known_unit(from_unit, units):
