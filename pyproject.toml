@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qingzhou-carbon-accounting"
+version = "0.1.0"
+description = "青舟温室气体排放核算软件 Windows V1"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "PySide6>=6.8,<7",
+]
+
+[project.scripts]
+qingzhou-carbon-accounting = "apps.carbon_accounting_desktop.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps*", "packages*", "resources*"]
+
+[tool.setuptools.package-data]
+resources = ["branding/*.png", "icons/*"]
+

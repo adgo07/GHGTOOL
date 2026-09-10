@@ -1,0 +1,20 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build and runtime output
+build/*
+!build/.gitkeep
+dist/
+logs/
+
+# User reference files and working scratch space
+计算表/
+tmp/
