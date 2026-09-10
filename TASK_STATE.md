@@ -2,66 +2,71 @@
 
 ## 当前工作包
 
-G01 领域基础与公共契约
+G01 领域基础与公共契约（返工）
 
 ## 状态
 
 READY_FOR_SOL_ACCEPTANCE
 
-## 验收前提
+## 验收状态
 
-- 用户已明确确认 G00 验收结论为 PASS。
-- 已创建且仅创建本阶段 G01 Goal。
-- 本轮仅执行 HANDOFF.md 的 G01；没有提前执行 G02。
+- G00 验收结论：PASS。
+- G01 初次验收：FAILED。
+- Sol 指出两项问题：能量单位共用基准错误；领域枚举字段允许原始字符串绕过运行时校验。
+- 两项问题已修复并完成返工测试，当前等待 Sol 重新验收 G01。
+- 本轮没有开始 G02。
 
 ## 已完成
 
-- G00 工程治理、目录骨架、依赖配置、最小 PySide6 空应用、Logo 副本、结构化日志基础和 G00 测试已完成并获 PASS。
-- 已实现纯 Domain 层 `DecimalPolicy`：默认 40 位精度（满足至少 28 位要求）、严格十进制输入、禁止二进制浮点输入、内部不做显示舍入、默认显示 2 位小数，并支持标准要求的舍入模式覆盖；默认 `ROUND_HALF_UP`。
-- 已实现纯 Domain 层 `UnitService`：`kg/t`、`kWh/MWh`、`kJ/GJ`、`Nm³/10⁴Nm³`、百分数/比例，以及 C/CO₂ 的 44/12 转换；包含单位维度和不兼容单位校验。
-- 已实现核心领域模型：Standard、SourceDocument、Parameter、Factor、AccountingInput、ValidationProblem、CalculationResult、ParameterSnapshot、AccountingRecord 及所需周期、活动数据、设置等类型。
-- 已实现领域不变量：稳定 ID/版本字段、十进制值规范化、不可变快照/记录、年度/月度周期约束、ERROR 阻止记录、记录状态仅允许 `COMPLETED` 或 `COMPLETED_WITH_WARNINGS`。
-- 已实现 Standard/Parameter/Record/Settings Repository 的纯 Python Protocol 契约，并以测试替身验证接口形状。
-- 已添加 G01 的十进制、单位、模型、仓储契约和 Domain 依赖边界测试。
-- 已确认 G02 的数据库、Canonical Source、迁移和正式页面等工作未开始。
+- 将能量单位统一到 kJ 共同基准：`1 kWh = 3600 kJ`、`1 MWh = 3600000 kJ`、`1 GJ = 1000000 kJ`，并验证跨 kWh/kJ 与 MWh/GJ 的双向换算。
+- 为所有 G01 领域枚举字段增加运行时实例校验，原始字符串不再被接受；包括问题级别、标准状态、来源类型、审核状态、参数类型、因子值类型、活动数据来源、周期类型、参数选择方法和记录状态。
+- 保持 `ValidationProblem.level` 必须是 `IssueLevel`，避免字符串值绕过 ERROR 阻断逻辑。
+- 补充能量单位基准回归测试和全部领域枚举原始字符串拒绝回归测试。
+- G01 原有 DecimalPolicy、UnitService、领域模型、Repository 契约和 Domain 依赖边界继续通过。
+- 已确认 G02 的数据库、Canonical Source、迁移和正式页面工作未开始。
 - 已确认 `计算表/` 中 7 个用户参考文件未修改、未纳入 Git。
 
 ## 正在进行
 
-- 无。G01 已完成，等待 Sol 验收。
+- 无。G01 返工已完成，等待 Sol 重新验收。
 
 ## 未开始
 
-- G02～G08 全部实施工作；必须在 G01 获得 Sol 验收后才能进入 G02。
+- G02～G08 全部实施工作；G01 重新获得明确验收结论前不得进入 G02。
 
 ## 最后测试
 
-- 命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv/Scripts/python.exe -m unittest discover -s tests -t . -v`
-- 结果：16 个测试通过，0 个失败，0 个错误，0 个跳过。
+- 针对性命令：`.venv/Scripts/python.exe -m unittest tests.test_g01_decimal_units tests.test_g01_models -v`
+- 针对性结果：12 个测试通过，0 个失败，0 个错误，0 个跳过。
+- 全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv/Scripts/python.exe -m unittest discover -s tests -t . -v`
+- 全量结果：18 个测试通过，0 个失败，0 个错误，0 个跳过。
 - 依赖核验：`.venv/Scripts/python.exe -m pip check` 输出 `No broken requirements found.`。
-- 隔离导入：`.venv/Scripts/python.exe -S` 成功导入 `packages.core`，确认 Domain 可在无 site-packages 环境下加载。
+- 隔离导入：`.venv/Scripts/python.exe -S` 成功导入 `packages.core`，并验证 `1 kWh = 3600 kJ`。
 - 编译核验：`.venv/Scripts/python.exe -m compileall -q packages/core tests` 成功。
-- 依赖边界：`packages/core` 未发现 PySide6、sqlite3、Windows API 或 QSql 导入；G02 边界目录无非占位实现。
+- 依赖边界：`packages/core` 未发现 PySide6、sqlite3、Windows API 或 QSql 导入。
+- G02 边界：`migrations/`、`data-source/`、`specs/` 无业务标记或实现文件。
 - 时间：2026-09-10。
 
 ## Git
 
 - 当前分支：`main`。
-- G01 实现检查点：`1f12608 feat: add G01 domain foundations`。
-- 本文件与 `IMPLEMENTATION_REPORT.md` 将在 G01 收口提交中更新；提交后须复核状态为 clean。
+- 初次 G01 收口提交：`12dc1b2 docs: record G01 acceptance state`。
+- 本次修复、回归测试和两份状态文档已形成 G01 返工提交；当前提交后状态为 clean。
 - `计算表/`、`tmp/` 和 `.venv/` 仍由 `.gitignore` 保护。
 
 ## 已知问题
 
-- G01 不包含 SQLite、Canonical JSON/YAML 数据、正式 UI 页面、GB/T 32151.34 计算规则或报告导出；这些均不属于本阶段。
+- 当前没有未解决的 G01 返工项；G01 仅等待 Sol 重新验收。
+- G01 不包含 SQLite、Canonical JSON/YAML 数据、正式 UI 页面、GB/T 32151.34 计算规则或报告导出。
 - 本机 `py.exe` 未发现已注册的 Python，但项目虚拟环境使用的 Python 3.12.14 x64 已验证可用。
 - `D:/MD仓库/杂/碳排放计算软件/资料缺口清单.md` 包含过时状态判断，不作为当前实施基线。
 
 ## 阻塞项
 
-- 无。等待 Sol 验收 G01。
+- 无。等待 Sol 重新验收 G01。
 
 ## 下一步
 
-1. Sol 验收 G01 并给出 PASS、PASS WITH MINOR FIXES 或 BLOCKED。
-2. 在 G01 获得明确验收结论前，不进入 G02。
+1. Sol 复核能量单位共同基准和领域枚举运行时校验。
+2. Sol 给出 G01 的重新验收结论。
+3. 在明确验收通过前保持停止，不进入 G02。

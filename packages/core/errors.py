@@ -35,12 +35,15 @@ class ValidationProblem:
     details: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
-        if not _PROBLEM_CODE_PATTERN.fullmatch(self.code):
+        if not isinstance(self.code, str) or not _PROBLEM_CODE_PATTERN.fullmatch(self.code):
             raise DomainValidationError("validation problem code must be a stable token")
-        if not self.message.strip():
+        if not isinstance(self.level, IssueLevel):
+            raise DomainValidationError("validation problem level must be an IssueLevel")
+        if not isinstance(self.message, str) or not self.message.strip():
             raise DomainValidationError("validation problem message is required")
-        if self.field_id is not None and not re.fullmatch(
-            r"[A-Za-z0-9_.:-]{1,128}", self.field_id
+        if self.field_id is not None and (
+            not isinstance(self.field_id, str)
+            or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", self.field_id)
         ):
             raise DomainValidationError("field_id must be a stable token")
         object.__setattr__(self, "details", tuple(self.details))
@@ -56,4 +59,3 @@ def contains_errors(problems: tuple[ValidationProblem, ...] | list[ValidationPro
 
 def contains_warnings(problems: tuple[ValidationProblem, ...] | list[ValidationProblem]) -> bool:
     return any(problem.level is IssueLevel.WARNING for problem in problems)
-

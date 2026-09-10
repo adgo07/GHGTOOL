@@ -47,6 +47,13 @@ class UnitServiceTest(unittest.TestCase):
         self.assertEqual(self.units.convert("1", "10⁴ Nm³", "Nm3"), Decimal("10000"))
         self.assertEqual(self.units.convert("1", "%", "ratio"), Decimal("0.01"))
 
+    def test_energy_units_use_one_common_kj_base(self) -> None:
+        self.assertEqual(self.units.convert("1", "kWh", "kJ"), Decimal("3600"))
+        self.assertEqual(self.units.convert("1", "MWh", "kJ"), Decimal("3600000"))
+        self.assertEqual(self.units.convert("1", "MWh", "GJ"), Decimal("3.6"))
+        self.assertEqual(self.units.convert("3.6", "GJ", "MWh"), Decimal("1"))
+        self.assertEqual(self.units.convert("1", "kWh", "GJ"), Decimal("0.0036"))
+
     def test_carbon_to_co2_bridge_uses_44_over_12(self) -> None:
         co2 = self.units.convert("1", "tC", "tCO2")
         self.assertTrue(self.units.policy.is_close(co2, "3.666666666666666666666666666666666666667", "1E-38"))

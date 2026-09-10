@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 import unittest
 
 from packages.core import (
@@ -25,6 +25,8 @@ from packages.core import (
     RecordStatus,
     ReviewStatus,
     Standard,
+    SourceDocument,
+    SourceType,
     ValueType,
     ValidationProblem,
     contains_errors,
@@ -75,6 +77,85 @@ class DomainModelTest(unittest.TestCase):
         )
         self.assertNotEqual(standard.standard_id, standard.standard_name)
         self.assertEqual(standard.version, "2024")
+
+    def test_domain_enum_fields_reject_raw_strings(self) -> None:
+        standard = Standard(
+            standard_id=STANDARD_ID,
+            standard_family_id="gbt_32151_34",
+            standard_number="GB/T 32151.34-2024",
+            standard_name="炭素材料生产企业",
+            version="2024",
+        )
+        source = SourceDocument(
+            source_id="source.enum",
+            source_type=SourceType.OFFICIAL_STANDARD,
+            document_no="DOC-1",
+            document_name="测试来源",
+            publisher="测试发布者",
+        )
+        parameter = Parameter(
+            "param.enum",
+            "subject.enum",
+            ParameterType.LOWER_HEATING_VALUE,
+            "测试参数",
+            "GJ",
+            "2024",
+        )
+        factor = Factor(
+            "factor.enum",
+            parameter.parameter_id,
+            parameter.subject_id,
+            parameter.parameter_type,
+            "1",
+            "GJ",
+            "2024",
+            ValueType.STANDARD_DEFAULT,
+            ReviewStatus.VERIFIED,
+        )
+        snapshot = ParameterSnapshot(
+            "snapshot.enum",
+            parameter.parameter_id,
+            factor.factor_id,
+            "1",
+            "GJ",
+            None,
+            None,
+            ParameterSelectionMethod.STANDARD_REQUIRED,
+            "测试原因",
+            STANDARD_ID,
+            NOW,
+        )
+        record = AccountingRecord(
+            "record.enum",
+            STANDARD_ID,
+            "1.0",
+            NOW,
+            accounting_input(),
+            calculation_result(),
+            RecordStatus.COMPLETED,
+            (snapshot,),
+        )
+        raw_enum_cases = (
+            ("ValidationProblem.level", lambda: ValidationProblem("ENUM.RAW", "ERROR", "测试")),
+            ("Standard.official_status", lambda: replace(standard, official_status="ACTIVE")),
+            ("SourceDocument.source_type", lambda: replace(source, source_type="OFFICIAL_STANDARD")),
+            ("SourceDocument.review_status", lambda: replace(source, review_status="PENDING_SOURCE")),
+            ("Parameter.parameter_type", lambda: replace(parameter, parameter_type="LOWER_HEATING_VALUE")),
+            ("Factor.parameter_type", lambda: replace(factor, parameter_type="LOWER_HEATING_VALUE")),
+            ("Factor.value_type", lambda: replace(factor, value_type="STANDARD_DEFAULT")),
+            ("Factor.review_status", lambda: replace(factor, review_status="VERIFIED")),
+            ("ActivityData.source_type", lambda: ActivityData("activity.enum", "1", "GJ", "METER")),
+            ("AccountingPeriod.period_type", lambda: AccountingPeriod("ANNUAL", date(2025, 1, 1), date(2025, 12, 31))),
+            (
+                "ParameterSnapshot.selection_method",
+                lambda: replace(snapshot, selection_method="STANDARD_REQUIRED"),
+            ),
+            ("AccountingRecord.status", lambda: replace(record, status="COMPLETED")),
+        )
+        for field_name, factory in raw_enum_cases:
+            with self.subTest(field_name=field_name):
+                with self.assertRaises(DomainValidationError):
+                    factory()
 
     def test_period_and_factor_invariants(self) -> None:
         monthly = AccountingPeriod(PeriodType.MONTHLY, date(2024, 2, 1), date(2024, 2, 29))
@@ -162,4 +243,3 @@ class DomainModelTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -45,8 +45,9 @@ class UnitDefinition:
 _DEFAULT_UNITS = (
     UnitDefinition("kg", "kg", "mass", Decimal("1")),
     UnitDefinition("t", "t", "mass", Decimal("1000")),
-    UnitDefinition("kWh", "kWh", "energy", Decimal("1")),
-    UnitDefinition("MWh", "MWh", "energy", Decimal("1000")),
+    # All energy units use kJ as the common base: 1 kWh = 3600 kJ.
+    UnitDefinition("kWh", "kWh", "energy", Decimal("3600")),
+    UnitDefinition("MWh", "MWh", "energy", Decimal("3600000")),
     UnitDefinition("kJ", "kJ", "energy", Decimal("1")),
     UnitDefinition("GJ", "GJ", "energy", Decimal("1000000")),
     UnitDefinition("Nm3", "Nm³", "volume", Decimal("1"), ("Nm³",)),

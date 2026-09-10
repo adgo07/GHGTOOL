@@ -29,6 +29,11 @@ def _require_text(value: str, field_name: str) -> str:
     return value
 
 
+def _require_enum(value: object, enum_type: type[Enum], field_name: str) -> None:
+    if not isinstance(value, enum_type):
+        raise DomainValidationError(f"{field_name} must be an instance of {enum_type.__name__}")
+
+
 def _normalize_tuple(values: tuple | list | None, field_name: str) -> tuple:
     if values is None:
         return ()
@@ -117,6 +122,7 @@ class Standard:
     official_source_url: str | None = None
 
     def __post_init__(self) -> None:
+        _require_enum(self.official_status, OfficialStatus, "official_status")
         _require_id(self.standard_id, "standard_id")
         _require_id(self.standard_family_id, "standard_family_id")
         _require_id(self.version, "version")
@@ -147,6 +153,8 @@ class SourceDocument:
     notes: str | None = None
 
     def __post_init__(self) -> None:
+        _require_enum(self.source_type, SourceType, "source_type")
+        _require_enum(self.review_status, ReviewStatus, "review_status")
         _require_id(self.source_id, "source_id")
         _require_id(self.version, "version")
         _require_text(self.document_no, "document_no")
@@ -169,6 +177,7 @@ class Parameter:
     description: str | None = None
 
     def __post_init__(self) -> None:
+        _require_enum(self.parameter_type, ParameterType, "parameter_type")
         _require_id(self.parameter_id, "parameter_id")
         _require_id(self.subject_id, "subject_id")
         _require_id(self.version, "version")
@@ -194,6 +203,9 @@ class Factor:
     valid_to: date | None = None
 
     def __post_init__(self) -> None:
+        _require_enum(self.parameter_type, ParameterType, "parameter_type")
+        _require_enum(self.value_type, ValueType, "value_type")
+        _require_enum(self.review_status, ReviewStatus, "review_status")
         _require_id(self.factor_id, "factor_id")
         _require_id(self.parameter_id, "parameter_id")
         _require_id(self.subject_id, "subject_id")
@@ -228,6 +240,7 @@ class ActivityData:
     source_reference: str | None = None
 
     def __post_init__(self) -> None:
+        _require_enum(self.source_type, ActivityDataSource, "source_type")
         _require_id(self.activity_id, "activity_id")
         _require_unit(self.unit)
         object.__setattr__(self, "value", _normalize_decimal(self.value, "value"))
@@ -245,6 +258,7 @@ class AccountingPeriod:
     end: date
 
     def __post_init__(self) -> None:
+        _require_enum(self.period_type, PeriodType, "period_type")
         if self.start > self.end:
             raise DomainValidationError("period start cannot be after period end")
         if self.period_type is PeriodType.ANNUAL:
@@ -324,6 +338,9 @@ class CalculationResult:
     problems: tuple[ValidationProblem, ...] = ()
 
     def __post_init__(self) -> None:
+        for problem in self.problems:
+            if not isinstance(problem, ValidationProblem):
+                raise DomainValidationError("problems must contain ValidationProblem instances")
         _require_id(self.result_id, "result_id")
         _require_id(self.standard_id, "standard_id")
         _require_id(self.algorithm_version, "algorithm_version")
@@ -362,6 +379,7 @@ class ParameterSnapshot:
     snapshot_at: datetime
 
     def __post_init__(self) -> None:
+        _require_enum(self.selection_method, ParameterSelectionMethod, "selection_method")
         _require_id(self.snapshot_id, "snapshot_id")
         _require_id(self.parameter_id, "parameter_id")
         _require_id(self.standard_id, "standard_id")
@@ -395,6 +413,10 @@ class AccountingRecord:
     problems: tuple[ValidationProblem, ...] = ()
 
     def __post_init__(self) -> None:
+        _require_enum(self.status, RecordStatus, "status")
+        for problem in self.problems:
+            if not isinstance(problem, ValidationProblem):
+                raise DomainValidationError("problems must contain ValidationProblem instances")
         _require_id(self.record_id, "record_id")
         _require_id(self.standard_id, "standard_id")
         _require_id(self.algorithm_version, "algorithm_version")
