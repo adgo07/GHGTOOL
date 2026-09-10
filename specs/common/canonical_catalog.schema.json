@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qingzhou.example.invalid/schemas/canonical-catalog.schema.json",
+  "title": "Qingzhou canonical reference-data catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest",
+    "sources",
+    "subjects",
+    "standards",
+    "parameters",
+    "factors",
+    "conversion_rules"
+  ],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_id",
+        "schema_version",
+        "data_version",
+        "app_compatibility",
+        "canonical_format",
+        "generated_from"
+      ],
+      "properties": {
+        "catalog_id": { "type": "string", "minLength": 1 },
+        "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "data_version": { "type": "string", "minLength": 1 },
+        "app_compatibility": { "type": "string", "minLength": 1 },
+        "canonical_format": { "type": "string", "enum": ["JSON"] },
+        "generated_from": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "source_type",
+          "document_no",
+          "document_name",
+          "publisher",
+          "publication_date",
+          "official_url",
+          "review_status",
+          "notes"
+        ],
+        "properties": {
+          "source_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9_.-]{2,127}$" },
+          "source_type": {
+            "type": "string",
+            "enum": ["OFFICIAL_STANDARD", "OFFICIAL_NOTICE", "SCIENTIFIC_REPORT", "OTHER"]
+          },
+          "document_no": { "type": "string", "minLength": 1 },
+          "document_name": { "type": "string", "minLength": 1 },
+          "publisher": { "type": "string", "minLength": 1 },
+          "publication_date": { "type": "string", "format": "date" },
+          "effective_from": { "type": ["string", "null"], "format": "date" },
+          "effective_to": { "type": ["string", "null"], "format": "date" },
+          "region": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "minLength": 1 },
+          "official_url": { "type": ["string", "null"], "format": "uri" },
+          "review_status": {
+            "type": "string",
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["subject_id", "subject_type", "name", "aliases", "notes"],
+        "properties": {
+          "subject_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "subject_type": {
+            "type": "string",
+            "enum": ["FUEL", "ELECTRICITY", "HEAT", "GAS", "PROCESS", "GWP", "SYSTEM"]
+          },
+          "name": { "type": "string", "minLength": 1 },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "standards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "standard_id",
+          "standard_number",
+          "standard_name",
+          "standard_type",
+          "version",
+          "status",
+          "publication_date",
+          "implementation_date",
+          "ics",
+          "ccs",
+          "authority",
+          "official_source_id",
+          "official_source_url",
+          "base_standard_ids",
+          "parameter_refs",
+          "emission_source_refs",
+          "calculation_status",
+          "notes"
+        ],
+        "properties": {
+          "standard_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "standard_number": { "type": "string", "minLength": 1 },
+          "standard_name": { "type": "string", "minLength": 1 },
+          "standard_type": { "type": "string", "enum": ["COMMON_RULES", "INDUSTRY"] },
+          "version": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["ACTIVE", "UPCOMING", "RETIRED", "PENDING_REVIEW"] },
+          "publication_date": { "type": "string", "format": "date" },
+          "implementation_date": { "type": "string", "format": "date" },
+          "ics": { "type": "string", "minLength": 1 },
+          "ccs": { "type": "string", "minLength": 1 },
+          "authority": { "type": "string", "minLength": 1 },
+          "official_source_id": { "type": "string", "minLength": 1 },
+          "official_source_url": { "type": "string", "format": "uri" },
+          "base_standard_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "parameter_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "emission_source_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "calculation_status": {
+            "type": "string",
+            "enum": ["COMMON_RULES_ONLY", "PLANNED", "IMPLEMENTED"]
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parameter_id",
+          "parameter_type",
+          "name",
+          "canonical_unit",
+          "subject_id",
+          "source_id",
+          "source_location",
+          "review_status",
+          "applicable_standard_ids",
+          "notes"
+        ],
+        "properties": {
+          "parameter_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "parameter_type": {
+            "type": "string",
+            "enum": [
+              "EMISSION_FACTOR",
+              "GWP",
+              "LOWER_HEATING_VALUE",
+              "CARBON_CONTENT_PER_HEAT",
+              "OXIDATION_RATE",
+              "COMPOSITION",
+              "PROCESS_CO2_FACTOR",
+              "ELECTRICITY_EMISSION_FACTOR",
+              "HEAT_EMISSION_FACTOR",
+              "PROCESS_DEFAULT_PARAMETER",
+              "STEAM_ENTHALPY",
+              "SYSTEM_CONVERSION"
+            ]
+          },
+          "name": { "type": "string", "minLength": 1 },
+          "canonical_unit": { "type": "string", "minLength": 1 },
+          "subject_id": { "type": "string", "minLength": 1 },
+          "source_id": { "type": "string", "minLength": 1 },
+          "source_location": { "type": "string", "minLength": 1 },
+          "review_status": {
+            "type": "string",
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+          },
+          "applicable_standard_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "factor_id",
+          "parameter_id",
+          "subject_id",
+          "value",
+          "unit",
+          "source_value",
+          "source_unit",
+          "normalized_value",
+          "normalized_unit",
+          "source_id",
+          "source_location",
+          "factor_year",
+          "valid_from",
+          "valid_to",
+          "value_type",
+          "review_status",
+          "applicable_standard_ids",
+          "notes"
+        ],
+        "properties": {
+          "factor_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "parameter_id": { "type": "string", "minLength": 1 },
+          "subject_id": { "type": "string", "minLength": 1 },
+          "value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
+          "unit": { "type": "string", "minLength": 1 },
+          "source_value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
+          "source_unit": { "type": "string", "minLength": 1 },
+          "normalized_value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
+          "normalized_unit": { "type": "string", "minLength": 1 },
+          "source_id": { "type": "string", "minLength": 1 },
+          "source_location": { "type": "string", "minLength": 1 },
+          "factor_year": { "type": "integer", "minimum": 1900, "maximum": 2500 },
+          "valid_from": { "type": ["string", "null"], "format": "date" },
+          "valid_to": { "type": ["string", "null"], "format": "date" },
+          "value_type": { "type": "string", "enum": ["OFFICIAL", "DEFAULT", "DERIVED", "SYSTEM"] },
+          "review_status": {
+            "type": "string",
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+          },
+          "applicable_standard_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "conversion_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "conversion_id",
+          "from_unit",
+          "to_unit",
+          "multiplier",
+          "offset",
+          "source_id",
+          "source_location",
+          "review_status",
+          "notes"
+        ],
+        "properties": {
+          "conversion_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "from_unit": { "type": "string", "minLength": 1 },
+          "to_unit": { "type": "string", "minLength": 1 },
+          "multiplier": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
+          "offset": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
+          "source_id": { "type": "string", "minLength": 1 },
+          "source_location": { "type": "string", "minLength": 1 },
+          "review_status": {
+            "type": "string",
+            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "RETIRED"]
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

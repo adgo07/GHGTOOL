@@ -2,99 +2,109 @@
 
 ## 阶段
 
-G01 领域基础与公共契约（返工）
+G02 Canonical 数据与 SQLite 基础
 
-## 初次验收结论
+## 前置验收与阶段边界
 
-- G00 已获 PASS。
-- G01 初次验收失败，Sol 指出：
-  1. `kWh/MWh` 与 `kJ/GJ` 被错误地分别按数值 1 作为同一能量基准，跨体系换算结果错误。
-  2. 多个 `str, Enum` 字段缺少运行时实例校验，原始字符串可进入领域对象；其中 `ValidationProblem.level` 可能绕过 ERROR 阻断判断。
-- 本报告记录上述返工，不代表已进入 G02。
+- G00 验收结论：PASS。
+- G01 初次验收为 FAILED；能量单位共同基准和领域枚举字符串绕过问题已完成修复。
+- G01 重新验收结论：PASS（本轮用户已明确确认）。
+- 本轮只创建并执行 G02 Goal；G03 未创建、未执行。
+- 未发现文档、现有代码与当前 G02 方案之间需要上报的关键冲突。
 
 ## 本轮完成
 
-- 修复能量单位基准：统一以 kJ 为能量维度共同基准，定义 `1 kWh = 3600 kJ`、`1 MWh = 3600000 kJ`、`1 GJ = 1000000 kJ`，因此 `1 MWh = 3.6 GJ`，并保持同量纲换算可逆。
-- 修复领域枚举字符串绕过：增加统一运行时枚举实例校验，所有 G01 领域枚举字段拒绝等值原始字符串；`ValidationProblem.level` 也必须是 `IssueLevel` 实例。
-- 覆盖的枚举字段包括标准状态、来源类型、审核状态、参数类型、因子值类型、活动数据来源、核算周期类型、参数选择方法、记录状态和问题级别。
-- 增加能量跨体系换算回归测试，以及覆盖全部枚举字段的原始字符串拒绝回归测试。
-- 保持 Domain 纯 Python，不引入 PySide6、sqlite3、Windows API 或新的主要依赖。
-- 未进入 G02，未创建数据库页面、Canonical Source、迁移、标准目录数据或计算规则。
-- 未修改或纳入 Git 的 `计算表/` 7 个用户参考文件继续保持原状。
+### Canonical schema 与校验
 
-## 未完成
+- 新增 specs/common/canonical_catalog.schema.json，定义 manifest、sources、subjects、standards、parameters、factors 和 conversion_rules 的结构。
+- schema 约束必填字段、未知字段、稳定 ID、枚举值、ISO 日期、官方 URI、Decimal 字符串、整数年份和数组唯一性。
+- 新增 packages/reference_data/validation.py，使用标准库 JSON、DecimalPolicy 和 UnitService 执行结构校验、稳定 ID 唯一性、引用完整性、官方 HTTPS URL、单位白名单、数值类型和规范化换算校验。
+- 新增 scripts/validate_canonical.py。Canonical 实际采用 JSON 载体；没有在未批准 loader/依赖的情况下静默解释 YAML。
 
-- G01 返工范围内无未完成项。
-- G01 重新验收尚未完成，等待 Sol 给出新的验收结论。
-- G02～G08 未开始。
+### 首批 Canonical 数据
 
-## 与 HANDOFF 的偏差
+- 新增 data-source/carbon_accounting/catalog.json。
+- 录入 9 个标准：GB/T 32150—2025、GB/T 32151.34—2024，以及 GB/T 32151.1—2015、.4—2026、.5—2026、.7—2023、.8—2023、.13—2023、.41—2024 的官方目录元数据。
+- 7 项计划标准只保留官方来源、状态、日期、分类和 URL；没有参数引用、排放源引用、公式或计算规则。
+- 录入 12 条来源。标准官方页面分别来自 [全国标准信息公共服务平台](https://openstd.samr.gov.cn/bzgk/std/newGbInfo)，电力因子来源为 [生态环境部公告2025年第47号](https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html)，CO₂ GWP100 来源为 [IPCC AR6 WGI Chapter 7](https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/)。
+- 录入 6 个参数和 6 个因子：天然气 389.31 GJ/10⁴Nm³、0.0153 tC/GJ、0.99 ratio；2023 年全国电力平均因子 0.5306 tCO₂/MWh；热力缺省因子 0.11 tCO₂/GJ；CO₂ GWP100=1。
+- 每个数值都保留 source_value/source_unit、normalized_value/normalized_unit、source_id、source_location、factor_year、有效期和 review_status；电力因子明确记录 kgCO₂/kWh 到 tCO₂/MWh 的等值换算。
+- 标准全文、PDF 和标准原文没有复制到 Canonical Source 或构建产物。
 
-- 本次返工是对初次 G01 验收失败项的纠正，不改变 HANDOFF 的阶段范围或技术边界。
-- 无新增 Scope；仍未实施 G02。
+### 三库迁移与目录构建
 
-## 修改文件
+- 新增 migrations/catalog/001_initial.sql：catalog_manifest、source_documents、subject_catalog、standard_catalog、parameter_definitions、factor_values、factor_applicable_standards 和 conversion_rules。
+- 新增 migrations/user/001_initial.sql：只包含 user_settings 及通用迁移/版本元数据。
+- 新增 migrations/records/001_initial.sql：只包含 accounting_records、audit_log 及通用迁移/版本元数据。
+- 新增 packages/persistence/sqlite.py：迁移文件按版本发现，未知数据库类型、非法迁移名、重复版本和版本名冲突会失败；迁移使用事务包裹。
+- 新增 packages/persistence/catalog_builder.py：先校验 Canonical，再稳定排序、事务插入并原子替换 catalog.sqlite；删除生成库后可以从同一 Canonical 源重建相同逻辑数据。
+- 新增 scripts/build_catalog.py 和 scripts/initialize_databases.py。
+- 应用版本、schema 版本和 data 版本分开写入每个数据库；catalog 的 data_version 来自 manifest，user/records 使用 not_applicable。
 
-- `packages/core/units.py`
-- `packages/core/errors.py`
-- `packages/core/models.py`
-- `tests/test_g01_decimal_units.py`
-- `tests/test_g01_models.py`
-- `TASK_STATE.md`
-- `IMPLEMENTATION_REPORT.md`
+## Scope 控制
 
-未修改：`计算表/` 及其 7 个用户参考文件、外部 Logo 源文件、G00 桌面骨架和 G01 其他未涉及实现。
+- 没有修改 apps/ 或 packages/ui/，没有开始 G03 桌面外壳、首页、导航、Logo 或禁用入口。
+- 没有实现 G04 查询页面、G05 规则解析、G06 计算公式、G07 记录闭环或 G08 Windows 交付。
+- 没有录入完整 26 种燃料、碳酸盐过程参数、蒸汽焓值或完整 AR6 GWP 表；这些不属于本阶段最小数据集合。
+- 没有生成并提交运行时 SQLite 文件；构建产物由 CLI 在指定目录按需创建。
+- 计算表/ 下 7 个用户参考文件未修改、未纳入 Git。
 
-## 数据与算法说明
+## 测试与检查
 
-- 本轮没有录入官方标准全文、标准参数、排放因子、GWP 或其他 Canonical Source 数据。
-- 本轮没有创建 SQLite 表、迁移、数据库页面或记录持久化实现。
-- 能量换算常数集中在 `UnitService` 的单位定义中，不再把 kWh 和 kJ 当作同一基准；没有在页面或数据库中散落换算逻辑。
-- 44/12 C/CO₂ 换算保持不变，仅作为 G01 要求的显式单位桥接能力。
+### L1：G02 针对性测试
 
-## 测试
+命令：
 
-### L1：针对性返工回归
+    .venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 
-命令：`.venv/Scripts/python.exe -m unittest tests.test_g01_decimal_units tests.test_g01_models -v`
+结果：15 个通过，0 个失败，0 个错误，0 个跳过。
 
-结果：12 个测试通过，0 个失败，0 个错误，0 个跳过。新增测试验证 `kWh↔kJ`、`MWh↔GJ` 跨共同基准换算，以及 ValidationProblem、Standard、SourceDocument、Parameter、Factor、ActivityData、AccountingPeriod、ParameterSnapshot、AccountingRecord 的原始字符串枚举输入均被 `DomainValidationError` 拒绝。
+覆盖：schema 类型/未知字段、重复稳定 ID、缺失来源、未知单位、浮点数、错误规范化值、YAML 禁止静默解析、官方 URL、计划标准无规则、三库职责隔离、全新创建、迁移幂等、用户设置保留、目录重建一致性和非法 Canonical 阻断。
 
-### L2：全量回归与边界核验
+### L2：全量回归
 
-命令及结果：
+命令：
 
-- `$env:QT_QPA_PLATFORM='offscreen'; .venv/Scripts/python.exe -m unittest discover -s tests -t . -v`：18 个通过，0 个失败，0 个错误，0 个跳过。
-- `.venv/Scripts/python.exe -m pip check`：`No broken requirements found.`
-- `.venv/Scripts/python.exe -S -c "from packages.core import DecimalPolicy, UnitService; ..."`：成功在无 site-packages 环境导入 Domain，并验证 `1 kWh = 3600 kJ`。
-- `.venv/Scripts/python.exe -m compileall -q packages/core tests`：成功。
-- 扫描 `packages/core` 的 PySide6、sqlite3、win32、winreg、QSql：0 个匹配。
-- 扫描 `migrations/`、`data-source/`、`specs/` 的 G02 业务标记：0 个匹配。
-- `git ls-files -- 计算表/**`：0 个跟踪文件；参考表仍被 `.gitignore` 忽略。
+    $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 
-### L3：返工收口复核
+结果：33 个通过，0 个失败，0 个错误，0 个跳过。
 
-- 完整测试、依赖检查、隔离导入、编译和边界扫描均已真实执行并成功。
-- 针对性测试和全量测试均没有失败、错误或跳过项。
-- 未执行数据库迁移、Canonical 数据构建、GUI 新页面、Windows 安装包和 G02 验收；这些属于后续阶段或被本轮明确禁止。
-- 测试时间：2026-09-10。
+### L3：阶段收口
+
+- .venv\Scripts\python.exe scripts\validate_canonical.py：成功，输出 9 standards、12 sources、6 parameters、6 factors。
+- .venv\Scripts\python.exe scripts\build_catalog.py --output 临时目录\catalog.sqlite：成功。
+- .venv\Scripts\python.exe scripts\initialize_databases.py --output-dir 临时目录：成功生成 catalog.sqlite、user.sqlite、records.sqlite。
+- .venv\Scripts\python.exe -m pip check：No broken requirements found.
+- .venv\Scripts\python.exe -m compileall -q packages/core packages/reference_data packages/persistence tests scripts：成功。
+- .venv\Scripts\python.exe -S：成功在无 site-packages 环境导入 Canonical loader 和 MigrationRunner，并验证 9 个标准、1 个 catalog 迁移。
+- 分层扫描：packages/core 和 packages/reference_data 未发现 PySide6、sqlite3、win32、winreg 或 QSql。
+- 标准全文字段扫描：data-source、specs、packages 未发现 full_text、standard_text 或 full_standard_text 字段。
+- G03 越界扫描：本轮差异未包含 apps/ 或 packages/ui/ 文件。
+- 生成物扫描：工作区没有非 build/ 路径下的 SQLite 产物。
+- 用户文件 SHA256：7/7 与既有基线一致。
+- 检查时间：2026-09-11。
+
+## 未执行项及原因
+
+| 项目 | 状态 | 原因 |
+|---|---|---|
+| G03 桌面外壳与导航 | 未执行 | HANDOFF 阶段门禁要求先完成 G02 Sol 验收 |
+| 完整参数库和完整 GWP 表 | 未执行 | 本阶段只允许首批最小集合，后续补充需单独阶段/验收 |
+| YAML loader | 未执行 | 当前 Canonical 选用 JSON；环境无已批准 YAML loader，避免静默引入解释差异 |
+| 正式数据库运行产物 | 未提交 | SQLite 必须由 Canonical 构建脚本生成，测试使用临时目录 |
+| Windows 安装包、GUI 视觉验收、企业真实数据和黄金算例 | 未执行 | HANDOFF 明确属于后续阶段或暂不实施范围 |
 
 ## Git
 
-- 分支：`main`。
-- 初次 G01 收口提交：`12dc1b2 docs: record G01 acceptance state`。
-- 本次修复代码、回归测试、`TASK_STATE.md` 和本报告已形成 G01 返工提交。
-- 返工提交后已复核 Git status 为 clean。
+- 分支：main。
+- 未使用破坏性 Git 操作。
+- 本报告和 TASK_STATE.md 更新后形成 G02 收口提交。
+- 保护范围：计算表/、.venv/、tmp/ 未被修改；生成数据库不进入 Git。
 
-## 已知问题
+## Sol 验收重点
 
-- 当前没有未解决的返工缺陷；G01 仍等待 Sol 重新验收。
-- G01 有意不提供数据库、标准目录数据、正式 UI、行业核算规则和报告导出。
-- 本机 `py.exe` 未发现已注册的 Python，但项目虚拟环境使用的 Python 3.12.14 x64 已验证可用。
-
-## 建议 Sol 重点复核
-
-- 能量单位是否均以 kJ 为共同基准，特别是 `1 kWh = 3600 kJ` 和 `1 MWh = 3.6 GJ`。
-- 所有领域枚举字段是否拒绝原始字符串，且 `ValidationProblem.level` 不再绕过 ERROR 记录阻断。
-- 新增针对性回归测试和 18/18 全量测试结果。
-- 本次返工是否保持 G01 范围且没有提前进入 G02。
+1. 复核 9 个标准中 7 个计划标准确实只有官方目录元数据，没有计算规则。
+2. 复核 Canonical 数值均有来源定位、单位、审核状态，并确认电力 kgCO₂/kWh 与 tCO₂/MWh 的标准化关系。
+3. 复核 catalog/user/records 三库没有职责混放，删除后可重建且迁移幂等。
+4. 复核 15 个 G02 定向测试、33 个项目全量测试和 L3 检查记录。
+5. 确认 G02 PASS 后再由用户单独启动 G03；Luna 已停止，不会自动进入 G03。
