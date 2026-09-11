@@ -14,7 +14,7 @@ G03 公共桌面外壳与导航
 - 首次返工后状态曾为 READY_FOR_SOL_REACCEPTANCE。
 - G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，在该验收时 G03 尚未创建或执行。
-- G03 当前状态：READY_FOR_SOL_REACCEPTANCE；G04 未创建、未执行。
+- G03 小修已完成，当前状态：READY_FOR_SOL_REACCEPTANCE；G04 未创建、未执行。
 
 ## G03 本轮完成
 
@@ -24,6 +24,9 @@ G03 公共桌面外壳与导航
 - 建立首页、标准库、新建核算、Excel 导入、核算记录、参数与因子库、设置七个路由；首页快速入口与左侧导航进入同一路由。
 - Excel 导入保留导航和占位页面，文件选择、标准选择、模板下载、下一步和导入等控件全部禁用、不可聚焦且未连接文件或计算动作。
 - 标准库、核算、记录、参数与因子库和设置仅提供 G03 可达占位页；没有实现 G04 查询、G05 规则、G06 算法、G07 记录或导出功能。
+- 按 Sol 验收意见将首页 StartPanel 调整为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。
+- 将 `BRAND_AREA_HEIGHT`、`SIDEBAR_ICON_ACTIVE` 和 `SIDEBAR_ICON_INACTIVE` 作为统一 Design Token 接入 Shell；界面代码不再重复写死品牌高度或导航图标白色。
+- 新增两项针对性回归测试，分别锁定首页按钮顺序和 Shell 的 Token 使用；未改变 G03 之外的范围。
 
 ## G02 第二次返工内容
 
@@ -116,23 +119,23 @@ G03 公共桌面外壳与导航
 
 ## G03 测试与检查
 
-### L1：G03 定向 GUI 测试
+### L1：G03 返工定向 GUI 测试
 
 命令：
 
     $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v
 
-结果：6 个通过，0 个失败，0 个错误，0 个跳过。
+结果：8 个通过，0 个失败，0 个错误，0 个跳过。
 
-覆盖：固定 Sidebar 宽度与导航顺序、设置底部锚定、首页标题/工作区/安全空状态、七路由可达性、首页入口与左侧导航路由一致、Excel 页面全部控件禁用、Logo 比例与尺寸、主内容滚动策略、窗口最小尺寸和紧凑/宽屏边距。
+覆盖：固定 Sidebar 宽度与导航顺序、设置底部锚定、首页标题/工作区/安全空状态、首页三个按钮固定顺序、七路由可达性、首页入口与左侧导航路由一致、Excel 页面全部控件禁用、Logo 比例与尺寸、主内容滚动策略、窗口最小尺寸和紧凑/宽屏边距，以及品牌高度和导航图标颜色使用 Design Token。
 
-### L2：G03 与既有功能回归
+### L2：G03 返工与既有功能回归
 
 命令：
 
     $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
 
-结果：45 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv 为 Python 3.12.14，PySide6 6.11.2）。
+结果：47 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv 为 Python 3.12.14，PySide6 6.11.2）。
 
 ### L3：G03 阶段收口
 
@@ -142,13 +145,13 @@ G03 公共桌面外壳与导航
 - G03 边界扫描未发现 `sqlite3`、`QSql`、`QFileDialog`、表格查询控件、报告/导出组件或其他后续业务实现。
 - `计算表/` Git 差异为空；未修改用户参考文件。
 - G04 未创建、未执行；未实现标准库查询、参数/因子库查询或任何核算算法。
-- 检查时间：2026-09-11。
+- 检查时间：2026-09-12。
 
 ## 未执行项及原因
 
 | 项目 | 状态 | 原因 |
 |---|---|---|
-| G04 标准库与参数因子库页面 | 未执行 | HANDOFF 阶段门禁要求先完成 G03 Sol 验收 |
+| G04 标准库与参数因子库页面 | 未执行 | G03 小修已交付，仍等待 Sol 重新验收通过 |
 | 完整参数库和完整 GWP 表 | 未执行 | 本阶段只允许首批最小集合，后续补充需单独阶段/验收 |
 | YAML loader | 未执行 | 当前 Canonical 选用 JSON；环境无已批准 YAML loader，避免静默引入解释差异 |
 | 正式数据库运行产物 | 未提交 | SQLite 必须由 Canonical 构建脚本生成，测试使用临时目录 |
@@ -162,6 +165,7 @@ G03 公共桌面外壳与导航
 - G02 返工实施提交：ba72f9a fix: address G02 catalog acceptance findings。
 - G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - G03 实施提交：`617d982 feat: implement G03 desktop shell`。
+- G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
 - 保护范围：计算表/、.venv/ 和既有用户临时文件未修改；本轮只新增被忽略的 tmp 验证数据库，生成数据库不进入 Git。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -203,3 +207,12 @@ G02 阶段门禁已解除，允许由用户另行启动 G03 Goal。
 2. `packages/ui/shell.py` 仍直接使用 `#FFFFFF` 作为导航图标颜色，未完全遵守公共框架“颜色必须通过全局 Design Token”的要求；`brand_area.setFixedHeight(120)` 也应改用已有 `BRAND_AREA_HEIGHT`，避免公共尺寸在 Shell 中重复写死。
 
 G04 未创建、未执行。G03 修正并重新验收为 PASS 前，阶段门禁保持关闭；修正完成后应发送“重新验收G03”。
+
+## G03 小修交付状态
+
+**状态：READY_FOR_SOL_REACCEPTANCE**
+
+- 已修正首页三个按钮的冻结顺序：新建核算 → Excel 导入（暂未开放）→ 查看标准库。
+- 已将导航图标激活/非激活颜色及品牌区高度统一收敛到 `packages/ui/design_tokens.py`，并删除 Shell 内对应硬编码。
+- 返工定向测试 8/8、项目全量回归 47/47、compileall、pip check、G03 边界扫描、Shell 硬编码扫描和 `计算表/` 保护检查均通过。
+- G04 未创建、未执行；当前停止等待用户发送“重新验收G03”。

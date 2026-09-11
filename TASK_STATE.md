@@ -6,7 +6,7 @@ G03 公共桌面外壳与导航
 
 ## 状态
 
-G03_PASS_WITH_MINOR_FIXES
+G03_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -17,6 +17,7 @@ G03_PASS_WITH_MINOR_FIXES
 - G02 再次验收结论：FAILED；发现热力因子仍错误引用钢铁生产附件，本轮已改为 GB/T 32150—2025 标准条款来源。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，确认第二次返工已解决热力因子来源问题。
 - G03 正式验收结论：PASS WITH MINOR FIXES（2026-09-12）；验收实施基线为 `05a67f4`。桌面外壳可运行，但两项冻结规范细节须修正后重新验收。
+- G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`，当前等待 Sol 重新验收。
 - G04 未开始；未创建或执行 G04 Goal。
 
 ## 已完成
@@ -36,6 +37,9 @@ G03_PASS_WITH_MINOR_FIXES
 - 应用接入 G03 温室气体产品视图模型：7 个固定导航入口、120 px 品牌区、176 px 等比例 Logo、首页工作台、最近记录/标准空状态和底部设置入口。
 - Excel 导入只保留可达的占位页；文件、标准、模板、下一步和导入控件全部禁用且不可聚焦，没有文件读取、导入或计算动作。
 - 新增 tests/test_g03_shell.py，覆盖路由可达性、首页空状态、导航顺序/尺寸、Logo 比例、窗口边距、滚动策略和 Excel 控件禁用。
+- 按 G03 验收意见修正首页 StartPanel 顺序为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。
+- 将导航图标的激活/非激活颜色和品牌区高度统一改为 `packages/ui/design_tokens.py` 中的 Design Token，Shell 不再写死 `#FFFFFF` 或 `120`。
+- 新增首页固定按钮顺序和 Shell Design Token 使用回归断言；本轮仅修改 G03 UI 与测试。
 - 计算表/ 下 7 个用户参考文件未修改、未纳入 Git；最终 SHA256 与既有基线一致。
 
 ## 未执行或未开始
@@ -48,16 +52,16 @@ G03_PASS_WITH_MINOR_FIXES
 
 ## 最后测试
 
-- G03 定向命令：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v
-- G03 定向结果：6 个通过，0 个失败，0 个错误，0 个跳过。
-- G03 与项目全量命令：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
-- G03 与项目全量结果：45 个通过，0 个失败，0 个错误，0 个跳过（使用项目 .venv，Python 3.12.14，PySide6 6.11.2）。
+- G03 返工定向命令：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v
+- G03 返工定向结果：8 个通过，0 个失败，0 个错误，0 个跳过。
+- G03 返工与项目全量命令：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
+- G03 返工与项目全量结果：47 个通过，0 个失败，0 个错误，0 个跳过（使用项目 .venv，Python 3.12.14，PySide6 6.11.2）。
 - G03 L3 编译：.venv\Scripts\python.exe -m compileall -q apps packages tests scripts，成功。
 - G03 L3 依赖：.venv\Scripts\python.exe -m pip check，输出 No broken requirements found.。
 - G03 L3 资源/UI 探查：Logo 3060x759、7 个 SVG 图标、AppShell 成功创建。
 - G03 L3 禁入扫描：G03 范围未发现 sqlite3、QSql、QFileDialog、表格查询控件、报告/导出组件或其他后续业务实现。
 - G03 L3 保护检查：计算表/ Git 差异为空。
-- Sol G03 独立复核：定向测试 6/6、项目全量回归 45/45、compileall 和 pip check 均通过。
+- G03 初次验收复核：定向测试 6/6、项目全量回归 45/45、compileall 和 pip check 均通过；本轮返工后已重新执行并记录 8/8、47/47。
 - Sol G03 原生 Qt 视觉复核：1180×720 与 1920×1080 首页无重叠，Logo 保持约 4.03:1；Excel 占位页布局正常且内部控件全部禁用。Windows 自动化辅助进程因沙箱初始化失败不可用，已改用原生 Qt 窗口截图和程序化路由/控件测试补充验证。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
@@ -83,17 +87,18 @@ G03_PASS_WITH_MINOR_FIXES
 - G02 返工实施提交：ba72f9a fix: address G02 catalog acceptance findings。
 - G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - G03 实施提交：`617d982 feat: implement G03 desktop shell`。
+- G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
 ## 阻塞项
 
-- G03 小修项1：首页 StartPanel 当前顺序为“新建核算 → 查看标准库 → Excel 导入”，公共框架最高优先级规范第31节要求严格固定为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。需调整控件创建/显示顺序并增加顺序断言。
-- G03 小修项2：`packages/ui/shell.py` 的导航图标白色仍直接写为 `#FFFFFF`，未完全遵守公共框架“颜色必须通过全局 Design Token，不允许散落硬编码”的要求；同时应使用已有 `BRAND_AREA_HEIGHT`，避免在 Shell 再写死 `120`。
-- 阶段门禁：G03 当前为 PASS WITH MINOR FIXES；修正并重新验收前不得进入 G04。
+- G03 小修项1：已修正并由回归测试锁定首页按钮顺序。
+- G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
+- 阶段门禁：G03 小修已提交，当前等待 Sol 重新验收；未获 G03 PASS 前不得进入 G04。
 
 ## 下一步
 
-1. Luna Max 只修正上述两项 G03 规范问题，不实施 G04。
-2. 同步更新 G03 测试，重新执行定向测试和项目全量回归。
-3. 修正完成后停止，等待用户发送“重新验收G03”；获得 G03 PASS 前不得启动 G04。
+1. 等待用户发送“重新验收G03”，由 Sol 复核 `aaefe29`。
+2. 复核 G03 返工定向 8/8、项目全量 47/47 及 L3 检查记录。
+3. 获得 G03 PASS 后，才可由用户启动新的 G04 Goal；G04 当前未创建或执行。
