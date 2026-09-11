@@ -1,66 +1,31 @@
-"""G00 minimal PySide6 application."""
+"""G03 public desktop shell for the carbon-accounting application."""
 
 from __future__ import annotations
 
 import sys
 from collections.abc import Sequence
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 from .config import AppConfig
 from .logging_config import configure_logging
+from .product import create_shell
+from packages.ui.design_tokens import application_stylesheet
 
 
 def create_main_window(config: AppConfig | None = None) -> QMainWindow:
-    """Create the G00 placeholder window; no business page is implemented."""
+    """Create the public G03 shell; business algorithms remain outside the UI."""
 
     app_config = config or AppConfig()
     window = QMainWindow()
-    window.setObjectName("g00MainWindow")
+    window.setObjectName("mainWindow")
     window.setWindowTitle(app_config.app_name)
-    window.setMinimumSize(800, 480)
-    window.resize(960, 600)
-
-    content = QWidget(window)
-    layout = QVBoxLayout(content)
-    layout.setContentsMargins(32, 32, 32, 32)
-    layout.setSpacing(16)
-
-    logo_label = QLabel(content)
-    logo_label.setObjectName("brandLogo")
-    logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    logo = QPixmap(str(app_config.logo_path()))
-    if not logo.isNull():
-        logo_label.setPixmap(
-            logo.scaled(
-                420,
-                110,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
-    else:
-        logo_label.setText("青舟节能")
-    layout.addWidget(logo_label)
-
-    title_label = QLabel("G00 工程骨架", content)
-    title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    title_label.setObjectName("skeletonTitle")
-    layout.addWidget(title_label)
-
-    description_label = QLabel(
-        "最小可启动窗口已就绪。业务页面与核算功能将按阶段交接基线实施。",
-        content,
-    )
-    description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    description_label.setWordWrap(True)
-    description_label.setObjectName("skeletonDescription")
-    layout.addWidget(description_label)
-    layout.addStretch(1)
-
-    window.setCentralWidget(content)
+    window.setMinimumSize(1180, 720)
+    window.resize(1280, 800)
+    window.setStyleSheet(application_stylesheet())
+    window.setFont(QFont("Microsoft YaHei UI", 10))
+    window.setCentralWidget(create_shell(app_config))
     return window
 
 

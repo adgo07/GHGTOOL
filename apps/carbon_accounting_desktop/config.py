@@ -1,7 +1,7 @@
-"""G00 application configuration.
+"""Application-edge configuration for the G03 desktop shell.
 
 This module only defines application-level settings. Business data and database
-configuration are intentionally deferred to later HANDOFF stages.
+configuration stay outside the public shell and are intentionally deferred.
 """
 
 from __future__ import annotations
@@ -41,3 +41,7 @@ class AppConfig:
         resource_parts = tuple(part for part in self.logo_resource.split("/") if part)
         return Path(files("resources").joinpath(*resource_parts))
 
+    def icons_directory(self) -> Path:
+        """Resolve the shared SVG navigation icon directory."""
+
+        return Path(files("resources").joinpath("icons"))
