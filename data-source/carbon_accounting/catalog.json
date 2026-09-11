@@ -2,7 +2,7 @@
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
     "schema_version": "1.0.0",
-    "data_version": "2026.09.11-g02-rework.1",
+    "data_version": "2026.09.11-g02-rework.2",
     "app_compatibility": "0.1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
@@ -172,21 +172,6 @@
       "official_url": "https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/",
       "review_status": "VERIFIED",
       "notes": "CO₂ GWP100=1，定位为Chapter 7 Table 7.15及Supplementary Table 7.SM.7。"
-    },
-    {
-      "source_id": "SRC-MEE-2023-332-ATT4",
-      "source_type": "GOVERNMENT_PUBLICATION",
-      "document_no": "环办气候函〔2023〕332号（附件4）",
-      "document_name": "企业温室气体排放核算与报告填报说明 钢铁生产",
-      "publisher": "生态环境部办公厅",
-      "publication_date": "2023-10-14",
-      "effective_from": null,
-      "effective_to": null,
-      "region": "中国",
-      "version": "2023",
-      "official_url": "https://www.mee.gov.cn/xxgk2018/xxgk/xxgk06/202310/W020231018422355676981.pdf",
-      "review_status": "VERIFIED",
-      "notes": "原始发布通知为《关于做好2023—2025年部分重点行业企业温室气体排放报告与核查工作的通知》（环办气候函〔2023〕332号）；官网页面生成日期为2023-10-18，附件4第6.2.6.3节明确热力排放因子采用0.11tCO₂/GJ。"
     },
     {
       "source_id": "SRC-SYSTEM-UNIT-POLICY",
@@ -493,11 +478,11 @@
       "name": "外购热力缺省排放因子",
       "canonical_unit": "tCO₂/GJ",
       "subject_id": "purchased_heat",
-      "source_id": "SRC-MEE-2023-332-ATT4",
-      "source_location": "附件4第6.2.6.3节（P13）：热力排放因子采用0.11tCO₂/GJ",
+      "source_id": "SRC-32150-2025",
+      "source_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
       "review_status": "VERIFIED",
       "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
-      "notes": "仅作为无合格实测因子时的推荐值；不代表所有供热单位的实测值。"
+      "notes": "共用规则层标准缺省值；无合格供热单位实测因子时采用，不代表所有供热单位的实测值。"
     },
     {
       "parameter_id": "gwp_co2_ar6_100",
@@ -603,15 +588,15 @@
       "source_unit": "tCO₂/GJ",
       "normalized_value": "0.11",
       "normalized_unit": "tCO₂/GJ",
-      "source_id": "SRC-MEE-2023-332-ATT4",
-      "source_location": "附件4第6.2.6.3节（P13）：热力排放因子采用0.11tCO₂/GJ",
-      "factor_year": 2023,
-      "valid_from": null,
+      "source_id": "SRC-32150-2025",
+      "source_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
+      "factor_year": 2025,
+      "valid_from": "2026-07-01",
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
       "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
-      "notes": "无符合要求的供热单位实测因子时推荐。"
+      "notes": "GB/T 32150—2025共用规则层标准缺省值；无符合要求的供热单位实测因子时推荐。"
     },
     {
       "factor_id": "gwp_co2_ar6_100",

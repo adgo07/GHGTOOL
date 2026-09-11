@@ -22,7 +22,7 @@ class CanonicalCatalogTests(unittest.TestCase):
 
     def test_approved_minimal_catalog_loads(self) -> None:
         self.assertEqual(len(self.catalog["standards"]), 9)
-        self.assertEqual(len(self.catalog["sources"]), 13)
+        self.assertEqual(len(self.catalog["sources"]), 12)
         self.assertEqual(len(self.catalog["parameters"]), 6)
         self.assertEqual(len(self.catalog["factors"]), 6)
         self.assertEqual(self.catalog["manifest"]["canonical_format"], "JSON")
@@ -137,7 +137,7 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(electricity["publisher"], "生态环境部、国家统计局")
         self.assertIn("联合发布", electricity["notes"])
 
-        heat_source = sources["SRC-MEE-2023-332-ATT4"]
+        heat_source = sources["SRC-32150-2025"]
         heat_factor = next(factor for factor in self.catalog["factors"] if factor["factor_id"] == "heat_default_2025")
         heat_parameter = next(
             parameter for parameter in self.catalog["parameters"]
@@ -146,11 +146,23 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(heat_factor["source_id"], heat_source["source_id"])
         self.assertEqual(heat_parameter["source_id"], heat_source["source_id"])
         self.assertEqual(heat_source["official_url"],
-                         "https://www.mee.gov.cn/xxgk2018/xxgk/xxgk06/202310/W020231018422355676981.pdf")
-        self.assertIn("6.2.6.3", heat_factor["source_location"])
-        self.assertIn("6.2.6.3", heat_parameter["source_location"])
+                         "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=6E4997D6B3118055931BC13C71B9A452")
+        self.assertEqual(heat_source["source_type"], SourceType.OFFICIAL_STANDARD.value)
+        self.assertIn("7.5.6", heat_factor["source_location"])
+        self.assertIn("7.5.7", heat_factor["source_location"])
+        self.assertIn("7.5.6", heat_parameter["source_location"])
+        self.assertIn("7.5.7", heat_parameter["source_location"])
+        self.assertEqual(
+            set(heat_factor["applicable_standard_ids"]),
+            {"gbt_32150_2025", "gbt_32151_34_2024"},
+        )
+        self.assertEqual(
+            set(heat_parameter["applicable_standard_ids"]),
+            {"gbt_32150_2025", "gbt_32151_34_2024"},
+        )
         self.assertEqual(heat_factor["value"], "0.11")
-        self.assertEqual(heat_factor["factor_year"], 2023)
+        self.assertEqual(heat_factor["factor_year"], 2025)
+        self.assertEqual(heat_factor["valid_from"], "2026-07-01")
         self.assertEqual(heat_factor["value_type"], ValueType.STANDARD_DEFAULT.value)
 
     def test_duplicate_stable_id_blocks_validation(self) -> None:

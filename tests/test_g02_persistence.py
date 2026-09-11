@@ -68,13 +68,13 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("audit_log", records_tables)
             self.assertNotIn("source_documents", records_tables)
 
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.11-g02-rework.1")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.11-g02-rework.2")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
             try:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 13)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 12)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 6)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 6)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM conversion_rules").fetchone()[0], 13)
@@ -119,8 +119,9 @@ class PersistenceTests(unittest.TestCase):
                     "SELECT source_id, source_location, value, value_type FROM factor_values WHERE factor_id=?",
                     ("heat_default_2025",),
                 ).fetchone()
-                self.assertEqual(heat[0], "SRC-MEE-2023-332-ATT4")
-                self.assertIn("6.2.6.3", heat[1])
+                self.assertEqual(heat[0], "SRC-32150-2025")
+                self.assertIn("7.5.6", heat[1])
+                self.assertIn("7.5.7", heat[1])
                 self.assertEqual(heat[2:], ("0.11", "STANDARD_DEFAULT"))
 
                 ddl = "\n".join(
