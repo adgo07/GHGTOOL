@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-G02 Canonical 数据与 SQLite 基础（第二次返工）
+G02 Canonical 数据与 SQLite 基础（已完成并通过验收）
 
 ## 状态
 
-READY_FOR_SOL_REACCEPTANCE
+G02_PASS_WAITING_FOR_USER_TO_START_G03
 
 ## 阶段验收状态
 
@@ -15,7 +15,8 @@ READY_FOR_SOL_REACCEPTANCE
 - G01 重新验收结论：PASS（本轮用户已明确确认）。
 - G02 首次验收结论：FAILED；已按 Sol 意见完成返工，当前等待重新验收。
 - G02 再次验收结论：FAILED；发现热力因子仍错误引用钢铁生产附件，本轮已改为 GB/T 32150—2025 标准条款来源。
-- G03 未开始；本轮没有创建或执行 G03 Goal。
+- G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，确认第二次返工已解决热力因子来源问题。
+- G03 未开始；G02 通过后已满足进入条件，但仍须由用户另行启动 G03 Goal。
 
 ## 已完成
 
@@ -34,7 +35,7 @@ READY_FOR_SOL_REACCEPTANCE
 
 ## 未执行或未开始
 
-- G03 公共桌面外壳、首页、导航、Logo 和禁用入口未执行，等待本阶段 Sol PASS 后由用户启动新的 G03 Goal。
+- G03 公共桌面外壳、首页、导航、Logo 和禁用入口未执行；G02 已经 PASS，等待用户另行启动新的 G03 Goal。
 - G04 及以后页面、规则解析、推荐服务、GB/T 32151.34 计算、记录闭环、报告/导出和 Windows 安装包未执行。
 - 完整 26 种燃料、碳酸盐、蒸汽焓值和完整 AR6 GWP 表未录入；G02 只录入 HANDOFF.md 规定的最小集合。
 - 未引入 YAML 解析依赖；本阶段选择 JSON 作为实际 Canonical 源文件，避免在没有批准 loader/依赖时静默解释 YAML。
@@ -54,6 +55,8 @@ READY_FOR_SOL_REACCEPTANCE
 - 隔离导入：.venv\Scripts\python.exe -S 成功导入 Canonical loader 和迁移 runner，并验证 9 个标准、1 个 catalog 迁移。
 - 分层/禁入扫描：packages/core 和 packages/reference_data 未发现 PySide6、sqlite3、Windows API 或 QSql；Canonical/package 未发现标准全文字段；未发现 G03 应用/UI 文件变化。
 - 受保护文件检查：7/7 个 计算表/ 文件 SHA256 与基线一致。
+- Sol 最终验收复核：G02 定向测试 21/21、项目全量测试 39/39、Canonical 校验及 catalog/三库从零构建均通过；项目依赖无破损。
+- Sol 原文复核：GB/T 32150—2025 第7.5.6～7.5.7条明确支持热力因子实测优先或采用 0.11 tCO₂/GJ；GB/T 32151.34—2024 第5.2.6.2及表C.3给出相同值。
 - 测试时间：2026-09-11。
 
 ## Git
@@ -68,10 +71,10 @@ READY_FOR_SOL_REACCEPTANCE
 ## 阻塞项
 
 - 无实现阻塞项。
-- 阶段门禁：G02 返工交付后停止，等待 Sol 重新验收；未获 PASS 前不得进入 G03。
+- 阶段门禁：G02 已获 Sol PASS，允许由用户另行启动 G03；本次验收落盘未创建或执行 G03。
 
 ## 下一步
 
-1. Sol 复核 Canonical 来源、职责字段、枚举一致性、专属参数和 GB/T 32150—2025 热力因子原始定位。
-2. Sol 复核 21 个 G02 定向测试、39 个全量测试及 L3 检查记录。
-3. 只有 G02 重新获得 PASS 后，才由用户启动新的 G03 Goal。
+1. 等待用户向 Luna Max 发出 G03 Goal 启动指令。
+2. G03 必须继续遵守 `HANDOFF.md` 的范围，只实现公共桌面外壳、首页、导航、Logo、空状态和 Excel 导入禁用占位。
+3. 不得在 G03 中提前实施 G04 或后续阶段内容。
