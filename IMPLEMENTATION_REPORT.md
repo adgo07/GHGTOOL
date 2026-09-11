@@ -2,18 +2,28 @@
 
 ## 阶段
 
-G02 Canonical 数据与 SQLite 基础（第二次返工）
+G03 公共桌面外壳与导航
 
 ## 前置验收与阶段边界
 
 - G00 验收结论：PASS。
 - G01 初次验收为 FAILED；能量单位共同基准和领域枚举字符串绕过问题已完成修复。
 - G01 重新验收结论：PASS（本轮用户已明确确认）。
-- 本轮只创建并执行 G02 Goal；G03 未创建、未执行。
+- G02 已通过 Sol 最终验收（2026-09-11），本轮创建并执行唯一的 G03 Goal。
 - G02 首次验收结论：FAILED；本轮仅处理 Sol 指定的 Canonical/SQLite/G01 枚举、标准职责、来源定位和参数引用返工，未开始 G03。
 - 首次返工后状态曾为 READY_FOR_SOL_REACCEPTANCE。
 - G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
-- G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，G03 尚未创建或执行。
+- G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，在该验收时 G03 尚未创建或执行。
+- G03 当前状态：READY_FOR_SOL_REACCEPTANCE；G04 未创建、未执行。
+
+## G03 本轮完成
+
+- 在 `packages/ui/` 建立可复用的 AppShell、页面路由、共享视觉令牌、平台无关视图模型和 SVG 导航图标加载器；应用层不直接查询数据库。
+- 将应用接入固定 248 px 全高左侧导航、120 px 品牌区、顶部 Logo、底部设置入口和独立纵向滚动的主内容区；Logo 保持原比例，最大显示宽度 176 px。
+- 建立首页专业工作台：温室气体排放核算标题与说明、开始卡片、最近核算记录空状态、最近使用标准安全空状态和底部辅助摘要；没有 KPI 大卡、图表或假数据。
+- 建立首页、标准库、新建核算、Excel 导入、核算记录、参数与因子库、设置七个路由；首页快速入口与左侧导航进入同一路由。
+- Excel 导入保留导航和占位页面，文件选择、标准选择、模板下载、下一步和导入等控件全部禁用、不可聚焦且未连接文件或计算动作。
+- 标准库、核算、记录、参数与因子库和设置仅提供 G03 可达占位页；没有实现 G04 查询、G05 规则、G06 算法、G07 记录或导出功能。
 
 ## G02 第二次返工内容
 
@@ -30,7 +40,7 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - GB/T 32151.34—2024 只直接关联其附录 C 对应的 3 个天然气专属参数；其余 7 项计划标准仍无参数/排放源引用。
 - （已由本轮第二次返工修正）此前曾将 0.11 tCO₂/GJ 指向生态环境部办公厅环办气候函〔2023〕332号附件4；该来源已移除，当前以 GB/T 32150—2025 第7.5.6～7.5.7条为准。
 
-## 本轮完成
+## G02 历史完成内容
 
 ### Canonical schema 与校验
 
@@ -59,7 +69,7 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - 新增 scripts/build_catalog.py 和 scripts/initialize_databases.py。
 - 应用版本、schema 版本和 data 版本分开写入每个数据库；catalog 的 data_version 来自 manifest，user/records 使用 not_applicable。
 
-## Scope 控制
+## G02 历史 Scope 控制
 
 - 没有修改 apps/ 或 packages/ui/，没有开始 G03 桌面外壳、首页、导航、Logo 或禁用入口。
 - 没有实现 G04 查询页面、G05 规则解析、G06 计算公式、G07 记录闭环或 G08 Windows 交付。
@@ -67,7 +77,7 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - 没有生成并提交运行时 SQLite 文件；构建产物由 CLI 在指定目录按需创建。
 - 计算表/ 下 7 个用户参考文件未修改、未纳入 Git。
 
-## 测试与检查
+## G02 历史测试与检查
 
 ### L1：G02 针对性测试
 
@@ -104,11 +114,41 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - 用户文件 SHA256：7/7 与既有基线一致。
 - 检查时间：2026-09-11。
 
+## G03 测试与检查
+
+### L1：G03 定向 GUI 测试
+
+命令：
+
+    $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v
+
+结果：6 个通过，0 个失败，0 个错误，0 个跳过。
+
+覆盖：固定 Sidebar 宽度与导航顺序、设置底部锚定、首页标题/工作区/安全空状态、七路由可达性、首页入口与左侧导航路由一致、Excel 页面全部控件禁用、Logo 比例与尺寸、主内容滚动策略、窗口最小尺寸和紧凑/宽屏边距。
+
+### L2：G03 与既有功能回归
+
+命令：
+
+    $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
+
+结果：45 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv 为 Python 3.12.14，PySide6 6.11.2）。
+
+### L3：G03 阶段收口
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages tests scripts`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- UI/资源探查成功：Logo 原图 3060×759，7 个 SVG 导航图标，应用 Shell 为 `AppShell`。
+- G03 边界扫描未发现 `sqlite3`、`QSql`、`QFileDialog`、表格查询控件、报告/导出组件或其他后续业务实现。
+- `计算表/` Git 差异为空；未修改用户参考文件。
+- G04 未创建、未执行；未实现标准库查询、参数/因子库查询或任何核算算法。
+- 检查时间：2026-09-11。
+
 ## 未执行项及原因
 
 | 项目 | 状态 | 原因 |
 |---|---|---|
-| G03 桌面外壳与导航 | 未执行 | HANDOFF 阶段门禁要求先完成 G02 Sol 验收 |
+| G04 标准库与参数因子库页面 | 未执行 | HANDOFF 阶段门禁要求先完成 G03 Sol 验收 |
 | 完整参数库和完整 GWP 表 | 未执行 | 本阶段只允许首批最小集合，后续补充需单独阶段/验收 |
 | YAML loader | 未执行 | 当前 Canonical 选用 JSON；环境无已批准 YAML loader，避免静默引入解释差异 |
 | 正式数据库运行产物 | 未提交 | SQLite 必须由 Canonical 构建脚本生成，测试使用临时目录 |
@@ -121,10 +161,11 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - G02 原收口提交：e4d9b03 feat: establish G02 canonical data and database foundations。
 - G02 返工实施提交：ba72f9a fix: address G02 catalog acceptance findings。
 - G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
+- G03 实施提交：`617d982 feat: implement G03 desktop shell`。
 - 保护范围：计算表/、.venv/ 和既有用户临时文件未修改；本轮只新增被忽略的 tmp 验证数据库，生成数据库不进入 Git。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
-## Sol 正式验收结论
+## G02 Sol 正式验收结论（历史）
 
 **结论：PASS**
 
@@ -139,4 +180,11 @@ G02 Canonical 数据与 SQLite 基础（第二次返工）
 - 其余 7 项计划标准仍只有目录元数据，没有计算规则；没有提前实施 G03。
 - 工作区原有未跟踪 `docs/handoffs/` 已有说明，不属于 G02，也未纳入验收提交。
 
-G02 阶段门禁已解除，允许由用户另行启动 G03 Goal。本次验收仅记录结论，不创建或执行 G03。
+G02 阶段门禁已解除，允许由用户另行启动 G03 Goal。
+
+## G03 Sol 验收状态
+
+**状态：READY_FOR_SOL_REACCEPTANCE**
+
+- G03 已按 HANDOFF 实施并完成定向测试、全量回归和 L3 检查。
+- G04 未创建、未执行；当前停止等待 Sol 验收。
