@@ -2,7 +2,7 @@
 
 ## 当前工作包
 
-G02 Canonical 数据与 SQLite 基础（返工）
+G02 Canonical 数据与 SQLite 基础（第二次返工）
 
 ## 状态
 
@@ -14,6 +14,7 @@ READY_FOR_SOL_REACCEPTANCE
 - G01 初次验收：FAILED；能量单位共同基准和领域枚举字符串绕过问题已修复。
 - G01 重新验收结论：PASS（本轮用户已明确确认）。
 - G02 首次验收结论：FAILED；已按 Sol 意见完成返工，当前等待重新验收。
+- G02 再次验收结论：FAILED；发现热力因子仍错误引用钢铁生产附件，本轮已改为 GB/T 32150—2025 标准条款来源。
 - G03 未开始；本轮没有创建或执行 G03 Goal。
 
 ## 已完成
@@ -22,9 +23,9 @@ READY_FOR_SOL_REACCEPTANCE
 - 新增 packages/reference_data/validation.py 和 scripts/validate_canonical.py：构建前校验稳定 ID、来源引用、官方 HTTPS URL、参数/因子引用、单位白名单、Decimal 值和规范化换算。
 - Canonical 源采用 JSON 这一已批准的 JSON/YAML 载体变体：data-source/carbon_accounting/catalog.json。
 - 首批目录包含 9 个标准：GB/T 32150—2025、GB/T 32151.34—2024，以及其余 7 项经官方目录核对的标准元数据；7 项计划标准没有参数引用、排放源引用或计算规则，GB/T 32151.34 仅关联其标准专属的 3 个天然气参数。
-- 首批来源包含 13 条；每个标准均绑定官方来源 ID 和官方 URL。标准全文、PDF 和计算公式未复制进 Canonical Source。
+- 首批来源包含 12 条；每个标准均绑定官方来源 ID 和官方 URL。标准全文、PDF 和计算公式未复制进 Canonical Source。
 - Canonical schema、校验器与 SQLite CHECK 统一使用 G01 的 OfficialStatus、SourceType、ReviewStatus、ParameterType 和 ValueType；标准职责拆分为发布单位、主管部门和归口部门。
-- 三项 2023 版标准名称已按官方目录修正；电力公告来源补全为生态环境部、国家统计局联合发布；0.11 热力因子定位到生态环境部办公厅环办气候函〔2023〕332号附件4第6.2.6.3节。
+- 三项 2023 版标准名称已按官方目录修正；电力公告来源补全为生态环境部、国家统计局联合发布；0.11 热力因子定位到 GB/T 32150—2025 第7.5.6～7.5.7条。
 - 首批参数/因子包含天然气低位发热量、单位热值含碳量、碳氧化率、2023 年全国电力平均因子、热力缺省因子和 CO₂ GWP100=1，共 6 个参数和 6 个因子；每个数值均有单位、来源定位、版本/年份和审核状态。
 - 新增 migrations/catalog/001_initial.sql、migrations/user/001_initial.sql、migrations/records/001_initial.sql，三个 SQLite 数据库物理隔离、独立迁移和独立版本元数据。
 - 新增 packages/persistence/sqlite.py、packages/persistence/catalog_builder.py 及两个构建脚本；Canonical 校验通过后按稳定 ID 排序、事务写入并原子替换 catalog.sqlite，可重复重建。
@@ -46,7 +47,7 @@ READY_FOR_SOL_REACCEPTANCE
 - 项目全量命令：.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
 - 项目全量结果：39 个通过，0 个失败，0 个错误，0 个跳过（使用项目 .venv，Python 3.12.14，PySide6 6.11.2）。
 - 备用系统 Python 全量收集曾因未安装 PySide6 产生 1 个导入错误；随后使用项目规定的 .venv 完成上述全量测试，该环境错误不计为项目测试结果。
-- CLI 验证：.venv\Scripts\python.exe scripts\validate_canonical.py，成功，输出 9 standards, 13 sources, 6 parameters, 6 factors。
+- CLI 验证：.venv\Scripts\python.exe scripts\validate_canonical.py，成功，输出 9 standards, 12 sources, 6 parameters, 6 factors。
 - CLI 构建：.venv\Scripts\python.exe scripts\build_catalog.py --source data-source\carbon_accounting\catalog.json --output tmp\g02-rework-validation.sqlite --app-version 0.1.0，成功从 Canonical 重建 SQLite。
 - 依赖核验：.venv\Scripts\python.exe -m pip check，输出 No broken requirements found.。
 - 编译核验：.venv\Scripts\python.exe -m compileall -q packages/core packages/reference_data packages/persistence tests scripts，成功。
@@ -60,6 +61,7 @@ READY_FOR_SOL_REACCEPTANCE
 - 当前分支：main。
 - G01 返工及前置修复提交仍保留；G02 原收口提交：e4d9b03 feat: establish G02 canonical data and database foundations。
 - G02 返工实施提交：ba72f9a fix: address G02 catalog acceptance findings。
+- G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -70,6 +72,6 @@ READY_FOR_SOL_REACCEPTANCE
 
 ## 下一步
 
-1. Sol 复核 Canonical 来源、职责字段、枚举一致性、专属参数和热力因子原始定位。
+1. Sol 复核 Canonical 来源、职责字段、枚举一致性、专属参数和 GB/T 32150—2025 热力因子原始定位。
 2. Sol 复核 21 个 G02 定向测试、39 个全量测试及 L3 检查记录。
 3. 只有 G02 重新获得 PASS 后，才由用户启动新的 G03 Goal。

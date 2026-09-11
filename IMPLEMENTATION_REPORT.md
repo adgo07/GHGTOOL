@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G02 Canonical 数据与 SQLite 基础
+G02 Canonical 数据与 SQLite 基础（第二次返工）
 
 ## 前置验收与阶段边界
 
@@ -12,15 +12,22 @@ G02 Canonical 数据与 SQLite 基础
 - 本轮只创建并执行 G02 Goal；G03 未创建、未执行。
 - G02 首次验收结论：FAILED；本轮仅处理 Sol 指定的 Canonical/SQLite/G01 枚举、标准职责、来源定位和参数引用返工，未开始 G03。
 - 返工后状态：READY_FOR_SOL_REACCEPTANCE，等待 Sol 重新验收。
+- G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
 
-## G02 返工内容
+## G02 第二次返工内容
+
+- 将 0.11 tCO₂/GJ 的参数与因子来源改为 GB/T 32150—2025 第7.5.6～7.5.7条，删除钢铁生产附件来源记录，避免把行业专项通知作为通则/炭素模块的共同来源。
+- 同步修正热力参数与因子 source_id、source_location、factor_year=2025、valid_from=2026-07-01、适用标准范围和说明；保留标准缺省值语义。
+- 测试改为验证标准来源、条款定位、年份、有效日期和双标准适用关系，不再断言钢铁附件。
+
+## G02 首次返工内容
 
 - Canonical schema、校验器和 catalog SQLite 迁移统一使用 G01 的 OfficialStatus、SourceType、ReviewStatus、ParameterType 和 ValueType 值集合；移除 OFFICIAL_NOTICE、SCIENTIFIC_REPORT、RETIRED、PENDING_REVIEW、OFFICIAL 和 DEFAULT 等旧字符串。
 - 标准字段由含义不清的 status/authority 改为 official_status、issuing_authority（发布单位）、competent_authority（主管部门）和 technical_committee（归口部门），构建器与 SQLite 列保持一致。
 - 按全国标准信息公共服务平台修正 GB/T 32151.7—2023、.8—2023、.13—2023 的名称；标准来源的 publisher 改为官方发布单位。
 - 电力公告来源改为 GOVERNMENT_PUBLICATION，记录生态环境部、国家统计局联合发布机关。
 - GB/T 32151.34—2024 只直接关联其附录 C 对应的 3 个天然气专属参数；其余 7 项计划标准仍无参数/排放源引用。
-- 新增生态环境部办公厅环办气候函〔2023〕332号附件4来源；0.11 tCO₂/GJ 的参数与因子定位到附件4第6.2.6.3节（P13），不再伪称为 GB/T 32150—2025 的“公共参数基线”。
+- （已由本轮第二次返工修正）此前曾将 0.11 tCO₂/GJ 指向生态环境部办公厅环办气候函〔2023〕332号附件4；该来源已移除，当前以 GB/T 32150—2025 第7.5.6～7.5.7条为准。
 
 ## 本轮完成
 
@@ -36,7 +43,7 @@ G02 Canonical 数据与 SQLite 基础
 - 新增 data-source/carbon_accounting/catalog.json。
 - 录入 9 个标准：GB/T 32150—2025、GB/T 32151.34—2024，以及 GB/T 32151.1—2015、.4—2026、.5—2026、.7—2023、.8—2023、.13—2023、.41—2024 的官方目录元数据。
 - 7 项计划标准只保留官方来源、状态、日期、分类和 URL；没有参数引用、排放源引用、公式或计算规则。GB/T 32151.34—2024 仅关联 3 个标准专属天然气参数，不录入公式。
-- 录入 13 条来源。标准官方页面分别来自 [全国标准信息公共服务平台](https://openstd.samr.gov.cn/bzgk/std/newGbInfo)，电力因子来源为 [生态环境部公告2025年第47号](https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html)，CO₂ GWP100 来源为 [IPCC AR6 WGI Chapter 7](https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/)，0.11 热力因子来源为 [生态环境部办公厅环办气候函〔2023〕332号附件4 PDF](https://www.mee.gov.cn/xxgk2018/xxgk/xxgk06/202310/W020231018422355676981.pdf)。
+- 录入 12 条来源。标准官方页面分别来自 [全国标准信息公共服务平台](https://openstd.samr.gov.cn/bzgk/std/newGbInfo)，电力因子来源为 [生态环境部公告2025年第47号](https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html)，CO₂ GWP100 来源为 [IPCC AR6 WGI Chapter 7](https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/)，0.11 热力因子来源为 [GB/T 32150—2025 官方标准页面](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=6E4997D6B3118055931BC13C71B9A452)，条款定位见 Canonical source_location。
 - 录入 6 个参数和 6 个因子：天然气 389.31 GJ/10⁴Nm³、0.0153 tC/GJ、0.99 ratio；2023 年全国电力平均因子 0.5306 tCO₂/MWh；热力缺省因子 0.11 tCO₂/GJ；CO₂ GWP100=1。
 - 每个数值都保留 source_value/source_unit、normalized_value/normalized_unit、source_id、source_location、factor_year、有效期和 review_status；电力因子明确记录 kgCO₂/kWh 到 tCO₂/MWh 的等值换算。
 - 标准全文、PDF 和标准原文没有复制到 Canonical Source 或构建产物。
@@ -83,7 +90,7 @@ G02 Canonical 数据与 SQLite 基础
 
 ### L3：阶段收口
 
-- .venv\Scripts\python.exe scripts\validate_canonical.py：成功，输出 9 standards、13 sources、6 parameters、6 factors。
+- .venv\Scripts\python.exe scripts\validate_canonical.py：成功，输出 9 standards、12 sources、6 parameters、6 factors。
 - .venv\Scripts\python.exe scripts\build_catalog.py --source data-source\carbon_accounting\catalog.json --output tmp\g02-rework-validation.sqlite --app-version 0.1.0：成功，从 Canonical 重建 SQLite。
 - .venv\Scripts\python.exe scripts\initialize_databases.py --output-dir 临时目录：成功生成 catalog.sqlite、user.sqlite、records.sqlite。
 - .venv\Scripts\python.exe -m pip check：No broken requirements found.
@@ -112,6 +119,7 @@ G02 Canonical 数据与 SQLite 基础
 - 未使用破坏性 Git 操作。
 - G02 原收口提交：e4d9b03 feat: establish G02 canonical data and database foundations。
 - G02 返工实施提交：ba72f9a fix: address G02 catalog acceptance findings。
+- G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - 保护范围：计算表/、.venv/ 和既有用户临时文件未修改；本轮只新增被忽略的 tmp 验证数据库，生成数据库不进入 Git。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -120,5 +128,5 @@ G02 Canonical 数据与 SQLite 基础
 1. 复核 Canonical schema、校验器、SQLite CHECK 与 G01 五组领域枚举完全一致，且没有旧字符串绕过。
 2. 复核三项 2023 版标准名称、发布单位/主管部门/归口部门和电力公告联合发布机关。
 3. 复核 GB/T 32151.34—2024 只关联其标准专属参数，7 项其他计划标准仍保持目录元数据范围。
-4. 复核 0.11 tCO₂/GJ 的来源为环办气候函〔2023〕332号附件4第6.2.6.3节，以及 21 个定向测试、39 个全量测试和 L3 检查记录。
+4. 复核 0.11 tCO₂/GJ 的来源为 GB/T 32150—2025 第7.5.6～7.5.7条，适用于通则与炭素材料模块，以及 21 个定向测试、39 个全量测试和 L3 检查记录。
 5. G02 重新 PASS 前不得启动 G03；Luna 已停止，不会自动进入 G03。
