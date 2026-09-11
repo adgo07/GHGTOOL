@@ -6,7 +6,7 @@ G03 公共桌面外壳与导航
 
 ## 状态
 
-READY_FOR_SOL_REACCEPTANCE
+G03_PASS_WITH_MINOR_FIXES
 
 ## 阶段验收状态
 
@@ -16,7 +16,7 @@ READY_FOR_SOL_REACCEPTANCE
 - G02 首次验收结论：FAILED；已按 Sol 意见完成返工，当前等待重新验收。
 - G02 再次验收结论：FAILED；发现热力因子仍错误引用钢铁生产附件，本轮已改为 GB/T 32150—2025 标准条款来源。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，确认第二次返工已解决热力因子来源问题。
-- G03 已按 HANDOFF 完成公共桌面外壳、首页、导航、Logo、路由、空状态和 Excel 禁用占位；当前等待 Sol 验收。
+- G03 正式验收结论：PASS WITH MINOR FIXES（2026-09-12）；验收实施基线为 `05a67f4`。桌面外壳可运行，但两项冻结规范细节须修正后重新验收。
 - G04 未开始；未创建或执行 G04 Goal。
 
 ## 已完成
@@ -57,6 +57,8 @@ READY_FOR_SOL_REACCEPTANCE
 - G03 L3 资源/UI 探查：Logo 3060x759、7 个 SVG 图标、AppShell 成功创建。
 - G03 L3 禁入扫描：G03 范围未发现 sqlite3、QSql、QFileDialog、表格查询控件、报告/导出组件或其他后续业务实现。
 - G03 L3 保护检查：计算表/ Git 差异为空。
+- Sol G03 独立复核：定向测试 6/6、项目全量回归 45/45、compileall 和 pip check 均通过。
+- Sol G03 原生 Qt 视觉复核：1180×720 与 1920×1080 首页无重叠，Logo 保持约 4.03:1；Excel 占位页布局正常且内部控件全部禁用。Windows 自动化辅助进程因沙箱初始化失败不可用，已改用原生 Qt 窗口截图和程序化路由/控件测试补充验证。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 - G02 定向结果：21 个通过，0 个失败，0 个错误，0 个跳过。
@@ -86,11 +88,12 @@ READY_FOR_SOL_REACCEPTANCE
 
 ## 阻塞项
 
-- 无实现阻塞项。
-- 阶段门禁：G03 返工交付后停止，等待 Sol 验收；未获 G03 PASS 前不得进入 G04。
+- G03 小修项1：首页 StartPanel 当前顺序为“新建核算 → 查看标准库 → Excel 导入”，公共框架最高优先级规范第31节要求严格固定为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。需调整控件创建/显示顺序并增加顺序断言。
+- G03 小修项2：`packages/ui/shell.py` 的导航图标白色仍直接写为 `#FFFFFF`，未完全遵守公共框架“颜色必须通过全局 Design Token，不允许散落硬编码”的要求；同时应使用已有 `BRAND_AREA_HEIGHT`，避免在 Shell 再写死 `120`。
+- 阶段门禁：G03 当前为 PASS WITH MINOR FIXES；修正并重新验收前不得进入 G04。
 
 ## 下一步
 
-1. Sol 复核 G03 的固定侧栏、首页工作台、7 个路由、Logo 比例和 Excel 禁用控件。
-2. Sol 复核 G03 定向 6/6、项目全量 45/45 及 L3 检查记录。
-3. 只有 G03 获得 PASS 后，才由用户启动新的 G04 Goal；G04 当前未创建或执行。
+1. Luna Max 只修正上述两项 G03 规范问题，不实施 G04。
+2. 同步更新 G03 测试，重新执行定向测试和项目全量回归。
+3. 修正完成后停止，等待用户发送“重新验收G03”；获得 G03 PASS 前不得启动 G04。
