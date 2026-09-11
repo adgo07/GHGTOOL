@@ -20,11 +20,13 @@ from PySide6.QtWidgets import (
 )
 
 from .design_tokens import (
+    BRAND_AREA_HEIGHT,
     COMPACT_PAGE_MARGIN,
     MAIN_CONTENT_MAX_WIDTH,
     NAV_ITEM_HEIGHT,
-    PRIMARY_BRAND,
     SIDEBAR_WIDTH,
+    SIDEBAR_ICON_ACTIVE,
+    SIDEBAR_ICON_INACTIVE,
     WIDE_PAGE_MARGIN,
 )
 from .icons import load_tinted_icon
@@ -111,7 +113,7 @@ class AppShell(QWidget):
 
         brand_area = QWidget(sidebar)
         brand_area.setObjectName("brandArea")
-        brand_area.setFixedHeight(120)
+        brand_area.setFixedHeight(BRAND_AREA_HEIGHT)
         brand_layout = QVBoxLayout(brand_area)
         brand_layout.setContentsMargins(20, 16, 20, 12)
         brand_layout.setSpacing(8)
@@ -156,7 +158,7 @@ class AppShell(QWidget):
             button.setIcon(
                 load_tinted_icon(
                     self._icon_directory / f"{item.icon_name}.svg",
-                    "#FFFFFF",
+                    SIDEBAR_ICON_INACTIVE,
                 )
             )
             button.setIconSize(QSize(18, 18))
@@ -233,7 +235,7 @@ class AppShell(QWidget):
             button.setIcon(
                 load_tinted_icon(
                     self._icon_directory / f"{self._icon_names[item_route]}.svg",
-                    PRIMARY_BRAND if is_active else "#FFFFFF",
+                    SIDEBAR_ICON_ACTIVE if is_active else SIDEBAR_ICON_INACTIVE,
                 )
             )
         self.update_content_geometry()

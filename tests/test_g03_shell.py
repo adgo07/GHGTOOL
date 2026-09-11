@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -17,7 +18,8 @@ from PySide6.QtWidgets import (
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
-from packages.ui.design_tokens import SIDEBAR_WIDTH
+import packages.ui.shell as shell_module
+from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
 
@@ -75,6 +77,37 @@ class G03ShellTest(unittest.TestCase):
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
+
+    def test_home_actions_follow_frozen_order(self) -> None:
+        home = self.shell.pages[AppRoute.HOME]
+        start_panel = home.findChild(QWidget, "startPanel")
+        self.assertIsNotNone(start_panel)
+        assert start_panel is not None
+        buttons = [
+            start_panel.layout().itemAt(index).widget()
+            for index in range(start_panel.layout().count())
+            if isinstance(start_panel.layout().itemAt(index).widget(), QPushButton)
+        ]
+        self.assertEqual(
+            [(button.objectName(), button.text()) for button in buttons],
+            [
+                ("primaryButton", "＋ 新建核算"),
+                ("reservedButton", "Excel 导入（暂未开放）"),
+                ("secondaryButton", "查看标准库"),
+            ],
+        )
+
+    def test_shell_uses_design_tokens_for_brand_height_and_icon_color(self) -> None:
+        shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
+        self.assertIn("BRAND_AREA_HEIGHT", shell_source)
+        self.assertIn("SIDEBAR_ICON_INACTIVE", shell_source)
+        self.assertNotIn("setFixedHeight(120)", shell_source)
+        self.assertNotIn("#FFFFFF", shell_source)
+
+        brand_area = self.shell.findChild(QWidget, "brandArea")
+        self.assertIsNotNone(brand_area)
+        assert brand_area is not None
+        self.assertEqual(brand_area.height(), BRAND_AREA_HEIGHT)
 
     def test_all_routes_are_reachable_and_home_actions_share_routes(self) -> None:
         shell = self.shell

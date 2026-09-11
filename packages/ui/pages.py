@@ -103,12 +103,6 @@ class HomePage(BasePage):
         primary_button.clicked.connect(lambda: navigate(AppRoute.NEW_ACCOUNTING))
         start_layout.addWidget(primary_button)
 
-        standards_button = QPushButton(view_model.standards_action_label, start_panel)
-        standards_button.setObjectName("secondaryButton")
-        standards_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        standards_button.clicked.connect(lambda: navigate(AppRoute.STANDARDS))
-        start_layout.addWidget(standards_button)
-
         excel_button = QPushButton(view_model.excel_action_label, start_panel)
         excel_button.setObjectName("reservedButton")
         excel_button.setProperty("reserved", True)
@@ -116,6 +110,13 @@ class HomePage(BasePage):
         excel_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         excel_button.clicked.connect(lambda: navigate(AppRoute.EXCEL_IMPORT))
         start_layout.addWidget(excel_button)
+
+        standards_button = QPushButton(view_model.standards_action_label, start_panel)
+        standards_button.setObjectName("secondaryButton")
+        standards_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        standards_button.clicked.connect(lambda: navigate(AppRoute.STANDARDS))
+        start_layout.addWidget(standards_button)
+
         start_layout.addStretch(1)
 
         recent_work, recent_layout = _card("最近核算记录", workspace)
