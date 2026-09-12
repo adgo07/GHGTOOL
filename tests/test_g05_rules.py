@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
 import unittest
@@ -400,8 +400,9 @@ class G05RuleTests(unittest.TestCase):
             applicability=RuleApplicability(standard_ids=(STANDARD_ID,)),
             selection_policy=ParameterSelectionPolicy.SYSTEM_GWP,
         )
+        repository = MemoryParameterRepository((parameter,), (ar6, ar5))
         resolver = ParameterResolver(
-            MemoryParameterRepository((parameter,), (ar6, ar5)),
+            repository,
             common_rules=(common_rule,),
         )
         context = ParameterResolutionContext(
@@ -430,6 +431,8 @@ class G05RuleTests(unittest.TestCase):
         snapshot = confirmed.to_snapshot("snapshot.g05.001", NOW)
         self.assertEqual(snapshot.factor_version, "AR6")
         self.assertEqual(snapshot.source_location, "测试来源条款")
+        repository.factors = (replace(ar6, value="274"), ar5)
+        self.assertEqual(snapshot.value_used, Decimal("273"))
         with self.assertRaises(FrozenInstanceError):
             snapshot.value_used = Decimal("1")  # type: ignore[misc]
 
