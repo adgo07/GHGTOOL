@@ -10,6 +10,7 @@ from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, So
 from packages.standards.catalog import (
     CatalogRepository,
     CatalogStatus,
+    CatalogValueCategory,
     FactorCatalogRecord,
     ParameterCatalogRecord,
     ParameterFactorResult,
@@ -68,6 +69,12 @@ VALUE_TYPE_LABELS = {
     ValueType.HISTORICAL: "历史值",
 }
 
+VALUE_CATEGORY_LABELS = {
+    CatalogValueCategory.RECOMMENDED: "推荐值（标准缺省）",
+    CatalogValueCategory.OTHER_APPLICABLE: "其他适用值",
+    CatalogValueCategory.HISTORICAL: "历史值",
+}
+
 
 def _normalized_text(value: object) -> str:
     return "".join(str(value).casefold().split())
@@ -109,6 +116,21 @@ def status_for(standard: StandardCatalogRecord, as_of: date) -> CatalogStatus:
     if standard.official_status is OfficialStatus.ACTIVE:
         return CatalogStatus.CURRENT
     return CatalogStatus.UNKNOWN
+
+
+def value_category_for(factor: FactorCatalogRecord) -> CatalogValueCategory:
+    """Map only source-declared metadata to a display category.
+
+    This is not a context-driven recommendation resolver. It keeps
+    coexisting values visibly distinct without selecting a value for a
+    calculation context.
+    """
+
+    if factor.value_type is ValueType.HISTORICAL or factor.review_status is ReviewStatus.DEPRECATED:
+        return CatalogValueCategory.HISTORICAL
+    if factor.value_type is ValueType.STANDARD_DEFAULT:
+        return CatalogValueCategory.RECOMMENDED
+    return CatalogValueCategory.OTHER_APPLICABLE
 
 
 class CatalogQueryService:
@@ -160,6 +182,14 @@ class CatalogQueryService:
     @staticmethod
     def value_type_label(value_type: ValueType) -> str:
         return VALUE_TYPE_LABELS[value_type]
+
+    @staticmethod
+    def value_category(factor: FactorCatalogRecord) -> CatalogValueCategory:
+        return value_category_for(factor)
+
+    @staticmethod
+    def value_category_label(category: CatalogValueCategory) -> str:
+        return VALUE_CATEGORY_LABELS[category]
 
     def industry_options(self) -> tuple[str, ...]:
         preferred = ("全部", "钢铁", "有色", "建材", "化工", "能源", "机械制造", "交通运输", "轻工", "其他")

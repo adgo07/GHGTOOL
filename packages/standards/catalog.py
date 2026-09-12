@@ -36,6 +36,14 @@ class ParameterViewMode(str, Enum):
     BY_SOURCE = "BY_SOURCE"
 
 
+class CatalogValueCategory(str, Enum):
+    """Source-declared display category for coexisting catalog values."""
+
+    RECOMMENDED = "RECOMMENDED"
+    OTHER_APPLICABLE = "OTHER_APPLICABLE"
+    HISTORICAL = "HISTORICAL"
+
+
 @dataclass(frozen=True, slots=True)
 class SourceCatalogRecord:
     source_id: str

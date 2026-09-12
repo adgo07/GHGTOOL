@@ -4,7 +4,9 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -14,10 +16,15 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTableWidget
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application.catalog_queries import CatalogQueryService
-from packages.core.models import ReviewStatus
+from packages.core.models import ReviewStatus, ValueType
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.catalog import CatalogStatus, ParameterViewMode
+from packages.standards.catalog import (
+    CatalogStatus,
+    CatalogValueCategory,
+    ParameterViewMode,
+)
+from packages.ui.catalog_pages import ParameterFactorLibraryPage
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
 
@@ -28,6 +35,58 @@ def _standard_action_button(page: object, standard_id: str) -> QPushButton:
         if button.property("standardId") == standard_id:
             return button
     raise AssertionError(f"no accounting button for {standard_id}")
+
+
+class _MultiVersionRepository:
+    """In-memory G04 fixture with three source-declared values for one parameter."""
+
+    def __init__(self, repository: SQLiteCatalogRepository) -> None:
+        self._standards = repository.list_standards()
+        self._sources = repository.list_sources()
+        self._subjects = repository.list_subjects()
+        self._parameters = repository.list_parameters()
+        base_factor = next(
+            factor
+            for factor in repository.list_factors()
+            if factor.factor_id == "natural_gas_lhv_gbt32151_34_c1"
+        )
+        other_factor = replace(
+            base_factor,
+            factor_id="natural_gas_lhv_other_2023",
+            value=Decimal("400"),
+            source_value=Decimal("400"),
+            normalized_value=Decimal("400"),
+            factor_year=2023,
+            value_type=ValueType.GOVERNMENT_PUBLISHED,
+            notes="测试夹具：其他适用值",
+        )
+        historical_factor = replace(
+            base_factor,
+            factor_id="natural_gas_lhv_historical_2020",
+            value=Decimal("380"),
+            source_value=Decimal("380"),
+            normalized_value=Decimal("380"),
+            factor_year=2020,
+            value_type=ValueType.HISTORICAL,
+            review_status=ReviewStatus.DEPRECATED,
+            notes="测试夹具：历史值",
+        )
+        self._factors = repository.list_factors() + (other_factor, historical_factor)
+
+    def list_standards(self):
+        return self._standards
+
+    def list_sources(self):
+        return self._sources
+
+    def list_subjects(self):
+        return self._subjects
+
+    def list_parameters(self):
+        return self._parameters
+
+    def list_factors(self):
+        return self._factors
 
 
 class G04CatalogTests(unittest.TestCase):
@@ -182,8 +241,18 @@ class G04CatalogTests(unittest.TestCase):
         search.setText("32151.34")
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 1)
-        source_button = page.findChild(QPushButton, "viewOfficialSourceButton")
+        self.assertEqual(page.selected_standard_id, "gbt_32151_34_2024")
+        detail_header = page.detail_layout.itemAt(0).widget()
+        self.assertIsNotNone(detail_header)
+        assert detail_header is not None
+        detail_number = detail_header.findChild(QLabel, "standardDetailNumber")
+        source_button = detail_header.findChild(QPushButton, "viewOfficialSourceButton")
+        self.assertIsNotNone(detail_number)
+        self.assertIsNotNone(source_button)
+        assert detail_number is not None
         assert source_button is not None
+        self.assertEqual(detail_number.text(), "GB/T 32151.34—2024")
+        self.assertIn("E32D6CB8AF14D795CC640F8BBC85538D", source_button.property("officialSourceUrl"))
         accounting_button = _standard_action_button(page, "gbt_32151_34_2024")
         self.assertTrue(source_button.isEnabled())
         self.assertTrue(accounting_button.isEnabled())
@@ -217,6 +286,19 @@ class G04CatalogTests(unittest.TestCase):
         page.search_input.setText("天然气")
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 3)
+        self.assertIn(
+            page.selected_factor_id,
+            {
+                "natural_gas_lhv_gbt32151_34_c1",
+                "natural_gas_carbon_content_gbt32151_34_c1",
+                "natural_gas_oxidation_rate_gbt32151_34_c1",
+            },
+        )
+        detail_heading = page.factor_detail_layout.itemAt(0).widget()
+        self.assertIsInstance(detail_heading, QLabel)
+        assert isinstance(detail_heading, QLabel)
+        self.assertIn("天然气", detail_heading.text())
+        self.assertNotIn("全球变暖潜势", detail_heading.text())
         page.view_mode_filter.setCurrentIndex(1)
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 3)
@@ -230,6 +312,55 @@ class G04CatalogTests(unittest.TestCase):
         self.assertTrue(source_button.isEnabled())
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
         self.assertNotIn("natural_gas", visible_text)
+
+    def test_multi_version_values_have_explicit_categories_in_service_and_page(self) -> None:
+        service = CatalogQueryService(
+            _MultiVersionRepository(self.repository),
+            as_of=date(2026, 9, 12),
+        )
+        results = service.search_parameter_factors("天然气低位发热量")
+        self.assertEqual(len(results), 3)
+        categories = {
+            result.factor.factor_id: service.value_category(result.factor)
+            for result in results
+            if result.factor is not None
+        }
+        self.assertEqual(
+            categories,
+            {
+                "natural_gas_lhv_gbt32151_34_c1": CatalogValueCategory.RECOMMENDED,
+                "natural_gas_lhv_other_2023": CatalogValueCategory.OTHER_APPLICABLE,
+                "natural_gas_lhv_historical_2020": CatalogValueCategory.HISTORICAL,
+            },
+        )
+        page = ParameterFactorLibraryPage(service, lambda _route: None)
+        page.show()
+        self.application.processEvents()
+        try:
+            page.search_input.setText("天然气低位发热量")
+            self.application.processEvents()
+            self.assertEqual(page.factor_table.rowCount(), 3)
+            state_values = {
+                page.factor_table.item(row, 5).text()
+                for row in range(page.factor_table.rowCount())
+            }
+            self.assertEqual(
+                state_values,
+                {
+                    "推荐值（标准缺省） · 已核对",
+                    "其他适用值 · 已核对",
+                    "历史值 · 已弃用",
+                },
+            )
+            self.assertEqual(page.selected_factor_id, "natural_gas_lhv_gbt32151_34_c1")
+            heading = page.factor_detail_layout.itemAt(0).widget()
+            self.assertIsInstance(heading, QLabel)
+            assert isinstance(heading, QLabel)
+            self.assertIn("天然气低位发热量", heading.text())
+        finally:
+            page.close()
+            page.deleteLater()
+            self.application.processEvents()
 
     def test_missing_catalog_degrades_to_safe_empty_pages(self) -> None:
         missing = Path(self.temp_directory.name) / "not-installed.sqlite"

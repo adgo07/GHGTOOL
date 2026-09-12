@@ -65,6 +65,7 @@ def _replace_layout_contents(layout: QVBoxLayout) -> None:
         item = layout.takeAt(0)
         widget = item.widget()
         if widget is not None:
+            widget.hide()
             widget.deleteLater()
 
 
@@ -123,6 +124,7 @@ class StandardLibraryPage(BasePage):
         super().__init__(AppRoute.STANDARDS, parent)
         self._service = service
         self._navigate = navigate
+        self.selected_standard_id: str | None = None
         self._standards_by_id: dict[str, object] = {}
         self._build_page()
         self._refresh()
@@ -228,6 +230,7 @@ class StandardLibraryPage(BasePage):
         self.result_summary.setText(f"共 {len(results)} 项标准")
         if results:
             self.standard_table.selectRow(0)
+            self._show_selected_detail()
         else:
             self._clear_detail("没有找到匹配的标准。")
 
@@ -245,9 +248,11 @@ class StandardLibraryPage(BasePage):
         if detail is None:
             self._clear_detail("该标准详情暂不可用。")
             return
+        self.selected_standard_id = standard_id
         self._render_detail(detail)
 
     def _clear_detail(self, message: str) -> None:
+        self.selected_standard_id = None
         _replace_layout_contents(self.detail_layout)
         label = QLabel(message, self.detail_host)
         label.setObjectName("emptyStateDescription")
@@ -277,6 +282,7 @@ class StandardLibraryPage(BasePage):
         action_row = QHBoxLayout()
         source_button = QPushButton("查看标准原文", header)
         source_button.setObjectName("viewOfficialSourceButton")
+        source_button.setProperty("officialSourceUrl", standard.official_source_url or "")
         source_button.setEnabled(bool(standard.official_source_url))
         if standard.official_source_url:
             source_button.clicked.connect(
@@ -472,6 +478,7 @@ class ParameterFactorLibraryPage(BasePage):
         super().__init__(AppRoute.FACTORS, parent)
         self._service = service
         self._navigate = navigate
+        self.selected_factor_id: str | None = None
         self._results: tuple[ParameterFactorResult, ...] = ()
         self._build_page()
         self._refresh()
@@ -604,7 +611,7 @@ class ParameterFactorLibraryPage(BasePage):
             value = _decimal_text(factor.value if factor else None)
             unit = factor.unit if factor else result.parameter.canonical_unit
             state = (
-                self._service.value_type_label(factor.value_type)
+                self._service.value_category_label(self._service.value_category(factor))
                 + " · "
                 + self._service.review_status_label(factor.review_status)
                 if factor
@@ -626,6 +633,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.result_summary.setText(f"共 {len(self._results)} 项参数/因子")
         if self._results:
             self.factor_table.selectRow(0)
+            self._show_selected_detail()
         else:
             self._clear_detail("没有找到匹配的参数或因子。")
 
@@ -634,9 +642,12 @@ class ParameterFactorLibraryPage(BasePage):
         if row < 0 or row >= len(self._results):
             self._clear_detail("请选择一项参数或因子查看详情。")
             return
-        self._render_detail(self._results[row])
+        result = self._results[row]
+        self.selected_factor_id = result.factor.factor_id if result.factor else result.parameter.parameter_id
+        self._render_detail(result)
 
     def _clear_detail(self, message: str) -> None:
+        self.selected_factor_id = None
         _replace_layout_contents(self.factor_detail_layout)
         label = QLabel(message, self.factor_detail_host)
         label.setObjectName("emptyStateDescription")
@@ -659,6 +670,12 @@ class ParameterFactorLibraryPage(BasePage):
             ("参数类型", self._service.parameter_type_label(parameter.parameter_type)),
             ("数值", _decimal_text(factor.value if factor else None)),
             ("单位", factor.unit if factor else parameter.canonical_unit),
+            (
+                "值分类",
+                self._service.value_category_label(self._service.value_category(factor))
+                if factor
+                else "参数定义",
+            ),
             ("数据类别", self._service.value_type_label(factor.value_type) if factor else "暂无已核对数值"),
             (
                 "审核状态",
