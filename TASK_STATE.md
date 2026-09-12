@@ -6,7 +6,7 @@ G04 标准库与参数因子库查询
 
 ## 状态
 
-G04_READY_FOR_SOL_REACCEPTANCE
+G04_PASS_WAITING_FOR_USER_TO_START_G05
 
 ## 阶段验收状态
 
@@ -22,7 +22,8 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G04 Goal 已创建并提交（2026-09-12）；正式验收结论为 FAIL，被验收 HEAD 为 `812af02`。
 - G04 返工已完成（2026-09-12）；修正提交为 `00c7ea6`，当前等待 Sol 重新验收。
 - G04 返工补充空结果详情清空回归测试（2026-09-12）；测试提交为 `56cdd60`，当前等待 Sol 重新验收。
-- G05 未创建或执行；G04 未获 PASS 前不得进入 G05。
+- G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`，两项首次验收缺陷均已关闭。
+- G04已通过，允许由用户另行启动G05；本次未启动G05。
 
 ## 已完成
 
@@ -107,6 +108,14 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - Sol G04 多版本检查发现失败：读模型、查询服务和页面只显示 `ValueType`/审核状态，没有明确产生或展示“推荐值、其他适用值、历史值”三类，也没有同一参数多版本测试数据或断言。
 - Sol G04 Windows Computer Use 辅助进程经重试与重置后仍因 `windows sandbox failed: helper_unknown_error: setup refresh had errors` 无法连接；已用原生 Qt 截图和控件状态探查完成替代核验。
 - Sol G04 正式验收时间：2026-09-12。
+- Sol G04 正式重新验收定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`；9 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G04 正式重新验收全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；56 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G04 正式重新验收构建检查：`.venv\Scripts\python.exe scripts\validate_canonical.py` 通过（9 standards、12 sources、6 parameters、6 factors）；从 Canonical Source 重建临时 `catalog.sqlite` 成功；`compileall` 成功；`pip check` 输出 `No broken requirements found.`。
+- Sol G04 正式重新验收交互探查：搜索 `32151.34` 后列表、详情标准号、按钮属性及实际传递给 `QDesktopServices.openUrl` 的官方 URL 一致；搜索“天然气”后列表和详情一致；两类空结果均清空旧详情；同一参数三版本明确显示推荐值、其他适用值、历史值及审核状态。
+- Sol G04 正式重新验收来源核对：返工提交未修改 Canonical 数据、标准元数据、参数值、因子值或来源；首次正式验收对本地标准原文及官方页面的核对结论继续成立。
+- Sol G04 正式重新验收范围检查：页面只经 Application Service/Repository 读取数据；未发现 G05 场景推荐、计算快照或后续业务实现；`计算表/` 无 Git 差异。
+- Sol G04 正式重新验收环境说明：Windows Computer Use 辅助进程仍因系统沙箱初始化错误不可用，已用 Qt 离屏控件探查和原生截图替代；该环境问题不影响本次 PASS。
+- Sol G04 正式重新验收时间：2026-09-12；被验收 HEAD：`28dd8c9`。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 - G02 定向结果：21 个通过，0 个失败，0 个错误，0 个跳过。
@@ -137,6 +146,7 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G04 正式验收的被验收 HEAD：`812af02 docs: record G04 catalog handoff`。
 - G04 返工实施提交：`00c7ea6 fix: close G04 catalog acceptance findings`。
 - G04 返工测试提交：`56cdd60 test: cover G04 empty detail reset`。
+- G04 正式重新验收的被验收 HEAD：`28dd8c9 docs: record G04 rework handoff`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -145,11 +155,11 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G03 小修项1：已修正并由回归测试锁定首页按钮顺序。
 - G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
 - G03 已通过，阶段门禁已解除。
-- G04 正式验收结论为 FAIL：搜索/筛选后的详情与官方 URL 可能仍指向筛选前记录；多版本推荐/可选/历史分类未实现。
-- G04 返工已完成：详情同步与官方 URL 错配已修复，多版本三类分类及针对性测试已补齐；当前等待 Sol 重新验收。
-- G05 未创建或执行；未提前实施 G05。
+- G04 首次正式验收结论为 FAIL；对应缺陷已在 `00c7ea6` 和 `56cdd60` 中修正并由本次重新验收关闭。
+- G04 正式重新验收结论为 PASS，阶段门禁已解除。
+- G04已通过，允许由用户另行启动G05；本次未启动G05。
 
 ## 下一步
 
-1. 等待 Sol 重新验收 G04；返工提交为 `00c7ea6`，测试补充提交为 `56cdd60`。
-2. G04 返工只增加来源元数据分类和页面同步，不包含 G05 计算场景推荐引擎；G05 仍不得创建或执行。
+1. 等待用户另行下达启动 G05 的指令；本次验收不创建 Goal、不实施 G05。
+2. G05 启动后仍须按 `HANDOFF.md` 单独建立一个 Goal，并重新执行开工检查。

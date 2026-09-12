@@ -15,6 +15,7 @@ G04 标准库与参数因子库查询
 - G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，在该验收时 G03 尚未创建或执行。
 - G03 正式重新验收结论：PASS（2026-09-12）。本轮创建并执行唯一的 G04 Goal；G05 未创建、未执行。
+- G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`。G05 仍未创建、未执行。
 
 ## G04 本轮完成
 
@@ -330,3 +331,22 @@ G04 未通过，不允许进入 G05。修正完成后应发送“重新验收G04
 - 返工实施提交：`00c7ea6 fix: close G04 catalog acceptance findings`；空结果回归测试提交：`56cdd60 test: cover G04 empty detail reset`。
 - 当前工作区只保留原有未跟踪 `docs/handoffs/`，未纳入提交；G05 未创建或执行。
 - 当前停止，等待 Sol 重新验收 G04。
+
+## G04 Sol 正式重新验收结论
+
+**结论：PASS**
+
+- 验收日期：2026-09-12。
+- 被验收 HEAD：`28dd8c9`；其中详情同步与多版本分类修复提交为 `00c7ea6`，空结果详情清空测试提交为 `56cdd60`。
+- G04 定向测试命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`；9 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量回归命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；56 个通过，0 个失败，0 个错误，0 个跳过。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py` 通过，输出 9 standards、12 sources、6 parameters、6 factors；`catalog.sqlite` 已从 Canonical Source 在临时目录成功重建；`compileall` 成功；`pip check` 输出 `No broken requirements found.`。
+- 首次 FAIL 缺陷 1 已关闭：验收级 Qt 探查确认搜索 `32151.34` 后列表标准号、详情标准号、详情按钮保存的 URL 和点击后实际传给 `QDesktopServices.openUrl` 的 URL 一致，均指向 GB/T 32151.34—2024；搜索“天然气”后列表与详情均为天然气参数；无结果时标准和参数页都会清空旧详情。
+- 首次 FAIL 缺陷 2 已关闭：同一参数多版本能力可按 Canonical 已有 `ValueType` 和审核状态明确分类为“推荐值（标准缺省）”“其他适用值”“历史值”，页面同时显示审核状态，三版本测试场景已覆盖。该分类是来源元数据展示，不是 G05 的计算场景推荐解析。
+- 标准原始来源复核没有失效：本次返工未修改 `data-source/`、迁移或 schema，也未改变标准状态、日期、网址、参数值、排放因子值及其来源；首次验收中对 GB/T 32150—2025、GB/T 32151.34—2024 原文和官方页面的逐项核对结论继续成立。
+- G04 MUST 与验收条件全部满足：标准与参数/因子查询、筛选、详情、状态、官方 URL、唯一开放的 GB/T 32151.34 核算入口、多版本展示、安全降级及 Application Service/Repository 边界均通过检查。
+- 范围检查通过：未发现 G05 场景推荐、计算快照或后续阶段实现；没有修改 `计算表/`，没有把标准全文或本地 PDF 打包进软件；原有未跟踪 `docs/handoffs/` 未处理。
+- Windows Computer Use 辅助进程经重试和重置后仍因 `windows sandbox failed: helper_unknown_error: setup refresh had errors` 无法连接；本次采用 Qt 离屏控件探查、实际信号目标拦截和原生窗口截图完成替代核验。该运行环境限制不影响 PASS 结论。
+- 验收临时数据库和截图在结论形成后清理，不纳入 Git。
+
+G04已通过，允许由用户另行启动G05；本次未启动G05。
