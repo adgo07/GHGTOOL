@@ -14,7 +14,7 @@ G03 公共桌面外壳与导航
 - 首次返工后状态曾为 READY_FOR_SOL_REACCEPTANCE。
 - G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，在该验收时 G03 尚未创建或执行。
-- G03 小修已完成，当前状态：READY_FOR_SOL_REACCEPTANCE；G04 未创建、未执行。
+- G03 正式重新验收结论：PASS（2026-09-12）；G04 未创建、未执行。
 
 ## G03 本轮完成
 
@@ -151,11 +151,11 @@ G03 公共桌面外壳与导航
 
 | 项目 | 状态 | 原因 |
 |---|---|---|
-| G04 标准库与参数因子库页面 | 未执行 | G03 小修已交付，仍等待 Sol 重新验收通过 |
+| G04 标准库与参数因子库页面 | 未执行 | G03 已通过，等待用户另行启动 G04 Goal |
 | 完整参数库和完整 GWP 表 | 未执行 | 本阶段只允许首批最小集合，后续补充需单独阶段/验收 |
 | YAML loader | 未执行 | 当前 Canonical 选用 JSON；环境无已批准 YAML loader，避免静默引入解释差异 |
 | 正式数据库运行产物 | 未提交 | SQLite 必须由 Canonical 构建脚本生成，测试使用临时目录 |
-| Windows 安装包、GUI 视觉验收、企业真实数据和黄金算例 | 未执行 | HANDOFF 明确属于后续阶段或暂不实施范围 |
+| Windows 安装包、企业真实数据和黄金算例 | 未执行 | HANDOFF 明确属于后续阶段或暂不实施范围 |
 
 ## Git
 
@@ -186,7 +186,7 @@ G03 公共桌面外壳与导航
 
 G02 阶段门禁已解除，允许由用户另行启动 G03 Goal。
 
-## G03 Sol 正式验收结论
+## G03 Sol 正式验收结论（初次）
 
 **结论：PASS WITH MINOR FIXES**
 
@@ -208,11 +208,30 @@ G02 阶段门禁已解除，允许由用户另行启动 G03 Goal。
 
 G04 未创建、未执行。G03 修正并重新验收为 PASS 前，阶段门禁保持关闭；修正完成后应发送“重新验收G03”。
 
-## G03 小修交付状态
+## G03 小修交付状态（历史）
 
 **状态：READY_FOR_SOL_REACCEPTANCE**
 
 - 已修正首页三个按钮的冻结顺序：新建核算 → Excel 导入（暂未开放）→ 查看标准库。
 - 已将导航图标激活/非激活颜色及品牌区高度统一收敛到 `packages/ui/design_tokens.py`，并删除 Shell 内对应硬编码。
 - 返工定向测试 8/8、项目全量回归 47/47、compileall、pip check、G03 边界扫描、Shell 硬编码扫描和 `计算表/` 保护检查均通过。
-- G04 未创建、未执行；当前停止等待用户发送“重新验收G03”。
+- 小修交付时 G04 未创建、未执行，并停止等待用户发送“重新验收G03”。
+
+## G03 Sol 正式重新验收结论
+
+**结论：PASS**
+
+- 验收日期：2026-09-12。
+- 被验收 HEAD：`e57af51`；其中 G03 小修实施提交为 `aaefe29`。
+- 首页 StartPanel 已按冻结规范调整为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”，并新增顺序回归断言。
+- Shell 已通过 `BRAND_AREA_HEIGHT`、`SIDEBAR_ICON_ACTIVE`、`SIDEBAR_ICON_INACTIVE` 使用统一 Design Token；验收指出的 `setFixedHeight(120)` 和 `#FFFFFF` 硬编码已从 Shell 移除。
+- G03 定向测试命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v`；8 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量回归命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；47 个通过，0 个失败，0 个错误，0 个跳过。
+- `.venv\Scripts\python.exe -m compileall -q apps packages tests scripts` 成功；`.venv\Scripts\python.exe -m pip check` 输出 `No broken requirements found.`。
+- 七个路由均可到达且页面与路由分离；首页空数据展示安全，未查询数据库。Excel 占位页共有 6 个内部输入/选择/动作控件，全部禁用且不可聚焦，没有导入业务动作。
+- 原生 Qt 1180×720 首页与 Excel 占位页视觉复核正常：导航和内容不重叠，Logo 为 176×43、约 4.09:1，无横向滚动；宽屏 1920×1080 布局规则由 GUI 自动化测试覆盖。
+- Windows Computer Use 辅助进程经重试和重置后仍因 `windows sandbox failed: helper_unknown_error: setup refresh had errors` 无法连接；已使用原生 Qt 截图、控件状态探查及 GUI 自动化测试完成替代核验，该环境限制不影响项目结论。
+- G03 范围扫描未发现 SQLite 查询、文件选择器、查询表格、报告/导出、计算公式或 G04 业务实现；`计算表/` Git 差异为空。
+- 工作区只有既有未跟踪 `docs/handoffs/`，未纳入本次验收提交。
+
+G03 已通过，允许由用户另行启动 G04；本次未启动 G04。

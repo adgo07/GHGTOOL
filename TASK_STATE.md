@@ -6,7 +6,7 @@ G03 公共桌面外壳与导航
 
 ## 状态
 
-G03_READY_FOR_SOL_REACCEPTANCE
+G03_PASS_WAITING_FOR_USER_TO_START_G04
 
 ## 阶段验收状态
 
@@ -17,7 +17,8 @@ G03_READY_FOR_SOL_REACCEPTANCE
 - G02 再次验收结论：FAILED；发现热力因子仍错误引用钢铁生产附件，本轮已改为 GB/T 32150—2025 标准条款来源。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，确认第二次返工已解决热力因子来源问题。
 - G03 正式验收结论：PASS WITH MINOR FIXES（2026-09-12）；验收实施基线为 `05a67f4`。桌面外壳可运行，但两项冻结规范细节须修正后重新验收。
-- G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`，当前等待 Sol 重新验收。
+- G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`。
+- G03 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `e57af51`，确认两项小修全部关闭。
 - G04 未开始；未创建或执行 G04 Goal。
 
 ## 已完成
@@ -44,7 +45,7 @@ G03_READY_FOR_SOL_REACCEPTANCE
 
 ## 未执行或未开始
 
-- G04 标准库与参数因子库页面未执行；G03 只提供可达占位页，等待 G03 Sol PASS 后由用户启动 G04 Goal。
+- G04 标准库与参数因子库页面未执行；G03 已通过，允许由用户另行启动 G04 Goal，本次未启动 G04。
 - G04 及以后页面、规则解析、推荐服务、GB/T 32151.34 计算、记录闭环、报告/导出和 Windows 安装包未执行。
 - 完整 26 种燃料、碳酸盐、蒸汽焓值和完整 AR6 GWP 表未录入；G02 只录入 HANDOFF.md 规定的最小集合。
 - 未引入 YAML 解析依赖；本阶段选择 JSON 作为实际 Canonical 源文件，避免在没有批准 loader/依赖时静默解释 YAML。
@@ -63,6 +64,11 @@ G03_READY_FOR_SOL_REACCEPTANCE
 - G03 L3 保护检查：计算表/ Git 差异为空。
 - G03 初次验收复核：定向测试 6/6、项目全量回归 45/45、compileall 和 pip check 均通过；本轮返工后已重新执行并记录 8/8、47/47。
 - Sol G03 原生 Qt 视觉复核：1180×720 与 1920×1080 首页无重叠，Logo 保持约 4.03:1；Excel 占位页布局正常且内部控件全部禁用。Windows 自动化辅助进程因沙箱初始化失败不可用，已改用原生 Qt 窗口截图和程序化路由/控件测试补充验证。
+- Sol G03 正式重新验收定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell -v`；结果 8 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G03 正式重新验收全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；结果 47 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G03 正式重新验收辅助检查：`compileall` 成功，`pip check` 无破损依赖；范围扫描无 G04 越界，Shell 不再包含验收指出的 `setFixedHeight(120)` 与 `#FFFFFF` 硬编码。
+- Sol G03 正式重新验收视觉与控件检查：原生 Qt 1180×720 首页及 Excel 占位页无重叠，Logo 为 176×43（约 4.09:1），无横向滚动；Excel 页 6 个内部控件全部禁用且不可聚焦。宽屏 1920×1080 的布局规则由 GUI 自动化测试覆盖。
+- Sol G03 正式重新验收时间：2026-09-12。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 - G02 定向结果：21 个通过，0 个失败，0 个错误，0 个跳过。
@@ -88,17 +94,17 @@ G03_READY_FOR_SOL_REACCEPTANCE
 - G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - G03 实施提交：`617d982 feat: implement G03 desktop shell`。
 - G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
+- G03 正式重新验收的被验收 HEAD：`e57af51 docs: record G03 minor fixes handoff`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
-## 阻塞项
+## 阶段门禁
 
 - G03 小修项1：已修正并由回归测试锁定首页按钮顺序。
 - G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
-- 阶段门禁：G03 小修已提交，当前等待 Sol 重新验收；未获 G03 PASS 前不得进入 G04。
+- G03 已通过，阶段门禁已解除；允许由用户另行启动 G04，本次未启动 G04。
 
 ## 下一步
 
-1. 等待用户发送“重新验收G03”，由 Sol 复核 `aaefe29`。
-2. 复核 G03 返工定向 8/8、项目全量 47/47 及 L3 检查记录。
-3. 获得 G03 PASS 后，才可由用户启动新的 G04 Goal；G04 当前未创建或执行。
+1. G03 已通过，允许由用户另行启动 G04。
+2. 本次验收未创建 Goal、未启动或实施 G04。
