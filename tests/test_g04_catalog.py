@@ -275,6 +275,11 @@ class G04CatalogTests(unittest.TestCase):
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 3)
 
+        page.search_input.setText("不存在的标准")
+        self.application.processEvents()
+        self.assertEqual(table.rowCount(), 0)
+        self.assertIsNone(page.selected_standard_id)
+
     def test_parameter_factor_page_switches_views_and_hides_internal_ids(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
         self.application.processEvents()
@@ -312,6 +317,11 @@ class G04CatalogTests(unittest.TestCase):
         self.assertTrue(source_button.isEnabled())
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
         self.assertNotIn("natural_gas", visible_text)
+
+        page.search_input.setText("不存在的参数")
+        self.application.processEvents()
+        self.assertEqual(table.rowCount(), 0)
+        self.assertIsNone(page.selected_factor_id)
 
     def test_multi_version_values_have_explicit_categories_in_service_and_page(self) -> None:
         service = CatalogQueryService(
