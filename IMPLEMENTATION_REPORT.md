@@ -2,39 +2,49 @@
 
 ## 阶段
 
-G03 公共桌面外壳与导航
+G04 标准库与参数因子库查询
 
 ## 前置验收与阶段边界
 
 - G00 验收结论：PASS。
 - G01 初次验收为 FAILED；能量单位共同基准和领域枚举字符串绕过问题已完成修复。
 - G01 重新验收结论：PASS（本轮用户已明确确认）。
-- G02 已通过 Sol 最终验收（2026-09-11），本轮创建并执行唯一的 G03 Goal。
+- G02 已通过 Sol 最终验收（2026-09-11），G03 已通过 Sol 正式重新验收（2026-09-12）。
 - G02 首次验收结论：FAILED；本轮仅处理 Sol 指定的 Canonical/SQLite/G01 枚举、标准职责、来源定位和参数引用返工，未开始 G03。
 - 首次返工后状态曾为 READY_FOR_SOL_REACCEPTANCE。
 - G02 再次验收结论：FAILED；Sol 指出 0.11 热力因子仍引用钢铁生产附件，本轮完成第二次返工，未开始 G03。
 - G02 最终重新验收结论：PASS（2026-09-11）；验收实施基线为 `78ff1f6`，在该验收时 G03 尚未创建或执行。
-- G03 正式重新验收结论：PASS（2026-09-12）；G04 未创建、未执行。
+- G03 正式重新验收结论：PASS（2026-09-12）。本轮创建并执行唯一的 G04 Goal；G05 未创建、未执行。
 
-## G03 本轮完成
+## G04 本轮完成
+
+- 新增 `packages/standards/catalog.py` 平台无关的标准、来源、对象、参数、因子读模型与只读 Repository 契约；没有引入 PySide6 或 SQLite 依赖。
+- 新增 `packages/persistence/catalog_repository.py`，通过 SQLite `mode=ro` 读取 Canonical 构建的 `catalog.sqlite`，集中完成日期、Decimal、JSON 引用和 G01 领域枚举映射；缺失目录安全返回空结果。
+- 新增 `packages/application/catalog_queries.py`，提供标准编号/名称/行业/年份/状态查询，按官方状态与实施/废止日期推导显示状态，组装标准详情和来源关系，并提供参数/因子按对象或来源的全局查询、类型/审核标签和来源追溯。
+- 接入桌面应用配置、AppShell 和页面工厂；标准库和参数与排放因子库页面只通过 Application Query Service 读取数据，UI 没有直接打开数据库。
+- `StandardLibraryPage` 提供搜索、状态/行业/年份筛选、标准详情、发布单位/主管部门/归口部门、基础标准关系、参数/因子关联和“查看标准原文”官方 URL 动作。只有当前 GB/T 32151.34—2024 的“按此标准核算”按钮可用；其他标准明确显示“核算模块待开发”并禁用入口。
+- `ParameterFactorLibraryPage` 提供按对象/按来源视图、对象/来源/参数类型/审核状态/年份筛选、参数值详情、适用标准、来源定位、发布单位和“查看官方来源”动作；缺失官方 URL、缺失目录数据库或空详情字段均安全降级。
+- 只展示 Canonical/SQLite 已有结构化数据；标准正文、PDF、企业数据、规则解析和动态推荐值未被制造或实现。G05 推荐解析、通用规则和计算快照仍未开始。
+
+## G03 历史完成内容（已验收）
 
 - 在 `packages/ui/` 建立可复用的 AppShell、页面路由、共享视觉令牌、平台无关视图模型和 SVG 导航图标加载器；应用层不直接查询数据库。
 - 将应用接入固定 248 px 全高左侧导航、120 px 品牌区、顶部 Logo、底部设置入口和独立纵向滚动的主内容区；Logo 保持原比例，最大显示宽度 176 px。
 - 建立首页专业工作台：温室气体排放核算标题与说明、开始卡片、最近核算记录空状态、最近使用标准安全空状态和底部辅助摘要；没有 KPI 大卡、图表或假数据。
 - 建立首页、标准库、新建核算、Excel 导入、核算记录、参数与因子库、设置七个路由；首页快速入口与左侧导航进入同一路由。
 - Excel 导入保留导航和占位页面，文件选择、标准选择、模板下载、下一步和导入等控件全部禁用、不可聚焦且未连接文件或计算动作。
-- 标准库、核算、记录、参数与因子库和设置仅提供 G03 可达占位页；没有实现 G04 查询、G05 规则、G06 算法、G07 记录或导出功能。
+- 标准库、核算、记录、参数与因子库和设置在 G03 交付时仅提供可达占位页；G04 查询已在本轮单独实现，G05 规则、G06 算法、G07 记录和导出仍未实现。
 - 按 Sol 验收意见将首页 StartPanel 调整为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。
 - 将 `BRAND_AREA_HEIGHT`、`SIDEBAR_ICON_ACTIVE` 和 `SIDEBAR_ICON_INACTIVE` 作为统一 Design Token 接入 Shell；界面代码不再重复写死品牌高度或导航图标白色。
 - 新增两项针对性回归测试，分别锁定首页按钮顺序和 Shell 的 Token 使用；未改变 G03 之外的范围。
 
-## G02 第二次返工内容
+## G02 第二次返工内容（历史）
 
 - 将 0.11 tCO₂/GJ 的参数与因子来源改为 GB/T 32150—2025 第7.5.6～7.5.7条，删除钢铁生产附件来源记录，避免把行业专项通知作为通则/炭素模块的共同来源。
 - 同步修正热力参数与因子 source_id、source_location、factor_year=2025、valid_from=2026-07-01、适用标准范围和说明；保留标准缺省值语义。
 - 测试改为验证标准来源、条款定位、年份、有效日期和双标准适用关系，不再断言钢铁附件。
 
-## G02 首次返工内容
+## G02 首次返工内容（历史）
 
 - Canonical schema、校验器和 catalog SQLite 迁移统一使用 G01 的 OfficialStatus、SourceType、ReviewStatus、ParameterType 和 ValueType 值集合；移除 OFFICIAL_NOTICE、SCIENTIFIC_REPORT、RETIRED、PENDING_REVIEW、OFFICIAL 和 DEFAULT 等旧字符串。
 - 标准字段由含义不清的 status/authority 改为 official_status、issuing_authority（发布单位）、competent_authority（主管部门）和 technical_committee（归口部门），构建器与 SQLite 列保持一致。
@@ -117,7 +127,7 @@ G03 公共桌面外壳与导航
 - 用户文件 SHA256：7/7 与既有基线一致。
 - 检查时间：2026-09-11。
 
-## G03 测试与检查
+## G03 测试与检查（历史）
 
 ### L1：G03 返工定向 GUI 测试
 
@@ -144,14 +154,53 @@ G03 公共桌面外壳与导航
 - UI/资源探查成功：Logo 原图 3060×759，7 个 SVG 导航图标，应用 Shell 为 `AppShell`。
 - G03 边界扫描未发现 `sqlite3`、`QSql`、`QFileDialog`、表格查询控件、报告/导出组件或其他后续业务实现。
 - `计算表/` Git 差异为空；未修改用户参考文件。
-- G04 未创建、未执行；未实现标准库查询、参数/因子库查询或任何核算算法。
+- 在 G03 交付时 G04 未创建、未执行；该历史状态已由本轮 G04 单独 Goal 更新。G05/G06 业务仍未实施。
 - 检查时间：2026-09-12。
+
+## G04 测试与检查
+
+### L1：G04 定向测试
+
+命令：
+
+    $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v
+
+结果：8 个通过，0 个失败，0 个错误，0 个跳过。
+
+覆盖：标准编号/名称/行业/年份/官方状态与日期推导、标准详情和基础标准关系、发布单位/主管部门/归口部门展示、GB/T 32151.34—2024 可核算入口、其他标准“核算模块待开发”禁用入口、对象/来源查询、参数类型/审核状态/年份筛选、来源定位与发布单位、官方 URL 动作、内部稳定 ID 不直接展示，以及缺失目录/缺失官方 URL 的安全降级。
+
+### L2：全量回归
+
+命令：
+
+    $env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v
+
+结果：55 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv 为 Python 3.12.14，PySide6 6.11.2）。
+
+### L3：G04 阶段收口
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages tests scripts`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：成功，9 standards、12 sources、6 parameters、6 factors。
+- `.venv\Scripts\python.exe scripts\build_catalog.py --source data-source\carbon_accounting\catalog.json --output tmp\g04-catalog-validation.sqlite --app-version 0.1.0`：成功从 Canonical 构建查询库。
+- G04 边界扫描未发现 `QFileDialog`、`QSql`、`reportlab`、`matplotlib`、G05 或推荐解析入口；UI/应用层没有直接导入 `sqlite3`，SQLite 仅由 persistence 适配器以只读模式访问。
+- `计算表/` Git 差异为空；未修改用户参考文件。
+- 未启动系统浏览器验证外链，避免测试产生外部副作用；官方 URL 存在时按钮可用、缺失时按钮禁用，以及标准入口路由均由 Qt 定向测试覆盖。
+- G05 未创建、未执行；未实施通用规则解析、参数推荐引擎、核算算法、记录闭环、报告/导出或 Windows 安装包。
+
+## G04 Sol 验收状态
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+- G04 标准库与参数因子库查询已完成并形成实现提交 `4419a73`。
+- 当前工作区只保留既有未跟踪 `docs/handoffs/`；该目录未纳入本轮提交。
+- 当前停止在 G04 验收点，等待 Sol 验收；未获 G04 PASS 前不得创建或执行 G05。
 
 ## 未执行项及原因
 
 | 项目 | 状态 | 原因 |
 |---|---|---|
-| G04 标准库与参数因子库页面 | 未执行 | G03 已通过，等待用户另行启动 G04 Goal |
+| G05 通用规则解析、参数推荐和计算快照基础 | 未执行 | G04 当前等待 Sol 验收；未创建或执行 G05 Goal |
 | 完整参数库和完整 GWP 表 | 未执行 | 本阶段只允许首批最小集合，后续补充需单独阶段/验收 |
 | YAML loader | 未执行 | 当前 Canonical 选用 JSON；环境无已批准 YAML loader，避免静默引入解释差异 |
 | 正式数据库运行产物 | 未提交 | SQLite 必须由 Canonical 构建脚本生成，测试使用临时目录 |
@@ -166,6 +215,7 @@ G03 公共桌面外壳与导航
 - G02 第二次返工实施提交：0cd6ed3 fix: correct G02 heat factor provenance。
 - G03 实施提交：`617d982 feat: implement G03 desktop shell`。
 - G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
+- G04 实施提交：`4419a73 feat: implement G04 catalog query pages`。
 - 保护范围：计算表/、.venv/ 和既有用户临时文件未修改；本轮只新增被忽略的 tmp 验证数据库，生成数据库不进入 Git。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 

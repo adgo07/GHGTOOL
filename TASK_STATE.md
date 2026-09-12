@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-G03 公共桌面外壳与导航
+G04 标准库与参数因子库查询
 
 ## 状态
 
-G03_PASS_WAITING_FOR_USER_TO_START_G04
+G04_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -19,7 +19,8 @@ G03_PASS_WAITING_FOR_USER_TO_START_G04
 - G03 正式验收结论：PASS WITH MINOR FIXES（2026-09-12）；验收实施基线为 `05a67f4`。桌面外壳可运行，但两项冻结规范细节须修正后重新验收。
 - G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`。
 - G03 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `e57af51`，确认两项小修全部关闭。
-- G04 未开始；未创建或执行 G04 Goal。
+- G04 Goal 已创建并完成（2026-09-12）；当前等待 Sol 验收。
+- G05 未创建或执行；G04 未获 PASS 前不得进入 G05。
 
 ## 已完成
 
@@ -40,13 +41,20 @@ G03_PASS_WAITING_FOR_USER_TO_START_G04
 - 新增 tests/test_g03_shell.py，覆盖路由可达性、首页空状态、导航顺序/尺寸、Logo 比例、窗口边距、滚动策略和 Excel 控件禁用。
 - 按 G03 验收意见修正首页 StartPanel 顺序为“新建核算 → Excel 导入（暂未开放）→ 查看标准库”。
 - 将导航图标的激活/非激活颜色和品牌区高度统一改为 `packages/ui/design_tokens.py` 中的 Design Token，Shell 不再写死 `#FFFFFF` 或 `120`。
-- 新增首页固定按钮顺序和 Shell Design Token 使用回归断言；本轮仅修改 G03 UI 与测试。
+- 新增首页固定按钮顺序和 Shell Design Token 使用回归断言；G03 小修阶段仅修改 G03 UI 与测试。
+- 新增 `packages/standards/catalog.py` 平台无关的标准、来源、对象、参数和因子只读读模型与 Repository 契约；Domain/读模型不依赖 PySide6 或 SQLite。
+- 新增 `packages/persistence/catalog_repository.py`，以只读 SQLite 连接加载 Canonical 构建的 `catalog.sqlite`，集中完成日期、Decimal、JSON 引用和 G01 枚举映射；缺失目录由空 Repository 安全降级。
+- 新增 `packages/application/catalog_queries.py`，提供标准搜索/行业/年份/状态筛选、官方状态与日期推导、标准详情、参数/因子按对象或来源查询、类型/审核标签和来源追溯；未实现 G05 推荐解析。
+- 新增 G04 `StandardLibraryPage` 与 `ParameterFactorLibraryPage`：标准详情显示发布单位、主管部门、归口部门、标准关系、参数/因子和官方来源；只有当前 GB/T 32151.34—2024 可进入新建核算，其余标准显示“核算模块待开发”并禁用入口。
+- G04 参数/因子详情显示值、单位、年份、有效期、适用标准、来源定位、来源发布单位、审核状态和官方 URL 动作；官方 URL 缺失、目录数据库缺失或可选详情为空时安全降级，不制造标准全文或假数据。
+- 新增 `tests/test_g04_catalog.py`，覆盖标准号/行业/年份/状态、日期推导、标准详情、可核算路由、对象/来源查询、来源追溯、G01 枚举筛选、URL 缺失和空目录启动。
+- G04 未实现通用规则解析、参数推荐引擎、核算公式、报告/导出、记录闭环或 G05/G06 业务。
 - 计算表/ 下 7 个用户参考文件未修改、未纳入 Git；最终 SHA256 与既有基线一致。
 
 ## 未执行或未开始
 
-- G04 标准库与参数因子库页面未执行；G03 已通过，允许由用户另行启动 G04 Goal，本次未启动 G04。
-- G04 及以后页面、规则解析、推荐服务、GB/T 32151.34 计算、记录闭环、报告/导出和 Windows 安装包未执行。
+- G05 通用规则解析、参数推荐和计算快照基础未执行；G04 当前等待 Sol PASS，未创建或执行 G05 Goal。
+- G06 及以后页面、GB/T 32151.34 计算、记录闭环、报告/导出和 Windows 安装包未执行。
 - 完整 26 种燃料、碳酸盐、蒸汽焓值和完整 AR6 GWP 表未录入；G02 只录入 HANDOFF.md 规定的最小集合。
 - 未引入 YAML 解析依赖；本阶段选择 JSON 作为实际 Canonical 源文件，避免在没有批准 loader/依赖时静默解释 YAML。
 - 未生成或提交正式运行时 SQLite 构建产物；本轮仅在 tmp\g02-rework-validation.sqlite 和 tmp\g02-rework-databases\ 下生成被忽略的验证数据库，数据库仍由脚本在目标目录按需生成。
@@ -69,6 +77,17 @@ G03_PASS_WAITING_FOR_USER_TO_START_G04
 - Sol G03 正式重新验收辅助检查：`compileall` 成功，`pip check` 无破损依赖；范围扫描无 G04 越界，Shell 不再包含验收指出的 `setFixedHeight(120)` 与 `#FFFFFF` 硬编码。
 - Sol G03 正式重新验收视觉与控件检查：原生 Qt 1180×720 首页及 Excel 占位页无重叠，Logo 为 176×43（约 4.09:1），无横向滚动；Excel 页 6 个内部控件全部禁用且不可聚焦。宽屏 1920×1080 的布局规则由 GUI 自动化测试覆盖。
 - Sol G03 正式重新验收时间：2026-09-12。
+
+- G04 定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`
+- G04 定向结果：8 个通过，0 个失败，0 个错误，0 个跳过。
+- G04 项目全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`
+- G04 项目全量结果：55 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv，Python 3.12.14，PySide6 6.11.2）。
+- G04 L3 编译：`.venv\Scripts\python.exe -m compileall -q apps packages tests scripts`，成功。
+- G04 L3 依赖：`.venv\Scripts\python.exe -m pip check`，输出 `No broken requirements found.`。
+- G04 Canonical/SQLite：`.venv\Scripts\python.exe scripts\validate_canonical.py` 成功（9 standards、12 sources、6 parameters、6 factors）；从 Canonical 构建 `tmp\g04-catalog-validation.sqlite` 成功。
+- G04 分层/禁入扫描：UI 和应用边界未直接导入 sqlite3；未发现 QFileDialog、QSql、reportlab、matplotlib、G05 或推荐解析入口；SQLite 仅存在于 persistence 适配器。
+- G04 保护检查：`git diff --name-only -- '计算表/**'` 为空；未修改 `计算表/` 用户参考文件。
+- G04 未执行项：未启动系统浏览器验证外链，避免测试产生外部副作用；官方 URL 存在性、缺失时禁用和按钮路由均由 Qt 定向测试覆盖。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 - G02 定向结果：21 个通过，0 个失败，0 个错误，0 个跳过。
@@ -95,6 +114,7 @@ G03_PASS_WAITING_FOR_USER_TO_START_G04
 - G03 实施提交：`617d982 feat: implement G03 desktop shell`。
 - G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
 - G03 正式重新验收的被验收 HEAD：`e57af51 docs: record G03 minor fixes handoff`。
+- G04 实施提交：`4419a73 feat: implement G04 catalog query pages`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -102,9 +122,11 @@ G03_PASS_WAITING_FOR_USER_TO_START_G04
 
 - G03 小修项1：已修正并由回归测试锁定首页按钮顺序。
 - G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
-- G03 已通过，阶段门禁已解除；允许由用户另行启动 G04，本次未启动 G04。
+- G03 已通过，阶段门禁已解除。
+- G04 实现、定向回归、全量回归和 L3 检查已完成；当前阶段门禁停在 `G04_READY_FOR_SOL_REACCEPTANCE`，等待 Sol 验收。
+- G05 未创建或执行；未提前实施 G05。
 
 ## 下一步
 
-1. G03 已通过，允许由用户另行启动 G04。
-2. 本次验收未创建 Goal、未启动或实施 G04。
+1. 等待 Sol 验收 G04；未获 PASS 前不得创建或执行 G05。
+2. G05 通用规则解析、参数推荐和计算快照基础仍未开始。
