@@ -244,19 +244,19 @@ class G05RuleTests(unittest.TestCase):
             "2025",
         )
         national = Factor(
-            factor_id="electricity_national_average_2023",
+            factor_id="electricity_national_average_2024",
             parameter_id=parameter.parameter_id,
             subject_id=parameter.subject_id,
             parameter_type=parameter.parameter_type,
             value="0.5306",
             unit="tCO2/MWh",
-            version="2025",
+            version="2024",
             value_type=ValueType.GOVERNMENT_PUBLISHED,
             review_status=ReviewStatus.VERIFIED,
-            source_id="SRC-ELEC-2023-47",
-            source_location="公告2025年第47号表1",
+            source_id="SRC-ELEC-2024-OFFICIAL",
+            source_location="测试官方 2024 年全国因子",
             applicable_standard_ids=(STANDARD_ID,),
-            factor_year=2023,
+            factor_year=2024,
         )
         ningxia = Factor(
             factor_id="electricity_ningxia_2023",
@@ -435,6 +435,284 @@ class G05RuleTests(unittest.TestCase):
         self.assertEqual(snapshot.value_used, Decimal("273"))
         with self.assertRaises(FrozenInstanceError):
             snapshot.value_used = Decimal("1")  # type: ignore[misc]
+
+    def test_default_rules_match_frozen_ids_sources_and_conflict_paths(self) -> None:
+        common, industry = default_g05_rules()
+        common_by_id = {item.rule_id: item for item in common}
+        industry_by_id = {item.rule_id: item for item in industry}
+
+        expected_common = {
+            "GEN-RULE-REFERENCE-MODE-001",
+            "GEN-RULE-GHG-SCOPE-001",
+            "GEN-RULE-BOUNDARY-ENTITY-001",
+            "GEN-RULE-BOUNDARY-SYSTEMS-001",
+            "GEN-RULE-BOUNDARY-AUXILIARY-001",
+            "GEN-RULE-BOUNDARY-ANCILLARY-001",
+            "GEN-RULE-BOUNDARY-INCLUDED-SOURCES-001",
+            "GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001",
+            "GEN-RULE-TOTAL-COVERAGE-REQUIRED-001",
+            "GEN-RULE-TOTAL-001",
+            "GEN-FML-TOTAL-001",
+            "GEN-FML-FUGITIVE-AGG-001",
+            "GEN-AGG-FUGITIVE-REVIEW-001",
+            "GEN-RULE-ELECTRICITY-001",
+            "GEN-RULE-HEAT-001",
+        }
+        self.assertTrue(expected_common.issubset(common_by_id))
+        self.assertFalse(
+            any(item.rule_id.startswith(("GEN-PAR-", "CAR-PAR-")) for item in (*common, *industry))
+        )
+        for item in common:
+            self.assertIsNotNone(item.source_location)
+            self.assertIsNotNone(item.evidence_source_id)
+        self.assertEqual(
+            common_by_id["GEN-FML-TOTAL-001"].relation,
+            RuleRelation.CONFLICT_REVIEW,
+        )
+        self.assertEqual(
+            common_by_id["GEN-FML-FUGITIVE-AGG-001"].evidence_status,
+            RuleEvidenceStatus.CONFLICT,
+        )
+        self.assertEqual(
+            set(industry_by_id["CAR-RULE-TOTAL-001"].supersedes_rule_ids),
+            {"GEN-RULE-TOTAL-001", "GEN-FML-TOTAL-001"},
+        )
+        self.assertEqual(
+            set(industry_by_id["CAR-RULE-FUGITIVE-COVERAGE-001"].supersedes_rule_ids),
+            {
+                "GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001",
+                "GEN-FML-FUGITIVE-AGG-001",
+                "GEN-AGG-FUGITIVE-REVIEW-001",
+            },
+        )
+        self.assertEqual(
+            industry_by_id["CAR-RULE-FUGITIVE-COVERAGE-001"].origin,
+            RuleOrigin.SOFTWARE_DERIVED,
+        )
+
+        generic = EffectiveRuleResolver().resolve(
+            common,
+            (),
+            RuleContext(standard_id=COMMON_ID),
+        )
+        self.assertTrue(generic.blocked)
+        self.assertTrue(
+            {"GEN-FML-TOTAL-001", "GEN-FML-FUGITIVE-AGG-001"}.issubset(
+                {item.field_id for item in generic.problems}
+            )
+        )
+        carbon = EffectiveRuleResolver().resolve(
+            common,
+            industry,
+            RuleContext(standard_id=STANDARD_ID),
+        )
+        self.assertFalse(carbon.blocked)
+        self.assertTrue(
+            {
+                "GEN-RULE-TOTAL-001",
+                "GEN-FML-TOTAL-001",
+                "GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001",
+                "GEN-FML-FUGITIVE-AGG-001",
+                "GEN-AGG-FUGITIVE-REVIEW-001",
+            }.issubset(set(carbon.overridden_rule_ids))
+        )
+
+    def test_official_latest_ignores_fixed_old_factor_anchor(self) -> None:
+        parameter_id = "electricity_emission_factor_national"
+        parameter = Parameter(
+            parameter_id,
+            "purchased_electricity",
+            ParameterType.ELECTRICITY_EMISSION_FACTOR,
+            "全国电力因子",
+            "tCO2/MWh",
+            "2024",
+        )
+        old = replace(
+            factor(
+                "electricity_factor_2023",
+                parameter_id,
+                "0.5306",
+                ValueType.GOVERNMENT_PUBLISHED,
+                version="2023",
+                factor_year=2023,
+                applicable_standard_ids=(COMMON_ID,),
+                subject_id=parameter.subject_id,
+            ),
+            parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+        )
+        new = replace(
+            factor(
+                "electricity_factor_2024",
+                parameter_id,
+                "0.5100",
+                ValueType.GOVERNMENT_PUBLISHED,
+                version="2024",
+                factor_year=2024,
+                applicable_standard_ids=(COMMON_ID,),
+                subject_id=parameter.subject_id,
+            ),
+            parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+        )
+        selection_rule = RuleDefinition(
+            rule_id="GEN-RULE-OFFICIAL-LATEST-TEST",
+            rule_domain="parameter_selection",
+            target_id=parameter_id,
+            parameter_id=parameter_id,
+            relation=RuleRelation.BASE,
+            description="官方最新回归规则",
+            applicability=RuleApplicability(
+                standard_ids=(COMMON_ID,),
+                parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
+            ),
+            selection_policy=ParameterSelectionPolicy.OFFICIAL_LATEST,
+            required_factor_id=old.factor_id,
+        )
+        result = ParameterResolver(
+            MemoryParameterRepository((parameter,), (old, new)),
+            common_rules=(selection_rule,),
+        ).resolve(
+            ParameterResolutionContext(
+                parameter_id=parameter_id,
+                standard_id=COMMON_ID,
+                subject_id=parameter.subject_id,
+                parameter_type=parameter.parameter_type,
+            )
+        )
+        self.assertIsNotNone(result.recommended)
+        assert result.recommended is not None
+        self.assertEqual(result.recommended.factor.factor_id, new.factor_id)
+        self.assertEqual(result.selection_method, ParameterSelectionMethod.SYSTEM_RECOMMENDED)
+
+    def test_confirmed_candidate_cannot_bypass_rule_conflict_or_snapshot_block(self) -> None:
+        parameter_id = "gwp_co2_ar6_100"
+        parameter = Parameter(
+            parameter_id,
+            "co2",
+            ParameterType.GWP,
+            "CO2 GWP100",
+            "ratio",
+            "2026",
+        )
+        candidate = factor(
+            "gwp_co2_ar6",
+            parameter_id,
+            "1",
+            ValueType.SCIENTIFIC_REFERENCE,
+            subject_id="co2",
+            applicable_standard_ids=(STANDARD_ID,),
+        )
+        selection_rule = RuleDefinition(
+            rule_id="GEN-RULE-GWP-CONFIRMATION-TEST",
+            rule_domain="parameter_selection",
+            target_id=parameter_id,
+            parameter_id=parameter_id,
+            relation=RuleRelation.BASE,
+            description="冲突阻断回归规则",
+            applicability=RuleApplicability(
+                standard_ids=(STANDARD_ID,),
+                parameter_types=(ParameterType.GWP,),
+            ),
+            selection_policy=ParameterSelectionPolicy.SYSTEM_GWP,
+        )
+        unresolved = rule(
+            "GEN-RULE-CONFLICT-CONFIRMATION-TEST",
+            RuleRelation.CONFLICT_REVIEW,
+            domain="formula",
+            target_id="formula.conflicted",
+            standard_id=STANDARD_ID,
+        )
+        result = ParameterResolver(
+            MemoryParameterRepository((parameter,), (candidate,)),
+            common_rules=(selection_rule, unresolved),
+        ).resolve(
+            ParameterResolutionContext(
+                parameter_id=parameter_id,
+                standard_id=STANDARD_ID,
+                subject_id="co2",
+                parameter_type=ParameterType.GWP,
+                confirmed_factor_id=candidate.factor_id,
+                confirmation_reason="用户确认来源，但规则冲突仍需处理。",
+            )
+        )
+        self.assertTrue(result.blocked)
+        self.assertIsNone(result.recommended)
+        self.assertTrue(any(item.code == "GEN-PAR-CONFLICT-BLOCKED" for item in result.warnings))
+        with self.assertRaises(ValueError):
+            result.to_snapshot("snapshot.g05.conflict", NOW)
+
+    def test_invalid_override_requires_complete_non_dangling_supersedes(self) -> None:
+        base = rule(
+            "GEN-RULE-OVERRIDE-BASE-A",
+            RuleRelation.BASE,
+            domain="coverage",
+            target_id="coverage.total",
+        )
+        second_base = rule(
+            "GEN-RULE-OVERRIDE-BASE-B",
+            RuleRelation.BASE,
+            domain="coverage",
+            target_id="coverage.total",
+        )
+
+        missing = EffectiveRuleResolver().resolve(
+            (base,),
+            (
+                rule(
+                    "CAR-RULE-OVERRIDE-MISSING",
+                    RuleRelation.OVERRIDE,
+                    domain="coverage",
+                    target_id="coverage.total",
+                    standard_id=STANDARD_ID,
+                ),
+            ),
+            RuleContext(standard_id=STANDARD_ID),
+        )
+        self.assertTrue(missing.blocked)
+        self.assertIn(base.rule_id, missing.rule_ids)
+        self.assertTrue(
+            any(item.code == "GEN-RULE-OVERRIDE-SUPERSEDES-MISSING" for item in missing.problems)
+        )
+
+        dangling = EffectiveRuleResolver().resolve(
+            (base,),
+            (
+                rule(
+                    "CAR-RULE-OVERRIDE-DANGLING",
+                    RuleRelation.OVERRIDE,
+                    domain="coverage",
+                    target_id="coverage.total",
+                    standard_id=STANDARD_ID,
+                    supersedes=("GEN-RULE-NOT-IN-COMMON",),
+                ),
+            ),
+            RuleContext(standard_id=STANDARD_ID),
+        )
+        self.assertTrue(dangling.blocked)
+        self.assertIn(base.rule_id, dangling.rule_ids)
+        self.assertTrue(
+            any(item.code == "GEN-RULE-OVERRIDE-SUPERSEDES-UNKNOWN" for item in dangling.problems)
+        )
+
+        partial = EffectiveRuleResolver().resolve(
+            (base, second_base),
+            (
+                rule(
+                    "CAR-RULE-OVERRIDE-PARTIAL",
+                    RuleRelation.OVERRIDE,
+                    domain="coverage",
+                    target_id="coverage.total",
+                    standard_id=STANDARD_ID,
+                    supersedes=(base.rule_id,),
+                ),
+            ),
+            RuleContext(standard_id=STANDARD_ID),
+        )
+        self.assertTrue(partial.blocked)
+        self.assertIn(base.rule_id, partial.rule_ids)
+        self.assertIn(second_base.rule_id, partial.rule_ids)
+        self.assertTrue(
+            any(item.code == "GEN-RULE-OVERRIDE-SUPERSEDES-INCOMPLETE" for item in partial.problems)
+        )
 
     def test_activity_source_level_rejects_raw_enum_strings(self) -> None:
         with self.assertRaises(ValueError):

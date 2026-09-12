@@ -230,6 +230,11 @@ class RuleDefinition:
     required_factor_id: str | None = None
     required_factor_version: str | None = None
     payload: tuple[tuple[str, str], ...] = ()
+    applies_to_parameter_ids: tuple[str, ...] = ()
+    required_factor_ids: tuple[str, ...] = ()
+    source_location: str | None = None
+    evidence_source_id: str | None = None
+    confirmation_id: str | None = None
 
     def __post_init__(self) -> None:
         _require_token(self.rule_id, "rule_id")
@@ -246,12 +251,21 @@ class RuleDefinition:
         _optional_token(self.parameter_id, "parameter_id")
         _optional_token(self.required_factor_id, "required_factor_id")
         _optional_token(self.required_factor_version, "required_factor_version")
+        _optional_token(self.evidence_source_id, "evidence_source_id")
+        _optional_token(self.confirmation_id, "confirmation_id")
+        _optional_text(self.source_location, "source_location")
         if not isinstance(self.priority, int):
             raise DomainValidationError("rule priority must be an integer")
         if self.selection_policy is not None and not isinstance(self.selection_policy, ParameterSelectionPolicy):
             raise DomainValidationError("selection_policy must be a ParameterSelectionPolicy")
         object.__setattr__(self, "supersedes_rule_ids", _tokens(self.supersedes_rule_ids, "supersedes_rule_ids"))
         object.__setattr__(self, "payload", _pairs(self.payload, "payload"))
+        object.__setattr__(
+            self,
+            "applies_to_parameter_ids",
+            _tokens(self.applies_to_parameter_ids, "applies_to_parameter_ids"),
+        )
+        object.__setattr__(self, "required_factor_ids", _tokens(self.required_factor_ids, "required_factor_ids"))
         if self.relation is RuleRelation.CONFLICT_REVIEW and self.conflict_resolved:
             if not self.resolution_reason or not self.resolution_reason.strip():
                 raise DomainValidationError("a resolved conflict requires resolution_reason")
@@ -261,6 +275,22 @@ class RuleDefinition:
     @property
     def group_key(self) -> tuple[str, str]:
         return self.rule_domain, self.target_id or self.parameter_id or ""
+
+    @property
+    def parameter_ids(self) -> tuple[str, ...]:
+        """Parameter IDs covered by this rule, including legacy singular data."""
+
+        values = list(self.applies_to_parameter_ids)
+        if self.parameter_id is not None and self.parameter_id not in values:
+            values.insert(0, self.parameter_id)
+        return tuple(values)
+
+    @property
+    def required_factor_id_set(self) -> frozenset[str]:
+        values = set(self.required_factor_ids)
+        if self.required_factor_id is not None:
+            values.add(self.required_factor_id)
+        return frozenset(values)
 
     def matches(self, context: RuleContext) -> bool:
         return self.applicability.matches(context)
@@ -335,7 +365,7 @@ class EffectiveRuleSet:
 
     def rules_for_parameter(self, parameter_id: str) -> tuple[RuleDefinition, ...]:
         _require_token(parameter_id, "parameter_id")
-        return tuple(rule for rule in self.rules if rule.parameter_id == parameter_id)
+        return tuple(rule for rule in self.rules if parameter_id in rule.parameter_ids)
 
     def ensure_resolved(self) -> None:
         if self.blocked:
@@ -399,6 +429,39 @@ class EffectiveRuleResolver:
             if overrides:
                 winner = self._choose(overrides, problems, group_key)
                 if winner is not None:
+                    common_ids = {base.rule_id for base in group_common}
+                    requested_ids = set(winner.supersedes_rule_ids)
+                    unknown_ids = requested_ids - common_ids
+                    uncovered_ids = common_ids - requested_ids
+                    valid_override = bool(requested_ids) and not unknown_ids and not uncovered_ids
+                    if not requested_ids:
+                        problems.append(
+                            ValidationProblem(
+                                "GEN-RULE-OVERRIDE-SUPERSEDES-MISSING",
+                                IssueLevel.ERROR,
+                                f"OVERRIDE {winner.rule_id} 必须明确列出 supersedes_rule_ids。",
+                                winner.rule_id,
+                            )
+                        )
+                    elif unknown_ids:
+                        problems.append(
+                            ValidationProblem(
+                                "GEN-RULE-OVERRIDE-SUPERSEDES-UNKNOWN",
+                                IssueLevel.ERROR,
+                                f"OVERRIDE {winner.rule_id} 引用了不存在的通则规则：{', '.join(sorted(unknown_ids))}。",
+                                winner.rule_id,
+                            )
+                        )
+                    if uncovered_ids:
+                        problems.append(
+                            ValidationProblem(
+                                "GEN-RULE-OVERRIDE-SUPERSEDES-INCOMPLETE",
+                                IssueLevel.ERROR,
+                                f"OVERRIDE {winner.rule_id} 未完整覆盖同组通则规则：{', '.join(sorted(uncovered_ids))}。",
+                                winner.rule_id,
+                            )
+                        )
+
                     selected.append(winner)
                     traces.append(
                         RuleResolutionTrace(
@@ -407,14 +470,25 @@ class EffectiveRuleResolver:
                             "行业 OVERRIDE 明确替换通则规则。",
                         )
                     )
-                    for base in group_common:
-                        if base.rule_id in winner.supersedes_rule_ids:
+                    if valid_override:
+                        for base in group_common:
                             overridden.add(base.rule_id)
                             traces.append(
                                 RuleResolutionTrace(
                                     base.rule_id,
                                     RuleResolutionAction.OVERRIDDEN,
                                     f"被 {winner.rule_id} 明确覆盖。",
+                                )
+                            )
+                    else:
+                        # Invalid coverage must not silently discard BASE rules.
+                        for base in sorted(group_common, key=lambda item: (-item.priority, item.rule_id)):
+                            selected.append(base)
+                            traces.append(
+                                RuleResolutionTrace(
+                                    base.rule_id,
+                                    RuleResolutionAction.SELECTED,
+                                    f"因 {winner.rule_id} 的覆盖声明无效，保留通则 BASE。",
                                 )
                             )
             elif specializations:
@@ -489,7 +563,12 @@ class EffectiveRuleResolver:
                     continue
                 if conflict.rule_id in overridden:
                     continue
-                if any(conflict.rule_id in rule.supersedes_rule_ids for rule in overrides):
+                if (
+                    overrides
+                    and len(overrides) == 1
+                    and conflict.rule_id in set(overrides[0].supersedes_rule_ids)
+                    and conflict.rule_id in overridden
+                ):
                     continue
                 problems.append(
                     ValidationProblem(

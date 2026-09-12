@@ -242,6 +242,11 @@ class ParameterResolution:
         return any(problem.level is IssueLevel.ERROR for problem in self.warnings)
 
     def to_snapshot(self, snapshot_id: str, snapshot_at: datetime) -> ParameterSnapshot:
+        if self.blocked:
+            first = next(problem for problem in self.warnings if problem.level is IssueLevel.ERROR)
+            raise DomainValidationError(
+                f"blocked parameter resolution cannot be snapshotted: {first.code}"
+            )
         if self.recommended is None or self.selection_method is None:
             raise DomainValidationError("a parameter resolution without a recommendation cannot be snapshotted")
         factor = self.recommended.factor
@@ -377,8 +382,8 @@ class ParameterResolver:
             return -1, ()
         reasons: list[str] = []
         rank = 100
-        required_factor_match = bool(rule and rule.required_factor_id == factor.factor_id)
-        if required_factor_match and policy is not ParameterSelectionPolicy.MEASURED_FIRST:
+        required_factor_match = bool(rule and factor.factor_id in rule.required_factor_id_set)
+        if required_factor_match and policy is ParameterSelectionPolicy.STANDARD_REQUIRED:
             rank += 10_000
             reasons.append(f"规则指定因子 {factor.factor_id}")
         if policy is ParameterSelectionPolicy.NO_AUTOMATIC_SELECTION:
@@ -408,6 +413,9 @@ class ParameterResolver:
         elif policy is ParameterSelectionPolicy.OFFICIAL_LATEST:
             if factor.value_type is not ValueType.GOVERNMENT_PUBLISHED:
                 return -1, ()
+            # The rule may identify the mapped parameter, but it must never
+            # freeze one old factor.  Applicability was filtered before this
+            # method; among valid official candidates, the newest year wins.
             rank += 700 + (factor.factor_year or 0)
             reasons.append("主管部门官方发布值")
         elif policy is ParameterSelectionPolicy.SYSTEM_GWP:
@@ -488,7 +496,16 @@ class ParameterResolver:
 
         candidate_by_id = {item.factor.factor_id: item for item in ranked}
         if context.confirmed_factor_id is not None:
-            if not context.confirmation_reason:
+            if effective.blocked:
+                problems.append(
+                    self._problem(
+                        "GEN-PAR-CONFLICT-BLOCKED",
+                        IssueLevel.ERROR,
+                        "当前规则集存在未解决冲突，即使用户已确认候选值也不能形成推荐快照。",
+                        context.parameter_id,
+                    )
+                )
+            elif not context.confirmation_reason:
                 problems.append(
                     self._problem(
                         "GEN-PAR-CONFIRMATION-REASON",
@@ -592,125 +609,273 @@ class ParameterResolver:
         return self.resolve(context)
 
 
+def _frozen_rule(
+    rule_id: str,
+    rule_domain: str,
+    relation: RuleRelation,
+    description: str,
+    *,
+    standard_id: str,
+    applicable_standard_ids: tuple[str, ...],
+    target_id: str | None = None,
+    parameter_id: str | None = None,
+    parameter_ids: tuple[str, ...] = (),
+    parameter_types: tuple[ParameterType, ...] = (),
+    selection_policy: ParameterSelectionPolicy | None = None,
+    required_factor_ids: tuple[str, ...] = (),
+    priority: int = 100,
+    origin: RuleOrigin = RuleOrigin.STANDARD_EXPLICIT,
+    evidence_status: RuleEvidenceStatus = RuleEvidenceStatus.VERIFIED,
+    supersedes_rule_ids: tuple[str, ...] = (),
+    conflict_resolved: bool = False,
+    resolution_reason: str | None = None,
+    payload: tuple[tuple[str, str], ...] = (),
+    source_location: str,
+    evidence_source_id: str,
+    confirmation_id: str | None = None,
+) -> RuleDefinition:
+    return RuleDefinition(
+        rule_id=rule_id,
+        rule_domain=rule_domain,
+        target_id=target_id,
+        parameter_id=parameter_id,
+        relation=relation,
+        description=description,
+        standard_id=standard_id,
+        applicability=RuleApplicability(
+            standard_ids=applicable_standard_ids,
+            parameter_types=parameter_types,
+        ),
+        priority=priority,
+        origin=origin,
+        evidence_status=evidence_status,
+        supersedes_rule_ids=supersedes_rule_ids,
+        conflict_resolved=conflict_resolved,
+        resolution_reason=resolution_reason,
+        selection_policy=selection_policy,
+        required_factor_ids=required_factor_ids,
+        applies_to_parameter_ids=parameter_ids,
+        payload=payload,
+        source_location=source_location,
+        evidence_source_id=evidence_source_id,
+        confirmation_id=confirmation_id,
+    )
+
+
 def _parameter_rule(
     rule_id: str,
-    parameter_id: str,
+    parameter_ids: tuple[str, ...],
     policy: ParameterSelectionPolicy,
     *,
     relation: RuleRelation,
     standard_id: str,
     applicable_standard_ids: tuple[str, ...],
-    required_factor_id: str | None = None,
+    parameter_types: tuple[ParameterType, ...],
+    required_factor_ids: tuple[str, ...] = (),
+    target_id: str,
     priority: int = 100,
     description: str,
+    source_location: str,
+    evidence_source_id: str,
 ) -> RuleDefinition:
-    return RuleDefinition(
-        rule_id=rule_id,
-        rule_domain="parameter_selection",
-        target_id=parameter_id,
-        parameter_id=parameter_id,
-        relation=relation,
-        description=description,
+    return _frozen_rule(
+        rule_id,
+        "parameter_selection",
+        relation,
+        description,
         standard_id=standard_id,
-        applicability=RuleApplicability(standard_ids=applicable_standard_ids),
-        priority=priority,
-        origin=RuleOrigin.STANDARD_EXPLICIT,
-        evidence_status=RuleEvidenceStatus.VERIFIED,
+        applicable_standard_ids=applicable_standard_ids,
+        target_id=target_id,
+        parameter_id=parameter_ids[0] if len(parameter_ids) == 1 else None,
+        parameter_ids=parameter_ids,
+        parameter_types=parameter_types,
         selection_policy=policy,
-        required_factor_id=required_factor_id,
+        required_factor_ids=required_factor_ids,
+        priority=priority,
+        source_location=source_location,
+        evidence_source_id=evidence_source_id,
     )
 
 
 def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinition, ...]]:
-    """Return the small, source-backed rule set needed by the first standard.
+    """Return the frozen common and carbon-material G05 rule sets."""
 
-    These are rule records, not UI conditionals.  The canonical catalog remains
-    the source of factor values; this function only registers the approved
-    mapping between contexts and those values for the G05 resolver.
-    """
+    common_ids = ("gbt_32150_2025", "gbt_32151_34_2024")
+    carbon_ids = ("gbt_32151_34_2024",)
+    common_source = "EVID-32150-PDF-2025-LOCAL"
+    carbon_source = "EVID-32151-34-PDF-2024-LOCAL"
 
     common = (
-        _parameter_rule(
-            "GEN-PAR-ELECTRICITY-NATIONAL-LATEST",
-            "electricity_emission_factor_national",
-            ParameterSelectionPolicy.OFFICIAL_LATEST,
-            relation=RuleRelation.BASE,
-            standard_id="gbt_32150_2025",
-            applicable_standard_ids=("gbt_32150_2025", "gbt_32151_34_2024"),
-            required_factor_id="electricity_national_average_2023",
-            description="通则要求采用符合条件的最新全国官方电力平均因子。",
-        ),
-        _parameter_rule(
-            "GEN-PAR-HEAT-DEFAULT-011",
-            "heat_emission_factor_default",
-            ParameterSelectionPolicy.MEASURED_FIRST,
-            relation=RuleRelation.BASE,
-            standard_id="gbt_32150_2025",
-            applicable_standard_ids=("gbt_32150_2025", "gbt_32151_34_2024"),
-            required_factor_id="heat_default_2025",
-            description="通则要求供热单位实测优先，无实测时采用 0.11 缺省值。",
-        ),
-        _parameter_rule(
-            "GEN-PAR-GWP-SYSTEM-001",
-            "gwp_co2_ar6_100",
-            ParameterSelectionPolicy.SYSTEM_GWP,
-            relation=RuleRelation.BASE,
-            standard_id="gbt_32150_2025",
-            applicable_standard_ids=("gbt_32150_2025", "gbt_32151_34_2024"),
-            required_factor_id="gwp_co2_ar6_100",
-            description="未指定其他制度时采用系统 GWP 通用推荐策略。",
-        ),
+        _frozen_rule("GEN-RULE-REFERENCE-MODE-001", "reference_mode", RuleRelation.BASE, "通则引用模式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="reference.mode",
+            source_location="GB/T 32150—2025 第2条；PDF7；印刷页1", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-GHG-SCOPE-001", "scope", RuleRelation.BASE, "通则温室气体范围。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="ghg.scope",
+            source_location="GB/T 32150—2025 第3.1、6条；PDF7、11；印刷页1、5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BOUNDARY-ENTITY-001", "boundary", RuleRelation.BASE, "企业实体边界。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.entity",
+            source_location="GB/T 32150—2025 第3.2条；PDF7；印刷页1", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BOUNDARY-SYSTEMS-001", "boundary", RuleRelation.BASE, "生产系统边界。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.systems",
+            source_location="GB/T 32150—2025 第6条；PDF10～11；印刷页4～5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BOUNDARY-AUXILIARY-001", "boundary", RuleRelation.BASE, "辅助生产系统边界。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.auxiliary",
+            source_location="GB/T 32150—2025 第6条；PDF10～11；印刷页4～5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BOUNDARY-ANCILLARY-001", "boundary", RuleRelation.BASE, "附属生产系统边界。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.ancillary",
+            source_location="GB/T 32150—2025 第6条；PDF10～11；印刷页4～5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BOUNDARY-INCLUDED-SOURCES-001", "boundary", RuleRelation.BASE, "纳入排放源清单。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.included_sources",
+            source_location="GB/T 32150—2025 第6条；PDF11；印刷页5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-BIOMASS-001", "boundary", RuleRelation.BASE, "生物质排放单列。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.biomass",
+            source_location="GB/T 32150—2025 第6条；PDF11；印刷页5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-REMOVAL-001", "boundary", RuleRelation.BASE, "移除量单列。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="boundary.removal",
+            source_location="GB/T 32150—2025 第6条；PDF11；印刷页5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001", "execution", RuleRelation.BASE, "逸散排放执行路径阻断。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="fugitive.execution",
+            origin=RuleOrigin.SOFTWARE_DERIVED, payload=(("decision", "SM01-DECISION-001"),),
+            source_location="SM01-DECISION-001；GB/T 32150—2025 第7.5.5条；PDF15～16；印刷页9～10",
+            evidence_source_id="SM01-DECISION-001", confirmation_id="SM01-DECISION-001"),
+        _frozen_rule("GEN-RULE-TOTAL-COVERAGE-REQUIRED-001", "aggregation", RuleRelation.BASE, "总量必须覆盖应计排放源。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="total.coverage",
+            origin=RuleOrigin.SOFTWARE_DERIVED, payload=(("decision", "SM01-DECISION-005"),),
+            source_location="SM01-DECISION-005；GB/T 32150—2025 第5.2.7条；PDF15～16；印刷页7～8",
+            evidence_source_id="SM01-DECISION-005", confirmation_id="SM01-DECISION-005"),
+        _frozen_rule("GEN-MTH-FACTOR-001", "method", RuleRelation.BASE, "排放因子法。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="method.fuel",
+            source_location="GB/T 32150—2025 第7.1、7.2条；PDF13～14；印刷页7～8", evidence_source_id=common_source),
+        _frozen_rule("GEN-MTH-MATERIAL-BALANCE-001", "method", RuleRelation.BASE, "物料平衡法。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="method.process",
+            source_location="GB/T 32150—2025 第7.3条；PDF14；印刷页8", evidence_source_id=common_source),
+        _frozen_rule("GEN-MTH-MEASURED-001", "method", RuleRelation.BASE, "直接测量法。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="method.measured",
+            source_location="GB/T 32150—2025 第7.4条；PDF14～15；印刷页8～9", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-FACTOR-001", "formula", RuleRelation.BASE, "排放因子法公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.factor",
+            source_location="GB/T 32150—2025 第7.5.1条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-MATERIAL-BALANCE-001", "formula", RuleRelation.BASE, "物料平衡法公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.material_balance",
+            source_location="GB/T 32150—2025 第7.5.2条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-FUEL-AGG-001", "formula", RuleRelation.BASE, "燃料排放聚合公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.fuel_aggregation",
+            source_location="GB/T 32150—2025 第7.5.3条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-FUGITIVE-AGG-001", "execution", RuleRelation.CONFLICT_REVIEW, "逸散聚合公式待复核。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="fugitive.execution",
+            priority=-10, evidence_status=RuleEvidenceStatus.CONFLICT,
+            source_location="GB/T 32150—2025 第7.5.5条；PDF15～16；印刷页9～10；PENDING-GEN-001",
+            evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-PROCESS-AGG-001", "formula", RuleRelation.BASE, "过程排放聚合公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.process_aggregation",
+            source_location="GB/T 32150—2025 第7.5.4条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-WASTE-AGG-001", "formula", RuleRelation.BASE, "废弃物排放聚合公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.waste_aggregation",
+            source_location="GB/T 32150—2025 第7.5.5条；PDF15～16；印刷页9～10", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-PURCHASED-ELECTRICITY-001", "formula", RuleRelation.BASE, "外购电力公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.purchased_electricity",
+            source_location="GB/T 32150—2025 第7.5.6条；PDF16；印刷页10", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-PURCHASED-HEAT-001", "formula", RuleRelation.BASE, "外购热力公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.purchased_heat",
+            source_location="GB/T 32150—2025 第7.5.7条；PDF16；印刷页10", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-TOTAL-001", "formula", RuleRelation.BASE, "通则总量公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="total.formula",
+            source_location="GB/T 32150—2025 第7.5.8条；PDF16～17；印刷页10～11", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-TOTAL-001", "formula", RuleRelation.CONFLICT_REVIEW, "总量公式适用关系待行业覆盖确认。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="total.formula",
+            priority=-10, evidence_status=RuleEvidenceStatus.CONFLICT,
+            source_location="GB/T 32150—2025 第7.5.8条；PDF16～17；印刷页10～11；PENDING-GEN-002",
+            evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-EXPORTED-ELECTRICITY-001", "formula", RuleRelation.BASE, "外供电力公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.exported_electricity",
+            source_location="GB/T 32150—2025 第7.5.9条；PDF17；印刷页11", evidence_source_id=common_source),
+        _frozen_rule("GEN-FML-EXPORTED-HEAT-001", "formula", RuleRelation.BASE, "外供热力公式。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="formula.exported_heat",
+            source_location="GB/T 32150—2025 第7.5.10条；PDF17；印刷页11", evidence_source_id=common_source),
+        _frozen_rule("GEN-AGG-FUEL-ADD", "aggregation", RuleRelation.BASE, "燃料加总。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="aggregation.fuel",
+            source_location="GB/T 32150—2025 第7.5.3条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-AGG-PROCESS-ADD", "aggregation", RuleRelation.BASE, "过程加总。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="aggregation.process",
+            source_location="GB/T 32150—2025 第7.5.4条；PDF15；印刷页9", evidence_source_id=common_source),
+        _frozen_rule("GEN-AGG-WASTE-ADD", "aggregation", RuleRelation.BASE, "废弃物加总。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="aggregation.waste",
+            source_location="GB/T 32150—2025 第7.5.5条；PDF15～16；印刷页9～10", evidence_source_id=common_source),
+        _frozen_rule("GEN-AGG-FUGITIVE-REVIEW-001", "execution", RuleRelation.CONFLICT_REVIEW, "逸散聚合待复核。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="fugitive.execution",
+            priority=-10, evidence_status=RuleEvidenceStatus.CONFLICT,
+            source_location="GB/T 32150—2025 第7.5.5条；PDF15～16；印刷页9～10；PENDING-GEN-001",
+            evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-FACTOR-PRIORITY-001", "parameter_selection", RuleRelation.BASE, "因子适用优先级。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="factor.priority",
+            source_location="GB/T 32150—2025 第7.4条；PDF14～15；印刷页8～9", evidence_source_id=common_source),
+        _parameter_rule("GEN-RULE-ELECTRICITY-001", ("electricity_emission_factor_national",),
+            ParameterSelectionPolicy.OFFICIAL_LATEST, relation=RuleRelation.BASE, standard_id="gbt_32150_2025",
+            applicable_standard_ids=common_ids, parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
+            target_id="electricity_emission_factor_national", description="最新适用官方电力因子。",
+            source_location="GB/T 32150—2025 第7.5.6～7.5.7条；参数 GEN-PAR-ELECTRICITY-NATIONAL-LATEST",
+            evidence_source_id=common_source),
+        _parameter_rule("GEN-RULE-HEAT-001", ("heat_emission_factor_default",),
+            ParameterSelectionPolicy.MEASURED_FIRST, relation=RuleRelation.BASE, standard_id="gbt_32150_2025",
+            applicable_standard_ids=common_ids, parameter_types=(ParameterType.HEAT_EMISSION_FACTOR,),
+            required_factor_ids=("heat_default_2025",), target_id="heat_emission_factor_default",
+            description="热力实测优先，缺省值为 0.11 tCO2/GJ。",
+            source_location="GB/T 32150—2025 第7.5.6～7.5.7条；参数 GEN-PAR-HEAT-DEFAULT-011",
+            evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-QA-001", "quality", RuleRelation.BASE, "通则质量保证。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="quality.assurance",
+            source_location="GB/T 32150—2025 第8条；PDF17～18；印刷页11～12", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-REPORT-001", "reporting", RuleRelation.BASE, "通则报告要求。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="reporting.result",
+            source_location="GB/T 32150—2025 第9条；PDF18～19；印刷页12～13", evidence_source_id=common_source),
     )
+
     industry = (
-        _parameter_rule(
-            "CAR-PAR-NATURAL-GAS-LHV-SELECT",
-            "natural_gas_lhv",
-            ParameterSelectionPolicy.STANDARD_REQUIRED,
-            relation=RuleRelation.SPECIALIZE,
-            standard_id="gbt_32151_34_2024",
-            applicable_standard_ids=("gbt_32151_34_2024",),
-            required_factor_id="natural_gas_lhv_gbt32151_34_c1",
-            description="炭素材料生产标准直接规定天然气低位发热量。",
-        ),
-        _parameter_rule(
-            "CAR-PAR-NATURAL-GAS-CARBON-SELECT",
-            "natural_gas_carbon_content",
-            ParameterSelectionPolicy.STANDARD_REQUIRED,
-            relation=RuleRelation.SPECIALIZE,
-            standard_id="gbt_32151_34_2024",
-            applicable_standard_ids=("gbt_32151_34_2024",),
-            required_factor_id="natural_gas_carbon_content_gbt32151_34_c1",
-            description="炭素材料生产标准直接规定天然气单位热值含碳量。",
-        ),
-        _parameter_rule(
-            "CAR-PAR-NATURAL-GAS-OXIDATION-SELECT",
-            "natural_gas_oxidation_rate",
-            ParameterSelectionPolicy.STANDARD_REQUIRED,
-            relation=RuleRelation.SPECIALIZE,
-            standard_id="gbt_32151_34_2024",
-            applicable_standard_ids=("gbt_32151_34_2024",),
-            required_factor_id="natural_gas_oxidation_rate_gbt32151_34_c1",
-            description="炭素材料生产标准直接规定天然气碳氧化率。",
-        ),
-        _parameter_rule(
-            "CAR-PAR-ELECTRICITY-NATIONAL-LATEST",
-            "electricity_emission_factor_national",
-            ParameterSelectionPolicy.OFFICIAL_LATEST,
-            relation=RuleRelation.SPECIALIZE,
-            standard_id="gbt_32151_34_2024",
-            applicable_standard_ids=("gbt_32151_34_2024",),
-            required_factor_id="electricity_national_average_2023",
-            description="炭素材料生产标准明确采用最新全国电力平均官方因子。",
-        ),
-        _parameter_rule(
-            "CAR-PAR-HEAT-MEASURED-OR-DEFAULT",
-            "heat_emission_factor_default",
-            ParameterSelectionPolicy.MEASURED_FIRST,
-            relation=RuleRelation.SPECIALIZE,
-            standard_id="gbt_32151_34_2024",
-            applicable_standard_ids=("gbt_32151_34_2024",),
-            required_factor_id="heat_default_2025",
-            description="炭素材料生产标准沿用实测优先、无实测采用 0.11 的通则规则。",
-        ),
+        _frozen_rule("CAR-RULE-GHG-SCOPE-001", "scope", RuleRelation.SPECIALIZE, "炭素材料温室气体范围。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="ghg.scope",
+            source_location="GB/T 32151.34—2024 第3.1条；PDF9；印刷页1", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-BOUNDARY-001", "boundary", RuleRelation.SPECIALIZE, "炭素材料生产系统边界。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="boundary.systems",
+            source_location="GB/T 32151.34—2024 第5.1、5.2条；PDF11～15；印刷页3～7", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-FUEL-001", "method", RuleRelation.SPECIALIZE, "炭素材料天然气参数直接规定值。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="method.fuel",
+            parameter_ids=("natural_gas_lhv", "natural_gas_carbon_content", "natural_gas_oxidation_rate"),
+            selection_policy=ParameterSelectionPolicy.STANDARD_REQUIRED,
+            required_factor_ids=("natural_gas_lhv_gbt32151_34_c1", "natural_gas_carbon_content_gbt32151_34_c1",
+                "natural_gas_oxidation_rate_gbt32151_34_c1"),
+            payload=(("mapping_parameters", "GEN-PAR-NATURAL-GAS-LHV|GEN-PAR-NATURAL-GAS-CARBON|GEN-PAR-NATURAL-GAS-OXIDATION"),),
+            source_location="GB/T 32151.34—2024 附录C、D；PDF26～28；印刷页18～20", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-PROCESS-001", "method", RuleRelation.SPECIALIZE, "炭素材料过程排放方法。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="method.process",
+            source_location="GB/T 32151.34—2024 第5.2.3～5.2.6条；PDF13～15；印刷页5～7", evidence_source_id=carbon_source),
+        _parameter_rule("CAR-RULE-POWER-HEAT-001", ("electricity_emission_factor_national",),
+            ParameterSelectionPolicy.OFFICIAL_LATEST, relation=RuleRelation.SPECIALIZE, standard_id="gbt_32151_34_2024",
+            applicable_standard_ids=carbon_ids, parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
+            target_id="electricity_emission_factor_national", description="炭素材料外购电力采用最新适用官方因子。",
+            source_location="GB/T 32151.34—2024 第5.2.7.1条；PDF15～16；印刷页7～8", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-TOTAL-001", "formula", RuleRelation.OVERRIDE, "炭素材料总量公式覆盖通则路径。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="total.formula", priority=300,
+            supersedes_rule_ids=("GEN-RULE-TOTAL-001", "GEN-FML-TOTAL-001"),
+            source_location="GB/T 32151.34—2024 第5.2.7条；PDF15～16；印刷页7～8", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-TOTAL-COVERAGE-001", "aggregation", RuleRelation.OVERRIDE, "炭素材料总量覆盖。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="total.coverage", priority=300,
+            supersedes_rule_ids=("GEN-RULE-TOTAL-COVERAGE-REQUIRED-001",),
+            source_location="GB/T 32151.34—2024 第5.2.7.1～5.2.7.3条；PDF15～16；印刷页7～8", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-FUGITIVE-COVERAGE-001", "execution", RuleRelation.OVERRIDE, "炭素材料逸散排放行业覆盖。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="fugitive.execution", priority=300,
+            supersedes_rule_ids=("GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001", "GEN-FML-FUGITIVE-AGG-001",
+                "GEN-AGG-FUGITIVE-REVIEW-001"), origin=RuleOrigin.SOFTWARE_DERIVED,
+            payload=(("decision", "SM01-DECISION-001"),),
+            source_location="GB/T 32151.34—2024 第5.2.7.2条；PDF15～16；印刷页7～8；SM01-DECISION-001",
+            evidence_source_id="SM01-DECISION-001", confirmation_id="SM01-DECISION-001"),
+        _frozen_rule("CAR-RULE-NONFOSSIL-POWER-001", "electricity", RuleRelation.BASE, "非化石能源电力单列。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="electricity.nonfossil",
+            source_location="GB/T 32151.34—2024 附录D；PDF28；印刷页20", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-QA-001", "quality", RuleRelation.EXTEND, "炭素材料质量要求补充。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="quality.assurance",
+            source_location="GB/T 32151.34—2024 第6条；PDF16～18；印刷页8～10", evidence_source_id=carbon_source),
+        _frozen_rule("CAR-RULE-REPORT-001", "reporting", RuleRelation.EXTEND, "炭素材料报告要求补充。",
+            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="reporting.result",
+            source_location="GB/T 32151.34—2024 第7条；PDF18～20；印刷页10～12", evidence_source_id=carbon_source),
     )
     return common, industry
