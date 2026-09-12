@@ -6,7 +6,7 @@ G04 标准库与参数因子库查询
 
 ## 状态
 
-G04_READY_FOR_SOL_REACCEPTANCE
+G04_FAILED_WAITING_FOR_LUNA_FIXES
 
 ## 阶段验收状态
 
@@ -19,7 +19,7 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G03 正式验收结论：PASS WITH MINOR FIXES（2026-09-12）；验收实施基线为 `05a67f4`。桌面外壳可运行，但两项冻结规范细节须修正后重新验收。
 - G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`。
 - G03 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `e57af51`，确认两项小修全部关闭。
-- G04 Goal 已创建并完成（2026-09-12）；当前等待 Sol 验收。
+- G04 Goal 已创建并提交（2026-09-12）；正式验收结论为 FAIL，被验收 HEAD 为 `812af02`。
 - G05 未创建或执行；G04 未获 PASS 前不得进入 G05。
 
 ## 已完成
@@ -88,6 +88,14 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G04 分层/禁入扫描：UI 和应用边界未直接导入 sqlite3；未发现 QFileDialog、QSql、reportlab、matplotlib、G05 或推荐解析入口；SQLite 仅存在于 persistence 适配器。
 - G04 保护检查：`git diff --name-only -- '计算表/**'` 为空；未修改 `计算表/` 用户参考文件。
 - G04 未执行项：未启动系统浏览器验证外链，避免测试产生外部副作用；官方 URL 存在性、缺失时禁用和按钮路由均由 Qt 定向测试覆盖。
+- Sol G04 正式验收定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`；8 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G04 正式验收全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；55 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G04 正式验收构建检查：Canonical 校验通过（9 standards、12 sources、6 parameters、6 factors），`catalog.sqlite` 从 Canonical Source 重建成功；`compileall` 和 `pip check` 通过。
+- Sol G04 原始来源复核：本地 GB/T 32150—2025 第7.5.6～7.5.7条、GB/T 32151.34—2024 第5.2.6.2与表C.1/表C.3支持当前 0.11、389.31、0.0153、0.99 等展示值；国家标准平台和生态环境部官方页面支持当前日期、状态及电力来源元数据。
+- Sol G04 验收级交互探查发现失败：搜索 `32151.34` 后列表仅剩 GB/T 32151.34—2024，但详情仍显示 GB/T 32150—2025，当前详情按钮打开的也是 32150 官方 URL；搜索“天然气”后列表为 3 项天然气参数，详情仍停留在 CO₂ GWP。现有 8 项测试没有识别该错配。
+- Sol G04 多版本检查发现失败：读模型、查询服务和页面只显示 `ValueType`/审核状态，没有明确产生或展示“推荐值、其他适用值、历史值”三类，也没有同一参数多版本测试数据或断言。
+- Sol G04 Windows Computer Use 辅助进程经重试与重置后仍因 `windows sandbox failed: helper_unknown_error: setup refresh had errors` 无法连接；已用原生 Qt 截图和控件状态探查完成替代核验。
+- Sol G04 正式验收时间：2026-09-12。
 
 - G02 历史定向命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence -v
 - G02 定向结果：21 个通过，0 个失败，0 个错误，0 个跳过。
@@ -115,6 +123,7 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G03 小修提交：`aaefe29 fix: close G03 minor acceptance findings`。
 - G03 正式重新验收的被验收 HEAD：`e57af51 docs: record G03 minor fixes handoff`。
 - G04 实施提交：`4419a73 feat: implement G04 catalog query pages`。
+- G04 正式验收的被验收 HEAD：`812af02 docs: record G04 catalog handoff`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -123,10 +132,11 @@ G04_READY_FOR_SOL_REACCEPTANCE
 - G03 小修项1：已修正并由回归测试锁定首页按钮顺序。
 - G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
 - G03 已通过，阶段门禁已解除。
-- G04 实现、定向回归、全量回归和 L3 检查已完成；当前阶段门禁停在 `G04_READY_FOR_SOL_REACCEPTANCE`，等待 Sol 验收。
+- G04 正式验收结论为 FAIL：搜索/筛选后的详情与官方 URL 可能仍指向筛选前记录；多版本推荐/可选/历史分类未实现。
 - G05 未创建或执行；未提前实施 G05。
 
 ## 下一步
 
-1. 等待 Sol 验收 G04；未获 PASS 前不得创建或执行 G05。
-2. G05 通用规则解析、参数推荐和计算快照基础仍未开始。
+1. 由 Luna 修正搜索/筛选后列表、详情和官方 URL 的同步问题，并增加能捕获标准及参数错配的回归测试。
+2. 按 G04 边界补齐同一参数多版本并存时“推荐值、其他适用值、历史值、审核状态”的明确展示及测试；不得借机实施 G05 计算场景推荐引擎。
+3. 修正完成后更新实施报告并停止，用户应发送“重新验收G04”。G05 仍不得创建或执行。
