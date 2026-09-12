@@ -430,3 +430,36 @@ L3 检查：
 5. 增加生产默认规则集测试，直接断言冻结映射要求的关键规则 ID、关系、来源和冲突路径存在；增加“2023 + 2024 官方因子必须选 2024”的参数库更新测试。重新执行定向测试、全量回归、分层和保护检查。
 
 G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
+
+## G05 返工实施报告（2026-09-13）
+
+### 目标与范围
+
+本轮仅返工 HANDOFF.md 的 G05，针对 Sol 的 G05 FAIL 意见修正通用规则集合、参数推荐门禁和 OVERRIDE 解析。没有创建或执行 G06，没有修改 UI、Canonical 数据、SQLite 迁移、正式数据库、行业输入页面、行业计算公式或 `计算表/`。
+
+### 修正内容
+
+- `default_g05_rules()` 依据两份冻结映射重建为 35 条 CommonRuleSet 和 11 条 IndustryRuleSet；加入冻结的引用模式、温室气体范围、实体/系统/辅助/附属边界、纳入源、生物质/移除量、方法、公式、聚合、质量和报告规则。
+- 默认集合包含 `GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001`、`GEN-RULE-TOTAL-COVERAGE-REQUIRED-001`、`GEN-RULE-TOTAL-001` 及对应的实际 `CONFLICT_REVIEW` 路径；行业集合以 `CAR-RULE-TOTAL-001`、`CAR-RULE-TOTAL-COVERAGE-001` 和 `CAR-RULE-FUGITIVE-COVERAGE-001` 通过完整 `supersedes_rule_ids` 明确覆盖。
+- 参数命名空间 `GEN-PAR-*` / `CAR-PAR-*` 不再被用作规则 ID；删除未在冻结映射中确认的 GWP 默认 `STANDARD_EXPLICIT` 规则。每条生产默认规则均保留 `source_location` 和 `evidence_source_id`，软件派生的阻断/覆盖策略标记为 `SOFTWARE_DERIVED` 并记录 `SM01-DECISION-001/005`。
+- `OFFICIAL_LATEST` 不再因规则中的旧 `required_factor_id` 获得固定高分；适用标准、对象、参数类型、来源类型、有效期和其他上下文先过滤，再按官方年度选择最新候选；同优先级仍要求确认。
+- `ParameterResolution.to_snapshot()` 对任何 ERROR 统一阻断；用户确认只解决参数候选歧义，不能绕过未解决的 `CONFLICT_REVIEW`。
+- `OVERRIDE` 强制校验缺失、悬空和不完整的 `supersedes_rule_ids`。非法覆盖保留同组 BASE 并产生 ERROR；只有唯一且完整获选的覆盖规则能标记被覆盖规则并消解冲突。
+
+### 测试与验证
+
+- G05 定向：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 通过，0 失败，0 错误，0 跳过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 通过，0 失败，0 错误，0 跳过（Python 3.12.14，PySide6 已安装）。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages tests apps scripts`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；输出 `No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards、12 sources、6 parameters、6 factors。
+- SQLite：使用临时目录从 Canonical 从零重建 catalog、user、records 三库；结果为 `sqlite rebuild: PASS catalog, records, user`，未留下正式构建产物。
+- 分层边界：`tests.test_g00_layout`、`tests.test_g01_domain_dependencies`、`tests.test_g02_persistence` 共 9 项通过；独立扫描确认 `packages/core` 无 PySide6、sqlite3、Windows API 依赖。
+- 保护与差异：`git diff --check` 成功；`git diff --name-only -- '计算表/**'` 为空，`计算表/` 未修改。
+- 未作为项目测试命令执行 pytest：当前环境未安装 pytest；项目 README 规定的 unittest 定向和全量测试已在项目 .venv 完成。系统 Python 3.11 的一次测试收集曾因缺少 PySide6 产生 3 个导入错误，该结果不计入验收，随后已用项目 Python 3.12 .venv 完成 68/68 全量回归。
+
+### Git 与交付状态
+
+- 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
+- 当前工作区在文档提交前仅有本轮两份文档修改和既有未跟踪 `docs/handoffs/`；`docs/handoffs/` 未处理、未暂存。
+- G06 未创建、未执行；当前停止等待 Sol 发送“重新验收G05”。

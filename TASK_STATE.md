@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_FAIL_WAITING_FOR_REWORK
+G05_REWORK_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -26,6 +26,7 @@ G05_FAIL_WAITING_FOR_REWORK
 - G04已通过，允许由用户另行启动G05；本轮已创建并执行G05 Goal。
 - G05 实施已完成（2026-09-12）；实现提交为 `e815d50`，当前停止等待 Sol 验收；G06 未创建、未执行。
 - G05 正式验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `cd880f2`。默认规则集未完整转录冻结映射，且最新官方因子、冲突快照和显式覆盖存在阻断性错误。
+- G05 返工已完成（2026-09-13）；返工提交为 `549bca0`，已按冻结映射补齐默认规则、修正官方最新因子选择、冲突快照门禁和显式 OVERRIDE 关系，当前等待 Sol 重新验收。
 - G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
 
 ## 已完成
@@ -174,8 +175,9 @@ G05_FAIL_WAITING_FOR_REWORK
 - G04 正式重新验收的被验收 HEAD：`28dd8c9 docs: record G04 rework handoff`。
 - G05 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
 - G05 正式验收的被验收 HEAD：`cd880f2 docs: record G05 delivery`。
+- G05 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
 - 当前工作区仅保留既有未跟踪 `docs/handoffs/`；未纳入 G05 提交。
-- G05 已完成并停止等待 Sol 验收；G06 未创建、未执行。
+- G05 返工已完成并停止等待 Sol 重新验收；G06 未创建、未执行。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -188,21 +190,22 @@ G05_FAIL_WAITING_FOR_REWORK
 - G04 正式重新验收结论为 PASS，阶段门禁已解除。
 - G04已通过，允许由用户另行启动G05；本轮 G05 已实施并完成首次正式验收。
 - G05 正式验收结论为 FAIL；默认规则转录、最新官方因子选择、冲突快照阻断和显式覆盖语义必须返工。
+- G05 返工提交 `549bca0` 已完成上述修正；当前阶段门禁仍保持关闭，等待 Sol 重新验收。
 - G06 阶段门禁保持关闭，未创建或执行 G06。
 
 ## 下一步
 
-1. Luna 只返工 G05：按冻结映射补齐实际 CommonRuleSet/IndustryRuleSet，修复动态最新因子、冲突快照和显式覆盖，并增加验收指出的回归测试。
-2. 返工完成后发送“重新验收G05”；未获 PASS 前不得创建或执行 G06。
+1. 发送“重新验收G05”，由 Sol 复核本次返工提交和测试证据。
+2. 未获 G05 PASS 前不得创建或执行 G06。
 
-## G05 Luna 交付状态
+## G05 返工交付状态
 
 **READY_FOR_SOL_REACCEPTANCE**
 
-- 已按 `HANDOFF.md` 仅执行 G05；本轮 Goal 已创建并完成。
-- 已实现通用规则有效解析、六类规则关系、未决冲突阻断、上下文驱动参数推荐、行业规则优先、确认理由、不可变参数快照和通用活动数据/来源/校验/聚合契约。
-- 已通过内存 Parameter/Rule Repository 测试；没有修改 UI、SQLite、Canonical Source、迁移、行业专属计算公式或 `计算表/`。
-- G05 定向测试 8/8、项目全量回归 64/64、compileall、pip check、分层/禁入扫描和保护检查均通过。
-- 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
-- 工作区仅保留既有未跟踪 `docs/handoffs/`，未纳入本轮提交。
-- 当前停止等待 Sol 验收；G06 未创建、未执行。
+- 已按 `HANDOFF.md` 仅返工 G05；没有创建或执行 G06。
+- `default_g05_rules()` 现装载 35 条 CommonRuleSet 和 11 条 IndustryRuleSet，包含冻结的边界、总量、逸散执行阻断、实际 `CONFLICT_REVIEW`、行业覆盖关系及来源定位；参数命名空间不再冒充 `rule_id`，未加入未冻结的 GWP 默认规则。
+- `OFFICIAL_LATEST` 先按上下文过滤，再按官方因子年度选择；规则固定的旧因子 ID 不再压过更新值。未解决冲突时，用户确认不能形成推荐或快照。
+- OVERRIDE 现在强制校验缺失、悬空和不完整的 `supersedes_rule_ids`；非法覆盖保留 BASE 并阻断，只有最终胜者能消解冲突。
+- G05 定向测试 12/12、项目全量回归 68/68；compileall、pip check、Canonical 校验、临时 SQLite 三库重建、领域/SQLite 边界和 `计算表/` 保护检查均通过。
+- 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
+- 当前停止等待 Sol 重新验收；G06 未创建、未执行。
