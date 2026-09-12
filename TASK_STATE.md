@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_READY_FOR_SOL_REACCEPTANCE
+G05_FAIL_WAITING_FOR_REWORK
 
 ## 阶段验收状态
 
@@ -25,6 +25,8 @@ G05_READY_FOR_SOL_REACCEPTANCE
 - G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`，两项首次验收缺陷均已关闭。
 - G04已通过，允许由用户另行启动G05；本轮已创建并执行G05 Goal。
 - G05 实施已完成（2026-09-12）；实现提交为 `e815d50`，当前停止等待 Sol 验收；G06 未创建、未执行。
+- G05 正式验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `cd880f2`。默认规则集未完整转录冻结映射，且最新官方因子、冲突快照和显式覆盖存在阻断性错误。
+- G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
 
 ## 已完成
 
@@ -148,6 +150,13 @@ G05_READY_FOR_SOL_REACCEPTANCE
 - G05 分层/禁入扫描：`packages/core` 和 G05 测试未发现 PySide6、sqlite3、QSql、QWidget、QFileDialog、G06 公式或行业输入页实现。
 - G05 保护检查：`git diff --name-only -- 计算表/**` 为空；Canonical、SQLite 迁移和 `计算表/` 均未修改。
 - G05 提交前 `git diff --check` 成功；pytest 未作为项目测试命令执行（环境未安装 pytest），按 README 规定的 unittest 命令完成验收测试。
+- Sol G05 正式验收定向命令：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；8 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G05 正式验收全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；64 个通过，0 个失败，0 个错误，0 个跳过。
+- Sol G05 正式验收辅助检查：`.venv\Scripts\python.exe -m compileall -q packages apps tests` 成功；`.venv\Scripts\python.exe -m pip check` 输出 `No broken requirements found.`；Domain 未发现 PySide6/SQLite 依赖，`计算表/` 无 Git 差异。
+- Sol G05 原文与映射复核：直接核对 GB/T 32150—2025 PDF 第13～17页及 SHA256 `673B85DF6EBEB6CE8894995534EC6EA3E2B7FA4F50B6A03AC0208E2DE34469BC`；活动数据、因子来源优先级、电力/热力实测优先、0.11 缺省值和 GWP 来源表述与冻结映射一致。
+- Sol G05 验收探查失败：向生产解析器同时提供 2023 与 2024 全国官方电力因子时，`OFFICIAL_LATEST` 仍选择固定 ID `electricity_national_average_2023`；未解决 `CONFLICT_REVIEW` 可在用户确认分支生成参数快照；未声明 `supersedes_rule_ids` 的 `OVERRIDE` 会静默移除 BASE 且不留下覆盖记录。
+- Sol G05 默认规则集检查失败：`default_g05_rules()` 只有 3 条通则参数规则和 5 条行业参数规则，没有装载冻结映射中的边界、总量、逸散阻断及行业覆盖规则，也没有任何实际 `CONFLICT_REVIEW`；其中 6 个规则 ID 在两份冻结映射中不存在，且把 `GEN-PAR-*` 参数 ID 用作 `rule_id`。
+- Sol G05 正式验收时间：2026-09-13；被验收 HEAD：`cd880f2`。
 
 ## Git
 
@@ -164,6 +173,7 @@ G05_READY_FOR_SOL_REACCEPTANCE
 - G04 返工测试提交：`56cdd60 test: cover G04 empty detail reset`。
 - G04 正式重新验收的被验收 HEAD：`28dd8c9 docs: record G04 rework handoff`。
 - G05 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
+- G05 正式验收的被验收 HEAD：`cd880f2 docs: record G05 delivery`。
 - 当前工作区仅保留既有未跟踪 `docs/handoffs/`；未纳入 G05 提交。
 - G05 已完成并停止等待 Sol 验收；G06 未创建、未执行。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
@@ -176,13 +186,14 @@ G05_READY_FOR_SOL_REACCEPTANCE
 - G03 已通过，阶段门禁已解除。
 - G04 首次正式验收结论为 FAIL；对应缺陷已在 `00c7ea6` 和 `56cdd60` 中修正并由本次重新验收关闭。
 - G04 正式重新验收结论为 PASS，阶段门禁已解除。
-- G04已通过，允许由用户另行启动G05；本轮 G05 已完成，等待 Sol 验收。
-- G05 实施提交 `e815d50` 已形成；G06 阶段门禁保持关闭。
+- G04已通过，允许由用户另行启动G05；本轮 G05 已实施并完成首次正式验收。
+- G05 正式验收结论为 FAIL；默认规则转录、最新官方因子选择、冲突快照阻断和显式覆盖语义必须返工。
+- G06 阶段门禁保持关闭，未创建或执行 G06。
 
 ## 下一步
 
-1. 等待 Sol 对 G05 进行验收；验收前不启动 G06。
-2. G05 若验收失败，只按 Sol 指定意见返工；未获 PASS 前不得创建或执行 G06。
+1. Luna 只返工 G05：按冻结映射补齐实际 CommonRuleSet/IndustryRuleSet，修复动态最新因子、冲突快照和显式覆盖，并增加验收指出的回归测试。
+2. 返工完成后发送“重新验收G05”；未获 PASS 前不得创建或执行 G06。
 
 ## G05 Luna 交付状态
 

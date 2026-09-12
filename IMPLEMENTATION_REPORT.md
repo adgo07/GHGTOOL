@@ -401,3 +401,32 @@ L3 检查：
 - 快照稳定性回归测试提交：`fefcd4d test: verify G05 snapshot stability`。
 - 工作区仅保留既有未跟踪 `docs/handoffs/`，未纳入本轮提交；未使用破坏性 Git 操作。
 - G05 已完成，当前停止等待 Sol 验收；G06 未创建、未执行。
+
+## G05 Sol 正式验收结论
+
+**结论：FAIL**
+
+- 验收日期：2026-09-13。
+- 被验收 HEAD：`cd880f2`；G05 实施提交为 `e815d50`，快照稳定性测试提交为 `fefcd4d`。
+- 定向测试命令：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；8 个通过，0 个失败，0 个错误，0 个跳过。
+- 全量回归命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；64 个通过，0 个失败，0 个错误，0 个跳过。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests` 成功；`.venv\Scripts\python.exe -m pip check` 输出 `No broken requirements found.`。G05 Domain 不依赖 PySide6 或 SQLite；未修改 Canonical、迁移、UI、`计算表/`，未提前实施 G06。
+- 原始标准已直接复核：GB/T 32150—2025 PDF 第13～17页明确活动数据高/中/低优先级、实测或测算因子优先于参考值、电力和热力实测优先、热力可用 0.11 tCO2/GJ、GWP 可参考 IPCC 数据。PDF SHA256 为 `673B85DF6EBEB6CE8894995534EC6EA3E2B7FA4F50B6A03AC0208E2DE34469BC`。冻结映射进一步明确官方电力因子更新后取最新值、规则 ID 命名空间和六类关系解析契约。
+
+### 未满足的 G05 验收项
+
+1. **默认运行规则集未实现冻结映射中的通用规则层和行业关系。** `default_g05_rules()` 只有 3 条通则参数选择规则与 5 条行业参数选择规则；缺少 `GEN-RULE-GHG-SCOPE-001`、`GEN-RULE-BOUNDARY-SYSTEMS-001`、`GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001`、`GEN-RULE-TOTAL-COVERAGE-REQUIRED-001`、`GEN-RULE-TOTAL-001`、`CAR-RULE-TOTAL-001`、`CAR-RULE-FUGITIVE-COVERAGE-001` 等冻结映射规则，实际集合没有任何 `CONFLICT_REVIEW`。因此生产默认解析器无法执行已冻结的边界、总量、逸散冲突阻断及行业覆盖，只在合成测试中证明了通用算法存在。
+2. **规则 ID 与冻结映射不一致。** `GEN-PAR-GWP-SYSTEM-001`、`CAR-PAR-NATURAL-GAS-LHV-SELECT`、`CAR-PAR-NATURAL-GAS-CARBON-SELECT`、`CAR-PAR-NATURAL-GAS-OXIDATION-SELECT`、`CAR-PAR-ELECTRICITY-NATIONAL-LATEST`、`CAR-PAR-HEAT-MEASURED-OR-DEFAULT` 均不存在于两份冻结映射；同时 `GEN-PAR-*` 在映射中是参数命名空间，却被作为 `RuleDefinition.rule_id` 使用。`GEN-PAR-GWP-SYSTEM-001` 还被标为 `STANDARD_EXPLICIT/VERIFIED`，但通则原文只允许 GWP 参考 IPCC 数据，冻结映射明确具体 GWP 版本管理属于软件参数结构，不能把未映射策略写成标准明确规则。
+3. **“最新官方值”会选择旧的固定因子。** `_rank()` 对规则的 `required_factor_id` 增加 10000 分，远高于 `factor_year`。独立探查同时提供 2023 和 2024 全国官方电力因子时，生产 `OFFICIAL_LATEST` 仍选择 `electricity_national_average_2023`。这违反冻结映射“如更新采用最新数值”和炭素映射“不能把某年度值永久硬编码”的要求，也说明现有 8 项测试没有覆盖参数库更新后的推荐结果。
+4. **未解决冲突仍能形成参数快照。** `ParameterResolver.resolve()` 的用户确认分支在 `effective.blocked` 时仍可设置 `recommended`，`ParameterResolution.to_snapshot()` 也不检查阻断错误。独立探查中未解决 `CONFLICT_REVIEW` 已产生 ERROR，但仍成功生成快照。这不满足“未解决的 CONFLICT_REVIEW 必须阻止成功核算”和“不可变快照只记录本次实际采用值”的门禁。
+5. **`OVERRIDE` 不要求显式覆盖关系。** 当行业 `OVERRIDE` 没有声明 `supersedes_rule_ids` 时，解析器仍静默丢弃同组 BASE，结果既不阻断，也不把 BASE 记为已覆盖。冻结映射要求行业覆盖必须指向明确被覆盖规则并保留差异原因；现有测试只覆盖了声明正确的路径。
+
+### Luna 修正要求
+
+1. 以两份冻结映射为唯一规则来源，使用正确的规则/参数 ID 命名空间，补齐 G05 实际需要的 CommonRuleSet、IndustryRuleSet、来源定位和已确认冲突政策；不得发明 `STANDARD_EXPLICIT` 规则。若映射不足以转录某项，按 `BLOCKED` 上报，不得自行解释。
+2. 修复 `OFFICIAL_LATEST`：先按标准、期间、地区、对象、来源类型等上下文过滤，再在有效官方候选中选择最新版本/年度；固定旧因子 ID 不得压过更新值，同优先级且无法唯一确定时要求用户确认并保存理由。
+3. 阻止任何带 ERROR 的解析结果生成推荐快照；用户确认只能解决参数候选歧义，不能绕过未解决规则冲突。为“冲突 + 用户确认”“冲突结果调用 `to_snapshot()`”增加回归测试。
+4. 强制 `OVERRIDE` 显式、有效地引用被覆盖规则；未声明、悬空或不完整的覆盖应阻断或保留未被覆盖的 BASE，且只有最终获选的覆盖规则可以解除对应冲突。增加缺失引用、悬空引用和多 BASE 部分覆盖测试。
+5. 增加生产默认规则集测试，直接断言冻结映射要求的关键规则 ID、关系、来源和冲突路径存在；增加“2023 + 2024 官方因子必须选 2024”的参数库更新测试。重新执行定向测试、全量回归、分层和保护检查。
+
+G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
