@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from .models import AccountingRecord, Factor, Parameter, Settings, Standard
+from .rules import RuleDefinition
 
 
 @runtime_checkable
@@ -48,3 +49,9 @@ class SettingsRepository(Protocol):
 
     def save(self, settings: Settings) -> None:
         """Persist user settings without exposing storage details to Domain."""
+
+
+@runtime_checkable
+class RuleRepository(Protocol):
+    def list_rules(self, standard_id: str | None = None) -> Sequence[RuleDefinition]:
+        """Return immutable common/industry rules, optionally scoped to a standard."""

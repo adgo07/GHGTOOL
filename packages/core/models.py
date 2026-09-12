@@ -201,6 +201,8 @@ class Factor:
     applicable_standard_ids: tuple[str, ...] = ()
     valid_from: date | None = None
     valid_to: date | None = None
+    factor_year: int | None = None
+    notes: str | None = None
 
     def __post_init__(self) -> None:
         _require_enum(self.parameter_type, ParameterType, "parameter_type")
@@ -219,6 +221,12 @@ class Factor:
             _require_id(self.source_id, "source_id")
         if self.valid_from and self.valid_to and self.valid_to < self.valid_from:
             raise DomainValidationError("factor validity dates are out of order")
+        if self.factor_year is not None and (
+            not isinstance(self.factor_year, int) or self.factor_year < 1
+        ):
+            raise DomainValidationError("factor_year must be a positive integer")
+        if self.notes is not None and not isinstance(self.notes, str):
+            raise DomainValidationError("factor notes must be text")
 
 
 class ActivityDataSource(str, Enum):
@@ -231,6 +239,14 @@ class ActivityDataSource(str, Enum):
     OTHER = "OTHER"
 
 
+class ActivitySourceLevel(str, Enum):
+    """Evidence priority for activity data under the common rules."""
+
+    PRIMARY = "PRIMARY"
+    SECONDARY = "SECONDARY"
+    PROXY = "PROXY"
+
+
 @dataclass(frozen=True, slots=True)
 class ActivityData:
     activity_id: str
@@ -238,9 +254,11 @@ class ActivityData:
     unit: str
     source_type: ActivityDataSource
     source_reference: str | None = None
+    source_level: ActivitySourceLevel = ActivitySourceLevel.PRIMARY
 
     def __post_init__(self) -> None:
         _require_enum(self.source_type, ActivityDataSource, "source_type")
+        _require_enum(self.source_level, ActivitySourceLevel, "source_level")
         _require_id(self.activity_id, "activity_id")
         _require_unit(self.unit)
         object.__setattr__(self, "value", _normalize_decimal(self.value, "value"))
@@ -377,6 +395,9 @@ class ParameterSnapshot:
     selection_reason: str
     standard_id: str
     snapshot_at: datetime
+    factor_version: str | None = None
+    source_location: str | None = None
+    factor_year: int | None = None
 
     def __post_init__(self) -> None:
         _require_enum(self.selection_method, ParameterSelectionMethod, "selection_method")
@@ -393,6 +414,14 @@ class ParameterSnapshot:
             _require_id(self.source_id, "source_id")
         if self.source_version is not None:
             _require_id(self.source_version, "source_version")
+        if self.factor_version is not None:
+            _require_id(self.factor_version, "factor_version")
+        if self.source_location is not None and not isinstance(self.source_location, str):
+            raise DomainValidationError("source_location must be text")
+        if self.factor_year is not None and (
+            not isinstance(self.factor_year, int) or self.factor_year < 1
+        ):
+            raise DomainValidationError("factor_year must be a positive integer")
 
 
 class RecordStatus(str, Enum):
