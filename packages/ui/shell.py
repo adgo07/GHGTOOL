@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from packages.application.catalog_queries import CatalogQueryService
+
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
     COMPACT_PAGE_MARGIN,
@@ -61,12 +63,16 @@ class AppShell(QWidget):
         icon_directory: Path,
         page_factory: PageFactory | None = None,
         parent: QWidget | None = None,
+        catalog_service: CatalogQueryService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
         self.view_model = view_model
         self._logo_path = logo_path
         self._icon_directory = icon_directory
+        self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.selected_standard_id: str | None = None
+        self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
         self._navigation_buttons: dict[AppRoute, QPushButton] = {}
         self._icon_names: dict[AppRoute, str] = {}
@@ -81,9 +87,21 @@ class AppShell(QWidget):
         root_layout.addWidget(self._build_main_content(), 1)
 
         for item in view_model.navigation:
-            page = self._page_factory(item.route, view_model, self.navigate, self)
+            if self._custom_page_factory is None:
+                page = create_page(
+                    item.route,
+                    view_model,
+                    self.navigate,
+                    self,
+                    catalog_service=self.catalog_service,
+                )
+            else:
+                page = self._page_factory(item.route, view_model, self.navigate, self)
             self._pages[item.route] = page
             self.page_stack.addWidget(page)
+            accounting_requested = getattr(page, "accounting_requested", None)
+            if accounting_requested is not None:
+                accounting_requested.connect(self._request_standard_accounting)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
@@ -102,6 +120,12 @@ class AppShell(QWidget):
 
     def navigate(self, route: AppRoute) -> None:
         self.router.navigate(route)
+
+    def _request_standard_accounting(self, standard_id: str) -> None:
+        """Keep the selected catalog version while routing to the future input page."""
+
+        self.selected_standard_id = standard_id
+        self.navigate(AppRoute.NEW_ACCOUNTING)
 
     def _build_sidebar(self) -> QFrame:
         sidebar = QFrame(self)

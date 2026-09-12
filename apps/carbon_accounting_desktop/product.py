@@ -1,6 +1,8 @@
-"""Carbon-accounting product configuration for the shared G03 shell."""
+"""Carbon-accounting product configuration for the shared G04 shell."""
 
 from __future__ import annotations
+
+from packages.application import CatalogQueryService, create_catalog_query_service
 
 from .config import AppConfig
 from packages.ui.shell import AppShell
@@ -8,7 +10,7 @@ from packages.ui.view_models import AppRoute, NavigationItemViewModel, ShellView
 
 
 def carbon_accounting_view_model() -> ShellViewModel:
-    """Return an empty-data shell model; no database is queried in G03."""
+    """Return the stable shell model; catalog data is queried separately."""
 
     return ShellViewModel(
         product_name="温室气体排放核算",
@@ -31,11 +33,17 @@ def carbon_accounting_view_model() -> ShellViewModel:
     )
 
 
-def create_shell(config: AppConfig) -> AppShell:
-    """Build the product shell while keeping AppConfig at the application edge."""
+def create_shell(
+    config: AppConfig,
+    catalog_service: CatalogQueryService | None = None,
+) -> AppShell:
+    """Build the product shell while keeping database access in the application edge."""
 
     return AppShell(
         carbon_accounting_view_model(),
         logo_path=config.logo_path(),
         icon_directory=config.icons_directory(),
+        catalog_service=catalog_service or create_catalog_query_service(
+            config.resolved_catalog_database()
+        ),
     )

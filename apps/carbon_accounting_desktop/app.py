@@ -1,4 +1,4 @@
-"""G03 public desktop shell for the carbon-accounting application."""
+"""G04 public desktop shell for the carbon-accounting application."""
 
 from __future__ import annotations
 
@@ -8,14 +8,19 @@ from collections.abc import Sequence
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication, QMainWindow
 
+from packages.application import CatalogQueryService
+
 from .config import AppConfig
 from .logging_config import configure_logging
 from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
 
 
-def create_main_window(config: AppConfig | None = None) -> QMainWindow:
-    """Create the public G03 shell; business algorithms remain outside the UI."""
+def create_main_window(
+    config: AppConfig | None = None,
+    catalog_service: CatalogQueryService | None = None,
+) -> QMainWindow:
+    """Create the public G04 shell; business algorithms remain outside the UI."""
 
     app_config = config or AppConfig()
     window = QMainWindow()
@@ -25,7 +30,7 @@ def create_main_window(config: AppConfig | None = None) -> QMainWindow:
     window.resize(1280, 800)
     window.setStyleSheet(application_stylesheet())
     window.setFont(QFont("Microsoft YaHei UI", 10))
-    window.setCentralWidget(create_shell(app_config))
+    window.setCentralWidget(create_shell(app_config, catalog_service=catalog_service))
     return window
 
 

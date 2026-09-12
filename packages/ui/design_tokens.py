@@ -21,6 +21,12 @@ PRIMARY_TEXT = "#1F2937"
 SECONDARY_TEXT = "#667085"
 BORDER = "#D9E0E7"
 CARD_BORDER = "#E2E8F0"
+SURFACE_MUTED = "#F8FAFC"
+DISABLED_TEXT = "#98A2B3"
+STATUS_CURRENT = "#027A48"
+STATUS_UPCOMING = "#B54708"
+STATUS_ABOLISHED = "#B42318"
+STATUS_UNKNOWN = SECONDARY_TEXT
 
 
 def application_stylesheet() -> str:
@@ -59,6 +65,52 @@ def application_stylesheet() -> str:
         QPushButton#reservedButton {{ background: #F8FAFC; border: 1px dashed {BORDER}; color: {SECONDARY_TEXT}; }}
         QPushButton#reservedButton:hover {{ background: #F8FAFC; border-color: {BORDER}; color: {SECONDARY_TEXT}; }}
         QFrame#card {{ background: {CARD_BACKGROUND}; border: 1px solid {CARD_BORDER}; border-radius: 8px; }}
+        QLineEdit#standardSearch, QLineEdit#parameterSearch,
+        QComboBox#standardStatusFilter, QComboBox#standardIndustryFilter,
+        QComboBox#standardYearFilter, QComboBox#parameterViewModeFilter,
+        QComboBox#parameterSubjectFilter, QComboBox#parameterSourceFilter,
+        QComboBox#parameterTypeFilter, QComboBox#parameterReviewFilter,
+        QComboBox#parameterYearFilter {{
+            min-height: 36px; border: 1px solid {BORDER}; border-radius: 6px;
+            padding: 0 10px; background: {CARD_BACKGROUND};
+        }}
+        QTableWidget#catalogTable {{
+            background: {CARD_BACKGROUND}; border: 1px solid {BORDER};
+            gridline-color: {BORDER}; selection-background-color: #E6F4FB;
+            selection-color: {PRIMARY_TEXT};
+        }}
+        QTableWidget#catalogTable QHeaderView::section {{
+            background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
+            border: none; border-bottom: 1px solid {BORDER};
+            padding: 8px; font-weight: 600;
+        }}
+        QLabel#detailFieldLabel {{ color: {SECONDARY_TEXT}; font-size: 13px; }}
+        QLabel#detailFieldValue {{ color: {PRIMARY_TEXT}; font-size: 13px; }}
+        QLabel#standardDetailNumber {{ color: {PRIMARY_BRAND}; font-size: 14px; font-weight: 600; }}
+        QLabel#standardDetailName, QLabel#parameterDetailName {{ color: {PRIMARY_TEXT}; font-size: 20px; font-weight: 600; }}
+        QLabel#statusBadge {{
+            background: {STATUS_UNKNOWN}; color: #FFFFFF; border-radius: 10px;
+            padding: 3px 10px; font-size: 12px; font-weight: 600;
+        }}
+        QLabel#statusBadge[catalogStatus="CURRENT"] {{ background: {STATUS_CURRENT}; }}
+        QLabel#statusBadge[catalogStatus="UPCOMING"] {{ background: {STATUS_UPCOMING}; }}
+        QLabel#statusBadge[catalogStatus="ABOLISHED"] {{ background: {STATUS_ABOLISHED}; }}
+        QPushButton#viewOfficialSourceButton, QPushButton#viewFactorSourceButton,
+        QPushButton#viewFactorsButton {{
+            min-height: 34px; border: 1px solid {BORDER}; border-radius: 6px;
+            padding: 0 14px; color: {PRIMARY_BRAND}; background: {CARD_BACKGROUND};
+        }}
+        QPushButton#viewOfficialSourceButton:hover, QPushButton#viewFactorSourceButton:hover,
+        QPushButton#viewFactorsButton:hover {{
+            background: {SURFACE_MUTED}; border-color: {PRIMARY_BRAND};
+        }}
+        QPushButton#startAccountingButton {{
+            min-height: 34px; border: 1px solid {PRIMARY_BRAND}; border-radius: 6px;
+            padding: 0 14px; color: #FFFFFF; background: {PRIMARY_BRAND};
+        }}
+        QPushButton#startAccountingButton:disabled {{
+            color: {DISABLED_TEXT}; background: #F2F4F7; border-color: #E4E7EC;
+        }}
         QLabel#pageTitle {{ color: {PRIMARY_TEXT}; font-size: 24px; font-weight: 600; }}
         QLabel#pageDescription {{ color: {SECONDARY_TEXT}; font-size: 14px; }}
         QLabel#sectionTitle {{ color: {PRIMARY_TEXT}; font-size: 18px; font-weight: 600; }}

@@ -1,4 +1,4 @@
-"""Business-neutral G03 pages and safe empty/placeholder states."""
+"""Business-neutral pages and safe empty/placeholder states."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
     QSizePolicy,
 )
+
+from packages.application.catalog_queries import CatalogQueryService
 
 from .design_tokens import WIDE_PAGE_MARGIN
 from .view_models import AppRoute, ShellViewModel
@@ -248,13 +250,24 @@ def create_page(
     view_model: ShellViewModel,
     navigate: Navigate,
     parent: QWidget | None = None,
+    catalog_service: CatalogQueryService | None = None,
 ) -> QWidget:
-    """Create exactly one G03 page for a validated public route."""
+    """Create exactly one page for a validated public route."""
 
     if route is AppRoute.HOME:
         return HomePage(view_model, navigate, parent)
     if route is AppRoute.EXCEL_IMPORT:
         return ExcelImportPage(parent)
+    if route is AppRoute.STANDARDS:
+        from .catalog_pages import StandardLibraryPage
+
+        return StandardLibraryPage(catalog_service or CatalogQueryService.empty(), navigate, parent)
+    if route is AppRoute.FACTORS:
+        from .catalog_pages import ParameterFactorLibraryPage
+
+        return ParameterFactorLibraryPage(
+            catalog_service or CatalogQueryService.empty(), navigate, parent
+        )
 
     placeholders = {
         AppRoute.STANDARDS: (
