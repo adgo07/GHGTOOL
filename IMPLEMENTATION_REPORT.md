@@ -350,3 +350,54 @@ G04 未通过，不允许进入 G05。修正完成后应发送“重新验收G04
 - 验收临时数据库和截图在结论形成后清理，不纳入 Git。
 
 G04已通过，允许由用户另行启动G05；本次未启动G05。
+
+## G05 实施报告（2026-09-12）
+
+### 目标与范围
+
+本轮按 `HANDOFF.md` 仅执行 G05，目标是提供 GB/T 32150 通用规则解析、上下文驱动参数推荐、冲突处理、不可变参数快照和通用活动数据契约。没有制作 GB/T 32151.34 输入页面，没有实现 G06 公式、行业专属校验、正式记录持久化、UI 或 SQLite 运行时接入。
+
+### 实现内容
+
+- `packages/core/rules.py`：新增平台无关的 `EffectiveRuleResolver`、规则上下文、适用性、来源/证据状态和解析轨迹；实现 BASE、SPECIALIZE、OVERRIDE、EXTEND、SUPPLEMENT、CONFLICT_REVIEW。未解决的 `CONFLICT_REVIEW` 产生阻断性错误，显式覆盖保留覆盖/继承/冲突解决轨迹。
+- `packages/core/parameter_resolution.py`：新增上下文驱动 `ParameterResolver` 和 `ParameterResolutionContext`，覆盖标准、核算期间、地区、行业、对象、参数类型、排放源、气体、电力类型/核算模式、框架、来源模式、实测值和证据上下文；支持行业明确值优先、官方最新值、实测优先/缺省回退、系统 GWP、歧义确认和确认理由。
+- `packages/core/models.py`：补充因子年度/备注、活动数据来源等级以及快照的因子版本、来源定位和年度字段；枚举字段拒绝直接传入字符串。
+- `packages/core/contracts.py`：新增数据来源证据、活动数据校验契约、来源等级约束、百分比/非负/单位/证据校验和通用 ADD/SUBTRACT/REPORT_ONLY 聚合契约。
+- `packages/core/repositories.py` 与 `packages/core/__init__.py`：补充 `RuleRepository` 和 G05 Domain 公共导出。
+- `tests/test_g05_rules.py`：使用内存 Parameter/Rule Repository 覆盖六类规则关系、优先级与冲突阻断，宁夏场景下全国电力因子推荐、热力实测与 0.11 回退、歧义确认、参数库更新后快照稳定性、活动数据/来源/聚合契约以及领域枚举字符串拒绝。
+
+### 验证结果
+
+L1 G05 定向测试：
+
+    .venv\Scripts\python.exe -m unittest tests.test_g05_rules -v
+
+结果：8 个通过，0 个失败，0 个错误，0 个跳过。
+
+L2 项目全量回归：
+
+    .venv\Scripts\python.exe -m unittest discover -s tests -t . -v
+
+结果：64 个通过，0 个失败，0 个错误，0 个跳过（项目 `.venv`，Python 3.12.14）。
+
+L3 检查：
+
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：成功，9 standards、12 sources、6 parameters、6 factors。
+- `.venv\Scripts\python.exe scripts\build_catalog.py --source data-source\carbon_accounting\catalog.json --output tmp\g05-catalog-validation.sqlite --app-version 0.1.0`：临时 SQLite 构建成功；Canonical 和迁移文件未修改。
+- `git diff --check`：成功；`git diff --name-only -- 计算表/**`：为空。
+- G05 Domain/测试禁入扫描未发现 `PySide6`、`sqlite3`、`QSql`、`QWidget`、`QFileDialog`、G06 公式或行业输入页实现。
+
+### 未执行项及原因
+
+- 未执行 G06，也未创建 G06 Goal；G05 不包含行业专属输入页、标准公式、结果持久化或 UI 接入。
+- 未新增或修改 Canonical 数据、SQLite 迁移/Repository、计算表或正式运行数据库；G05 只通过内存 Repository 测试 Domain/Application 基础。
+- pytest 未作为项目测试命令执行：环境未安装 pytest，项目 README 规定的 unittest 命令已完成定向与全量测试。
+
+### Git 与交付状态
+
+- 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
+- 快照稳定性回归测试提交：`fefcd4d test: verify G05 snapshot stability`。
+- 工作区仅保留既有未跟踪 `docs/handoffs/`，未纳入本轮提交；未使用破坏性 Git 操作。
+- G05 已完成，当前停止等待 Sol 验收；G06 未创建、未执行。

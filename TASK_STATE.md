@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-G04 标准库与参数因子库查询
+G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G04_PASS_WAITING_FOR_USER_TO_START_G05
+G05_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -23,7 +23,8 @@ G04_PASS_WAITING_FOR_USER_TO_START_G05
 - G04 返工已完成（2026-09-12）；修正提交为 `00c7ea6`，当前等待 Sol 重新验收。
 - G04 返工补充空结果详情清空回归测试（2026-09-12）；测试提交为 `56cdd60`，当前等待 Sol 重新验收。
 - G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`，两项首次验收缺陷均已关闭。
-- G04已通过，允许由用户另行启动G05；本次未启动G05。
+- G04已通过，允许由用户另行启动G05；本轮已创建并执行G05 Goal。
+- G05 实施已完成（2026-09-12）；实现提交为 `e815d50`，当前停止等待 Sol 验收；G06 未创建、未执行。
 
 ## 已完成
 
@@ -56,11 +57,15 @@ G04_PASS_WAITING_FOR_USER_TO_START_G05
 - G04 返工增加 `CatalogValueCategory`，按来源声明的 `STANDARD_DEFAULT`、其他适用元数据和 `HISTORICAL`/弃用状态明确展示“推荐值（标准缺省）”“其他适用值”“历史值”及审核状态；未实现上下文驱动的场景推荐。
 - G04 返工测试加入标准详情/官方 URL 一致性、天然气参数详情一致性、空结果清空详情、同一参数三版本分类夹具和对应断言。
 - 计算表/ 下 7 个用户参考文件未修改、未纳入 Git；最终 SHA256 与既有基线一致。
+- G05 新增平台无关的 `EffectiveRuleResolver`，覆盖 BASE、SPECIALIZE、OVERRIDE、EXTEND、SUPPLEMENT、CONFLICT_REVIEW，保留有效规则、继承/覆盖轨迹，并在未解决冲突时阻断。
+- G05 新增上下文驱动 `ParameterResolver`，按标准、期间、地区、行业、对象、参数类型、排放源、气体、电力模式、核算框架及实测/证据上下文选择推荐值；行业明确规则优先于通用规则，歧义要求确认理由。
+- G05 扩展因子和不可变参数快照，保存实际值、单位、因子/来源版本、来源定位、年度、选择方法、理由、标准和快照时间；参数库更新不会改变已创建快照。
+- G05 新增通用活动数据来源等级、来源证据、活动数据校验契约、聚合契约和 `RuleRepository` 协议；未引入 UI、SQLite 或行业专属计算公式。
+- G05 新增 `tests/test_g05_rules.py`，通过内存 Parameter/Rule Repository 覆盖关系优先级、覆盖/补充/冲突、官方/实测推荐、歧义确认、快照不可变性、活动校验、聚合及枚举字符串拒绝。
 
 ## 未执行或未开始
 
-- G05 通用规则解析、参数推荐和计算快照基础未执行；G04 当前等待 Sol PASS，未创建或执行 G05 Goal。
-- G06 及以后页面、GB/T 32151.34 计算、记录闭环、报告/导出和 Windows 安装包未执行。
+- G06 及以后页面、GB/T 32151.34 专属输入与计算、记录闭环、报告/导出和 Windows 安装包未执行；G06 未创建、未执行。
 - 完整 26 种燃料、碳酸盐、蒸汽焓值和完整 AR6 GWP 表未录入；G02 只录入 HANDOFF.md 规定的最小集合。
 - 未引入 YAML 解析依赖；本阶段选择 JSON 作为实际 Canonical 源文件，避免在没有批准 loader/依赖时静默解释 YAML。
 - 未生成或提交正式运行时 SQLite 构建产物；本轮仅在 tmp\g02-rework-validation.sqlite 和 tmp\g02-rework-databases\ 下生成被忽略的验证数据库，数据库仍由脚本在目标目录按需生成。
@@ -133,6 +138,17 @@ G04_PASS_WAITING_FOR_USER_TO_START_G05
 - Sol 原文复核：GB/T 32150—2025 第7.5.6～7.5.7条明确支持热力因子实测优先或采用 0.11 tCO₂/GJ；GB/T 32151.34—2024 第5.2.6.2及表C.3给出相同值。
 - 测试时间：2026-09-11。
 
+- G05 定向命令：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`
+- G05 定向结果：8 个通过，0 个失败，0 个错误，0 个跳过。
+- G05 定向覆盖：BASE/SPECIALIZE/OVERRIDE/EXTEND/SUPPLEMENT/CONFLICT_REVIEW 关系、未决冲突阻断、行业规则优先、宁夏场景全国电力因子选择、热力实测优先与 0.11 回退、歧义确认、快照版本/来源/不可变性、活动数据校验、聚合契约、内存 Parameter/Rule Repository 和领域枚举字符串拒绝。
+- G05 项目全量命令：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`
+- G05 项目全量结果：64 个通过，0 个失败，0 个错误，0 个跳过（项目 `.venv`，Python 3.12.14）。
+- G05 L3 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests`，成功。
+- G05 L3 依赖：`.venv\Scripts\python.exe -m pip check`，输出 `No broken requirements found.`。
+- G05 分层/禁入扫描：`packages/core` 和 G05 测试未发现 PySide6、sqlite3、QSql、QWidget、QFileDialog、G06 公式或行业输入页实现。
+- G05 保护检查：`git diff --name-only -- 计算表/**` 为空；Canonical、SQLite 迁移和 `计算表/` 均未修改。
+- G05 提交前 `git diff --check` 成功；pytest 未作为项目测试命令执行（环境未安装 pytest），按 README 规定的 unittest 命令完成验收测试。
+
 ## Git
 
 - 当前分支：main。
@@ -147,6 +163,9 @@ G04_PASS_WAITING_FOR_USER_TO_START_G05
 - G04 返工实施提交：`00c7ea6 fix: close G04 catalog acceptance findings`。
 - G04 返工测试提交：`56cdd60 test: cover G04 empty detail reset`。
 - G04 正式重新验收的被验收 HEAD：`28dd8c9 docs: record G04 rework handoff`。
+- G05 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
+- 当前工作区仅保留既有未跟踪 `docs/handoffs/`；未纳入 G05 提交。
+- G05 已完成并停止等待 Sol 验收；G06 未创建、未执行。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -157,9 +176,22 @@ G04_PASS_WAITING_FOR_USER_TO_START_G05
 - G03 已通过，阶段门禁已解除。
 - G04 首次正式验收结论为 FAIL；对应缺陷已在 `00c7ea6` 和 `56cdd60` 中修正并由本次重新验收关闭。
 - G04 正式重新验收结论为 PASS，阶段门禁已解除。
-- G04已通过，允许由用户另行启动G05；本次未启动G05。
+- G04已通过，允许由用户另行启动G05；本轮 G05 已完成，等待 Sol 验收。
+- G05 实施提交 `e815d50` 已形成；G06 阶段门禁保持关闭。
 
 ## 下一步
 
-1. 等待用户另行下达启动 G05 的指令；本次验收不创建 Goal、不实施 G05。
-2. G05 启动后仍须按 `HANDOFF.md` 单独建立一个 Goal，并重新执行开工检查。
+1. 等待 Sol 对 G05 进行验收；验收前不启动 G06。
+2. G05 若验收失败，只按 Sol 指定意见返工；未获 PASS 前不得创建或执行 G06。
+
+## G05 Luna 交付状态
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+- 已按 `HANDOFF.md` 仅执行 G05；本轮 Goal 已创建并完成。
+- 已实现通用规则有效解析、六类规则关系、未决冲突阻断、上下文驱动参数推荐、行业规则优先、确认理由、不可变参数快照和通用活动数据/来源/校验/聚合契约。
+- 已通过内存 Parameter/Rule Repository 测试；没有修改 UI、SQLite、Canonical Source、迁移、行业专属计算公式或 `计算表/`。
+- G05 定向测试 8/8、项目全量回归 64/64、compileall、pip check、分层/禁入扫描和保护检查均通过。
+- 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
+- 工作区仅保留既有未跟踪 `docs/handoffs/`，未纳入本轮提交。
+- 当前停止等待 Sol 验收；G06 未创建、未执行。
