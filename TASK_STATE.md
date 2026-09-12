@@ -6,7 +6,7 @@ G04 标准库与参数因子库查询
 
 ## 状态
 
-G04_FAILED_WAITING_FOR_LUNA_FIXES
+G04_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -20,6 +20,8 @@ G04_FAILED_WAITING_FOR_LUNA_FIXES
 - G03 小修已完成（2026-09-12）；修正提交为 `aaefe29`。
 - G03 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `e57af51`，确认两项小修全部关闭。
 - G04 Goal 已创建并提交（2026-09-12）；正式验收结论为 FAIL，被验收 HEAD 为 `812af02`。
+- G04 返工已完成（2026-09-12）；修正提交为 `00c7ea6`，当前等待 Sol 重新验收。
+- G04 返工补充空结果详情清空回归测试（2026-09-12）；测试提交为 `56cdd60`，当前等待 Sol 重新验收。
 - G05 未创建或执行；G04 未获 PASS 前不得进入 G05。
 
 ## 已完成
@@ -49,6 +51,9 @@ G04_FAILED_WAITING_FOR_LUNA_FIXES
 - G04 参数/因子详情显示值、单位、年份、有效期、适用标准、来源定位、来源发布单位、审核状态和官方 URL 动作；官方 URL 缺失、目录数据库缺失或可选详情为空时安全降级，不制造标准全文或假数据。
 - 新增 `tests/test_g04_catalog.py`，覆盖标准号/行业/年份/状态、日期推导、标准详情、可核算路由、对象/来源查询、来源追溯、G01 枚举筛选、URL 缺失和空目录启动。
 - G04 未实现通用规则解析、参数推荐引擎、核算公式、报告/导出、记录闭环或 G05/G06 业务。
+- G04 返工修复列表刷新后的详情同步：标准/参数列表重建后显式渲染当前首项，旧详情控件先隐藏再销毁，详情状态、官方 URL 和核算入口绑定当前可见对象。
+- G04 返工增加 `CatalogValueCategory`，按来源声明的 `STANDARD_DEFAULT`、其他适用元数据和 `HISTORICAL`/弃用状态明确展示“推荐值（标准缺省）”“其他适用值”“历史值”及审核状态；未实现上下文驱动的场景推荐。
+- G04 返工测试加入标准详情/官方 URL 一致性、天然气参数详情一致性、空结果清空详情、同一参数三版本分类夹具和对应断言。
 - 计算表/ 下 7 个用户参考文件未修改、未纳入 Git；最终 SHA256 与既有基线一致。
 
 ## 未执行或未开始
@@ -88,6 +93,12 @@ G04_FAILED_WAITING_FOR_LUNA_FIXES
 - G04 分层/禁入扫描：UI 和应用边界未直接导入 sqlite3；未发现 QFileDialog、QSql、reportlab、matplotlib、G05 或推荐解析入口；SQLite 仅存在于 persistence 适配器。
 - G04 保护检查：`git diff --name-only -- '计算表/**'` 为空；未修改 `计算表/` 用户参考文件。
 - G04 未执行项：未启动系统浏览器验证外链，避免测试产生外部副作用；官方 URL 存在性、缺失时禁用和按钮路由均由 Qt 定向测试覆盖。
+- G04 返工定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`
+- G04 返工定向结果：9 个通过，0 个失败，0 个错误，0 个跳过；新增断言覆盖搜索/筛选后列表、详情、URL 一致性、空结果清空详情及三类多版本值。
+- G04 返工全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`
+- G04 返工全量结果：56 个通过，0 个失败，0 个错误，0 个跳过。
+- G04 返工 L3：`compileall` 成功；`pip check` 输出 `No broken requirements found.`；Canonical 校验输出 9 standards、12 sources、6 parameters、6 factors；从 Canonical 重建 `tmp\g04-rework-validation.sqlite` 成功。
+- G04 返工边界/保护检查：UI 无 sqlite3 直接导入，未发现 G05、QSql、QFileDialog、reportlab 或 matplotlib 实现；`计算表/` Git 差异为空。
 - Sol G04 正式验收定向命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g04_catalog -v`；8 个通过，0 个失败，0 个错误，0 个跳过。
 - Sol G04 正式验收全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py' -v`；55 个通过，0 个失败，0 个错误，0 个跳过。
 - Sol G04 正式验收构建检查：Canonical 校验通过（9 standards、12 sources、6 parameters、6 factors），`catalog.sqlite` 从 Canonical Source 重建成功；`compileall` 和 `pip check` 通过。
@@ -124,6 +135,8 @@ G04_FAILED_WAITING_FOR_LUNA_FIXES
 - G03 正式重新验收的被验收 HEAD：`e57af51 docs: record G03 minor fixes handoff`。
 - G04 实施提交：`4419a73 feat: implement G04 catalog query pages`。
 - G04 正式验收的被验收 HEAD：`812af02 docs: record G04 catalog handoff`。
+- G04 返工实施提交：`00c7ea6 fix: close G04 catalog acceptance findings`。
+- G04 返工测试提交：`56cdd60 test: cover G04 empty detail reset`。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -133,10 +146,10 @@ G04_FAILED_WAITING_FOR_LUNA_FIXES
 - G03 小修项2：已修正并由回归测试锁定导航图标颜色与品牌区高度使用 Design Token。
 - G03 已通过，阶段门禁已解除。
 - G04 正式验收结论为 FAIL：搜索/筛选后的详情与官方 URL 可能仍指向筛选前记录；多版本推荐/可选/历史分类未实现。
+- G04 返工已完成：详情同步与官方 URL 错配已修复，多版本三类分类及针对性测试已补齐；当前等待 Sol 重新验收。
 - G05 未创建或执行；未提前实施 G05。
 
 ## 下一步
 
-1. 由 Luna 修正搜索/筛选后列表、详情和官方 URL 的同步问题，并增加能捕获标准及参数错配的回归测试。
-2. 按 G04 边界补齐同一参数多版本并存时“推荐值、其他适用值、历史值、审核状态”的明确展示及测试；不得借机实施 G05 计算场景推荐引擎。
-3. 修正完成后更新实施报告并停止，用户应发送“重新验收G04”。G05 仍不得创建或执行。
+1. 等待 Sol 重新验收 G04；返工提交为 `00c7ea6`，测试补充提交为 `56cdd60`。
+2. G04 返工只增加来源元数据分类和页面同步，不包含 G05 计算场景推荐引擎；G05 仍不得创建或执行。
