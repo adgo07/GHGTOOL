@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_SECOND_REACCEPTANCE_FAIL_WAITING_FOR_THIRD_REWORK
+G05_THIRD_REWORK_BLOCKED_WAITING_FOR_SOL_DECISION
 
 ## 阶段验收状态
 
@@ -275,3 +275,43 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - 工作区在验收开始和测试后均仅有既有未跟踪 `docs/handoffs/`；该目录未处理、未暂存，未发现测试临时产物。
 
 G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
+
+## G05 第三次返工状态（2026-09-13）
+
+**状态：BLOCKED_WAITING_FOR_SOL_DECISION**
+
+### 已完成的安全修正
+
+- CAR-RULE-NONFOSSIL-POWER-001 仅在非化石电力上下文（包括市场化绿电和自发自用绿电别名）命中；普通购电继续使用通则官方最新因子。
+- 非化石场景必须提供附录 D.2 证明；有证明时只接受值为 0、类型为 STANDARD_SPECIFIED 且来源定位包含附录 D.1.1 的因子，禁止回退全国平均 0.5306。
+- CAR-RULE-POWER-HEAT-001 使用既有 parameter_ids 关系由 EffectiveRuleResolver 映射到电力/热力两个公共参数组，留下真实 SELECTED 与 INHERITED 轨迹；没有使用 payload 模拟关系。
+- CommonRuleSet 补齐冻结注册表的 GEN-RULE-ACTIVITY-PROXY-001、GEN-RULE-ACTIVITY-SECONDARY-001、GEN-RULE-PRINCIPLE-001、GEN-RULE-SOURCE-CATALOG-001、GEN-RULE-WORKFLOW-001，并移除未登记的 GEN-RULE-REPORT-001。
+- 修正 CAR-RULE-FUEL-001、CAR-RULE-PROCESS-001、CAR-RULE-FUGITIVE-COVERAGE-001 的冻结来源定位，并为上述关系/条件/来源补充回归断言。
+
+### BLOCKED
+
+问题：有 D.2 证明的市场化绿电或自发自用绿电必须推荐附录 D.1.1 的零因子，但当前 Canonical 因子库没有该有来源因子。
+
+证据：data-source/carbon_accounting/catalog.json 当前只有 6 个因子；磁盘核对 value=0 且 source_location 包含“附录D.1.1”的因子数量为 0。冻结行业映射明确要求附录 D.1.1 零因子和 D.2 证明门禁。
+
+为什么不能按原方案继续：如果继续而不新增 Canonical 因子，生产解析器只能安全阻断，不能在有证明时形成可追溯的 0 推荐；若把 0 写入 payload、代码常量或只放在测试夹具，会违反 Canonical Source 规则和 Sol 明确禁止的绕过方式。
+
+可选方案 A：Sol 批准新增一个 Canonical 因子/参数记录，明确稳定 ID、单位、版本、来源 ID、附录 D.1.1 定位和适用标准；随后由 Luna 接入并完成 G05 验收。
+
+可选方案 B：Sol 明确批准将附录 D.1.1 的 0 作为现有规则模型中的标准直接值，并补充其来源快照表达方式；当前实现仍需按该决定调整，不能自行解释。
+
+建议：选择方案 A，保持官方数值、来源和 SQLite 重建链路都来自 Canonical Source。
+
+需要 Sol 决策的具体问题：是否批准按附录 D.1.1 新增一条 Canonical 零因子（以及其稳定 ID/来源定位）？
+
+### 测试与边界
+
+- G05 定向：.venv\Scripts\python.exe -m unittest tests.test_g05_rules；13 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'；69 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv，Python 3.12.14，PySide6 已安装）。
+- 分层回归：.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence；9 个通过，0 个失败，0 个错误，0 个跳过。
+- L3：.venv\Scripts\python.exe -m compileall -q packages apps tests scripts 成功；.venv\Scripts\python.exe -m pip check 输出 No broken requirements found.；Canonical 校验输出 9 standards、12 sources、6 parameters、6 factors；三库从零重建输出 catalog/user/records 三个临时数据库。
+- 保护检查：git diff --check 成功；git diff --name-only -- 计算表/** 为空；G06 未创建、未执行。
+- 系统 Python 的一次全量收集未计入项目结果：缺少 PySide6 导致 3 个导入错误；随后使用项目 .venv 完成 69/69。
+- 未执行 pytest：项目测试基线为 unittest，环境未安装 pytest。
+
+代码/测试提交：4ac0e7f fix: harden G05 nonfossil rule resolution。本状态文件更新后等待 Sol 决策，不创建或执行 G06。

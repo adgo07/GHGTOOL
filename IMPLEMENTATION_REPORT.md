@@ -571,3 +571,69 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 5. 纠正上述行业规则来源定位，并为每条关系、适用条件、选择政策与原文定位增加独立断言。只返工 G05，不得启动 G06。
 
 G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
+
+## G05 第三次返工（2026-09-13）
+
+### 目标与范围
+
+本轮只处理 Sol 对 G05 第二次正式重新验收提出的六项问题，不创建或执行 G06。没有修改 UI、Canonical JSON、SQLite 迁移、正式数据库、行业输入页、行业计算公式或 计算表/。
+
+### 已完成的安全修正
+
+- 参数适用条件现在读取现有 RuleContext 的显式电力类型和核算模式。CAR-RULE-NONFOSSIL-POWER-001 只在 nonfossil、marketized_green、self_consumed_green 等非化石上下文生效；ordinary_purchase 不再被该 OVERRIDE 覆盖。
+- 非化石路径改为 STANDARD_REQUIRED，并增加附录 D.2 证明门禁。解析器只接受值为 0、ValueType.STANDARD_SPECIFIED、带来源且定位到附录 D.1.1 的因子；缺证明或缺零因子均产生 GEN-VAL-NONFOSSIL-EVIDENCE ERROR，不会回退到全国平均 0.5306。
+- EffectiveRuleResolver 使用已有 RuleDefinition.parameter_ids 将 CAR-RULE-POWER-HEAT-001 映射到电力和热力两个同域公共规则组，形成真实 SELECTED/INHERITED 轨迹；未读取 payload 来模拟关系。ParameterResolver 从有效继承轨迹取得公共选择策略。
+- CommonRuleSet 补齐冻结注册表的 GEN-RULE-ACTIVITY-PROXY-001、GEN-RULE-ACTIVITY-SECONDARY-001、GEN-RULE-PRINCIPLE-001、GEN-RULE-SOURCE-CATALOG-001、GEN-RULE-WORKFLOW-001，并移除冻结注册表不存在的 GEN-RULE-REPORT-001。
+- 纠正 CAR-RULE-FUEL-001 到第 5.2.1 条/附录 C、CAR-RULE-PROCESS-001 到第 5.2.2～5.2.5 条、CAR-RULE-FUGITIVE-COVERAGE-001 到行业第 4.2/5.2 条及 SM01-DECISION-001；测试增加关系、条件和来源定位的独立断言。
+- 新增失败先行后的四场景回归：普通购电、市场化绿电、自发自用绿电、缺少证明；另验证有证明但没有 D.1.1 零因子时不会错误推荐全国平均因子。
+
+### BLOCKED
+
+问题：有 D.2 证明的市场化绿电或自发自用绿电必须推荐附录 D.1.1 的零因子，但当前 Canonical 因子库没有该有来源因子。
+
+证据：磁盘校验 data-source/carbon_accounting/catalog.json 当前有 6 个因子，value 为 0 且 source_location 包含“附录D.1.1”的因子数量为 0。冻结行业映射同时规定 D.1.1 零因子和 D.2 证明文件。
+
+为什么不能按原方案继续：在不新增 Canonical 因子的情况下，生产解析器只能安全阻断，不能在有证明时形成可追溯的 0 推荐。把 0 写进 payload、代码常量或只写入测试夹具会绕过 Canonical Source 规则，也违背 Sol 明确要求不得用 payload/测试断言模拟业务关系。
+
+可选方案 A：Sol 批准新增一条 Canonical 因子/参数记录，明确稳定 ID、单位、版本、来源 ID、附录 D.1.1 定位和适用标准，然后继续接入和验收。
+
+可选方案 B：Sol 批准将附录 D.1.1 的 0 表达为现有规则模型的标准直接值，并明确其来源快照表达方式；该决定仍需后续实现，不能由 Luna 自行解释。
+
+建议：选择方案 A，使官方数值、来源和 SQLite 重建链路继续以 Canonical Source 为唯一事实源。
+
+需要 Sol 决策的具体问题：是否批准按附录 D.1.1 新增一条 Canonical 零因子（包括稳定 ID、来源 ID、单位、版本和适用标准）？
+
+### 测试
+
+#### L1
+
+命令：.venv\Scripts\python.exe -m unittest tests.test_g05_rules
+
+结果：13 个通过，0 个失败，0 个错误，0 个跳过。覆盖四类非化石/普通购电场景、证明门禁、零因子来源门禁、双参数 SPECIALIZE 继承轨迹、冻结 ID、行业来源和既有 G05 契约。
+
+#### L2
+
+命令：.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
+
+结果：69 个通过，0 个失败，0 个错误，0 个跳过（项目 .venv，Python 3.12.14，PySide6 已安装）。
+
+命令：.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence
+
+结果：9 个通过，0 个失败，0 个错误，0 个跳过。
+
+#### L3
+
+- .venv\Scripts\python.exe -m compileall -q packages apps tests scripts：成功。
+- .venv\Scripts\python.exe -m pip check：No broken requirements found.
+- .venv\Scripts\python.exe scripts\validate_canonical.py：通过，9 standards、12 sources、6 parameters、6 factors。
+- .venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g05-third-rework-databases --app-version 0.1.0：成功生成临时 catalog.sqlite、user.sqlite、records.sqlite。
+- git diff --check：成功；git diff --name-only -- 计算表/**：为空。
+- 系统 Python 的一次全量收集因缺少 PySide6 产生 3 个导入错误，未计入项目结果；随后使用项目 .venv 完成 69/69。
+- pytest 未执行，原因是项目环境未安装 pytest；项目基线使用 unittest。
+- G06 未创建、未执行；行业专属输入、行业计算公式、记录闭环、报告/导出和安装包均未执行。
+
+### Git
+
+- 代码/测试提交：4ac0e7f fix: harden G05 nonfossil rule resolution。
+- 本报告与 TASK_STATE.md 为本轮状态收口文档，既有未跟踪 docs/handoffs/ 未处理、未暂存、未纳入提交。
+- 当前工作区只保留本轮两份文档修改及既有 docs/handoffs/；等待 Sol 决策，不启动 G06。
