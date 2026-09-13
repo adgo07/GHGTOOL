@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_REWORK_READY_FOR_SOL_REACCEPTANCE
+G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
 
 ## 阶段验收状态
 
@@ -27,6 +27,7 @@ G05_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 实施已完成（2026-09-12）；实现提交为 `e815d50`，当前停止等待 Sol 验收；G06 未创建、未执行。
 - G05 正式验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `cd880f2`。默认规则集未完整转录冻结映射，且最新官方因子、冲突快照和显式覆盖存在阻断性错误。
 - G05 返工已完成（2026-09-13）；返工提交为 `549bca0`，已按冻结映射补齐默认规则、修正官方最新因子选择、冲突快照门禁和显式 OVERRIDE 关系，当前等待 Sol 重新验收。
+- G05 正式重新验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `c83df46`。既有回归测试通过，但默认规则仍缺少冻结规则、存在行业关系/覆盖对象错误，并有多条原始标准条款定位错误。
 - G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
 
 ## 已完成
@@ -191,12 +192,14 @@ G05_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G04已通过，允许由用户另行启动G05；本轮 G05 已实施并完成首次正式验收。
 - G05 正式验收结论为 FAIL；默认规则转录、最新官方因子选择、冲突快照阻断和显式覆盖语义必须返工。
 - G05 返工提交 `549bca0` 已完成上述修正；当前阶段门禁仍保持关闭，等待 Sol 重新验收。
+- G05 正式重新验收结论为 FAIL；规则映射完整性、行业关系与原始条款定位仍须再次返工。
 - G06 阶段门禁保持关闭，未创建或执行 G06。
 
 ## 下一步
 
-1. 发送“重新验收G05”，由 Sol 复核本次返工提交和测试证据。
-2. 未获 G05 PASS 前不得创建或执行 G06。
+1. 由 Luna 按本次正式重新验收意见再次返工 G05；不得执行 G06。
+2. 修正并提交实施报告后，发送“重新验收G05”。
+3. 未获 G05 PASS 前不得创建或执行 G06。
 
 ## G05 返工交付状态
 
@@ -209,3 +212,21 @@ G05_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 定向测试 12/12、项目全量回归 68/68；compileall、pip check、Canonical 校验、临时 SQLite 三库重建、领域/SQLite 边界和 `计算表/` 保护检查均通过。
 - 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
 - 当前停止等待 Sol 重新验收；G06 未创建、未执行。
+
+## G05 Sol 正式重新验收记录（2026-09-13）
+
+**结论：FAIL**
+
+- 被验收 HEAD：`c83df46`（G05 返工实现提交 `549bca0`，返工交接文档提交 `c83df46`）。
+- 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过。
+- 辅助检查：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests` 成功；`.venv\Scripts\python.exe -m pip check` 输出 `No broken requirements found.`；`.venv\Scripts\python.exe scripts\validate_canonical.py` 输出 `valid: 9 standards, 12 sources, 6 parameters, 6 factors`。
+- 通过项：首次验收指出的 `OFFICIAL_LATEST` 固定旧值、冲突结果可生成快照、无效 `OVERRIDE` 不阻断三类缺陷已修正；Domain 分层、Repository 内存测试、快照不可变性和通用契约测试通过；未提前实施 G06，未修改 `计算表/`。
+- 未通过项一：生产默认规则缺少冻结映射中明确列出的 `GEN-RULE-ACTIVITY-PRIMARY-001` 和 `GEN-RULE-INDUSTRY-DELEGATION-001`，现有测试只断言部分 ID 子集，不能证明 35 条规则与冻结清单完整一致。
+- 未通过项二：冻结炭素映射将 `CAR-RULE-NONFOSSIL-POWER-001` 定义为 `OVERRIDE`，生产规则却仍为 `BASE`；`CAR-RULE-POWER-HEAT-001` 应同时特化电力和热力，生产规则实际只绑定全国电力因子，没有覆盖热力参数路径。
+- 未通过项三：多条 `source_location` 与原始 GB/T 32150—2025 不符。原文第 7.2.2、7.2.3、7.2.4 分别是排放因子法、物料平衡法、实测法；第 7.5.2～7.5.8 依次为燃料、过程、废弃物、逸散、购入电热、输出电热和总量，标准不存在第 7.5.9、7.5.10。当前实现把上述多条规则错标为第 7.3、7.4、7.5.1～7.5.10，并把通则总量覆盖定位到不存在的第 5.2.7 条。
+- 未通过项四：GB/T 32151.34—2024 原文及冻结映射均把购入和输出电力、热力放在第 5.2.6 条，当前 `CAR-RULE-POWER-HEAT-001` 却定位到第 5.2.7.1 条（该条实际为直接排放总量）。
+- 独立映射一致性探针返回退出码 1；上述缺失规则、关系类型和 11 组关键来源条款断言均失败。因此不能仅凭 12/12 与 68/68 测试判定通过。
+- 工作区检查：验收开始及测试后均仅有既有未跟踪 `docs/handoffs/`；该目录未处理、未暂存。验收文档提交前没有其他未解释修改。
+
+G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。

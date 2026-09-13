@@ -463,3 +463,41 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
 - 当前工作区在文档提交前仅有本轮两份文档修改和既有未跟踪 `docs/handoffs/`；`docs/handoffs/` 未处理、未暂存。
 - G06 未创建、未执行；当前停止等待 Sol 发送“重新验收G05”。
+
+## G05 Sol 正式重新验收结论
+
+**结论：FAIL**
+
+- 验收日期：2026-09-13。
+- 被验收 HEAD：`c83df46`；G05 返工实现提交为 `549bca0`。
+- 定向测试命令：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 全量回归命令：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过。
+- 编译命令：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`，成功。
+- 依赖检查：`.venv\Scripts\python.exe -m pip check`，输出 `No broken requirements found.`。
+- Canonical 校验：`.venv\Scripts\python.exe scripts\validate_canonical.py`，输出 `valid: 9 standards, 12 sources, 6 parameters, 6 factors`。
+- 范围检查：返工差异只涉及 G05 Domain、G05 测试和交付文档；没有修改 Canonical、迁移、UI 或 `计算表/`，没有创建或执行 G06。工作区原有未跟踪 `docs/handoffs/` 未处理。
+
+### 已确认通过的返工项
+
+- `OFFICIAL_LATEST` 不再由固定的 2023 因子 ID 压过 2024 官方候选。
+- 带 ERROR 的冲突解析结果不能再通过用户确认生成推荐或快照。
+- 缺失、悬空或不完整的 `supersedes_rule_ids` 会阻断无效 `OVERRIDE`。
+- 六类关系解析、参数候选确认、不可变快照、活动数据校验、聚合契约和 Domain 分层的现有测试全部通过。
+
+### 未满足的 G05 MUST 与验收项
+
+1. **冻结规则清单仍未完整转录。** 两份冻结映射明确包含 `GEN-RULE-ACTIVITY-PRIMARY-001` 和 `GEN-RULE-INDUSTRY-DELEGATION-001`，生产 `default_g05_rules()` 中均不存在。现有测试的 `expected_common.issubset(...)` 只检查部分 ID，无法发现缺项。
+2. **行业规则关系与作用对象不正确。** 炭素冻结映射把 `CAR-RULE-NONFOSSIL-POWER-001` 定义为 `OVERRIDE`，生产实现却是 `BASE`。冻结映射把 `CAR-RULE-POWER-HEAT-001` 定义为对电力和热力两条通则的 `SPECIALIZE`，生产实现只绑定 `electricity_emission_factor_national` 与 `ELECTRICITY_EMISSION_FACTOR`，没有热力参数路径。
+3. **通则来源定位存在系统性错位。** 直接读取 GB/T 32150—2025 原始 PDF 第13～17页确认：第 7.2.2、7.2.3、7.2.4 分别为排放因子法、物料平衡法、实测法；第 7.5.2～7.5.8 分别为燃料、过程、废弃物、逸散、购入电热、输出电热、总量。当前实现将 `GEN-MTH-MATERIAL-BALANCE-001`、`GEN-MTH-MEASURED-001`、`GEN-FML-FACTOR-001`、`GEN-FML-MATERIAL-BALANCE-001` 以及燃料/过程/废弃物/购入热力/输出电热公式定位到错误条款，甚至引用标准中不存在的第 7.5.9 和 7.5.10 条；`GEN-RULE-TOTAL-COVERAGE-REQUIRED-001` 还引用了通则中不存在的第 5.2.7 条。
+4. **炭素电力热力规则来源定位错误。** GB/T 32151.34—2024 原始 PDF 第14～15页和冻结映射均明确购入与输出电力、热力属于第 5.2.6 条；第 5.2.7.1 条是直接排放总量。生产 `CAR-RULE-POWER-HEAT-001` 错误引用第 5.2.7.1 条。
+5. 独立映射一致性探针对缺失规则、`CAR-RULE-NONFOSSIL-POWER-001` 的 `OVERRIDE`、行业热力覆盖及 11 组关键来源条款进行断言，命令退出码为 1。既有 12 项 G05 测试未覆盖这些差异，测试全绿不能替代标准与冻结映射核对。
+
+### Luna 再次修正要求
+
+1. 以两份 `FROZEN R5` 映射和原始标准为准，逐项建立“冻结 rule_id → 生产 RuleDefinition”的完整清单测试；补齐缺失规则，禁止只验证子集或用规则总数代替 ID 一致性。
+2. 将 `CAR-RULE-NONFOSSIL-POWER-001` 按冻结映射实现为显式 `OVERRIDE`，并明确其覆盖目标；让 `CAR-RULE-POWER-HEAT-001` 同时覆盖电力与热力路径。若当前单个 `RuleDefinition` 无法表达两个目标，不得自行改变数据模型，应按 `BLOCKED` 请求 Sol 决策，或在不改变模型的前提下采用冻结映射允许的可追溯拆分方式。
+3. 逐条修正所有生产规则的 `source_location`，并增加原文条款断言；不得把行业标准的第 5.2.7 条复制到通则，不得引用不存在的第 7.5.9、7.5.10 条。
+4. 为上述缺失规则、关系、热力路径和来源定位补充失败先行的回归测试；重新执行 G05 定向、项目全量、编译、依赖、Canonical、分层、范围和 `计算表/` 保护检查。
+5. 只返工 G05，不得创建或执行 G06。
+
+G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
