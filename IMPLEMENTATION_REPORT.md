@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（当前 BLOCKED）
+G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（已实现，等待 Sol 验收）
 
 ## 前置验收与阶段边界
 
@@ -17,7 +17,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（当前 
 - G03 正式重新验收结论：PASS（2026-09-12）。本轮创建并执行唯一的 G04 Goal；G05 未创建、未执行。
 - G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`。G05 仍未创建、未执行。
 
-## G06 BLOCKED 停止点（2026-09-13）
+## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
 本轮已按 G06 范围开始实现 Domain 公式/校验、Application 参数适配、手工录入页面接线和定向测试；未创建或执行 G07，未修改迁移、计算表/ 或既有 docs/handoffs/。实现尚未提交，因为在冻结口径核对阶段发现必须由 Sol 决策的关键冲突。
 
@@ -728,3 +728,58 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - 代码/测试提交：4ac0e7f fix: harden G05 nonfossil rule resolution。
 - 本报告与 TASK_STATE.md 为本轮状态收口文档，既有未跟踪 docs/handoffs/ 未处理、未暂存、未纳入提交。
 - 当前工作区只保留本轮两份文档修改及既有 docs/handoffs/；等待 Sol 决策，不启动 G06。
+
+## G06 实施报告（Sol R6 决策后，2026-09-13）
+
+### 阶段与结论
+
+本轮完成 HANDOFF.md G06：GB/T 32151.34—2024 手工录入、专业校验、高精度计算、逐条电力解析、结果展示与内存记录验证。Sol 已批准的 TV-CAR-FML-008 R6 映射测试向量纠错已纳入回归；当前状态为 G06_READY_FOR_SOL_ACCEPTANCE，停止等待 Sol 验收，不开始 G07。
+
+### 本轮完成
+
+- 保留正式标准式（8）的实现，不新增 GTA×GTAVar×K3×44/16 项。R6 映射向量 TV-CAR-FML-008 的预期值为 1.439166666... tCO2。
+- 外部映射升为 SM01-2026-09-13-R6，并在第19节记录为映射测试向量纠错；映射状态重新为 FROZEN。本次未标记为标准勘误或 CONFIRMED_CORRECTION。
+- G06 Domain 完成十类排放源的高精度计算、单位/适用性/证明和边界校验、默认值警告与快照、C.4/C.5 蒸汽焓值查表和插值，以及产出扣减。G06 不依赖 PySide6、SQLite 或 Windows API。
+- 多电力明细按取得方式和电力属性两个独立维度逐条解析；每条明细独立选择因子、校验证明并生成参数快照。外购常规电力使用最新全国平均因子，非化石证明缺失产生 ERROR 且不回退，自发自用化石能源电力只形成直接燃料路径转交阻断，不进入外购电力间接排放路径。
+- Application/UI 只负责输入装配、调用 Domain 和展示结果；记录验证使用内存 Record Repository，未实现正式记录持久化、报告/导出或 G07。
+
+### 修改文件
+
+- packages/standards/carbon_material.py
+- packages/application/carbon_accounting.py
+- packages/ui/carbon_material_page.py
+- packages/ui/pages.py
+- packages/ui/shell.py
+- tests/test_g06_carbon_material.py
+- tests/test_g06_page.py
+
+### 验证
+
+#### L1
+
+命令：.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v
+
+结果：20 个通过，0 个失败，0 个错误，0 个跳过。
+
+#### L2
+
+命令：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v
+
+结果：49 个通过，0 个失败，0 个错误，0 个跳过。
+
+#### L3
+
+- .venv\Scripts\python.exe -m unittest discover -s tests -t . -v：95 个通过，0 个失败，0 个错误，0 个跳过。
+- .venv\Scripts\python.exe -m compileall -q packages apps tests：成功。
+- .venv\Scripts\python.exe -m pip check：No broken requirements found.
+- .venv\Scripts\python.exe scripts\validate_canonical.py：通过，9 standards、12 sources、7 parameters、7 factors。
+- .venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g06-final-three-databases --app-version 0.1.0：成功生成 catalog.sqlite、user.sqlite、records.sqlite，临时目录已清理。
+- git diff --check 通过；git diff --name-only -- 计算表/** 为空；既有 docs/handoffs/ 保留且未处理。
+- pytest 未执行，原因是项目测试基线为 unittest。
+
+### Git 与等待状态
+
+- G06 实现提交：bc1f83c feat: implement G06 carbon material calculation。
+- R6 测试向量旧值/新值差异证据提交：4d52b32 test: preserve G06 R6 vector correction evidence。
+- 外部映射文件不在项目 Git 中；本报告记录其变更前 SHA256 8BC09741DC6E34E4A14D8801D776760BE56336B5499E4B1FFA2F9FDC0E997DD4 和变更后 SHA256 D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26。
+- 工作区提交文档后仅保留既有未跟踪 docs/handoffs/；本报告与 TASK_STATE.md 更新后停止等待 Sol 验收，绝不启动 G07。

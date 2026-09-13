@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_BLOCKED_WAITING_FOR_SOL_DECISION
+G06_READY_FOR_SOL_ACCEPTANCE
 
 ## 阶段验收状态
 
@@ -33,9 +33,9 @@ G06_BLOCKED_WAITING_FOR_SOL_DECISION
 - 多种电力消费形式产品决策已批准并落盘（2026-09-13）：同一企业、同一核算期允许多条不同电力明细；批准新增独立 Canonical 非化石能源电力参数与零因子。此前 G05 第三次返工的 Canonical 缺口阻塞已获得决策，不代表 G05 已完成或通过验收。
 - G05 第三次正式重新验收结论：PASS（2026-09-13）；被验收 HEAD 为 `f080f115f0d7a31249befc0703cfec132c19e515`，多种电力消费形式决策及全部 G05 MUST 已核对通过。
 - G05已通过，允许由用户另行启动G06。
-- G06 已创建并开始实施，但在式（8）冻结映射向量与正式标准原文之间发现关键口径冲突，已按 HANDOFF.md 停止并 BLOCKED；未创建或执行 G07。
+- G06 已完成实现与 R6 映射测试向量纠错回归；当前等待 Sol 验收，未创建或执行 G07。
 
-## G06 BLOCKED 停止点（2026-09-13）
+## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
 问题：
 
@@ -108,7 +108,7 @@ G06_BLOCKED_WAITING_FOR_SOL_DECISION
 
 ## 未执行或未开始
 
-- G06 已开始但因式（8）映射向量与正式标准原文冲突而 BLOCKED；G07、记录闭环、报告/导出和 Windows 安装包未执行。
+- G06 已完成本阶段实现与回归（2026-09-13）；G07、正式记录闭环、报告/导出和 Windows 安装包未执行。
 - 完整 26 种燃料、碳酸盐、蒸汽焓值和完整 AR6 GWP 表未录入；G02 只录入 HANDOFF.md 规定的最小集合。
 - 未引入 YAML 解析依赖；本阶段选择 JSON 作为实际 Canonical 源文件，避免在没有批准 loader/依赖时静默解释 YAML。
 - 未生成或提交正式运行时 SQLite 构建产物；本轮仅在 tmp\g02-rework-validation.sqlite 和 tmp\g02-rework-databases\ 下生成被忽略的验证数据库，数据库仍由脚本在目标目录按需生成。
@@ -317,7 +317,7 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 
 **历史状态：BLOCKED_WAITING_FOR_SOL_DECISION；该决策阻塞已于 2026-09-13 获批准解除。**
 
-### G06 BLOCKED 停止点（2026-09-13）
+### G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
 问题：
 
@@ -456,3 +456,35 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - 范围：未修改或覆盖 `计算表/`，未提前实现 G06 页面、公式或汇总，未创建或执行 G06；本次临时 PDF 和数据库产物均已清理。工作区仅保留既有未跟踪 `docs/handoffs/`。
 
 G05已通过，允许由用户另行启动G06；本次未启动G06。
+
+## G06 实施状态（Sol R6 决策后，2026-09-13）
+
+**G06_READY_FOR_SOL_ACCEPTANCE**
+
+本轮继续现有 G06 Goal，仅执行 Sol 批准的 R6 映射测试向量纠错收口并完成 G06；未创建或执行 G07。
+
+### Sol 决策与 R6 映射
+
+- 外部映射文件已升为 SM01-2026-09-13-R6，顶部状态为 FROZEN。
+- TV-CAR-FML-008 已按 Sol 决策由 3.364166666... tCO2 修正为 1.439166666... tCO2；第19节（外部文件第1057行）登记为“映射测试向量纠错”，明确不是标准勘误，也不标记为 CONFIRMED_CORRECTION。
+- G06 保留正式标准式（8），不增加 GTA×GTAVar×K3×44/16；MAPPING_VERSION 为 SM01-2026-09-13-R6。
+- 外部映射文件 SHA256：变更前 8BC09741DC6E34E4A14D8801D776760BE56336B5499E4B1FFA2F9FDC0E997DD4，变更后 D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26。该文件位于项目 Git 外；项目提交 4d52b32 通过回归测试同时保留旧值和 R6 新值的差异证据。
+
+### G06 实现
+
+- packages/standards/carbon_material.py 完成十类排放源的 Decimal 计算、单位与适用性校验、验证问题、默认值警告、参数快照、C.4/C.5 蒸汽焓值查表/插值、产出扣减和其他活动/运输边界阻断。
+- 多电力明细按 G05 的取得方式和电力属性逐条解析；每条明细独立完成因子选择、证明校验和快照，不被后录入明细覆盖。外购常规、非化石证明门禁、自发自用非化石月度记录门禁和自发自用化石能源直接路径转交均已覆盖。
+- packages/application/carbon_accounting.py 和 packages/ui/carbon_material_page.py 接入 G05 参数解析与 G06 计算结果展示；界面不承载公式，记录仅使用内存 Record Repository，本阶段未实现正式记录持久化。
+- packages/ui/pages.py 和 packages/ui/shell.py 接入 G06 路由；未制作 G07 页面、报告/导出或安装包。
+
+### 验证与边界
+
+- G06 定向：.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v；20 个通过，0 个失败，0 个错误。
+- G02 Canonical/持久化、G04 参数展示、G05 相关回归：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v；49 个通过，0 个失败，0 个错误。
+- 全量：.venv\Scripts\python.exe -m unittest discover -s tests -t . -v；95 个通过，0 个失败，0 个错误。
+- 编译：.venv\Scripts\python.exe -m compileall -q packages apps tests；成功。
+- 依赖：.venv\Scripts\python.exe -m pip check；No broken requirements found.
+- Canonical：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库从零重建：.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g06-final-three-databases --app-version 0.1.0；catalog.sqlite、user.sqlite、records.sqlite 均生成成功，临时目录已清理。
+- git diff --check 通过；git diff --name-only -- 计算表/** 为空；既有 docs/handoffs/ 未处理。未执行 pytest，项目测试基线为 unittest。
+- 实现提交为 bc1f83c；R6 旧值/新值测试证据提交为 4d52b32。当前停止等待 Sol 重新验收，不启动 G07。
