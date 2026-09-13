@@ -166,9 +166,10 @@ class G04CatalogTests(unittest.TestCase):
                 "natural_gas_lhv",
                 "natural_gas_carbon_content",
                 "natural_gas_oxidation_rate",
+                "electricity_emission_factor_nonfossil",
             },
         )
-        self.assertEqual(len(detail.factors), 3)
+        self.assertEqual(len(detail.factors), 4)
 
         upcoming_detail = self.service.get_standard_detail("gbt_32151_5_2026")
         self.assertIsNotNone(upcoming_detail)
@@ -190,13 +191,13 @@ class G04CatalogTests(unittest.TestCase):
             "GB/T 32151.34",
             view_mode=ParameterViewMode.BY_SOURCE,
         )
-        self.assertEqual(len(by_source), 6)
+        self.assertEqual(len(by_source), 7)
         self.assertTrue(all(item.source is not None for item in by_source))
         source_specific = self.service.search_parameter_factors(
             view_mode=ParameterViewMode.BY_SOURCE,
             source_id="SRC-32151-34-2024",
         )
-        self.assertEqual(len(source_specific), 3)
+        self.assertEqual(len(source_specific), 4)
         self.assertTrue(
             all(item.source is not None and item.source.source_id == "SRC-32151-34-2024" for item in source_specific)
         )
@@ -214,6 +215,12 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(electricity.source.publisher, "生态环境部、国家统计局")
         self.assertTrue(electricity.factor.source_location)
         self.assertIn("gbt_32151_34_2024", electricity.factor.applicable_standard_ids)
+        nonfossil = self.service.get_factor_detail("electricity_nonfossil_zero_gbt32151_34_2024")
+        self.assertIsNotNone(nonfossil)
+        assert nonfossil is not None
+        self.assertEqual(nonfossil.factor.parameter_id, "electricity_emission_factor_nonfossil")
+        self.assertEqual(nonfossil.factor.value, Decimal("0"))
+        self.assertIn("PDF第30页；印刷页22", nonfossil.factor.source_location)
 
     def test_parameter_filters_and_labels_use_domain_enums(self) -> None:
         result = self.service.search_parameter_factors(
@@ -221,7 +228,7 @@ class G04CatalogTests(unittest.TestCase):
             review_status=ReviewStatus.VERIFIED,
             factor_year=2024,
         )
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 4)
         self.assertTrue(all(item.factor is not None for item in result))
         self.assertEqual(self.service.review_status_label(ReviewStatus.VERIFIED), "已核对")
 

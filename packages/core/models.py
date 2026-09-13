@@ -107,6 +107,37 @@ class ValueType(str, Enum):
     SYSTEM_CONSTANT = "SYSTEM_CONSTANT"
     HISTORICAL = "HISTORICAL"
 
+class ElectricityAcquisitionMode(str, Enum):
+    """How one electricity consumption detail was obtained."""
+
+    PURCHASED = "PURCHASED"
+    SELF_CONSUMED = "SELF_CONSUMED"
+
+
+class ElectricityAttribute(str, Enum):
+    """The electricity attribute is independent from acquisition mode."""
+
+    ORDINARY = "ORDINARY"
+    NONFOSSIL = "NONFOSSIL"
+    FOSSIL = "FOSSIL"
+
+
+class ElectricityProofType(str, Enum):
+    """Evidence kind used to qualify a nonfossil electricity detail."""
+
+    NONE = "NONE"
+    CONTRACT_AND_SETTLEMENT = "CONTRACT_AND_SETTLEMENT"
+    GEC = "GEC"
+    MONTHLY_ORIGINAL_RECORD = "MONTHLY_ORIGINAL_RECORD"
+
+
+class ElectricityProofStatus(str, Enum):
+    """Whether the evidence for one detail has been verified."""
+
+    NOT_PROVIDED = "NOT_PROVIDED"
+    VALID = "VALID"
+    INVALID = "INVALID"
+
 
 @dataclass(frozen=True, slots=True)
 class Standard:
@@ -398,6 +429,7 @@ class ParameterSnapshot:
     factor_version: str | None = None
     source_location: str | None = None
     factor_year: int | None = None
+    detail_id: str | None = None
 
     def __post_init__(self) -> None:
         _require_enum(self.selection_method, ParameterSelectionMethod, "selection_method")
@@ -422,6 +454,8 @@ class ParameterSnapshot:
             not isinstance(self.factor_year, int) or self.factor_year < 1
         ):
             raise DomainValidationError("factor_year must be a positive integer")
+        if self.detail_id is not None:
+            _require_id(self.detail_id, "detail_id")
 
 
 class RecordStatus(str, Enum):

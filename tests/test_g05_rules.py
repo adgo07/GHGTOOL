@@ -311,122 +311,6 @@ class G05RuleTests(unittest.TestCase):
             )
         )
 
-    def test_nonfossil_electricity_contexts_require_proof_and_use_zero_factor(self) -> None:
-        parameter = Parameter(
-            "electricity_emission_factor_national",
-            "purchased_electricity",
-            ParameterType.ELECTRICITY_EMISSION_FACTOR,
-            "全国电力因子",
-            "tCO2/MWh",
-            "2025",
-        )
-        national = Factor(
-            factor_id="electricity_national_average_2024",
-            parameter_id=parameter.parameter_id,
-            subject_id=parameter.subject_id,
-            parameter_type=parameter.parameter_type,
-            value="0.5306",
-            unit="tCO2/MWh",
-            version="2024",
-            value_type=ValueType.GOVERNMENT_PUBLISHED,
-            review_status=ReviewStatus.VERIFIED,
-            source_id="SRC-ELEC-2024-OFFICIAL",
-            source_location="测试官方 2024 年全国因子",
-            applicable_standard_ids=(STANDARD_ID,),
-            factor_year=2024,
-        )
-        zero = Factor(
-            factor_id="electricity_nonfossil_zero_d1_1",
-            parameter_id=parameter.parameter_id,
-            subject_id=parameter.subject_id,
-            parameter_type=parameter.parameter_type,
-            value="0",
-            unit="tCO2/MWh",
-            version="2024-D",
-            value_type=ValueType.STANDARD_SPECIFIED,
-            review_status=ReviewStatus.VERIFIED,
-            source_id="SRC-32151-34-2024",
-            source_location="GB/T 32151.34—2024 附录D.1.1",
-            applicable_standard_ids=(STANDARD_ID,),
-            factor_year=2024,
-        )
-        resolver = ParameterResolver.with_default_g05_rules(
-            MemoryParameterRepository((parameter,), (national, zero))
-        )
-
-        ordinary = resolver.resolve(
-            ParameterResolutionContext(
-                parameter_id=parameter.parameter_id,
-                standard_id=STANDARD_ID,
-                subject_id=parameter.subject_id,
-                parameter_type=parameter.parameter_type,
-                electricity_type="ordinary_purchase",
-            )
-        )
-        self.assertEqual(ordinary.recommended.factor.factor_id, national.factor_id)  # type: ignore[union-attr]
-        self.assertFalse(ordinary.blocked)
-
-        marketized = resolver.resolve(
-            ParameterResolutionContext(
-                parameter_id=parameter.parameter_id,
-                standard_id=STANDARD_ID,
-                subject_id=parameter.subject_id,
-                parameter_type=parameter.parameter_type,
-                electricity_type="marketized_green",
-                electricity_accounting_mode="marketized",
-                extra_context=(("nonfossil_proof", "contract"),),
-            )
-        )
-        self.assertEqual(marketized.recommended.factor.factor_id, zero.factor_id)  # type: ignore[union-attr]
-        self.assertEqual(marketized.recommended.factor.value, Decimal("0"))  # type: ignore[union-attr]
-        self.assertFalse(marketized.blocked)
-
-        self_consumed = resolver.resolve(
-            ParameterResolutionContext(
-                parameter_id=parameter.parameter_id,
-                standard_id=STANDARD_ID,
-                subject_id=parameter.subject_id,
-                parameter_type=parameter.parameter_type,
-                electricity_type="self_consumed_green",
-                electricity_accounting_mode="self_consumed",
-                extra_context=(("nonfossil_proof", "self_consumption_monthly_record"),),
-            )
-        )
-        self.assertEqual(self_consumed.recommended.factor.factor_id, zero.factor_id)  # type: ignore[union-attr]
-        self.assertFalse(self_consumed.blocked)
-
-        missing_proof = resolver.resolve(
-            ParameterResolutionContext(
-                parameter_id=parameter.parameter_id,
-                standard_id=STANDARD_ID,
-                subject_id=parameter.subject_id,
-                parameter_type=parameter.parameter_type,
-                electricity_type="marketized_green",
-                electricity_accounting_mode="marketized",
-            )
-        )
-        self.assertIsNone(missing_proof.recommended)
-        self.assertTrue(missing_proof.blocked)
-        self.assertTrue(any(item.code == "GEN-VAL-NONFOSSIL-EVIDENCE" for item in missing_proof.warnings))
-        self.assertNotIn(national.factor_id, {item.factor_id for item in missing_proof.alternatives})
-
-        resolver_without_zero = ParameterResolver.with_default_g05_rules(
-            MemoryParameterRepository((parameter,), (national,))
-        )
-        missing_zero = resolver_without_zero.resolve(
-            ParameterResolutionContext(
-                parameter_id=parameter.parameter_id,
-                standard_id=STANDARD_ID,
-                subject_id=parameter.subject_id,
-                parameter_type=parameter.parameter_type,
-                electricity_type="marketized_green",
-                electricity_accounting_mode="marketized",
-                extra_context=(("nonfossil_proof", "contract"),),
-            )
-        )
-        self.assertIsNone(missing_zero.recommended)
-        self.assertTrue(missing_zero.blocked)
-        self.assertTrue(any(item.code == "GEN-VAL-NONFOSSIL-EVIDENCE" for item in missing_zero.warnings))
     def test_heat_measured_value_precedes_default_and_falls_back_with_warning(self) -> None:
         parameter = Parameter(
             "heat_emission_factor_default",
@@ -640,7 +524,6 @@ class G05RuleTests(unittest.TestCase):
             "CAR-RULE-FUGITIVE-COVERAGE-001",
             "CAR-RULE-NONFOSSIL-POWER-001",
             "CAR-RULE-QA-001",
-            "CAR-RULE-REPORT-001",
         }
         self.assertEqual(set(common_by_id), expected_common)
         self.assertEqual(set(industry_by_id), expected_industry)
@@ -707,9 +590,10 @@ class G05RuleTests(unittest.TestCase):
         self.assertEqual(nonfossil.relation, RuleRelation.OVERRIDE)
         self.assertEqual(set(nonfossil.supersedes_rule_ids), {"GEN-RULE-ELECTRICITY-001"})
         self.assertEqual(nonfossil.selection_policy, ParameterSelectionPolicy.STANDARD_REQUIRED)
-        self.assertEqual(nonfossil.applicability.conditions, (("electricity_type", "nonfossil"),))
-        self.assertIn("附录D.1.1", nonfossil.source_location or "")
-        self.assertIn("附录D.2", nonfossil.source_location or "")
+        self.assertEqual(nonfossil.parameter_id, "electricity_emission_factor_nonfossil")
+        self.assertEqual(nonfossil.required_factor_ids, ("electricity_nonfossil_zero_gbt32151_34_2024",))
+        self.assertEqual(nonfossil.applicability.conditions, (("electricity_attribute", "NONFOSSIL"),))
+        self.assertEqual(nonfossil.source_location, "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22")
         self.assertEqual(industry_by_id["CAR-RULE-FUEL-001"].source_location,
             "GB/T 32151.34—2024 第5.2.1条；附录C；PDF12；印刷页4")
         self.assertEqual(industry_by_id["CAR-RULE-PROCESS-001"].source_location,
@@ -719,7 +603,7 @@ class G05RuleTests(unittest.TestCase):
         power_heat = industry_by_id["CAR-RULE-POWER-HEAT-001"]
         self.assertEqual(
             set(power_heat.parameter_ids),
-            {"electricity_emission_factor_national", "heat_emission_factor_default"},
+            {"electricity_emission_factor_national", "electricity_emission_factor_nonfossil", "heat_emission_factor_default"},
         )
         self.assertEqual(
             set(power_heat.applicability.parameter_types),

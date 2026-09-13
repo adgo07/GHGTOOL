@@ -23,8 +23,8 @@ class CanonicalCatalogTests(unittest.TestCase):
     def test_approved_minimal_catalog_loads(self) -> None:
         self.assertEqual(len(self.catalog["standards"]), 9)
         self.assertEqual(len(self.catalog["sources"]), 12)
-        self.assertEqual(len(self.catalog["parameters"]), 6)
-        self.assertEqual(len(self.catalog["factors"]), 6)
+        self.assertEqual(len(self.catalog["parameters"]), 7)
+        self.assertEqual(len(self.catalog["factors"]), 7)
         self.assertEqual(self.catalog["manifest"]["canonical_format"], "JSON")
         self.assertNotIn("full_text", json.dumps(self.catalog, ensure_ascii=False))
         self.assertTrue(DEFAULT_SOURCE_PATH.is_file())
@@ -95,6 +95,7 @@ class CanonicalCatalogTests(unittest.TestCase):
                 "natural_gas_lhv",
                 "natural_gas_carbon_content",
                 "natural_gas_oxidation_rate",
+                "electricity_emission_factor_nonfossil",
             ],
         )
 
@@ -165,6 +166,40 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(heat_factor["valid_from"], "2026-07-01")
         self.assertEqual(heat_factor["value_type"], ValueType.STANDARD_DEFAULT.value)
 
+    def test_nonfossil_electricity_parameter_and_factor_are_independent(self) -> None:
+        parameters = {item["parameter_id"]: item for item in self.catalog["parameters"]}
+        factors = {item["factor_id"]: item for item in self.catalog["factors"]}
+        industry = next(
+            item for item in self.catalog["standards"]
+            if item["standard_id"] == "gbt_32151_34_2024"
+        )
+
+        nonfossil = parameters["electricity_emission_factor_nonfossil"]
+        zero = factors["electricity_nonfossil_zero_gbt32151_34_2024"]
+        national_factors = [
+            item for item in factors.values()
+            if item["parameter_id"] == "electricity_emission_factor_national"
+        ]
+        self.assertEqual(nonfossil["canonical_unit"], "tCO₂/MWh")
+        self.assertEqual(nonfossil["source_id"], "SRC-32151-34-2024")
+        self.assertEqual(
+            nonfossil["source_location"],
+            "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+        )
+        self.assertIn("electricity_emission_factor_nonfossil", industry["parameter_refs"])
+        self.assertNotIn("electricity_nonfossil_zero_gbt32151_34_2024", {item["factor_id"] for item in national_factors})
+        self.assertEqual(zero["parameter_id"], "electricity_emission_factor_nonfossil")
+        self.assertEqual(zero["value"], "0")
+        self.assertEqual(zero["unit"], "tCO₂/MWh")
+        self.assertEqual(zero["source_id"], "SRC-32151-34-2024")
+        self.assertEqual(zero["factor_year"], 2024)
+        self.assertEqual(zero["valid_from"], "2025-03-01")
+        self.assertEqual(
+            zero["source_location"],
+            "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+        )
+        self.assertEqual(self.catalog["manifest"]["schema_version"], "1.0.0")
+        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.09.13-g05-third-rework.1")
     def test_duplicate_stable_id_blocks_validation(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["sources"].append(copy.deepcopy(catalog["sources"][0]))

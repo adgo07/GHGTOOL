@@ -2,7 +2,7 @@
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
     "schema_version": "1.0.0",
-    "data_version": "2026.09.11-g02-rework.2",
+    "data_version": "2026.09.13-g05-third-rework.1",
     "app_compatibility": "0.1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
@@ -262,7 +262,8 @@
       "parameter_refs": [
         "natural_gas_lhv",
         "natural_gas_carbon_content",
-        "natural_gas_oxidation_rate"
+        "natural_gas_oxidation_rate",
+        "electricity_emission_factor_nonfossil"
       ],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -473,6 +474,18 @@
       "notes": "源值 kgCO₂/kWh 与规范化值 tCO₂/MWh 数值等价，换算由 Canonical 规则记录。"
     },
     {
+      "parameter_id": "electricity_emission_factor_nonfossil",
+      "parameter_type": "ELECTRICITY_EMISSION_FACTOR",
+      "name": "非化石能源电力排放因子",
+      "canonical_unit": "tCO₂/MWh",
+      "subject_id": "purchased_electricity",
+      "source_id": "SRC-32151-34-2024",
+      "source_location": "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+      "review_status": "VERIFIED",
+      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是采用附录D.1.1零因子的前置条件；本参数独立于electricity_emission_factor_national。"
+    },
+    {
       "parameter_id": "heat_emission_factor_default",
       "parameter_type": "HEAT_EMISSION_FACTOR",
       "name": "外购热力缺省排放因子",
@@ -577,6 +590,26 @@
       "review_status": "VERIFIED",
       "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
       "notes": "1 kgCO₂/kWh = 1 tCO₂/MWh，数值以 Decimal 保留。"
+    },
+    {
+      "factor_id": "electricity_nonfossil_zero_gbt32151_34_2024",
+      "parameter_id": "electricity_emission_factor_nonfossil",
+      "subject_id": "purchased_electricity",
+      "value": "0",
+      "unit": "tCO₂/MWh",
+      "source_value": "0",
+      "source_unit": "tCO₂/MWh",
+      "normalized_value": "0",
+      "normalized_unit": "tCO₂/MWh",
+      "source_id": "SRC-32151-34-2024",
+      "source_location": "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "value_type": "STANDARD_SPECIFIED",
+      "review_status": "VERIFIED",
+      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是使用本零因子的前置条件。"
     },
     {
       "factor_id": "heat_default_2025",

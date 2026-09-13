@@ -16,7 +16,12 @@ from enum import Enum
 from typing import Iterable
 
 from .errors import DomainValidationError, IssueLevel, ValidationProblem, contains_errors
-from .models import AccountingPeriod, ParameterType
+from .models import (
+    AccountingPeriod,
+    ElectricityAcquisitionMode,
+    ElectricityAttribute,
+    ParameterType,
+)
 
 
 _TOKEN_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
@@ -134,6 +139,8 @@ class RuleContext:
     greenhouse_gas: str | None = None
     electricity_type: str | None = None
     electricity_accounting_mode: str | None = None
+    electricity_acquisition_mode: ElectricityAcquisitionMode | None = None
+    electricity_attribute: ElectricityAttribute | None = None
     reporting_framework: str | None = None
     extra_context: tuple[tuple[str, str], ...] = ()
 
@@ -148,6 +155,10 @@ class RuleContext:
         _optional_token(self.greenhouse_gas, "greenhouse_gas")
         _optional_text(self.electricity_type, "electricity_type")
         _optional_text(self.electricity_accounting_mode, "electricity_accounting_mode")
+        if self.electricity_acquisition_mode is not None and not isinstance(self.electricity_acquisition_mode, ElectricityAcquisitionMode):
+            raise DomainValidationError("electricity_acquisition_mode must be an ElectricityAcquisitionMode")
+        if self.electricity_attribute is not None and not isinstance(self.electricity_attribute, ElectricityAttribute):
+            raise DomainValidationError("electricity_attribute must be an ElectricityAttribute")
         _optional_text(self.reporting_framework, "reporting_framework")
         object.__setattr__(self, "extra_context", _pairs(self.extra_context, "extra_context"))
 
@@ -216,12 +227,17 @@ class RuleApplicability:
                 "greenhouse_gas": context.greenhouse_gas,
                 "electricity_type": context.electricity_type,
                 "electricity_accounting_mode": context.electricity_accounting_mode,
+                "electricity_acquisition_mode": context.electricity_acquisition_mode.value if context.electricity_acquisition_mode else None,
+                "electricity_attribute": context.electricity_attribute.value if context.electricity_attribute else None,
                 "reporting_framework": context.reporting_framework,
             }
         )
         for key, value in self.conditions:
             actual = context_values.get(key)
-            if key == "electricity_type" and value == "nonfossil":
+            if key == "electricity_attribute" and value == ElectricityAttribute.NONFOSSIL.value:
+                if actual != ElectricityAttribute.NONFOSSIL.value:
+                    return False
+            elif key == "electricity_type" and value == "nonfossil":
                 if actual not in {
                     "nonfossil",
                     "marketized_nonfossil",
@@ -439,6 +455,16 @@ class EffectiveRuleResolver:
         for rule in common:
             groups[rule.group_key].append(rule)
         for rule in industry:
+            if rule.relation is RuleRelation.OVERRIDE and rule.supersedes_rule_ids:
+                linked_groups = {
+                    base.group_key
+                    for base in common
+                    if base.rule_id in set(rule.supersedes_rule_ids)
+                }
+                if linked_groups:
+                    for group_key in linked_groups:
+                        groups[group_key].append(rule)
+                    continue
             if rule.relation is RuleRelation.SPECIALIZE and rule.parameter_ids:
                 linked_groups = {
                     base.group_key

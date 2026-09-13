@@ -5,11 +5,16 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 
 from .errors import DomainValidationError, IssueLevel, ValidationProblem
 from .models import (
     AccountingPeriod,
+    ElectricityAcquisitionMode,
+    ElectricityAttribute,
+    ElectricityProofStatus,
+    ElectricityProofType,
     Factor,
     ParameterSelectionMethod,
     ParameterSnapshot,
@@ -63,6 +68,10 @@ def _require_id(value: str, field_name: str) -> str:
     if not isinstance(value, str) or not value or any(char.isspace() for char in value):
         raise DomainValidationError(f"{field_name} must be a stable identifier")
     return value
+
+NATIONAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_national"
+NONFOSSIL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_nonfossil"
+NONFOSSIL_ZERO_FACTOR_ID = "electricity_nonfossil_zero_gbt32151_34_2024"
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,6 +157,30 @@ class FactorRelation:
             raise DomainValidationError("factor relation reason is required")
 
 
+def _legacy_electricity_dimensions(electricity_type: str | None, accounting_mode: str | None) -> tuple[ElectricityAcquisitionMode | None, ElectricityAttribute | None]:
+    """Translate legacy aliases only at the per-detail context boundary."""
+    if electricity_type is None:
+        return None, None
+    aliases = {
+        "ordinary_purchase": (ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
+        "marketized_green": (ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.NONFOSSIL),
+        "marketized_nonfossil": (ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.NONFOSSIL),
+        "self_consumed_green": (ElectricityAcquisitionMode.SELF_CONSUMED, ElectricityAttribute.NONFOSSIL),
+        "self_consumed_nonfossil": (ElectricityAcquisitionMode.SELF_CONSUMED, ElectricityAttribute.NONFOSSIL),
+        "self_consumed_fossil": (ElectricityAcquisitionMode.SELF_CONSUMED, ElectricityAttribute.FOSSIL),
+        "self_consumed_ordinary": (ElectricityAcquisitionMode.SELF_CONSUMED, ElectricityAttribute.ORDINARY),
+        "nonfossil": (None, ElectricityAttribute.NONFOSSIL),
+    }
+    if electricity_type not in aliases:
+        raise DomainValidationError("electricity_type must use a registered electricity alias")
+    mode, attribute = aliases[electricity_type]
+    if accounting_mode is not None:
+        mode_aliases = {"marketized": ElectricityAcquisitionMode.PURCHASED, "self_consumed": ElectricityAcquisitionMode.SELF_CONSUMED}
+        if accounting_mode not in mode_aliases:
+            raise DomainValidationError("electricity_accounting_mode must use a registered value")
+        mode = mode_aliases[accounting_mode]
+    return mode, attribute
+
 @dataclass(frozen=True, slots=True)
 class ParameterResolutionContext:
     """All context fields that may affect a recommended value."""
@@ -163,6 +196,8 @@ class ParameterResolutionContext:
     greenhouse_gas: str | None = None
     electricity_type: str | None = None
     electricity_accounting_mode: str | None = None
+    electricity_acquisition_mode: ElectricityAcquisitionMode | None = None
+    electricity_attribute: ElectricityAttribute | None = None
     reporting_framework: str | None = None
     required_source_mode: FactorSourceMode | None = None
     required_factor_version: str | None = None
@@ -181,6 +216,19 @@ class ParameterResolutionContext:
             _require_id(self.subject_id, "subject_id")
         if self.parameter_type is not None and not isinstance(self.parameter_type, ParameterType):
             raise DomainValidationError("parameter_type must be a ParameterType")
+        if self.electricity_acquisition_mode is not None and not isinstance(self.electricity_acquisition_mode, ElectricityAcquisitionMode):
+            raise DomainValidationError("electricity_acquisition_mode must be an ElectricityAcquisitionMode")
+        if self.electricity_attribute is not None and not isinstance(self.electricity_attribute, ElectricityAttribute):
+            raise DomainValidationError("electricity_attribute must be an ElectricityAttribute")
+        legacy_mode, legacy_attribute = _legacy_electricity_dimensions(self.electricity_type, self.electricity_accounting_mode)
+        if self.electricity_acquisition_mode is not None and legacy_mode is not None and self.electricity_acquisition_mode is not legacy_mode:
+            raise DomainValidationError("electricity acquisition mode conflicts with legacy electricity context")
+        if self.electricity_attribute is not None and legacy_attribute is not None and self.electricity_attribute is not legacy_attribute:
+            raise DomainValidationError("electricity attribute conflicts with legacy electricity context")
+        if self.electricity_acquisition_mode is None:
+            object.__setattr__(self, "electricity_acquisition_mode", legacy_mode)
+        if self.electricity_attribute is None:
+            object.__setattr__(self, "electricity_attribute", legacy_attribute)
         if self.required_source_mode is not None and not isinstance(self.required_source_mode, FactorSourceMode):
             raise DomainValidationError("required_source_mode must be a FactorSourceMode")
         if self.required_factor_version is not None:
@@ -203,6 +251,8 @@ class ParameterResolutionContext:
             greenhouse_gas=self.greenhouse_gas,
             electricity_type=self.electricity_type,
             electricity_accounting_mode=self.electricity_accounting_mode,
+            electricity_acquisition_mode=self.electricity_acquisition_mode,
+            electricity_attribute=self.electricity_attribute,
             reporting_framework=self.reporting_framework,
             extra_context=self.extra_context,
         )
@@ -241,7 +291,7 @@ class ParameterResolution:
     def blocked(self) -> bool:
         return any(problem.level is IssueLevel.ERROR for problem in self.warnings)
 
-    def to_snapshot(self, snapshot_id: str, snapshot_at: datetime) -> ParameterSnapshot:
+    def to_snapshot(self, snapshot_id: str, snapshot_at: datetime, *, detail_id: str | None = None) -> ParameterSnapshot:
         if self.blocked:
             first = next(problem for problem in self.warnings if problem.level is IssueLevel.ERROR)
             raise DomainValidationError(
@@ -267,8 +317,127 @@ class ParameterResolution:
             factor_version=factor.version,
             source_location=factor.source_location,
             factor_year=factor.factor_year,
+            detail_id=detail_id,
         )
 
+
+class ElectricityResolutionRoute(str, Enum):
+    """G05 routing result for one immutable electricity detail."""
+
+    PURCHASED_ELECTRICITY = "PURCHASED_ELECTRICITY"
+    SELF_CONSUMED_NONFOSSIL = "SELF_CONSUMED_NONFOSSIL"
+    DELEGATE_DIRECT_FUEL_PATH = "DELEGATE_DIRECT_FUEL_PATH"
+    BLOCKED = "BLOCKED"
+
+
+@dataclass(frozen=True, slots=True)
+class ElectricityConsumptionDetail:
+    """One electricity line; acquisition and attribute are independent enums."""
+
+    detail_id: str
+    enterprise_id: str
+    standard_id: str
+    accounting_period: AccountingPeriod
+    electricity_amount: str | Decimal | int
+    electricity_unit: str
+    acquisition_mode: ElectricityAcquisitionMode
+    attribute: ElectricityAttribute
+    proof_type: ElectricityProofType = ElectricityProofType.NONE
+    proof_status: ElectricityProofStatus = ElectricityProofStatus.NOT_PROVIDED
+
+    def __post_init__(self) -> None:
+        _require_id(self.detail_id, "detail_id")
+        _require_id(self.enterprise_id, "enterprise_id")
+        _require_id(self.standard_id, "standard_id")
+        if not isinstance(self.accounting_period, AccountingPeriod):
+            raise DomainValidationError("accounting_period must be an AccountingPeriod")
+        if not isinstance(self.acquisition_mode, ElectricityAcquisitionMode):
+            raise DomainValidationError("acquisition_mode must be an ElectricityAcquisitionMode")
+        if not isinstance(self.attribute, ElectricityAttribute):
+            raise DomainValidationError("attribute must be an ElectricityAttribute")
+        if not isinstance(self.proof_type, ElectricityProofType):
+            raise DomainValidationError("proof_type must be an ElectricityProofType")
+        if not isinstance(self.proof_status, ElectricityProofStatus):
+            raise DomainValidationError("proof_status must be an ElectricityProofStatus")
+        if not isinstance(self.electricity_unit, str) or not self.electricity_unit.strip() or "\n" in self.electricity_unit or "\r" in self.electricity_unit:
+            raise DomainValidationError("electricity_unit is required")
+        try:
+            amount = Decimal(str(self.electricity_amount))
+        except (InvalidOperation, ValueError) as exc:
+            raise DomainValidationError("electricity_amount is not a valid decimal") from exc
+        if amount < 0:
+            raise DomainValidationError("electricity_amount cannot be negative")
+        object.__setattr__(self, "electricity_amount", amount)
+        object.__setattr__(self, "electricity_unit", self.electricity_unit.strip())
+
+    @property
+    def electricity_acquisition_mode(self) -> ElectricityAcquisitionMode:
+        return self.acquisition_mode
+
+    @property
+    def electricity_attribute(self) -> ElectricityAttribute:
+        return self.attribute
+
+    @property
+    def parameter_id(self) -> str | None:
+        if self.attribute is ElectricityAttribute.NONFOSSIL:
+            return NONFOSSIL_ELECTRICITY_PARAMETER_ID
+        if self.attribute is ElectricityAttribute.ORDINARY and self.acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
+            return NATIONAL_ELECTRICITY_PARAMETER_ID
+        return None
+
+    @property
+    def nonfossil_proof_value(self) -> str:
+        if self.attribute is not ElectricityAttribute.NONFOSSIL or self.proof_status is not ElectricityProofStatus.VALID:
+            return "missing"
+        if self.acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
+            if self.proof_type is ElectricityProofType.CONTRACT_AND_SETTLEMENT:
+                return "contract_and_settlement"
+            if self.proof_type is ElectricityProofType.GEC:
+                return "gec"
+        if self.acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED and self.proof_type is ElectricityProofType.MONTHLY_ORIGINAL_RECORD:
+            return "self_consumption_monthly_record"
+        return "missing"
+
+    def to_parameter_context(self) -> ParameterResolutionContext:
+        parameter_id = self.parameter_id
+        if parameter_id is None:
+            raise DomainValidationError("this electricity detail does not enter a purchased-electricity parameter path")
+        parameter_type = ParameterType.ELECTRICITY_EMISSION_FACTOR
+        return ParameterResolutionContext(
+            parameter_id=parameter_id,
+            standard_id=self.standard_id,
+            accounting_period=self.accounting_period,
+            subject_id="purchased_electricity",
+            parameter_type=parameter_type,
+            electricity_acquisition_mode=self.acquisition_mode,
+            electricity_attribute=self.attribute,
+            extra_context=(
+                ("electricity_detail_id", self.detail_id),
+                ("nonfossil_proof", self.nonfossil_proof_value),
+                ("proof_type", self.proof_type.value),
+                ("proof_status", self.proof_status.value),
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ElectricityDetailResolution:
+    """Independent rule result and optional immutable snapshot for one detail."""
+
+    detail: ElectricityConsumptionDetail
+    parameter_resolution: ParameterResolution | None
+    snapshot: ParameterSnapshot | None
+    route: ElectricityResolutionRoute
+    problems: tuple[ValidationProblem, ...] = ()
+
+    @property
+    def result(self) -> ParameterResolution | None:
+        return self.parameter_resolution
+
+    @property
+    def blocked(self) -> bool:
+        return any(problem.level is IssueLevel.ERROR for problem in self.problems) or self.parameter_resolution is not None and self.parameter_resolution.blocked
 
 def _source_mode(factor: Factor) -> FactorSourceMode:
     return {
@@ -290,43 +459,36 @@ def _is_historical(factor: Factor, context: ParameterResolutionContext) -> bool:
     return bool(period and factor.valid_to and factor.valid_to < period.start)
 
 
-_NONFOSSIL_ELECTRICITY_TYPES = frozenset(
-    {
-        "nonfossil",
-        "marketized_nonfossil",
-        "self_consumed_nonfossil",
-        "marketized_green",
-        "self_consumed_green",
-    }
-)
-_NONFOSSIL_PROOF_VALUES = frozenset(
-    {
-        "provided",
-        "contract",
-        "settlement",
-        "gec",
-        "self_consumption_monthly_record",
-    }
-)
-
+_NONFOSSIL_ELECTRICITY_TYPES = frozenset({"nonfossil", "marketized_nonfossil", "self_consumed_nonfossil", "marketized_green", "self_consumed_green"})
 
 def _is_nonfossil_context(context: ParameterResolutionContext) -> bool:
-    return context.electricity_type in _NONFOSSIL_ELECTRICITY_TYPES
+    return context.electricity_attribute is ElectricityAttribute.NONFOSSIL
+
+
+def _is_self_consumed_fossil_context(context: ParameterResolutionContext) -> bool:
+    return (
+        context.electricity_acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED
+        and context.electricity_attribute is ElectricityAttribute.FOSSIL
+    )
 
 
 def _has_nonfossil_proof(context: ParameterResolutionContext) -> bool:
     values = dict(context.extra_context)
     proof = values.get("nonfossil_proof") or values.get("green_power_proof")
-    return proof in _NONFOSSIL_PROOF_VALUES
+    if context.electricity_acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
+        return proof in {"contract_and_settlement", "gec"}
+    if context.electricity_acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED:
+        return proof == "self_consumption_monthly_record"
+    return False
 
 
 def _is_nonfossil_zero_factor(factor: Factor) -> bool:
     return (
-        factor.value == 0
+        factor.factor_id == NONFOSSIL_ZERO_FACTOR_ID
+        and factor.parameter_id == NONFOSSIL_ELECTRICITY_PARAMETER_ID
+        and factor.value == 0
         and factor.value_type is ValueType.STANDARD_SPECIFIED
-        and factor.source_id is not None
-        and factor.source_location is not None
-        and "附录D.1.1" in factor.source_location
+        and factor.source_id == "SRC-32151-34-2024"
     )
 
 
@@ -490,13 +652,33 @@ class ParameterResolver:
         rule = policy_rules[0] if policy_rules else (rules[0] if rules else None)
         policy = rule.selection_policy if rule and rule.selection_policy else ParameterSelectionPolicy.NO_AUTOMATIC_SELECTION
         factors = self._collect_factors(context)
+        if _is_self_consumed_fossil_context(context):
+            problems.append(
+                self._problem(
+                    "GEN-VAL-SELF-CONSUMED-FOSSIL-ROUTE",
+                    IssueLevel.ERROR,
+                    "自发自用化石能源电力不得进入外购电力间接排放路径；应转交直接燃料排放路径。",
+                    context.parameter_id,
+                )
+            )
+            factors = ()
         if _is_nonfossil_context(context):
-            if not _has_nonfossil_proof(context):
+            if context.parameter_id != NONFOSSIL_ELECTRICITY_PARAMETER_ID:
+                problems.append(
+                    self._problem(
+                        "GEN-VAL-NONFOSSIL-PARAMETER",
+                        IssueLevel.ERROR,
+                        "非化石电力必须使用独立的非化石能源电力参数，不能复用全国平均因子参数。",
+                        context.parameter_id,
+                    )
+                )
+                factors = ()
+            elif not _has_nonfossil_proof(context):
                 problems.append(
                     self._problem(
                         "GEN-VAL-NONFOSSIL-EVIDENCE",
                         IssueLevel.ERROR,
-                        "采用非化石电力零因子前必须提供 GB/T 32151.34—2024 附录 D.2 证明文件。",
+                        "采用非化石电力零因子前必须提供 GB/T 32151.34—2024 附录 D.2 适用证明。",
                         context.parameter_id,
                     )
                 )
@@ -506,9 +688,9 @@ class ParameterResolver:
                 if not factors:
                     problems.append(
                         self._problem(
-                            "GEN-VAL-NONFOSSIL-EVIDENCE",
+                            "GEN-VAL-NONFOSSIL-ZERO-FACTOR-MISSING",
                             IssueLevel.ERROR,
-                            "非化石电力证明已提供，但当前 Canonical 因子库没有附录 D.1.1 的有来源零因子。",
+                            "非化石电力证明已提供，但当前 Canonical 因子库没有批准的独立零因子。",
                             context.parameter_id,
                         )
                     )
@@ -675,6 +857,75 @@ class ParameterResolver:
             warnings=tuple(problems),
             effective_rules=effective,
             requires_confirmation=requires_confirmation,
+        )
+
+    def resolve_electricity_details(
+        self,
+        details: Sequence[ElectricityConsumptionDetail],
+        *,
+        snapshot_at: datetime,
+    ) -> tuple[ElectricityDetailResolution, ...]:
+        """Resolve every electricity line independently within one accounting context."""
+        detail_values = tuple(details)
+        if any(not isinstance(item, ElectricityConsumptionDetail) for item in detail_values):
+            raise DomainValidationError("details must contain ElectricityConsumptionDetail values")
+        if len({item.detail_id for item in detail_values}) != len(detail_values):
+            raise DomainValidationError("electricity detail IDs must be unique")
+        if detail_values:
+            first = detail_values[0]
+            if any(
+                item.enterprise_id != first.enterprise_id
+                or item.standard_id != first.standard_id
+                or item.accounting_period != first.accounting_period
+                for item in detail_values[1:]
+            ):
+                raise DomainValidationError("electricity details must share one accounting context")
+        return tuple(self._resolve_electricity_detail(item, snapshot_at) for item in detail_values)
+
+    def _resolve_electricity_detail(
+        self,
+        detail: ElectricityConsumptionDetail,
+        snapshot_at: datetime,
+    ) -> ElectricityDetailResolution:
+        if (
+            detail.acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED
+            and detail.attribute is ElectricityAttribute.FOSSIL
+        ):
+            problem = self._problem(
+                "GEN-VAL-SELF-CONSUMED-FOSSIL-ROUTE",
+                IssueLevel.ERROR,
+                "自发自用化石能源电力不得进入外购电力间接排放路径；应转交直接燃料排放路径。",
+                detail.detail_id,
+            )
+            return ElectricityDetailResolution(
+                detail=detail,
+                parameter_resolution=None,
+                snapshot=None,
+                route=ElectricityResolutionRoute.DELEGATE_DIRECT_FUEL_PATH,
+                problems=(problem,),
+            )
+        parameter_context = detail.to_parameter_context()
+        resolution = self.resolve(parameter_context)
+        if resolution.blocked:
+            route = ElectricityResolutionRoute.BLOCKED
+            snapshot = None
+        else:
+            route = (
+                ElectricityResolutionRoute.SELF_CONSUMED_NONFOSSIL
+                if detail.acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED
+                else ElectricityResolutionRoute.PURCHASED_ELECTRICITY
+            )
+            snapshot = resolution.to_snapshot(
+                f"{detail.detail_id}.parameter-snapshot",
+                snapshot_at,
+                detail_id=detail.detail_id,
+            )
+        return ElectricityDetailResolution(
+            detail=detail,
+            parameter_resolution=resolution,
+            snapshot=snapshot,
+            route=route,
+            problems=resolution.warnings,
         )
 
     def resolve_recommended_value(self, context: ParameterResolutionContext) -> ParameterResolution:
@@ -947,7 +1198,7 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
         _frozen_rule("CAR-RULE-POWER-HEAT-001", "parameter_selection", RuleRelation.SPECIALIZE,
             "炭素材料外购电力和热力分别沿用各自适用的参数选择路径。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="power_heat",
-            parameter_ids=("electricity_emission_factor_national", "heat_emission_factor_default"),
+            parameter_ids=(NATIONAL_ELECTRICITY_PARAMETER_ID, NONFOSSIL_ELECTRICITY_PARAMETER_ID, "heat_emission_factor_default"),
             parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR, ParameterType.HEAT_EMISSION_FACTOR),
             payload=(("specializes", "GEN-RULE-ELECTRICITY-001|GEN-RULE-HEAT-001"),),
             source_location="GB/T 32151.34—2024 第5.2.6条；PDF15；印刷页7", evidence_source_id=carbon_source),
@@ -967,19 +1218,16 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             source_location="GB/T 32151.34—2024 第4.2、5.2条；SM01-DECISION-001",
             evidence_source_id="SM01-DECISION-001", confirmation_id="SM01-DECISION-001"),
         _frozen_rule("CAR-RULE-NONFOSSIL-POWER-001", "parameter_selection", RuleRelation.OVERRIDE,
-            "非化石能源电力按行业附录要求覆盖通则电力因子路径。",
+            "非化石能源电力使用独立零因子；附录D.2证明是使用零因子的前置条件。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids,
-            target_id="electricity_emission_factor_national", parameter_id="electricity_emission_factor_national",
+            target_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID, parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID,
             parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
-            selection_policy=ParameterSelectionPolicy.STANDARD_REQUIRED, priority=300,
+            selection_policy=ParameterSelectionPolicy.STANDARD_REQUIRED, required_factor_ids=(NONFOSSIL_ZERO_FACTOR_ID,), priority=300,
             supersedes_rule_ids=("GEN-RULE-ELECTRICITY-001",),
-            conditions=(("electricity_type", "nonfossil"),),
-            source_location="GB/T 32151.34—2024 附录D.1.1、附录D.2；PDF22；印刷页20", evidence_source_id=carbon_source),
+            conditions=(("electricity_attribute", ElectricityAttribute.NONFOSSIL.value),),
+            source_location="GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-QA-001", "quality", RuleRelation.EXTEND, "炭素材料质量要求补充。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="quality.assurance",
             source_location="GB/T 32151.34—2024 第6条；PDF16～18；印刷页8～10", evidence_source_id=carbon_source),
-        _frozen_rule("CAR-RULE-REPORT-001", "reporting", RuleRelation.EXTEND, "炭素材料报告要求补充。",
-            standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="reporting.result",
-            source_location="GB/T 32151.34—2024 第7条；PDF18～20；印刷页10～12", evidence_source_id=carbon_source),
     )
     return common, industry

@@ -68,15 +68,16 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("audit_log", records_tables)
             self.assertNotIn("source_documents", records_tables)
 
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.11-g02-rework.2")
+            self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.13-g05-third-rework.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
             try:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 12)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 6)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 6)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 7)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 7)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM conversion_rules").fetchone()[0], 13)
             finally:
                 connection.close()
@@ -107,8 +108,24 @@ class PersistenceTests(unittest.TestCase):
                 self.assertEqual(standard[1], "国家市场监督管理总局、国家标准化管理委员会")
                 self.assertEqual(standard[2], "中国钢铁工业协会")
                 self.assertEqual(standard[3], "中国钢铁工业协会")
-                self.assertIn("natural_gas_lhv", json.loads(standard[4]))
+                refs = json.loads(standard[4])
+                self.assertIn("natural_gas_lhv", refs)
+                self.assertIn("electricity_emission_factor_nonfossil", refs)
 
+                nonfossil = connection.execute(
+                    "SELECT parameter_id, source_id, source_location, value, unit, "
+                    "value_type, factor_year, valid_from "
+                    "FROM factor_values WHERE factor_id=?",
+                    ("electricity_nonfossil_zero_gbt32151_34_2024",),
+                ).fetchone()
+                self.assertEqual(nonfossil[0], "electricity_emission_factor_nonfossil")
+                self.assertEqual(nonfossil[1], "SRC-32151-34-2024")
+                self.assertEqual(
+                    nonfossil[2],
+                    "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+                )
+                self.assertEqual(nonfossil[3:6], ("0", "tCO₂/MWh", "STANDARD_SPECIFIED"))
+                self.assertEqual(nonfossil[6:], (2024, "2025-03-01"))
                 source = connection.execute(
                     "SELECT source_type, publisher FROM source_documents WHERE source_id=?",
                     ("SRC-ELEC-2023-47",),
