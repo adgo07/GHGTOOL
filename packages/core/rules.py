@@ -205,7 +205,34 @@ class RuleApplicability:
         if self.period_to and (period is None or period.start > self.period_to):
             return False
         context_values = dict(context.extra_context)
-        return all(context_values.get(key) == value for key, value in self.conditions)
+        context_values.update(
+            {
+                "standard_id": context.standard_id,
+                "region": context.region,
+                "industry": context.industry,
+                "subject_id": context.subject_id,
+                "parameter_type": context.parameter_type.value if context.parameter_type else None,
+                "emission_source_type": context.emission_source_type,
+                "greenhouse_gas": context.greenhouse_gas,
+                "electricity_type": context.electricity_type,
+                "electricity_accounting_mode": context.electricity_accounting_mode,
+                "reporting_framework": context.reporting_framework,
+            }
+        )
+        for key, value in self.conditions:
+            actual = context_values.get(key)
+            if key == "electricity_type" and value == "nonfossil":
+                if actual not in {
+                    "nonfossil",
+                    "marketized_nonfossil",
+                    "self_consumed_nonfossil",
+                    "marketized_green",
+                    "self_consumed_green",
+                }:
+                    return False
+            elif actual != value:
+                return False
+        return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -409,7 +436,20 @@ class EffectiveRuleResolver:
         industry = tuple(rule for rule in industry_rules if rule.matches(context))
         considered = tuple(sorted((*common, *industry), key=lambda rule: rule.rule_id))
         groups: dict[tuple[str, str], list[RuleDefinition]] = defaultdict(list)
-        for rule in considered:
+        for rule in common:
+            groups[rule.group_key].append(rule)
+        for rule in industry:
+            if rule.relation is RuleRelation.SPECIALIZE and rule.parameter_ids:
+                linked_groups = {
+                    base.group_key
+                    for base in common
+                    if base.rule_domain == rule.rule_domain
+                    and set(base.parameter_ids).intersection(rule.parameter_ids)
+                }
+                if linked_groups:
+                    for group_key in linked_groups:
+                        groups[group_key].append(rule)
+                    continue
             groups[rule.group_key].append(rule)
 
         selected: list[RuleDefinition] = []
@@ -579,11 +619,13 @@ class EffectiveRuleResolver:
                     )
                 )
 
+        unique_selected = tuple({rule.rule_id: rule for rule in selected}.values())
+        unique_traces = tuple({(trace.rule_id, trace.action): trace for trace in traces}.values())
         return EffectiveRuleSet(
             context=context,
-            rules=tuple(sorted(selected, key=lambda rule: rule.rule_id)),
+            rules=tuple(sorted(unique_selected, key=lambda rule: rule.rule_id)),
             considered_rules=considered,
-            traces=tuple(traces),
+            traces=unique_traces,
             overridden_rule_ids=tuple(sorted(overridden)),
             problems=tuple(problems),
         )

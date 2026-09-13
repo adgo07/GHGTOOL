@@ -290,6 +290,46 @@ def _is_historical(factor: Factor, context: ParameterResolutionContext) -> bool:
     return bool(period and factor.valid_to and factor.valid_to < period.start)
 
 
+_NONFOSSIL_ELECTRICITY_TYPES = frozenset(
+    {
+        "nonfossil",
+        "marketized_nonfossil",
+        "self_consumed_nonfossil",
+        "marketized_green",
+        "self_consumed_green",
+    }
+)
+_NONFOSSIL_PROOF_VALUES = frozenset(
+    {
+        "provided",
+        "contract",
+        "settlement",
+        "gec",
+        "self_consumption_monthly_record",
+    }
+)
+
+
+def _is_nonfossil_context(context: ParameterResolutionContext) -> bool:
+    return context.electricity_type in _NONFOSSIL_ELECTRICITY_TYPES
+
+
+def _has_nonfossil_proof(context: ParameterResolutionContext) -> bool:
+    values = dict(context.extra_context)
+    proof = values.get("nonfossil_proof") or values.get("green_power_proof")
+    return proof in _NONFOSSIL_PROOF_VALUES
+
+
+def _is_nonfossil_zero_factor(factor: Factor) -> bool:
+    return (
+        factor.value == 0
+        and factor.value_type is ValueType.STANDARD_SPECIFIED
+        and factor.source_id is not None
+        and factor.source_location is not None
+        and "附录D.1.1" in factor.source_location
+    )
+
+
 class ParameterResolver:
     """Resolve one parameter through effective rules and immutable candidates."""
 
@@ -437,9 +477,41 @@ class ParameterResolver:
         # Coverage/specialization rules may cover several parameter paths without
         # carrying a selection policy of their own.  Keep the explicit parameter
         # selection policy in the same effective set when one is available.
-        rule = next((item for item in rules if item.selection_policy is not None), rules[0] if rules else None)
+        policy_rules = [item for item in rules if item.selection_policy is not None]
+        if not policy_rules:
+            inherited_ids = set(effective.inherited_rule_ids)
+            policy_rules = [
+                item
+                for item in effective.considered_rules
+                if item.rule_id in inherited_ids
+                and context.parameter_id in item.parameter_ids
+                and item.selection_policy is not None
+            ]
+        rule = policy_rules[0] if policy_rules else (rules[0] if rules else None)
         policy = rule.selection_policy if rule and rule.selection_policy else ParameterSelectionPolicy.NO_AUTOMATIC_SELECTION
         factors = self._collect_factors(context)
+        if _is_nonfossil_context(context):
+            if not _has_nonfossil_proof(context):
+                problems.append(
+                    self._problem(
+                        "GEN-VAL-NONFOSSIL-EVIDENCE",
+                        IssueLevel.ERROR,
+                        "采用非化石电力零因子前必须提供 GB/T 32151.34—2024 附录 D.2 证明文件。",
+                        context.parameter_id,
+                    )
+                )
+                factors = ()
+            else:
+                factors = tuple(factor for factor in factors if _is_nonfossil_zero_factor(factor))
+                if not factors:
+                    problems.append(
+                        self._problem(
+                            "GEN-VAL-NONFOSSIL-EVIDENCE",
+                            IssueLevel.ERROR,
+                            "非化石电力证明已提供，但当前 Canonical 因子库没有附录 D.1.1 的有来源零因子。",
+                            context.parameter_id,
+                        )
+                    )
 
         if context.measured_factor is not None and not context.measured_evidence_available:
             problems.append(
@@ -633,6 +705,7 @@ def _frozen_rule(
     conflict_resolved: bool = False,
     resolution_reason: str | None = None,
     payload: tuple[tuple[str, str], ...] = (),
+    conditions: tuple[tuple[str, str], ...] = (),
     source_location: str,
     evidence_source_id: str,
     confirmation_id: str | None = None,
@@ -648,6 +721,7 @@ def _frozen_rule(
         applicability=RuleApplicability(
             standard_ids=applicable_standard_ids,
             parameter_types=parameter_types,
+            conditions=conditions,
         ),
         priority=priority,
         origin=origin,
@@ -742,6 +816,12 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
         _frozen_rule("GEN-RULE-ACTIVITY-PRIMARY-001", "activity", RuleRelation.BASE, "原始活动数据优先并保留测量证据。",
             standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="activity.primary",
             source_location="GB/T 32150—2025 表2；PDF14；印刷页8", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-ACTIVITY-SECONDARY-001", "activity", RuleRelation.BASE, "二次活动数据须记录折算方法。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="activity.secondary",
+            source_location="GB/T 32150—2025 表2-3；PDF14；印刷页8", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-ACTIVITY-PROXY-001", "activity", RuleRelation.BASE, "替代活动数据须保留相似过程依据。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="activity.proxy",
+            source_location="GB/T 32150—2025 表2；PDF14；印刷页8", evidence_source_id=common_source),
         _frozen_rule("GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001", "execution", RuleRelation.BASE, "逸散排放执行路径阻断。",
             standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="fugitive.execution",
             origin=RuleOrigin.SOFTWARE_DERIVED, payload=(("decision", "SM01-DECISION-001"),),
@@ -831,12 +911,19 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             description="热力实测优先，缺省值为 0.11 tCO2/GJ。",
             source_location="GB/T 32150—2025 第7.5.6～7.5.7条；参数 GEN-PAR-HEAT-DEFAULT-011",
             evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-PRINCIPLE-001", "governance", RuleRelation.BASE, "通则核算原则。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="principle.core",
+            source_location="GB/T 32150—2025 PDF9；印刷页3", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-SOURCE-CATALOG-001", "source_catalog", RuleRelation.BASE, "通则公共排放源分类。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="source.catalog",
+            source_location="GB/T 32150—2025 第6条；PDF11；印刷页5", evidence_source_id=common_source),
+        _frozen_rule("GEN-RULE-WORKFLOW-001", "workflow", RuleRelation.BASE, "通则核算工作流程。",
+            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="workflow.accounting",
+            source_location="GB/T 32150—2025 PDF9～10；印刷页3～4", evidence_source_id=common_source),
         _frozen_rule("GEN-RULE-QA-001", "quality", RuleRelation.BASE, "通则质量保证。",
             standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="quality.assurance",
             source_location="GB/T 32150—2025 第8条；PDF17～18；印刷页11～12", evidence_source_id=common_source),
-        _frozen_rule("GEN-RULE-REPORT-001", "reporting", RuleRelation.BASE, "通则报告要求。",
-            standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="reporting.result",
-            source_location="GB/T 32150—2025 第9条；PDF18～19；印刷页12～13", evidence_source_id=common_source),
+
     )
 
     industry = (
@@ -853,10 +940,10 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             required_factor_ids=("natural_gas_lhv_gbt32151_34_c1", "natural_gas_carbon_content_gbt32151_34_c1",
                 "natural_gas_oxidation_rate_gbt32151_34_c1"),
             payload=(("mapping_parameters", "GEN-PAR-NATURAL-GAS-LHV|GEN-PAR-NATURAL-GAS-CARBON|GEN-PAR-NATURAL-GAS-OXIDATION"),),
-            source_location="GB/T 32151.34—2024 附录C、D；PDF26～28；印刷页18～20", evidence_source_id=carbon_source),
+            source_location="GB/T 32151.34—2024 第5.2.1条；附录C；PDF12；印刷页4", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-PROCESS-001", "method", RuleRelation.SPECIALIZE, "炭素材料过程排放方法。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="method.process",
-            source_location="GB/T 32151.34—2024 第5.2.3～5.2.6条；PDF13～15；印刷页5～7", evidence_source_id=carbon_source),
+            source_location="GB/T 32151.34—2024 第5.2.2～5.2.5条；PDF12～14；印刷页4～6", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-POWER-HEAT-001", "parameter_selection", RuleRelation.SPECIALIZE,
             "炭素材料外购电力和热力分别沿用各自适用的参数选择路径。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="power_heat",
@@ -877,17 +964,17 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             supersedes_rule_ids=("GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001", "GEN-FML-FUGITIVE-AGG-001",
                 "GEN-AGG-FUGITIVE-REVIEW-001"), origin=RuleOrigin.SOFTWARE_DERIVED,
             payload=(("decision", "SM01-DECISION-001"),),
-            source_location="GB/T 32151.34—2024 第5.2.7.2条；PDF15～16；印刷页7～8；SM01-DECISION-001",
+            source_location="GB/T 32151.34—2024 第4.2、5.2条；SM01-DECISION-001",
             evidence_source_id="SM01-DECISION-001", confirmation_id="SM01-DECISION-001"),
         _frozen_rule("CAR-RULE-NONFOSSIL-POWER-001", "parameter_selection", RuleRelation.OVERRIDE,
             "非化石能源电力按行业附录要求覆盖通则电力因子路径。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids,
             target_id="electricity_emission_factor_national", parameter_id="electricity_emission_factor_national",
             parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
-            selection_policy=ParameterSelectionPolicy.OFFICIAL_LATEST, priority=300,
+            selection_policy=ParameterSelectionPolicy.STANDARD_REQUIRED, priority=300,
             supersedes_rule_ids=("GEN-RULE-ELECTRICITY-001",),
-            payload=(("overrides", "GEN-RULE-ELECTRICITY-001"),),
-            source_location="GB/T 32151.34—2024 附录D；PDF28；印刷页20", evidence_source_id=carbon_source),
+            conditions=(("electricity_type", "nonfossil"),),
+            source_location="GB/T 32151.34—2024 附录D.1.1、附录D.2；PDF22；印刷页20", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-QA-001", "quality", RuleRelation.EXTEND, "炭素材料质量要求补充。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="quality.assurance",
             source_location="GB/T 32151.34—2024 第6条；PDF16～18；印刷页8～10", evidence_source_id=carbon_source),
