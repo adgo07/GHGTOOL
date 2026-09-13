@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
+G05_SECOND_REWORK_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -28,6 +28,7 @@ G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
 - G05 正式验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `cd880f2`。默认规则集未完整转录冻结映射，且最新官方因子、冲突快照和显式覆盖存在阻断性错误。
 - G05 返工已完成（2026-09-13）；返工提交为 `549bca0`，已按冻结映射补齐默认规则、修正官方最新因子选择、冲突快照门禁和显式 OVERRIDE 关系，当前等待 Sol 重新验收。
 - G05 正式重新验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `c83df46`。既有回归测试通过，但默认规则仍缺少冻结规则、存在行业关系/覆盖对象错误，并有多条原始标准条款定位错误。
+- G05 第二次返工已完成（2026-09-13）；实现与回归测试提交为 `9e74024`，当前停止等待 Sol 再次验收。
 - G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
 
 ## 已完成
@@ -177,8 +178,9 @@ G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
 - G05 实施提交：`e815d50 feat: implement G05 rule resolution foundation`。
 - G05 正式验收的被验收 HEAD：`cd880f2 docs: record G05 delivery`。
 - G05 返工实施提交：`549bca0 fix: rework G05 rule resolution acceptance findings`。
+- G05 第二次返工实现与测试提交：`9e74024 fix: complete G05 frozen rule mappings`。
 - 当前工作区仅保留既有未跟踪 `docs/handoffs/`；未纳入 G05 提交。
-- G05 返工已完成并停止等待 Sol 重新验收；G06 未创建、未执行。
+- G05 第二次返工已完成并停止等待 Sol 再次验收；G06 未创建、未执行。
 - 未使用破坏性 Git 操作；未修改 计算表/、.venv/ 或既有用户临时文件；本轮验证数据库为新生成的临时产物。
 - 工作区另有未跟踪 docs/handoffs/，非本轮新增或修改，未暂存。
 
@@ -193,15 +195,15 @@ G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
 - G05 正式验收结论为 FAIL；默认规则转录、最新官方因子选择、冲突快照阻断和显式覆盖语义必须返工。
 - G05 返工提交 `549bca0` 已完成上述修正；当前阶段门禁仍保持关闭，等待 Sol 重新验收。
 - G05 正式重新验收结论为 FAIL；规则映射完整性、行业关系与原始条款定位仍须再次返工。
+- G05 第二次返工提交 `9e74024` 已补齐冻结规则清单、修正行业关系/电热路径和全部指定来源定位；当前阶段门禁保持关闭，等待 Sol 再次验收。
 - G06 阶段门禁保持关闭，未创建或执行 G06。
 
 ## 下一步
 
-1. 由 Luna 按本次正式重新验收意见再次返工 G05；不得执行 G06。
-2. 修正并提交实施报告后，发送“重新验收G05”。
-3. 未获 G05 PASS 前不得创建或执行 G06。
+1. 由 Sol 重新验收本次 G05 第二次返工；不得执行 G06。
+2. 未获 G05 PASS 前不得创建或执行 G06。
 
-## G05 返工交付状态
+## G05 第一次返工交付状态（历史）
 
 **READY_FOR_SOL_REACCEPTANCE**
 
@@ -230,3 +232,23 @@ G05_REACCEPTANCE_FAIL_WAITING_FOR_SECOND_REWORK
 - 工作区检查：验收开始及测试后均仅有既有未跟踪 `docs/handoffs/`；该目录未处理、未暂存。验收文档提交前没有其他未解释修改。
 
 G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
+
+## G05 第二次返工实施状态（2026-09-13）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+- 本轮严格只返工 HANDOFF.md 的 G05；没有创建或执行 G06，没有修改 UI、Canonical 数据、SQLite 迁移、正式数据库、行业输入页、行业计算公式或 `计算表/`。
+- `default_g05_rules()` 现为 37 条 CommonRuleSet、11 条 IndustryRuleSet；测试对两组完整 ID 集合使用相等断言，补齐 `GEN-RULE-ACTIVITY-PRIMARY-001` 与 `GEN-RULE-INDUSTRY-DELEGATION-001`。
+- `CAR-RULE-NONFOSSIL-POWER-001` 已改为显式 `OVERRIDE`，完整追溯并覆盖 `GEN-RULE-ELECTRICITY-001`；`CAR-RULE-POWER-HEAT-001` 通过既有 RuleDefinition 字段覆盖电力/热力参数 ID、参数类型，并保留对两条通则规则的 payload 追踪。电力与热力实际解析路径均有回归断言。
+- 已修正通则方法、公式、聚合及总量覆盖规则的 `source_location`：方法为 7.2.2/7.2.3/7.2.4，公式为 7.5.2～7.5.8 的正确顺序；购入电/热均为 7.5.6，输出电/热均为 7.5.7；移除不存在的 7.5.9、7.5.10 和通则 5.2.7 错误定位。炭素电热规则已改为第 5.2.6 条。
+- G05 定向命令：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量命令：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过。
+- 编译命令：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；成功。
+- 依赖命令：`.venv\Scripts\python.exe -m pip check`；输出 `No broken requirements found.`。
+- Canonical 命令：`.venv\Scripts\python.exe scripts\validate_canonical.py`；输出 `valid: 9 standards, 12 sources, 6 parameters, 6 factors`。
+- 三库重建命令：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g05-second-rework-databases-final --app-version 0.1.0`；catalog、user、records 三库均从 Canonical 创建成功，未写入正式数据库目录。
+- 分层命令：`.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence -v`；9 个通过，0 个失败，0 个错误，0 个跳过；独立扫描确认 `packages/core` 无 PySide6、sqlite3、QSql、QWidget、QFileDialog 依赖。
+- 保护/范围检查：`git diff --check` 成功；`git diff --name-only -- 计算表/**` 为空；本轮变更仅为 G05 Domain、G05 测试及本阶段文档；G06 未创建或执行。
+- 未执行 pytest：项目环境未安装 pytest，按项目基线使用 unittest 完成定向和全量测试；未执行 G06、行业专属输入/计算、记录闭环、报告导出或安装包工作。
+- G05 二次返工实现与回归测试提交：`9e74024 fix: complete G05 frozen rule mappings`。
+- 当前停止等待 Sol 再次验收；G06 阶段门禁保持关闭。

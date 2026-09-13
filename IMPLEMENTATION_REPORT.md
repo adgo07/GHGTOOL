@@ -501,3 +501,35 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 5. 只返工 G05，不得创建或执行 G06。
 
 G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
+
+## G05 第二次返工实施报告（2026-09-13）
+
+### 目标与范围
+
+本轮仅依据 Sol 对 G05 的再次验收意见返工 `HANDOFF.md` 的 G05 阶段。没有创建或执行 G06，没有修改 UI、Canonical 数据、SQLite 迁移、正式数据库、行业输入页、行业计算公式或 `计算表/`。
+
+### 实现修正
+
+- `default_g05_rules()` 现装载 37 条 CommonRuleSet 与 11 条 IndustryRuleSet；新增冻结缺失的 `GEN-RULE-ACTIVITY-PRIMARY-001` 和 `GEN-RULE-INDUSTRY-DELEGATION-001`。G05 测试改为对完整通用/行业 rule_id 集合做相等断言，不再使用子集断言或仅验证数量。
+- `CAR-RULE-NONFOSSIL-POWER-001` 已按冻结映射改为显式 `OVERRIDE`，以 `supersedes_rule_ids=("GEN-RULE-ELECTRICITY-001",)` 保留可追溯覆盖关系；炭素电力因子路径仍可完成有效规则解析。
+- `CAR-RULE-POWER-HEAT-001` 使用既有 `RuleDefinition` 的参数 ID、参数类型和 payload 同时关联电力与热力两条通则路径；参数解析器在覆盖/专门化规则不携带独立选值策略时，继续采用同一有效规则集中的显式参数选值策略，因此电力官方最新值和热力实测优先/0.11 缺省回退均保持成立。
+- 逐项修正通则来源定位：`GEN-MTH-*` 为 7.2.2/7.2.3/7.2.4；燃料、过程、废弃物、逸散、购入电热、输出电热和总量公式为 7.5.2～7.5.8；购入电力与购入热力均为 7.5.6，输出电力与输出热力均为 7.5.7。`GEN-RULE-TOTAL-COVERAGE-REQUIRED-001` 改为 `SM01-DECISION-005` 与 7.5.8 追溯，不再引用通则不存在的第 5.2.7 条；生产规则不再含 7.5.9/7.5.10。`CAR-RULE-POWER-HEAT-001` 改为 GB/T 32151.34—2024 第 5.2.6 条。
+- 回归测试新增完整 ID 清单、非化石 OVERRIDE 目标、电热参数 ID/类型与实际解析路径、全部关键来源条款和错误旧定位排除断言。
+
+### 验证结果
+
+- G05 定向：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过（项目 Python 3.12.14，PySide6 6.11.2）。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；输出 `No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；输出 `valid: 9 standards, 12 sources, 6 parameters, 6 factors`。
+- SQLite：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g05-second-rework-databases-final --app-version 0.1.0`；临时 catalog、user、records 三库均从 Canonical 从零创建成功，未生成正式运行数据库。
+- 分层：`.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence -v`；9 个通过，0 个失败，0 个错误，0 个跳过；`packages/core` 禁止依赖扫描无 PySide6、sqlite3、QSql、QWidget、QFileDialog。
+- 范围/保护：`git diff --check` 成功；`git diff --name-only -- 计算表/**` 为空；Canonical、迁移、UI、`计算表/` 和 G06 均未修改或执行。
+- 未执行 pytest：项目环境未安装 pytest，项目基线使用 unittest 完成定向与全量测试；未执行 G06、行业专属输入/计算、记录闭环、报告导出或安装包工作。
+
+### Git 与交付状态
+
+- G05 二次返工实现与测试提交：`9e74024 fix: complete G05 frozen rule mappings`。
+- `TASK_STATE.md` 与本报告已更新记录本次返工和验证结果；既有未跟踪 `docs/handoffs/` 未处理、未暂存。
+- 当前停止等待 Sol 再次验收；G06 未创建、未执行。
