@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_DECISION_APPROVED_WAITING_FOR_LUNA_CONTINUATION
+G05_THIRD_REWORK_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -319,7 +319,7 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 
 ## 产品决策：多种电力消费形式（2026-09-13）
 
-**状态：APPROVED，等待 Luna 继续 G05；本次未创建 Goal，未实施 G05 或 G06。**
+**状态：APPROVED；已按批准范围继续 G05，当前等待 Sol 重新验收。**
 
 - 同一企业、同一核算期的电力消费采用多条明细，不得单选一种电力类型。
 - 每条明细分别保存电量、取得方式、电力属性、核算期间、排放因子及来源、证明材料类型和状态、参数选择理由及独立参数快照。
@@ -335,3 +335,35 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 1. 由用户另行让 Luna 继续 G05，按已批准决策补录 Canonical 数据并完成 G05 剩余范围。
 2. Luna 完成 G05、更新 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md` 后停止，等待 Sol 重新验收。
 3. 未获 G05 `PASS` 前不得创建或执行 G06。
+
+## G05 第三次返工实施状态（获批准后继续，2026-09-13）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+本轮恢复已 BLOCKED 的 G05 Goal，仅执行 Sol 已批准的多种电力消费形式第三次返工；没有创建或执行 G06。
+
+### 实现内容
+
+- Canonical 新增独立参数 electricity_emission_factor_nonfossil 和因子 electricity_nonfossil_zero_gbt32151_34_2024；值、单位、来源、有效期和适用标准严格采用 HANDOFF.md 第 4.5.1 节批准值。GB/T 32151.34—2024 新增该 parameter_ref，data_version 更新为 2026.09.13-g05-third-rework.1，schema_version 和数据库迁移未修改；零因子未挂到 electricity_emission_factor_national。
+- Domain 新增取得方式与电力属性两个独立枚举维度，以及每条电力消费明细的证明类型/状态；同一企业和核算期通过多条明细解析，不使用企业级单选状态。
+- 每条明细分别进行规则解析、证明门禁、稳定因子选择和带 detail_id 的不可变参数快照；外购常规电力沿用最新全国平均因子；外购非化石电力仅接受合同及结算凭证或 GEC 有效证明；自发自用非化石电力仅接受月度原始记录有效证明。
+- 证明缺失或 Canonical 独立零因子缺失均为 ERROR，禁止零因子和全国平均因子回退；自发自用化石能源电力返回明确的直接燃料路径转交结果，不进入外购电力路径，也未实现 G06 公式。
+- CAR-RULE-NONFOSSIL-POWER-001 引用新参数和稳定零因子 ID；因子选择不读取中文 source_location 识别。附录 D 定位统一为 PDF 第30页、印刷页22。
+- 新增同一企业同时存在外购常规、外购非化石、自发自用非化石三条明细的组合回归，以及普通购电、市场化非化石电力、自发自用非化石电力、证明缺失、零因子缺失、稳定 ID 反绕过和自发自用化石防重复路径测试。
+
+### 验证与边界
+
+- G05 定向：.venv\Scripts\python.exe -m unittest tests.test_g05_rules tests.test_g05_multi_electricity -v；18 个通过，0 个失败，0 个错误。
+- G02 Canonical/持久化与 G04 参数展示定向：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog -v；31 个通过，0 个失败，0 个错误。
+- 全量：.venv\Scripts\python.exe -m unittest discover -s tests -t . -v；75 个通过，0 个失败，0 个错误。
+- 编译：.venv\Scripts\python.exe -m compileall -q packages apps tests；成功。
+- 依赖：.venv\Scripts\python.exe -m pip check；No broken requirements found.
+- Canonical：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库从零重建：.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g05-third-rework-databases；catalog、user、records 三库生成成功，临时目录已清理。
+- git diff --check、迁移范围检查和 计算表/ 保护检查通过；既有 docs/handoffs/ 未处理、未暂存。pytest 未执行，项目测试基线为 unittest。
+- 未制作电力录入页面、企业电力排放总量、G06 计算公式或其他 G06 模块。
+
+### Git 与等待状态
+
+- 实现与回归测试提交：7173394 fix: complete G05 multi-electricity rework。
+- 本节状态文档和 IMPLEMENTATION_REPORT.md 随后更新；G05 当前停止等待 Sol 重新验收。

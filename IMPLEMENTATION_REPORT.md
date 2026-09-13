@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G04 标准库与参数因子库查询
+G05 通用规则、推荐值与快照基础
 
 ## 前置验收与阶段边界
 
@@ -17,6 +17,34 @@ G04 标准库与参数因子库查询
 - G03 正式重新验收结论：PASS（2026-09-12）。本轮创建并执行唯一的 G04 Goal；G05 未创建、未执行。
 - G04 正式重新验收结论：PASS（2026-09-12）；被验收 HEAD 为 `28dd8c9`。G05 仍未创建、未执行。
 
+## G05 第三次返工（获批准后继续，2026-09-13）
+
+### 目标与范围
+
+本轮恢复现有 BLOCKED 的 G05 Goal，仅执行 Sol 已批准的多种电力消费形式第三次返工。没有创建或执行 G06，没有修改 UI、数据库迁移、正式数据库、行业输入页面、行业计算公式或 计算表/，没有处理既有 docs/handoffs/。
+
+### 实现结果
+
+- 在 Canonical Source 中新增独立参数 electricity_emission_factor_nonfossil 和因子 electricity_nonfossil_zero_gbt32151_34_2024，严格使用批准的 0、tCO₂/MWh、STANDARD_SPECIFIED、VERIFIED、SRC-32151-34-2024、2024、2025-03-01、gbt_32151_34_2024 及 PDF 第30页/印刷页22定位。行业标准 parameter_refs 已同步，data_version 更新为 2026.09.13-g05-third-rework.1；schema_version 仍为 1.0.0，SQLite 迁移仍为 001。
+- 在 packages/core 建立取得方式与电力属性两个独立枚举维度、证明类型/状态和 ElectricityConsumptionDetail/ElectricityDetailResolution；多条明细共享企业/标准/期间上下文，但各自解析规则、证明、候选因子、选择理由和快照。自发自用化石能源只返回直接燃料路径转交阻断，不进入外购电力间接排放路径。
+- CAR-RULE-NONFOSSIL-POWER-001 现在是带条件的显式 OVERRIDE，引用新参数和稳定零因子 ID；零因子判断只使用稳定 ID、参数 ID、值类型和值及来源 ID，不依赖中文 source_location。普通外购电力采用通则最新全国平均因子；非化石电力按外购证明或自发自用月度原始记录门禁采用零因子，证明或 Canonical 零因子缺失均 ERROR 且不回退。
+- 回归测试覆盖三明细组合互不覆盖、普通购电、外购非化石、自发自用非化石、证明缺失、Canonical 零因子缺失、稳定 ID 反绕过、自发自用化石防重复路径，以及 G02 Canonical/SQLite 和 G04 参数展示对新增记录的查询。
+
+### 验证结果
+
+- G05 定向：.venv\Scripts\python.exe -m unittest tests.test_g05_rules tests.test_g05_multi_electricity -v；18/18 通过。
+- G02 Canonical/持久化与 G04 参数展示：.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog -v；31/31 通过。
+- 全量回归：.venv\Scripts\python.exe -m unittest discover -s tests -t . -v；75/75 通过。
+- compileall：.venv\Scripts\python.exe -m compileall -q packages apps tests；成功。
+- pip check：.venv\Scripts\python.exe -m pip check；No broken requirements found.
+- Canonical 校验：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库从零重建：.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g05-third-rework-databases；catalog.sqlite、user.sqlite、records.sqlite 均生成成功，临时目录已清理。
+- git diff --check 通过；迁移和 计算表/ 路径均无差异；既有 docs/handoffs/ 保留且未处理。pytest 未执行，项目基线为 unittest。
+
+### 提交与门禁
+
+- 实现与回归测试提交：7173394 fix: complete G05 multi-electricity rework。
+- 本轮停止等待 Sol 重新验收；G06 未创建、未执行。
 ## G04 本轮完成
 
 - 新增 `packages/standards/catalog.py` 平台无关的标准、来源、对象、参数、因子读模型与只读 Repository 契约；没有引入 PySide6 或 SQLite 依赖。
@@ -195,7 +223,7 @@ G04 标准库与参数因子库查询
 
 **READY_FOR_SOL_REACCEPTANCE**
 
-- G04 标准库与参数因子库查询已形成实现提交 `4419a73`；后续 Sol 正式验收结论为 FAIL。
+- G05 通用规则、推荐值与快照基础已形成实现提交 `4419a73`；后续 Sol 正式验收结论为 FAIL。
 - 当前工作区只保留既有未跟踪 `docs/handoffs/`；该目录未纳入本轮提交。
 - 当前停止在 G04 验收点，等待 Sol 验收；未获 G04 PASS 前不得创建或执行 G05。
 
