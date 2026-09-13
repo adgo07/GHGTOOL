@@ -783,3 +783,47 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - R6 测试向量旧值/新值差异证据提交：4d52b32 test: preserve G06 R6 vector correction evidence。
 - 外部映射文件不在项目 Git 中；本报告记录其变更前 SHA256 8BC09741DC6E34E4A14D8801D776760BE56336B5499E4B1FFA2F9FDC0E997DD4 和变更后 SHA256 D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26。
 - 工作区提交文档后仅保留既有未跟踪 docs/handoffs/；本报告与 TASK_STATE.md 更新后停止等待 Sol 验收，绝不启动 G07。
+
+## G06 Sol 正式验收结论（2026-09-13）
+
+### 结论
+
+**FAIL**
+
+被验收 HEAD 为 `16e47722e5dfeaf34025460b90c659c260967ee5`。R6 测试向量纠错、Domain 计算和现有回归测试通过，但 G06 的手工录入页面及冻结映射校验契约仍有多项 MUST 未完成，不能进入 G07。
+
+### 已通过核对
+
+- 直接读取原始 GB/T 32151.34—2024 PDF；文件 SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。式（1）～式（16）与当前 Domain 主公式一致；式（8）独立复算为 `1.439166666666666666666666667 tCO2`，R6 修正正确且实现未加入被禁止的 GTA 挥发分项。
+- Domain 已覆盖十类排放源的正常、零值、缺失、非法比例、单位不匹配和不涉及工程路径，完成直接/间接/总量聚合、默认值快照、蒸汽焓值查表/内插及错误阻断。
+- 同一企业、同一核算期的外购常规、外购非化石和自发自用非化石电力可以逐条解析、计算、快照并汇总；证明缺失不回退全国平均因子；自发自用化石电力可转交燃料直接排放路径并避免进入购电间接排放。
+- 计算公式位于 Domain，UI 未包含公式；正式记录 SQLite、报告/导出、安装包和 G07 均未提前实施。`计算表/` 无差异。
+
+### 未满足的验收项及证据
+
+1. **CAR-I03/CAR-I04 无法从手工页面录入。** `packages/ui/carbon_material_page.py:242-249` 只建立燃料、过程、I01 电力和 I02 热力区；`_input()` 到 `packages/ui/carbon_material_page.py:445` 只传 `purchased_heat`，没有传 `exported_electricity`、`exported_heat`。独立页面探针确认两者恒为空，除“是否涉及”下拉框外没有输出电力/热力控件。Domain 测试直接构造对象不能替代页面 MUST。
+2. **企业名称必填被静默绕过。** `packages/ui/carbon_material_page.py:428` 将空输入替换为“未填写企业”，导致未填写真实名称也可形成成功内存记录。应让空名称产生明确 ERROR，不能制造占位企业名称。
+3. **参数选择器及来源/选择状态未实现。** HANDOFF 要求参数选择器接入 G05 并显示来源和选择状态；当前参数区仅有说明和快照计数，热力因子仍是自由文本框。独立页面探针未发现参数或因子选择控件。应通过 Application Service 暴露候选/推荐、来源、审核状态和选择理由，并保持 UI 不实现选择算法。
+4. **式（6）～式（8）的基准元数据未进入页面。** Domain 有 `mass_basis`、`composition_basis`、`normalized_basis`、`component_kind` 和换算证据，但页面无对应输入/确认，构造时一律采用默认收到基/固定碳，未知、基准不一致和干燥基未换算无法从手工路径触发冻结映射第 8.1 节校验。
+5. **行业冻结校验 ID 未完整实现。** 映射注册的是 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`；当前只透传 `GEN-VAL-NONFOSSIL-EVIDENCE`，前一 ID 在 `packages/` 与 `tests/` 均不存在。应保留 G05 通用问题的来源，同时在 G06 形成冻结的行业校验 ID，或由 Sol 先批准映射 ID 变更；Luna 不得自行改口径。
+6. **现有测试未覆盖上述缺口。** `tests/test_g06_page.py` 没有 I03/I04 页面输入、空企业名称、参数选择/来源展示、材料基准元数据和行业校验 ID 的断言，故测试全绿不足以判定阶段通过。
+
+### R6 修正清单复核
+
+- 外部映射磁盘原始 SHA256 确认为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`（62019 字节、LF）；原报告的 `D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26` 经独立内存转换确认是 CRLF 规范化哈希。原记录确有口径说明缺失。
+- R5 没有历史归档；当前历史目录只有 R4。R6 签署区仍为 2026-09-11 旧签署，且 `TASK_STATE.md` 存在两份相同的历史 G06 BLOCKED 块。
+- 这些是证据链和文档整理问题，不改变 R6 数值正确性；由于本次业务验收为 FAIL，未更新外部映射签署、未归档或改动 Git 外文件，也未清理历史块。返工时应补充准确哈希口径；R6 正式签署应留待 G06 重新验收通过后处理。
+
+### 独立测试结果
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；20/20 通过。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；95/95 通过。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功，验收临时目录 `tmp/sol-g06-acceptance-20260913` 已清理。
+
+### 阶段门禁
+
+G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改业务代码、外部映射或 `计算表/`，也没有创建或执行 G07。修正完成后应发送“重新验收G06”。

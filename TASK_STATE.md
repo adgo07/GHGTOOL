@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_READY_FOR_SOL_ACCEPTANCE
+G06_SOL_ACCEPTANCE_FAILED
 
 ## 阶段验收状态
 
@@ -33,7 +33,7 @@ G06_READY_FOR_SOL_ACCEPTANCE
 - 多种电力消费形式产品决策已批准并落盘（2026-09-13）：同一企业、同一核算期允许多条不同电力明细；批准新增独立 Canonical 非化石能源电力参数与零因子。此前 G05 第三次返工的 Canonical 缺口阻塞已获得决策，不代表 G05 已完成或通过验收。
 - G05 第三次正式重新验收结论：PASS（2026-09-13）；被验收 HEAD 为 `f080f115f0d7a31249befc0703cfec132c19e515`，多种电力消费形式决策及全部 G05 MUST 已核对通过。
 - G05已通过，允许由用户另行启动G06。
-- G06 已完成实现与 R6 映射测试向量纠错回归；当前等待 Sol 验收，未创建或执行 G07。
+- G06 已完成实现与 R6 映射测试向量纠错回归；Sol 正式验收结论为 FAIL（2026-09-13），未创建或执行 G07。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -488,3 +488,31 @@ G05已通过，允许由用户另行启动G06；本次未启动G06。
 - 三库从零重建：.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g06-final-three-databases --app-version 0.1.0；catalog.sqlite、user.sqlite、records.sqlite 均生成成功，临时目录已清理。
 - git diff --check 通过；git diff --name-only -- 计算表/** 为空；既有 docs/handoffs/ 未处理。未执行 pytest，项目测试基线为 unittest。
 - 实现提交为 bc1f83c；R6 旧值/新值测试证据提交为 4d52b32。当前停止等待 Sol 重新验收，不启动 G07。
+
+## G06 Sol 正式阶段验收记录（2026-09-13）
+
+**结论：FAIL**
+
+- 被验收 HEAD：`16e47722e5dfeaf34025460b90c659c260967ee5`（`docs: record G06 R6 implementation and acceptance state`）。验收前工作区只有既有未跟踪 `docs/handoffs/`，无已跟踪差异；G06 相对 G05 的提交范围为实现、页面、路由、测试和阶段文档，未发现 G07 实现。
+- 原始标准：直接读取 GB/T 32151.34—2024 原始 PDF，SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；式（1）～式（16）以及附录 D 已核对。第 5.2.4 条式（8）不含 `GTA×GTAVar×K3×44/16`，R6 的 `TV-CAR-FML-008=1.439166666666666666666666667 tCO2` 与原文和独立复算一致。
+- 通过项：十类排放源的 Domain 公式与聚合、Decimal 计算、单位/比例/缺失/不涉及校验、标准缺省值提示与快照、蒸汽焓值查表和内插、多电力明细独立解析和汇总、非化石证明门禁、自发自用化石电力直接燃料路径转交、内存 Record Repository、其他活动/运输的 Domain 阻断均已有实现和通过测试。
+- 未通过项一（G06 手工录入页面不完整）：`packages/ui/carbon_material_page.py` 只构建 I01 购入电力和 I02 购入热力输入区，没有 I03 输出电力、I04 输出热力录入控件；`_input()` 也从不传入 `exported_electricity` 或 `exported_heat`。无界面探针确认两者恒为 0 条，页面只有 I03/I04 的“是否涉及”选择。用户无法通过 G06 页面完成式（15）的两项抵扣输入，不满足“实现 CAR-I03、CAR-I04”和首个标准手工录入的 MUST。
+- 未通过项二（最小身份信息必填被绕过）：页面把空企业名称静默替换为字符串“未填写企业”，因此用户未填写企业名称也能通过领域模型并形成内存记录，不满足“最小身份信息只要求企业名称和核算期间”中的必填要求。
+- 未通过项三（参数选择器未实现且来源表达不可靠）：HANDOFF 要求参数选择器接入 G05 服务并显示来源和选择状态；当前参数区只有说明文字和计算后的快照数量，页面唯一可编辑的热力因子是普通文本框。无界面探针未发现参数/因子选择控件；用户输入的热力因子又被构造成默认 `ParameterValue`，不能让用户选择候选值、查看来源/审核状态或确认选择理由。
+- 未通过项四（收到基/成分性质在页面被静默假定）：Domain 虽定义 `mass_basis`、`composition_basis`、`normalized_basis`、`component_kind` 及换算证据，但页面没有这些输入或确认控件，所有式（6）～式（8）手工数据均通过构造器默认成收到基和固定碳口径，无法让用户表达未知、不一致、干燥基及换算证据，不满足冻结映射第 8.1 节的实际校验要求。
+- 未通过项五（冻结校验编号未完整落地）：冻结映射要求 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`，当前非化石证明缺失只透传 G05 的 `GEN-VAL-NONFOSSIL-EVIDENCE`；全项目不存在前一稳定 ID。G06 测试也断言通用 ID，未检查行业映射 ID。
+- 测试缺口：现有 G06 页面测试只核对十个状态选择器、多电力行和基础计算展示，没有覆盖 I03/I04 页面输入、企业名称空值阻断、参数选择/来源展示、收到基元数据输入和行业校验 ID，故 20/20 与全量 95/95 通过不能证明上述 MUST 已完成。
+- R6 文档证据：外部映射磁盘原始 SHA256 为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`（62019 字节、LF）；既有文档所记 `D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26` 是同内容转换为 CRLF 后的规范化哈希。R5 未归档、R6 签署区仍是 2026-09-11 旧签署、G06 历史 BLOCKED 块重复，均为治理证据待整理项；本次 FAIL 下未修改外部映射或历史文档结构。
+
+### 本次实际执行的验收命令
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；20 个通过，0 个失败，0 个错误。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49 个通过，0 个失败，0 个错误。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；95 个通过，0 个失败，0 个错误。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir D:\project\碳排放核算工具\tmp\sol-g06-acceptance-20260913 --app-version 0.1.0`；三库成功生成，验收临时目录已清理。
+- 页面独立探针：空企业名称得到“未填写企业”，`exported_electricity` 与 `exported_heat` 均为 0 条，未发现输出能源或参数选择控件。
+
+G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna 只修正上述 G06 未通过项并补充对应测试；修正完成后发送“重新验收G06”。
