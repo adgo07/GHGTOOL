@@ -533,3 +533,41 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - G05 二次返工实现与测试提交：`9e74024 fix: complete G05 frozen rule mappings`。
 - `TASK_STATE.md` 与本报告已更新记录本次返工和验证结果；既有未跟踪 `docs/handoffs/` 未处理、未暂存。
 - 当前停止等待 Sol 再次验收；G06 未创建、未执行。
+
+## G05 Sol 第二次正式重新验收结论
+
+**结论：FAIL**
+
+- 验收日期：2026-09-13。
+- 被验收 HEAD：`1a7bd95`；第二次返工实现与测试提交为 `9e74024`。
+- G05 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过。
+- 分层回归：`.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence -v`；9 个通过，0 个失败，0 个错误，0 个跳过。
+- `.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests` 成功；`.venv\Scripts\python.exe -m pip check` 输出 `No broken requirements found.`；Canonical 校验输出 `valid: 9 standards, 12 sources, 6 parameters, 6 factors`。
+- 范围和保护检查通过：第二次返工只修改 `packages/core/parameter_resolution.py`、`tests/test_g05_rules.py` 和阶段文档；未修改 Canonical、迁移、UI、`计算表/`，未创建或执行 G06。工作区仅有既有未跟踪 `docs/handoffs/`。
+- 原始来源复核：GB/T 32150—2025 SHA256 为 `673B85DF6EBEB6CE8894995534EC6EA3E2B7FA4F50B6A03AC0208E2DE34469BC`；GB/T 32151.34—2024 SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。直接读取了通则 PDF 第13～17页和炭素标准 PDF 第9～16、30页。
+
+### 已确认关闭的上次问题
+
+- 已补入 `GEN-RULE-ACTIVITY-PRIMARY-001` 与 `GEN-RULE-INDUSTRY-DELEGATION-001`。
+- 通则方法、公式和聚合规则的第 7.2.2～7.2.4、第 7.5.2～7.5.8 定位已按原文纠正，不再引用第 7.5.9、7.5.10。
+- `CAR-RULE-NONFOSSIL-POWER-001` 的关系枚举已由 `BASE` 改为 `OVERRIDE`；`CAR-RULE-POWER-HEAT-001` 已列出电力与热力参数 ID。
+
+### 未满足的 G05 MUST 与验收项
+
+1. **非化石电力规则无条件覆盖普通购电。** `CAR-RULE-NONFOSSIL-POWER-001` 的 applicability 只有标准与电力参数类型，没有 `electricity_type` 条件。`RuleApplicability.matches()` 也没有核对 `RuleContext.electricity_type`。独立探针分别传入 `ordinary_purchase` 和 `nonfossil`，两者均选中非化石规则、均覆盖 `GEN-RULE-ELECTRICITY-001`，有效规则集完全相同。
+2. **非化石电力采用了错误取值政策。** 炭素标准附录 D.1.1 明确自发自用及市场化交易购入的非化石能源电力因子为零，D.2 要求合同、结算凭证/GEC 或月度原始记录；D.1.2 的“最新全国平均因子”用于不包括市场化交易非化石电量的其余电量。当前非化石 `OVERRIDE` 使用 `OFFICIAL_LATEST`，独立探针在非化石上下文无阻断地推荐全国平均因子 0.5306，没有零因子和证明门禁。该行为违反“行业标准明确值优先于通用更新值”和“未确认参数不得静默选择”。
+3. **电热 SPECIALIZE 没有进入解析器关系图。** `CAR-RULE-POWER-HEAT-001` 的 group key 为 `parameter_selection:power_heat`，两条通则规则分别以具体参数 ID 分组；`EffectiveRuleResolver` 只在同一 group key 内处理 SPECIALIZE，且不读取 `payload('specializes', ...)`。热力探针显示通则热力规则轨迹为独立 `SELECTED`，不是 `INHERITED`；行业规则只作为另一组标记存在。新增的 `ParameterResolver`“选择首个带 policy 规则”只能绕过该关系缺口，不能证明 SPECIALIZE 生效。
+4. **完整清单测试没有以冻结注册表为源。** FROZEN R5 通则注册表明确列出但生产与测试都缺少 `GEN-RULE-ACTIVITY-PROXY-001`、`GEN-RULE-ACTIVITY-SECONDARY-001`、`GEN-RULE-PRINCIPLE-001`、`GEN-RULE-SOURCE-CATALOG-001`、`GEN-RULE-WORKFLOW-001`；生产与测试却加入冻结注册表不存在的 `GEN-RULE-REPORT-001`。因此测试中的集合相等只证明代码等于测试手写集合，不证明等于冻结映射。
+5. **行业规则来源仍有实质错位。** 冻结映射与原文要求 `CAR-RULE-PROCESS-001` 对应第 5.2.2～5.2.5 条，当前写成 5.2.3～5.2.6；`CAR-RULE-FUEL-001` 应追溯第 5.2.1 条及附录 C，当前混入非化石电力附录 D；`CAR-RULE-FUGITIVE-COVERAGE-001` 应追溯行业第 4.2、5.2 条及软件决策，当前仅写第 5.2.7.2 间接排放总量。
+6. 现有测试把错误行为固化为通过条件：`electricity_type='ordinary_purchase'` 的测试明确断言结果应包含 `CAR-RULE-NONFOSSIL-POWER-001`，因此 12/12 和 68/68 全绿不能支持 PASS。
+
+### Luna 第三次返工要求
+
+1. 先区分普通购电与附录 D 非化石电力场景：普通购电不得命中非化石 `OVERRIDE`；非化石场景按 D.1.1 采用零因子且必须满足 D.2 证明门禁，不能回落为全国平均因子。分别增加普通购电、市场化绿电、自发自用绿电、缺少证明四类测试。
+2. 如果上述修正需要新增 Canonical 参数/因子、改变 `RuleApplicability`/规则关系数据模型或解释冻结映射，必须按 AGENTS.md 使用 `BLOCKED` 请求 Sol 决策，不得继续用 payload 或测试断言模拟业务关系。
+3. 让 `CAR-RULE-POWER-HEAT-001` 对 `GEN-RULE-ELECTRICITY-001` 与 `GEN-RULE-HEAT-001` 的 SPECIALIZE 真正被 `EffectiveRuleResolver` 解析并留下继承轨迹；禁止仅存 payload 标记。
+4. 以冻结映射注册表生成或逐项核对 G05 应实施的完整 rule_id 清单。对处于 G06 的行业公式规则可以明确排除并记录理由，但不得把未登记 ID 当作冻结规则，通则 G05 规则不得无说明遗漏。
+5. 纠正上述行业规则来源定位，并为每条关系、适用条件、选择政策与原文定位增加独立断言。只返工 G05，不得启动 G06。
+
+G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。

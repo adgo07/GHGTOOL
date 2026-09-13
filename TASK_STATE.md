@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_SECOND_REWORK_READY_FOR_SOL_REACCEPTANCE
+G05_SECOND_REACCEPTANCE_FAIL_WAITING_FOR_THIRD_REWORK
 
 ## 阶段验收状态
 
@@ -29,6 +29,7 @@ G05_SECOND_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 返工已完成（2026-09-13）；返工提交为 `549bca0`，已按冻结映射补齐默认规则、修正官方最新因子选择、冲突快照门禁和显式 OVERRIDE 关系，当前等待 Sol 重新验收。
 - G05 正式重新验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `c83df46`。既有回归测试通过，但默认规则仍缺少冻结规则、存在行业关系/覆盖对象错误，并有多条原始标准条款定位错误。
 - G05 第二次返工已完成（2026-09-13）；实现与回归测试提交为 `9e74024`，当前停止等待 Sol 再次验收。
+- G05 第二次正式重新验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `1a7bd95`。普通购电与非化石购电未被区分，非化石规则会无条件覆盖普通电力规则并错误推荐全国平均因子；电热 SPECIALIZE 也未形成真实继承关系，冻结规则清单和部分行业来源定位仍不完整。
 - G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
 
 ## 已完成
@@ -196,12 +197,15 @@ G05_SECOND_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 返工提交 `549bca0` 已完成上述修正；当前阶段门禁仍保持关闭，等待 Sol 重新验收。
 - G05 正式重新验收结论为 FAIL；规则映射完整性、行业关系与原始条款定位仍须再次返工。
 - G05 第二次返工提交 `9e74024` 已补齐冻结规则清单、修正行业关系/电热路径和全部指定来源定位；当前阶段门禁保持关闭，等待 Sol 再次验收。
+- G05 第二次正式重新验收结论为 FAIL；非化石电力适用条件和取值逻辑、电热 SPECIALIZE 的真实解析关系、冻结 ID 完整性及行业来源定位仍须返工。
 - G06 阶段门禁保持关闭，未创建或执行 G06。
 
 ## 下一步
 
-1. 由 Sol 重新验收本次 G05 第二次返工；不得执行 G06。
-2. 未获 G05 PASS 前不得创建或执行 G06。
+1. 由 Luna 按本次第二次正式重新验收意见第三次返工 G05；不得执行 G06。
+2. 涉及新增 Canonical 参数/因子、改变规则数据模型或映射解释时，必须按 `BLOCKED` 请求 Sol 决策。
+3. 修正并提交实施报告后，发送“重新验收G05”。
+4. 未获 G05 PASS 前不得创建或执行 G06。
 
 ## G05 第一次返工交付状态（历史）
 
@@ -252,3 +256,22 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 - 未执行 pytest：项目环境未安装 pytest，按项目基线使用 unittest 完成定向和全量测试；未执行 G06、行业专属输入/计算、记录闭环、报告导出或安装包工作。
 - G05 二次返工实现与回归测试提交：`9e74024 fix: complete G05 frozen rule mappings`。
 - 当前停止等待 Sol 再次验收；G06 阶段门禁保持关闭。
+
+## G05 Sol 第二次正式重新验收记录（2026-09-13）
+
+**结论：FAIL**
+
+- 被验收 HEAD：`1a7bd95`（第二次返工实现提交 `9e74024`，交接文档提交 `1a7bd95`）。
+- 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules -v`；12 个通过，0 个失败，0 个错误，0 个跳过。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；68 个通过，0 个失败，0 个错误，0 个跳过。
+- 分层回归：`.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies tests.test_g02_persistence -v`；9 个通过，0 个失败，0 个错误，0 个跳过。
+- 辅助检查：`compileall` 成功；`pip check` 无破损依赖；Canonical 校验为 9 standards、12 sources、6 parameters、6 factors。G05 Domain 未发现 PySide6/SQLite 依赖；第二次返工只修改 G05 Domain、G05 测试和交接文档，未修改 `计算表/`，未实施 G06。
+- 已关闭项：上次指出的两条缺失规则和通则第 7.2、7.5 条款错位已修正；非化石规则形式上已改为 `OVERRIDE`；电热规则形式上已列出两个参数 ID。
+- 阻断问题一：`CAR-RULE-NONFOSSIL-POWER-001` 没有非化石电力适用条件，对 `ordinary_purchase` 和 `nonfossil` 两种上下文均生效，并在普通购电场景无条件覆盖 `GEN-RULE-ELECTRICITY-001`。独立探针显示两种上下文的有效规则集完全相同。
+- 阻断问题二：GB/T 32151.34—2024 附录 D.1.1 明确自发自用及市场化交易购入的非化石能源电力因子为零，D.2 要求相应证明；当前非化石 `OVERRIDE` 却配置为 `OFFICIAL_LATEST`。独立探针在 `electricity_type='nonfossil'` 时无阻断地推荐全国平均因子 0.5306，既没有零因子路径，也没有证明文件门禁。现有测试反而断言普通购电必须包含非化石规则，固化了错误口径。
+- 阻断问题三：`CAR-RULE-POWER-HEAT-001` 的分组键是 `parameter_selection:power_heat`，两条通则规则的分组键分别是具体电力/热力参数。解析器不会跨分组解释 payload；热力探针中 `GEN-RULE-HEAT-001` 的轨迹仍为独立 `SELECTED`，不存在由行业 SPECIALIZE 产生的 `INHERITED` 轨迹。因此当前实现只是元数据标记，不是 `EffectiveRuleResolver` 实际关系。
+- 阻断问题四：所谓“完整 ID 集合”仍是测试内手写集合，不等于冻结映射注册表。FROZEN R5 通则注册表还列出 `GEN-RULE-ACTIVITY-PROXY-001`、`GEN-RULE-ACTIVITY-SECONDARY-001`、`GEN-RULE-PRINCIPLE-001`、`GEN-RULE-SOURCE-CATALOG-001`、`GEN-RULE-WORKFLOW-001`，生产代码和测试集合均未包含；生产代码中的 `GEN-RULE-REPORT-001` 又未在该冻结注册表登记。
+- 阻断问题五：行业来源定位仍有错位。`CAR-RULE-PROCESS-001` 应按冻结映射对应第 5.2.2～5.2.5 条，当前写为 5.2.3～5.2.6；`CAR-RULE-FUEL-001` 应追溯第 5.2.1 条及附录 C，却混入无关附录 D；`CAR-RULE-FUGITIVE-COVERAGE-001` 的冻结依据是行业第 4.2、5.2 条和软件决策，当前只指向第 5.2.7.2 间接排放总量。
+- 工作区在验收开始和测试后均仅有既有未跟踪 `docs/handoffs/`；该目录未处理、未暂存，未发现测试临时产物。
+
+G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05”。
