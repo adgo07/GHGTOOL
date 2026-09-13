@@ -292,6 +292,10 @@ class G05RuleTests(unittest.TestCase):
         self.assertEqual(result.recommended.factor.value, Decimal("0.5306"))
         self.assertIn(ningxia.factor_id, {item.factor_id for item in result.alternatives})
         self.assertEqual(result.selection_method, ParameterSelectionMethod.SYSTEM_RECOMMENDED)
+        self.assertIn(
+            "CAR-RULE-NONFOSSIL-POWER-001",
+            {item.rule_id for item in result.effective_rules.rules_for_parameter(parameter.parameter_id)},
+        )
 
     def test_heat_measured_value_precedes_default_and_falls_back_with_warning(self) -> None:
         parameter = Parameter(
@@ -347,6 +351,10 @@ class G05RuleTests(unittest.TestCase):
         )
         self.assertEqual(fallback.recommended.factor.factor_id, default.factor_id)  # type: ignore[union-attr]
         self.assertTrue(any(item.code == "GEN-VAL-MEASURED-NO-TEST-INFO" for item in fallback.warnings))
+        self.assertIn(
+            "CAR-RULE-POWER-HEAT-001",
+            {item.rule_id for item in fallback.effective_rules.rules_for_parameter(parameter.parameter_id)},
+        )
 
         measured_result = resolver.resolve(
             ParameterResolutionContext(
@@ -443,28 +451,93 @@ class G05RuleTests(unittest.TestCase):
 
         expected_common = {
             "GEN-RULE-REFERENCE-MODE-001",
+            "GEN-RULE-INDUSTRY-DELEGATION-001",
             "GEN-RULE-GHG-SCOPE-001",
             "GEN-RULE-BOUNDARY-ENTITY-001",
             "GEN-RULE-BOUNDARY-SYSTEMS-001",
             "GEN-RULE-BOUNDARY-AUXILIARY-001",
             "GEN-RULE-BOUNDARY-ANCILLARY-001",
             "GEN-RULE-BOUNDARY-INCLUDED-SOURCES-001",
+            "GEN-RULE-BIOMASS-001",
+            "GEN-RULE-REMOVAL-001",
+            "GEN-RULE-ACTIVITY-PRIMARY-001",
             "GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001",
             "GEN-RULE-TOTAL-COVERAGE-REQUIRED-001",
+            "GEN-MTH-FACTOR-001",
+            "GEN-MTH-MATERIAL-BALANCE-001",
+            "GEN-MTH-MEASURED-001",
+            "GEN-FML-FACTOR-001",
+            "GEN-FML-MATERIAL-BALANCE-001",
+            "GEN-FML-FUEL-AGG-001",
+            "GEN-FML-FUGITIVE-AGG-001",
+            "GEN-FML-PROCESS-AGG-001",
+            "GEN-FML-WASTE-AGG-001",
+            "GEN-FML-PURCHASED-ELECTRICITY-001",
+            "GEN-FML-PURCHASED-HEAT-001",
             "GEN-RULE-TOTAL-001",
             "GEN-FML-TOTAL-001",
-            "GEN-FML-FUGITIVE-AGG-001",
+            "GEN-FML-EXPORTED-ELECTRICITY-001",
+            "GEN-FML-EXPORTED-HEAT-001",
+            "GEN-AGG-FUEL-ADD",
+            "GEN-AGG-PROCESS-ADD",
+            "GEN-AGG-WASTE-ADD",
             "GEN-AGG-FUGITIVE-REVIEW-001",
+            "GEN-RULE-FACTOR-PRIORITY-001",
             "GEN-RULE-ELECTRICITY-001",
             "GEN-RULE-HEAT-001",
+            "GEN-RULE-QA-001",
+            "GEN-RULE-REPORT-001",
         }
-        self.assertTrue(expected_common.issubset(common_by_id))
+        expected_industry = {
+            "CAR-RULE-GHG-SCOPE-001",
+            "CAR-RULE-BOUNDARY-001",
+            "CAR-RULE-FUEL-001",
+            "CAR-RULE-PROCESS-001",
+            "CAR-RULE-POWER-HEAT-001",
+            "CAR-RULE-TOTAL-001",
+            "CAR-RULE-TOTAL-COVERAGE-001",
+            "CAR-RULE-FUGITIVE-COVERAGE-001",
+            "CAR-RULE-NONFOSSIL-POWER-001",
+            "CAR-RULE-QA-001",
+            "CAR-RULE-REPORT-001",
+        }
+        self.assertEqual(set(common_by_id), expected_common)
+        self.assertEqual(set(industry_by_id), expected_industry)
         self.assertFalse(
             any(item.rule_id.startswith(("GEN-PAR-", "CAR-PAR-")) for item in (*common, *industry))
         )
         for item in common:
             self.assertIsNotNone(item.source_location)
             self.assertIsNotNone(item.evidence_source_id)
+        source_markers = {
+            "GEN-RULE-ACTIVITY-PRIMARY-001": "表2",
+            "GEN-RULE-INDUSTRY-DELEGATION-001": "第7.5.4条",
+            "GEN-MTH-FACTOR-001": "第7.2.2条",
+            "GEN-MTH-MATERIAL-BALANCE-001": "第7.2.3条",
+            "GEN-MTH-MEASURED-001": "第7.2.4条",
+            "GEN-FML-FACTOR-001": "第7.2.2条",
+            "GEN-FML-MATERIAL-BALANCE-001": "第7.2.3条",
+            "GEN-FML-FUEL-AGG-001": "第7.5.2条",
+            "GEN-FML-PROCESS-AGG-001": "第7.5.3条",
+            "GEN-FML-WASTE-AGG-001": "第7.5.4条",
+            "GEN-FML-FUGITIVE-AGG-001": "第7.5.5条",
+            "GEN-FML-PURCHASED-ELECTRICITY-001": "第7.5.6条",
+            "GEN-FML-PURCHASED-HEAT-001": "第7.5.6条",
+            "GEN-FML-EXPORTED-ELECTRICITY-001": "第7.5.7条",
+            "GEN-FML-EXPORTED-HEAT-001": "第7.5.7条",
+            "GEN-FML-TOTAL-001": "第7.5.8条",
+            "GEN-RULE-TOTAL-001": "第7.5.8条",
+            "GEN-AGG-FUEL-ADD": "第7.5.2条",
+            "GEN-AGG-PROCESS-ADD": "第7.5.3条",
+            "GEN-AGG-WASTE-ADD": "第7.5.4条",
+            "GEN-AGG-FUGITIVE-REVIEW-001": "第7.5.5条",
+        }
+        for rule_id, marker in source_markers.items():
+            self.assertIn(marker, common_by_id[rule_id].source_location or "")
+        self.assertIn("第7.5.8条", common_by_id["GEN-RULE-TOTAL-COVERAGE-REQUIRED-001"].source_location or "")
+        self.assertNotIn("第5.2.7条", common_by_id["GEN-RULE-TOTAL-COVERAGE-REQUIRED-001"].source_location or "")
+        self.assertNotIn("第7.5.9条", common_by_id["GEN-FML-EXPORTED-ELECTRICITY-001"].source_location or "")
+        self.assertNotIn("第7.5.10条", common_by_id["GEN-FML-EXPORTED-HEAT-001"].source_location or "")
         self.assertEqual(
             common_by_id["GEN-FML-TOTAL-001"].relation,
             RuleRelation.CONFLICT_REVIEW,
@@ -489,6 +562,25 @@ class G05RuleTests(unittest.TestCase):
             industry_by_id["CAR-RULE-FUGITIVE-COVERAGE-001"].origin,
             RuleOrigin.SOFTWARE_DERIVED,
         )
+        nonfossil = industry_by_id["CAR-RULE-NONFOSSIL-POWER-001"]
+        self.assertEqual(nonfossil.relation, RuleRelation.OVERRIDE)
+        self.assertEqual(set(nonfossil.supersedes_rule_ids), {"GEN-RULE-ELECTRICITY-001"})
+        self.assertIn(("overrides", "GEN-RULE-ELECTRICITY-001"), nonfossil.payload)
+        power_heat = industry_by_id["CAR-RULE-POWER-HEAT-001"]
+        self.assertEqual(
+            set(power_heat.parameter_ids),
+            {"electricity_emission_factor_national", "heat_emission_factor_default"},
+        )
+        self.assertEqual(
+            set(power_heat.applicability.parameter_types),
+            {ParameterType.ELECTRICITY_EMISSION_FACTOR, ParameterType.HEAT_EMISSION_FACTOR},
+        )
+        self.assertIn(
+            ("specializes", "GEN-RULE-ELECTRICITY-001|GEN-RULE-HEAT-001"),
+            power_heat.payload,
+        )
+        self.assertIn("第5.2.6条", power_heat.source_location or "")
+        self.assertNotIn("第5.2.7.1条", power_heat.source_location or "")
 
         generic = EffectiveRuleResolver().resolve(
             common,
@@ -504,7 +596,10 @@ class G05RuleTests(unittest.TestCase):
         carbon = EffectiveRuleResolver().resolve(
             common,
             industry,
-            RuleContext(standard_id=STANDARD_ID),
+            RuleContext(
+                standard_id=STANDARD_ID,
+                parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+            ),
         )
         self.assertFalse(carbon.blocked)
         self.assertTrue(
@@ -514,6 +609,7 @@ class G05RuleTests(unittest.TestCase):
                 "GEN-RULE-FUGITIVE-EXECUTION-BLOCK-001",
                 "GEN-FML-FUGITIVE-AGG-001",
                 "GEN-AGG-FUGITIVE-REVIEW-001",
+                "GEN-RULE-ELECTRICITY-001",
             }.issubset(set(carbon.overridden_rule_ids))
         )
 
