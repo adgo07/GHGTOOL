@@ -125,6 +125,10 @@ class AppShell(QWidget):
         """Keep the selected catalog version while routing to the future input page."""
 
         self.selected_standard_id = standard_id
+        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        setter = getattr(page, "set_standard_id", None)
+        if setter is not None:
+            setter(standard_id)
         self.navigate(AppRoute.NEW_ACCOUNTING)
 
     def _build_sidebar(self) -> QFrame:

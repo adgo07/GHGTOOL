@@ -268,6 +268,13 @@ def create_page(
         return ParameterFactorLibraryPage(
             catalog_service or CatalogQueryService.empty(), navigate, parent
         )
+    if route is AppRoute.NEW_ACCOUNTING:
+        from .carbon_material_page import CarbonMaterialAccountingPage
+
+        return CarbonMaterialAccountingPage(
+            catalog_service=catalog_service or CatalogQueryService.empty(),
+            parent=parent,
+        )
 
     placeholders = {
         AppRoute.STANDARDS: (
@@ -275,11 +282,7 @@ def create_page(
             "查看 GB/T 32151 系列标准及核算要求",
             "标准库详细查询将在后续阶段实现。当前版本仅提供公共导航入口。",
         ),
-        AppRoute.NEW_ACCOUNTING: (
-            "新建核算",
-            "按照适用标准完成企业温室气体排放核算",
-            "核算输入、校验与计算将在后续阶段实现。",
-        ),
+
         AppRoute.RECORDS: (
             "核算记录",
             "查看历史核算结果",
