@@ -298,6 +298,16 @@ class G06FormulaTests(unittest.TestCase):
         self.assertEqual(baking.bpm.value, Decimal("10"))
         self.assertEqual(graphitization.gpm.value, Decimal("10"))
 
+    def test_r6_vector_correction_keeps_standard_formula_without_extra_gta_term(self) -> None:
+        old_mapping_expectation = Decimal("3.364166666666666666666666666667")
+        approved_r6_expectation = Decimal("1.439166666666666666666666667")
+        actual = graphitization_emission(
+            gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
+            gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
+        )
+        self.assertEqual(actual, approved_r6_expectation)
+        self.assertNotEqual(actual, old_mapping_expectation)
+
     def test_electricity_heat_and_steam_mapping_vectors(self) -> None:
         self.assertEqual(purchased_electricity_emission("100", "0.5306"), Decimal("53.06"))
         self.assertEqual(purchased_heat_emission("1000", "2800", "0.11"), Decimal("0.308"))
