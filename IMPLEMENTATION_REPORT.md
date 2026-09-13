@@ -45,6 +45,40 @@ G05 通用规则、推荐值与快照基础
 
 - 实现与回归测试提交：7173394 fix: complete G05 multi-electricity rework。
 - 本轮停止等待 Sol 重新验收；G06 未创建、未执行。
+
+## G05 Sol 第三次正式重新验收结论
+
+**结论：PASS**
+
+- 验收日期：2026-09-13。
+- 被验收 HEAD：`f080f115f0d7a31249befc0703cfec132c19e515`；G05 多电力返工实现提交为 `7173394`。
+- 直接核对原始 GB/T 32151.34—2024 PDF，SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。物理第30页页脚为印刷页22：D.1.1 规定自发自用和市场化交易购入的非化石能源电力因子为零；D.1.2 规定其余全国平均因子采用生态环境部、国家统计局最新发布值；D.2 分别要求市场化交易合同及结算凭证或 GEC、自发自用月度电量原始记录。
+- Canonical 和重建后的 SQLite 均确认独立参数 `electricity_emission_factor_nonfossil` 与零因子 `electricity_nonfossil_zero_gbt32151_34_2024` 真实存在，批准字段完整且仅适用于 `gbt_32151_34_2024`；全国平均参数下不存在该零因子。
+- 领域实现确认取得方式与电力属性是两个独立维度；组合场景中的三条电力明细共享企业和核算期，但逐条解析、逐条证明校验、逐条生成带 `detail_id` 的独立快照。
+- 普通外购电力使用全国平均因子；外购非化石和自发自用非化石分别按 D.2 对应证明使用零因子。缺少证明时产生 `GEN-VAL-NONFOSSIL-EVIDENCE` ERROR，无推荐值、无快照且无全国平均因子回退。
+- 自发自用化石能源电力返回 `DELEGATE_DIRECT_FUEL_PATH`，产生明确阻断问题并转交直接燃料排放路径，不进入外购电力间接排放参数路径。
+
+### Sol 独立执行结果
+
+- 组合场景：`.venv\Scripts\python.exe -m unittest tests.test_g05_multi_electricity.G05MultiElectricityTests.test_same_enterprise_resolves_three_details_independently -v`；1/1 通过。
+- G05 定向：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules tests.test_g05_multi_electricity -v`；18/18 通过。
+- G02/G04 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog -v`；31/31 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；75/75 通过。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\g05-sol-reacceptance-f080f11 --app-version 0.1.0`；catalog、user、records 均成功生成。随后对真实 `catalog.sqlite` 查询确认零因子所属参数、值、单位、来源、定位、年份、有效期和适用标准均正确；临时目录已清理。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- 分层：`.venv\Scripts\python.exe -m unittest tests.test_g00_layout tests.test_g01_domain_dependencies -v`；3/3 通过。
+- 审计说明：首次 SQLite 查询包装命令因 PowerShell 引号导致 Python `SyntaxError`，未形成产品测试结果；随后以相同重建数据库重新执行独立查询并通过，且完成清理。
+
+### 范围和门禁
+
+- 从产品决策提交 `23db8c9` 到被验收 HEAD 的业务变更仅涉及 Canonical、G05 Domain 与相关 G02/G04/G05 测试；未修改 UI、Application、迁移或 `计算表/`。
+- 未发现 CAR-F01、CAR-P01～P04、CAR-I01～I04、企业电力排放总量、录入页增删或 G06 公式实现；G06 未创建、未执行。
+- 验收结束时临时 PDF/数据库产物已清理，工作区仅有既有未跟踪 `docs/handoffs/`。
+
+G05已通过，允许由用户另行启动G06；本次未启动G06。
+
 ## G04 本轮完成
 
 - 新增 `packages/standards/catalog.py` 平台无关的标准、来源、对象、参数、因子读模型与只读 Repository 契约；没有引入 PySide6 或 SQLite 依赖。

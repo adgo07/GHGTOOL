@@ -6,7 +6,7 @@ G05 通用规则、推荐值与快照基础
 
 ## 状态
 
-G05_THIRD_REWORK_READY_FOR_SOL_REACCEPTANCE
+G05_PASS_WAITING_FOR_USER_TO_START_G06
 
 ## 阶段验收状态
 
@@ -31,7 +31,8 @@ G05_THIRD_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 第二次返工已完成（2026-09-13）；实现与回归测试提交为 `9e74024`，当前停止等待 Sol 再次验收。
 - G05 第二次正式重新验收结论：FAIL（2026-09-13）；被验收 HEAD 为 `1a7bd95`。普通购电与非化石购电未被区分，非化石规则会无条件覆盖普通电力规则并错误推荐全国平均因子；电热 SPECIALIZE 也未形成真实继承关系，冻结规则清单和部分行业来源定位仍不完整。
 - 多种电力消费形式产品决策已批准并落盘（2026-09-13）：同一企业、同一核算期允许多条不同电力明细；批准新增独立 Canonical 非化石能源电力参数与零因子。此前 G05 第三次返工的 Canonical 缺口阻塞已获得决策，不代表 G05 已完成或通过验收。
-- G06 未创建或执行；G05 重新验收为 PASS 前不得进入 G06。
+- G05 第三次正式重新验收结论：PASS（2026-09-13）；被验收 HEAD 为 `f080f115f0d7a31249befc0703cfec132c19e515`，多种电力消费形式决策及全部 G05 MUST 已核对通过。
+- G05已通过，允许由用户另行启动G06；本次未启动G06。
 
 ## 已完成
 
@@ -200,13 +201,12 @@ G05_THIRD_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G05 第二次返工提交 `9e74024` 已补齐冻结规则清单、修正行业关系/电热路径和全部指定来源定位；当前阶段门禁保持关闭，等待 Sol 再次验收。
 - G05 第二次正式重新验收结论为 FAIL；非化石电力适用条件和取值逻辑、电热 SPECIALIZE 的真实解析关系、冻结 ID 完整性及行业来源定位仍须返工。
 - 2026-09-13 已批准多种电力消费形式和独立 Canonical 非化石能源电力零因子；G05 的决策阻塞已解除，但实现与正式验收尚未完成。
-- G06 阶段门禁保持关闭，未创建或执行 G06。
+- G05 第三次正式重新验收为 PASS，G06 阶段门禁已解除；仅允许由用户另行启动 G06，本次验收未创建或执行 G06。
 
 ## 下一步
 
-1. 由用户另行让 Luna 继续 G05，严格按 `HANDOFF.md` 第 4.5.1 节补录 Canonical 参数/因子并完成多明细独立解析、校验、快照及组合测试；不得执行 G06。
-2. 修正并提交实施报告后，发送“重新验收G05”。
-3. 未获 G05 PASS 前不得创建或执行 G06。
+1. 等待用户另行启动 G06。
+2. 启动 G06 时必须重新读取 `AGENTS.md`、`HANDOFF.md` 和 `TASK_STATE.md`，创建一个 G06 Goal，且不得提前执行 G07。
 
 ## G05 第一次返工交付状态（历史）
 
@@ -367,3 +367,22 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 
 - 实现与回归测试提交：7173394 fix: complete G05 multi-electricity rework。
 - 本节状态文档和 IMPLEMENTATION_REPORT.md 随后更新；G05 当前停止等待 Sol 重新验收。
+
+## G05 Sol 第三次正式重新验收记录（2026-09-13）
+
+**结论：PASS**
+
+- 被验收 HEAD：`f080f115f0d7a31249befc0703cfec132c19e515`（实现提交 `7173394`，交接文档提交 `f080f11`）。
+- 原始标准：直接读取 GB/T 32151.34—2024 原始 PDF；SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。PDF 物理第30页页脚为印刷页22，D.1.1、D.1.2、D.2 与 Canonical 口径和证明门禁一致。
+- Canonical：独立参数 `electricity_emission_factor_nonfossil` 和零因子 `electricity_nonfossil_zero_gbt32151_34_2024` 真实存在；值为字符串 `"0"`，单位 `tCO₂/MWh`，来源、年份、有效期、审核状态正确，且仅适用于 `gbt_32151_34_2024`。零因子未挂到 `electricity_emission_factor_national`。
+- 多明细领域能力：取得方式和电力属性为两个独立枚举；同一企业和同一核算期的外购常规、外购非化石、自发自用非化石三条明细可同时解析，各自校验并以唯一 `detail_id` 形成独立不可变快照，未相互覆盖。
+- 参数与证明：普通购电采用全国平均因子；外购非化石仅接受合同及结算凭证或 GEC，自发自用非化石仅接受月度电量原始记录。证明缺失产生 `ERROR`，不生成快照且不回退全国平均因子。
+- 防重复路径：自发自用化石能源电力返回 `DELEGATE_DIRECT_FUEL_PATH` 和阻断性校验，不进入外购电力间接排放参数路径。
+- 组合场景：`.venv\Scripts\python.exe -m unittest tests.test_g05_multi_electricity.G05MultiElectricityTests.test_same_enterprise_resolves_three_details_independently -v`；1 个通过，0 个失败，0 个错误。
+- G05 定向：`.venv\Scripts\python.exe -m unittest tests.test_g05_rules tests.test_g05_multi_electricity -v`；18 个通过，0 个失败，0 个错误。
+- G02/G04 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog -v`；31 个通过，0 个失败，0 个错误。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；75 个通过，0 个失败，0 个错误。
+- 辅助检查：Canonical 校验为 9 standards、12 sources、7 parameters、7 factors；三库从零重建和真实 SQLite 独立查询通过；`compileall` 成功，`pip check` 无破损依赖，Domain 分层检查 3/3 通过。
+- 范围：未修改或覆盖 `计算表/`，未提前实现 G06 页面、公式或汇总，未创建或执行 G06；本次临时 PDF 和数据库产物均已清理。工作区仅保留既有未跟踪 `docs/handoffs/`。
+
+G05已通过，允许由用户另行启动G06；本次未启动G06。
