@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_SOL_ACCEPTANCE_FAILED
+G06_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -516,3 +516,43 @@ G05已通过，允许由用户另行启动G06；本次未启动G06。
 - 页面独立探针：空企业名称得到“未填写企业”，`exported_electricity` 与 `exported_heat` 均为 0 条，未发现输出能源或参数选择控件。
 
 G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna 只修正上述 G06 未通过项并补充对应测试；修正完成后发送“重新验收G06”。
+
+## G06 页面返工实施状态（2026-09-14）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+本轮针对 Sol 的 G06 FAIL 只修正手工页面缺口和冻结行业校验码；未创建或执行 G07，未修改 `计算表/`，未处理既有未跟踪 `docs/handoffs/`。
+
+### 已完成修正
+
+- 页面新增 I03 输出电力和 I04 输出热力/动力录入控件；`_input()` 生成独立输出明细并传入 Domain，I03/I04 可参与式（15）扣减。输出热力与 I02 共用 G05 热力因子选择，但保留独立明细和源状态。
+- 企业名称不再替换为“未填写企业”；空名称在计算按钮入口产生 `ERROR [GEN-VAL-REQUIRED-MISSING]`，不调用计算、不形成内存记录，Domain 输入仍保持名称必填。
+- 参数区接入 G05 热力因子目录选择器，显示推荐/其他适用/历史分类、因子值和单位、来源 ID、审核状态、来源定位及选择理由；推荐值按核算期间刷新，选择其他候选必须填写人工确认理由，并将实际值、来源、版本、因子 ID、理由带入 Domain 参数值和快照。
+- P01/P02/P03 页面新增收到基/干燥基/其他有证基准、成分性质、归一化基准、水分/换算证明和证明定位控件；默认值为“未确认”，不会静默采用收到基/固定碳。非收到基没有完整证明时由 Domain 产生 `CAR-VAL-MATERIAL-BASIS-CONVERSION`。
+- G06 电力解析将 G05 的 `GEN-VAL-NONFOSSIL-EVIDENCE` 映射为冻结行业码 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`；未改变 G05 通用规则、参数或 G06 计算口径。
+
+### 针对性测试
+
+- 新增页面回归覆盖 I03/I04 控件和输入映射、空企业名称必填且不生成记录、真实 Canonical 热力参数选择器的来源/审核/理由展示、P01 基准与换算证明缺失阻断。
+- 更新 G06 缺失非化石证明断言，固定验证 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`。
+
+### 验证结果
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；24/24 通过。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；99/99 通过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages tests scripts apps`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g06-final-dbcheck\databases --app-version g06-rework-check`；catalog/user/records 三库均生成成功，随后已校验并清理临时目录。
+- `git diff --check` 通过；`git diff --name-only -- 计算表/**` 为空；未执行 pytest，项目测试基线为 unittest。
+
+### R6 证据整理
+
+- 当前外部 R6 映射文件磁盘原始内容为 LF，SHA256 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`（62019 字节）。
+- 历史报告中的 `D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26` 是同内容转换为 CRLF 后的规范化哈希，不是当前 LF 原始哈希；本轮未修改项目 Git 外映射文件、签署区或历史验收记录。
+
+### Git 与等待状态
+
+- G06 页面返工实现与回归测试提交：`5d26d20 fix: close G06 page acceptance gaps`。
+- 本节文档提交后，工作区仅保留既有未跟踪 `docs/handoffs/`；当前停止等待 Sol 重新验收，不启动 G07。

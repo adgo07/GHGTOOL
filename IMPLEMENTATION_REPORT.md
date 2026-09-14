@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（已实现，等待 Sol 验收）
+G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（返工已完成，等待 Sol 重新验收）
 
 ## 前置验收与阶段边界
 
@@ -827,3 +827,59 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 ### 阶段门禁
 
 G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改业务代码、外部映射或 `计算表/`，也没有创建或执行 G07。修正完成后应发送“重新验收G06”。
+
+## G06 页面返工实施报告（2026-09-14）
+
+### 阶段与范围
+
+本轮只处理 Sol 正式验收指出的 G06 页面缺口、冻结行业校验码和对应回归测试；保留 R6 式（8）口径，不开始 G07，不修改 `计算表/`，不处理既有 `docs/handoffs/`。
+
+### 实现
+
+- 在 `packages/ui/carbon_material_page.py` 增加 I03 输出电力、I04 输出热力/动力控件，并把输出明细接入 `CarbonMaterialInput`，页面输入可完成式（15）的输出扣减路径。
+- 企业名称为空时在计算入口直接产生 `GEN-VAL-REQUIRED-MISSING`，不生成“未填写企业”占位名称，不形成记录。
+- 通过 `CatalogQueryService` 的只读目录接口接入真实 G05 参数解析器和热力因子选择器。页面展示推荐/其他适用/历史分类、来源 ID、审核状态、来源定位、值/单位和选择理由；人工选择非推荐候选必须保存理由，实际选择值会携带来源/版本/因子 ID进入 Domain。
+- 为煅烧、焙烧/炭化、石墨化增加物料基准、成分性质、归一化基准及水分/换算证明入口，默认“未确认”以阻止静默采用收到基/固定碳；缺失非收到基证明时保留 Domain 的 `CAR-VAL-MATERIAL-BASIS-CONVERSION` 阻断。
+- 在 G06 电力结果路径将通用非化石证明问题映射为冻结码 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`，并由回归测试固定验证；没有通过中文 `source_location` 识别因子。
+- `CatalogQueryService` 新增只读 `repository` 和按参数列出因子的接口，未改变 schema、迁移或 SQLite 职责。
+
+### 修改文件
+
+- `packages/application/catalog_queries.py`
+- `packages/standards/carbon_material.py`
+- `packages/ui/carbon_material_page.py`
+- `tests/test_g06_carbon_material.py`
+- `tests/test_g06_page.py`
+
+### 验证
+
+#### L1
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`
+
+结果：24/24 通过，0 个失败，0 个错误。
+
+#### L2
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`
+
+结果：49/49 通过，0 个失败，0 个错误。
+
+#### L3
+
+- `.venv\Scripts\python.exe -m unittest discover -s tests -v`：99/99 通过，0 个失败，0 个错误。
+- `.venv\Scripts\python.exe -m compileall -q packages tests scripts apps`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g06-final-dbcheck\databases --app-version g06-rework-check`：catalog.sqlite、user.sqlite、records.sqlite 从零生成成功，临时目录已清理。
+- `git diff --check` 通过；`git diff --name-only -- 计算表/**` 为空；pytest 未执行，项目测试基线为 unittest。
+
+### R6 哈希证据
+
+当前外部映射文件原始 LF SHA256 为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`（62019 字节）。既有报告中的 `D3023387B04BF20ECF2D9F6CECF1F816EACF995C1C4B0A57AED8D72F7E519F26` 是相同内容的 CRLF 规范化哈希；本轮只整理证据，没有修改项目 Git 外的映射文件。
+
+### Git 与等待状态
+
+实现提交：`5d26d20 fix: close G06 page acceptance gaps`。
+
+文档提交完成后停止等待 Sol 重新验收，不启动 G07。
