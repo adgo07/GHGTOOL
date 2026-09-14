@@ -694,7 +694,7 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertTrue(outcome.blocked)
         self.assertIsNone(outcome.record)
         self.assertEqual(repository.list_all(), ())
-        self.assertTrue(any(problem.code == "GEN-VAL-NONFOSSIL-EVIDENCE" for problem in outcome.problems))
+        self.assertTrue(any(problem.code == "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE" for problem in outcome.problems))
         self.assertEqual(outcome.parameter_snapshots, ())
 
     def test_missing_canonical_zero_blocks_without_average_fallback(self) -> None:

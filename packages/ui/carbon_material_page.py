@@ -1,7 +1,6 @@
 """G06 Qt page for hand-entered GB/T 32151.34 calculations.
 
-The page only assembles typed Domain input and renders structured results.  No
-formula or parameter-selection logic is implemented in this presentation file.
+The page exposes G06 inputs and G05-backed parameter selection while keeping calculation rules in the Domain layer.
 """
 
 from __future__ import annotations
@@ -34,6 +33,7 @@ from packages.core import (
     ElectricityConsumptionDetail,
     ElectricityProofStatus,
     ElectricityProofType,
+    ParameterType,
     PeriodType,
 )
 from packages.standards.carbon_material import (
@@ -51,10 +51,15 @@ from packages.standards.carbon_material import (
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
+    ElectricityOutputLine,
     MaterialBasis,
+    MaterialComponentKind,
+    ParameterSourceKind,
     ParameterValue,
+    SteamKind,
 )
-from packages.core.models import AccountingPeriod
+from packages.core.models import AccountingPeriod, ReviewStatus, ValueType
+from packages.core.parameter_resolution import ParameterResolutionContext
 
 from .pages import BasePage, Navigate, _card
 from .view_models import AppRoute
@@ -93,6 +98,29 @@ def _enum(value: object, enum_type):
         return enum_type(value)
     raise ValueError(f"unexpected enum value: {value!r}")
 
+
+
+def _parameter_source_kind(value_type: ValueType) -> ParameterSourceKind:
+    return {
+        ValueType.STANDARD_SPECIFIED: ParameterSourceKind.STANDARD_SPECIFIED,
+        ValueType.STANDARD_DEFAULT: ParameterSourceKind.STANDARD_DEFAULT,
+        ValueType.GOVERNMENT_PUBLISHED: ParameterSourceKind.OFFICIAL_PUBLISHED,
+        ValueType.MEASURED: ParameterSourceKind.MEASURED,
+        ValueType.DERIVED: ParameterSourceKind.CALCULATED,
+        # ParameterSourceKind deliberately has no SYSTEM_CONSTANT member;
+        # catalog system constants are surfaced as a project-specified source
+        # while retaining the original ValueType in the selector metadata.
+        ValueType.SYSTEM_CONSTANT: ParameterSourceKind.PROJECT_SPECIFIED,
+    }.get(value_type, ParameterSourceKind.PROJECT_SPECIFIED)
+
+
+def _review_status_label(status: ReviewStatus) -> str:
+    return {
+        ReviewStatus.VERIFIED: "已核对",
+        ReviewStatus.VERIFIED_WITH_INTERPRETATION: "已核对（含规则解释）",
+        ReviewStatus.PENDING_SOURCE: "待核对来源",
+        ReviewStatus.DEPRECATED: "已弃用",
+    }[status]
 
 class _ElectricityRow(QWidget):
     def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
@@ -162,12 +190,13 @@ class CarbonMaterialAccountingPage(BasePage):
     ) -> None:
         super().__init__(AppRoute.NEW_ACCOUNTING, parent)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
-        if calculator is None:
+        resolver = None
+        try:
+            resolver = create_g06_parameter_resolver(self.catalog_service.repository)
+        except (AttributeError, KeyError, TypeError, ValueError):
             resolver = None
-            try:
-                resolver = create_g06_parameter_resolver(self.catalog_service._repository)  # application boundary only
-            except (AttributeError, KeyError, TypeError, ValueError):
-                resolver = None
+        self._parameter_resolver = resolver
+        if calculator is None:
             calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
         self.calculator = calculator
         self.standard_id = standard_id
@@ -175,11 +204,15 @@ class CarbonMaterialAccountingPage(BasePage):
         self._electricity_rows: list[_ElectricityRow] = []
         self._source_statuses: dict[str, QComboBox] = {}
         self._fields: dict[str, QLineEdit] = {}
+        self._material_controls: dict[str, dict[str, QWidget]] = {}
+        self._heat_factor_records = {}
         self._build_page()
 
     def set_standard_id(self, standard_id: str) -> None:
         self.standard_id = standard_id
         self.standard_id_label.setText(standard_id)
+        if hasattr(self, "heat_factor_selector"):
+            self._refresh_heat_factor_details()
 
     def _build_page(self) -> None:
         self.add_header("新建核算", "GB/T 32151.34-2024 炭素材料生产企业手工核算；结果仅在本阶段内存验证。")
@@ -195,6 +228,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_type.setObjectName("accountingPeriodType")
         self.period_type.addItem("年度", PeriodType.ANNUAL)
         self.period_type.addItem("月度（内部周期结果）", PeriodType.MONTHLY)
+        self.period_type.currentIndexChanged.connect(lambda _index: self._refresh_heat_factor_details())
         form.addRow("核算期间", self.period_type)
         period_row = QWidget(identity)
         period_layout = QHBoxLayout(period_row)
@@ -203,10 +237,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_year.setObjectName("accountingPeriodYear")
         self.period_year.setRange(2000, 2100)
         self.period_year.setValue(2025)
+        self.period_year.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         self.period_month = QSpinBox(period_row)
         self.period_month.setObjectName("accountingPeriodMonth")
         self.period_month.setRange(1, 12)
         self.period_month.setValue(1)
+        self.period_month.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         period_layout.addWidget(self.period_year)
         period_layout.addWidget(self.period_month)
         form.addRow("年份 / 月份", period_row)
@@ -246,18 +282,25 @@ class CarbonMaterialAccountingPage(BasePage):
         self._build_process_section(activity_layout, "烟气焚烧治理（P04A）", "fume", ("q", "qvar", "hm", "fch", "fox", "duration"))
         self._build_process_section(activity_layout, "烟气脱硫净化（P04B）", "fgd", ("cal", "i", "ef1", "tr"))
         self._build_electricity_section(activity_layout)
+        self._build_output_electricity_section(activity_layout)
         self._build_heat_section(activity_layout)
+        self._build_output_heat_section(activity_layout)
         self.body_layout.addWidget(activity)
 
         parameter_card, parameter_layout = _card("05 参数与排放因子", self)
-        parameter_label = QLabel("电力和热力因子通过 G05 参数解析服务选择；标准缺省参数使用时会在校验结果和快照中标明来源。", parameter_card)
+        parameter_label = QLabel("参数选择器接入 G05：候选值、推荐/其他适用/历史分类、来源、审核状态和选择理由均在录入区显示。", parameter_card)
         parameter_label.setWordWrap(True)
         parameter_layout.addWidget(parameter_label)
+        self.parameter_selection_status = QLabel("尚未选择参数。", parameter_card)
+        self.parameter_selection_status.setObjectName("parameterSelectionStatus")
+        self.parameter_selection_status.setWordWrap(True)
+        parameter_layout.addWidget(self.parameter_selection_status)
         self.parameter_snapshot_summary = QLabel("尚未计算，暂无参数快照。", parameter_card)
         self.parameter_snapshot_summary.setObjectName("parameterSnapshotSummary")
         self.parameter_snapshot_summary.setWordWrap(True)
         parameter_layout.addWidget(self.parameter_snapshot_summary)
         self.body_layout.addWidget(parameter_card)
+        self._refresh_heat_factor_details()
 
         process_card, process_layout = _card("06 计算过程", self)
         self.trace_output = QLabel("点击“计算排放量”后显示公式、变量和分项结果。", process_card)
@@ -326,6 +369,55 @@ class CarbonMaterialAccountingPage(BasePage):
             form.addRow(field, edit)
         parent_layout.addWidget(row)
 
+        if prefix not in {"calcination", "baking", "graphitization"}:
+            return
+
+        metadata = QWidget(self)
+        metadata_form = QFormLayout(metadata)
+        basis_options = (
+            (MaterialBasis.UNKNOWN, "未确认"),
+            (MaterialBasis.RECEIVED, "收到基"),
+            (MaterialBasis.DRY, "干燥基"),
+            (MaterialBasis.OTHER_DOCUMENTED, "其他有证基准"),
+        )
+        mass_basis = QComboBox(metadata)
+        mass_basis.setObjectName(f"{prefix}_massBasisSelector")
+        composition_basis = QComboBox(metadata)
+        composition_basis.setObjectName(f"{prefix}_compositionBasisSelector")
+        normalized_basis = QComboBox(metadata)
+        normalized_basis.setObjectName(f"{prefix}_normalizedBasisSelector")
+        for combo in (mass_basis, composition_basis, normalized_basis):
+            for value, label_text in basis_options:
+                combo.addItem(label_text, value)
+        component_kind = QComboBox(metadata)
+        component_kind.setObjectName(f"{prefix}_componentKindSelector")
+        component_kind.addItem("未确认", MaterialComponentKind.UNKNOWN)
+        component_kind.addItem("固定碳", MaterialComponentKind.FIXED_CARBON)
+        component_kind.addItem("挥发分", MaterialComponentKind.VOLATILE_MATTER)
+        component_kind.addItem("总碳（需按标准路径确认）", MaterialComponentKind.TOTAL_CARBON)
+        moisture_evidence = QCheckBox("已有水分/基准证明", metadata)
+        moisture_evidence.setObjectName(f"{prefix}_moistureEvidenceCheckBox")
+        conversion_evidence = QCheckBox("已有收到基换算证明", metadata)
+        conversion_evidence.setObjectName(f"{prefix}_conversionEvidenceCheckBox")
+        evidence_reference = _field(metadata, f"{prefix}_basisEvidenceReferenceInput", "证明编号或来源定位（非收到基必填）")
+        self._material_controls[prefix] = {
+            "mass_basis": mass_basis,
+            "composition_basis": composition_basis,
+            "normalized_basis": normalized_basis,
+            "component_kind": component_kind,
+            "moisture_evidence": moisture_evidence,
+            "conversion_evidence": conversion_evidence,
+            "evidence_reference": evidence_reference,
+        }
+        metadata_form.addRow("物料基准", mass_basis)
+        metadata_form.addRow("成分性质基准", composition_basis)
+        metadata_form.addRow("归一化基准", normalized_basis)
+        metadata_form.addRow("成分性质", component_kind)
+        metadata_form.addRow("证据", moisture_evidence)
+        metadata_form.addRow("换算证明", conversion_evidence)
+        metadata_form.addRow("证明定位", evidence_reference)
+        parent_layout.addWidget(metadata)
+
     def _build_electricity_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("购入电力/多条电力明细（I01；取得方式与电力属性独立）", self)
         label.setObjectName("electricitySectionTitle")
@@ -361,18 +453,145 @@ class CarbonMaterialAccountingPage(BasePage):
             self.electricity_rows_layout.removeWidget(row)
             row.deleteLater()
 
+    def _build_output_electricity_section(self, parent_layout: QVBoxLayout) -> None:
+        label = QLabel("输出电力（I03；从间接排放中抵扣）", self)
+        label.setObjectName("exportedElectricitySectionTitle")
+        parent_layout.addWidget(label)
+        row = QWidget(self)
+        form = QFormLayout(row)
+        self._fields["exported_electricity_id"] = _field(row, "exportedElectricityLineIdInput", "exported-electricity-1")
+        self._fields["exported_electricity_amount"] = _field(row, "exportedElectricityAmountInput", "MWh")
+        form.addRow("明细ID", self._fields["exported_electricity_id"])
+        form.addRow("输出电量 MWh", self._fields["exported_electricity_amount"])
+        parent_layout.addWidget(row)
+
     def _build_heat_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("购入热力/动力（I02）", self)
         label.setObjectName("heatSectionTitle")
         parent_layout.addWidget(label)
         row = QWidget(self)
         form = QFormLayout(row)
-        for key, label_text in (("heat_id", "明细ID"), ("heat_amount", "动力总量 kg"), ("heat_enthalpy", "蒸汽焓值 kJ/kg"), ("heat_pressure", "饱和蒸汽压力 MPa"), ("heat_factor", "热力因子 tCO2/GJ")):
+        for key, label_text in (
+            ("heat_id", "明细ID"),
+            ("heat_amount", "动力总量 kg"),
+            ("heat_enthalpy", "蒸汽焓值 kJ/kg"),
+            ("heat_pressure", "饱和/过热蒸汽压力 MPa"),
+            ("heat_temperature", "过热蒸汽温度 C"),
+        ):
             edit = _field(row, f"{key}Input")
             self._fields[key] = edit
             form.addRow(label_text, edit)
+        self._heat_steam_kind = QComboBox(row)
+        self._heat_steam_kind.setObjectName("heatSteamKindSelector")
+        self._heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
+        self._heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
+        form.addRow("蒸汽状态", self._heat_steam_kind)
+        self.heat_factor_selector = QComboBox(row)
+        self.heat_factor_selector.setObjectName("heatFactorSelector")
+        self.heat_factor_selector.currentIndexChanged.connect(self._refresh_heat_factor_details)
+        form.addRow("热力因子候选", self.heat_factor_selector)
+        self.heat_factor_metadata = QLabel("尚未加载热力因子候选值。", row)
+        self.heat_factor_metadata.setObjectName("heatFactorMetadata")
+        self.heat_factor_metadata.setWordWrap(True)
+        form.addRow("候选来源与审核", self.heat_factor_metadata)
+        self.heat_factor_selection_reason = _field(row, "heatFactorSelectionReasonInput", "自动推荐理由或人工确认理由")
+        form.addRow("选择理由", self.heat_factor_selection_reason)
+        parent_layout.addWidget(row)
+        self._populate_heat_factor_selector()
+
+    def _build_output_heat_section(self, parent_layout: QVBoxLayout) -> None:
+        label = QLabel("输出热力/动力（I04；从间接排放中抵扣）", self)
+        label.setObjectName("exportedHeatSectionTitle")
+        parent_layout.addWidget(label)
+        row = QWidget(self)
+        form = QFormLayout(row)
+        exported_heat_object_names = {
+            "exported_heat_id": "exportedHeatLineIdInput",
+            "exported_heat_amount": "exportedHeatAmountInput",
+            "exported_heat_enthalpy": "exportedHeatEnthalpyInput",
+            "exported_heat_pressure": "exportedHeatPressureInput",
+            "exported_heat_temperature": "exportedHeatTemperatureInput",
+        }
+        for key, label_text in (
+            ("exported_heat_id", "明细ID"),
+            ("exported_heat_amount", "动力总量 kg"),
+            ("exported_heat_enthalpy", "蒸汽焓值 kJ/kg"),
+            ("exported_heat_pressure", "饱和/过热蒸汽压力 MPa"),
+            ("exported_heat_temperature", "过热蒸汽温度 C"),
+        ):
+            edit = _field(row, exported_heat_object_names[key])
+            self._fields[key] = edit
+            form.addRow(label_text, edit)
+        self._exported_heat_steam_kind = QComboBox(row)
+        self._exported_heat_steam_kind.setObjectName("exportedHeatSteamKindSelector")
+        self._exported_heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
+        self._exported_heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
+        form.addRow("蒸汽状态", self._exported_heat_steam_kind)
+        hint = QLabel("I04 与 I02 共用上方 G05 热力因子选择器；输出热力同样必须标记排放源为“涉及”。", row)
+        hint.setWordWrap(True)
+        form.addRow("参数路径", hint)
         parent_layout.addWidget(row)
 
+    def _populate_heat_factor_selector(self) -> None:
+        records = sorted(
+            self.catalog_service.list_parameter_factors("heat_emission_factor_default"),
+            key=lambda item: (-(item.factor_year or 0), item.factor_id),
+        )
+        self._heat_factor_records = {item.factor_id: item for item in records}
+        self.heat_factor_selector.clear()
+        for record in records:
+            category = self.catalog_service.value_category(record)
+            category_label = self.catalog_service.value_category_label(category)
+            self.heat_factor_selector.addItem(
+                f"{category_label} | {record.factor_id} | {record.normalized_value} {record.normalized_unit}",
+                record.factor_id,
+            )
+        if not records:
+            self.heat_factor_selector.addItem("目录暂无可用热力因子候选值", None)
+            self.heat_factor_selector.setEnabled(False)
+        self._refresh_heat_factor_details()
+
+    def _heat_resolution_context(self, *, confirmed_factor_id: str | None = None, confirmation_reason: str | None = None) -> ParameterResolutionContext:
+        return ParameterResolutionContext(
+            parameter_id="heat_emission_factor_default",
+            standard_id=self.standard_id,
+            accounting_period=self._period(),
+            parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
+            subject_id="purchased_heat",
+            confirmed_factor_id=confirmed_factor_id,
+            confirmation_reason=confirmation_reason,
+        )
+
+    def _refresh_heat_factor_details(self) -> None:
+        if not hasattr(self, "heat_factor_selector"):
+            return
+        factor_id = self.heat_factor_selector.currentData()
+        if factor_id is None or factor_id not in self._heat_factor_records:
+            self.heat_factor_metadata.setText("目录暂无可用热力因子；输入热力时将由 G05 明确阻断，不能静默猜值。")
+            if hasattr(self, "parameter_selection_status"):
+                self.parameter_selection_status.setText("热力参数：无可用目录候选值。")
+            return
+        record = self._heat_factor_records[factor_id]
+        category = self.catalog_service.value_category(record)
+        metadata = (
+            f"{self.catalog_service.value_category_label(category)}；因子 {record.factor_id}；"
+            f"值 {record.normalized_value} {record.normalized_unit}；来源 {record.source_id}；"
+            f"审核 {_review_status_label(record.review_status)}；定位 {record.source_location}"
+        )
+        self.heat_factor_metadata.setText(metadata)
+        if self._parameter_resolver is not None:
+            try:
+                resolution = self._parameter_resolver.resolve(self._heat_resolution_context())
+            except (DomainValidationError, ValueError):
+                resolution = None
+            if resolution is not None and resolution.recommended is not None and resolution.recommended.factor_id == factor_id:
+                if not self.heat_factor_selection_reason.text().strip():
+                    self.heat_factor_selection_reason.setText(resolution.selection_reason)
+                status = f"推荐选择：{resolution.selection_reason}"
+            else:
+                status = "当前候选不是本核算期间的自动推荐值；选择它必须填写人工确认理由。"
+            if hasattr(self, "parameter_selection_status"):
+                self.parameter_selection_status.setText(status)
     def _period(self) -> AccountingPeriod:
         year = self.period_year.value()
         if _enum(self.period_type.currentData(), PeriodType) is PeriodType.ANNUAL:
@@ -393,16 +612,29 @@ class CarbonMaterialAccountingPage(BasePage):
         return (FuelInput(fuel_id or "fuel-1", path, *values),)
 
     def _process(self, prefix: str, kind):
-        values = {field: _value(self._fields[f"{prefix}.{field}"]) for field in {
+        field_names = {
             "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),
             "baking": ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
             "graphitization": ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"),
             "fume": ("q", "qvar", "hm", "fch", "fox", "duration"),
             "fgd": ("cal", "i", "ef1", "tr"),
-        }[prefix]}
+        }[prefix]
+        values = {field: _value(self._fields[f"{prefix}.{field}"]) for field in field_names}
         if all(value is None for value in values.values()):
             return None
-        return kind(**values)
+        controls = self._material_controls.get(prefix)
+        if controls is None:
+            return kind(**values)
+        evidence_reference = _value(controls["evidence_reference"])
+        return kind(
+            **values,
+            mass_basis=_enum(controls["mass_basis"].currentData(), MaterialBasis),
+            composition_basis=_enum(controls["composition_basis"].currentData(), MaterialBasis),
+            normalized_basis=_enum(controls["normalized_basis"].currentData(), MaterialBasis),
+            component_kind=_enum(controls["component_kind"].currentData(), MaterialComponentKind),
+            moisture_evidence=controls["moisture_evidence"].isChecked() and evidence_reference is not None,
+            conversion_evidence=controls["conversion_evidence"].isChecked() and evidence_reference is not None,
+        )
 
     def _electricity(self, enterprise_id: str, period: AccountingPeriod) -> tuple[ElectricityConsumptionDetail, ...]:
         details: list[ElectricityConsumptionDetail] = []
@@ -412,21 +644,85 @@ class CarbonMaterialAccountingPage(BasePage):
                 details.append(detail)
         return tuple(details)
 
-    def _heat(self) -> tuple[HeatInput, ...]:
-        amount = _value(self._fields["heat_amount"])
+    def _selected_heat_parameter_value(self) -> ParameterValue:
+        factor_id = self.heat_factor_selector.currentData()
+        if not isinstance(factor_id, str) or factor_id not in self._heat_factor_records:
+            raise DomainValidationError("热力输入缺少可用的 G05 热力因子候选值 [GEN-PAR-NO-APPLICABLE-VALUE]")
+        if self._parameter_resolver is None:
+            raise DomainValidationError("热力输入未接入 G05 参数解析服务 [CAR-VAL-PARAMETER-RESOLVER-MISSING]")
+
+        base_resolution = self._parameter_resolver.resolve(self._heat_resolution_context())
+        selected_reason = self.heat_factor_selection_reason.text().strip()
+        if base_resolution.recommended is not None and base_resolution.recommended.factor_id == factor_id and not base_resolution.blocked:
+            resolution = base_resolution
+        elif not selected_reason:
+            raise DomainValidationError("选择非推荐热力因子时必须填写选择理由 [GEN-PAR-CONFIRMATION-REASON]")
+        else:
+            resolution = self._parameter_resolver.resolve(
+                self._heat_resolution_context(
+                    confirmed_factor_id=factor_id,
+                    confirmation_reason=selected_reason,
+                )
+            )
+        if resolution.blocked or resolution.recommended is None:
+            first_error = next((problem for problem in resolution.warnings if problem.level.value == "ERROR"), None)
+            if first_error is not None:
+                raise DomainValidationError(f"{first_error.message} [{first_error.code}]")
+            raise DomainValidationError("当前热力因子选择无法形成参数快照 [GEN-PAR-NO-APPLICABLE-VALUE]")
+        factor = resolution.recommended.factor
+        return ParameterValue(
+            parameter_id=factor.parameter_id,
+            value=factor.value,
+            unit=factor.unit,
+            source_kind=_parameter_source_kind(factor.value_type),
+            source_id=factor.source_id,
+            source_version=factor.version,
+            source_location=factor.source_location,
+            selection_reason=resolution.selection_reason,
+            factor_id=factor.factor_id,
+            factor_year=factor.factor_year,
+        )
+
+    def _heat(self, prefix: str, factor: ParameterValue | None) -> tuple[HeatInput, ...]:
+        amount = _value(self._fields[f"{prefix}_amount"])
         if amount is None:
             return ()
-        enthalpy = _value(self._fields["heat_enthalpy"])
-        pressure = _value(self._fields["heat_pressure"])
-        factor = _value(self._fields["heat_factor"])
-        factor_value = ParameterValue("heat_emission_factor_default", factor, "tCO2/GJ", source_location="用户输入；待复核") if factor is not None else None
-        return (HeatInput(_value(self._fields["heat_id"]) or "heat-1", amount, enthalpy, factor_value, pressure_mpa=pressure),)
+        if factor is None:
+            raise DomainValidationError(f"{prefix} 已填写热力总量但没有选择排放因子 [GEN-VAL-REQUIRED-MISSING]")
+        steam_kind = _enum(
+            (self._heat_steam_kind if prefix == "heat" else self._exported_heat_steam_kind).currentData(),
+            SteamKind,
+        )
+        return (
+            HeatInput(
+                _value(self._fields[f"{prefix}_id"]) or f"{prefix}-1",
+                amount,
+                _value(self._fields[f"{prefix}_enthalpy"]),
+                factor,
+                steam_kind=steam_kind,
+                pressure_mpa=_value(self._fields[f"{prefix}_pressure"]),
+                temperature_c=_value(self._fields[f"{prefix}_temperature"]),
+            ),
+        )
+
+    def _exported_electricity(self) -> tuple[ElectricityOutputLine, ...]:
+        amount = _value(self._fields["exported_electricity_amount"])
+        if amount is None:
+            return ()
+        return (
+            ElectricityOutputLine(
+                _value(self._fields["exported_electricity_id"]) or "exported-electricity-1",
+                amount,
+            ),
+        )
 
     def _input(self) -> CarbonMaterialInput:
         self._calculation_index += 1
         period = self._period()
-        enterprise_name = self.enterprise_name.text().strip() or "未填写企业"
+        enterprise_name = self.enterprise_name.text().strip()
         enterprise_id = "enterprise.current"
+        has_heat = _value(self._fields["heat_amount"]) is not None or _value(self._fields["exported_heat_amount"]) is not None
+        heat_factor = self._selected_heat_parameter_value() if has_heat else None
         return CarbonMaterialInput(
             input_id=f"input.{self._calculation_index}",
             enterprise_id=enterprise_id,
@@ -442,11 +738,17 @@ class CarbonMaterialAccountingPage(BasePage):
             fume_incineration=self._process("fume", FumeIncinerationInput),
             fgd=self._process("fgd", FGDInput),
             electricity_details=self._electricity(enterprise_id, period),
-            purchased_heat=self._heat(),
+            exported_electricity=self._exported_electricity(),
+            purchased_heat=self._heat("heat", heat_factor),
+            exported_heat=self._heat("exported_heat", heat_factor),
         )
 
     def _run_calculation(self) -> None:
         self.validation_list.clear()
+        if not self.enterprise_name.text().strip():
+            self.validation_list.addItem("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
+            self.result_total.setText("存在输入错误")
+            return
         try:
             outcome = self.calculator.calculate(self._input())
         except (DomainValidationError, InvalidOperation, ValueError) as exc:

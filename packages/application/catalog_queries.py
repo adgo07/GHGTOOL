@@ -154,6 +154,21 @@ class CatalogQueryService:
     def has_data(self) -> bool:
         return bool(self._repository.list_standards() or self._repository.list_parameters())
 
+    @property
+    def repository(self) -> CatalogRepository:
+        """Expose the read-only repository to application adapters."""
+
+        return self._repository
+
+    def list_parameter_factors(self, parameter_id: str) -> tuple[FactorCatalogRecord, ...]:
+        """Return immutable factor candidates for a G06 parameter selector."""
+
+        return tuple(
+            factor
+            for factor in self._repository.list_factors()
+            if factor.parameter_id == parameter_id
+        )
+
     def list_sources(self) -> tuple[SourceCatalogRecord, ...]:
         return tuple(self._repository.list_sources())
 

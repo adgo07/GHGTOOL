@@ -60,6 +60,7 @@ SOURCE_EXPORTED_HEAT = "CAR-SRC-EXPORTED-HEAT-001"
 
 EVIDENCE_SOURCE_ID = "EVID-CAR-PDF-2024-LOCAL"
 MAPPING_VERSION = "SM01-2026-09-13-R6"
+GREEN_ELECTRICITY_EVIDENCE_CODE = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
 
 
 class EmissionSourceStatus(str, Enum):
@@ -947,6 +948,26 @@ class CarbonMaterialCalculator:
             return None
         return resolution.recommended.factor.value
 
+    @staticmethod
+    def _map_electricity_resolution_problems(
+        detail_id: str,
+        resolution_problems: Sequence[ValidationProblem],
+    ) -> tuple[ValidationProblem, ...]:
+        """Translate the generic G05 proof gate into the frozen G06 code."""
+
+        return tuple(
+            ValidationProblem(
+                GREEN_ELECTRICITY_EVIDENCE_CODE,
+                problem.level,
+                problem.message,
+                detail_id,
+                problem.details,
+            )
+            if problem.code == "GEN-VAL-NONFOSSIL-EVIDENCE"
+            else problem
+            for problem in resolution_problems
+        )
+
     def _source_check(self, input_value: CarbonMaterialInput, source_id: str, payload_present: bool, problems: list[ValidationProblem]) -> EmissionSourceStatus:
         status = input_value.status_for(source_id, payload_present)
         if status is EmissionSourceStatus.UNCONFIRMED:
@@ -1216,7 +1237,7 @@ class CarbonMaterialCalculator:
                     resolution = self.parameter_resolver.resolve_electricity_details((detail,), snapshot_at=snapshot_at)[0]
                     if resolution.route is ElectricityResolutionRoute.DELEGATE_DIRECT_FUEL_PATH:
                         continue
-                    problems.extend(resolution.problems)
+                    problems.extend(self._map_electricity_resolution_problems(detail.detail_id, resolution.problems))
                     if resolution.blocked or resolution.snapshot is None or resolution.result is None or resolution.result.recommended is None:
                         continue
                     snapshots.append(resolution.snapshot)
@@ -1302,5 +1323,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "STANDARD_ID", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "FuelPath", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "FuelPath", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
 ]
