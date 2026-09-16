@@ -883,3 +883,39 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 实现提交：`5d26d20 fix: close G06 page acceptance gaps`。
 
 文档提交完成后停止等待 Sol 重新验收，不启动 G07。
+
+## G06 Sol 正式重新验收结论（2026-09-16）
+
+### 结论
+
+**FAIL**
+
+被验收 HEAD 为 `ea4ff2eb3acb9c5d8c299ce7a09377dbad48ba9a`。首次验收指出的 I03/I04、企业名称必填、热力参数选择器、材料基准默认值和行业绿电校验码已修复；但独立核查仍发现三项 G06 MUST 没有通过完整的手工录入链闭环，因此不能进入 G07。
+
+### 已通过核对
+
+- 原始 GB/T 32151.34—2024 PDF 的 SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。物理第13页式（8）与 R6 的 `TV-CAR-FML-008=1.439166666666666666666666667` 一致；物理第30页（印刷页22）D.1.1、D.1.2、D.2 与电力零因子及证明门禁一致。
+- 外部冻结映射版本为 `SM01-2026-09-13-R6`，原始 LF SHA256 为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`。
+- I03/I04 可从页面传入计算；空企业名称被阻断且不生成记录；热力因子候选、来源、审核状态和理由可以显示；材料基准默认未确认；非化石证明缺失使用 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`。
+- 公式仍位于 Domain，未发现 Domain 依赖 PySide6、SQLite 或 Windows API；未提前实现 G07、报告导出或正式记录持久化。
+
+### 未满足项及修正要求
+
+1. `CalcinationInput`、`BakingInput`、`GraphitizationInput` 各只有一个 `component_kind`，页面也各只有一个选择器，但每个公式同时包含固定碳字段和挥发分字段。当前校验只确认单值属于 `FIXED_CARBON` 或 `VOLATILE_MATTER`，没有执行冻结映射“固定碳字段只能固定碳、挥发分字段只能挥发分”的绑定。应为两类字段分别表达不可混淆的成分性质（或采用等价的逐字段语义模型），错误类型必须产生 `CAR-VAL-MATERIAL-COMPONENT-KIND`，并覆盖 P01/P02/P03 测试。
+2. 每条电力明细没有显示其独立因子、来源、审核/选择状态和选择理由；当前新增参数区只解决热力因子。应让普通购电、外购非化石和自发自用非化石三条同时存在时，各自显示后台解析出的因子/来源/状态/理由并保持独立快照，增加不相互覆盖的页面测试。
+3. 页面没有“存在其他行业活动”和“存在上下游运输”的声明入口，`_input()` 不能把这两个标志传给 Domain，用户无法触发 `CAR-VAL-OTHER-STANDARD`。应增加明确手工入口、阻断提示和不计入结果/不生成成功记录的测试。
+
+### 独立验证结果
+
+- `.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`：24/24 通过。
+- `.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`：49/49 通过。
+- `.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：99/99 通过。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功；验收临时数据库与 PDF 渲染目录均已清理。
+- 独立探针确认：P01 同一输入选择两种单一成分性质均不报字段组错误；电力明细没有参数状态控件；其他行业活动和运输没有页面控件。
+
+### 阶段门禁
+
+本次只记录验收结论，没有修改业务代码、冻结映射或 `计算表/`，未处理既有未跟踪 `docs/handoffs/`，未创建或执行 G07。G06 未通过，不允许进入 G07；修正完成后应发送“重新验收G06”。

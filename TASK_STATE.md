@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_READY_FOR_SOL_REACCEPTANCE
+G06_SOL_REACCEPTANCE_FAILED
 
 ## 阶段验收状态
 
@@ -34,6 +34,7 @@ G06_READY_FOR_SOL_REACCEPTANCE
 - G05 第三次正式重新验收结论：PASS（2026-09-13）；被验收 HEAD 为 `f080f115f0d7a31249befc0703cfec132c19e515`，多种电力消费形式决策及全部 G05 MUST 已核对通过。
 - G05已通过，允许由用户另行启动G06。
 - G06 已完成实现与 R6 映射测试向量纠错回归；Sol 正式验收结论为 FAIL（2026-09-13），未创建或执行 G07。
+- G06 正式重新验收结论：FAIL（2026-09-16）；被验收 HEAD 为 `ea4ff2eb3acb9c5d8c299ce7a09377dbad48ba9a`。首次验收的页面缺口大部分已关闭，但材料成分性质约束、多电力明细参数状态展示、其他行业活动与运输手工声明仍未满足 G06 MUST；不允许进入 G07。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -556,3 +557,35 @@ G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna �
 
 - G06 页面返工实现与回归测试提交：`5d26d20 fix: close G06 page acceptance gaps`。
 - 本节文档提交后，工作区仅保留既有未跟踪 `docs/handoffs/`；当前停止等待 Sol 重新验收，不启动 G07。
+
+## G06 Sol 正式重新验收记录（2026-09-16）
+
+**结论：FAIL**
+
+- 被验收 HEAD：`ea4ff2eb3acb9c5d8c299ce7a09377dbad48ba9a`（`docs: record G06 page rework`）。验收开始前无已跟踪工作区差异，仅保留既有未跟踪 `docs/handoffs/`。
+- 已关闭首次验收缺口：I03 输出电力、I04 输出热力已进入页面和 Domain；空企业名称会产生 ERROR 且不形成记录；热力参数选择器已接入真实目录并展示来源、审核状态和理由；材料基准默认改为未确认；缺少非化石证明已使用行业码 `CAR-VAL-GREEN-ELECTRICITY-EVIDENCE`。
+- 原始标准与 R6：直接核对 GB/T 32151.34—2024 原始 PDF，SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。PDF 物理第13页式（8）不含 GTA 挥发分项；物理第30页（印刷页22）D.1.1、D.1.2、D.2 与零因子和证明门禁一致。外部冻结映射为 `SM01-2026-09-13-R6`，原始 LF SHA256 为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`，`TV-CAR-FML-008=1.439166666666666666666666667` 与标准和独立复算一致。
+
+### 未满足的 G06 MUST
+
+1. **材料成分性质没有按字段组约束。** 冻结映射 `CAR-FLD-MATERIAL-COMPONENT-KIND` 要求固定碳字段只能是 `FIXED_CARBON`，挥发分字段只能是 `VOLATILE_MATTER`。当前每个 P01/P02/P03 过程只有一个 `component_kind`，但同一公式同时含固定碳和挥发分字段；Domain 只检查该单值是否属于两个合法枚举之一，不能证明两组字段各自口径正确。独立探针中同一组式（6）输入无论选择 `FIXED_CARBON` 还是 `VOLATILE_MATTER`，均未产生 `CAR-VAL-MATERIAL-COMPONENT-KIND`。因此错误口径可被接受。
+2. **每条电力明细未展示独立参数来源和选择状态。** `_ElectricityRow` 只有电量、取得方式、电力属性、证明类型/状态和删除控件，没有因子、来源、审核/选择状态或选择理由。G05 服务虽在后台产生快照，但 G06 页面无法让用户看到每条明细实际采用的参数及状态，未满足 HANDOFF 4.5.1 和 G06 参数选择器 MUST；三条电力明细的独立显示也没有页面测试。
+3. **其他行业活动与运输无法从手工页面声明。** Domain 已有 `other_activity_present`、`transport_present` 及 `CAR-VAL-OTHER-STANDARD` 阻断，但页面没有对应控件，`_input()` 也不传入这两个标志。用户无法通过 G06 手工录入路径触发 HANDOFF 4.6 要求的阻止和提示。
+
+### 本次实际执行的验收命令
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；24/24 通过，0 个失败，0 个错误。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过，0 个失败，0 个错误。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；99/99 通过，0 个失败，0 个错误。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功；验收临时数据库与 PDF 渲染目录均已清理。
+- 页面/领域独立探针：两种单一 `component_kind` 均未触发字段组错误；电力行未发现参数状态控件；页面未发现其他活动或运输声明控件。
+
+### 范围与阶段门禁
+
+- 未修改、删除或覆盖 `计算表/`；未修改业务代码或项目 Git 外的冻结映射；未处理既有未跟踪 `docs/handoffs/`。
+- 未发现 G07 已创建或执行；本次也未创建 Goal 或实施 G07。
+
+G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口并补充对应的领域和页面测试；修正完成后发送“重新验收G06”。
