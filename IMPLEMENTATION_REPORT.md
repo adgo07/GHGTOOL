@@ -868,7 +868,7 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 #### L3
 
 - `.venv\Scripts\python.exe -m unittest discover -s tests -v`：99/99 通过，0 个失败，0 个错误。
-- `.venv\Scripts\python.exe -m compileall -q packages tests scripts apps`：成功。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests scripts apps`：成功。
 - `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
 - `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
 - `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g06-final-dbcheck\databases --app-version g06-rework-check`：catalog.sqlite、user.sqlite、records.sqlite 从零生成成功，临时目录已清理。
@@ -939,7 +939,7 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 - G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；28/28 通过。
 - G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过。
 - 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；103/103 通过。
-- `.venv\Scripts\python.exe -m compileall -q packages tests scripts`；成功。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`；成功。
 - `.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
 - `.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
 - `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`；三库从零生成成功，临时目录已清理。
@@ -947,6 +947,6 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 
 ### 提交与等待
 
-- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`。
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`。
 - 文档更新后工作区只保留既有未跟踪 `docs/handoffs/`；本轮未创建或执行 G07。
 - 本轮完成后停止等待 Sol 重新验收。

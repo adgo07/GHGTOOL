@@ -542,7 +542,7 @@ G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna �
 - G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；24/24 通过。
 - G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过。
 - 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；99/99 通过。
-- 编译：`.venv\Scripts\python.exe -m compileall -q packages tests scripts apps`；成功。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests scripts apps`；成功。
 - 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
 - Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
 - 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g06-final-dbcheck\databases --app-version g06-rework-check`；catalog/user/records 三库均生成成功，随后已校验并清理临时目录。
@@ -608,7 +608,7 @@ G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口�
 - G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；28/28 通过，0 个失败，0 个错误。
 - G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过，0 个失败，0 个错误。
 - 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；103/103 通过，0 个失败，0 个错误。
-- 编译：`.venv\Scripts\python.exe -m compileall -q packages tests scripts`；成功。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`；成功。
 - 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
 - Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
 - 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 均成功生成，临时目录已清理。
@@ -616,5 +616,5 @@ G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口�
 
 ### 提交与阶段门禁
 
-- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`。
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`。
 - 当前等待 Sol 重新验收；G07 未创建、未执行。
