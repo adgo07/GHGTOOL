@@ -950,3 +950,36 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 - 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`；构造兼容修正提交：`bcb6307 fix: preserve G06 input constructor compatibility`。
 - 文档更新后工作区只保留既有未跟踪 `docs/handoffs/`；本轮未创建或执行 G07。
 - 本轮完成后停止等待 Sol 重新验收。
+
+## G06 Sol 最终正式重新验收结论（2026-09-16）
+
+### 结论
+
+**PASS**
+
+被验收 HEAD 为 `c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`。上次 FAIL 的三项剩余缺口均已按冻结映射和 HANDOFF 的 G06 MUST 关闭；本轮未发现新的阻断项或下一阶段越界。
+
+### 关键核对事项
+
+- P01/P02/P03 已将固定碳字段和挥发分字段的成分性质分开表达、分开校验；错误分别定位到对应字段组并使用稳定码 `CAR-VAL-MATERIAL-COMPONENT-KIND`。兼容构造路径没有放宽新页面的显式校验。
+- 外购常规、外购非化石、自发自用非化石三条电力明细可同时存在，每行显示自己的因子 ID、值/单位、来源定位、审核/选择状态和理由；页面展示来自 G05 逐条解析结果，Domain 快照互不覆盖。
+- 其他行业活动和上下游运输具有明确页面声明入口，传入 Domain 后使用 `CAR-VAL-OTHER-STANDARD` 阻断，不形成成功结果或记录。
+- 原始 GB/T 32151.34—2024 PDF SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。物理第13页式（8）不包含 GTA 挥发分项；物理第30页（印刷页22）D.1.1、D.1.2、D.2 支持当前普通电力、非化石零因子和证明规则。
+- 冻结映射为 `SM01-2026-09-13-R6`，原始 LF SHA256 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`；R6 测试向量及本轮三个关键规则均与实现一致。
+- 十类排放源、直接/间接/总量聚合、Decimal 精度、默认值提示和快照、蒸汽焓值、多电力证明门禁、防重复、I03/I04 抵扣、企业名称必填、内存记录以及 UI/Domain 分层均通过既有测试和本次复核。
+
+### 独立测试结果
+
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`：28/28 通过，0 失败，0 错误，0 跳过。
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`：49/49 通过，0 失败，0 错误，0 跳过。
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：103/103 通过，0 失败，0 错误，0 跳过。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从 Canonical Source 重建成功；临时数据库和 PDF 渲染目录均已清理。
+
+### Git、范围与门禁
+
+验收开始前工作区只有既有未跟踪 `docs/handoffs/`。本次只修改验收文档，不修改业务代码、冻结映射或 `计算表/`，未创建或执行 G07。
+
+G06已通过，允许由用户另行启动G07；本次未启动G07。

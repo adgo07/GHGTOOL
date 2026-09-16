@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_READY_FOR_SOL_REACCEPTANCE
+G06_SOL_ACCEPTED
 
 ## 阶段验收状态
 
@@ -35,6 +35,7 @@ G06_READY_FOR_SOL_REACCEPTANCE
 - G05已通过，允许由用户另行启动G06。
 - G06 已完成实现与 R6 映射测试向量纠错回归；Sol 正式验收结论为 FAIL（2026-09-13），未创建或执行 G07。
 - G06 正式重新验收结论：FAIL（2026-09-16）；被验收 HEAD 为 `ea4ff2eb3acb9c5d8c299ce7a09377dbad48ba9a`。首次验收的页面缺口大部分已关闭，但材料成分性质约束、多电力明细参数状态展示、其他行业活动与运输手工声明仍未满足 G06 MUST；不允许进入 G07。
+- G06 最终正式重新验收结论：PASS（2026-09-16）；被验收 HEAD 为 `c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`。三项剩余阻断均已关闭，允许由用户另行启动 G07；本次未启动 G07。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -618,3 +619,32 @@ G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口�
 
 - 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`；构造兼容修正提交：`bcb6307 fix: preserve G06 input constructor compatibility`。
 - 当前等待 Sol 重新验收；G07 未创建、未执行。
+
+## G06 Sol 最终正式重新验收记录（2026-09-16）
+
+**结论：PASS**
+
+- 被验收 HEAD：`c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`（`docs: record G06 constructor compatibility fix`）。验收开始前无已跟踪工作区差异，仅保留既有未跟踪 `docs/handoffs/`。
+- 材料成分性质：P01、P02、P03 均分别具有固定碳字段性质和挥发分字段性质；错误类型分别产生 `CAR-VAL-MATERIAL-COMPONENT-KIND` 并定位到 `.fixed-carbon` 或 `.volatile-matter`。页面默认两类均为未确认，不能静默绕过。
+- 多电力明细：同一企业、同一期间可同时存在外购常规、外购非化石和自发自用非化石三条明细。每行独立展示实际采用因子、来源定位、审核状态、选择状态和理由；Domain 仍逐条解析、校验、计算并形成独立快照。
+- 核算边界：页面可声明其他行业活动和上下游运输，标志会传入 Domain 并产生 `CAR-VAL-OTHER-STANDARD` ERROR；错误阻止成功结果和内存记录，不将这些活动并入本标准结果。
+- 其余 G06 MUST 复核通过：十类排放源、I03/I04 抵扣、Decimal 高精度、参数和默认值快照、月度/年度标识、多电力证明门禁、自发自用化石电力转交与防重复、企业名称必填、热力参数选择、内存 Record Repository、UI/Domain 分层均保持有效。
+- 原始标准：GB/T 32151.34—2024 PDF SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`。直接复核物理第13页式（8）和物理第30页（印刷页22）附录 D.1.1、D.1.2、D.2；R6 式（8）向量、全国平均因子规则、非化石零因子和证明门禁与原文一致。
+- 冻结映射：版本 `SM01-2026-09-13-R6`，原始 LF SHA256 为 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`；关键规则 `CAR-FLD-MATERIAL-COMPONENT-KIND`、`CAR-RULE-OTHER-ACTIVITY-001`、`CAR-VAL-GREEN-ELECTRICITY-EVIDENCE` 和 `TV-CAR-FML-008` 均与实现一致。
+
+### 本次实际执行的验收命令
+
+- G06 定向：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；28/28 通过，0 个失败，0 个错误，0 个跳过。
+- G02/G04/G05 回归：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；103/103 通过，0 个失败，0 个错误，0 个跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\sol-g06-reaccept-20260916-2 --app-version g06-sol-reaccept`；三库成功生成，验收临时目录已清理。
+
+### 范围与阶段门禁
+
+- 未修改、删除或覆盖 `计算表/`；未修改项目 Git 外冻结映射；未处理既有未跟踪 `docs/handoffs/`。
+- 未发现 G07 业务实现；本次未创建 Goal、未启动或实施 G07。
+
+G06已通过，允许由用户另行启动G07；本次未启动G07。
