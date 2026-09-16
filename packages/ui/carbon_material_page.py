@@ -6,6 +6,7 @@ The page exposes G06 inputs and G05-backed parameter selection while keeping cal
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 from PySide6.QtCore import Qt
@@ -160,6 +161,31 @@ class _ElectricityRow(QWidget):
         for column, widget in enumerate((self.detail_id, self.amount, self.acquisition, self.attribute, self.proof_type, self.proof_status, remove_button)):
             layout.addWidget(widget, 0, column)
 
+        detail_panel = QWidget(self)
+        detail_layout = QVBoxLayout(detail_panel)
+        detail_layout.setContentsMargins(0, 0, 0, 0)
+        self.parameter_status = QLabel("参数状态：待录入", detail_panel)
+        self.parameter_status.setObjectName(f"electricityParameterStatus{index}")
+        self.parameter_status.setWordWrap(True)
+        self.parameter_factor = QLabel("采用因子：尚未解析", detail_panel)
+        self.parameter_factor.setObjectName(f"electricityParameterFactor{index}")
+        self.parameter_factor.setWordWrap(True)
+        self.parameter_source = QLabel("来源：尚未解析", detail_panel)
+        self.parameter_source.setObjectName(f"electricityParameterSource{index}")
+        self.parameter_source.setWordWrap(True)
+        self.parameter_reason = QLabel("选择理由：尚未解析", detail_panel)
+        self.parameter_reason.setObjectName(f"electricityParameterReason{index}")
+        self.parameter_reason.setWordWrap(True)
+        for widget in (self.parameter_status, self.parameter_factor, self.parameter_source, self.parameter_reason):
+            detail_layout.addWidget(widget)
+        layout.addWidget(detail_panel, 1, 0, 1, 7)
+
+    def show_parameter_state(self, status: str, factor: str, source: str, reason: str) -> None:
+        self.parameter_status.setText(status)
+        self.parameter_factor.setText(factor)
+        self.parameter_source.setText(source)
+        self.parameter_reason.setText(reason)
+
     def build(self, enterprise_id: str, period: AccountingPeriod) -> ElectricityConsumptionDetail | None:
         amount = _value(self.amount)
         if amount is None:
@@ -256,6 +282,12 @@ class CarbonMaterialAccountingPage(BasePage):
         boundary_hint = QLabel("边界按标准第4.1条结构化确认；未确认不能计算。", boundary)
         boundary_hint.setWordWrap(True)
         boundary_layout.addWidget(boundary_hint)
+        self.other_activity_present = QCheckBox("存在本标准未覆盖的其他行业活动（需使用其他标准）", boundary)
+        self.other_activity_present.setObjectName("otherIndustryActivityCheckBox")
+        boundary_layout.addWidget(self.other_activity_present)
+        self.transport_present = QCheckBox("存在上下游运输（需使用其他标准）", boundary)
+        self.transport_present.setObjectName("upstreamDownstreamTransportCheckBox")
+        boundary_layout.addWidget(self.transport_present)
         self.body_layout.addWidget(boundary)
 
         sources, sources_layout = _card("03 排放源识别", self)
@@ -389,12 +421,19 @@ class CarbonMaterialAccountingPage(BasePage):
         for combo in (mass_basis, composition_basis, normalized_basis):
             for value, label_text in basis_options:
                 combo.addItem(label_text, value)
-        component_kind = QComboBox(metadata)
-        component_kind.setObjectName(f"{prefix}_componentKindSelector")
-        component_kind.addItem("未确认", MaterialComponentKind.UNKNOWN)
-        component_kind.addItem("固定碳", MaterialComponentKind.FIXED_CARBON)
-        component_kind.addItem("挥发分", MaterialComponentKind.VOLATILE_MATTER)
-        component_kind.addItem("总碳（需按标准路径确认）", MaterialComponentKind.TOTAL_CARBON)
+        component_options = (
+            (MaterialComponentKind.UNKNOWN, "未确认"),
+            (MaterialComponentKind.FIXED_CARBON, "固定碳"),
+            (MaterialComponentKind.VOLATILE_MATTER, "挥发分"),
+            (MaterialComponentKind.TOTAL_CARBON, "总碳（本字段不可直接采用）"),
+        )
+        fixed_carbon_component_kind = QComboBox(metadata)
+        fixed_carbon_component_kind.setObjectName(f"{prefix}_fixedCarbonComponentKindSelector")
+        volatile_matter_component_kind = QComboBox(metadata)
+        volatile_matter_component_kind.setObjectName(f"{prefix}_volatileMatterComponentKindSelector")
+        for combo in (fixed_carbon_component_kind, volatile_matter_component_kind):
+            for value, label_text in component_options:
+                combo.addItem(label_text, value)
         moisture_evidence = QCheckBox("已有水分/基准证明", metadata)
         moisture_evidence.setObjectName(f"{prefix}_moistureEvidenceCheckBox")
         conversion_evidence = QCheckBox("已有收到基换算证明", metadata)
@@ -404,7 +443,8 @@ class CarbonMaterialAccountingPage(BasePage):
             "mass_basis": mass_basis,
             "composition_basis": composition_basis,
             "normalized_basis": normalized_basis,
-            "component_kind": component_kind,
+            "fixed_carbon_component_kind": fixed_carbon_component_kind,
+            "volatile_matter_component_kind": volatile_matter_component_kind,
             "moisture_evidence": moisture_evidence,
             "conversion_evidence": conversion_evidence,
             "evidence_reference": evidence_reference,
@@ -412,7 +452,8 @@ class CarbonMaterialAccountingPage(BasePage):
         metadata_form.addRow("物料基准", mass_basis)
         metadata_form.addRow("成分性质基准", composition_basis)
         metadata_form.addRow("归一化基准", normalized_basis)
-        metadata_form.addRow("成分性质", component_kind)
+        metadata_form.addRow("固定碳字段性质", fixed_carbon_component_kind)
+        metadata_form.addRow("挥发分字段性质", volatile_matter_component_kind)
         metadata_form.addRow("证据", moisture_evidence)
         metadata_form.addRow("换算证明", conversion_evidence)
         metadata_form.addRow("证明定位", evidence_reference)
@@ -446,6 +487,10 @@ class CarbonMaterialAccountingPage(BasePage):
         row = _ElectricityRow(len(self._electricity_rows) + 1, self._remove_electricity_row, self)
         self._electricity_rows.append(row)
         self.electricity_rows_layout.addWidget(row)
+        row.detail_id.textChanged.connect(lambda _text: self._refresh_electricity_rows())
+        row.amount.textChanged.connect(lambda _text: self._refresh_electricity_rows())
+        for combo in (row.acquisition, row.attribute, row.proof_type, row.proof_status):
+            combo.currentIndexChanged.connect(lambda _index: self._refresh_electricity_rows())
 
     def _remove_electricity_row(self, row: QWidget) -> None:
         if row in self._electricity_rows:
@@ -631,7 +676,8 @@ class CarbonMaterialAccountingPage(BasePage):
             mass_basis=_enum(controls["mass_basis"].currentData(), MaterialBasis),
             composition_basis=_enum(controls["composition_basis"].currentData(), MaterialBasis),
             normalized_basis=_enum(controls["normalized_basis"].currentData(), MaterialBasis),
-            component_kind=_enum(controls["component_kind"].currentData(), MaterialComponentKind),
+            fixed_carbon_component_kind=_enum(controls["fixed_carbon_component_kind"].currentData(), MaterialComponentKind),
+            volatile_matter_component_kind=_enum(controls["volatile_matter_component_kind"].currentData(), MaterialComponentKind),
             moisture_evidence=controls["moisture_evidence"].isChecked() and evidence_reference is not None,
             conversion_evidence=controls["conversion_evidence"].isChecked() and evidence_reference is not None,
         )
@@ -642,7 +688,95 @@ class CarbonMaterialAccountingPage(BasePage):
             detail = row.build(enterprise_id, period)
             if detail is not None:
                 details.append(detail)
-        return tuple(details)
+        result = tuple(details)
+        self._render_electricity_parameter_states(result)
+        return result
+
+    def _refresh_electricity_rows(self) -> None:
+        try:
+            self._electricity("enterprise.current", self._period())
+        except (DomainValidationError, InvalidOperation, ValueError):
+            for row in self._electricity_rows:
+                row.show_parameter_state(
+                    "参数状态：等待完整明细",
+                    "采用因子：尚未解析",
+                    "来源：尚未解析",
+                    "选择理由：补齐明细后解析",
+                )
+
+    def _render_electricity_parameter_states(self, details: tuple[ElectricityConsumptionDetail, ...]) -> None:
+        waiting = (
+            "参数状态：待录入",
+            "采用因子：尚未解析",
+            "来源：尚未解析",
+            "选择理由：录入电量后按本条明细独立解析",
+        )
+        rows_by_id = {row.detail_id.text().strip(): row for row in self._electricity_rows}
+        for row in self._electricity_rows:
+            row.show_parameter_state(*waiting)
+        if not details:
+            return
+        if self._parameter_resolver is None:
+            for row in self._electricity_rows:
+                row.show_parameter_state(
+                    "参数状态：参数服务不可用",
+                    "采用因子：未解析",
+                    "来源：无独立参数快照",
+                    "选择理由：无法连接 G05 参数解析服务",
+                )
+            return
+        try:
+            resolutions = self._parameter_resolver.resolve_electricity_details(
+                details,
+                snapshot_at=datetime.now(timezone.utc),
+            )
+        except (DomainValidationError, InvalidOperation, KeyError, ValueError) as exc:
+            for row in self._electricity_rows:
+                row.show_parameter_state(
+                    "参数状态：解析失败",
+                    "采用因子：未解析",
+                    "来源：无独立参数快照",
+                    f"选择理由：{exc}",
+                )
+            return
+        for resolution in resolutions:
+            row = rows_by_id.get(resolution.detail.detail_id)
+            if row is None:
+                continue
+            if resolution.route.value == "DELEGATE_DIRECT_FUEL_PATH":
+                reason = resolution.problems[0].message if resolution.problems else "转交直接燃料排放路径"
+                row.show_parameter_state(
+                    "参数状态：转交直接燃料路径（不进入购电间接排放）",
+                    "采用因子：不适用",
+                    "来源：直接燃料路径转交",
+                    f"选择理由：{reason}",
+                )
+                continue
+            selected = resolution.parameter_resolution.recommended if resolution.parameter_resolution else None
+            snapshot = resolution.snapshot
+            if selected is not None and snapshot is not None:
+                factor = selected.factor
+                category = selected.category.value
+                method = resolution.parameter_resolution.selection_method.value if resolution.parameter_resolution and resolution.parameter_resolution.selection_method else "UNKNOWN"
+                review = self.catalog_service.review_status_label(factor.review_status)
+                row.show_parameter_state(
+                    f"参数状态：已采用｜{category}｜{method}",
+                    f"采用因子：{factor.factor_id} = {factor.value} {factor.unit}",
+                    f"来源：{factor.source_id or '未提供'}｜审核状态：{review}｜{factor.source_location or '未提供来源定位'}",
+                    f"选择理由：{resolution.parameter_resolution.selection_reason if resolution.parameter_resolution else '按当前规则确定'}",
+                )
+                continue
+            problems = resolution.problems
+            display_code = problems[0].code if problems else "GEN-PAR-NO-APPLICABLE-VALUE"
+            if display_code == "GEN-VAL-NONFOSSIL-EVIDENCE":
+                display_code = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
+            reason = problems[0].message if problems else "当前明细未形成可用参数快照"
+            row.show_parameter_state(
+                f"参数状态：阻断｜{display_code}",
+                "采用因子：未采用（不生成快照）",
+                "来源：无独立参数快照",
+                f"选择理由：{reason}",
+            )
 
     def _selected_heat_parameter_value(self) -> ParameterValue:
         factor_id = self.heat_factor_selector.currentData()
@@ -730,6 +864,8 @@ class CarbonMaterialAccountingPage(BasePage):
             period=period,
             boundary_confirmed=self.boundary_confirmed.isChecked(),
             boundary_component_ids=("main-production-system",),
+            other_activity_present=self.other_activity_present.isChecked(),
+            transport_present=self.transport_present.isChecked(),
             source_states=self._source_states(),
             fuel_inputs=self._fuel(),
             calcination=self._process("calcination", CalcinationInput),

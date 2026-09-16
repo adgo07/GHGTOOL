@@ -50,6 +50,7 @@ from packages.standards.carbon_material import (
     InMemoryRecordRepository,
     InputValue,
     ParameterValue,
+    MaterialComponentKind,
     SteamKind,
     fgd_emission,
     fuel_energy_from_mass,
@@ -754,6 +755,33 @@ class G06CalculatorTests(unittest.TestCase):
             calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(any(problem.code == "GEN-VAL-REQUIRED-MISSING" and problem.field_id == SOURCE_FGD for problem in fgd_missing.problems))
+
+    def test_fixed_and_volatile_component_kinds_are_validated_independently(self) -> None:
+        wrong_fixed = CalcinationInput(
+            gc="10", fixed_carbon_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+            volatile_matter_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+        )
+        outcome = CarbonMaterialCalculator().calculate(
+            _input(calcination=wrong_fixed), calculated_at=SNAPSHOT_AT
+        )
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+            and problem.field_id == "CAR-SRC-CALCINATION-001.fixed-carbon"
+            for problem in outcome.problems
+        ))
+
+        wrong_volatile = CalcinationInput(
+            gc="10", fixed_carbon_component_kind=MaterialComponentKind.FIXED_CARBON,
+            volatile_matter_component_kind=MaterialComponentKind.FIXED_CARBON,
+        )
+        outcome = CarbonMaterialCalculator().calculate(
+            _input(calcination=wrong_volatile), calculated_at=SNAPSHOT_AT
+        )
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+            and problem.field_id == "CAR-SRC-CALCINATION-001.volatile-matter"
+            for problem in outcome.problems
+        ))
 
     def test_material_basis_and_duplicate_output_validation(self) -> None:
         negative = CalcinationInput(

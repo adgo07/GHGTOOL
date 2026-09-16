@@ -265,6 +265,8 @@ class CalcinationInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     carbon_output_included_in_input: bool = False
@@ -277,6 +279,14 @@ class CalcinationInput:
             raise DomainValidationError("normalized_basis must be a MaterialBasis")
         if not isinstance(self.component_kind, MaterialComponentKind):
             raise DomainValidationError("component_kind must be a MaterialComponentKind")
+        fixed_kind = self.fixed_carbon_component_kind if self.fixed_carbon_component_kind is not None else self.component_kind
+        volatile_kind = self.volatile_matter_component_kind if self.volatile_matter_component_kind is not None else MaterialComponentKind.VOLATILE_MATTER
+        if not isinstance(fixed_kind, MaterialComponentKind):
+            raise DomainValidationError("fixed_carbon_component_kind must be a MaterialComponentKind")
+        if not isinstance(volatile_kind, MaterialComponentKind):
+            raise DomainValidationError("volatile_matter_component_kind must be a MaterialComponentKind")
+        object.__setattr__(self, "fixed_carbon_component_kind", fixed_kind)
+        object.__setattr__(self, "volatile_matter_component_kind", volatile_kind)
         for name in ("gc", "cc", "ucc", "du"):
             object.__setattr__(self, name, _coerce_input(getattr(self, name), "t"))
         for name in ("wfc", "wfc_c", "wvar", "wvar_c"):
@@ -300,6 +310,8 @@ class BakingInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     carbon_output_included_in_input: bool = False
@@ -312,6 +324,14 @@ class BakingInput:
             raise DomainValidationError("normalized_basis must be a MaterialBasis")
         if not isinstance(self.component_kind, MaterialComponentKind):
             raise DomainValidationError("component_kind must be a MaterialComponentKind")
+        fixed_kind = self.fixed_carbon_component_kind if self.fixed_carbon_component_kind is not None else self.component_kind
+        volatile_kind = self.volatile_matter_component_kind if self.volatile_matter_component_kind is not None else MaterialComponentKind.VOLATILE_MATTER
+        if not isinstance(fixed_kind, MaterialComponentKind):
+            raise DomainValidationError("fixed_carbon_component_kind must be a MaterialComponentKind")
+        if not isinstance(volatile_kind, MaterialComponentKind):
+            raise DomainValidationError("volatile_matter_component_kind must be a MaterialComponentKind")
+        object.__setattr__(self, "fixed_carbon_component_kind", fixed_kind)
+        object.__setattr__(self, "volatile_matter_component_kind", volatile_kind)
         for name in ("bpm", "bg", "bp"):
             object.__setattr__(self, name, _coerce_input(getattr(self, name), "t"))
         object.__setattr__(self, "bwt", _coerce_input(self.bwt, "tC"))
@@ -335,6 +355,8 @@ class GraphitizationInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     furnace_loss_included: bool = False
@@ -347,6 +369,14 @@ class GraphitizationInput:
             raise DomainValidationError("normalized_basis must be a MaterialBasis")
         if not isinstance(self.component_kind, MaterialComponentKind):
             raise DomainValidationError("component_kind must be a MaterialComponentKind")
+        fixed_kind = self.fixed_carbon_component_kind if self.fixed_carbon_component_kind is not None else self.component_kind
+        volatile_kind = self.volatile_matter_component_kind if self.volatile_matter_component_kind is not None else MaterialComponentKind.VOLATILE_MATTER
+        if not isinstance(fixed_kind, MaterialComponentKind):
+            raise DomainValidationError("fixed_carbon_component_kind must be a MaterialComponentKind")
+        if not isinstance(volatile_kind, MaterialComponentKind):
+            raise DomainValidationError("volatile_matter_component_kind must be a MaterialComponentKind")
+        object.__setattr__(self, "fixed_carbon_component_kind", fixed_kind)
+        object.__setattr__(self, "volatile_matter_component_kind", volatile_kind)
         for name in ("gpm", "gta", "gp"):
             object.__setattr__(self, name, _coerce_input(getattr(self, name), "t"))
         object.__setattr__(self, "gwt", _coerce_input(self.gwt, "tC"))
@@ -917,9 +947,12 @@ class CarbonMaterialCalculator:
         mass_basis = getattr(item, "mass_basis")
         composition_basis = getattr(item, "composition_basis")
         normalized = getattr(item, "normalized_basis")
-        kind = getattr(item, "component_kind")
-        if kind not in {MaterialComponentKind.FIXED_CARBON, MaterialComponentKind.VOLATILE_MATTER}:
-            problems.append(_problem("CAR-VAL-MATERIAL-COMPONENT-KIND", IssueLevel.ERROR, f"{field_id} 的成分性质必须是固定碳或挥发分。", field_id))
+        fixed_kind = getattr(item, "fixed_carbon_component_kind", getattr(item, "component_kind"))
+        volatile_kind = getattr(item, "volatile_matter_component_kind", MaterialComponentKind.VOLATILE_MATTER)
+        if fixed_kind is not MaterialComponentKind.FIXED_CARBON:
+            problems.append(_problem("CAR-VAL-MATERIAL-COMPONENT-KIND", IssueLevel.ERROR, f"{field_id} 的固定碳字段性质必须为 FIXED_CARBON。", f"{field_id}.fixed-carbon"))
+        if volatile_kind is not MaterialComponentKind.VOLATILE_MATTER:
+            problems.append(_problem("CAR-VAL-MATERIAL-COMPONENT-KIND", IssueLevel.ERROR, f"{field_id} 的挥发分字段性质必须为 VOLATILE_MATTER。", f"{field_id}.volatile-matter"))
         if mass_basis is MaterialBasis.UNKNOWN or composition_basis is MaterialBasis.UNKNOWN or mass_basis is not composition_basis:
             problems.append(_problem("CAR-VAL-MATERIAL-BASIS-CONSISTENCY", IssueLevel.ERROR, f"{field_id} 的物料和成分基准未知或不一致。", field_id))
         elif mass_basis is not MaterialBasis.RECEIVED:

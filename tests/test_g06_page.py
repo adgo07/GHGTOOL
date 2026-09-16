@@ -16,6 +16,8 @@ from packages.application import CatalogQueryService
 from packages.core import (
     ElectricityAcquisitionMode,
     ElectricityAttribute,
+    ElectricityProofStatus,
+    ElectricityProofType,
 )
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
@@ -113,6 +115,91 @@ class G06PageTests(unittest.TestCase):
         assert combo is not None
         combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
 
+    def test_electricity_rows_show_independent_factor_source_status_and_reason(self) -> None:
+        self.page.period_year.setValue(2026)
+        self.page.findChild(QWidget, "addElectricityButton").click()
+        self.page.findChild(QWidget, "addElectricityButton").click()
+        values = (
+            ("10", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY, None),
+            ("20", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.NONFOSSIL, ElectricityProofType.CONTRACT_AND_SETTLEMENT),
+            ("30", ElectricityAcquisitionMode.SELF_CONSUMED, ElectricityAttribute.NONFOSSIL, ElectricityProofType.MONTHLY_ORIGINAL_RECORD),
+        )
+        for row, (amount, acquisition, attribute, proof_type) in zip(self.page._electricity_rows, values):
+            row.amount.setText(amount)
+            row.acquisition.setCurrentIndex(row.acquisition.findData(acquisition))
+            row.attribute.setCurrentIndex(row.attribute.findData(attribute))
+            if proof_type is not None:
+                row.proof_type.setCurrentIndex(row.proof_type.findData(proof_type))
+                row.proof_status.setCurrentIndex(row.proof_status.findData(ElectricityProofStatus.VALID))
+
+        details = self.page._electricity("enterprise.ui", self.page._period())
+        self.assertEqual(len(details), 3)
+        expected_factor_ids = (
+            "electricity_national_average_2023",
+            "electricity_nonfossil_zero_gbt32151_34_2024",
+            "electricity_nonfossil_zero_gbt32151_34_2024",
+        )
+        for row, factor_id in zip(self.page._electricity_rows, expected_factor_ids):
+            self.assertIn("已采用", row.parameter_status.text())
+            self.assertIn(factor_id, row.parameter_factor.text())
+            self.assertIn("来源", row.parameter_source.text())
+            self.assertIn("审核状态", row.parameter_source.text())
+            self.assertTrue(row.parameter_reason.text().strip())
+            for object_name in (
+                row.parameter_status.objectName(),
+                row.parameter_factor.objectName(),
+                row.parameter_source.objectName(),
+                row.parameter_reason.objectName(),
+            ):
+                self.assertIsNotNone(self.page.findChild(QLabel, object_name))
+
+    def test_page_declares_other_activity_and_transport_and_blocks(self) -> None:
+        self.page.enterprise_name.setText("范围阻断企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page.other_activity_present.setChecked(True)
+        self.page.transport_present.setChecked(True)
+        value = self.page._input()
+        self.assertTrue(value.other_activity_present)
+        self.assertTrue(value.transport_present)
+        outcome = self.page.calculator.calculate(value)
+        self.assertTrue(outcome.blocked)
+        self.assertTrue(any(problem.code == "CAR-VAL-OTHER-STANDARD" for problem in outcome.problems))
+
+    def test_page_has_independent_component_selectors_and_wrong_kind_blocks(self) -> None:
+        self.page.enterprise_name.setText("成分字段企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-CALCINATION-001")
+        self.page._fields["calcination.gc"].setText("10")
+        controls = self.page._material_controls["calcination"]
+        controls["mass_basis"].setCurrentIndex(controls["mass_basis"].findData(MaterialBasis.RECEIVED))
+        controls["composition_basis"].setCurrentIndex(controls["composition_basis"].findData(MaterialBasis.RECEIVED))
+        controls["normalized_basis"].setCurrentIndex(controls["normalized_basis"].findData(MaterialBasis.RECEIVED))
+        controls["fixed_carbon_component_kind"].setCurrentIndex(
+            controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
+        )
+        controls["volatile_matter_component_kind"].setCurrentIndex(
+            controls["volatile_matter_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
+        )
+        outcome = self.page.calculator.calculate(self.page._input())
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+            and problem.field_id.endswith(".fixed-carbon")
+            for problem in outcome.problems
+        ))
+
+        controls["fixed_carbon_component_kind"].setCurrentIndex(
+            controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
+        )
+        controls["volatile_matter_component_kind"].setCurrentIndex(
+            controls["volatile_matter_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
+        )
+        outcome = self.page.calculator.calculate(self.page._input())
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+            and problem.field_id.endswith(".volatile-matter")
+            for problem in outcome.problems
+        ))
+
     def test_page_exposes_output_energy_and_explicit_material_basis_controls(self) -> None:
         for object_name in (
             "exportedElectricityAmountInput",
@@ -126,16 +213,19 @@ class G06PageTests(unittest.TestCase):
                 "massBasisSelector",
                 "compositionBasisSelector",
                 "normalizedBasisSelector",
-                "componentKindSelector",
+                "fixedCarbonComponentKindSelector",
+                "volatileMatterComponentKindSelector",
                 "moistureEvidenceCheckBox",
                 "conversionEvidenceCheckBox",
                 "basisEvidenceReferenceInput",
             ):
                 self.assertIsNotNone(self.page.findChild(QWidget, f"{prefix}_{suffix}"))
             mass_basis = self.page.findChild(QComboBox, f"{prefix}_massBasisSelector")
-            component_kind = self.page.findChild(QComboBox, f"{prefix}_componentKindSelector")
+            fixed_component_kind = self.page.findChild(QComboBox, f"{prefix}_fixedCarbonComponentKindSelector")
+            volatile_component_kind = self.page.findChild(QComboBox, f"{prefix}_volatileMatterComponentKindSelector")
             self.assertEqual(mass_basis.currentData(), MaterialBasis.UNKNOWN)
-            self.assertEqual(component_kind.currentData(), MaterialComponentKind.UNKNOWN)
+            self.assertEqual(fixed_component_kind.currentData(), MaterialComponentKind.UNKNOWN)
+            self.assertEqual(volatile_component_kind.currentData(), MaterialComponentKind.UNKNOWN)
 
         self.page.enterprise_name.setText("输出能源控件企业")
         self.page.period_year.setValue(2026)
@@ -196,8 +286,10 @@ class G06PageTests(unittest.TestCase):
         ):
             combo = controls[key]
             combo.setCurrentIndex(combo.findData(value))
-        component = controls["component_kind"]
-        component.setCurrentIndex(component.findData(MaterialComponentKind.FIXED_CARBON))
+        fixed_component = controls["fixed_carbon_component_kind"]
+        fixed_component.setCurrentIndex(fixed_component.findData(MaterialComponentKind.FIXED_CARBON))
+        volatile_component = controls["volatile_matter_component_kind"]
+        volatile_component.setCurrentIndex(volatile_component.findData(MaterialComponentKind.VOLATILE_MATTER))
         outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(any(problem.code == "CAR-VAL-MATERIAL-BASIS-CONVERSION" for problem in outcome.problems))
         self.assertTrue(outcome.blocked)
