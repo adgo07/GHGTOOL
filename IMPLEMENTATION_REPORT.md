@@ -947,6 +947,6 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 
 ### 提交与等待
 
-- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`。
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`；构造兼容修正提交：`bcb6307 fix: preserve G06 input constructor compatibility`。
 - 文档更新后工作区只保留既有未跟踪 `docs/handoffs/`；本轮未创建或执行 G07。
 - 本轮完成后停止等待 Sol 重新验收。

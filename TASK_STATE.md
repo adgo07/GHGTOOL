@@ -616,5 +616,5 @@ G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口�
 
 ### 提交与阶段门禁
 
-- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`。
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`；P01/P02/P03 成分字段回归补强提交：`345b023 test: cover G06 component kinds across process groups`；构造兼容修正提交：`bcb6307 fix: preserve G06 input constructor compatibility`。
 - 当前等待 Sol 重新验收；G07 未创建、未执行。
