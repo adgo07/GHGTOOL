@@ -168,37 +168,42 @@ class G06PageTests(unittest.TestCase):
     def test_page_has_independent_component_selectors_and_wrong_kind_blocks(self) -> None:
         self.page.enterprise_name.setText("成分字段企业")
         self.page.boundary_confirmed.setChecked(True)
-        self._set_source_involved("CAR-SRC-CALCINATION-001")
-        self.page._fields["calcination.gc"].setText("10")
-        controls = self.page._material_controls["calcination"]
-        controls["mass_basis"].setCurrentIndex(controls["mass_basis"].findData(MaterialBasis.RECEIVED))
-        controls["composition_basis"].setCurrentIndex(controls["composition_basis"].findData(MaterialBasis.RECEIVED))
-        controls["normalized_basis"].setCurrentIndex(controls["normalized_basis"].findData(MaterialBasis.RECEIVED))
-        controls["fixed_carbon_component_kind"].setCurrentIndex(
-            controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
+        cases = (
+            ("calcination", "CAR-SRC-CALCINATION-001", "gc"),
+            ("baking", "CAR-SRC-BAKING-001", "bpm"),
+            ("graphitization", "CAR-SRC-GRAPHITIZATION-001", "gpm"),
         )
-        controls["volatile_matter_component_kind"].setCurrentIndex(
-            controls["volatile_matter_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
-        )
-        outcome = self.page.calculator.calculate(self.page._input())
-        self.assertTrue(any(
-            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-            and problem.field_id.endswith(".fixed-carbon")
-            for problem in outcome.problems
-        ))
+        for prefix, source_id, field in cases:
+            self._set_source_involved(source_id)
+            self.page._fields[f"{prefix}.{field}"].setText("10")
+            controls = self.page._material_controls[prefix]
+            for key in ("mass_basis", "composition_basis", "normalized_basis"):
+                controls[key].setCurrentIndex(controls[key].findData(MaterialBasis.RECEIVED))
+            controls["fixed_carbon_component_kind"].setCurrentIndex(
+                controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
+            )
+            controls["volatile_matter_component_kind"].setCurrentIndex(
+                controls["volatile_matter_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
+            )
+            outcome = self.page.calculator.calculate(self.page._input())
+            self.assertTrue(any(
+                problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+                and problem.field_id == f"{source_id}.fixed-carbon"
+                for problem in outcome.problems
+            ))
 
-        controls["fixed_carbon_component_kind"].setCurrentIndex(
-            controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
-        )
-        controls["volatile_matter_component_kind"].setCurrentIndex(
-            controls["volatile_matter_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
-        )
-        outcome = self.page.calculator.calculate(self.page._input())
-        self.assertTrue(any(
-            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-            and problem.field_id.endswith(".volatile-matter")
-            for problem in outcome.problems
-        ))
+            controls["fixed_carbon_component_kind"].setCurrentIndex(
+                controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
+            )
+            controls["volatile_matter_component_kind"].setCurrentIndex(
+                controls["volatile_matter_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
+            )
+            outcome = self.page.calculator.calculate(self.page._input())
+            self.assertTrue(any(
+                problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+                and problem.field_id == f"{source_id}.volatile-matter"
+                for problem in outcome.problems
+            ))
 
     def test_page_exposes_output_energy_and_explicit_material_basis_controls(self) -> None:
         for object_name in (

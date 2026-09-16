@@ -757,31 +757,45 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertTrue(any(problem.code == "GEN-VAL-REQUIRED-MISSING" and problem.field_id == SOURCE_FGD for problem in fgd_missing.problems))
 
     def test_fixed_and_volatile_component_kinds_are_validated_independently(self) -> None:
-        wrong_fixed = CalcinationInput(
-            gc="10", fixed_carbon_component_kind=MaterialComponentKind.VOLATILE_MATTER,
-            volatile_matter_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+        cases = (
+            (CalcinationInput, {"gc": "10"}, "CAR-SRC-CALCINATION-001"),
+            (BakingInput, {"bpm": "10"}, "CAR-SRC-BAKING-001"),
+            (GraphitizationInput, {"gpm": "10"}, "CAR-SRC-GRAPHITIZATION-001"),
         )
-        outcome = CarbonMaterialCalculator().calculate(
-            _input(calcination=wrong_fixed), calculated_at=SNAPSHOT_AT
-        )
-        self.assertTrue(any(
-            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-            and problem.field_id == "CAR-SRC-CALCINATION-001.fixed-carbon"
-            for problem in outcome.problems
-        ))
+        for input_type, values, source_id in cases:
+            wrong_fixed = input_type(
+                **values,
+                fixed_carbon_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+                volatile_matter_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+            )
+            outcome = CarbonMaterialCalculator().calculate(
+                _input(source_states=(EmissionSourceState(source_id, EmissionSourceStatus.INVOLVED),), **{
+                    {"CAR-SRC-CALCINATION-001": "calcination", "CAR-SRC-BAKING-001": "baking", "CAR-SRC-GRAPHITIZATION-001": "graphitization"}[source_id]: wrong_fixed,
+                }),
+                calculated_at=SNAPSHOT_AT,
+            )
+            self.assertTrue(any(
+                problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+                and problem.field_id == f"{source_id}.fixed-carbon"
+                for problem in outcome.problems
+            ))
 
-        wrong_volatile = CalcinationInput(
-            gc="10", fixed_carbon_component_kind=MaterialComponentKind.FIXED_CARBON,
-            volatile_matter_component_kind=MaterialComponentKind.FIXED_CARBON,
-        )
-        outcome = CarbonMaterialCalculator().calculate(
-            _input(calcination=wrong_volatile), calculated_at=SNAPSHOT_AT
-        )
-        self.assertTrue(any(
-            problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-            and problem.field_id == "CAR-SRC-CALCINATION-001.volatile-matter"
-            for problem in outcome.problems
-        ))
+            wrong_volatile = input_type(
+                **values,
+                fixed_carbon_component_kind=MaterialComponentKind.FIXED_CARBON,
+                volatile_matter_component_kind=MaterialComponentKind.FIXED_CARBON,
+            )
+            outcome = CarbonMaterialCalculator().calculate(
+                _input(source_states=(EmissionSourceState(source_id, EmissionSourceStatus.INVOLVED),), **{
+                    {"CAR-SRC-CALCINATION-001": "calcination", "CAR-SRC-BAKING-001": "baking", "CAR-SRC-GRAPHITIZATION-001": "graphitization"}[source_id]: wrong_volatile,
+                }),
+                calculated_at=SNAPSHOT_AT,
+            )
+            self.assertTrue(any(
+                problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
+                and problem.field_id == f"{source_id}.volatile-matter"
+                for problem in outcome.problems
+            ))
 
     def test_material_basis_and_duplicate_output_validation(self) -> None:
         negative = CalcinationInput(
