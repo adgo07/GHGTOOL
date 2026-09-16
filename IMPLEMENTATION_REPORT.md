@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（返工已完成，等待 Sol 重新验收）
+G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（本轮返工完成，等待 Sol 重新验收）
 
 ## 前置验收与阶段边界
 
@@ -919,3 +919,34 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 ### 阶段门禁
 
 本次只记录验收结论，没有修改业务代码、冻结映射或 `计算表/`，未处理既有未跟踪 `docs/handoffs/`，未创建或执行 G07。G06 未通过，不允许进入 G07；修正完成后应发送“重新验收G06”。
+
+## G06 页面缺口返工实施报告（2026-09-16）
+
+### 范围
+
+本轮仅修正 Sol 重新验收列出的三项 G06 阻断问题：P01/P02/P03 固定碳与挥发分字段口径分离、每条电力明细参数状态展示、其他行业活动与上下游运输手工声明。未改变 R6 式（8）口径、Canonical 数据、数据库 schema/迁移或 G05 规则；未制作 G07 页面或计算模块，未修改“计算表/”，未处理既有 `docs/handoffs/`。
+
+### 实现
+
+- `packages/standards/carbon_material.py` 为煅烧、焙烧/炭化、石墨化输入增加 `fixed_carbon_component_kind` 与 `volatile_matter_component_kind`；`_basis()` 按字段组分别验证，错误分别定位到 `.fixed-carbon` 或 `.volatile-matter`，统一使用 `CAR-VAL-MATERIAL-COMPONENT-KIND`。
+- `packages/ui/carbon_material_page.py` 将每个过程的共享选择器替换为“固定碳字段性质”和“挥发分字段性质”两个选择器，并把两者独立装配进 Domain 输入。
+- 电力明细行增加参数状态、采用因子、来源/审核状态和选择理由四个只读展示区；每次明细编辑后调用 G05 逐条解析，按 `detail_id` 回填对应行。已采用结果展示真实稳定因子 ID、值/单位、来源定位、审核状态和选择理由；证明阻断及自发自用化石路径也显示独立状态，不生成伪快照。
+- 核算边界增加其他行业活动和上下游运输两个复选声明，并传入已有 Domain 阻断字段；任一声明后产生 `CAR-VAL-OTHER-STANDARD`，不形成成功结果。
+- 新增领域回归 `test_fixed_and_volatile_component_kinds_are_validated_independently`；新增页面回归覆盖三种同时存在的电力明细、逐行因子/来源/状态/理由、两项边界声明和两类错误成分口径。
+
+### 验证结果
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；28/28 通过。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；103/103 通过。
+- `.venv\Scripts\python.exe -m compileall -q packages tests scripts`；成功。
+- `.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`；三库从零生成成功，临时目录已清理。
+- `git diff --check` 通过；`计算表/` 无差异；pytest 未执行，因为项目测试基线为 unittest。
+
+### 提交与等待
+
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`。
+- 文档更新后工作区只保留既有未跟踪 `docs/handoffs/`；本轮未创建或执行 G07。
+- 本轮完成后停止等待 Sol 重新验收。

@@ -6,7 +6,7 @@ G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算
 
 ## 状态
 
-G06_SOL_REACCEPTANCE_FAILED
+G06_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -589,3 +589,32 @@ G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna �
 - 未发现 G07 已创建或执行；本次也未创建 Goal 或实施 G07。
 
 G06 未通过，不允许进入 G07。请 Luna 只修正上述三项 G06 缺口并补充对应的领域和页面测试；修正完成后发送“重新验收G06”。
+
+## G06 页面缺口返工实施状态（2026-09-16）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+本轮只处理 Sol 最新 G06 重新验收指出的三项阻断问题；未创建或执行 G07，未修改“计算表/”，未处理既有未跟踪 `docs/handoffs/`。
+
+### 已完成
+
+- 为 P01 煅烧、P02 焙烧/炭化、P03 石墨化分别增加固定碳字段性质和挥发分字段性质两个独立 Domain 输入；页面不再提供共享“成分性质”选择器。固定碳字段不是 `FIXED_CARBON` 或挥发分字段不是 `VOLATILE_MATTER` 时，分别产生 `CAR-VAL-MATERIAL-COMPONENT-KIND`，并定位到对应字段组。既有 `component_kind` 构造兼容保留，但页面和新校验使用独立字段；未改变 SQLite schema 或迁移。
+- 每条电力明细增加独立的采用因子、来源/定位、审核状态、选择状态和选择理由展示；展示直接来自 G05 `resolve_electricity_details()` 的该明细结果和快照，不以企业级状态覆盖其他明细。普通购电、外购非化石和自发自用非化石可同时显示各自的真实因子。
+- 核算边界增加“存在本标准未覆盖的其他行业活动”和“存在上下游运输”两个手工声明；两项标志传入 `CarbonMaterialInput`，由既有 Domain `CAR-VAL-OTHER-STANDARD` 阻断，不进入成功结果。
+- 增加领域与页面针对性回归测试，覆盖固定碳/挥发分两类错误口径、电力三明细独立展示、其他活动/运输声明和阻断。
+
+### 验证
+
+- G06 定向：`.venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page -v`；28/28 通过，0 个失败，0 个错误。
+- G02/G04/G05 回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_rules tests.test_g05_multi_electricity -v`；49/49 通过，0 个失败，0 个错误。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -v`；103/103 通过，0 个失败，0 个错误。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages tests scripts`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 均成功生成，临时目录已清理。
+- `git diff --check` 通过；`git diff --name-only -- 计算表/**` 为空；pytest 未执行，项目测试基线为 unittest。
+
+### 提交与阶段门禁
+
+- 实现与测试提交：`55bdd1b fix: close remaining G06 page validation gaps`。
+- 当前等待 Sol 重新验收；G07 未创建、未执行。
