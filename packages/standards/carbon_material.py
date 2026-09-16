@@ -265,11 +265,11 @@ class CalcinationInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
-    fixed_carbon_component_kind: MaterialComponentKind | None = None
-    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     carbon_output_included_in_input: bool = False
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
 
     def __post_init__(self) -> None:
         for field in ("mass_basis", "composition_basis"):
@@ -310,11 +310,11 @@ class BakingInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
-    fixed_carbon_component_kind: MaterialComponentKind | None = None
-    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     carbon_output_included_in_input: bool = False
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
 
     def __post_init__(self) -> None:
         for field in ("mass_basis", "composition_basis"):
@@ -355,11 +355,11 @@ class GraphitizationInput:
     composition_basis: MaterialBasis = MaterialBasis.RECEIVED
     normalized_basis: MaterialBasis | None = MaterialBasis.RECEIVED
     component_kind: MaterialComponentKind = MaterialComponentKind.FIXED_CARBON
-    fixed_carbon_component_kind: MaterialComponentKind | None = None
-    volatile_matter_component_kind: MaterialComponentKind | None = None
     moisture_evidence: bool = False
     conversion_evidence: bool = False
     furnace_loss_included: bool = False
+    fixed_carbon_component_kind: MaterialComponentKind | None = None
+    volatile_matter_component_kind: MaterialComponentKind | None = None
 
     def __post_init__(self) -> None:
         for field in ("mass_basis", "composition_basis"):
