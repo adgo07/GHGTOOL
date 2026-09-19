@@ -1300,3 +1300,29 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 
 - 候选实现提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
 - 下一步：推送 `gxx-implementation`，创建目标为 `main` 的 Pull Request，等待 GitHub Windows CI 检查完成；当前不启动 G09，待 Sol 预验收。
+
+## G08 预验收 NEEDS FIX 返工报告（2026-09-20）
+
+### 修正范围
+
+本轮针对 Sol 预验收的五项意见完成 G08 范围内修正，未实施 G09：
+
+1. 构建 manifest 只登记可上传的可见文件，隐藏 .gitkeep 不再造成 manifest 与 GitHub 下载 ZIP 不一致；verify_release_archive.py 对模拟 upload-artifact 的最终归档重新解压并审计 manifest 文件集合。
+2. Catalog app_compatibility 从 0.1.x 修正为与正式应用 1.0.0 相容的 1.x，并由发布审计与回归测试校验。
+3. docs/DELIVERY.md 改正平台证据表述：本机实测是 Windows 11 Professional x64；GitHub windows-latest 的实测环境是 Windows Server 2025，不再宣称为 Windows 11；Windows 10 22H2 明确未验证。
+4. CI 同时保留 merge-ref 集成测试和 exact PR head standalone 构建；manifest 新增并校验 pr_head_sha、tested_merge_sha，source_commit 对 exact-head 构建指向 PR head。
+5. 增加 fresh-data GUI 全链路回归，覆盖新用户启动、GB/T 32151.34 输入、计算、自动生成记录、重启和历史读取。
+
+### 验证结果
+
+- 实施与测试提交：59d4a8e fix: close G08 delivery preacceptance gaps。
+- G08 定向：tests.test_g08_delivery；9/9 通过。
+- G02/G04/G05/G06/G07 相关回归：98/98 通过。
+- 全量：unittest discover -s tests -t . -q；124/124 通过。
+- compileall 成功；pip check 无损坏依赖；Canonical 校验通过（9 standards / 12 sources / 7 parameters / 7 factors）；三库从零重建成功。
+- 本机 Windows 11 standalone：构建成功；inspect_release.py PASS（227 个内容文件）；verify_release_archive.py PASS（228 个可见归档条目，manifest 往返一致）；smoke_standalone.py PASS（2 次隔离启动）。
+- 本机环境证据为 Windows 11 Professional x64 10.0.26200 / Build 26200 / AMD64，Python 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。Windows 10 22H2 未在本环境实测。
+
+### 交付与门禁
+
+构建产物 manifest 已核对 app_version=1.0.0、catalog_data_version=2026.09.20-g08.1，并记录 source_commit、pr_head_sha、tested_merge_sha。文档提交后将以最终 PR head 重新构建并推送，等待 GitHub 两条 Windows 检查完成；G09 未创建、未执行，当前停止在 G08 等待 Sol 重新预验收。

@@ -890,3 +890,30 @@ Sol 当前执行环境限制：
 ### 阶段门禁
 
 当前等待 GitHub PR 检查和 Sol 预验收；不得开始 G09。提交 SHA、PR 链接和 GitHub 检查状态将在推送后补录。
+## G08 预验收 NEEDS FIX 返工状态（2026-09-20）
+
+**G08_REWORK_READY_FOR_GITHUB_CHECKS**
+
+本轮只处理 G08 预验收指出的五项交付缺口，未创建或执行 G09，未修改 计算表/，未处理既有未跟踪 docs/handoffs/。
+
+### 已完成的修正
+
+- 发布 manifest 不再把 .gitkeep 等隐藏占位文件列为交付内容；构建阶段移除发布目录中的隐藏占位文件，并新增 verify_release_archive.py，按 GitHub upload-artifact 默认不上传隐藏文件的规则模拟最终归档，再对归档解压结果执行完整 manifest 校验。
+- Catalog app_compatibility 统一为 1.x，与应用 1.0.0 相容范围一致；发布审计和 G08 测试均锁定该字段。
+- 交付文档区分真实 Windows 11 本机证据与 GitHub windows-latest 的 Windows Server 2025 运行环境；不再把后者表述为 Windows 11 CI，Windows 10 22H2 仍明确为未验证。
+- Windows CI 保留 PR merge-ref 集成测试，并新增 exact PR head 的 standalone 构建；manifest 分别记录 source_commit、pr_head_sha 和 tested_merge_sha，上传前对最终可见文件集合执行归档一致性验证。
+- G08 测试新增 fresh-data GUI 全链路：新用户启动、进入 GB/T 32151.34 页面、录入并计算、records.sqlite 生成记录、重启后历史页面读取记录。
+
+### 本地验证
+
+- 实施与测试提交：59d4a8e fix: close G08 delivery preacceptance gaps。
+- G08 定向：.venv\\Scripts\\python.exe -m unittest tests.test_g08_delivery -v；9/9 通过。
+- 相关回归：tests.test_g08_delivery、tests.test_g02_canonical、tests.test_g02_persistence、tests.test_g04_catalog、tests.test_g05_multi_electricity、tests.test_g05_rules、tests.test_g06_carbon_material、tests.test_g06_page、tests.test_g07_records；98/98 通过。
+- 全量：.venv\\Scripts\\python.exe -m unittest discover -s tests -t . -q；124/124 通过。
+- compileall 成功；pip check 为 No broken requirements found.；Canonical 为 valid: 9 standards, 12 sources, 7 parameters, 7 factors；三库从零重建成功并清理临时目录。
+- Windows 11 本机证据：Windows 11 Professional x64，版本 10.0.26200、Build 26200、AMD64；Python 3.12.14、PySide6 6.11.2、PyInstaller 6.22.3。standalone 构建、发布目录审计（227 个内容文件）、模拟 GitHub 最终归档审计（228 个可见条目）和双次隔离启动均通过。
+- 本地 manifest 已验证 app_version=1.0.0、catalog_data_version=2026.09.20-g08.1；返工后的 GitHub exact-head 构建将按同一规则生成新的三项 SHA 追溯字段。
+
+### 阶段门禁
+
+返工代码和文档完成后推送 gxx-implementation，等待以新 PR head 触发的 GitHub merge 集成检查和 exact-head standalone 检查全部完成；在 Sol 重新预验收前不得开始 G09。
