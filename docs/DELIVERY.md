@@ -54,7 +54,7 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 便携式交付没有注册表安装项。删除发布目录不会删除 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting\data` 或 `logs`，因此历史记录和日志默认保留。若确需清理，请先备份 `records.sqlite`，再由用户手动删除上述数据目录；软件不会在卸载或启动失败时自动清理用户数据。
 
-发布包不得包含标准全文、`计算表`、测试数据库、开发目录、环境文件或开发密钥。`build-manifest.json` 记录每个发布文件的 SHA-256 和大小，供验收与追溯使用。
+发布包不得包含标准全文、`计算表`、测试数据库、开发目录、环境文件或开发密钥。`build-manifest.json` 记录每个发布文件的 SHA-256 和大小，供验收与追溯使用；同时记录 `source_commit`（实际 checkout）、`pr_head_sha`（PR 精确 HEAD）和 `tested_merge_sha`（merge-ref 集成测试提交），避免把临时合并提交误认为 standalone 的源提交。
 
 ## 当前能力边界
 
@@ -62,7 +62,7 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 - 其余计划标准只有目录与状态信息，不实现计算规则。
 - Excel 导入、报告/导出、企业档案完善、企业层级、审批、`.qzproj` 项目文件和云端服务不在 V1。
 - 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
-- G08 在 Windows 11 CI 上验证；若本地没有 Windows 10 环境，Windows 10 实机验证不宣称已完成。
+- 本机已在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
 
 ## 故障排查
 

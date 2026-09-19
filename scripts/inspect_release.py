@@ -8,6 +8,7 @@ must not be present in the release directory.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import sqlite3
@@ -50,15 +51,17 @@ def _check_catalog(path: Path, issues: list[str]) -> None:
         return
     try:
         uri = f"file:{path.as_posix()}?mode=ro"
-        with sqlite3.connect(uri, uri=True) as connection:
+        with closing(sqlite3.connect(uri, uri=True)) as connection:
             metadata = dict(connection.execute("SELECT key, value FROM database_metadata"))
             catalog_row = connection.execute(
-                "SELECT schema_version, data_version FROM catalog_manifest LIMIT 1"
+                "SELECT schema_version, data_version, app_compatibility "
+                "FROM catalog_manifest LIMIT 1"
             ).fetchone()
             catalog_metadata = (
                 {
                     "schema_version": str(catalog_row[0]),
                     "data_version": str(catalog_row[1]),
+                    "app_compatibility": str(catalog_row[2]),
                 }
                 if catalog_row
                 else {}
@@ -82,6 +85,10 @@ def _check_catalog(path: Path, issues: list[str]) -> None:
         issues.append(f"unexpected catalog app version: {metadata.get('app_version')!r}")
     if catalog_metadata.get("schema_version") != "1.0.0":
         issues.append(f"unexpected canonical schema version: {catalog_metadata.get('schema_version')!r}")
+    if catalog_metadata.get("app_compatibility") != "1.x":
+        issues.append(
+            f"unexpected catalog app compatibility: {catalog_metadata.get('app_compatibility')!r}"
+        )
     if not catalog_metadata.get("data_version"):
         issues.append("catalog data version is empty")
     if standard_count != 9:
@@ -135,6 +142,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         "catalog_schema_version",
         "catalog_data_version",
         "source_commit",
+        "pr_head_sha",
+        "tested_merge_sha",
         "files",
     ):
         if field not in manifest:
@@ -146,6 +155,9 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         issues.append("unexpected release artifact name")
     if manifest.get("app_version") != "1.0.0":
         issues.append(f"unexpected manifest app version: {manifest.get('app_version')!r}")
+    for provenance_field in ("source_commit", "pr_head_sha", "tested_merge_sha"):
+        if not isinstance(manifest.get(provenance_field), str) or not manifest[provenance_field].strip():
+            issues.append(f"manifest has empty provenance field: {provenance_field}")
 
     actual_files = {path.as_posix() for path in _relative_files(artifact)}
     manifest_files: dict[str, dict[str, Any]] = {}

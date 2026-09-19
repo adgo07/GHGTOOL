@@ -6,7 +6,7 @@ G08 Windows 交付与全链路回归
 
 ## 状态
 
-G08_IMPLEMENTED_WAITING_PRE_ACCEPTANCE
+G08_REWORK_IN_PROGRESS
 
 ## 阶段验收状态
 
@@ -864,7 +864,7 @@ Sol 当前执行环境限制：
 **G07已通过，允许由用户另行启动G08；本次未启动G08。**
 ## G08 实施状态（2026-09-20）
 
-**G08_IMPLEMENTED_WAITING_PRE_ACCEPTANCE**
+**G08_REWORK_IN_PROGRESS**
 
 本轮严格只执行 G08；未创建或执行 G09，未修改 `计算表/`，未处理既有未跟踪 `docs/handoffs/`。工作从已对齐的 `origin/main` `fbe884df0dad890f1be6da945a52b288ea8c8f1c` 创建 `gxx-implementation` 分支并恢复唯一 G08 Goal。
 

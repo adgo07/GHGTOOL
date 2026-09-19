@@ -21,6 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from packages.persistence import build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from scripts.inspect_release import inspect_release
+from scripts.verify_release_archive import verify_release_archive
 
 
 APP_NAME = "QingzhouCarbonAccounting"
@@ -55,6 +56,17 @@ def _source_commit() -> str:
     return result.stdout.strip() or "unknown"
 
 
+def _release_provenance() -> dict[str, str]:
+    """Return explicit checkout, PR-head, and tested-merge provenance."""
+
+    checkout_sha = _source_commit()
+    return {
+        "source_commit": checkout_sha,
+        "pr_head_sha": os.environ.get("QZ_PR_HEAD_SHA", "").strip() or checkout_sha,
+        "tested_merge_sha": os.environ.get("QZ_TESTED_MERGE_SHA", "").strip() or checkout_sha,
+    }
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -68,7 +80,9 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
     for path in sorted(
         item.relative_to(artifact)
         for item in artifact.rglob("*")
-        if item.is_file() and item.name != "build-manifest.json"
+        if item.is_file()
+        and item.name != "build-manifest.json"
+        and not any(part.startswith(".") for part in item.relative_to(artifact).parts)
     ):
         entries.append(
             {
@@ -86,7 +100,7 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
         "catalog_schema_version": catalog_meta["schema_version"],
         "catalog_data_version": catalog_meta["data_version"],
         "database_schema_versions": {"catalog": "001", "user": "001", "records": "002"},
-        "source_commit": _source_commit(),
+        **_release_provenance(),
         "files": entries,
     }
     (artifact / "build-manifest.json").write_text(
@@ -104,6 +118,14 @@ def _remove_incompatible_external_icu(artifact: Path) -> None:
         candidate = artifact / filename
         if candidate.is_file() and not candidate.is_symlink():
             candidate.unlink()
+
+def _remove_hidden_release_placeholders(artifact: Path) -> None:
+    """Remove source-tree placeholders that upload-artifact omits by default."""
+
+    for candidate in artifact.rglob(".gitkeep"):
+        if candidate.is_file() and not candidate.is_symlink():
+            candidate.unlink()
+
 
 def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -> Path:
     """Build and audit an onedir Windows artifact."""
@@ -162,10 +184,12 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         if not artifact.is_dir():
             raise RuntimeError(f"PyInstaller did not create {artifact}")
         _remove_incompatible_external_icu(artifact)
+        _remove_hidden_release_placeholders(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:
             raise RuntimeError("standalone audit failed: " + "; ".join(issues))
+        verify_release_archive(artifact)
         print(f"built standalone: {artifact}")
         return artifact
     finally:
