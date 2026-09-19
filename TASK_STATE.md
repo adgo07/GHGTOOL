@@ -6,7 +6,7 @@ G08 Windows 交付与全链路回归
 
 ## 状态
 
-G08_REWORK_IN_PROGRESS
+G08_PASS_WINDOWS_V1_COMPLETE
 
 ## 阶段验收状态
 
@@ -917,3 +917,19 @@ Sol 当前执行环境限制：
 ### 阶段门禁
 
 返工代码和文档完成后推送 gxx-implementation，等待以新 PR head 触发的 GitHub merge 集成检查和 exact-head standalone 检查全部完成；在 Sol 重新预验收前不得开始 G09。
+
+## G08 Sol 正式验收结论（2026-09-20）
+
+**PASS**
+
+- 被验收候选 SHA：`d24fa6f19f19f6aab1770585023f517dd50ad784`。
+- GitHub PR：`#1 feat: complete G08 Windows delivery baseline`；该候选 SHA 对应的 Windows / Python 3.12 merge-ref 全量测试与 exact-head standalone 审计均成功。
+- G08 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；9/9 通过。
+- G02/G04/G05/G06/G07/G08 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery -v`；98/98 通过。
+- 全量测试：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；124/124 通过。
+- 补充校验：`compileall` 成功；`pip check` 无损坏依赖；Canonical 校验通过（9 standards / 12 sources / 7 parameters / 7 factors）；catalog、user、records 三库从零重建成功，临时目录已清理。
+- Windows 11 x64 独立构建成功；发布目录审计通过（227 个内容文件）；模拟 GitHub 最终归档审计通过（228 个可见条目）；隔离环境双启动冒烟通过。manifest 已核对 `app_version=1.0.0`、`catalog_data_version=2026.09.20-g08.1` 及三项 Git SHA 追溯字段。
+- Windows 10 22H2 因无独立实机环境未验证，交付文档已明确记录，符合 G08 的允许条件。原生界面自动化辅助程序因本机 Windows 沙箱初始化失败未能执行，因此未把人工界面操作列为验收证据；Qt fresh-data GUI 全链路测试和真实独立程序双启动冒烟均已实际完成。
+- 已核对 G08 的 MUST、Scope 和阶段门禁；未发现标准、参数或排放因子口径变更；未实施报告导出、Excel 导入、其他七项标准等越界功能；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 未处理。
+
+G08 已通过。G08 是当前 `HANDOFF.md` 定义的最终阶段，Windows V1 的 G00—G08 阶段门禁已完成；本次未启动任何未批准的后续阶段。验收文档提交后须推送当前 PR 分支，并以该验收提交重新确认 GitHub 检查通过后，方可普通 Merge 到 `main`。

@@ -1326,3 +1326,32 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 ### 交付与门禁
 
 构建产物 manifest 已核对 app_version=1.0.0、catalog_data_version=2026.09.20-g08.1，并记录 source_commit、pr_head_sha、tested_merge_sha。文档提交后将以最终 PR head 重新构建并推送，等待 GitHub 两条 Windows 检查完成；G09 未创建、未执行，当前停止在 G08 等待 Sol 重新预验收。
+
+## G08 Sol 正式验收结论（2026-09-20）
+
+### 结论
+
+**PASS**
+
+被验收候选 SHA 为 `d24fa6f19f19f6aab1770585023f517dd50ad784`。GitHub PR #1 中该 SHA 对应的 `Windows / Python 3.12 / Merge-ref Full Tests` 和 `Windows / Python 3.12 / PR-head Standalone Audit` 均成功。PR 完整差异、G08 源码、交付数据、文档、测试和阶段门禁均已独立检查。
+
+### 独立测试与构建
+
+- G08 定向：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；9/9 通过。
+- G02/G04/G05/G06/G07/G08 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery -v`；98/98 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；124/124 通过。
+- `compileall` 成功；`pip check` 返回 `No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- catalog、user、records 三库从空目录重建成功；验收临时目录已清理。
+- Windows 11 x64 独立构建成功；发布目录审计通过（227 个内容文件）；模拟 GitHub 最终归档审计通过（228 个可见条目）；隔离目录双启动冒烟通过。manifest 中 `app_version=1.0.0`、`catalog_schema_version=1.0.0`、`catalog_data_version=2026.09.20-g08.1`、`source_commit`、`pr_head_sha` 和 `tested_merge_sha` 均已核对。
+
+### MUST、Scope 与限制核对
+
+- 空库、首次建库、重复启动、过新数据库版本安全失败、日志、fresh-data GUI 计算并重启读取历史记录均有实际测试覆盖。
+- 发布包未发现标准全文、用户计算表、测试数据库、开发密钥或环境文件；`计算表/` 无修改。
+- 安装、启动、数据目录、卸载保留、当前限制和故障排查文档齐全。
+- Windows 10 22H2 因无独立实机环境未执行，交付文档已如实记录；Windows 11 Professional x64 已完成本机验证。
+- 原生界面自动化辅助程序因 Windows 沙箱初始化失败未能运行，未将人工界面操作列为验收证据；Qt fresh-data GUI 全链路测试和真实独立程序双启动冒烟均已实际执行并通过。
+- 未发现标准、参数或排放因子口径变更，故本阶段无需重新录入或解释原始标准数值。未提前实施报告导出、Excel 导入、其他七项标准等范围外功能；既有未跟踪 `docs/handoffs/` 未修改、未提交。
+
+G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00—G08 已完成阶段验收；本次未启动任何未批准的后续阶段。验收提交推送后，必须先确认该最新提交的 GitHub 检查全部通过，再以普通 Merge 方式合并 PR，不得 Squash 或 Rebase。
