@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
+from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -30,6 +30,259 @@ from .view_models import AppRoute, ShellViewModel
 
 
 Navigate = Callable[[AppRoute], None]
+
+
+_SNAPSHOT_LABELS = {
+    "input_id": "输入编号",
+    "enterprise_id": "企业编号",
+    "enterprise_name": "企业名称",
+    "period": "核算期间",
+    "accounting_period": "核算期间",
+    "period_type": "期间类型",
+    "start": "开始日期",
+    "end": "结束日期",
+    "boundary_confirmed": "核算边界确认",
+    "boundary_component_ids": "边界范围",
+    "source_states": "排放源状态",
+    "emission_sources": "排放源状态",
+    "source_judgment": "排放源判断",
+    "status": "状态",
+    "fuel_inputs": "燃料活动数据",
+    "calcination": "煅烧活动数据",
+    "baking": "焙烧/炭化活动数据",
+    "graphitization": "石墨化活动数据",
+    "fume_incineration": "烟气焚烧治理活动数据",
+    "fgd": "烟气脱硫净化活动数据",
+    "electricity_details": "电力明细",
+    "exported_electricity": "输出电力",
+    "purchased_heat": "外购热力",
+    "exported_heat": "输出热力",
+    "other_activity_present": "其他行业活动",
+    "transport_present": "上下游运输",
+    "fuel_id": "燃料编号",
+    "path": "燃料路径",
+    "activity": "活动量",
+    "activity_amount": "活动量",
+    "carbon_content": "含碳量",
+    "oxidation_rate": "氧化率",
+    "lower_heating_value": "低位发热量",
+    "electricity_detail_id": "关联电力明细",
+    "detail_id": "明细编号",
+    "electricity_amount": "用电量",
+    "amount": "数量",
+    "electricity_unit": "用电量单位",
+    "unit": "单位",
+    "acquisition_mode": "取得方式",
+    "attribute": "电力属性",
+    "proof_type": "证明类型",
+    "proof_status": "证明状态",
+    "proof": "证明材料",
+    "proof_reference": "证明编号/定位",
+    "evidence": "证明材料",
+    "evidence_reference": "证明编号/定位",
+    "mass_basis": "质量基准",
+    "composition_basis": "成分基准",
+    "normalized_basis": "折算基准",
+    "component_kind": "成分性质",
+    "fixed_carbon_component_kind": "固定碳成分性质",
+    "volatile_matter_component_kind": "挥发分成分性质",
+    "moisture_evidence": "水分修正证明",
+    "conversion_evidence": "换算证明",
+    "carbon_output_included_in_input": "碳产品是否计入投入",
+    "furnace_loss_included": "炉损是否计入",
+    "value": "数值",
+    "source_type": "数据来源类型",
+    "source_level": "数据来源级别",
+    "source_reference": "数据来源说明",
+    "parameter_id": "参数编号",
+    "source_kind": "参数来源类型",
+    "source_id": "来源编号",
+    "source_version": "来源版本",
+    "source_location": "来源定位",
+    "selection_reason": "选择理由",
+    "factor_id": "因子编号",
+    "factor_year": "因子年份",
+    "line_id": "明细编号",
+    "enthalpy": "焓值",
+    "steam_kind": "蒸汽类型",
+    "pressure_mpa": "压力",
+    "temperature_c": "温度",
+    "components": "碳酸盐组分",
+    "cal": "碳酸盐用量",
+    "i": "碳酸盐含量",
+    "ef1": "排放因子",
+    "tr": "转化率",
+}
+
+_SNAPSHOT_VALUE_LABELS = {
+    "ANNUAL": "年度",
+    "MONTHLY": "月度",
+    "PRIMARY": "原始数据",
+    "SECONDARY": "次级数据",
+    "PROXY": "替代数据",
+    "MANUAL": "手工录入",
+    "METER": "计量数据",
+    "INVOLVED": "涉及",
+    "NOT_INVOLVED": "不涉及",
+    "UNCONFIRMED": "未确认",
+    "PURCHASED": "外购",
+    "SELF_CONSUMED": "自发自用",
+    "ORDINARY": "常规电力",
+    "NONFOSSIL": "非化石能源电力",
+    "FOSSIL": "化石能源电力",
+    "NONE": "无证明",
+    "CONTRACT_AND_SETTLEMENT": "合同及结算凭证",
+    "GEC": "绿证",
+    "MONTHLY_ORIGINAL_RECORD": "月度原始记录",
+    "NOT_PROVIDED": "未提供",
+    "VALID": "有效",
+    "INVALID": "无效",
+    "RECEIVED": "收到基",
+    "DRY": "干基",
+    "OTHER_DOCUMENTED": "其他有证明基准",
+    "UNKNOWN": "未确认",
+    "FIXED_CARBON": "固定碳",
+    "VOLATILE_MATTER": "挥发分",
+    "TOTAL_CARBON": "总碳",
+    "SATURATED": "饱和蒸汽",
+    "SUPERHEATED": "过热蒸汽",
+    "STANDARD_DEFAULT": "标准缺省值",
+    "STANDARD_SPECIFIED": "标准规定值",
+    "MEASURED": "实测值",
+    "CALCULATED": "计算值",
+    "OFFICIAL_PUBLISHED": "官方发布值",
+    "USER_DEFINED": "用户指定值",
+    "PROJECT_SPECIFIED": "项目指定值",
+}
+
+_SNAPSHOT_ACTIVITY_KEYS = (
+    "activity_amount",
+    "fuel_inputs",
+    "calcination",
+    "baking",
+    "graphitization",
+    "fume_incineration",
+    "fgd",
+    "purchased_heat",
+    "exported_heat",
+    "exported_electricity",
+)
+_SNAPSHOT_SOURCE_KEYS = ("source_states", "emission_sources", "source_judgment")
+_SNAPSHOT_ELECTRICITY_KEYS = ("electricity_details",)
+_SNAPSHOT_PROOF_KEYS = frozenset(
+    {"proof", "proof_type", "proof_status", "proof_reference", "evidence", "evidence_reference"}
+)
+
+
+def _snapshot_label(key: object) -> str:
+    key_text = str(key)
+    if key_text.endswith("电力明细证明"):
+        return key_text
+    return _SNAPSHOT_LABELS.get(key_text, f"其他信息（{key_text}）")
+
+
+def _snapshot_scalar(value: Any) -> str:
+    if value is None:
+        return "未填写"
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    return _SNAPSHOT_VALUE_LABELS.get(str(value), str(value))
+
+
+def _snapshot_measurement(value: dict[str, Any]) -> str:
+    amount = _snapshot_scalar(value.get("value"))
+    unit = value.get("unit")
+    text = f"{amount} {unit}".strip() if unit else amount
+    extras = []
+    for key in (
+        "source_type",
+        "source_level",
+        "source_reference",
+        "source_kind",
+        "source_id",
+        "source_version",
+        "source_location",
+        "selection_reason",
+        "factor_id",
+        "factor_year",
+    ):
+        if value.get(key) not in (None, "", [], {}):
+            extras.append(f"{_snapshot_label(key)}：{_snapshot_scalar(value[key])}")
+    return "；".join((text, *extras))
+
+
+def _snapshot_lines(
+    value: Any,
+    *,
+    indent: str = "",
+    excluded_keys: frozenset[str] = frozenset(),
+) -> list[str]:
+    if isinstance(value, dict):
+        if "value" in value and "unit" in value:
+            return [f"{indent}{_snapshot_measurement(value)}"]
+        lines: list[str] = []
+        paired_keys: set[str] = set()
+        for amount_key, unit_key, label in (
+            ("electricity_amount", "electricity_unit", "用电量"),
+            ("amount", "unit", "数量"),
+        ):
+            if value.get(amount_key) not in (None, "", [], {}) and value.get(unit_key) not in (None, "", [], {}):
+                lines.append(
+                    f"{indent}{label}：{_snapshot_scalar(value[amount_key])} {_snapshot_scalar(value[unit_key])}"
+                )
+                paired_keys.update((amount_key, unit_key))
+        for key, item in value.items():
+            if str(key) in excluded_keys or str(key) in paired_keys or item in (None, "", [], {}):
+                continue
+            label = _snapshot_label(key)
+            if isinstance(item, (dict, list)):
+                lines.append(f"{indent}{label}：")
+                lines.extend(_snapshot_lines(item, indent=indent + "  ", excluded_keys=excluded_keys))
+            else:
+                lines.append(f"{indent}{label}：{_snapshot_scalar(item)}")
+        return lines or [f"{indent}未记录"]
+    if isinstance(value, list):
+        lines = []
+        for index, item in enumerate(value, 1):
+            lines.append(f"{indent}第{index}项：")
+            lines.extend(_snapshot_lines(item, indent=indent + "  ", excluded_keys=excluded_keys))
+        return lines or [f"{indent}未记录"]
+    return [f"{indent}{_snapshot_scalar(value)}"]
+
+
+def _format_business_snapshot(raw_snapshot: object) -> str:
+    """Render the immutable raw snapshot as business-oriented read-only sections."""
+
+    if not isinstance(raw_snapshot, dict):
+        return "无法读取历史输入快照。"
+
+    lines: list[str] = []
+    activity = {key: raw_snapshot[key] for key in _SNAPSHOT_ACTIVITY_KEYS if key in raw_snapshot}
+    sources = {key: raw_snapshot[key] for key in _SNAPSHOT_SOURCE_KEYS if key in raw_snapshot}
+    electricity = {key: raw_snapshot[key] for key in _SNAPSHOT_ELECTRICITY_KEYS if key in raw_snapshot}
+    proof = {key: raw_snapshot[key] for key in raw_snapshot if key in _SNAPSHOT_PROOF_KEYS}
+    for index, detail in enumerate(raw_snapshot.get("electricity_details") or (), 1):
+        if isinstance(detail, dict):
+            detail_proof = {key: detail[key] for key in detail if key in _SNAPSHOT_PROOF_KEYS}
+            if detail_proof:
+                proof[f"第{index}条电力明细证明"] = detail_proof
+
+    consumed = set(activity) | set(sources) | set(electricity) | set(proof)
+    other = {key: value for key, value in raw_snapshot.items() if key not in consumed}
+    sections = (
+        ("活动数据", activity),
+        ("排放源", sources),
+        ("电力明细", electricity),
+        ("证明状态", proof),
+        ("其他输入", other),
+    )
+    for title, section in sections:
+        lines.append(f"【{title}】")
+        if title == "电力明细":
+            lines.extend(_snapshot_lines(section, indent="  ", excluded_keys=_SNAPSHOT_PROOF_KEYS))
+        else:
+            lines.extend(_snapshot_lines(section, indent="  "))
+    return "\n".join(lines)
 
 
 class BasePage(QWidget):
@@ -320,11 +573,7 @@ class RecordLibraryPage(BasePage):
         warning_text = "\n".join(f"- {item.code}：{item.message}" for item in warnings) or "- 无"
         raw_snapshot = getattr(self.record_repository, "get_raw_input_snapshot", lambda _record_id: None)(record.record_id)
         rule_snapshot = getattr(self.record_repository, "get_effective_rule_set", lambda _record_id: None)(record.record_id)
-        raw_snapshot_text = (
-            json.dumps(raw_snapshot, ensure_ascii=False, indent=2, sort_keys=True)
-            if isinstance(raw_snapshot, dict)
-            else "未由当前仓储暴露"
-        )
+        raw_snapshot_text = _format_business_snapshot(raw_snapshot)
         standard_version = record.standard_version or "未记录"
         rule_ids = ", ".join(str(item) for item in (rule_snapshot or {}).get("rule_ids", ())) or "未记录额外规则 ID"
         self.detail_text.setPlainText(

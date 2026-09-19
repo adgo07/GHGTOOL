@@ -5,6 +5,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -32,7 +33,13 @@ from packages.core import (
     RecordStatus,
     ValidationProblem,
 )
-from packages.persistence import RecordRepositoryError, SQLiteRecordRepository
+from packages.persistence import (
+    RecordRepositoryError,
+    SQLiteCatalogRepository,
+    SQLiteRecordRepository,
+    build_catalog_database,
+)
+from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput, InMemoryRecordRepository
 from packages.ui.pages import RecordLibraryPage
 from packages.ui.view_models import AppRoute
@@ -312,10 +319,22 @@ class G07UiTests(unittest.TestCase):
             record,
             raw_input={
                 "activity_amount": "12345.678",
+                "source_states": [
+                    {"source_id": "CAR-SRC-PURCHASED-ELECTRICITY-001", "status": "INVOLVED"}
+                ],
                 "electricity_details": [
-                    {"detail_id": "electricity-detail-1", "amount": "88.25", "proof_status": "VALID"}
+                    {
+                        "detail_id": "electricity-detail-1",
+                        "electricity_amount": "88.25",
+                        "electricity_unit": "MWh",
+                        "acquisition_mode": "PURCHASED",
+                        "attribute": "ORDINARY",
+                        "proof_type": "NONE",
+                        "proof_status": "NOT_PROVIDED",
+                    }
                 ],
                 "proof": "PROOF-X",
+                "other_activity_present": False,
             },
             effective_rule_set=("CAR-RULE-POWER-HEAT-001",),
         )
@@ -324,13 +343,83 @@ class G07UiTests(unittest.TestCase):
         detail = self.records_page.detail_text.toPlainText()
         self.assertIn("标准编号（稳定ID）：gbt_32151_34_2024", detail)
         self.assertIn("标准版本：2024", detail)
-        self.assertIn("12345.678", detail)
+        self.assertIn("【活动数据】", detail)
+        self.assertIn("【排放源】", detail)
+        self.assertIn("【电力明细】", detail)
+        self.assertIn("【证明状态】", detail)
+        self.assertIn("【其他输入】", detail)
+        self.assertIn("活动量：12345.678", detail)
+        self.assertIn("用电量：88.25 MWh", detail)
+        self.assertIn("常规电力", detail)
+        self.assertIn("未提供", detail)
         self.assertIn("PROOF-X", detail)
         self.assertIn("electricity-detail-1", detail)
-        self.assertIn("VALID", detail)
+        self.assertNotIn('"electricity_details"', detail)
+        self.assertNotIn('"activity_amount"', detail)
         self.assertNotIn("原始输入快照字段：", detail)
         self.assertTrue(self.records_page.detail_text.isReadOnly())
 
+    def test_historical_snapshot_stays_stable_after_catalog_parameter_change(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = build_catalog_database(
+                DEFAULT_SOURCE_PATH,
+                Path(directory) / "catalog.sqlite",
+                app_version="g07-history-stability",
+            )
+            catalog_repository = SQLiteCatalogRepository(catalog_path)
+            current_parameter = catalog_repository.list_parameters()[0]
+            base_record = _record("record.ui.catalog-stable")
+            historical_parameter = replace(
+                base_record.parameter_snapshots[0],
+                parameter_id=current_parameter.parameter_id,
+                unit_used=current_parameter.canonical_unit,
+            )
+            record = replace(base_record, parameter_snapshots=(historical_parameter,))
+            self.repository.create_with_details(
+                record,
+                raw_input={
+                    "activity_amount": "12345.678",
+                    "electricity_details": [
+                        {
+                            "detail_id": "history-electricity-1",
+                            "electricity_amount": "88.25",
+                            "electricity_unit": "MWh",
+                            "proof_status": "VALID",
+                        }
+                    ],
+                },
+                effective_rule_set=("CAR-RULE-HISTORY-001",),
+            )
+            self.records_page.search_input.setText(record.record_id)
+            self.application.processEvents()
+            before = self.records_page.detail_text.toPlainText()
+            self.assertIn(current_parameter.parameter_id, before)
+            self.assertIn("12345.678", before)
+
+            connection = sqlite3.connect(catalog_path)
+            try:
+                connection.execute(
+                    "UPDATE parameter_definitions SET name=?, source_location=? WHERE parameter_id=?",
+                    ("已变更的当前 Catalog 参数", "当前目录的新定位", current_parameter.parameter_id),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            changed_parameter = next(
+                item
+                for item in SQLiteCatalogRepository(catalog_path).list_parameters()
+                if item.parameter_id == current_parameter.parameter_id
+            )
+            self.assertEqual(changed_parameter.name, "已变更的当前 Catalog 参数")
+            self.assertEqual(changed_parameter.source_location, "当前目录的新定位")
+
+            self.records_page.refresh_records()
+            self.application.processEvents()
+            after = self.records_page.detail_text.toPlainText()
+            self.assertEqual(after, before)
+            self.assertIn("12345.678", after)
+            self.assertNotIn("已变更的当前 Catalog 参数", after)
+            self.assertNotIn("当前目录的新定位", after)
     def test_default_application_uses_records_sqlite_across_restart(self) -> None:
         with patch.dict(os.environ, {"LOCALAPPDATA": self.directory.name}, clear=False):
             config = AppConfig(log_directory=Path(self.directory.name) / "logs")
