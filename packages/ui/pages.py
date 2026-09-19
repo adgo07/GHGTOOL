@@ -11,6 +11,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QMessageBox,
+    QTextEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -18,6 +21,8 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.core.models import AccountingRecord, RecordStatus
+from packages.core.repositories import RecordRepository
 
 from .design_tokens import WIDE_PAGE_MARGIN
 from .view_models import AppRoute, ShellViewModel
@@ -78,15 +83,17 @@ def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
 
 
 class HomePage(BasePage):
-    """Professional workbench home with safe empty recent-work sections."""
+    """Professional workbench home with records-backed recent-work sections."""
 
     def __init__(
         self,
         view_model: ShellViewModel,
         navigate: Navigate,
         parent: QWidget | None = None,
+        record_repository: RecordRepository | None = None,
     ) -> None:
         super().__init__(AppRoute.HOME, parent)
+        self.record_repository = record_repository
         self.add_header(view_model.home_title, view_model.home_description)
 
         workspace = QWidget(self)
@@ -118,37 +125,14 @@ class HomePage(BasePage):
         standards_button.setCursor(Qt.CursorShape.PointingHandCursor)
         standards_button.clicked.connect(lambda: navigate(AppRoute.STANDARDS))
         start_layout.addWidget(standards_button)
-
         start_layout.addStretch(1)
 
-        recent_work, recent_layout = _card("最近核算记录", workspace)
-        recent_work.setObjectName("recentWorkCard")
-        if view_model.recent_records:
-            for record in view_model.recent_records[:8]:
-                row = QLabel(
-                    f"{record.company_name} · {record.period} · {record.standard} · "
-                    f"{record.emissions} · {record.status}",
-                    recent_work,
-                )
-                row.setObjectName("bodyText")
-                row.setWordWrap(True)
-                recent_layout.addWidget(row)
-        else:
-            empty_title = QLabel("尚无核算记录", recent_work)
-            empty_title.setObjectName("emptyStateTitle")
-            recent_layout.addWidget(empty_title)
-            empty_description = QLabel(
-                "可以通过“新建核算”手工开始。\nExcel 导入功能将在后续版本开放。",
-                recent_work,
-            )
-            empty_description.setObjectName("emptyStateDescription")
-            empty_description.setWordWrap(True)
-            recent_layout.addWidget(empty_description)
-            recent_layout.addStretch(1)
-
+        self.recent_work, self.recent_layout = _card("最近核算记录", workspace)
+        self.recent_work.setObjectName("recentWorkCard")
         workspace_layout.addWidget(start_panel)
-        workspace_layout.addWidget(recent_work, 1)
+        workspace_layout.addWidget(self.recent_work, 1)
         self.body_layout.addWidget(workspace)
+        self.refresh_recent_records()
 
         recent_standards, standards_layout = _card("最近使用标准", self)
         recent_standards.setObjectName("recentStandardsCard")
@@ -170,6 +154,40 @@ class HomePage(BasePage):
         self.body_layout.addWidget(status)
         self.body_layout.addStretch(1)
 
+    def refresh_recent_records(self) -> None:
+        """Refresh the home card from the active records repository."""
+
+        while self.recent_layout.count() > 1:
+            item = self.recent_layout.takeAt(1)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        records = tuple(self.record_repository.list_all()[:8]) if self.record_repository is not None else ()
+        if not records:
+            empty_title = QLabel("尚无核算记录", self.recent_work)
+            empty_title.setObjectName("emptyStateTitle")
+            self.recent_layout.addWidget(empty_title)
+            empty_description = QLabel(
+                "可以通过“新建核算”手工开始。\nExcel 导入功能将在后续版本开放。",
+                self.recent_work,
+            )
+            empty_description.setObjectName("emptyStateDescription")
+            empty_description.setWordWrap(True)
+            self.recent_layout.addWidget(empty_description)
+            self.recent_layout.addStretch(1)
+            return
+        for record in records:
+            period = f"{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}"
+            row = QLabel(
+                f"{record.input_snapshot.enterprise_name or '未填写企业'} · {period} · "
+                f"{record.standard_id} · {record.calculation_result.total_amount} "
+                f"{record.calculation_result.total_unit} · {record.status.value}",
+                self.recent_work,
+            )
+            row.setObjectName("bodyText")
+            row.setWordWrap(True)
+            self.recent_layout.addWidget(row)
+        self.recent_layout.addStretch(1)
 
 class PlaceholderPage(BasePage):
     """Reachable G03 route with no later-stage business implementation."""
@@ -193,6 +211,151 @@ class PlaceholderPage(BasePage):
         self.body_layout.addWidget(card)
         self.body_layout.addStretch(1)
 
+
+class RecordLibraryPage(BasePage):
+    """Read-only record ledger with searchable, auditable deletion."""
+
+    def __init__(self, record_repository: RecordRepository | None, parent: QWidget | None = None) -> None:
+        super().__init__(AppRoute.RECORDS, parent)
+        self.record_repository = record_repository
+        self._records: tuple[AccountingRecord, ...] = ()
+        self.add_header("核算记录", "查看成功核算的不可编辑历史记录；删除只做软删除并保留审计证据。")
+
+        filter_card, filter_layout = _card("检索与筛选", self)
+        filter_row = QHBoxLayout()
+        self.search_input = QLineEdit(filter_card)
+        self.search_input.setObjectName("recordSearchInput")
+        self.search_input.setPlaceholderText("搜索企业名称、记录编号或标准编号")
+        self.search_input.textChanged.connect(self.refresh_records)
+        filter_row.addWidget(self.search_input, 1)
+        self.status_filter = QComboBox(filter_card)
+        self.status_filter.setObjectName("recordStatusFilter")
+        self.status_filter.addItem("全部状态", "ALL")
+        self.status_filter.addItem("已完成", RecordStatus.COMPLETED.value)
+        self.status_filter.addItem("含警告", RecordStatus.COMPLETED_WITH_WARNINGS.value)
+        self.status_filter.currentIndexChanged.connect(self.refresh_records)
+        filter_row.addWidget(self.status_filter)
+        filter_layout.addLayout(filter_row)
+        self.body_layout.addWidget(filter_card)
+
+        content = QWidget(self)
+        content_layout = QHBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(16)
+        self.record_list = QListWidget(content)
+        self.record_list.setObjectName("recordList")
+        self.record_list.currentRowChanged.connect(self._show_selected_record)
+        content_layout.addWidget(self.record_list, 1)
+
+        detail_card, detail_layout = _card("只读详情", content)
+        self.detail_text = QTextEdit(detail_card)
+        self.detail_text.setObjectName("recordDetailView")
+        self.detail_text.setReadOnly(True)
+        detail_layout.addWidget(self.detail_text)
+        self.delete_button = QPushButton("删除记录", detail_card)
+        self.delete_button.setObjectName("deleteRecordButton")
+        self.delete_button.clicked.connect(self._delete_selected)
+        detail_layout.addWidget(self.delete_button)
+        content_layout.addWidget(detail_card, 2)
+        self.body_layout.addWidget(content, 1)
+        self.refresh_records()
+
+    def refresh_records(self, *_args: object) -> None:
+        all_records = tuple(self.record_repository.list_all()) if self.record_repository is not None else ()
+        query = self.search_input.text().strip().casefold()
+        status = self.status_filter.currentData()
+        self._records = tuple(
+            record
+            for record in all_records
+            if (status == "ALL" or record.status.value == status)
+            and (
+                not query
+                or query in record.record_id.casefold()
+                or query in record.standard_id.casefold()
+                or query in (record.input_snapshot.enterprise_name or "").casefold()
+            )
+        )
+        self.record_list.clear()
+        for record in self._records:
+            period = f"{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}"
+            self.record_list.addItem(
+                f"{record.input_snapshot.enterprise_name or '未填写企业'} · {period} · "
+                f"{record.calculation_result.total_amount} {record.calculation_result.total_unit} · "
+                f"{record.status.value}"
+            )
+            self.record_list.item(self.record_list.count() - 1).setData(
+                Qt.ItemDataRole.UserRole, record.record_id
+            )
+        self.delete_button.setEnabled(bool(self._records))
+        if self._records:
+            self.record_list.setCurrentRow(0)
+        else:
+            self.detail_text.setPlainText("暂无符合条件的核算记录。")
+
+    def _show_selected_record(self, row: int) -> None:
+        if row < 0 or row >= len(self._records):
+            self.detail_text.clear()
+            return
+        record = self._records[row]
+        warnings = tuple(
+            problem
+            for problem in (*record.problems, *record.calculation_result.problems)
+            if problem.level.value == "WARNING"
+        )
+        snapshots = "\n".join(
+            f"- {item.parameter_id}：{item.value_used} {item.unit_used}；"
+            f"因子 {item.factor_id or '无'}；来源 {item.source_id or '无'}；"
+            f"理由 {item.selection_reason}"
+            for item in record.parameter_snapshots
+        ) or "- 无参数快照"
+        source_judgments = "\n".join(
+            f"- {item.source_id}：{'涉及' if item.included else '不涉及'}"
+            for item in record.input_snapshot.emission_sources
+        ) or "- 未记录排放源判断"
+        result_lines = "\n".join(
+            f"- {item.line_id}：{item.amount} {item.unit}"
+            for item in record.calculation_result.lines
+        ) or "- 无结果分项"
+        warning_text = "\n".join(f"- {item.code}：{item.message}" for item in warnings) or "- 无"
+        raw_snapshot = getattr(self.record_repository, "get_raw_input_snapshot", lambda _record_id: None)(record.record_id)
+        rule_snapshot = getattr(self.record_repository, "get_effective_rule_set", lambda _record_id: None)(record.record_id)
+        raw_fields = ", ".join(sorted(raw_snapshot)) if isinstance(raw_snapshot, dict) else "未由当前仓储暴露"
+        rule_ids = ", ".join(str(item) for item in (rule_snapshot or {}).get("rule_ids", ())) or "未记录额外规则 ID"
+        self.detail_text.setPlainText(
+            f"记录编号：{record.record_id}\n"
+            f"创建时间：{record.created_at.isoformat()}\n"
+            f"企业名称：{record.input_snapshot.enterprise_name or '未填写企业'}\n"
+            f"核算期间：{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}\n"
+            f"标准版本：{record.standard_id}\n"
+            f"算法版本：{record.algorithm_version}\n"
+            f"状态：{record.status.value}\n"
+            f"总排放量：{record.calculation_result.total_amount} {record.calculation_result.total_unit}\n"
+            f"\n排放源判断：\n{source_judgments}\n"
+            f"\n有效规则集：\n- {rule_ids}\n"
+            f"原始输入快照字段：{raw_fields}\n"
+            f"\n结果分项：\n{result_lines}\n"
+            f"\n参数来源快照：\n{snapshots}\n"
+            f"\n警告：\n{warning_text}\n"
+            "\n本详情只读；历史记录不会被重新计算或覆盖。"
+        )
+    def _delete_selected(self) -> None:
+        row = self.record_list.currentRow()
+        if row < 0 or row >= len(self._records) or self.record_repository is None:
+            return
+        record = self._records[row]
+        answer = QMessageBox.question(
+            self,
+            "确认删除核算记录",
+            f"将删除记录 {record.record_id}。该操作不会物理删除审计证据，是否继续？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        delete = getattr(self.record_repository, "delete", None)
+        if callable(delete):
+            delete(record.record_id, actor="current_user", reason="用户二次确认删除")
+        self.refresh_records()
 
 class ExcelImportPage(BasePage):
     """Non-interactive Excel placeholder; no file or import action is wired."""
@@ -251,11 +414,12 @@ def create_page(
     navigate: Navigate,
     parent: QWidget | None = None,
     catalog_service: CatalogQueryService | None = None,
+    record_repository: RecordRepository | None = None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
     if route is AppRoute.HOME:
-        return HomePage(view_model, navigate, parent)
+        return HomePage(view_model, navigate, parent, record_repository=record_repository)
     if route is AppRoute.EXCEL_IMPORT:
         return ExcelImportPage(parent)
     if route is AppRoute.STANDARDS:
@@ -268,11 +432,14 @@ def create_page(
         return ParameterFactorLibraryPage(
             catalog_service or CatalogQueryService.empty(), navigate, parent
         )
+    if route is AppRoute.RECORDS:
+        return RecordLibraryPage(record_repository, parent)
     if route is AppRoute.NEW_ACCOUNTING:
         from .carbon_material_page import CarbonMaterialAccountingPage
 
         return CarbonMaterialAccountingPage(
             catalog_service=catalog_service or CatalogQueryService.empty(),
+            record_repository=record_repository,
             parent=parent,
         )
 

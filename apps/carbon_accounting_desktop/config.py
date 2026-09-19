@@ -21,6 +21,7 @@ class AppConfig:
     app_version: str = "0.1.0"
     log_directory: Path | None = None
     catalog_database: Path | None = None
+    records_database: Path | None = None
     logo_resource: str = "branding/qingzhou_logo.png"
 
     def resolved_log_directory(self) -> Path:
@@ -49,6 +50,20 @@ class AppConfig:
         if self.catalog_database is not None:
             return self.catalog_database
         return Path(__file__).resolve().parents[2] / "build" / "databases" / "catalog.sqlite"
+
+    def resolved_records_database(self) -> Path:
+        """Resolve the per-user records store without creating it."""
+
+        if self.records_database is not None:
+            return self.records_database
+
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        base_directory = (
+            Path(local_app_data)
+            if local_app_data
+            else Path.home() / "AppData" / "Local"
+        )
+        return base_directory / "QingzhouEnergySuite" / "carbon_accounting" / "data" / "records.sqlite"
 
     def icons_directory(self) -> Path:
         """Resolve the shared SVG navigation icon directory."""

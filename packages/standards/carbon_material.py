@@ -12,6 +12,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Mapping, Sequence
+from uuid import uuid4
 
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError, IssueLevel, ValidationProblem, contains_errors, contains_warnings
@@ -561,21 +562,40 @@ class CarbonMaterialCalculationOutcome:
 
 
 class InMemoryRecordRepository(RecordRepository):
-    """G06-only record boundary; no SQLite or formal persistence is used."""
+    """Ephemeral record store used by tests and callers without records.sqlite."""
 
     def __init__(self) -> None:
         self._records: dict[str, AccountingRecord] = {}
+        self._deleted: set[str] = set()
+        self._audit: list[dict[str, object]] = []
 
     def create(self, record: AccountingRecord) -> None:
         if record.record_id in self._records:
             raise DomainValidationError(f"record already exists: {record.record_id}")
         self._records[record.record_id] = record
+        self._audit.append({"record_id": record.record_id, "action": "CREATE", "actor": "system"})
 
     def get(self, record_id: str) -> AccountingRecord | None:
+        if record_id in self._deleted:
+            return None
         return self._records.get(record_id)
 
     def list_all(self) -> tuple[AccountingRecord, ...]:
-        return tuple(self._records.values())
+        return tuple(record for record_id, record in self._records.items() if record_id not in self._deleted)
+
+    def delete(self, record_id: str, *, actor: str, reason: str) -> bool:
+        if not actor.strip() or not reason.strip():
+            raise DomainValidationError("delete actor and reason are required")
+        if record_id not in self._records or record_id in self._deleted:
+            return False
+        self._deleted.add(record_id)
+        self._audit.append({"record_id": record_id, "action": "DELETE", "actor": actor, "reason": reason})
+        return True
+
+    def list_audit(self, record_id: str | None = None) -> tuple[dict[str, object], ...]:
+        if record_id is None:
+            return tuple(self._audit)
+        return tuple(item for item in self._audit if item.get("record_id") == record_id)
 
 
 def _d(value: str | Decimal | int) -> Decimal:
@@ -835,6 +855,7 @@ class CarbonMaterialCalculator:
         self.units = unit_service or UnitService(self.policy)
         self.parameter_resolver = parameter_resolver
         self.record_repository = record_repository or InMemoryRecordRepository()
+        self._effective_rule_ids: set[str] = set()
 
     def _quantity(self, value: InputValue | None, expected_unit: str, field_id: str, problems: list[ValidationProblem], *, nonnegative: bool = True) -> Decimal | None:
         if value is None:
@@ -970,6 +991,7 @@ class CarbonMaterialCalculator:
             problems.append(_problem("CAR-VAL-PARAMETER-RESOLVER-MISSING", IssueLevel.ERROR, f"参数 {context.parameter_id} 没有接入 G05 参数解析服务。", context.parameter_id))
             return None
         resolution = self.parameter_resolver.resolve(context)
+        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
         problems.extend(resolution.warnings)
         if resolution.blocked or resolution.recommended is None or resolution.selection_method is None:
             return None
@@ -1074,6 +1096,7 @@ class CarbonMaterialCalculator:
         if not isinstance(input_value, CarbonMaterialInput):
             raise DomainValidationError("input_value must be a CarbonMaterialInput")
         snapshot_at = calculated_at or datetime.now(timezone.utc)
+        self._effective_rule_ids = set()
         if snapshot_at.tzinfo is None:
             raise DomainValidationError("calculated_at must be timezone-aware")
         problems: list[ValidationProblem] = []
@@ -1268,6 +1291,8 @@ class CarbonMaterialCalculator:
                         problems.append(_problem("CAR-VAL-ELECTRICITY-ATTRIBUTE", IssueLevel.ERROR, "自发自用常规电力不能直接进入购入电力路径；应明确非化石证明或转交燃料路径。", detail.detail_id))
                         continue
                     resolution = self.parameter_resolver.resolve_electricity_details((detail,), snapshot_at=snapshot_at)[0]
+                    if resolution.parameter_resolution is not None:
+                        self._effective_rule_ids.update(resolution.parameter_resolution.effective_rules.rule_ids)
                     if resolution.route is ElectricityResolutionRoute.DELEGATE_DIRECT_FUEL_PATH:
                         continue
                     problems.extend(self._map_electricity_resolution_problems(detail.detail_id, resolution.problems))
@@ -1350,8 +1375,16 @@ class CarbonMaterialCalculator:
                 emission_sources=tuple(EmissionSourceSelection(item.source_id, item.status is EmissionSourceStatus.INVOLVED) for item in input_value.source_states),
             )
             status = RecordStatus.COMPLETED_WITH_WARNINGS if contains_warnings(problems) else RecordStatus.COMPLETED
-            record = AccountingRecord("record." + input_value.input_id, STANDARD_ID, ALGORITHM_VERSION, snapshot_at, generic_input, calculation_result, status, tuple(snapshots), tuple(problems))
-            self.record_repository.create(record)
+            record = AccountingRecord(f"record.{input_value.input_id}.{uuid4().hex}", STANDARD_ID, ALGORITHM_VERSION, snapshot_at, generic_input, calculation_result, status, tuple(snapshots), tuple(problems))
+            create_with_details = getattr(self.record_repository, "create_with_details", None)
+            if callable(create_with_details):
+                create_with_details(
+                    record,
+                    raw_input=input_value,
+                    effective_rule_set=tuple(sorted(self._effective_rule_ids)),
+                )
+            else:
+                self.record_repository.create(record)
         return CarbonMaterialCalculationOutcome(input_value, calculation_result, tuple(problems), tuple(snapshots), tuple(traces), ALGORITHM_VERSION, record)
 
 

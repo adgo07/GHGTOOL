@@ -62,7 +62,7 @@ from .parameter_resolution import (
     ResolvedParameterValue,
     default_g05_rules,
 )
-from .repositories import ParameterRepository, RecordRepository, RuleRepository, SettingsRepository, StandardRepository
+from .repositories import ParameterRepository, RecordLifecycleRepository, RecordRepository, RuleRepository, SettingsRepository, StandardRepository
 from .rules import (
     EffectiveRuleResolver,
     EffectiveRuleSet,
@@ -122,6 +122,7 @@ __all__ = [
     "ParameterType",
     "ParameterValueCategory",
     "PeriodType",
+    "RecordLifecycleRepository",
     "RecordRepository",
     "RecordStatus",
     "ReviewStatus",

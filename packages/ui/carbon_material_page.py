@@ -9,7 +9,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QListWidget,
     QPushButton,
     QSpinBox,
@@ -61,6 +62,7 @@ from packages.standards.carbon_material import (
 )
 from packages.core.models import AccountingPeriod, ReviewStatus, ValueType
 from packages.core.parameter_resolution import ParameterResolutionContext
+from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
 from .view_models import AppRoute
@@ -207,10 +209,13 @@ class _ElectricityRow(QWidget):
 class CarbonMaterialAccountingPage(BasePage):
     """Long, scrollable G06 work sheet for the only implemented industry standard."""
 
+    record_created = Signal(str)
+
     def __init__(
         self,
         catalog_service: CatalogQueryService | None = None,
         calculator: CarbonMaterialCalculator | None = None,
+        record_repository: RecordRepository | None = None,
         standard_id: str = STANDARD_ID,
         parent: QWidget | None = None,
     ) -> None:
@@ -223,7 +228,7 @@ class CarbonMaterialAccountingPage(BasePage):
             resolver = None
         self._parameter_resolver = resolver
         if calculator is None:
-            calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
+            calculator = CarbonMaterialCalculator(parameter_resolver=resolver, record_repository=record_repository)
         self.calculator = calculator
         self.standard_id = standard_id
         self._calculation_index = 0
@@ -233,6 +238,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._material_controls: dict[str, dict[str, QWidget]] = {}
         self._heat_factor_records = {}
         self._build_page()
+        self._input_dirty = False
+        self._install_dirty_tracking()
 
     def set_standard_id(self, standard_id: str) -> None:
         self.standard_id = standard_id
@@ -241,7 +248,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self._refresh_heat_factor_details()
 
     def _build_page(self) -> None:
-        self.add_header("新建核算", "GB/T 32151.34-2024 炭素材料生产企业手工核算；结果仅在本阶段内存验证。")
+        self.add_header("新建核算", "GB/T 32151.34-2024 炭素材料生产企业手工核算；成功计算后立即形成不可编辑核算记录。")
 
         identity, identity_layout = _card("01 核算信息", self)
         form = QFormLayout()
@@ -491,6 +498,10 @@ class CarbonMaterialAccountingPage(BasePage):
         row.amount.textChanged.connect(lambda _text: self._refresh_electricity_rows())
         for combo in (row.acquisition, row.attribute, row.proof_type, row.proof_status):
             combo.currentIndexChanged.connect(lambda _index: self._refresh_electricity_rows())
+        row.detail_id.textChanged.connect(self._mark_input_dirty)
+        row.amount.textChanged.connect(self._mark_input_dirty)
+        for combo in (row.acquisition, row.attribute, row.proof_type, row.proof_status):
+            combo.currentIndexChanged.connect(self._mark_input_dirty)
 
     def _remove_electricity_row(self, row: QWidget) -> None:
         if row in self._electricity_rows:
@@ -879,6 +890,45 @@ class CarbonMaterialAccountingPage(BasePage):
             exported_heat=self._heat("exported_heat", heat_factor),
         )
 
+    def _install_dirty_tracking(self) -> None:
+        for widget in self.findChildren(QWidget):
+            if isinstance(widget, QLineEdit):
+                widget.textChanged.connect(self._mark_input_dirty)
+            elif isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(self._mark_input_dirty)
+            elif isinstance(widget, QSpinBox):
+                widget.valueChanged.connect(self._mark_input_dirty)
+            elif isinstance(widget, QCheckBox):
+                widget.toggled.connect(self._mark_input_dirty)
+
+    def _mark_input_dirty(self, *_args: object) -> None:
+        self._input_dirty = True
+
+    def confirm_discard_if_needed(self) -> bool:
+        """Ask before abandoning input that has not produced a successful record."""
+
+        if not self._input_dirty:
+            return True
+        answer = QMessageBox.question(
+            self,
+            "放弃未计算输入",
+            "当前页面有尚未成功计算的输入；离开后这些输入将被丢弃，是否继续？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer is not QMessageBox.StandardButton.Yes:
+            return False
+        for edit in self.findChildren(QLineEdit):
+            if not edit.objectName().startswith("electricityDetailId"):
+                edit.clear()
+        for check in self.findChildren(QCheckBox):
+            check.setChecked(False)
+        self.validation_list.clear()
+        self.result_total.setText("未计算")
+        self.result_breakdown.clear()
+        self.trace_output.setText("点击“计算排放量”后显示公式、变量和分项结果。")
+        self._input_dirty = False
+        return True
     def _run_calculation(self) -> None:
         self.validation_list.clear()
         if not self.enterprise_name.text().strip():
@@ -903,9 +953,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_breakdown.setText(
             f"直接排放 ES：{by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0'))} tCO2；"
             f"间接排放 EI：{by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0'))} tCO2；"
-            f"状态：{'可形成内存核算记录' if outcome.successful else '存在阻断问题'}"
+            f"状态：{'已生成正式核算记录' if outcome.record is not None else '存在阻断问题'}"
         )
         self.parameter_snapshot_summary.setText(f"已形成 {len(outcome.parameter_snapshots)} 条参数快照；算法版本 {ALGORITHM_VERSION}。")
+        if outcome.record is not None:
+            self._input_dirty = False
+            self.record_created.emit(outcome.record.record_id)
         trace_lines = [f"{trace.formula_id}：{trace.substitution} = {trace.amount} tCO2" for trace in outcome.traces]
         self.trace_output.setText("\n".join(trace_lines) if trace_lines else "无可展示计算过程。")
 

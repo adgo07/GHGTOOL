@@ -43,6 +43,17 @@ class RecordRepository(Protocol):
 
 
 @runtime_checkable
+class RecordLifecycleRepository(Protocol):
+    """Optional record-store lifecycle operations owned by the application edge."""
+
+    def delete(self, record_id: str, *, actor: str, reason: str) -> bool:
+        """Soft-delete one record and append an audit entry."""
+
+    def list_audit(self, record_id: str | None = None) -> Sequence[object]:
+        """Return audit entries for one record or the whole record store."""
+
+
+@runtime_checkable
 class SettingsRepository(Protocol):
     def load(self) -> Settings:
         """Load user settings from the implementation-selected store."""

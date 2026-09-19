@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.core.repositories import RecordRepository
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
@@ -64,6 +65,7 @@ class AppShell(QWidget):
         page_factory: PageFactory | None = None,
         parent: QWidget | None = None,
         catalog_service: CatalogQueryService | None = None,
+        record_repository: RecordRepository | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -71,6 +73,7 @@ class AppShell(QWidget):
         self._logo_path = logo_path
         self._icon_directory = icon_directory
         self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.record_repository = record_repository
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
@@ -94,6 +97,7 @@ class AppShell(QWidget):
                     self.navigate,
                     self,
                     catalog_service=self.catalog_service,
+                    record_repository=self.record_repository,
                 )
             else:
                 page = self._page_factory(item.route, view_model, self.navigate, self)
@@ -102,6 +106,9 @@ class AppShell(QWidget):
             accounting_requested = getattr(page, "accounting_requested", None)
             if accounting_requested is not None:
                 accounting_requested.connect(self._request_standard_accounting)
+            record_created = getattr(page, "record_created", None)
+            if record_created is not None:
+                record_created.connect(self._refresh_record_views)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
@@ -119,7 +126,21 @@ class AppShell(QWidget):
         return self.router.current_route
 
     def navigate(self, route: AppRoute) -> None:
+        if self.current_route is AppRoute.NEW_ACCOUNTING and route is not AppRoute.NEW_ACCOUNTING:
+            page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+            confirm = getattr(page, "confirm_discard_if_needed", None)
+            if callable(confirm) and not confirm():
+                return
         self.router.navigate(route)
+
+    def _refresh_record_views(self, _record_id: str | None = None) -> None:
+        for page in self._pages.values():
+            refresh = getattr(page, "refresh_recent_records", None)
+            if callable(refresh):
+                refresh()
+            refresh = getattr(page, "refresh_records", None)
+            if callable(refresh):
+                refresh()
 
     def _request_standard_accounting(self, standard_id: str) -> None:
         """Keep the selected catalog version while routing to the future input page."""
