@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G06 GB/T 32151.34—2024 手工录入、专业校验与高精度计算（本轮返工完成，等待 Sol 重新验收）
+G07 核算记录与审计闭环（验收返工完成，等待 Sol 重新验收）
 
 ## 前置验收与阶段边界
 
@@ -1135,3 +1135,31 @@ G07 核算记录与审计闭环。
 验收前工作区仅有既有未跟踪 `docs/handoffs/`；`计算表/` 无差异，未发现 G08 越界。本次只修改验收文档，不修改业务代码、外部标准或用户文件。
 
 G07 未通过，不允许进入 G08；修正完成后应发送“重新验收G07”。
+
+## G07 验收返工实施报告（2026-09-19）
+
+### 范围与结果
+
+本轮仅处理 G07 FAIL 的默认持久化、标准版本、只读详情和未计算输入生命周期问题；实现与测试提交为 `b12a75b`。未创建或执行 G08，未修改 schema_version、数据库迁移或“计算表/”，未处理既有未跟踪 `docs/handoffs/`。
+
+- `create_shell(AppConfig())` 默认装配 `SQLiteRecordRepository(config.resolved_records_database())`，正式应用关闭并重新创建后仍从同一 `records.sqlite` 读取记录；显式仓储注入仍用于隔离测试。
+- Domain/SQLite/详情页分离保存并展示稳定标准编号和 Canonical 版本，GB/T 32151.34—2024 的版本为 `2024`，不再把 `standard_id` 冒充版本。
+- 记录详情将 `raw_input_snapshot_json` 格式化为只读实际值，展示活动数据、电力明细、证明状态等历史快照，避免只显示字段名或读取当前页面状态。
+- 新建核算页面增加完整重置路径，覆盖期间、组合框、排放源状态、材料基准/证明、动态电力行、结果、校验、快照提示和计算索引；Shell 导航与主窗口关闭复用确认门禁，取消会阻止动作。
+- 测试补足默认应用闭环、SQLite 重启持久化、真实标准版本、详情快照、完整丢弃、导航取消/确认和关闭取消/确认；既有 GUI 测试显式使用内存仓储避免污染用户数据库。
+
+### 测试与检查
+
+- G07 定向：`.venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；11/11 通过。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；114/114 通过。
+- `compileall`：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- `pip check`：`.venv\Scripts\python.exe -m pip check`；无损坏依赖。
+- Canonical：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功并已清理专用临时目录；`git diff --check` 通过；`计算表/` 无差异。
+- 未执行 pytest，因为项目测试基线为 unittest；未执行 G08 构建、安装产物或交付测试，因为 G08 尚未获准。
+
+### 提交与等待
+
+- 实现/测试：`b12a75b fix: close G07 persistence and input lifecycle gaps`。
+- 文档更新后仅保留既有未跟踪 `docs/handoffs/`，未纳入提交。
+- 当前状态为等待 Sol 重新验收 G07；不得开始 G08。

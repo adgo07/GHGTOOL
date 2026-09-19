@@ -6,7 +6,7 @@ G07 核算记录与审计闭环
 
 ## 状态
 
-G07_SOL_ACCEPTANCE_FAILED
+G07_REWORK_READY_FOR_SOL_REACCEPTANCE
 
 ## 阶段验收状态
 
@@ -39,6 +39,8 @@ G07_SOL_ACCEPTANCE_FAILED
 
 - G07 实施完成（2026-09-19）；实现提交为 `707c59a`，当前停止等待 Sol 验收；G08 未创建、未执行。
 - G07 正式验收结论：FAIL（2026-09-19）；被验收 HEAD 为 `8510c2128a43f88605d3f35e8238ab51246bdc37`。默认应用仍使用内存记录仓库、标准版本保存错误、只读详情未展示实际输入值，且未计算输入未完整丢弃/关闭软件无提示；不允许进入 G08。
+- G07 验收返工完成（2026-09-19）；实现与测试提交为 `b12a75b`，默认 records.sqlite、真实标准版本、只读实际快照、完整丢弃和关闭门禁均已修正，当前等待 Sol 重新验收；G08 未创建、未执行。
+
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
 问题：
@@ -694,3 +696,33 @@ G06已通过，允许由用户另行启动G07；本次未启动G07。
 - 本次只记录验收结论，不修改业务代码，不创建或执行 G08。
 
 G07 未通过，不允许进入 G08。请 Luna 只修正上述 G07 未通过项并补充真实默认启动、重启持久化、标准版本、完整详情、完整丢弃和关闭提示测试；修正完成后发送“重新验收G07”。
+
+## G07 验收返工实施状态（2026-09-19）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+本轮仅修正 Sol G07 正式验收指出的四类业务缺口和测试缺口；未创建或执行 G08，未修改 schema_version、数据库迁移或“计算表/”，未处理既有未跟踪 `docs/handoffs/`。
+
+### 已完成
+
+- 正式应用入口在未显式注入仓储时默认创建用户数据目录下的 `records.sqlite` 仓储；测试和调用方仍可显式注入内存仓储。
+- `AccountingRecord` 保存独立的 Canonical `standard_version`；GB/T 32151.34—2024 当前保存版本为 `2024`，同时保留稳定 `standard_id`，列表详情分别展示编号和版本。
+- 记录详情以只读 JSON 展示 records.sqlite 中保存的实际输入快照值，包括活动量、电力明细、证明状态和其他输入，不回查当前页面状态。
+- 离开未计算页面和关闭主窗口均经过同一确认门禁；确认丢弃后完整重置期间、下拉项、排放源状态、材料基准、证明字段、动态电力明细、结果、校验和内部计算索引；取消则保留页面并阻止导航/关闭。
+- 既有 G00-G06 页面测试显式注入隔离内存仓储，新增测试覆盖真实默认启动、关闭并重启后的 records.sqlite 持久化、真实标准版本、详情快照、完整丢弃和关闭确认。
+
+### 验证结果
+
+- G07 定向：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；11/11 通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；114/114 通过，0 个失败，0 个错误，0 个跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir tmp\g07-rework-final-databases-20260919 --app-version g07-rework-final`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 均生成成功，专用临时目录已清理。
+- `git diff --check` 通过；`git diff --name-only -- '计算表/**'` 无输出；未执行 pytest、G08 构建或安装交付检查，原因是项目测试基线为 unittest 且 G08 仍受阶段门禁禁止。
+
+### Git 与阶段门禁
+
+- 实现与测试提交：`b12a75b fix: close G07 persistence and input lifecycle gaps`。
+- 本轮文档更新后，工作区仅保留既有未跟踪 `docs/handoffs/`；该目录未处理、未纳入提交。
+- G08 未创建、未执行；当前停止等待 Sol 重新验收 G07。
