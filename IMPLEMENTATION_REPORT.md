@@ -1163,3 +1163,24 @@ G07 未通过，不允许进入 G08；修正完成后应发送“重新验收G07
 - 实现/测试：`b12a75b fix: close G07 persistence and input lifecycle gaps`。
 - 文档更新后仅保留既有未跟踪 `docs/handoffs/`，未纳入提交。
 - 当前状态为等待 Sol 重新验收 G07；不得开始 G08。
+
+## G07 历史详情小修实施报告（2026-09-19）
+
+### 修正内容
+
+本轮仅处理 G07 剩余两项展示与测试缺口，实现/测试提交为 `d6e4d91`。未创建或执行 G08，未修改 schema_version、数据库迁移或“计算表/”，未处理既有未跟踪 `docs/handoffs/`。
+
+- `RecordLibraryPage` 将 records.sqlite 中的不可变原始输入快照转换为五个业务分组：活动数据、排放源、电力明细、证明状态、其他输入；数量/单位、取得方式、电力属性、证明状态和常见参数字段均使用面向用户的中文标签，未改变历史数据本身。
+- `tests.test_g07_records.G07UiTests.test_historical_snapshot_stays_stable_after_catalog_parameter_change` 在独立 Catalog 中修改当前参数名称和来源定位，随后刷新详情并断言完整详情文本不变，锁定历史记录不回查或覆盖当前 Catalog。
+
+### 验证结果
+
+- G07 定向：12/12 通过。
+- 全量回归：115/115 通过。
+- compileall 成功；pip check 为 `No broken requirements found.`。
+- Canonical 校验：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功并清理临时目录；`git diff --check` 通过；`计算表/` 无差异。
+
+### 等待状态
+
+当前停止等待 Sol 重新验收 G07；G08 仍未创建、未执行。

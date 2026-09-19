@@ -40,6 +40,7 @@ G07_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G07 实施完成（2026-09-19）；实现提交为 `707c59a`，当前停止等待 Sol 验收；G08 未创建、未执行。
 - G07 正式验收结论：FAIL（2026-09-19）；被验收 HEAD 为 `8510c2128a43f88605d3f35e8238ab51246bdc37`。默认应用仍使用内存记录仓库、标准版本保存错误、只读详情未展示实际输入值，且未计算输入未完整丢弃/关闭软件无提示；不允许进入 G08。
 - G07 验收返工完成（2026-09-19）；实现与测试提交为 `b12a75b`，默认 records.sqlite、真实标准版本、只读实际快照、完整丢弃和关闭门禁均已修正，当前等待 Sol 重新验收；G08 未创建、未执行。
+- G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -726,3 +727,28 @@ G07 未通过，不允许进入 G08。请 Luna 只修正上述 G07 未通过项�
 - 实现与测试提交：`b12a75b fix: close G07 persistence and input lifecycle gaps`。
 - 本轮文档更新后，工作区仅保留既有未跟踪 `docs/handoffs/`；该目录未处理、未纳入提交。
 - G08 未创建、未执行；当前停止等待 Sol 重新验收 G07。
+
+## G07 历史详情小修实施状态（2026-09-19）
+
+**READY_FOR_SOL_REACCEPTANCE**
+
+本轮只处理 Sol 指出的两项 G07 小修；未创建或执行 G08，未修改 schema_version、数据库迁移或“计算表/”，未处理既有未跟踪 `docs/handoffs/`。
+
+### 已完成
+
+- 历史记录详情不再直接展示格式化 JSON；从冻结 `raw_input_snapshot_json` 生成面向普通用户的只读分组：活动数据、排放源、电力明细、证明状态、其他输入。电力取得方式、属性、数量和单位使用业务标签展示，内部枚举值转换为中文，实际历史值仍来自记录快照。
+- 新增稳定性回归：生成记录后修改隔离测试 Catalog 的参数名称和来源定位，再刷新历史详情；详情文本保持完全一致，历史参数快照、活动量和其他输入不受当前 Catalog 变化影响。
+
+### 验证结果
+
+- G07 定向：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；12/12 通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；115/115 通过，0 个失败，0 个错误，0 个跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功并清理专用临时目录；`git diff --check` 通过；`git diff --name-only -- '计算表/**'` 无输出。
+
+### Git 与阶段门禁
+
+- 实现与测试提交：`d6e4d91 fix: refine G07 history snapshot details`。
+- 当前等待 Sol 重新验收 G07；G08 未创建、未执行。
