@@ -1228,3 +1228,45 @@ G07 当前结论为 PASS WITH MINOR FIXES，不允许进入 G08。完成两项�
 ### 等待状态
 
 当前停止等待 Sol 重新验收 G07；G08 仍未创建、未执行。
+
+
+## G07 Sol 最终正式重新验收结论（2026-09-19）
+
+### 结论
+
+**PASS**
+
+被验收 HEAD：`7e3573dfd7fc105cc013c07028c5eb8815836569`。
+
+### 关键核对事项
+
+- 上次 `PASS WITH MINOR FIXES` 的两项要求均已关闭：
+  - 历史记录详情从原始 JSON 改为五个面向用户的中文业务分组，实际值仍来自 records.sqlite 冻结快照。
+  - 新增 Catalog 变化后的历史详情稳定性回归，历史详情不会被当前 Catalog 参数名称或来源定位变化污染。
+- G07 原有记录事务、失败回滚、两种成功状态、唯一新记录 ID、只读历史、参数/规则/输入快照、审计软删除、未计算输入丢弃门禁和首页最近记录路径保持有效。
+- 本轮实现提交 `d6e4d91 fix: refine G07 history snapshot details` 只修改 `packages/ui/pages.py` 和 `tests/test_g07_records.py`；后续文档/合并提交保留验收记录，没有修改数据库 schema、Canonical 数据、计算算法或标准参数。
+- 未发现 G08、报告导出、历史编辑、基于历史记录重新核算等越界实现。
+- 国家标准全文公开系统复核 `GB/T 32151.34-2024` 状态仍为现行，发布日期 2024-08-23，实施日期 2025-03-01；本轮未修改任何标准口径。
+
+### 测试证据
+
+项目本地最新执行记录：
+
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`：12/12 通过，0 失败，0 错误，0 跳过。
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：115/115 通过，0 失败，0 错误，0 跳过。
+- `.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功；验收临时目录已清理；`git diff --check` 通过；`计算表/` 无差异。
+
+Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结的 Python 3.12 + PySide6 环境独立重跑 GUI 测试；GitHub 当前提交也没有 workflow run 可替代。本次没有将上述测试数字冒充为 Sol 本容器执行结果，而是结合项目落盘测试记录、当前 HEAD 源码/测试逐项复核和官方标准来源核对进行最终验收。
+
+### Git、范围与门禁
+
+- 验收前 `main` HEAD：`7e3573dfd7fc105cc013c07028c5eb8815836569`。
+- 最近 5 个提交：`7e3573d`、`3766294`、`d6e4d91`、`bcdb661`、`c4677a5`。
+- 从上次验收提交 `bcdb661` 到本 HEAD 仅修改 `packages/ui/pages.py`、`tests/test_g07_records.py`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`。
+- 本次 Sol 只修改两份验收文档，不修改业务代码、标准数据或用户文件。
+- 按用户本轮说明，本地与远端提交一致，`docs/handoffs/` 仍未上传，`计算表/` 未修改。
+
+**G07已通过，允许由用户另行启动G08；本次未启动G08。**

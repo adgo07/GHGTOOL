@@ -6,7 +6,7 @@ G07 核算记录与审计闭环
 
 ## 状态
 
-G07_REWORK_READY_FOR_SOL_REACCEPTANCE
+G07_PASS_WAITING_USER_TO_START_G08
 
 ## 阶段验收状态
 
@@ -42,6 +42,7 @@ G07_REWORK_READY_FOR_SOL_REACCEPTANCE
 - G07 验收返工完成（2026-09-19）；实现与测试提交为 `b12a75b`，默认 records.sqlite、真实标准版本、只读实际快照、完整丢弃和关闭门禁均已修正，当前等待 Sol 重新验收；G08 未创建、未执行。
 - G07 正式重新验收结论：PASS WITH MINOR FIXES（2026-09-19）；被验收 HEAD 为 `c4677a59f1d09f77d7294cd3bb500a9875815651`。核心 G07 闭环已关闭，但记录详情仍以内部 JSON 原样展示，且缺少“修改当前 Catalog 后历史展示不变”的直接回归测试；本验收环境也未能独立复跑 PySide6 自动测试。因此 G08 仍不得启动，小修并补充可复验测试证据后应发送“重新验收G07”。
 - G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
+- G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -798,3 +799,65 @@ G07 当前结论为 PASS WITH MINOR FIXES，不允许进入 G08。完成上述�
 
 - 实现与测试提交：`d6e4d91 fix: refine G07 history snapshot details`。
 - 当前等待 Sol 重新验收 G07；G08 未创建、未执行。
+
+
+## G07 Sol 最终正式重新验收结论（2026-09-19）
+
+### 结论
+
+**PASS**
+
+被验收 HEAD：`7e3573dfd7fc105cc013c07028c5eb8815836569`（`merge: preserve remote G07 acceptance findings`）。
+
+本次以 GitHub `main` 当前已提交树为验收对象，并以此前 G07 已通过项为基础，重点重新核对上次 `PASS WITH MINOR FIXES` 的两项小修、对应测试、提交范围及 G08 阶段门禁。
+
+### 两项小修复核
+
+1. **历史详情业务化分组：通过。** `packages/ui/pages.py` 不再直接显示内部 JSON；历史 `raw_input_snapshot_json` 被转换为“活动数据、排放源、电力明细、证明状态、其他输入”五个只读分组。常见字段和枚举值使用中文业务标签；数据仍读取 records.sqlite 中冻结的历史快照，没有改写记录、回查当前页面输入或改变计算口径。
+2. **Catalog 变化后的历史稳定性回归：通过。** `tests/test_g07_records.py` 新增 `test_historical_snapshot_stays_stable_after_catalog_parameter_change`：先生成历史记录，再修改隔离 Catalog 中当前参数名称和来源定位，刷新历史记录后断言完整详情保持不变，并确认修改后的当前 Catalog 文本不会进入历史详情。结合 `RecordLibraryPage` 本身不依赖 Catalog 查询的实现，满足 HANDOFF 的“修改 catalog 当前参数后，历史记录展示不改变”验收条件。
+
+### G07 其余 MUST 与验收条件复核
+
+- 正式应用默认使用用户数据目录 `records.sqlite`，成功计算形成不可编辑新记录。
+- 成功记录主体、输入/结果/参数/有效规则快照及 CREATE 审计使用单一 SQLite 事务；审计失败会回滚，不产生半条记录。
+- ERROR 不生成成功记录；支持 `COMPLETED` 和 `COMPLETED_WITH_WARNINGS`。
+- 同一输入连续成功计算生成不同记录 ID，旧记录不覆盖。
+- `standard_id` 与真实 `standard_version` 分开保存；GB/T 32151.34—2024 保存版本为 `2024`。
+- 记录列表具备搜索/状态筛选，详情只读；历史输入、排放源判断、结果、参数来源、有效规则和警告均来自记录快照。
+- 删除需要二次确认，采用软删除并写 DELETE 审计；默认列表隐藏已删除记录，审计证据保留。
+- 未计算输入离开页面和关闭主窗口均执行确认门禁；确认后完整恢复新核算状态。
+- 首页最近记录从同一 records 仓储读取。
+- 未发现基于记录重新核算、恢复已删除记录 UI、报告/导出、历史编辑或 G08 Windows 交付内容提前实施。
+
+### 原始标准/官方来源核对
+
+- 国家标准全文公开系统当前记录确认：`GB/T 32151.34-2024`《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》状态为“现行”，发布日期 `2024-08-23`，实施日期 `2025-03-01`。
+- 本轮小修只涉及历史详情展示和回归测试，没有修改标准公式、Canonical 参数、排放因子、标准版本数据或数据库迁移。
+
+### 测试与复验情况
+
+项目本地实施记录（已落盘）：
+
+- G07 定向：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；**12/12 通过，0 失败，0 错误，0 跳过**。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**115/115 通过，0 失败，0 错误，0 跳过**。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功，专用临时目录已清理；`git diff --check` 通过；`git diff --name-only -- '计算表/**'` 无输出。
+
+Sol 当前执行环境限制：
+
+- 当前验收容器为 Python `3.13.5`，项目冻结要求为 Python `>=3.12,<3.13`。
+- 当前容器没有 PySide6，且没有可用的项目 Python 3.12 运行时；GitHub 当前提交也没有 Actions workflow run 可作为替代的独立远端执行环境。
+- 因此本次没有把 12/12 与 115/115 表述为 Sol 在本容器内重新执行的结果；这些是项目本地已经执行并写入阶段文件的真实测试记录。本次 Sol 对新增代码、测试逻辑、提交范围、已有 G07 事务/记录路径和官方标准来源进行了独立复核，未发现与测试记录相矛盾的证据。
+
+### Git、范围与阶段门禁
+
+- 验收前 GitHub `main` HEAD：`7e3573dfd7fc105cc013c07028c5eb8815836569`。
+- 最近 5 个提交：`7e3573d`、`3766294`、`d6e4d91`、`bcdb661`、`c4677a5`。
+- 从上次验收提交 `bcdb661` 到本次被验收 HEAD 只涉及：`packages/ui/pages.py`、`tests/test_g07_records.py`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`。
+- 未修改数据库 schema、Canonical 数据、计算公式或标准参数；未发现 G08 实施。
+- GitHub 只能核对已提交树，无法读取用户开发机未跟踪文件；按用户本轮说明，本地与远端提交一致，`docs/handoffs/` 仍未上传，`计算表/` 未修改。
+- 本次验收只更新 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`，不修改业务代码、测试代码、标准数据或用户文件。
+
+**G07已通过，允许由用户另行启动G08；本次未启动G08。**
