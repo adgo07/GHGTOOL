@@ -1298,4 +1298,5 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 
 ### 当前门禁
 
-实现、测试和报告完成后提交并推送 `gxx-implementation`，创建目标为 `main` 的 Pull Request，等待 GitHub Windows CI 检查完成。当前不启动 G09；待 PR 检查与 Sol 预验收。
+- 候选实现提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
+- 下一步：推送 `gxx-implementation`，创建目标为 `main` 的 Pull Request，等待 GitHub Windows CI 检查完成；当前不启动 G09，待 Sol 预验收。

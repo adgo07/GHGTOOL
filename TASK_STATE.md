@@ -43,7 +43,7 @@ G08_IMPLEMENTED_WAITING_PRE_ACCEPTANCE
 - G07 正式重新验收结论：PASS WITH MINOR FIXES（2026-09-19）；被验收 HEAD 为 `c4677a59f1d09f77d7294cd3bb500a9875815651`。核心 G07 闭环已关闭，但记录详情仍以内部 JSON 原样展示，且缺少“修改当前 Catalog 后历史展示不变”的直接回归测试；本验收环境也未能独立复跑 PySide6 自动测试。因此 G08 仍不得启动，小修并补充可复验测试证据后应发送“重新验收G07”。
 - G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
 - G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
-- G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现提交 SHA 将在提交后补录。
+- G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现与测试提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
