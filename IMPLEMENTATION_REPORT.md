@@ -983,3 +983,111 @@ G06 未通过，不允许进入 G07。本次只记录验收结论，没有修改
 验收开始前工作区只有既有未跟踪 `docs/handoffs/`。本次只修改验收文档，不修改业务代码、冻结映射或 `计算表/`，未创建或执行 G07。
 
 G06已通过，允许由用户另行启动G07；本次未启动G07。
+
+## G07 实施报告（2026-09-19）
+
+### 阶段
+
+G07 核算记录与审计闭环。
+
+### 本轮完成
+
+- 按 HANDOFF.md 仅实施 G07；G08 未创建、未执行。
+- 计算器成功路径生成唯一记录 ID，并将完整 G06 原始输入通过 records 仓储保存；ERROR 路径不生成成功记录。
+- 新增 `migrations/records/002_g07_record_lifecycle.sql`，在不修改 001 初始迁移的前提下增加原始输入快照、有效规则集快照、软删除字段和索引。
+- 新增 `SQLiteRecordRepository`：记录与全部 JSON 快照、CREATE 审计在同一 `BEGIN IMMEDIATE` 事务中写入；任一写入失败回滚；读取返回不可变 Domain 对象。
+- 有效规则快照保存实际解析到的稳定规则 ID以及参数快照 ID；原始输入快照保存完整 G06 输入对象的 JSON 表示；参数快照保留值、单位、因子、来源、版本、定位、选择方式和理由。
+- 支持 `COMPLETED`、`COMPLETED_WITH_WARNINGS`；连续相同输入成功计算生成不同记录 ID；历史记录从不更新覆盖。
+- 软删除只更新删除标记并追加 DELETE 审计，默认 `list_all()`/`get()` 隐藏已删除记录，记录 ID 不可复用，审计证据保留。
+- 应用正式入口解析用户数据目录 `records.sqlite`；测试和显式无 records 配置使用隔离内存仓储，保持 G06 既有测试边界。
+- 新增核算记录台账页面：按企业/记录/标准搜索、按状态筛选、只读详情；详情展示核算身份、标准/算法、来源判断、有效规则、结果分项、参数来源快照、输入快照字段和警告。
+- 首页最近核算记录从同一 records 仓储读取；成功生成记录后 Shell 刷新首页和台账。
+- 新建核算页面增加未计算输入离开确认；选择丢弃后清理当前输入，不生成记录；删除操作要求二次确认并写审计。
+
+### 未完成
+
+- 无 G07 MUST 未完成。
+- Sol 正式验收尚未进行；当前停止等待验收。
+- G08、报告/导出、基于记录重新核算、恢复已删除记录 UI、历史记录编辑均未实施，符合 G07 OUT OF SCOPE。
+
+### 与 HANDOFF 的偏差
+
+- 无。未修改 `计算表/`，未处理既有 `docs/handoffs/`，未改变 G06 公式、Canonical 数据或既有 schema_version；仅新增 records 数据库 002 迁移以实现 G07 生命周期。
+
+### 修改文件
+
+- `apps/carbon_accounting_desktop/app.py`
+- `apps/carbon_accounting_desktop/config.py`
+- `apps/carbon_accounting_desktop/product.py`
+- `migrations/records/002_g07_record_lifecycle.sql`
+- `packages/core/__init__.py`
+- `packages/core/repositories.py`
+- `packages/persistence/__init__.py`
+- `packages/persistence/records_repository.py`
+- `packages/standards/carbon_material.py`
+- `packages/ui/carbon_material_page.py`
+- `packages/ui/pages.py`
+- `packages/ui/shell.py`
+- `tests/test_g07_records.py`
+- `TASK_STATE.md`
+- `IMPLEMENTATION_REPORT.md`
+
+### 数据与算法说明
+
+- Domain 继续只依赖 Python 标准库和既有 Domain 契约；SQLite 适配器位于 `packages/persistence`，Qt 只负责页面和仓储注入。
+- 记录行保存 `input_snapshot_json`、`calculation_snapshot_json`、`parameter_snapshot_json`、`warnings_json`、`raw_input_snapshot_json` 和 `effective_rule_set_json`；表中不存可编辑业务状态。
+- `accounting_records.deleted_at/deleted_by/deleted_reason` 实现可追溯软删除；`audit_log` 的 CREATE/DELETE 为独立审计证据。
+- `standard_version` 继续保存不可变标准版本身份 `standard_id`，与 `algorithm_version`、记录输入和结果一起形成历史追溯键。
+
+### 测试
+
+#### L1
+
+命令：
+
+`.venv\Scripts\python.exe -m unittest tests.test_g07_records -v`
+
+结果：8/8 通过，0 个失败，0 个错误，0 个跳过。覆盖成功/警告状态往返、参数/输入/规则快照、审计写入失败回滚、软删除与不可复用 ID、同输入新记录 ID、ERROR 不落记录、记录列表搜索/状态筛选/只读详情、删除确认和未计算输入离开门禁。
+
+#### L2
+
+命令：
+
+`.venv\Scripts\python.exe -m unittest discover -s tests -v`
+
+结果：111/111 通过，0 个失败，0 个错误，0 个跳过（项目 `.venv`，Python 3.12.14，PySide6 6.11.2）。其中原有 G00–G06 回归 103 项，G07 新增 8 项。
+
+#### L3
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`：catalog.sqlite、user.sqlite、records.sqlite 从 Canonical/迁移从零生成成功，临时目录已清理。
+- `git diff --check`：通过。
+- `git diff --name-only -- 计算表/**`：无输出；`计算表/` 未修改。
+- pytest 未执行；项目现有测试基线为 unittest。
+- 未执行 G08 Windows standalone 构建、安装产物检查和交付测试；这些属于 G08，不得提前执行。
+
+### Git
+
+- 分支：`main`
+- 实现提交：`707c59a feat: implement G07 record lifecycle`
+- 文档提交：本报告和 `TASK_STATE.md` 随后单独提交。
+- 最终工作区预期：仅保留既有未跟踪 `docs/handoffs/`，未处理、未纳入提交。
+
+### 已知问题
+
+- 无 G07 范围内已知问题。
+- 视觉人工验收、Windows standalone 构建和 G08 交付检查未执行，原因是阶段门禁禁止提前执行，不代表 G07 失败。
+
+### 建议 Sol 重点复核
+
+- 计算成功后 records.sqlite 中记录行与 CREATE 审计是否同事务提交，故障时是否无半条记录。
+- 原始输入、有效规则 ID、参数快照和警告在修改当前 Catalog 后是否仍保持历史稳定。
+- 同一输入连续计算的记录 ID、软删除后默认列表隐藏、DELETE 审计保留和记录 ID 不复用。
+- 页面列表搜索/筛选与只读详情、首页最近记录刷新，以及离开未计算页面的二次确认。
+
+### 提交与等待
+
+- G07 实现提交：`707c59a`。
+- 文档更新后停止等待 Sol 验收；不创建或执行 G08。
