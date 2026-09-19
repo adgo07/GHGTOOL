@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Sequence
 
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QCloseEvent, QFont
 from PySide6.QtWidgets import QApplication, QMainWindow
 
 from packages.application import CatalogQueryService
@@ -17,6 +17,18 @@ from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
 
 
+class CarbonAccountingMainWindow(QMainWindow):
+    """Main window that enforces the G07 uncomputed-input close gate."""
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # type: ignore[override]
+        central = self.centralWidget()
+        confirm = getattr(central, "confirm_discard_if_needed", None)
+        if callable(confirm) and not confirm():
+            event.ignore()
+            return
+        event.accept()
+
+
 def create_main_window(
     config: AppConfig | None = None,
     catalog_service: CatalogQueryService | None = None,
@@ -25,7 +37,7 @@ def create_main_window(
     """Create the public G04 shell; business algorithms remain outside the UI."""
 
     app_config = config or AppConfig()
-    window = QMainWindow()
+    window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
     window.setWindowTitle(app_config.app_name)
     window.setMinimumSize(1180, 720)

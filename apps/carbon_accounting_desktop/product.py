@@ -5,7 +5,6 @@ from __future__ import annotations
 from packages.application import CatalogQueryService, create_catalog_query_service
 from packages.core.repositories import RecordRepository
 from packages.persistence import SQLiteRecordRepository
-from packages.standards.carbon_material import InMemoryRecordRepository
 
 from .config import AppConfig
 from packages.ui.shell import AppShell
@@ -44,13 +43,10 @@ def create_shell(
     """Build the product shell while keeping database access in the application edge."""
 
     if record_repository is None:
-        if config.records_database is not None:
-            record_repository = SQLiteRecordRepository(
-                config.records_database,
-                app_version=config.app_version,
-            )
-        else:
-            record_repository = InMemoryRecordRepository()
+        record_repository = SQLiteRecordRepository(
+            config.resolved_records_database(),
+            app_version=config.app_version,
+        )
 
     return AppShell(
         carbon_accounting_view_model(),

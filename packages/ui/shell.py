@@ -125,12 +125,18 @@ class AppShell(QWidget):
     def current_route(self) -> AppRoute | None:
         return self.router.current_route
 
+    def confirm_discard_if_needed(self) -> bool:
+        """Enforce the G07 discard gate for the active new-accounting page."""
+
+        if self.current_route is not AppRoute.NEW_ACCOUNTING:
+            return True
+        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        confirm = getattr(page, "confirm_discard_if_needed", None)
+        return not callable(confirm) or bool(confirm())
+
     def navigate(self, route: AppRoute) -> None:
-        if self.current_route is AppRoute.NEW_ACCOUNTING and route is not AppRoute.NEW_ACCOUNTING:
-            page = self._pages.get(AppRoute.NEW_ACCOUNTING)
-            confirm = getattr(page, "confirm_discard_if_needed", None)
-            if callable(confirm) and not confirm():
-                return
+        if route is not AppRoute.NEW_ACCOUNTING and not self.confirm_discard_if_needed():
+            return
         self.router.navigate(route)
 
     def _refresh_record_views(self, _record_id: str | None = None) -> None:

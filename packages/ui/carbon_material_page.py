@@ -41,6 +41,7 @@ from packages.core import (
 from packages.standards.carbon_material import (
     ALGORITHM_VERSION,
     STANDARD_ID,
+    STANDARD_VERSION,
     BakingInput,
     CalcinationInput,
     CarbonMaterialCalculator,
@@ -228,7 +229,12 @@ class CarbonMaterialAccountingPage(BasePage):
             resolver = None
         self._parameter_resolver = resolver
         if calculator is None:
-            calculator = CarbonMaterialCalculator(parameter_resolver=resolver, record_repository=record_repository)
+            catalog_version = self.catalog_service.standard_version(standard_id)
+            calculator = CarbonMaterialCalculator(
+                parameter_resolver=resolver,
+                record_repository=record_repository,
+                standard_version=catalog_version or STANDARD_VERSION,
+            )
         self.calculator = calculator
         self.standard_id = standard_id
         self._calculation_index = 0
@@ -904,6 +910,42 @@ class CarbonMaterialAccountingPage(BasePage):
     def _mark_input_dirty(self, *_args: object) -> None:
         self._input_dirty = True
 
+    def _reset_for_new_accounting(self) -> None:
+        """Restore every G06 control to the initial new-accounting state."""
+
+        self._calculation_index = 0
+        self.enterprise_name.clear()
+        self.period_type.setCurrentIndex(0)
+        self.period_year.setValue(2025)
+        self.period_month.setValue(1)
+        self.boundary_confirmed.setChecked(False)
+        self.other_activity_present.setChecked(False)
+        self.transport_present.setChecked(False)
+        for combo in self._source_statuses.values():
+            combo.setCurrentIndex(0)
+        for widget in self._fields.values():
+            if isinstance(widget, QLineEdit):
+                widget.clear()
+            elif isinstance(widget, QComboBox):
+                widget.setCurrentIndex(0)
+        for controls in self._material_controls.values():
+            for key in ("mass_basis", "composition_basis", "normalized_basis", "fixed_carbon_component_kind", "volatile_matter_component_kind"):
+                controls[key].setCurrentIndex(0)  # type: ignore[union-attr]
+            controls["moisture_evidence"].setChecked(False)  # type: ignore[union-attr]
+            controls["conversion_evidence"].setChecked(False)  # type: ignore[union-attr]
+            controls["evidence_reference"].clear()  # type: ignore[union-attr]
+        self.heat_factor_selection_reason.clear()
+        for row in tuple(self._electricity_rows):
+            self._remove_electricity_row(row)
+        self._add_electricity_row()
+        self._refresh_heat_factor_details()
+        self.validation_list.clear()
+        self.result_total.setText("未计算")
+        self.result_breakdown.clear()
+        self.parameter_snapshot_summary.setText("尚未计算，暂无参数快照。")
+        self.trace_output.setText("点击“计算排放量”后显示公式、变量和分项结果。")
+        self._input_dirty = False
+
     def confirm_discard_if_needed(self) -> bool:
         """Ask before abandoning input that has not produced a successful record."""
 
@@ -918,16 +960,7 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         if answer is not QMessageBox.StandardButton.Yes:
             return False
-        for edit in self.findChildren(QLineEdit):
-            if not edit.objectName().startswith("electricityDetailId"):
-                edit.clear()
-        for check in self.findChildren(QCheckBox):
-            check.setChecked(False)
-        self.validation_list.clear()
-        self.result_total.setText("未计算")
-        self.result_breakdown.clear()
-        self.trace_output.setText("点击“计算排放量”后显示公式、变量和分项结果。")
-        self._input_dirty = False
+        self._reset_for_new_accounting()
         return True
     def _run_calculation(self) -> None:
         self.validation_list.clear()

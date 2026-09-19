@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
+from packages.standards.carbon_material import InMemoryRecordRepository
 
 
 class MinimalApplicationTest(unittest.TestCase):
@@ -19,7 +20,7 @@ class MinimalApplicationTest(unittest.TestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def test_window_loads_logo_and_exits_normally(self) -> None:
-        window = create_main_window(AppConfig(log_directory=Path("tests")))
+        window = create_main_window(AppConfig(log_directory=Path("tests")), record_repository=InMemoryRecordRepository())
         logo_label = window.findChild(QLabel, "brandLogo")
         self.assertIsNotNone(logo_label)
         assert logo_label is not None

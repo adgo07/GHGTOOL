@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt
@@ -319,20 +320,26 @@ class RecordLibraryPage(BasePage):
         warning_text = "\n".join(f"- {item.code}：{item.message}" for item in warnings) or "- 无"
         raw_snapshot = getattr(self.record_repository, "get_raw_input_snapshot", lambda _record_id: None)(record.record_id)
         rule_snapshot = getattr(self.record_repository, "get_effective_rule_set", lambda _record_id: None)(record.record_id)
-        raw_fields = ", ".join(sorted(raw_snapshot)) if isinstance(raw_snapshot, dict) else "未由当前仓储暴露"
+        raw_snapshot_text = (
+            json.dumps(raw_snapshot, ensure_ascii=False, indent=2, sort_keys=True)
+            if isinstance(raw_snapshot, dict)
+            else "未由当前仓储暴露"
+        )
+        standard_version = record.standard_version or "未记录"
         rule_ids = ", ".join(str(item) for item in (rule_snapshot or {}).get("rule_ids", ())) or "未记录额外规则 ID"
         self.detail_text.setPlainText(
             f"记录编号：{record.record_id}\n"
             f"创建时间：{record.created_at.isoformat()}\n"
             f"企业名称：{record.input_snapshot.enterprise_name or '未填写企业'}\n"
             f"核算期间：{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}\n"
-            f"标准版本：{record.standard_id}\n"
+            f"标准编号（稳定ID）：{record.standard_id}\n"
+            f"标准版本：{standard_version}\n"
             f"算法版本：{record.algorithm_version}\n"
             f"状态：{record.status.value}\n"
             f"总排放量：{record.calculation_result.total_amount} {record.calculation_result.total_unit}\n"
             f"\n排放源判断：\n{source_judgments}\n"
             f"\n有效规则集：\n- {rule_ids}\n"
-            f"原始输入快照字段：{raw_fields}\n"
+            f"\n实际输入快照（只读）：\n{raw_snapshot_text}\n"
             f"\n结果分项：\n{result_lines}\n"
             f"\n参数来源快照：\n{snapshots}\n"
             f"\n警告：\n{warning_text}\n"

@@ -26,6 +26,7 @@ from packages.standards.carbon_material import (
     MaterialBasis,
     MaterialComponentKind,
     EmissionSourceStatus,
+    InMemoryRecordRepository,
 )
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.shell import AppShell
@@ -48,7 +49,9 @@ class G06PageTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.window = create_main_window(
-            AppConfig(catalog_database=self.catalog_path), catalog_service=self.catalog_service
+            AppConfig(catalog_database=self.catalog_path),
+            catalog_service=self.catalog_service,
+            record_repository=InMemoryRecordRepository(),
         )
         self.window.show()
         self.application.processEvents()

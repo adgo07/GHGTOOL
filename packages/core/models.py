@@ -474,6 +474,7 @@ class AccountingRecord:
     status: RecordStatus
     parameter_snapshots: tuple[ParameterSnapshot, ...] = ()
     problems: tuple[ValidationProblem, ...] = ()
+    standard_version: str | None = None
 
     def __post_init__(self) -> None:
         _require_enum(self.status, RecordStatus, "status")
@@ -483,6 +484,8 @@ class AccountingRecord:
         _require_id(self.record_id, "record_id")
         _require_id(self.standard_id, "standard_id")
         _require_id(self.algorithm_version, "algorithm_version")
+        if self.standard_version is not None:
+            _require_id(self.standard_version, "standard_version")
         _require_aware_datetime(self.created_at, "created_at")
         if self.input_snapshot.standard_id != self.standard_id:
             raise DomainValidationError("record and input standard IDs must match")

@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QMessageBox
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -93,6 +93,7 @@ def _record(record_id: str, *, warning: bool = False) -> AccountingRecord:
         calculation_result=result,
         status=RecordStatus.COMPLETED_WITH_WARNINGS if warning else RecordStatus.COMPLETED,
         parameter_snapshots=(snapshot,),
+        standard_version="2024",
     )
 
 
@@ -122,16 +123,18 @@ class G07RecordRepositoryTests(unittest.TestCase):
             connection = sqlite3.connect(repository.path)
             try:
                 row = connection.execute(
-                    "SELECT parameter_snapshot_json, warnings_json, effective_rule_set_json "
+                    "SELECT standard_id, standard_version, parameter_snapshot_json, warnings_json, effective_rule_set_json "
                     "FROM accounting_records WHERE record_id=?",
                     (complete.record_id,),
                 ).fetchone()
             finally:
                 connection.close()
-            self.assertIn("factor.example.2026", row[0])
-            self.assertEqual(json.loads(row[1]), [])
+            self.assertEqual(row[0], STANDARD_ID)
+            self.assertEqual(row[1], "2024")
+            self.assertIn("factor.example.2026", row[2])
+            self.assertEqual(json.loads(row[3]), [])
             self.assertEqual(
-                json.loads(row[2])["rule_ids"],
+                json.loads(row[4])["rule_ids"],
                 ["CAR-RULE-BASE-001", "CAR-RULE-POWER-001"],
             )
 
@@ -262,11 +265,21 @@ class G07UiTests(unittest.TestCase):
         self.assertIn("G07 测试选择理由", self.records_page.detail_text.toPlainText())
         self.assertIsNotNone(self.home_page.findChild(QLabel, "bodyText"))
 
-    def test_leaving_uncomputed_page_requires_confirmation_and_discards_input(self) -> None:
+    def test_leaving_uncomputed_page_requires_confirmation_and_discards_every_input(self) -> None:
         shell = self.window.centralWidget()
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         page = shell.pages[AppRoute.NEW_ACCOUNTING]
         page.enterprise_name.setText("未计算企业")
+        page.period_type.setCurrentIndex(1)
+        page.period_year.setValue(2030)
+        page.period_month.setValue(7)
+        page.boundary_confirmed.setChecked(True)
+        page.other_activity_present.setChecked(True)
+        page._source_statuses["CAR-SRC-FUEL-001"].setCurrentIndex(1)
+        page._fields["fuel_id"].setText("fuel-before-discard")
+        page.findChild(QPushButton, "addElectricityButton").click()
+        self.assertEqual(len(page._electricity_rows), 2)
+        page._electricity_rows[1].amount.setText("12.5")
         with patch(
             "packages.ui.carbon_material_page.QMessageBox.question",
             return_value=QMessageBox.StandardButton.No,
@@ -280,6 +293,100 @@ class G07UiTests(unittest.TestCase):
             shell.navigate(AppRoute.RECORDS)
         self.assertEqual(shell.current_route, AppRoute.RECORDS)
         self.assertEqual(page.enterprise_name.text(), "")
+        self.assertEqual(page.period_type.currentIndex(), 0)
+        self.assertEqual(page.period_year.value(), 2025)
+        self.assertEqual(page.period_month.value(), 1)
+        self.assertFalse(page.boundary_confirmed.isChecked())
+        self.assertFalse(page.other_activity_present.isChecked())
+        self.assertEqual(page._source_statuses["CAR-SRC-FUEL-001"].currentIndex(), 0)
+        self.assertEqual(page._fields["fuel_id"].text(), "")
+        self.assertEqual(len(page._electricity_rows), 1)
+        self.assertEqual(page._electricity_rows[0].amount.text(), "")
+        self.assertEqual(page._calculation_index, 0)
+        self.assertEqual(page.result_total.text(), "未计算")
+        self.assertEqual(page.validation_list.count(), 0)
+
+    def test_read_only_detail_shows_actual_input_snapshot_and_standard_version(self) -> None:
+        record = _record("record.ui.snapshot")
+        self.repository.create_with_details(
+            record,
+            raw_input={
+                "activity_amount": "12345.678",
+                "electricity_details": [
+                    {"detail_id": "electricity-detail-1", "amount": "88.25", "proof_status": "VALID"}
+                ],
+                "proof": "PROOF-X",
+            },
+            effective_rule_set=("CAR-RULE-POWER-HEAT-001",),
+        )
+        self.records_page.search_input.setText("record.ui.snapshot")
+        self.application.processEvents()
+        detail = self.records_page.detail_text.toPlainText()
+        self.assertIn("标准编号（稳定ID）：gbt_32151_34_2024", detail)
+        self.assertIn("标准版本：2024", detail)
+        self.assertIn("12345.678", detail)
+        self.assertIn("PROOF-X", detail)
+        self.assertIn("electricity-detail-1", detail)
+        self.assertIn("VALID", detail)
+        self.assertNotIn("原始输入快照字段：", detail)
+        self.assertTrue(self.records_page.detail_text.isReadOnly())
+
+    def test_default_application_uses_records_sqlite_across_restart(self) -> None:
+        with patch.dict(os.environ, {"LOCALAPPDATA": self.directory.name}, clear=False):
+            config = AppConfig(log_directory=Path(self.directory.name) / "logs")
+            first_window = create_main_window(config)
+            first_window.show()
+            self.application.processEvents()
+            first_shell = first_window.centralWidget()
+            self.assertIsInstance(first_shell.record_repository, SQLiteRecordRepository)
+            page = first_shell.pages[AppRoute.NEW_ACCOUNTING]
+            outcome = page.calculator.calculate(
+                CarbonMaterialInput(
+                    input_id="input.default-app",
+                    enterprise_id="enterprise.default-app",
+                    enterprise_name="默认持久化企业",
+                    period=PERIOD,
+                    boundary_confirmed=True,
+                ),
+                calculated_at=NOW,
+            )
+            self.assertTrue(outcome.successful)
+            self.assertEqual(outcome.record.standard_version, "2024")
+            first_window.close()
+            first_window.deleteLater()
+            self.application.processEvents()
+
+            second_window = create_main_window(config)
+            second_window.show()
+            self.application.processEvents()
+            second_shell = second_window.centralWidget()
+            second_records = second_shell.pages[AppRoute.RECORDS]
+            self.assertIsInstance(second_shell.record_repository, SQLiteRecordRepository)
+            self.assertEqual(second_records.record_list.count(), 1)
+            self.assertIn("默认持久化企业", second_records.detail_text.toPlainText())
+            self.assertIn("标准版本：2024", second_records.detail_text.toPlainText())
+            second_window.close()
+            second_window.deleteLater()
+            self.application.processEvents()
+
+    def test_closing_uncomputed_page_requires_confirmation(self) -> None:
+        shell = self.window.centralWidget()
+        shell.navigate(AppRoute.NEW_ACCOUNTING)
+        page = shell.pages[AppRoute.NEW_ACCOUNTING]
+        page.enterprise_name.setText("关闭前未计算企业")
+        with patch(
+            "packages.ui.carbon_material_page.QMessageBox.question",
+            return_value=QMessageBox.StandardButton.No,
+        ) as question:
+            self.assertFalse(self.window.close())
+        question.assert_called_once()
+        self.assertTrue(self.window.isVisible())
+        with patch(
+            "packages.ui.carbon_material_page.QMessageBox.question",
+            return_value=QMessageBox.StandardButton.Yes,
+        ):
+            self.assertTrue(self.window.close())
+        self.assertFalse(self.window.isVisible())
     def test_ui_delete_requires_confirmation_and_refreshes_active_list(self) -> None:
         self.records_page.search_input.clear()
         self.records_page.record_list.setCurrentRow(0)

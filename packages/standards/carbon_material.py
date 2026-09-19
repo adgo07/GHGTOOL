@@ -46,6 +46,7 @@ from packages.core.units import UnitError, UnitService
 
 
 STANDARD_ID = "gbt_32151_34_2024"
+STANDARD_VERSION = "2024"
 ALGORITHM_VERSION = "CAR-SM01-2026-09-13-G06.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
@@ -848,6 +849,7 @@ class CarbonMaterialCalculator:
         *,
         parameter_resolver: ParameterResolver | None = None,
         record_repository: RecordRepository | None = None,
+        standard_version: str = STANDARD_VERSION,
         policy: DecimalPolicy | None = None,
         unit_service: UnitService | None = None,
     ) -> None:
@@ -855,6 +857,7 @@ class CarbonMaterialCalculator:
         self.units = unit_service or UnitService(self.policy)
         self.parameter_resolver = parameter_resolver
         self.record_repository = record_repository or InMemoryRecordRepository()
+        self.standard_version = standard_version
         self._effective_rule_ids: set[str] = set()
 
     def _quantity(self, value: InputValue | None, expected_unit: str, field_id: str, problems: list[ValidationProblem], *, nonnegative: bool = True) -> Decimal | None:
@@ -1375,7 +1378,18 @@ class CarbonMaterialCalculator:
                 emission_sources=tuple(EmissionSourceSelection(item.source_id, item.status is EmissionSourceStatus.INVOLVED) for item in input_value.source_states),
             )
             status = RecordStatus.COMPLETED_WITH_WARNINGS if contains_warnings(problems) else RecordStatus.COMPLETED
-            record = AccountingRecord(f"record.{input_value.input_id}.{uuid4().hex}", STANDARD_ID, ALGORITHM_VERSION, snapshot_at, generic_input, calculation_result, status, tuple(snapshots), tuple(problems))
+            record = AccountingRecord(
+                f"record.{input_value.input_id}.{uuid4().hex}",
+                STANDARD_ID,
+                ALGORITHM_VERSION,
+                snapshot_at,
+                generic_input,
+                calculation_result,
+                status,
+                tuple(snapshots),
+                tuple(problems),
+                self.standard_version,
+            )
             create_with_details = getattr(self.record_repository, "create_with_details", None)
             if callable(create_with_details):
                 create_with_details(
@@ -1389,5 +1403,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "FuelPath", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "FuelPath", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
 ]

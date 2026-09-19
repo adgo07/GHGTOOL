@@ -22,6 +22,7 @@ import packages.ui.shell as shell_module
 from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
+from packages.standards.carbon_material import InMemoryRecordRepository
 
 
 class G03ShellTest(unittest.TestCase):
@@ -30,7 +31,7 @@ class G03ShellTest(unittest.TestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self.window = create_main_window()
+        self.window = create_main_window(record_repository=InMemoryRecordRepository())
         self.window.show()
         self.application.processEvents()
         self.shell = self.window.centralWidget()

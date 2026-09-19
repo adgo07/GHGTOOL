@@ -27,6 +27,7 @@ from packages.standards.catalog import (
 from packages.ui.catalog_pages import ParameterFactorLibraryPage
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
+from packages.standards.carbon_material import InMemoryRecordRepository
 
 
 def _standard_action_button(page: object, standard_id: str) -> QPushButton:
@@ -112,6 +113,7 @@ class G04CatalogTests(unittest.TestCase):
         self.window = create_main_window(
             AppConfig(catalog_database=self.catalog_path),
             catalog_service=self.service,
+            record_repository=InMemoryRecordRepository(),
         )
         self.window.show()
         self.application.processEvents()
@@ -381,7 +383,7 @@ class G04CatalogTests(unittest.TestCase):
 
     def test_missing_catalog_degrades_to_safe_empty_pages(self) -> None:
         missing = Path(self.temp_directory.name) / "not-installed.sqlite"
-        window = create_main_window(AppConfig(catalog_database=missing))
+        window = create_main_window(AppConfig(catalog_database=missing), record_repository=InMemoryRecordRepository())
         window.show()
         self.application.processEvents()
         try:
@@ -407,6 +409,7 @@ class G04CatalogTests(unittest.TestCase):
         window = create_main_window(
             AppConfig(catalog_database=self.missing_url_path),
             catalog_service=service,
+            record_repository=InMemoryRecordRepository(),
         )
         window.show()
         self.application.processEvents()

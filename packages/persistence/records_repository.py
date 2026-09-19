@@ -184,6 +184,7 @@ def _record_payload(record: AccountingRecord) -> dict[str, Any]:
     return {
         "record_id": record.record_id,
         "standard_id": record.standard_id,
+        "standard_version": record.standard_version,
         "algorithm_version": record.algorithm_version,
         "created_at": record.created_at.isoformat(),
         "input_snapshot": _encode(record.input_snapshot),
@@ -205,6 +206,7 @@ def _record_from_payload(payload: dict[str, Any]) -> AccountingRecord:
         status=RecordStatus(str(payload["status"])),
         parameter_snapshots=tuple(_parameter_snapshot(item) for item in payload.get("parameter_snapshots", [])),
         problems=tuple(_problem(item) for item in payload.get("problems", [])),
+        standard_version=payload.get("standard_version"),
     )
 
 
@@ -271,7 +273,7 @@ class SQLiteRecordRepository:
                     record.status.value,
                     record.created_at.isoformat(),
                     record.standard_id,
-                    record.standard_id,
+                    record.standard_version or "",
                     record.algorithm_version,
                     _json(payload["input_snapshot"]),
                     _json(payload["calculation_result"] | {"record_problems": payload["problems"]}),
@@ -293,6 +295,7 @@ class SQLiteRecordRepository:
                     _json({
                         "status": record.status.value,
                         "standard_id": record.standard_id,
+                        "standard_version": record.standard_version,
                         "parameter_snapshot_count": len(record.parameter_snapshots),
                     }),
                 ),
@@ -313,7 +316,7 @@ class SQLiteRecordRepository:
         connection = self._connection()
         try:
             row = connection.execute(
-                "SELECT status, created_at, standard_id, algorithm_version, input_snapshot_json, "
+                "SELECT status, created_at, standard_id, standard_version, algorithm_version, input_snapshot_json, "
                 "calculation_snapshot_json, parameter_snapshot_json "
                 "FROM accounting_records WHERE record_id = ? AND deleted_at IS NULL",
                 (record_id,),
@@ -328,6 +331,7 @@ class SQLiteRecordRepository:
         payload = {
             "record_id": record_id,
             "standard_id": str(row["standard_id"]),
+            "standard_version": str(row["standard_version"]) or None,
             "algorithm_version": str(row["algorithm_version"]),
             "created_at": str(row["created_at"]),
             "input_snapshot": input_payload,
