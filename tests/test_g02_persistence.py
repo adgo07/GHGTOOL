@@ -69,7 +69,7 @@ class PersistenceTests(unittest.TestCase):
             self.assertNotIn("source_documents", records_tables)
 
             self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.13-g05-third-rework.1")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.20-g08.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
@@ -164,7 +164,7 @@ class PersistenceTests(unittest.TestCase):
     def test_migration_is_idempotent_and_preserves_user_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "user.sqlite"
-            initialize_database(path, "user", app_version="0.1.0")
+            initialize_database(path, "user", app_version="1.0.0")
             connection = sqlite3.connect(path)
             try:
                 connection.execute(

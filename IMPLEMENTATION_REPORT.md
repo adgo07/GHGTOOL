@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G07 核算记录与审计闭环（Sol 最终正式重新验收：PASS）
+G08 Windows 交付与全链路回归（实施完成，等待预验收）
 
 ## 前置验收与阶段边界
 
@@ -1270,3 +1270,32 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 - 按用户本轮说明，本地与远端提交一致，`docs/handoffs/` 仍未上传，`计算表/` 未修改。
 
 **G07已通过，允许由用户另行启动G08；本次未启动G08。**
+## G08 实施报告（2026-09-20）
+
+### 范围与实现
+
+本轮从已通过的 G07 基线开始，仅执行 HANDOFF.md 的 G08，未创建或执行 G09。恢复检查确认 `main` 与 `origin/main` 已对齐于 `fbe884df0dad890f1be6da945a52b288ea8c8f1c`；实现工作在 `gxx-implementation` 分支完成。既有未跟踪 `docs/handoffs/` 未处理，`计算表/` 未修改。
+
+- `pyproject.toml` 应用版本为 `1.0.0`，新增受控的 `[project.optional-dependencies].build`（PyInstaller 6.22）；Canonical schema 仍为 `1.0.0`，没有新增迁移。Catalog manifest data version 为 `2026.09.20-g08.1`。
+- `AppConfig` 支持 frozen onedir 目录内的只读 Catalog；默认 records.sqlite 和 JSON Lines 日志继续使用 Windows `%LOCALAPPDATA%` 用户目录。
+- MigrationRunner 拒绝未知未来版本；SQLite 文件无法打开时统一转换为 `MigrationError`。重复初始化保持幂等，应用版本/数据版本元数据保持可追溯。
+- `scripts/build_standalone.py` 从 Canonical 重新构建 Catalog，使用 PyInstaller onedir/windowed、独立绝对导入入口 `scripts/standalone_entry.py`，生成 `build-manifest.json`；`scripts/inspect_release.py` 校验文件清单、哈希、版本、Catalog 表和敏感范围。
+- PyInstaller 误收集的 Poppler ICU 78 DLL 已在生成的发布目录中排除；这是已定位的 QtGui/Qt6Core 运行时 ABI 冲突修复，不改变业务计算、Canonical 或数据库 schema。
+- `scripts/smoke_standalone.py` 在隔离 LOCALAPPDATA 下执行两次启动，验证 exe 不提前退出且 records.sqlite/application.jsonl 均创建；Windows CI 已接入 Canonical、全量测试、构建、审计和双启动步骤。
+- `docs/DELIVERY.md` 和 README 补充源码安装、便携式构建、启动、数据目录、卸载数据保留、当前能力边界和故障排查。当前没有 MSI/安装向导、代码签名或自动升级服务，Windows 10 未在本环境实机验证。
+
+### 测试与校验
+
+- 定向：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；**7/7 通过，0 失败，0 错误，0 跳过**。
+- 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records -v`；**89/89 通过，0 失败，0 错误，0 跳过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**122/122 通过，0 失败，0 错误，0 跳过**。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <temporary>`；从零生成 catalog/user/records 三个 SQLite，临时输出已清理。
+- 交付包：`.venv\Scripts\python.exe scripts\build_standalone.py --output-root dist --clean`；成功；`.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting`；**PASS，229 files**；`.venv\Scripts\python.exe scripts\smoke_standalone.py dist\QingzhouCarbonAccounting`；**PASS，2 次隔离启动**。
+- `git diff --check` 通过；`计算表/` 无差异；既有 `docs/handoffs/` 未纳入。
+
+### 当前门禁
+
+实现、测试和报告完成后提交并推送 `gxx-implementation`，创建目标为 `main` 的 Pull Request，等待 GitHub Windows CI 检查完成。当前不启动 G09；待 PR 检查与 Sol 预验收。

@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-G07 核算记录与审计闭环
+G08 Windows 交付与全链路回归
 
 ## 状态
 
-G07_PASS_WAITING_USER_TO_START_G08
+G08_IMPLEMENTED_WAITING_PRE_ACCEPTANCE
 
 ## 阶段验收状态
 
@@ -43,6 +43,7 @@ G07_PASS_WAITING_USER_TO_START_G08
 - G07 正式重新验收结论：PASS WITH MINOR FIXES（2026-09-19）；被验收 HEAD 为 `c4677a59f1d09f77d7294cd3bb500a9875815651`。核心 G07 闭环已关闭，但记录详情仍以内部 JSON 原样展示，且缺少“修改当前 Catalog 后历史展示不变”的直接回归测试；本验收环境也未能独立复跑 PySide6 自动测试。因此 G08 仍不得启动，小修并补充可复验测试证据后应发送“重新验收G07”。
 - G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
 - G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
+- G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现提交 SHA 将在提交后补录。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -861,3 +862,31 @@ Sol 当前执行环境限制：
 - 本次验收只更新 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`，不修改业务代码、测试代码、标准数据或用户文件。
 
 **G07已通过，允许由用户另行启动G08；本次未启动G08。**
+## G08 实施状态（2026-09-20）
+
+**G08_IMPLEMENTED_WAITING_PRE_ACCEPTANCE**
+
+本轮严格只执行 G08；未创建或执行 G09，未修改 `计算表/`，未处理既有未跟踪 `docs/handoffs/`。工作从已对齐的 `origin/main` `fbe884df0dad890f1be6da945a52b288ea8c8f1c` 创建 `gxx-implementation` 分支并恢复唯一 G08 Goal。
+
+### 实现内容
+
+- 应用版本更新为 `1.0.0`；Canonical `schema_version` 保持 `1.0.0`，未新增数据库迁移；Catalog `data_version` 更新为 `2026.09.20-g08.1`，三个数据库迁移版本仍为 catalog `001`、user `001`、records `002`。
+- 增加 PyInstaller `onedir/windowed` 构建脚本、独立绝对导入入口、`build-manifest.json` SHA-256/大小清单和发布审计脚本。发布审计只允许 `databases/catalog.sqlite` 作为 SQLite，并拒绝标准全文、用户 `计算表/`、测试/开发目录、环境文件和密钥。
+- standalone 运行时从包内 Catalog 启动，records.sqlite 与结构化日志写入 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting`；未知未来迁移版本和数据库不可打开均以 `MigrationError` 安全失败，不删除或覆盖用户数据。
+- 交付说明、安装/启动、数据目录、卸载数据保留、当前限制、故障排查和 Windows CI 构建/审计/双启动烟测已补齐。
+
+### 验证结果
+
+- G08 定向：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；7/7 通过。
+- G02/G04/G05/G06/G07 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records -v`；89/89 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；122/122 通过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <temporary>`；catalog、user、records 均成功生成，临时目录已清理。
+- Windows 11 本机 standalone：`build_standalone.py --output-root dist --clean` 成功；`inspect_release.py` 通过（229 files）；`smoke_standalone.py` 双启动通过，隔离 records.sqlite 和 application.jsonl 均创建。Windows 10 未具备独立实机环境，未宣称已验证。
+- `git diff --check` 通过；`git diff --name-only -- '计算表/**'` 无输出；`docs/handoffs/` 保持原有未跟踪状态。
+
+### 阶段门禁
+
+当前等待 GitHub PR 检查和 Sol 预验收；不得开始 G09。提交 SHA、PR 链接和 GitHub 检查状态将在推送后补录。

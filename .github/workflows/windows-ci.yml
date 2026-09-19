@@ -14,9 +14,9 @@ permissions:
 
 jobs:
   windows-python-312-tests:
-    name: Windows / Python 3.12 / Full Tests
+    name: Windows / Python 3.12 / Full Tests and Standalone Audit
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -30,10 +30,31 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install project
-        run: python -m pip install -e .
+      - name: Install project and build dependency
+        run: python -m pip install -e ".[build]"
+
+      - name: Validate canonical source
+        run: python scripts/validate_canonical.py
 
       - name: Run full test suite
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m unittest discover -s tests -t . -v
+
+      - name: Build standalone directory
+        run: python scripts/build_standalone.py --output-root dist
+
+      - name: Audit standalone directory
+        run: python scripts/inspect_release.py dist/QingzhouCarbonAccounting
+
+      - name: Smoke-test standalone startup
+        run: python scripts/smoke_standalone.py dist/QingzhouCarbonAccounting
+
+      - name: Upload standalone candidate
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingzhouCarbonAccounting-${{ github.sha }}
+          path: dist/QingzhouCarbonAccounting
+          if-no-files-found: error
+          retention-days: 7

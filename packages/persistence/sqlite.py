@@ -78,6 +78,15 @@ class MigrationRunner:
             if "no such table" not in str(exc).lower():
                 raise MigrationError(f"cannot inspect migration history: {exc}") from exc
             applied = {}
+
+        known_migrations = {migration.version: migration.name for migration in migrations}
+        unknown_versions = sorted(set(applied) - set(known_migrations))
+        if unknown_versions:
+            raise MigrationError(
+                f"database contains unknown migration version(s) for {kind}: "
+                f"{unknown_versions}"
+            )
+
         for migration in migrations:
             existing_name = applied.get(migration.version)
             if existing_name is not None:
@@ -115,7 +124,7 @@ def initialize_database(
     path: str | Path,
     kind: DatabaseKind,
     *,
-    app_version: str = "0.1.0",
+    app_version: str = "1.0.0",
     data_version: str = "not_applicable",
     deterministic: bool = True,
     runner: MigrationRunner | None = None,
@@ -125,7 +134,10 @@ def initialize_database(
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     migration_runner = runner or MigrationRunner()
-    connection = sqlite3.connect(destination)
+    try:
+        connection = sqlite3.connect(destination)
+    except sqlite3.Error as exc:
+        raise MigrationError(f"cannot open database {destination}: {exc}") from exc
     try:
         schema_version = migration_runner.apply(connection, kind, deterministic=deterministic)
         connection.executemany(
