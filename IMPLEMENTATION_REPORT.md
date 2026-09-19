@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G07 核算记录与审计闭环（验收返工完成，等待 Sol 重新验收）
+G07 核算记录与审计闭环（Sol 正式重新验收：PASS WITH MINOR FIXES，等待小修）
 
 ## 前置验收与阶段边界
 
@@ -1163,3 +1163,48 @@ G07 未通过，不允许进入 G08；修正完成后应发送“重新验收G07
 - 实现/测试：`b12a75b fix: close G07 persistence and input lifecycle gaps`。
 - 文档更新后仅保留既有未跟踪 `docs/handoffs/`，未纳入提交。
 - 当前状态为等待 Sol 重新验收 G07；不得开始 G08。
+
+
+## G07 Sol 正式重新验收结论（2026-09-19）
+
+### 结论
+
+**PASS WITH MINOR FIXES**
+
+被验收 HEAD：`c4677a59f1d09f77d7294cd3bb500a9875815651`。
+
+### 关键核对事项
+
+- 上一轮 FAIL 的四类核心业务缺口已关闭：默认正式入口使用 `records.sqlite`；标准 ID 与真实版本 `2024` 分离保存；详情读取历史实际输入快照；导航离开和关闭主窗口均执行完整丢弃确认。
+- SQLite 记录写入与 CREATE 审计处于同一事务；错误路径不生成成功记录；软删除保留记录及 DELETE 审计；相同输入重新计算生成新 ID。
+- 历史详情读取记录自身的输入、结果、参数和规则快照，不存在历史记录编辑或覆盖入口；首页最近记录来自 records 仓储。
+- 国家标准全文公开系统核对 GB/T 32151.34—2024：标准状态现行，发布日期 2024-08-23，实施日期 2025-03-01；实现保存的标准版本 `2024` 与官方编号一致。
+- 从上一轮验收 findings `2abce5d` 到当前 HEAD 只有 `b12a75b fix: close G07 persistence and input lifecycle gaps` 和 `c4677a5 docs: record G07 rework readiness`，未发现 G08 越界。
+
+### 小修项
+
+1. 记录详情目前把历史原始输入以格式化 JSON 整段展示。数据真实、只读且来自冻结快照，但没有按“活动数据 / 排放源 / 电力明细 / 证明状态 / 其他输入”使用中文业务字段分组，未完全达到上一轮 findings 约定的“可理解的分组展示”。只需修改展示层，不得修改记录数据和计算逻辑。
+2. G07 定向测试缺少“生成历史记录后改变当前 Catalog 参数，再查看历史记录仍完全不变”的直接回归。代码路径已使用冻结快照，未发现回查当前 Catalog 的实际缺陷，但 HANDOFF 的 G07 验收条件要求该行为被验证，应补一条明确测试。
+
+### 测试与证据
+
+实施方最新记录：
+- G07 定向：`.venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；11/11 通过。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；114/114 通过。
+- `compileall` 成功；`pip check` 无损坏依赖；Canonical 为 `valid: 9 standards, 12 sources, 7 parameters, 7 factors`；三库从零重建成功。
+
+Sol 本次独立复验限制：
+- 当前验收容器为 Python 3.13.5，项目要求 `>=3.12,<3.13`。
+- 当前容器无 PySide6；受网络/DNS 限制，无法下载安装依赖，也无法直接 clone 仓库到运行容器。
+- 实际环境探针：`python3 --version` -> `Python 3.13.5`；`import PySide6` -> `ModuleNotFoundError`；`git clone` -> `Could not resolve host: github.com`。
+- 因而上述 11/11 与 114/114 作为实施方已落盘的最近测试证据使用，**不是本次 Sol 独立重跑结果**；本次通过 GitHub 当前 HEAD 逐项复核源码、迁移和测试覆盖，并核对官方标准来源。
+
+### Git、范围与阶段门禁
+
+- 验收前 GitHub `main` HEAD：`c4677a59f1d09f77d7294cd3bb500a9875815651`。
+- 最近 5 个提交：`c4677a5`、`b12a75b`、`2abce5d`、`8510c21`、`707c59a`。
+- GitHub 已提交树未发现临时数据库、测试产物或 G08 实施；`计算表/` 未被纳入本次提交范围。
+- GitHub 连接器不能读取用户开发机未提交/未跟踪工作区，所以不能把远端树状态冒充成本地 `git status`。
+- 本次仅记录验收文档，不修改业务代码或用户文件。
+
+G07 当前结论为 PASS WITH MINOR FIXES，不允许进入 G08。完成两项小修并在项目规定环境重跑定向测试和必要回归后，应发送“重新验收G07”。
