@@ -1091,3 +1091,47 @@ G07 核算记录与审计闭环。
 
 - G07 实现提交：`707c59a`。
 - 文档更新后停止等待 Sol 验收；不创建或执行 G08。
+
+## G07 Sol 正式验收结论（2026-09-19）
+
+### 结论
+
+**FAIL**
+
+被验收 HEAD 为 `8510c2128a43f88605d3f35e8238ab51246bdc37`。SQLite 仓储本身的事务、回滚、不可变记录、软删除和审计基础通过，但真实默认应用没有接入该持久化仓储，且版本追溯、输入详情和未计算输入生命周期仍不满足 G07 MUST。
+
+### 已通过核对
+
+- records 002 迁移从零建立成功；记录、全部 JSON 快照和 CREATE 审计使用同一事务，强制审计失败时没有半条记录。
+- ERROR 不落成功记录；两种成功状态可往返读取；相同输入重复计算生成不同 ID，旧记录不覆盖。
+- 软删除保留数据库行并追加 DELETE 审计；默认读取隐藏已删除记录，记录 ID 不能复用。
+- 台账具备企业/记录/标准搜索、状态筛选和只读文本控件；首页可从已注入的仓储刷新最近记录。
+- 原始 GB/T 32151.34—2024 PDF SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`，封面版本为 2024；Canonical 校验通过且对应 `version` 为 `2024`。
+
+### 未满足项及修正要求
+
+1. **默认正式入口必须改为 SQLite。** 当前 `create_shell(AppConfig())` 得到 `InMemoryRecordRepository`，`resolved_records_database()` 没有用于默认仓储装配。应让普通应用启动默认创建/迁移用户数据目录的 `records.sqlite`；内存仓储仅由测试或明确调用者显式注入。增加按默认配置创建窗口、成功计算、关闭并重新创建应用后仍可读取同一记录的测试。
+2. **保存真实标准版本。** 当前 `standard_version` 列重复写入标准 ID，页面也用 ID 冒充版本。应从受控标准目录/领域上下文保存真实不可变版本 `2024`（同时保留 `standard_id`），读取模型和详情分别展示标准编号/版本；增加 SQLite 直接断言和 Catalog 变化不改变历史值的测试。
+3. **详情必须展示实际输入。** `raw_input_snapshot_json` 已保存完整对象，但页面只显示字段名。应以只读、可理解的分组展示活动数据、排放源状态、电力明细、证明状态和其他 G06 输入的实际快照值；不得回查当前页面输入或当前 Catalog 代替历史快照。增加代表性多电力/过程输入的详情断言。
+4. **完整实现丢弃和关闭门禁。** 用户确认离开后应把页面恢复到一个全新的核算状态，包括期间、所有下拉/排放源状态、动态明细行、结果和内部索引；关闭主窗口时脏输入也应提示，拒绝时取消关闭，确认时丢弃。当前探针确认年份和动态行未重置，关闭无提示。增加导航取消/确认、关闭取消/确认和重新进入新核算的测试。
+5. **补充缺口测试。** 现有 8 项测试显式注入 SQLite，且仅检查企业名称清空，不能证明真实应用闭环。应把以上四类场景纳入 G07 定向回归。
+
+### 独立测试及探针
+
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`：8/8 通过。
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page tests.test_g02_persistence -v`：34/34 通过。
+- `$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：111/111 通过。
+- `.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`：成功。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建成功，records 迁移 001/002 均存在；本次临时数据库和 PDF 渲染目录已清理。
+- 默认入口探针：`default_repository=InMemoryRecordRepository`。
+- 标准版本探针：数据库得到 `('gbt_32151_34_2024', 'gbt_32151_34_2024')`，预期版本是 `2024`。
+- 详情探针：实际输入值 `12345.678` 与 `PROOF-X` 均未显示。
+- 丢弃探针：确认离开后年份仍为 `2030`、电力行仍为 2 条；关闭探针为 `close_accepted=True`、`prompt_calls=0`。
+
+### Git、范围与门禁
+
+验收前工作区仅有既有未跟踪 `docs/handoffs/`；`计算表/` 无差异，未发现 G08 越界。本次只修改验收文档，不修改业务代码、外部标准或用户文件。
+
+G07 未通过，不允许进入 G08；修正完成后应发送“重新验收G07”。

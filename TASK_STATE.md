@@ -6,7 +6,7 @@ G07 核算记录与审计闭环
 
 ## 状态
 
-G07_IMPLEMENTED_WAITING_SOL
+G07_SOL_ACCEPTANCE_FAILED
 
 ## 阶段验收状态
 
@@ -38,6 +38,7 @@ G07_IMPLEMENTED_WAITING_SOL
 - G06 最终正式重新验收结论：PASS（2026-09-16）；被验收 HEAD 为 `c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`。三项剩余阻断均已关闭，允许由用户另行启动 G07；本次未启动 G07。
 
 - G07 实施完成（2026-09-19）；实现提交为 `707c59a`，当前停止等待 Sol 验收；G08 未创建、未执行。
+- G07 正式验收结论：FAIL（2026-09-19）；被验收 HEAD 为 `8510c2128a43f88605d3f35e8238ab51246bdc37`。默认应用仍使用内存记录仓库、标准版本保存错误、只读详情未展示实际输入值，且未计算输入未完整丢弃/关闭软件无提示；不允许进入 G08。
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
 问题：
@@ -660,3 +661,36 @@ G06已通过，允许由用户另行启动G07；本次未启动G07。
 - G07 定向测试 8/8 通过；项目全量回归 111/111 通过；Canonical、三库重建、compileall、pip check 均通过。
 - `计算表/` 未修改；既有未跟踪 `docs/handoffs/` 未处理、未纳入提交。
 - 当前门禁：停止等待 Sol 验收；不得开始 G08。
+
+## G07 Sol 正式阶段验收记录（2026-09-19）
+
+**结论：FAIL**
+
+- 被验收 HEAD：`8510c2128a43f88605d3f35e8238ab51246bdc37`（`docs: record G07 implementation`）。验收开始前无已跟踪工作区差异，仅保留既有未跟踪 `docs/handoffs/`。
+- 已通过项：records 002 迁移可重复执行；显式使用 `SQLiteRecordRepository` 时记录、快照和 CREATE 审计在单一事务内写入，审计写入失败会回滚记录；ERROR 不生成记录；支持 `COMPLETED` 和 `COMPLETED_WITH_WARNINGS`；同一输入连续计算生成不同记录 ID；软删除保留原记录和 CREATE/DELETE 审计，活动列表默认隐藏；列表搜索、状态筛选、只读控件、首页最近记录刷新均已有实现。
+- 原始标准与 Canonical：GB/T 32151.34—2024 原始 PDF SHA256 为 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；封面明确为 `GB/T 32151.34—2024`。Canonical 中该标准 `version` 为字符串 `2024`，当前 G07 数据库保存值与此不一致。
+
+### 未满足的 G07 MUST
+
+1. **正式应用默认不使用 records.sqlite。** `AppConfig.resolved_records_database()` 能返回用户数据目录，但 `create_shell()` 只在 `config.records_database` 被显式赋值时建立 `SQLiteRecordRepository`；普通启动的 `AppConfig()` 会落入 `InMemoryRecordRepository`。独立默认启动探针输出 `default_repository=InMemoryRecordRepository`。因此用户正常启动、计算并关闭软件后记录会丢失，不满足“计算即生成正式记录”和 records.sqlite 持久化闭环。现有 UI 测试显式同时注入数据库路径和 SQLite 仓库，未覆盖真实默认启动路径。
+2. **标准版本保存错误。** `SQLiteRecordRepository.create_with_details()` 将 `standard_version` 写成 `record.standard_id`；独立数据库探针得到 `standard_id='gbt_32151_34_2024'`、`standard_version='gbt_32151_34_2024'`，而正式 Standard/Canonical 版本是 `2024`。详情页也把 `record.standard_id` 标为“标准版本”。这不满足保存并展示标准版本的 MUST。
+3. **只读详情没有展示实际输入快照。** records.sqlite 已保存 `raw_input_snapshot_json`，但详情页只列出顶层字段名。独立探针写入 `activity_amount=12345.678` 和 `proof=PROOF-X` 后，详情中两个值均不可见，仅显示“原始输入快照字段：activity_amount, proof”。用户无法按项目目标查看历史活动数据和证明输入。
+4. **未计算输入没有完整丢弃，关闭软件也没有提示。** 确认离开后代码只清空部分 `QLineEdit` 和复选框，不重置核算期间、下拉选择、排放源状态或动态电力行。独立探针离开前后均为年份 `2030`、电力行 `2` 条。窗口关闭路径没有调用该门禁；脏页面关闭探针得到 `close_accepted=True`、`prompt_calls=0`。这不满足“离开含有未计算输入的页面时提示并丢弃”，也与关闭后只能重新新建核算的既定规则不符。
+5. **测试未覆盖上述真实路径。** 当前 8 项 G07 测试全部通过，但使用显式 SQLite 注入，只断言企业名称文本框被清空，没有检查默认应用重启持久化、正确 standard_version、实际输入值详情、全部控件/动态行重置或窗口关闭提示。
+
+### 本次实际执行的验收命令
+
+- G07 定向：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g07_records -v`；8/8 通过，0 个失败，0 个错误，0 个跳过。
+- G06 与数据库迁移回归：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page tests.test_g02_persistence -v`；34/34 通过，0 个失败，0 个错误，0 个跳过。
+- 项目全量：`$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；111/111 通过，0 个失败，0 个错误，0 个跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests scripts`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir tmp\sol-g07-acceptance-20260919 --app-version g07-sol-acceptance`；三库生成成功，records 迁移为 001、002，临时数据库及 PDF 渲染目录均已清理。
+
+### 范围与门禁
+
+- 未修改、删除或覆盖 `计算表/`；未处理既有未跟踪 `docs/handoffs/`；未发现 G08、报告导出、记录重算或恢复删除 UI 越界。
+- 本次只记录验收结论，不修改业务代码，不创建或执行 G08。
+
+G07 未通过，不允许进入 G08。请 Luna 只修正上述 G07 未通过项并补充真实默认启动、重启持久化、标准版本、完整详情、完整丢弃和关闭提示测试；修正完成后发送“重新验收G07”。
