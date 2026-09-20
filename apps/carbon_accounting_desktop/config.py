@@ -8,6 +8,7 @@ query service.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
@@ -18,7 +19,7 @@ class AppConfig:
     """Immutable configuration needed by the desktop shell and catalog view."""
 
     app_name: str = "青舟温室气体排放核算软件"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     log_directory: Path | None = None
     catalog_database: Path | None = None
     records_database: Path | None = None
@@ -45,10 +46,18 @@ class AppConfig:
         return Path(files("resources").joinpath(*resource_parts))
 
     def resolved_catalog_database(self) -> Path:
-        """Resolve the packaged build output without creating or mutating it."""
+        """Resolve the read-only catalog in source and standalone runtimes."""
 
         if self.catalog_database is not None:
             return self.catalog_database
+
+        if getattr(sys, "frozen", False):
+            bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+            bundled_path = bundle_root / "databases" / "catalog.sqlite"
+            if bundled_path.exists():
+                return bundled_path
+            return Path(sys.executable).resolve().parent / "databases" / "catalog.sqlite"
+
         return Path(__file__).resolve().parents[2] / "build" / "databases" / "catalog.sqlite"
 
     def resolved_records_database(self) -> Path:

@@ -18,7 +18,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Initialize Qingzhou catalog/user/records databases")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE_PATH)
     parser.add_argument("--output-dir", type=Path, default=Path("build/databases"))
-    parser.add_argument("--app-version", default="0.1.0")
+    parser.add_argument("--app-version", default="1.0.0")
     args = parser.parse_args()
     paths = build_all_databases(args.output_dir, args.source, app_version=args.app_version)
     for kind, path in paths.items():

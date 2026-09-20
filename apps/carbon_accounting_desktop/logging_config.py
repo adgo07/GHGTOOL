@@ -85,7 +85,7 @@ class StructuredLogger:
             handler.close()
 
 
-def configure_logging(log_directory: Path, app_version: str = "0.1.0") -> StructuredLogger:
+def configure_logging(log_directory: Path, app_version: str = "1.0.0") -> StructuredLogger:
     """Configure JSON-lines logging and return the safe event facade."""
 
     log_directory.mkdir(parents=True, exist_ok=True)

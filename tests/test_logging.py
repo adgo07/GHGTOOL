@@ -11,7 +11,7 @@ from apps.carbon_accounting_desktop.logging_config import configure_logging
 class StructuredLoggingTest(unittest.TestCase):
     def test_only_safe_operational_tokens_are_written(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            logger = configure_logging(Path(directory), app_version="0.1.0")
+            logger = configure_logging(Path(directory), app_version="1.0.0")
             try:
                 logger.event(
                     "application_started",

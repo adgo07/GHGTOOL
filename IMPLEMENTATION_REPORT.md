@@ -2,7 +2,7 @@
 
 ## 阶段
 
-G07 核算记录与审计闭环（Sol 最终正式重新验收：PASS）
+G08 Windows 交付与全链路回归（预验收返工中）
 
 ## 前置验收与阶段边界
 
@@ -1270,3 +1270,88 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 - 按用户本轮说明，本地与远端提交一致，`docs/handoffs/` 仍未上传，`计算表/` 未修改。
 
 **G07已通过，允许由用户另行启动G08；本次未启动G08。**
+## G08 实施报告（2026-09-20）
+
+### 范围与实现
+
+本轮从已通过的 G07 基线开始，仅执行 HANDOFF.md 的 G08，未创建或执行 G09。恢复检查确认 `main` 与 `origin/main` 已对齐于 `fbe884df0dad890f1be6da945a52b288ea8c8f1c`；实现工作在 `gxx-implementation` 分支完成。既有未跟踪 `docs/handoffs/` 未处理，`计算表/` 未修改。
+
+- `pyproject.toml` 应用版本为 `1.0.0`，新增受控的 `[project.optional-dependencies].build`（PyInstaller 6.22）；Canonical schema 仍为 `1.0.0`，没有新增迁移。Catalog manifest data version 为 `2026.09.20-g08.1`。
+- `AppConfig` 支持 frozen onedir 目录内的只读 Catalog；默认 records.sqlite 和 JSON Lines 日志继续使用 Windows `%LOCALAPPDATA%` 用户目录。
+- MigrationRunner 拒绝未知未来版本；SQLite 文件无法打开时统一转换为 `MigrationError`。重复初始化保持幂等，应用版本/数据版本元数据保持可追溯。
+- `scripts/build_standalone.py` 从 Canonical 重新构建 Catalog，使用 PyInstaller onedir/windowed、独立绝对导入入口 `scripts/standalone_entry.py`，生成 `build-manifest.json`；`scripts/inspect_release.py` 校验文件清单、哈希、版本、Catalog 表和敏感范围。
+- PyInstaller 误收集的 Poppler ICU 78 DLL 已在生成的发布目录中排除；这是已定位的 QtGui/Qt6Core 运行时 ABI 冲突修复，不改变业务计算、Canonical 或数据库 schema。
+- `scripts/smoke_standalone.py` 在隔离 LOCALAPPDATA 下执行两次启动，验证 exe 不提前退出且 records.sqlite/application.jsonl 均创建；Windows CI 已接入 Canonical、全量测试、构建、审计和双启动步骤。
+- `docs/DELIVERY.md` 和 README 补充源码安装、便携式构建、启动、数据目录、卸载数据保留、当前能力边界和故障排查。当前没有 MSI/安装向导、代码签名或自动升级服务，Windows 10 未在本环境实机验证。
+
+### 测试与校验
+
+- 定向：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；**7/7 通过，0 失败，0 错误，0 跳过**。
+- 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records -v`；**89/89 通过，0 失败，0 错误，0 跳过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**122/122 通过，0 失败，0 错误，0 跳过**。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；成功。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <temporary>`；从零生成 catalog/user/records 三个 SQLite，临时输出已清理。
+- 交付包：`.venv\Scripts\python.exe scripts\build_standalone.py --output-root dist --clean`；成功；`.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting`；**PASS，229 files**；`.venv\Scripts\python.exe scripts\smoke_standalone.py dist\QingzhouCarbonAccounting`；**PASS，2 次隔离启动**。
+- `git diff --check` 通过；`计算表/` 无差异；既有 `docs/handoffs/` 未纳入。
+
+### 当前门禁
+
+- 候选实现提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
+- 下一步：推送 `gxx-implementation`，创建目标为 `main` 的 Pull Request，等待 GitHub Windows CI 检查完成；当前不启动 G09，待 Sol 预验收。
+
+## G08 预验收 NEEDS FIX 返工报告（2026-09-20）
+
+### 修正范围
+
+本轮针对 Sol 预验收的五项意见完成 G08 范围内修正，未实施 G09：
+
+1. 构建 manifest 只登记可上传的可见文件，隐藏 .gitkeep 不再造成 manifest 与 GitHub 下载 ZIP 不一致；verify_release_archive.py 对模拟 upload-artifact 的最终归档重新解压并审计 manifest 文件集合。
+2. Catalog app_compatibility 从 0.1.x 修正为与正式应用 1.0.0 相容的 1.x，并由发布审计与回归测试校验。
+3. docs/DELIVERY.md 改正平台证据表述：本机实测是 Windows 11 Professional x64；GitHub windows-latest 的实测环境是 Windows Server 2025，不再宣称为 Windows 11；Windows 10 22H2 明确未验证。
+4. CI 同时保留 merge-ref 集成测试和 exact PR head standalone 构建；manifest 新增并校验 pr_head_sha、tested_merge_sha，source_commit 对 exact-head 构建指向 PR head。
+5. 增加 fresh-data GUI 全链路回归，覆盖新用户启动、GB/T 32151.34 输入、计算、自动生成记录、重启和历史读取。
+
+### 验证结果
+
+- 实施与测试提交：59d4a8e fix: close G08 delivery preacceptance gaps。
+- G08 定向：tests.test_g08_delivery；9/9 通过。
+- G02/G04/G05/G06/G07 相关回归：98/98 通过。
+- 全量：unittest discover -s tests -t . -q；124/124 通过。
+- compileall 成功；pip check 无损坏依赖；Canonical 校验通过（9 standards / 12 sources / 7 parameters / 7 factors）；三库从零重建成功。
+- 本机 Windows 11 standalone：构建成功；inspect_release.py PASS（227 个内容文件）；verify_release_archive.py PASS（228 个可见归档条目，manifest 往返一致）；smoke_standalone.py PASS（2 次隔离启动）。
+- 本机环境证据为 Windows 11 Professional x64 10.0.26200 / Build 26200 / AMD64，Python 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。Windows 10 22H2 未在本环境实测。
+
+### 交付与门禁
+
+构建产物 manifest 已核对 app_version=1.0.0、catalog_data_version=2026.09.20-g08.1，并记录 source_commit、pr_head_sha、tested_merge_sha。文档提交后将以最终 PR head 重新构建并推送，等待 GitHub 两条 Windows 检查完成；G09 未创建、未执行，当前停止在 G08 等待 Sol 重新预验收。
+
+## G08 Sol 正式验收结论（2026-09-20）
+
+### 结论
+
+**PASS**
+
+被验收候选 SHA 为 `d24fa6f19f19f6aab1770585023f517dd50ad784`。GitHub PR #1 中该 SHA 对应的 `Windows / Python 3.12 / Merge-ref Full Tests` 和 `Windows / Python 3.12 / PR-head Standalone Audit` 均成功。PR 完整差异、G08 源码、交付数据、文档、测试和阶段门禁均已独立检查。
+
+### 独立测试与构建
+
+- G08 定向：`.venv\Scripts\python.exe -m unittest tests.test_g08_delivery -v`；9/9 通过。
+- G02/G04/G05/G06/G07/G08 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g04_catalog tests.test_g05_multi_electricity tests.test_g05_rules tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery -v`；98/98 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；124/124 通过。
+- `compileall` 成功；`pip check` 返回 `No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- catalog、user、records 三库从空目录重建成功；验收临时目录已清理。
+- Windows 11 x64 独立构建成功；发布目录审计通过（227 个内容文件）；模拟 GitHub 最终归档审计通过（228 个可见条目）；隔离目录双启动冒烟通过。manifest 中 `app_version=1.0.0`、`catalog_schema_version=1.0.0`、`catalog_data_version=2026.09.20-g08.1`、`source_commit`、`pr_head_sha` 和 `tested_merge_sha` 均已核对。
+
+### MUST、Scope 与限制核对
+
+- 空库、首次建库、重复启动、过新数据库版本安全失败、日志、fresh-data GUI 计算并重启读取历史记录均有实际测试覆盖。
+- 发布包未发现标准全文、用户计算表、测试数据库、开发密钥或环境文件；`计算表/` 无修改。
+- 安装、启动、数据目录、卸载保留、当前限制和故障排查文档齐全。
+- Windows 10 22H2 因无独立实机环境未执行，交付文档已如实记录；Windows 11 Professional x64 已完成本机验证。
+- 原生界面自动化辅助程序因 Windows 沙箱初始化失败未能运行，未将人工界面操作列为验收证据；Qt fresh-data GUI 全链路测试和真实独立程序双启动冒烟均已实际执行并通过。
+- 未发现标准、参数或排放因子口径变更，故本阶段无需重新录入或解释原始标准数值。未提前实施报告导出、Excel 导入、其他七项标准等范围外功能；既有未跟踪 `docs/handoffs/` 未修改、未提交。
+
+G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00—G08 已完成阶段验收；本次未启动任何未批准的后续阶段。验收提交推送后，必须先确认该最新提交的 GitHub 检查全部通过，再以普通 Merge 方式合并 PR，不得 Squash 或 Rebase。

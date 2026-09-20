@@ -13,13 +13,13 @@ permissions:
   contents: read
 
 jobs:
-  windows-python-312-tests:
-    name: Windows / Python 3.12 / Full Tests
+  windows-python-312-merge-integration:
+    name: Windows / Python 3.12 / Merge-ref Full Tests
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
+      - name: Checkout merge ref
         uses: actions/checkout@v7
 
       - name: Set up Python 3.12
@@ -30,10 +30,81 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install project
-        run: python -m pip install -e .
+      - name: Install project and build dependency
+        run: python -m pip install -e ".[build]"
 
-      - name: Run full test suite
+      - name: Validate canonical source
+        run: python scripts/validate_canonical.py
+
+      - name: Run full merge-ref test suite
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m unittest discover -s tests -t . -v
+
+  windows-python-312-standalone:
+    name: Windows / Python 3.12 / PR-head Standalone Audit
+    needs: windows-python-312-merge-integration
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout PR head for exact-head build
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project and build dependency
+        run: python -m pip install -e ".[build]"
+
+      - name: Validate exact-head canonical source
+        run: python scripts/validate_canonical.py
+
+      - name: Run G08 delivery tests on exact head
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m unittest tests.test_g08_delivery -v
+
+      - name: Build exact-head standalone directory
+        env:
+          QZ_PR_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          QZ_TESTED_MERGE_SHA: ${{ github.sha }}
+        run: python scripts/build_standalone.py --output-root dist
+
+      - name: Audit exact-head standalone directory
+        run: python scripts/inspect_release.py dist/QingzhouCarbonAccounting
+
+      - name: Verify final upload archive manifest
+        run: python scripts/verify_release_archive.py dist/QingzhouCarbonAccounting
+
+      - name: Verify release provenance
+        env:
+          EXPECTED_PR_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_TESTED_MERGE_SHA: ${{ github.sha }}
+        shell: pwsh
+        run: |
+          $manifest = Get-Content dist/QingzhouCarbonAccounting/build-manifest.json | ConvertFrom-Json
+          if ($manifest.pr_head_sha -ne $env:EXPECTED_PR_HEAD_SHA) { throw "pr_head_sha mismatch" }
+          if ($manifest.tested_merge_sha -ne $env:EXPECTED_TESTED_MERGE_SHA) { throw "tested_merge_sha mismatch" }
+          if ($manifest.source_commit -ne $env:EXPECTED_PR_HEAD_SHA) { throw "source_commit is not exact PR head" }
+
+      - name: Smoke-test standalone startup
+        run: python scripts/smoke_standalone.py dist/QingzhouCarbonAccounting
+
+      - name: Upload standalone candidate
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingzhouCarbonAccounting-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: dist/QingzhouCarbonAccounting
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
