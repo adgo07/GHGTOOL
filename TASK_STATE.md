@@ -6,7 +6,7 @@ Post-V1 新建核算 UI 重构：UIR01 字段语义层与类型化输入控件
 
 ## 状态
 
-UIR01_READY_FOR_SOL_REVIEW
+UIR01_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1003,3 +1003,25 @@ Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间�
 ### 阶段门禁
 
 UIR01 未开始 UIR02；完成提交后停止等待 Sol 验收。既有未跟踪 docs/handoffs/ 保持原样，不处理、不提交；计算表/ 未修改。
+
+## UIR01 验收返工状态（2026-09-21）
+
+**UIR01_REWORK_READY_FOR_SOL_REVIEW**
+
+Sol 验收发现原 NumericLineEdit 只覆盖了程序化 `setText()`，Qt 实际键盘输入中 `QDoubleValidator` 会把百分比 `101` 标为 Intermediate，导致越界值仍显示；负号还可能被丢弃后把 `-1` 变成 `1`。本轮仅修复该 UIR01 阻断项，未开始 UIR02。
+
+### 返工内容
+
+- `packages/ui/typed_inputs.py` 新增 Decimal-aware 严格候选校验器；键盘事件在 QLineEdit 修改文本前检查完整候选值，立即拒绝越界、负号、字母和千位分隔符。
+- 覆盖粘贴路径，非法粘贴值整体拒绝；对被拒绝的负号序列做阻断，避免 `-1` 静默变为 `1`。
+- 保留 0、100 边界、合法小数、空值和修正后继续输入行为；Domain 仍使用 Decimal，未改公式或数据模型。
+- `tests/test_uir01_field_semantics.py` 增加真实 Qt 键盘、Ctrl+V 粘贴、千位分隔符、边界值和非法输入修正回归。
+
+### 返工验证
+
+- UIR01 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics -v`；6/6 通过，0 失败，0 错误，0 跳过。
+- G06/G07/G08 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery`；55/55 通过。
+- 项目全量测试：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -q`；130/130 通过。
+- `compileall`、`pip check`、Canonical 校验和三库从零重建均通过；Canonical 为 9 standards / 12 sources / 7 parameters / 7 factors。
+
+返工实现提交：`249e5f9c2849b06d8b40b064d35b6167d559407d`。当前停止等待 Sol 重新验收 UIR01；不得开始 UIR02。既有未跟踪 `docs/handoffs/` 保持原样且未纳入提交，`计算表/` 未修改。

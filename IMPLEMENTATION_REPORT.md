@@ -1484,3 +1484,52 @@ Post-V1 新建核算 UI 重构 UIR01——字段语义层与类型化输入控�
 - 检查百分比输入 0%、100%、越界/字母/负值行为及其映射到 Domain ratio 的精度。
 - 检查同一合法输入的 Domain Input 和计算结果与既有公式一致。
 - 确认 UIR02 未提前实施。
+
+## UIR01 验收返工报告（2026-09-21）
+
+### 返工原因
+
+Sol 独立 Qt 键盘测试发现，原控件依赖 QDoubleValidator 的 Intermediate 状态，真实键盘输入 `101` 仍可显示；负号可能被丢弃并使 `-1` 静默变成 `1`。原有测试只调用程序化 `setText()`，没有锁定键盘和粘贴路径。本轮只修复该 UIR01 MUST，不启动 UIR02。
+
+### 本轮修复
+
+- `packages/ui/typed_inputs.py` 增加 Decimal-aware 严格候选校验器，将越界、负值、字母、多个小数点和千位分隔符在候选文本阶段判为 Invalid。
+- `NumericLineEdit.keyPressEvent()` 在 QLineEdit 修改内容前验证键盘候选值，`101` 的第三个字符、非法负号和其他非法字符不会进入控件；负号后的数字序列不会静默变成正数。
+- `NumericLineEdit.insertFromMimeData()` 对粘贴内容整体校验，`101`、`-1`、`1,000` 等非法内容整体拒绝。
+- 未修改 Domain `Decimal` 计算、百分比 0—100 到 ratio 0—1 转换、标准公式、Canonical、SQLite schema、records.sqlite 或 PR #2 输入保留行为。
+- 新增真实 Qt 交互回归，覆盖键盘 `101`、`-1`、千位分隔符、Ctrl+V 粘贴、0/100 边界以及非法输入后的有效修正。
+
+### 测试与校验
+
+#### UIR01 定向测试
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics -v`
+
+结果：6/6 通过，0 失败，0 错误，0 跳过；其中新增 1 项真实 Qt 键盘/粘贴回归。
+
+#### 相关回归
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery`
+
+结果：55/55 通过，0 失败，0 错误，0 跳过。
+
+#### 全量回归
+
+命令：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -q`
+
+结果：130/130 通过，0 失败，0 错误，0 跳过。
+
+#### 辅助校验
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`：通过。
+- `.venv\Scripts\python.exe -m pip check`：通过，`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- `scripts\initialize_databases.py` 在唯一临时目录从零重建 `catalog.sqlite`、`user.sqlite`、`records.sqlite`：通过，临时目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异。
+
+### 提交与阶段门禁
+
+- 返工实现提交：`249e5f9c2849b06d8b40b064d35b6167d559407d` `fix: reject invalid numeric keyboard input`。
+- 本轮仅修改 `packages/ui/typed_inputs.py` 和 `tests/test_uir01_field_semantics.py`；本报告和 `TASK_STATE.md` 随后更新。
+- 既有未跟踪 `docs/handoffs/` 未处理、未提交；未修改 `计算表/`。
+- 当前状态：UIR01 返工完成，停止等待 Sol 重新验收；UIR02、UIR03、UIR04 均未启动。
