@@ -295,7 +295,7 @@ class G07UiTests(unittest.TestCase):
         self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
         with patch(
             "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=QMessageBox.StandardButton.Yes,
+            return_value=int(QMessageBox.StandardButton.Yes),
         ):
             shell.navigate(AppRoute.RECORDS)
         self.assertEqual(shell.current_route, AppRoute.RECORDS)
@@ -472,7 +472,7 @@ class G07UiTests(unittest.TestCase):
         self.assertTrue(self.window.isVisible())
         with patch(
             "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=QMessageBox.StandardButton.Yes,
+            return_value=int(QMessageBox.StandardButton.Yes),
         ):
             self.assertTrue(self.window.close())
         self.assertFalse(self.window.isVisible())
@@ -482,7 +482,7 @@ class G07UiTests(unittest.TestCase):
         selected_id = self.records_page._records[0].record_id
         with patch(
             "packages.ui.pages.QMessageBox.question",
-            return_value=QMessageBox.StandardButton.Yes,
+            return_value=int(QMessageBox.StandardButton.Yes),
         ) as question:
             self.records_page.delete_button.click()
         question.assert_called_once()
