@@ -7,7 +7,9 @@ from decimal import Decimal
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QValidator
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
 from packages.application import CatalogQueryService
@@ -162,6 +164,66 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
         percentage.setText("101")  # type: ignore[attr-defined]
         self.assertEqual(percentage.text(), "")  # type: ignore[attr-defined]
         self.assertFalse(percentage.hasAcceptableInput())  # type: ignore[attr-defined]
+        parent.deleteLater()
+
+    def test_typed_numeric_inputs_reject_real_keyboard_and_paste_candidates(self) -> None:
+        parent = QWidget()
+        parent.show()
+        percentage = create_typed_input(parent, get_field_spec("calcination.wfc"), "percentage")
+        percentage.setFocus()  # type: ignore[attr-defined]
+
+        QTest.keyClicks(percentage, "100")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "100")  # type: ignore[attr-defined]
+        self.assertTrue(percentage.hasAcceptableInput())  # type: ignore[attr-defined]
+
+        # QDoubleValidator used to report 101 as Intermediate, allowing the
+        # third key to remain visible.  The exact candidate must now be
+        # rejected before QLineEdit mutates its text.
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "101")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "10")  # type: ignore[attr-defined]
+        self.assertNotEqual(percentage.text(), "101")  # type: ignore[attr-defined]
+        self.assertTrue(percentage.hasAcceptableInput())  # type: ignore[attr-defined]
+
+        # A rejected minus sign must not silently turn the subsequent ``1``
+        # into a valid-looking positive value.
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "-1")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "")  # type: ignore[attr-defined]
+
+        # Keyboard separators are rejected, and the edit remains an
+        # acceptable numeric value rather than retaining ``1,000``.
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "1,000")  # type: ignore[arg-type]
+        self.assertNotIn(",", percentage.text())  # type: ignore[attr-defined]
+        self.assertTrue(percentage.hasAcceptableInput())  # type: ignore[attr-defined]
+
+        clipboard = self.application.clipboard()
+        original_clipboard = clipboard.text()
+        try:
+            for pasted in ("101", "-1", "1,000"):
+                percentage.clear()  # type: ignore[attr-defined]
+                clipboard.setText(pasted)
+                percentage.setFocus()  # type: ignore[attr-defined]
+                QTest.keyClick(percentage, Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier)
+                self.assertEqual(percentage.text(), "", pasted)  # type: ignore[attr-defined]
+        finally:
+            clipboard.setText(original_clipboard)
+
+        # After an invalid attempt, valid boundary values and a corrected
+        # edit must still be accepted immediately.
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "0")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "0")  # type: ignore[attr-defined]
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "100")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "100")  # type: ignore[attr-defined]
+        percentage.clear()  # type: ignore[attr-defined]
+        QTest.keyClicks(percentage, "101")  # type: ignore[arg-type]
+        QTest.keyClick(percentage, Qt.Key.Key_Backspace)
+        QTest.keyClicks(percentage, "00")  # type: ignore[arg-type]
+        self.assertEqual(percentage.text(), "100")  # type: ignore[attr-defined]
+
         parent.deleteLater()
 
     def test_percentage_ui_and_domain_ratio_conversion_is_decimal_and_bidirectional(self) -> None:
