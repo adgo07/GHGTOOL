@@ -1355,3 +1355,22 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 - 未发现标准、参数或排放因子口径变更，故本阶段无需重新录入或解释原始标准数值。未提前实施报告导出、Excel 导入、其他七项标准等范围外功能；既有未跟踪 `docs/handoffs/` 未修改、未提交。
 
 G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00—G08 已完成阶段验收；本次未启动任何未批准的后续阶段。验收提交推送后，必须先确认该最新提交的 GitHub 检查全部通过，再以普通 Merge 方式合并 PR，不得 Squash 或 Rebase。
+
+## G08 验收后退出确认框缺陷修复报告（2026-09-20）
+
+### 问题与根因
+
+实际测试发现，进入新建核算并录入未计算输入后，点击导航或关闭软件，放弃输入对话框选择 Yes 仍不能继续。原因是 carbon_material_page.py 使用 is not 比较 QMessageBox 返回值；PySide6 可能返回数值 16384，虽然与 StandardButton.Yes 相等，但不是同一个 Python 对象。
+
+### 修复内容
+
+- 将确认判断改为 answer != QMessageBox.StandardButton.Yes，兼容枚举和整数返回值。
+- 导航和关闭回归测试改为使用整数 Yes 返回值，锁定实际 Qt 边界行为；删除记录确认测试同步覆盖该返回形式。
+
+### 测试结果
+
+- G07 定向：12/12 通过。
+- 全量测试：124/124 通过。
+- compileall：成功。
+
+本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复已保存在独立分支 codex/g08-discard-confirmation-fix，等待是否推送/合并的后续指示。

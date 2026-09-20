@@ -958,7 +958,7 @@ class CarbonMaterialAccountingPage(BasePage):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
-        if answer is not QMessageBox.StandardButton.Yes:
+        if answer != QMessageBox.StandardButton.Yes:
             return False
         self._reset_for_new_accounting()
         return True
