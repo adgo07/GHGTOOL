@@ -1386,3 +1386,14 @@ G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00�
 验证结果：G07 定向 12/12 通过；项目全量 124/124 通过；compileall 成功；pip check 返回 No broken requirements found.
 
 本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复保存在 codex/g08-discard-confirmation-fix 分支，待重新构建后使用。
+## G08 验收后修复版交付记录（2026-09-20）
+
+用户确认采用无弹窗输入保留方案后，已完成本地交付：
+
+- 修复版已替换到原路径 D:\\project\\碳排放核算工具\\dist\\QingzhouCarbonAccounting\\QingzhouCarbonAccounting.exe。
+- 旧版目录保留为 dist\\QingzhouCarbonAccounting-legacy，未做不可恢复删除。
+- 修复分支 codex/g08-discard-confirmation-fix 已以 fast-forward 方式合并到本地 main，合并提交 e64311a。
+- 原路径发布审计 PASS（227 files）；standalone smoke PASS（2 isolated starts）。
+- G07 定向 12/12、项目全量 124/124、compileall 和 pip check 均已通过。
+
+本次仍未推送 GitHub；如需远端同步，应另行执行推送/PR流程。G09 未创建或执行。
