@@ -952,3 +952,16 @@ G08 已通过。G08 是当前 `HANDOFF.md` 定义的最终阶段，Windows V1 �
 - compileall apps packages scripts tests：成功。
 - 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。
 - G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。
+## G08 验收后输入保留行为调整（2026-09-20）
+
+**READY_FOR_REVIEW**
+
+Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间切换导航不再询问或清空输入；关闭窗口直接退出，未成功计算的输入只保留在内存中，不写入草稿，也不承诺下次启动恢复。未创建或执行 G09。
+
+### 实现与测试
+
+- AppShell 导航不再调用放弃输入门禁；页面对象继续缓存，因此返回新建核算页面时已填写内容保持不变。
+- 主窗口关闭直接接受关闭事件；兼容性确认方法不再弹窗。
+- 新增/调整导航保留和关闭直退回归测试。
+- G07 定向：12/12 通过；项目全量：124/124 通过；compileall 成功；pip check 无损坏依赖。
+- 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。

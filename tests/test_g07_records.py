@@ -272,7 +272,7 @@ class G07UiTests(unittest.TestCase):
         self.assertIn("G07 测试选择理由", self.records_page.detail_text.toPlainText())
         self.assertIsNotNone(self.home_page.findChild(QLabel, "bodyText"))
 
-    def test_leaving_uncomputed_page_requires_confirmation_and_discards_every_input(self) -> None:
+    def test_leaving_uncomputed_page_preserves_every_input_without_confirmation(self) -> None:
         shell = self.window.centralWidget()
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         page = shell.pages[AppRoute.NEW_ACCOUNTING]
@@ -283,35 +283,27 @@ class G07UiTests(unittest.TestCase):
         page.boundary_confirmed.setChecked(True)
         page.other_activity_present.setChecked(True)
         page._source_statuses["CAR-SRC-FUEL-001"].setCurrentIndex(1)
-        page._fields["fuel_id"].setText("fuel-before-discard")
+        page._fields["fuel_id"].setText("fuel-before-navigation")
         page.findChild(QPushButton, "addElectricityButton").click()
         self.assertEqual(len(page._electricity_rows), 2)
         page._electricity_rows[1].amount.setText("12.5")
-        with patch(
-            "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=QMessageBox.StandardButton.No,
-        ):
+
+        with patch("packages.ui.carbon_material_page.QMessageBox.question") as question:
             shell.navigate(AppRoute.RECORDS)
-        self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
-        with patch(
-            "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=int(QMessageBox.StandardButton.Yes),
-        ):
-            shell.navigate(AppRoute.RECORDS)
+        question.assert_not_called()
         self.assertEqual(shell.current_route, AppRoute.RECORDS)
-        self.assertEqual(page.enterprise_name.text(), "")
-        self.assertEqual(page.period_type.currentIndex(), 0)
-        self.assertEqual(page.period_year.value(), 2025)
-        self.assertEqual(page.period_month.value(), 1)
-        self.assertFalse(page.boundary_confirmed.isChecked())
-        self.assertFalse(page.other_activity_present.isChecked())
-        self.assertEqual(page._source_statuses["CAR-SRC-FUEL-001"].currentIndex(), 0)
-        self.assertEqual(page._fields["fuel_id"].text(), "")
-        self.assertEqual(len(page._electricity_rows), 1)
-        self.assertEqual(page._electricity_rows[0].amount.text(), "")
-        self.assertEqual(page._calculation_index, 0)
-        self.assertEqual(page.result_total.text(), "未计算")
-        self.assertEqual(page.validation_list.count(), 0)
+
+        shell.navigate(AppRoute.NEW_ACCOUNTING)
+        self.assertEqual(page.enterprise_name.text(), "未计算企业")
+        self.assertEqual(page.period_type.currentIndex(), 1)
+        self.assertEqual(page.period_year.value(), 2030)
+        self.assertEqual(page.period_month.value(), 7)
+        self.assertTrue(page.boundary_confirmed.isChecked())
+        self.assertTrue(page.other_activity_present.isChecked())
+        self.assertEqual(page._source_statuses["CAR-SRC-FUEL-001"].currentIndex(), 1)
+        self.assertEqual(page._fields["fuel_id"].text(), "fuel-before-navigation")
+        self.assertEqual(len(page._electricity_rows), 2)
+        self.assertEqual(page._electricity_rows[1].amount.text(), "12.5")
 
     def test_read_only_detail_shows_actual_input_snapshot_and_standard_version(self) -> None:
         record = _record("record.ui.snapshot")
@@ -458,24 +450,16 @@ class G07UiTests(unittest.TestCase):
             second_window.deleteLater()
             self.application.processEvents()
 
-    def test_closing_uncomputed_page_requires_confirmation(self) -> None:
+    def test_closing_uncomputed_page_closes_without_confirmation(self) -> None:
         shell = self.window.centralWidget()
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         page = shell.pages[AppRoute.NEW_ACCOUNTING]
         page.enterprise_name.setText("关闭前未计算企业")
-        with patch(
-            "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=QMessageBox.StandardButton.No,
-        ) as question:
-            self.assertFalse(self.window.close())
-        question.assert_called_once()
-        self.assertTrue(self.window.isVisible())
-        with patch(
-            "packages.ui.carbon_material_page.QMessageBox.question",
-            return_value=int(QMessageBox.StandardButton.Yes),
-        ):
+        with patch("packages.ui.carbon_material_page.QMessageBox.question") as question:
             self.assertTrue(self.window.close())
+        question.assert_not_called()
         self.assertFalse(self.window.isVisible())
+
     def test_ui_delete_requires_confirmation_and_refreshes_active_list(self) -> None:
         self.records_page.search_input.clear()
         self.records_page.record_list.setCurrentRow(0)
