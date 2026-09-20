@@ -965,3 +965,13 @@ Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间�
 - 新增/调整导航保留和关闭直退回归测试。
 - G07 定向：12/12 通过；项目全量：124/124 通过；compileall 成功；pip check 无损坏依赖。
 - 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。
+
+## G08 验收后修复版交付状态（2026-09-20）
+
+**DELIVERED_LOCALLY**
+
+- 已将修复版替换到 D:\\project\\碳排放核算工具\\dist\\QingzhouCarbonAccounting\\QingzhouCarbonAccounting.exe。
+- 原版本保留在 dist\\QingzhouCarbonAccounting-legacy，未删除，便于回退。
+- 修复分支已快进合并到本地 main，当前合并提交为 e64311a。
+- 原路径发布审计通过（227 files），standalone 双启动 smoke 通过（2 isolated starts）。
+- G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。
