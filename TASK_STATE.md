@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-G08 Windows 交付与全链路回归
+Post-V1 新建核算 UI 重构：UIR01 字段语义层与类型化输入控件
 
 ## 状态
 
-G08_PASS_WINDOWS_V1_COMPLETE
+UIR01_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -975,3 +975,28 @@ Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间�
 - 修复分支已快进合并到本地 main，当前合并提交为 e64311a。
 - 原路径发布审计通过（227 files），standalone 双启动 smoke 通过（2 isolated starts）。
 - G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。
+
+## UIR01 实施状态（2026-09-20）
+
+**UIR01_READY_FOR_SOL_REVIEW**
+
+本阶段从 origin/main 最新基线 a42bedc 创建独立分支 ui-refactor-uir01-field-semantics，仅实施 Post-V1 新建核算 UI 重构的 UIR01；未创建或实施 UIR02、UIR03、UIR04。
+
+### 已完成
+
+- 在 packages/ui/field_specs.py 建立 GB/T 32151.34—2024 当前页面的 FieldSpec Presentation 映射，覆盖身份、边界、十项排放源状态、燃料、P01-P04B、材料基准、电力明细、I02/I03/I04 和热力参数选择理由。
+- 中文 display_name、standard_symbol、单位、范围、必填性、帮助文本、标准条款/来源定位和 advanced 属性来自仓库已有冻结映射或标准定位；普通用户标签不再直接使用 gc、wfc、bpm、gpmvar 等内部变量名。
+- 在 packages/ui/typed_inputs.py 建立文本、数量、百分比、整数、枚举、布尔和只读标准参数控件 helper；数值控件即时拒绝字母、负值和超范围百分数，单位由 FieldSpec 控制。
+- 百分比 UI 使用 0—100，进入 Domain 前以 Decimal 显式转换为 ratio 0—1；未修改 CarbonMaterialInput、GB/T 32151.34 公式、Canonical、SQLite schema、records.sqlite 或输入保留行为。
+- 页面燃料、过程、材料基准、电力、热力和输出能源控件已接入 FieldSpec；现有对象名、导航/关闭时输入保留和成功计算立即记录行为保持不变。
+- HANDOFF.md 已在末尾增加 Post-V1 UIR01～UIR04 治理章节，未改写 G00-G08 历史章节。
+
+### 定向测试
+
+- tests/test_uir01_field_semantics.py：5/5 通过，覆盖 FieldSpec 完整性、普通模式标签、数值输入边界、比例双向转换以及 Domain Input/计算结果等价。
+- tests/test_g06_page.py、tests/test_g06_carbon_material.py、tests/test_g07_records.py、tests/test_g08_delivery.py 合计 54/54 通过。
+- 项目全量测试：129/129 通过。
+
+### 阶段门禁
+
+UIR01 未开始 UIR02；完成提交后停止等待 Sol 验收。既有未跟踪 docs/handoffs/ 保持原样，不处理、不提交；计算表/ 未修改。

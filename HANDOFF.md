@@ -667,3 +667,42 @@ G00 / G01 / ...
 - Luna已经停止，没有自行进入下一阶段。
 
 整个Windows V1只有在G00～G08全部经Sol验收后才算完成。
+
+## 21. Post-V1 新建核算 UI 重构 UIR01～UIR04
+
+G00～G08 已完成 Windows V1 阶段门禁。以下是 V1 完成后的“新建核算”界面重构治理章节；它不改写 G00～G08 的历史交接记录，也不自动启动任何后续 Goal。
+
+### 21.1 总边界
+
+- 只重构 GB/T 32151.34—2024 当前“新建核算”页面的 Presentation 层和用户输入体验。
+- 保持 CarbonMaterialInput、Domain Decimal 精度、GB/T 32151.34 公式、Canonical 数据、SQLite schema、records.sqlite 记录规则和 PR #2 的运行期间输入保留行为不变。
+- 不修改、删除或上传 计算表/；不打包标准全文；不实施 Excel 导入、报告/导出、其他七项标准、云服务或 G09 类功能。
+- UIR01～UIR04 必须按顺序执行；当前 Goal 未完成、未形成报告或存在 BLOCKED 时，不得进入下一阶段。
+
+### 21.2 UIR01——字段语义层与类型化输入控件
+
+#### MUST
+
+1. 为当前页面所有用户输入建立可追溯的 Presentation FieldSpec，至少包含 internal_key、display_name、standard_symbol（如适用）、data_type、unit、min、max、required、help_text、standard_clause、source_location 和 advanced。
+2. 普通用户界面不得显示 gc、wfc、cc、bpm、gpm、gpmvar 等内部变量名；中文名称必须来自已批准的标准映射或原始标准证据。无法可靠定位的字段必须按 BLOCKED 格式上报。
+3. 提供可复用的数量、百分比/比例、整数、普通文本、枚举和只读标准参数控件/helper。数值控件即时拒绝字母、负值和超范围百分数；单位由字段定义控制，不得由用户自由填写。
+4. 百分数 UI 使用 0～100，进入 Domain 前显式转换为 0～1 的 Decimal ratio，并测试 0%、100%、双向转换和既有计算结果等价。
+5. UIR01 不进行 UIR02 的卡片化布局重构；只处理字段语义、label、输入类型和验证。
+
+#### 测试与阶段门禁
+
+- 必须有 FieldSpec 完整性、数值输入、ratio 转换和“同一合法输入映射为等价 Domain Input/计算结果”的定向测试。
+- 必须回归 test_g06_page.py、test_g06_carbon_material.py、test_g07_records.py 和 test_g08_delivery.py，并记录全量测试、compileall、pip check 及必要的数据校验。
+- 完成后更新 TASK_STATE.md 和 IMPLEMENTATION_REPORT.md，提交并停止等待 Sol 验收；不得创建或实施 UIR02。
+
+### 21.3 UIR02——布局与分组重构（未启动）
+
+仅在 UIR01 经 Sol 验收通过后，由新的 Goal 明确范围。不得在 UIR01 中提前实施卡片化、分步向导或大幅布局重排。
+
+### 21.4 UIR03——交互辅助与错误呈现（未启动）
+
+仅在 UIR02 经 Sol 验收通过后启动。不得在 UIR01 中改变 Domain 校验规则、记录生命周期或引入草稿/项目保存机制。
+
+### 21.5 UIR04——可用性收口与回归（未启动）
+
+仅在 UIR03 经 Sol 验收通过后启动。不得在 UIR01～UIR03 中把可用性收口扩展为 G09 或其他业务模块。
