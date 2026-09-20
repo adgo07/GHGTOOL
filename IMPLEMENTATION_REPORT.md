@@ -1374,3 +1374,15 @@ G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00�
 - compileall：成功。
 
 本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复已保存在独立分支 codex/g08-discard-confirmation-fix，等待是否推送/合并的后续指示。
+## G08 验收后输入保留行为调整报告（2026-09-20）
+
+用户确认取消放弃输入弹窗，采用运行期间保留输入的方案。本轮未引入草稿数据库或恢复机制：
+
+- AppShell.navigate 直接切换路由，不再触发放弃输入确认或重置页面。
+- CarbonAccountingMainWindow.closeEvent 直接接受关闭事件，不再弹窗。
+- CarbonMaterialAccountingPage 的旧确认入口保留为无副作用兼容方法，始终不弹窗；未计算输入关闭后不持久化。
+- G07 测试改为验证填写输入后切换页面再返回内容仍在，以及关闭窗口不调用 QMessageBox。
+
+验证结果：G07 定向 12/12 通过；项目全量 124/124 通过；compileall 成功；pip check 返回 No broken requirements found.
+
+本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复保存在 codex/g08-discard-confirmation-fix 分支，待重新构建后使用。

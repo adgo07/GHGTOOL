@@ -18,14 +18,11 @@ from packages.ui.design_tokens import application_stylesheet
 
 
 class CarbonAccountingMainWindow(QMainWindow):
-    """Main window that enforces the G07 uncomputed-input close gate."""
+    """Main window that closes without discarding in-memory uncomputed input."""
 
     def closeEvent(self, event: QCloseEvent) -> None:  # type: ignore[override]
-        central = self.centralWidget()
-        confirm = getattr(central, "confirm_discard_if_needed", None)
-        if callable(confirm) and not confirm():
-            event.ignore()
-            return
+        """Close immediately; uncomputed input is intentionally not persisted."""
+
         event.accept()
 
 
