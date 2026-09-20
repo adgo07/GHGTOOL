@@ -1471,7 +1471,8 @@ Post-V1 新建核算 UI 重构 UIR01——字段语义层与类型化输入控�
 
 - 分支：ui-refactor-uir01-field-semantics，基于最新 origin/main a42bedc 创建。
 - commit：2017832 feat: add UIR01 field semantics and typed inputs。
-- git status：本阶段文件待提交；既有未跟踪 docs/handoffs/ 保持原样且不纳入提交。
+- git status：提交后仅保留既有未跟踪 docs/handoffs/；本阶段无未提交跟踪文件，且该目录未纳入提交。
+- 文档最终提交：dac401b docs: finalize UIR01 status and report。
 
 ### 已知问题
 

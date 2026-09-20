@@ -983,6 +983,7 @@ Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间�
 本阶段从 origin/main 最新基线 a42bedc 创建独立分支 ui-refactor-uir01-field-semantics，仅实施 Post-V1 新建核算 UI 重构的 UIR01；未创建或实施 UIR02、UIR03、UIR04。
 
 实现提交：2017832（feat: add UIR01 field semantics and typed inputs）。
+文档最终提交：dac401b（docs: finalize UIR01 status and report）。
 
 ### 已完成
 
