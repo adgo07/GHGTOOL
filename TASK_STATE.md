@@ -982,6 +982,8 @@ Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间�
 
 本阶段从 origin/main 最新基线 a42bedc 创建独立分支 ui-refactor-uir01-field-semantics，仅实施 Post-V1 新建核算 UI 重构的 UIR01；未创建或实施 UIR02、UIR03、UIR04。
 
+实现提交：2017832（feat: add UIR01 field semantics and typed inputs）。
+
 ### 已完成
 
 - 在 packages/ui/field_specs.py 建立 GB/T 32151.34—2024 当前页面的 FieldSpec Presentation 映射，覆盖身份、边界、十项排放源状态、燃料、P01-P04B、材料基准、电力明细、I02/I03/I04 和热力参数选择理由。
