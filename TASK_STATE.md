@@ -933,3 +933,45 @@ Sol 当前执行环境限制：
 - 已核对 G08 的 MUST、Scope 和阶段门禁；未发现标准、参数或排放因子口径变更；未实施报告导出、Excel 导入、其他七项标准等越界功能；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 未处理。
 
 G08 已通过。G08 是当前 `HANDOFF.md` 定义的最终阶段，Windows V1 的 G00—G08 阶段门禁已完成；本次未启动任何未批准的后续阶段。验收文档提交后须推送当前 PR 分支，并以该验收提交重新确认 GitHub 检查通过后，方可普通 Merge 到 `main`。
+
+## G08 验收后退出确认框缺陷修复（2026-09-20）
+
+**READY_FOR_REVIEW**
+
+在 G08 正式验收通过后进行实际界面测试时发现：新建核算页面存在未计算输入，点击其他导航或关闭窗口，在确认框选择 Yes 仍被阻止；本轮仅修复该 G07 生命周期回归，不创建或执行 G09。
+
+### 修复
+
+- packages/ui/carbon_material_page.py 将 QMessageBox 返回值从对象身份比较改为相等比较，兼容 PySide6 返回 StandardButton 枚举或其整数值（Yes=16384）。
+- tests/test_g07_records.py 的导航、关闭和删除确认测试覆盖整数形式的 Yes 返回值；导航确认后验证页面切换和输入清空，关闭确认后验证窗口关闭。
+
+### 验证
+
+- G07 定向：tests.test_g07_records；12/12 通过。
+- 项目全量：unittest discover -s tests -t . -q；124/124 通过。
+- compileall apps packages scripts tests：成功。
+- 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。
+- G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。
+## G08 验收后输入保留行为调整（2026-09-20）
+
+**READY_FOR_REVIEW**
+
+Sol/用户确认采用无弹窗方案：新建核算页面在应用运行期间切换导航不再询问或清空输入；关闭窗口直接退出，未成功计算的输入只保留在内存中，不写入草稿，也不承诺下次启动恢复。未创建或执行 G09。
+
+### 实现与测试
+
+- AppShell 导航不再调用放弃输入门禁；页面对象继续缓存，因此返回新建核算页面时已填写内容保持不变。
+- 主窗口关闭直接接受关闭事件；兼容性确认方法不再弹窗。
+- 新增/调整导航保留和关闭直退回归测试。
+- G07 定向：12/12 通过；项目全量：124/124 通过；compileall 成功；pip check 无损坏依赖。
+- 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。
+
+## G08 验收后修复版交付状态（2026-09-20）
+
+**DELIVERED_LOCALLY**
+
+- 已将修复版替换到 D:\\project\\碳排放核算工具\\dist\\QingzhouCarbonAccounting\\QingzhouCarbonAccounting.exe。
+- 原版本保留在 dist\\QingzhouCarbonAccounting-legacy，未删除，便于回退。
+- 修复分支已快进合并到本地 main，当前合并提交为 e64311a。
+- 原路径发布审计通过（227 files），standalone 双启动 smoke 通过（2 isolated starts）。
+- G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。

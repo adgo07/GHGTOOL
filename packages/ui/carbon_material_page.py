@@ -947,21 +947,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self._input_dirty = False
 
     def confirm_discard_if_needed(self) -> bool:
-        """Ask before abandoning input that has not produced a successful record."""
+        """Compatibility hook; navigation and close retain in-memory input without prompting."""
 
-        if not self._input_dirty:
-            return True
-        answer = QMessageBox.question(
-            self,
-            "放弃未计算输入",
-            "当前页面有尚未成功计算的输入；离开后这些输入将被丢弃，是否继续？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if answer is not QMessageBox.StandardButton.Yes:
-            return False
-        self._reset_for_new_accounting()
         return True
+
     def _run_calculation(self) -> None:
         self.validation_list.clear()
         if not self.enterprise_name.text().strip():

@@ -1355,3 +1355,45 @@ Sol 当前容器为 Python 3.13.5 且未安装 PySide6，不能在项目冻结�
 - 未发现标准、参数或排放因子口径变更，故本阶段无需重新录入或解释原始标准数值。未提前实施报告导出、Excel 导入、其他七项标准等范围外功能；既有未跟踪 `docs/handoffs/` 未修改、未提交。
 
 G08 已通过。G08 是当前 `HANDOFF.md` 的最终阶段，Windows V1 的 G00—G08 已完成阶段验收；本次未启动任何未批准的后续阶段。验收提交推送后，必须先确认该最新提交的 GitHub 检查全部通过，再以普通 Merge 方式合并 PR，不得 Squash 或 Rebase。
+
+## G08 验收后退出确认框缺陷修复报告（2026-09-20）
+
+### 问题与根因
+
+实际测试发现，进入新建核算并录入未计算输入后，点击导航或关闭软件，放弃输入对话框选择 Yes 仍不能继续。原因是 carbon_material_page.py 使用 is not 比较 QMessageBox 返回值；PySide6 可能返回数值 16384，虽然与 StandardButton.Yes 相等，但不是同一个 Python 对象。
+
+### 修复内容
+
+- 将确认判断改为 answer != QMessageBox.StandardButton.Yes，兼容枚举和整数返回值。
+- 导航和关闭回归测试改为使用整数 Yes 返回值，锁定实际 Qt 边界行为；删除记录确认测试同步覆盖该返回形式。
+
+### 测试结果
+
+- G07 定向：12/12 通过。
+- 全量测试：124/124 通过。
+- compileall：成功。
+
+本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复已保存在独立分支 codex/g08-discard-confirmation-fix，等待是否推送/合并的后续指示。
+## G08 验收后输入保留行为调整报告（2026-09-20）
+
+用户确认取消放弃输入弹窗，采用运行期间保留输入的方案。本轮未引入草稿数据库或恢复机制：
+
+- AppShell.navigate 直接切换路由，不再触发放弃输入确认或重置页面。
+- CarbonAccountingMainWindow.closeEvent 直接接受关闭事件，不再弹窗。
+- CarbonMaterialAccountingPage 的旧确认入口保留为无副作用兼容方法，始终不弹窗；未计算输入关闭后不持久化。
+- G07 测试改为验证填写输入后切换页面再返回内容仍在，以及关闭窗口不调用 QMessageBox。
+
+验证结果：G07 定向 12/12 通过；项目全量 124/124 通过；compileall 成功；pip check 返回 No broken requirements found.
+
+本轮未修改计算公式、Canonical 数据、数据库 schema 或迁移；未创建或执行 G09。修复保存在 codex/g08-discard-confirmation-fix 分支，待重新构建后使用。
+## G08 验收后修复版交付记录（2026-09-20）
+
+用户确认采用无弹窗输入保留方案后，已完成本地交付：
+
+- 修复版已替换到原路径 D:\\project\\碳排放核算工具\\dist\\QingzhouCarbonAccounting\\QingzhouCarbonAccounting.exe。
+- 旧版目录保留为 dist\\QingzhouCarbonAccounting-legacy，未做不可恢复删除。
+- 修复分支 codex/g08-discard-confirmation-fix 已以 fast-forward 方式合并到本地 main，合并提交 e64311a。
+- 原路径发布审计 PASS（227 files）；standalone smoke PASS（2 isolated starts）。
+- G07 定向 12/12、项目全量 124/124、compileall 和 pip check 均已通过。
+
+本次仍未推送 GitHub；如需远端同步，应另行执行推送/PR流程。G09 未创建或执行。
