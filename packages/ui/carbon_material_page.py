@@ -67,6 +67,7 @@ from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
+from .source_cards import SourceCard, SourceCardPresentationState
 from .typed_inputs import create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
 
@@ -253,6 +254,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._calculation_index = 0
         self._electricity_rows: list[_ElectricityRow] = []
         self._source_statuses: dict[str, QComboBox] = {}
+        self._source_cards: dict[str, SourceCard] = {}
         self._fields: dict[str, QLineEdit] = {}
         self._material_controls: dict[str, dict[str, QWidget]] = {}
         self._heat_factor_records = {}
@@ -269,7 +271,7 @@ class CarbonMaterialAccountingPage(BasePage):
     def _build_page(self) -> None:
         self.add_header("新建核算", "GB/T 32151.34-2024 炭素材料生产企业手工核算；成功计算后立即形成不可编辑核算记录。")
 
-        identity, identity_layout = _card("01 核算信息", self)
+        identity, identity_layout = _card("01 核算信息与核算边界", self)
         form = QFormLayout()
         self.standard_id_label = QLabel(self.standard_id, identity)
         self.standard_id_label.setObjectName("accountingStandardId")
@@ -308,9 +310,13 @@ class CarbonMaterialAccountingPage(BasePage):
             period_row,
         )
         identity_layout.addLayout(form)
-        self.body_layout.addWidget(identity)
 
-        boundary, boundary_layout = _card("02 核算边界", self)
+        boundary = QWidget(identity)
+        boundary_layout = QVBoxLayout(boundary)
+        boundary_layout.setContentsMargins(0, 12, 0, 0)
+        boundary_title = QLabel("核算边界", boundary)
+        boundary_title.setObjectName("accountingBoundaryTitle")
+        boundary_layout.addWidget(boundary_title)
         self.boundary_confirmed = create_typed_input(
             boundary,
             get_field_spec("boundary_confirmed"),
@@ -338,36 +344,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.transport_present.setText("存在上下游运输（需使用其他标准）")
         self.transport_present.setObjectName("upstreamDownstreamTransportCheckBox")
         boundary_layout.addWidget(self.transport_present)
-        self.body_layout.addWidget(boundary)
+        identity_layout.addWidget(boundary)
+        self.body_layout.addWidget(identity)
 
-        sources, sources_layout = _card("03 排放源识别", self)
-        source_grid = QGridLayout()
-        source_grid.addWidget(QLabel("排放源"), 0, 0)
-        source_grid.addWidget(QLabel("本次状态"), 0, 1)
-        for row, (source_id, label) in enumerate(SOURCE_LABELS.items(), 1):
-            source_spec = get_field_spec(f"source_status.{source_id}")
-            source_grid.addWidget(QLabel(label), row, 0)
-            combo = create_typed_input(sources, source_spec, f"sourceStatus_{source_id}")
-            combo.addItem("不涉及", EmissionSourceStatus.NOT_INVOLVED)
-            combo.addItem("涉及", EmissionSourceStatus.INVOLVED)
-            combo.addItem("待确认", EmissionSourceStatus.UNCONFIRMED)
-            self._source_statuses[source_id] = combo
-            source_grid.addWidget(combo, row, 1)
-        sources_layout.addLayout(source_grid)
-        self.body_layout.addWidget(sources)
-
-        activity, activity_layout = _card("04 活动数据", self)
-        self._build_fuel_section(activity_layout)
-        self._build_process_section(activity_layout, "煅烧（P01）", "calcination", ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"))
-        self._build_process_section(activity_layout, "焙烧/炭化（P02）", "baking", ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"))
-        self._build_process_section(activity_layout, "石墨化（P03）", "graphitization", ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"))
-        self._build_process_section(activity_layout, "烟气焚烧治理（P04A）", "fume", ("q", "qvar", "hm", "fch", "fox", "duration"))
-        self._build_process_section(activity_layout, "烟气脱硫净化（P04B）", "fgd", ("cal", "i", "ef1", "tr"))
-        self._build_electricity_section(activity_layout)
-        self._build_output_electricity_section(activity_layout)
-        self._build_heat_section(activity_layout)
-        self._build_output_heat_section(activity_layout)
-        self.body_layout.addWidget(activity)
+        source_activity, source_activity_layout = _card("02 排放源与活动数据", self)
+        self._build_source_cards(source_activity_layout)
+        self.body_layout.addWidget(source_activity)
 
         parameter_card, parameter_layout = _card("05 参数与排放因子", self)
         parameter_label = QLabel("参数选择器接入 G05：候选值、推荐/其他适用/历史分类、来源、审核状态和选择理由均在录入区显示。", parameter_card)
@@ -419,6 +401,82 @@ class CarbonMaterialAccountingPage(BasePage):
         action_row.addStretch(1)
         self.body_layout.addLayout(action_row)
         self.body_layout.addStretch(1)
+        self._refresh_source_cards()
+
+    def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
+        """Build all ten source cards through one shared Presentation path."""
+
+        source_definitions = (
+            ("CAR-SRC-FUEL-001", lambda layout: self._build_fuel_section(layout)),
+            (
+                "CAR-SRC-CALCINATION-001",
+                lambda layout: self._build_process_section(
+                    layout,
+                    "煅烧（P01）",
+                    "calcination",
+                    ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),
+                ),
+            ),
+            (
+                "CAR-SRC-BAKING-001",
+                lambda layout: self._build_process_section(
+                    layout,
+                    "焙烧/炭化（P02）",
+                    "baking",
+                    ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
+                ),
+            ),
+            (
+                "CAR-SRC-GRAPHITIZATION-001",
+                lambda layout: self._build_process_section(
+                    layout,
+                    "石墨化（P03）",
+                    "graphitization",
+                    ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"),
+                ),
+            ),
+            (
+                "CAR-SRC-FUME-INCINERATION-001",
+                lambda layout: self._build_process_section(
+                    layout,
+                    "烟气焚烧治理（P04A）",
+                    "fume",
+                    ("q", "qvar", "hm", "fch", "fox", "duration"),
+                ),
+            ),
+            (
+                "CAR-SRC-FGD-001",
+                lambda layout: self._build_process_section(
+                    layout,
+                    "烟气脱硫净化（P04B）",
+                    "fgd",
+                    ("cal", "i", "ef1", "tr"),
+                ),
+            ),
+            ("CAR-SRC-PURCHASED-ELECTRICITY-001", lambda layout: self._build_electricity_section(layout)),
+            ("CAR-SRC-PURCHASED-HEAT-001", lambda layout: self._build_heat_section(layout)),
+            ("CAR-SRC-EXPORTED-ELECTRICITY-001", lambda layout: self._build_output_electricity_section(layout)),
+            ("CAR-SRC-EXPORTED-HEAT-001", lambda layout: self._build_output_heat_section(layout)),
+        )
+        for source_id, builder in source_definitions:
+            card = SourceCard(source_id, SOURCE_LABELS[source_id], self)
+            source_spec = get_field_spec(f"source_status.{source_id}")
+            combo = create_typed_input(card, source_spec, f"sourceStatus_{source_id}")
+            combo.addItem("不涉及", EmissionSourceStatus.NOT_INVOLVED)
+            combo.addItem("涉及", EmissionSourceStatus.INVOLVED)
+            combo.addItem("待确认", EmissionSourceStatus.UNCONFIRMED)
+            self._source_statuses[source_id] = combo
+            self._source_cards[source_id] = card
+            card.set_status_widget(
+                combo,
+                not_involved_value=EmissionSourceStatus.NOT_INVOLVED,
+                involved_value=EmissionSourceStatus.INVOLVED,
+            )
+            builder(card.body_layout)
+            card.status_changed.connect(lambda _status, _source_id=source_id: self._refresh_source_cards())
+            parent_layout.addWidget(card)
+
+        self._refresh_source_cards()
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
         row = QWidget(self)
@@ -439,23 +497,47 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addWidget(row)
 
     def _build_process_section(self, parent_layout: QVBoxLayout, title: str, prefix: str, fields: tuple[str, ...]) -> None:
-        label = QLabel(title, self)
-        label.setObjectName(f"{prefix}SectionTitle")
-        parent_layout.addWidget(label)
-        row = QWidget(self)
-        form = QFormLayout(row)
-        for field in fields:
-            spec = get_field_spec(f"{prefix}.{field}")
-            edit = create_typed_input(row, spec, f"{prefix}_{field}")
-            self._fields[f"{prefix}.{field}"] = edit
-            form.addRow(spec.label, edit)
-        parent_layout.addWidget(row)
+        field_groups = {
+            "calcination": (
+                ("投入数据", ("gc", "wfc", "wvar")),
+                ("产出数据", ("cc", "ucc", "du", "wfc_c", "wvar_c")),
+            ),
+            "baking": (
+                ("投入数据", ("bpm", "bpmfc", "bg", "bgfc", "bpmvar", "bgvar")),
+                ("产出数据", ("bwt", "bp", "bpfc")),
+            ),
+            "graphitization": (
+                ("投入数据", ("gpm", "gpmfc", "gta", "gtafc", "gpmvar")),
+                ("产出数据", ("gwt", "gp", "gpfc")),
+            ),
+        }.get(prefix, (("活动数据", fields),))
+        for group_name, group_fields in field_groups:
+            group = QWidget(self)
+            group.setObjectName(f"{prefix}_{group_name}")
+            group_layout = QVBoxLayout(group)
+            group_layout.setContentsMargins(0, 0, 0, 0)
+            group_title = QLabel(group_name, group)
+            group_title.setObjectName(f"{prefix}_{group_name}_title")
+            group_layout.addWidget(group_title)
+            row = QWidget(group)
+            form = QFormLayout(row)
+            for field in group_fields:
+                spec = get_field_spec(f"{prefix}.{field}")
+                edit = create_typed_input(row, spec, f"{prefix}_{field}")
+                self._fields[f"{prefix}.{field}"] = edit
+                form.addRow(spec.label, edit)
+            group_layout.addWidget(row)
+            parent_layout.addWidget(group)
 
         if prefix not in {"calcination", "baking", "graphitization"}:
             return
 
         metadata = QWidget(self)
+        metadata.setObjectName(f"{prefix}_otherNecessaryData")
         metadata_form = QFormLayout(metadata)
+        metadata_title = QLabel("其他必要数据", metadata)
+        metadata_title.setObjectName(f"{prefix}_otherNecessaryDataTitle")
+        metadata_form.addRow(metadata_title)
         basis_options = (
             (MaterialBasis.UNKNOWN, "未确认"),
             (MaterialBasis.RECEIVED, "收到基"),
@@ -574,14 +656,18 @@ class CarbonMaterialAccountingPage(BasePage):
             combo.currentIndexChanged.connect(lambda _index: self._refresh_electricity_rows())
         row.detail_id.textChanged.connect(self._mark_input_dirty)
         row.amount.textChanged.connect(self._mark_input_dirty)
+        row.detail_id.textChanged.connect(lambda _text: self._refresh_source_cards())
+        row.amount.textChanged.connect(lambda _text: self._refresh_source_cards())
         for combo in (row.acquisition, row.attribute, row.proof_type, row.proof_status):
             combo.currentIndexChanged.connect(self._mark_input_dirty)
+            combo.currentIndexChanged.connect(lambda _index: self._refresh_source_cards())
 
     def _remove_electricity_row(self, row: QWidget) -> None:
         if row in self._electricity_rows:
             self._electricity_rows.remove(row)
             self.electricity_rows_layout.removeWidget(row)
             row.deleteLater()
+            self._refresh_source_cards()
 
     def _build_output_electricity_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("输出电力（I03；从间接排放中抵扣）", self)
@@ -744,6 +830,103 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _source_states(self) -> tuple[EmissionSourceState, ...]:
         return tuple(EmissionSourceState(source_id, _enum(combo.currentData(), EmissionSourceStatus)) for source_id, combo in self._source_statuses.items())
+
+    @staticmethod
+    def _input_has_value(widget: QWidget | None) -> bool:
+        return isinstance(widget, QLineEdit) and bool(widget.text().strip())
+
+    def _field_has_value(self, key: str) -> bool:
+        return self._input_has_value(self._fields.get(key))
+
+    def _field_has_error(self, key: str) -> bool:
+        widget = self._fields.get(key)
+        if not isinstance(widget, QLineEdit) or not widget.text().strip():
+            return False
+        return not widget.hasAcceptableInput()
+
+    def _process_card_profile(self, prefix: str, fields: tuple[str, ...]) -> tuple[bool, bool, bool]:
+        keys = tuple(f"{prefix}.{field}" for field in fields)
+        present = any(self._field_has_value(key) for key in keys)
+        complete = present and all(self._field_has_value(key) for key in keys)
+        invalid = any(self._field_has_error(key) for key in keys)
+        controls = self._material_controls.get(prefix)
+        if present and controls is not None:
+            basis_keys = ("mass_basis", "composition_basis", "normalized_basis")
+            component_keys = ("fixed_carbon_component_kind", "volatile_matter_component_kind")
+            complete = complete and all(
+                controls[key].currentData() not in {MaterialBasis.UNKNOWN, MaterialComponentKind.UNKNOWN}
+                for key in basis_keys + component_keys
+            )
+        return present, complete, invalid
+
+    def _derive_source_card_state(self, source_id: str) -> tuple[SourceCardPresentationState, str]:
+        status = _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus)
+        if status is EmissionSourceStatus.NOT_INVOLVED:
+            return SourceCardPresentationState.NOT_INVOLVED, "未启用 · 不涉及"
+        if status is EmissionSourceStatus.UNCONFIRMED:
+            return SourceCardPresentationState.UNCONFIRMED, "待确认 · 尚未确定是否涉及"
+
+        present = False
+        complete = False
+        invalid = False
+        summary = "尚未录入活动数据"
+        if source_id == "CAR-SRC-FUEL-001":
+            keys = ("fuel_id", "fuel_activity", "fuel_carbon", "fuel_oxidation")
+            present = any(self._field_has_value(key) for key in keys)
+            complete = present and all(self._field_has_value(key) for key in keys)
+            invalid = any(self._field_has_error(key) for key in keys)
+            summary = "1 种燃料" if present else "尚未录入燃料"
+        elif source_id in {
+            "CAR-SRC-CALCINATION-001",
+            "CAR-SRC-BAKING-001",
+            "CAR-SRC-GRAPHITIZATION-001",
+            "CAR-SRC-FUME-INCINERATION-001",
+            "CAR-SRC-FGD-001",
+        }:
+            process_by_source = {
+                "CAR-SRC-CALCINATION-001": ("calcination", ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c")),
+                "CAR-SRC-BAKING-001": ("baking", ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar")),
+                "CAR-SRC-GRAPHITIZATION-001": ("graphitization", ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar")),
+                "CAR-SRC-FUME-INCINERATION-001": ("fume", ("q", "qvar", "hm", "fch", "fox", "duration")),
+                "CAR-SRC-FGD-001": ("fgd", ("cal", "i", "ef1", "tr")),
+            }
+            prefix, fields = process_by_source[source_id]
+            present, complete, invalid = self._process_card_profile(prefix, fields)
+            summary = "已录入活动数据" if present else "尚未录入活动数据"
+        elif source_id == "CAR-SRC-PURCHASED-ELECTRICITY-001":
+            active_rows = [row for row in self._electricity_rows if row.amount.text().strip()]
+            present = bool(active_rows)
+            complete = present and all(row.detail_id.text().strip() and row.amount.hasAcceptableInput() for row in active_rows)
+            invalid = any(row.amount.text().strip() and not row.amount.hasAcceptableInput() for row in active_rows)
+            summary = f"{len(active_rows)} 条电力明细" if active_rows else "尚未录入电力明细"
+        elif source_id == "CAR-SRC-PURCHASED-HEAT-001":
+            present = self._field_has_value("heat_amount")
+            complete = present and bool(self.heat_factor_selector.currentData())
+            invalid = self._field_has_error("heat_amount")
+            summary = "已录入热力活动数据" if present else "尚未录入热力活动数据"
+        elif source_id == "CAR-SRC-EXPORTED-ELECTRICITY-001":
+            present = self._field_has_value("exported_electricity_amount")
+            complete = present
+            invalid = self._field_has_error("exported_electricity_amount")
+            summary = "已录入输出电力" if present else "尚未录入输出电力"
+        elif source_id == "CAR-SRC-EXPORTED-HEAT-001":
+            present = self._field_has_value("exported_heat_amount")
+            complete = present and self._field_has_value("exported_heat_enthalpy")
+            invalid = self._field_has_error("exported_heat_amount") or self._field_has_error("exported_heat_enthalpy")
+            summary = "已录入输出热力" if present else "尚未录入输出热力"
+
+        if invalid or (present and not complete):
+            return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
+        if complete:
+            return SourceCardPresentationState.COMPLETED, f"{summary} · 已完成"
+        return SourceCardPresentationState.FILLING, f"{summary} · 填写中"
+
+    def _refresh_source_cards(self, *_args: object) -> None:
+        if not self._source_cards or not hasattr(self, "heat_factor_selector"):
+            return
+        for source_id, card in self._source_cards.items():
+            state, summary = self._derive_source_card_state(source_id)
+            card.set_presentation_state(state, summary)
 
     def _fuel(self) -> tuple[FuelInput, ...]:
         fuel_id = _value(self._fields["fuel_id"])
@@ -987,12 +1170,16 @@ class CarbonMaterialAccountingPage(BasePage):
         for widget in self.findChildren(QWidget):
             if isinstance(widget, QLineEdit):
                 widget.textChanged.connect(self._mark_input_dirty)
+                widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
             elif isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(self._mark_input_dirty)
+                widget.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
             elif isinstance(widget, QSpinBox):
                 widget.valueChanged.connect(self._mark_input_dirty)
+                widget.valueChanged.connect(lambda *_args: self._refresh_source_cards())
             elif isinstance(widget, QCheckBox):
                 widget.toggled.connect(self._mark_input_dirty)
+                widget.toggled.connect(lambda *_args: self._refresh_source_cards())
 
     def _mark_input_dirty(self, *_args: object) -> None:
         self._input_dirty = True
