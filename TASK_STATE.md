@@ -1180,3 +1180,40 @@ UIR01、UIR02 已由 Sol 正式验收 PASS，且均已进入 `main`。本轮从�
 - PR #7：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)，目标为 `main`；阶段分支已推送，PR checks 以最新 head 为准。
 - GitHub Actions 已对 PR 最新提交完成成功检查：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均为 success。
 - 当前停止等待 Sol 独立验收；不得启动 UIR04。既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+
+## UIR03 小修状态（2026-09-21）
+
+**UIR03_REWORK_READY_FOR_SOL_REVIEW**
+
+Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Presentation 小修；UIR04 仍未启动。
+
+### 修复内容
+
+- 在 P01 原料煅烧、P02 焙烧/炭化、P03 石墨化各自排放源卡片的普通业务摘要中显示实际标准默认排放参数 `0.35（比例）· 标准默认`；参数 ID、条款和选择理由仍只在“显示专业详情”中展示。
+- 将普通“数据质量检查”中的 Domain 校验信息转换为业务化中文说明，移除普通模式中的校验代码、`G05`、`resolver`、`candidate` 和“证据”等开发表达；原始消息与稳定代码集中保留在专业详情中。
+- 未修改 Domain、Calculator、ParameterResolver、Canonical、SQLite schema、records 规则、计算公式或 `计算表/`。
+
+### 针对性回归
+
+- 新增 P01/P02/P03 默认参数摘要测试。
+- 新增材料基准错误的普通/专业信息分层测试。
+- 新增参数服务异常路径的普通/专业信息分层测试。
+- 更新 G06 页面与 UIR02 卡片错误展示断言，确认普通列表不泄露内部代码、专业详情仍保留审计信息。
+
+### 本地验证
+
+- UIR03 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details -v`；**10/10 通过**。
+- 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**65/65 通过**。
+- UIR02/G06 页面受影响回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_g06_page tests.test_uir02_source_cards -v`；**31/31 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**150/150 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir03-rework-check`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 从零生成成功，隔离目录已清理。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### Git 与门禁
+
+- 实现与测试提交：`cc14d0d fix: complete UIR03 presentation details`。
+- 分支：`ui-refactor-uir03-advanced-details`；PR #7 仍以 `main` 为目标、未合并。
+- 推送并等待最新 PR head 的 GitHub Actions 后，再补录 run 状态；当前不得启动 UIR04。

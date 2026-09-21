@@ -1762,3 +1762,44 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 普通模式是否仅显示业务摘要，异常口径是否明确阻断而不猜算。
 - 专业详情开关打开/关闭时，参数来源、标准条款和稳定 ID 是否只在专业区域出现。
 - UIR01/UIR02 输入保持、电力多明细、热力参数规则和历史记录行为是否保持不变。
+
+## UIR03 小修实施报告（2026-09-21）
+
+### 范围
+
+本轮针对 Sol 对 PR #7 的 **PASS WITH MINOR FIXES** 结论，仅修正两项 Presentation 缺口，不启动 UIR04：
+
+1. P01/P02/P03 卡片普通业务摘要补齐标准默认参数实际值、单位/比例和“标准默认”状态；参数 ID、条款和选择理由继续只在专业详情中显示。
+2. 普通数据质量检查将 Domain 校验消息转换为业务化中文；原始消息、校验代码和内部定位只在“显示专业详情”打开时显示。
+
+未修改 Domain、Calculator、ParameterResolver、Canonical、公式、SQLite schema、records 生命周期、数据库迁移、标准原文、`计算表/` 或 `docs/handoffs/`。
+
+### 修改文件
+
+- `packages/ui/carbon_material_page.py`
+- `tests/test_uir03_advanced_details.py`
+- `tests/test_g06_page.py`
+- `tests/test_uir02_source_cards.py`
+- 本报告与 `TASK_STATE.md`
+
+### 测试与校验
+
+环境：Windows；项目 `.venv` Python 3.12.14；PySide6 6.11.2；`QT_QPA_PLATFORM=offscreen`。
+
+- UIR03 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details -v`；**10/10 通过**。
+- 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**65/65 通过**。
+- UIR02/G06 页面受影响回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_g06_page tests.test_uir02_source_cards -v`；**31/31 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**150/150 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir03-rework-check`；三库成功生成，隔离目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；无测试数据库、临时文件、标准全文或敏感数据进入提交。
+
+第一次使用系统 Python 3.11 运行 Qt 测试时因该解释器未安装 PySide6 导入失败；未计入正式测试结果，随后使用项目 `.venv` 重新执行并全部通过。
+
+### Git 与验收门禁
+
+- 实现与测试提交：`cc14d0d fix: complete UIR03 presentation details`。
+- 分支：`ui-refactor-uir03-advanced-details`；PR #7 继续以 `main` 为目标，未合并。
+- 推送后的最新 GitHub Actions 和 PR head 将在提交后补录；当前状态为等待 Sol 重新验收 UIR03，禁止启动 UIR04。
