@@ -1122,6 +1122,7 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 ### 阶段门禁
 
 - 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
-- 当前工作仍在 `ui-refactor-uir02-source-cards` 分支，后续同步到 PR #5；PR 不合并。
+- 当前工作仍在 `ui-refactor-uir02-source-cards` 分支，已同步到 PR #5；当前 PR head 为 `273ea85d264a8eb087eb3699060f1981d572392f`，PR 不合并。
 - 既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
-- 当前状态：返工完成，等待 GitHub 新 head 检查和 Sol 重新验收 UIR02；不得启动 UIR03。
+- GitHub Actions run `35581128076` 已针对该 head 完成：merge-ref full tests 与 PR-head standalone audit 均为 success。
+- 当前状态：返工完成，停止等待 Sol 重新验收 UIR02；不得启动 UIR03。

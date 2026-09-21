@@ -1660,4 +1660,4 @@ Sol 对 PR #5 最新 head `92595bb4` 的复验确认，I01 与过程源错误状
 - 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
 - 修改范围仅为 `packages/ui/carbon_material_page.py`、`tests/test_uir02_source_cards.py`；治理文档在后续独立提交同步。
 - 既有未跟踪 `docs/handoffs/` 未处理、未提交。
-- 当前状态：UIR02 返工完成，待推送同一 PR #5 并等待新 head 的 GitHub Actions，随后停止等待 Sol 重新验收；不得启动 UIR03。
+- 当前状态：UIR02 返工已推送到同一 PR #5；最新 head `273ea85d264a8eb087eb3699060f1981d572392f` 对应 GitHub Actions run `35581128076`，merge-ref full tests 与 PR-head standalone audit 均 success。停止等待 Sol 重新验收；不得启动 UIR03。
