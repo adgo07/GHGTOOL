@@ -1596,3 +1596,34 @@ Sol 独立 Qt 键盘测试发现，原控件依赖 QDoubleValidator 的 Intermed
 - GitHub Actions：`Windows / Python 3.12 / Merge-ref Full Tests` 成功；`Windows / Python 3.12 / PR-head Standalone Audit` 成功。后者的 exact-head delivery tests、standalone build、release audit、archive manifest、provenance 和 smoke 均成功。
 - 当前状态：`UIR02_READY_FOR_SOL_REVIEW`；本次报告同步提交后以最新 head 再确认 Actions，随后等待 Sol 独立验收。
 - 不得启动 UIR03；若验收发现需要改变 Domain 模型、计算规则、数据模型或阶段范围，应按 `AGENTS.md` 的 BLOCKED 格式上报。
+
+## UIR02 返工报告（2026-09-21）
+
+### 返工原因
+
+Sol 对 PR #5 的独立验收判定 UIR02 FAIL：I01 卡片只依据电量、明细编号和输入合法性显示“已完成”，没有消费既有 G05 电力解析结果；因此缺少非化石电力证明时可能同时显示“已完成”和“参数解析阻断”。P01/P02/P03 等复杂排放源也没有把已有 Domain 校验错误反馈到卡片。原 UIR02 测试缺少 `NEEDS_ATTENTION` 明确门禁，折叠 parity 测试使用了不完整输入，未能证明合法成功结果等价。
+
+### 本轮修改
+
+- `packages/ui/carbon_material_page.py` 增加仅存在于 Presentation 层的电力解析状态缓存。I01 只有每条明细都经现有 `resolve_electricity_details()` 形成推荐值和参数快照时才进入“已完成”；阻断、证明缺失、直接燃料路径转交和解析异常均进入“需要处理”。未改变 `CarbonMaterialInput`、G05 resolver、计算公式或记录模型。
+- 页面已有 `_run_calculation()` 继续作为 Domain 校验入口；返工仅缓存带排放源字段定位的既有 ERROR，并在卡片派生时消费该结果，没有在 UI 复制 Domain 验证规则。
+- `tests/test_uir02_source_cards.py` 新增非化石电力证明缺失的 `NEEDS_ATTENTION` 回归、非收到基换算证明缺失的 Domain 错误反馈回归；多电力成功场景补充有效月度原始记录证明；折叠 parity 改为完整合法输入并断言前后均成功、结果和参数快照等价。
+
+### 测试与校验
+
+环境：Windows 工作区；`.venv` Python 3.12.14；PySide6 6.11.2；Qt 自动化测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；**9/9 通过**。
+- 指定相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**64/64 通过**。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**139/139 通过**，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 持久化回归：在隔离临时目录执行 `scripts\build_catalog.py` 和 `scripts\initialize_databases.py`，catalog.sqlite、user.sqlite、records.sqlite 均从零创建成功；临时数据库已清理。
+- `git diff --check`：通过；`计算表/` 无差异；提交范围不包含测试数据库、临时文件、标准全文、敏感数据、G09 或 UIR03。
+
+### 阶段状态
+
+- 当前分支：`ui-refactor-uir02-source-cards`；返工仍更新 PR #5，目标为 `main`。
+- UIR02 首次验收 HEAD `8c3a45267687f46200d4b1f1de3bcedda8a68598` 的 FAIL 问题已针对性修复；代码、测试和本报告待提交并推送后，以最新 PR head 重新运行 GitHub Actions。
+- 当前状态：`UIR02_REWORK_READY_FOR_SOL_REVIEW`；停止等待 Sol 重新验收，不启动 UIR03。

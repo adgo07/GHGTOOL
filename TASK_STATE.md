@@ -6,7 +6,7 @@ Post-V1 新建核算 UI 重构：UIR02 排放源与活动数据卡片重构
 
 ## 状态
 
-UIR02_READY_FOR_SOL_REVIEW
+UIR02_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -46,6 +46,7 @@ UIR02_READY_FOR_SOL_REVIEW
 - G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现与测试提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
 - UIR01 正式验收结论：PASS（2026-09-21）；被验收 head 为 `97e2ba59f8ea4ffde8e111750caa0650f5000cf5`，PR #4 `feat: implement UIR01 field semantics and typed inputs` 已合并，merge commit 为 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3`。
 - UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。实现与专项测试提交为 `ed752c0`，PR #5 已创建；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 的 Actions run `35550650466` 已成功，当前等待最新报告提交后的检查与 Sol 验收。
+- UIR02 首次正式验收结论：FAIL（2026-09-21）；被验收 HEAD 为 `8c3a45267687f46200d4b1f1de3bcedda8a68598`。卡片“已完成”未消费已有电力解析/Domain 校验结果，缺少 `NEEDS_ATTENTION` 门禁和合法成功 Domain parity；不允许进入 UIR03。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1064,3 +1065,32 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 ### 阶段门禁
 
 本地实现与测试已完成；PR #5 的代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 对应 Actions run `35550650466` 已成功通过 merge-ref full tests 与 exact PR-head standalone audit。报告同步提交后需以最新 head 的检查结果为准；随后停止等待 Sol 独立验收。未执行 UIR03；既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+
+## UIR02 返工状态（2026-09-21）
+
+**UIR02_REWORK_READY_FOR_SOL_REVIEW**
+
+本轮仅依据 Sol 对 PR #5 的 UIR02 FAIL 意见返工，仍在 `ui-refactor-uir02-source-cards` 分支上进行，未创建或实施 UIR03。
+
+### 返工内容
+
+- 在 `packages/ui/carbon_material_page.py` 增加 Presentation-only 的电力解析状态缓存；I01 卡片只有在每条活动明细均由现有 G05 解析形成参数快照时才显示“已完成”。证明缺失、解析阻断、自发自用化石能源转交或解析异常均显示“需要处理”，不改变 Domain 路径。
+- 在页面已有 `_run_calculation()` 结果上记录 source-scoped ERROR，仅将既有 Domain 校验反馈给对应卡片；未复制、重写或新增 Domain 校验规则。
+- 将多电力专项测试中的自发自用非化石明细补成有效月度原始记录证明，保留“证明缺失 → 需要处理”的独立回归。
+- 将 UIR02 折叠 parity 测试改为完整合法的 GB/T 32151.34 输入，并明确断言折叠前后均成功、结果和参数快照等价；新增非收到基缺少换算证明的卡片状态回归。
+
+### 返工验证
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；9/9 通过，0 失败，0 错误，0 跳过。
+- UIR02 与指定回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；64/64 通过，0 失败，0 错误，0 跳过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；139/139 通过，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：使用 `scripts\build_catalog.py` 和 `scripts\initialize_databases.py` 在隔离临时目录生成 catalog/user/records 三库，成功后已清理临时目录。
+- `git diff --check`：通过；`计算表/` 无修改；本轮未处理、未提交既有未跟踪 `docs/handoffs/`，未加入测试数据库、标准全文、敏感数据或 UIR03 产物。
+
+### 门禁
+
+- 当前状态：返工完成，等待 Sol 重新验收 UIR02。
+- PR #5 保持以 `main` 为目标，修复将同步到同一 PR；不得合并 PR，不得启动 UIR03。
