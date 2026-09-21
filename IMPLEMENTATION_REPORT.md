@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：UIR02
+## 当前阶段：UIR02（已通过）
 
 本报告末尾的“UIR02 实施报告”是当前阶段的正式记录；前文 UIR01/G00-G08 内容保留为历史实施报告，不重写。
 
@@ -1661,3 +1661,17 @@ Sol 对 PR #5 最新 head `92595bb4` 的复验确认，I01 与过程源错误状
 - 修改范围仅为 `packages/ui/carbon_material_page.py`、`tests/test_uir02_source_cards.py`；治理文档在后续独立提交同步。
 - 既有未跟踪 `docs/handoffs/` 未处理、未提交。
 - 当前状态：UIR02 返工已推送到同一 PR #5；最新 head `273ea85d264a8eb087eb3699060f1981d572392f` 对应 GitHub Actions run `35581128076`，merge-ref full tests 与 PR-head standalone audit 均 success。停止等待 Sol 重新验收；不得启动 UIR03。
+
+
+## UIR02 Sol 正式验收结论（2026-09-21）
+
+**PASS**
+
+- 被验收候选 SHA：`5e2d793f099f9be5737ec0ca22008300b4ad10d4`。
+- PR #5 已由用户合并至 `main`，merge commit：`07ddf674b1095cb3e2651f9c5fd6e8089f4211dd`。
+- GitHub Actions run `35581551238` 对应该候选 SHA，merge-ref full tests 与 exact PR-head standalone audit 均成功。
+- UIR02 定向 10/10、指定回归 65/65、全量 140/140 均通过；compileall、pip check、Canonical 校验和三库从零重建通过。
+- 重点复核确认：I01 参数解析阻断、过程源 Domain ERROR 和 I02 动态热力错误均能正确反馈为卡片“需要处理”；修正后可恢复“已完成”。十个排放源卡片、输入保持、Domain parity、多条电力和 UIR01 类型化输入行为均保持有效。
+- 未发现 UIR03 提前实施；未修改 Domain、计算公式、Canonical、数据库 schema、历史记录语义或 `计算表/`。
+
+结论：UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
