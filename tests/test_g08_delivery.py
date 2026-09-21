@@ -155,7 +155,7 @@ class G08DeliveryTests(unittest.TestCase):
                 records = repository.list_all()
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0].input_snapshot.enterprise_name, "G08 集成企业")
-                self.assertIn("tCO2", page.result_total.text())
+                self.assertIn("tCO₂", page.result_total.text())
                 first_window.close()
                 first_window.deleteLater()
                 application.processEvents()

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -35,6 +38,7 @@ I01 = "CAR-SRC-PURCHASED-ELECTRICITY-001"
 I02 = "CAR-SRC-PURCHASED-HEAT-001"
 P01 = "CAR-SRC-CALCINATION-001"
 F01 = "CAR-SRC-FUEL-001"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UIR04FinalizationTests(unittest.TestCase):
@@ -252,6 +256,15 @@ class UIR04FinalizationTests(unittest.TestCase):
                 for item in before_outcome.parameter_snapshots
             ],
         )
+        display_total = before_outcome.result.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.assertIn(f"{display_total:.2f} tCO₂", self.page.result_total.text())
+        self.assertNotIn(str(before_outcome.result.total_amount), self.page.result_total.text())
+        self.assertEqual(record.calculation_result.total_amount, before_outcome.result.total_amount)
+        self.page.view_breakdown_button.click()
+        self.assertRegex(self.page.result_breakdown.text(), r"直接排放 ES：-?\d+\.\d{2} tCO₂")
+        self.assertRegex(self.page.result_breakdown.text(), r"间接排放 EI：-?\d+\.\d{2} tCO₂")
+        self.assertNotIn("tCO2", self.page.result_breakdown.text())
+        self.assertNotIn(str(before_outcome.result.total_amount), self.page.result_line_details.text())
 
     def test_common_window_sizes_keep_controls_visible_without_horizontal_scroll(self) -> None:
         for width, height in ((1920, 1080), (1366, 768)):
@@ -267,6 +280,37 @@ class UIR04FinalizationTests(unittest.TestCase):
                 self.page.width(),
                 self.shell.main_scroll_area.viewport().width(),
             )
+
+    def test_common_windows_scale_factors_keep_controls_visible(self) -> None:
+        for scale in ("1.25", "1.5"):
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "QT_QPA_PLATFORM": "offscreen",
+                    "QT_AUTO_SCREEN_SCALE_FACTOR": "0",
+                    "QT_SCALE_FACTOR": scale,
+                }
+            )
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_ROOT / "scripts" / "uir04_scale_acceptance.py"),
+                    "--scale",
+                    scale,
+                ],
+                cwd=PROJECT_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+            self.assertEqual(
+                completed.returncode,
+                0,
+                f"scale={scale} failed\nstdout={completed.stdout}\nstderr={completed.stderr}",
+            )
+            self.assertIn(f"scale={scale} PASS", completed.stdout)
 
 
 if __name__ == "__main__":

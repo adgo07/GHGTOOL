@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 import re
 
 from PySide6.QtCore import Qt, Signal
@@ -137,6 +137,27 @@ def _domain_unit(unit: str) -> str:
     """Translate display-safe Unicode subscripts to the Domain unit spelling."""
 
     return unit.replace("₂", "2").replace("³", "3").replace("⁴", "4")
+
+
+_DISPLAY_QUANTUM = Decimal("0.01")
+
+
+def _display_unit(unit: str) -> str:
+    """Return the business-facing spelling of a calculation unit."""
+
+    return unit.replace("tCO2", "tCO₂")
+
+
+def _display_amount(value: Decimal, unit: str) -> str:
+    """Format a Domain amount for ordinary UI display without mutating it."""
+
+    amount = Decimal(str(value))
+    if amount.is_zero():
+        amount = abs(amount)
+    with localcontext() as context:
+        context.prec = max(28, len(amount.as_tuple().digits) + 4)
+        rounded = amount.quantize(_DISPLAY_QUANTUM, rounding=ROUND_HALF_UP)
+    return f"{rounded:.2f} {_display_unit(unit)}"
 
 class _ElectricityRow(QWidget):
     def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
@@ -1946,7 +1967,9 @@ class CarbonMaterialAccountingPage(BasePage):
             return
         self._calculation_has_result = True
         self.result_card.setVisible(True)
-        self.result_total.setText(f"总排放量 ET：{outcome.result.total_amount} tCO2")
+        self.result_total.setText(
+            f"总排放量 ET：{_display_amount(outcome.result.total_amount, outcome.result.total_unit)}"
+        )
         by_id = {line.line_id: line.amount for line in outcome.result.lines}
         status_label = (
             "已完成（含提醒）"
@@ -1957,8 +1980,8 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         self.result_status.setText(f"状态：{status_label}")
         self.result_breakdown.setText(
-            f"直接排放 ES：{by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0'))} tCO2；"
-            f"间接排放 EI：{by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0'))} tCO2；"
+            f"直接排放 ES：{_display_amount(by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
+            f"间接排放 EI：{_display_amount(by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
             f"记录：{'已生成不可编辑核算记录' if outcome.record is not None else '未生成记录'}"
         )
         line_details = []
@@ -1970,7 +1993,7 @@ class CarbonMaterialAccountingPage(BasePage):
             }:
                 continue
             source_label = SOURCE_LABELS.get(line.emission_source_id, "其他排放源")
-            line_details.append(f"{source_label}：{line.amount} {line.unit}")
+            line_details.append(f"{source_label}：{_display_amount(line.amount, line.unit)}")
         self.result_line_details.setText(
             "分项结果：\n" + "\n".join(line_details) if line_details else "分项结果：本次没有单独排放源明细。"
         )
@@ -1978,7 +2001,10 @@ class CarbonMaterialAccountingPage(BasePage):
         if outcome.record is not None:
             self._input_dirty = False
             self.record_created.emit(outcome.record.record_id)
-        trace_lines = [f"{trace.formula_id}：{trace.substitution} = {trace.amount} tCO2" for trace in outcome.traces]
+        trace_lines = [
+            f"{trace.formula_id}：{trace.substitution} = {_display_amount(trace.amount, 'tCO2')}"
+            for trace in outcome.traces
+        ]
         self.trace_professional_details.setText("\n".join(trace_lines) if trace_lines else "无可展示计算过程。")
         self.trace_output.setText(
             "计算过程已完成；如需查看公式和变量代入信息，请打开“显示专业详情”。"
