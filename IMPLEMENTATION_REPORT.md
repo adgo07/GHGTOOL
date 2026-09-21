@@ -1750,12 +1750,11 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 分支：`ui-refactor-uir03-advanced-details`。
 - 基线：`origin/main@011df173b33a81c019a19390ac6bbd884fbbccbf`。
 - 实现与测试提交：`0dc19d2` `feat: implement UIR03 advanced details`。
-- 治理文档提交：待提交。
-- 当前工作区：治理文档已修改，既有 `docs/handoffs/` 保持未跟踪；实现提交前述文件已提交。
+- 治理文档与阶段状态已提交到当前 UIR03 分支；既有 `docs/handoffs/` 保持未跟踪。
 
 ### 已知问题
 
-- 尚未推送 UIR03 分支、创建 PR 或取得最新 GitHub Actions 结果；这些是本轮后续交付门禁，不是本地测试失败。
+- GitHub Actions run `35591626672` 已针对当前 head 完成：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均 success；当前仅等待 Sol 独立验收。
 
 ### 建议 Sol 重点复核
 
