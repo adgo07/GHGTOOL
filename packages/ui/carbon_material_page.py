@@ -66,22 +66,9 @@ from packages.core.parameter_resolution import ParameterResolutionContext
 from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
+from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
+from .typed_inputs import create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
-
-
-SOURCE_LABELS = {
-    "CAR-SRC-FUEL-001": "化石燃料燃烧（F01）",
-    "CAR-SRC-CALCINATION-001": "原料煅烧（P01）",
-    "CAR-SRC-BAKING-001": "炭素制品焙烧/炭化（P02）",
-    "CAR-SRC-GRAPHITIZATION-001": "炭素制品石墨化（P03）",
-    "CAR-SRC-FUME-INCINERATION-001": "烟气焚烧治理（P04A）",
-    "CAR-SRC-FGD-001": "烟气脱硫净化（P04B）",
-    "CAR-SRC-PURCHASED-ELECTRICITY-001": "购入电力（I01）",
-    "CAR-SRC-PURCHASED-HEAT-001": "购入热力/动力（I02）",
-    "CAR-SRC-EXPORTED-ELECTRICITY-001": "输出电力（I03）",
-    "CAR-SRC-EXPORTED-HEAT-001": "输出热力/动力（I04）",
-}
-
 
 def _field(parent: QWidget, object_name: str, placeholder: str = "") -> QLineEdit:
     edit = QLineEdit(parent)
@@ -93,6 +80,10 @@ def _field(parent: QWidget, object_name: str, placeholder: str = "") -> QLineEdi
 def _value(edit: QLineEdit) -> str | None:
     text = edit.text().strip()
     return text or None
+
+
+def _ui_value(internal_key: str, edit: QLineEdit) -> str | None:
+    return ui_to_domain_value(get_field_spec(internal_key), _value(edit))
 
 
 def _enum(value: object, enum_type):
@@ -132,20 +123,39 @@ class _ElectricityRow(QWidget):
         self.setObjectName(f"electricityRow{index}")
         layout = QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.detail_id = _field(self, f"electricityDetailId{index}", f"detail-{index}")
+        self.detail_id = create_typed_input(
+            self,
+            get_field_spec("electricity.detail_id"),
+            f"electricityDetailId{index}",
+            f"detail-{index}",
+        )
         self.detail_id.setText(f"electricity-detail-{index}")
-        self.amount = _field(self, f"electricityAmount{index}", "MWh")
-        self.acquisition = QComboBox(self)
-        self.acquisition.setObjectName(f"electricityAcquisition{index}")
+        self.amount = create_typed_input(
+            self,
+            get_field_spec("electricity.amount"),
+            f"electricityAmount{index}",
+            "MWh",
+        )
+        self.acquisition = create_typed_input(
+            self,
+            get_field_spec("electricity.acquisition"),
+            f"electricityAcquisition{index}",
+        )
         self.acquisition.addItem("外购", ElectricityAcquisitionMode.PURCHASED)
         self.acquisition.addItem("自发自用", ElectricityAcquisitionMode.SELF_CONSUMED)
-        self.attribute = QComboBox(self)
-        self.attribute.setObjectName(f"electricityAttribute{index}")
+        self.attribute = create_typed_input(
+            self,
+            get_field_spec("electricity.attribute"),
+            f"electricityAttribute{index}",
+        )
         self.attribute.addItem("常规电力（电网电力）", ElectricityAttribute.ORDINARY)
         self.attribute.addItem("非化石能源电力", ElectricityAttribute.NONFOSSIL)
         self.attribute.addItem("化石能源电力", ElectricityAttribute.FOSSIL)
-        self.proof_type = QComboBox(self)
-        self.proof_type.setObjectName(f"electricityProofType{index}")
+        self.proof_type = create_typed_input(
+            self,
+            get_field_spec("electricity.proof_type"),
+            f"electricityProofType{index}",
+        )
         for value, label in (
             (ElectricityProofType.NONE, "无证明"),
             (ElectricityProofType.CONTRACT_AND_SETTLEMENT, "合同及结算凭证"),
@@ -153,8 +163,11 @@ class _ElectricityRow(QWidget):
             (ElectricityProofType.MONTHLY_ORIGINAL_RECORD, "月度原始记录"),
         ):
             self.proof_type.addItem(label, value)
-        self.proof_status = QComboBox(self)
-        self.proof_status.setObjectName(f"electricityProofStatus{index}")
+        self.proof_status = create_typed_input(
+            self,
+            get_field_spec("electricity.proof_status"),
+            f"electricityProofStatus{index}",
+        )
         self.proof_status.addItem("未提供", ElectricityProofStatus.NOT_PROVIDED)
         self.proof_status.addItem("有效", ElectricityProofStatus.VALID)
         self.proof_status.addItem("无效", ElectricityProofStatus.INVALID)
@@ -260,45 +273,69 @@ class CarbonMaterialAccountingPage(BasePage):
         form = QFormLayout()
         self.standard_id_label = QLabel(self.standard_id, identity)
         self.standard_id_label.setObjectName("accountingStandardId")
-        form.addRow("核算标准", self.standard_id_label)
-        self.enterprise_name = _field(identity, "enterpriseNameInput", "企业名称")
-        form.addRow("企业名称", self.enterprise_name)
-        self.period_type = QComboBox(identity)
-        self.period_type.setObjectName("accountingPeriodType")
+        form.addRow(get_field_spec("standard_id").label, self.standard_id_label)
+        self.enterprise_name = create_typed_input(
+            identity,
+            get_field_spec("enterprise_name"),
+            "enterpriseNameInput",
+            "企业名称",
+        )
+        form.addRow(get_field_spec("enterprise_name").label, self.enterprise_name)
+        self.period_type = create_typed_input(identity, get_field_spec("period_type"), "accountingPeriodType")
         self.period_type.addItem("年度", PeriodType.ANNUAL)
         self.period_type.addItem("月度（内部周期结果）", PeriodType.MONTHLY)
         self.period_type.currentIndexChanged.connect(lambda _index: self._refresh_heat_factor_details())
-        form.addRow("核算期间", self.period_type)
+        form.addRow(get_field_spec("period_type").label, self.period_type)
         period_row = QWidget(identity)
         period_layout = QHBoxLayout(period_row)
         period_layout.setContentsMargins(0, 0, 0, 0)
         self.period_year = QSpinBox(period_row)
         self.period_year.setObjectName("accountingPeriodYear")
+        self.period_year.setProperty("fieldSpecKey", "period_year")
         self.period_year.setRange(2000, 2100)
         self.period_year.setValue(2025)
         self.period_year.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         self.period_month = QSpinBox(period_row)
         self.period_month.setObjectName("accountingPeriodMonth")
+        self.period_month.setProperty("fieldSpecKey", "period_month")
         self.period_month.setRange(1, 12)
         self.period_month.setValue(1)
         self.period_month.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         period_layout.addWidget(self.period_year)
         period_layout.addWidget(self.period_month)
-        form.addRow("年份 / 月份", period_row)
+        form.addRow(
+            f"{get_field_spec('period_year').label} / {get_field_spec('period_month').label}",
+            period_row,
+        )
         identity_layout.addLayout(form)
         self.body_layout.addWidget(identity)
 
         boundary, boundary_layout = _card("02 核算边界", self)
-        self.boundary_confirmed = QCheckBox("已确认法人企业/独立核算单位及生产系统边界", boundary)
+        self.boundary_confirmed = create_typed_input(
+            boundary,
+            get_field_spec("boundary_confirmed"),
+            "boundaryConfirmedCheckBox",
+        )
+        self.boundary_confirmed.setText("已确认法人企业/独立核算单位及生产系统边界")
         self.boundary_confirmed.setObjectName("boundaryConfirmedCheckBox")
         boundary_layout.addWidget(self.boundary_confirmed)
         boundary_hint = QLabel("边界按标准第4.1条结构化确认；未确认不能计算。", boundary)
         boundary_hint.setWordWrap(True)
         boundary_layout.addWidget(boundary_hint)
-        self.other_activity_present = QCheckBox("存在本标准未覆盖的其他行业活动（需使用其他标准）", boundary)
+        self.other_activity_present = create_typed_input(
+            boundary,
+            get_field_spec("other_activity_present"),
+            "otherIndustryActivityCheckBox",
+        )
+        self.other_activity_present.setText("存在本标准未覆盖的其他行业活动（需使用其他标准）")
         self.other_activity_present.setObjectName("otherIndustryActivityCheckBox")
         boundary_layout.addWidget(self.other_activity_present)
-        self.transport_present = QCheckBox("存在上下游运输（需使用其他标准）", boundary)
+        self.transport_present = create_typed_input(
+            boundary,
+            get_field_spec("transport_present"),
+            "upstreamDownstreamTransportCheckBox",
+        )
+        self.transport_present.setText("存在上下游运输（需使用其他标准）")
         self.transport_present.setObjectName("upstreamDownstreamTransportCheckBox")
         boundary_layout.addWidget(self.transport_present)
         self.body_layout.addWidget(boundary)
@@ -308,9 +345,9 @@ class CarbonMaterialAccountingPage(BasePage):
         source_grid.addWidget(QLabel("排放源"), 0, 0)
         source_grid.addWidget(QLabel("本次状态"), 0, 1)
         for row, (source_id, label) in enumerate(SOURCE_LABELS.items(), 1):
+            source_spec = get_field_spec(f"source_status.{source_id}")
             source_grid.addWidget(QLabel(label), row, 0)
-            combo = QComboBox(sources)
-            combo.setObjectName(f"sourceStatus_{source_id}")
+            combo = create_typed_input(sources, source_spec, f"sourceStatus_{source_id}")
             combo.addItem("不涉及", EmissionSourceStatus.NOT_INVOLVED)
             combo.addItem("涉及", EmissionSourceStatus.INVOLVED)
             combo.addItem("待确认", EmissionSourceStatus.UNCONFIRMED)
@@ -387,17 +424,16 @@ class CarbonMaterialAccountingPage(BasePage):
         row = QWidget(self)
         layout = QGridLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        labels = ("燃料ID", "路径", "活动量", "单位热值/质量含碳量", "碳氧化率")
-        for column, label in enumerate(labels):
-            layout.addWidget(QLabel(label), 0, column)
-        self._fields["fuel_id"] = _field(row, "fuelIdInput", "natural-gas")
-        self._fields["fuel_path"] = QComboBox(row)  # type: ignore[assignment]
-        self._fields["fuel_path"].setObjectName("fuelPathInput")  # type: ignore[union-attr]
+        fuel_keys = ("fuel_id", "fuel_path", "fuel_activity", "fuel_carbon", "fuel_oxidation")
+        for column, key in enumerate(fuel_keys):
+            layout.addWidget(QLabel(get_field_spec(key).label), 0, column)
+        self._fields["fuel_id"] = create_typed_input(row, get_field_spec("fuel_id"), "fuelIdInput", "natural-gas")  # type: ignore[assignment]
+        self._fields["fuel_path"] = create_typed_input(row, get_field_spec("fuel_path"), "fuelPathInput")  # type: ignore[assignment]
         for path, label in ((FuelPath.VOLUME, "体积"), (FuelPath.MASS, "质量"), (FuelPath.HEAT, "热量")):
             self._fields["fuel_path"].addItem(label, path)  # type: ignore[union-attr]
-        self._fields["fuel_activity"] = _field(row, "fuelActivityInput")
-        self._fields["fuel_carbon"] = _field(row, "fuelCarbonInput")
-        self._fields["fuel_oxidation"] = _field(row, "fuelOxidationInput")
+        self._fields["fuel_activity"] = create_typed_input(row, get_field_spec("fuel_activity"), "fuelActivityInput")  # type: ignore[assignment]
+        self._fields["fuel_carbon"] = create_typed_input(row, get_field_spec("fuel_carbon"), "fuelCarbonInput")  # type: ignore[assignment]
+        self._fields["fuel_oxidation"] = create_typed_input(row, get_field_spec("fuel_oxidation"), "fuelOxidationInput")  # type: ignore[assignment]
         for column, key in enumerate(("fuel_id", "fuel_path", "fuel_activity", "fuel_carbon", "fuel_oxidation")):
             layout.addWidget(self._fields[key], 1, column)
         parent_layout.addWidget(row)
@@ -409,9 +445,10 @@ class CarbonMaterialAccountingPage(BasePage):
         row = QWidget(self)
         form = QFormLayout(row)
         for field in fields:
-            edit = _field(row, f"{prefix}_{field}")
+            spec = get_field_spec(f"{prefix}.{field}")
+            edit = create_typed_input(row, spec, f"{prefix}_{field}")
             self._fields[f"{prefix}.{field}"] = edit
-            form.addRow(field, edit)
+            form.addRow(spec.label, edit)
         parent_layout.addWidget(row)
 
         if prefix not in {"calcination", "baking", "graphitization"}:
@@ -425,12 +462,9 @@ class CarbonMaterialAccountingPage(BasePage):
             (MaterialBasis.DRY, "干燥基"),
             (MaterialBasis.OTHER_DOCUMENTED, "其他有证基准"),
         )
-        mass_basis = QComboBox(metadata)
-        mass_basis.setObjectName(f"{prefix}_massBasisSelector")
-        composition_basis = QComboBox(metadata)
-        composition_basis.setObjectName(f"{prefix}_compositionBasisSelector")
-        normalized_basis = QComboBox(metadata)
-        normalized_basis.setObjectName(f"{prefix}_normalizedBasisSelector")
+        mass_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.mass_basis"), f"{prefix}_massBasisSelector")
+        composition_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.composition_basis"), f"{prefix}_compositionBasisSelector")
+        normalized_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.normalized_basis"), f"{prefix}_normalizedBasisSelector")
         for combo in (mass_basis, composition_basis, normalized_basis):
             for value, label_text in basis_options:
                 combo.addItem(label_text, value)
@@ -440,18 +474,39 @@ class CarbonMaterialAccountingPage(BasePage):
             (MaterialComponentKind.VOLATILE_MATTER, "挥发分"),
             (MaterialComponentKind.TOTAL_CARBON, "总碳（本字段不可直接采用）"),
         )
-        fixed_carbon_component_kind = QComboBox(metadata)
-        fixed_carbon_component_kind.setObjectName(f"{prefix}_fixedCarbonComponentKindSelector")
-        volatile_matter_component_kind = QComboBox(metadata)
-        volatile_matter_component_kind.setObjectName(f"{prefix}_volatileMatterComponentKindSelector")
+        fixed_carbon_component_kind = create_typed_input(
+            metadata,
+            get_field_spec(f"{prefix}.fixed_carbon_component_kind"),
+            f"{prefix}_fixedCarbonComponentKindSelector",
+        )
+        volatile_matter_component_kind = create_typed_input(
+            metadata,
+            get_field_spec(f"{prefix}.volatile_matter_component_kind"),
+            f"{prefix}_volatileMatterComponentKindSelector",
+        )
         for combo in (fixed_carbon_component_kind, volatile_matter_component_kind):
             for value, label_text in component_options:
                 combo.addItem(label_text, value)
-        moisture_evidence = QCheckBox("已有水分/基准证明", metadata)
+        moisture_evidence = create_typed_input(
+            metadata,
+            get_field_spec(f"{prefix}.moisture_evidence"),
+            f"{prefix}_moistureEvidenceCheckBox",
+        )
+        moisture_evidence.setText("已有水分/基准证明")
         moisture_evidence.setObjectName(f"{prefix}_moistureEvidenceCheckBox")
-        conversion_evidence = QCheckBox("已有收到基换算证明", metadata)
+        conversion_evidence = create_typed_input(
+            metadata,
+            get_field_spec(f"{prefix}.conversion_evidence"),
+            f"{prefix}_conversionEvidenceCheckBox",
+        )
+        conversion_evidence.setText("已有收到基换算证明")
         conversion_evidence.setObjectName(f"{prefix}_conversionEvidenceCheckBox")
-        evidence_reference = _field(metadata, f"{prefix}_basisEvidenceReferenceInput", "证明编号或来源定位（非收到基必填）")
+        evidence_reference = create_typed_input(
+            metadata,
+            get_field_spec(f"{prefix}.evidence_reference"),
+            f"{prefix}_basisEvidenceReferenceInput",
+            "证明编号或来源定位（非收到基必填）",
+        )
         self._material_controls[prefix] = {
             "mass_basis": mass_basis,
             "composition_basis": composition_basis,
@@ -462,21 +517,34 @@ class CarbonMaterialAccountingPage(BasePage):
             "conversion_evidence": conversion_evidence,
             "evidence_reference": evidence_reference,
         }
-        metadata_form.addRow("物料基准", mass_basis)
-        metadata_form.addRow("成分性质基准", composition_basis)
-        metadata_form.addRow("归一化基准", normalized_basis)
-        metadata_form.addRow("固定碳字段性质", fixed_carbon_component_kind)
-        metadata_form.addRow("挥发分字段性质", volatile_matter_component_kind)
-        metadata_form.addRow("证据", moisture_evidence)
-        metadata_form.addRow("换算证明", conversion_evidence)
-        metadata_form.addRow("证明定位", evidence_reference)
+        metadata_form.addRow(get_field_spec(f"{prefix}.mass_basis").label, mass_basis)
+        metadata_form.addRow(get_field_spec(f"{prefix}.composition_basis").label, composition_basis)
+        metadata_form.addRow(get_field_spec(f"{prefix}.normalized_basis").label, normalized_basis)
+        metadata_form.addRow(get_field_spec(f"{prefix}.fixed_carbon_component_kind").label, fixed_carbon_component_kind)
+        metadata_form.addRow(get_field_spec(f"{prefix}.volatile_matter_component_kind").label, volatile_matter_component_kind)
+        metadata_form.addRow(get_field_spec(f"{prefix}.moisture_evidence").label, moisture_evidence)
+        metadata_form.addRow(get_field_spec(f"{prefix}.conversion_evidence").label, conversion_evidence)
+        metadata_form.addRow(get_field_spec(f"{prefix}.evidence_reference").label, evidence_reference)
         parent_layout.addWidget(metadata)
 
     def _build_electricity_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("购入电力/多条电力明细（I01；取得方式与电力属性独立）", self)
         label.setObjectName("electricitySectionTitle")
         parent_layout.addWidget(label)
-        header = QLabel("明细ID | 电量 MWh | 取得方式 | 电力属性 | 证明类型 | 证明状态 | 操作", self)
+        header = QLabel(
+            " | ".join(
+                (
+                    get_field_spec("electricity.detail_id").label,
+                    get_field_spec("electricity.amount").label,
+                    get_field_spec("electricity.acquisition").label,
+                    get_field_spec("electricity.attribute").label,
+                    get_field_spec("electricity.proof_type").label,
+                    get_field_spec("electricity.proof_status").label,
+                    "操作",
+                )
+            ),
+            self,
+        )
         header.setWordWrap(True)
         parent_layout.addWidget(header)
         rows_host = QWidget(self)
@@ -521,10 +589,20 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addWidget(label)
         row = QWidget(self)
         form = QFormLayout(row)
-        self._fields["exported_electricity_id"] = _field(row, "exportedElectricityLineIdInput", "exported-electricity-1")
-        self._fields["exported_electricity_amount"] = _field(row, "exportedElectricityAmountInput", "MWh")
-        form.addRow("明细ID", self._fields["exported_electricity_id"])
-        form.addRow("输出电量 MWh", self._fields["exported_electricity_amount"])
+        self._fields["exported_electricity_id"] = create_typed_input(
+            row,
+            get_field_spec("exported_electricity_id"),
+            "exportedElectricityLineIdInput",
+            "exported-electricity-1",
+        )
+        self._fields["exported_electricity_amount"] = create_typed_input(
+            row,
+            get_field_spec("exported_electricity_amount"),
+            "exportedElectricityAmountInput",
+            "MWh",
+        )
+        form.addRow(get_field_spec("exported_electricity_id").label, self._fields["exported_electricity_id"])
+        form.addRow(get_field_spec("exported_electricity_amount").label, self._fields["exported_electricity_amount"])
         parent_layout.addWidget(row)
 
     def _build_heat_section(self, parent_layout: QVBoxLayout) -> None:
@@ -533,31 +611,36 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addWidget(label)
         row = QWidget(self)
         form = QFormLayout(row)
-        for key, label_text in (
-            ("heat_id", "明细ID"),
-            ("heat_amount", "动力总量 kg"),
-            ("heat_enthalpy", "蒸汽焓值 kJ/kg"),
-            ("heat_pressure", "饱和/过热蒸汽压力 MPa"),
-            ("heat_temperature", "过热蒸汽温度 C"),
+        for key in (
+            "heat_id",
+            "heat_amount",
+            "heat_enthalpy",
+            "heat_pressure",
+            "heat_temperature",
         ):
-            edit = _field(row, f"{key}Input")
+            edit = create_typed_input(row, get_field_spec(key), f"{key}Input")
             self._fields[key] = edit
-            form.addRow(label_text, edit)
-        self._heat_steam_kind = QComboBox(row)
-        self._heat_steam_kind.setObjectName("heatSteamKindSelector")
+            form.addRow(get_field_spec(key).label, edit)
+        self._heat_steam_kind = create_typed_input(row, get_field_spec("heat_steam_kind"), "heatSteamKindSelector")
         self._heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
         self._heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
-        form.addRow("蒸汽状态", self._heat_steam_kind)
+        form.addRow(get_field_spec("heat_steam_kind").label, self._heat_steam_kind)
         self.heat_factor_selector = QComboBox(row)
         self.heat_factor_selector.setObjectName("heatFactorSelector")
+        self.heat_factor_selector.setProperty("fieldSpecKey", "heat_factor")
+        self.heat_factor_selector.setToolTip(get_field_spec("heat_factor").help_text)
         self.heat_factor_selector.currentIndexChanged.connect(self._refresh_heat_factor_details)
-        form.addRow("热力因子候选", self.heat_factor_selector)
-        self.heat_factor_metadata = QLabel("尚未加载热力因子候选值。", row)
-        self.heat_factor_metadata.setObjectName("heatFactorMetadata")
-        self.heat_factor_metadata.setWordWrap(True)
-        form.addRow("候选来源与审核", self.heat_factor_metadata)
-        self.heat_factor_selection_reason = _field(row, "heatFactorSelectionReasonInput", "自动推荐理由或人工确认理由")
-        form.addRow("选择理由", self.heat_factor_selection_reason)
+        form.addRow(get_field_spec("heat_factor").label, self.heat_factor_selector)
+        self.heat_factor_metadata = create_read_only_parameter(row, get_field_spec("heat_factor"), "heatFactorMetadata")
+        self.heat_factor_metadata.setText("尚未加载热力因子候选值。")
+        form.addRow("候选来源与审核（只读）", self.heat_factor_metadata)
+        self.heat_factor_selection_reason = create_typed_input(
+            row,
+            get_field_spec("heat_factor_selection_reason"),
+            "heatFactorSelectionReasonInput",
+            "自动推荐理由或人工确认理由",
+        )
+        form.addRow(get_field_spec("heat_factor_selection_reason").label, self.heat_factor_selection_reason)
         parent_layout.addWidget(row)
         self._populate_heat_factor_selector()
 
@@ -574,21 +657,18 @@ class CarbonMaterialAccountingPage(BasePage):
             "exported_heat_pressure": "exportedHeatPressureInput",
             "exported_heat_temperature": "exportedHeatTemperatureInput",
         }
-        for key, label_text in (
-            ("exported_heat_id", "明细ID"),
-            ("exported_heat_amount", "动力总量 kg"),
-            ("exported_heat_enthalpy", "蒸汽焓值 kJ/kg"),
-            ("exported_heat_pressure", "饱和/过热蒸汽压力 MPa"),
-            ("exported_heat_temperature", "过热蒸汽温度 C"),
-        ):
-            edit = _field(row, exported_heat_object_names[key])
+        for key in exported_heat_object_names:
+            edit = create_typed_input(row, get_field_spec(key), exported_heat_object_names[key])
             self._fields[key] = edit
-            form.addRow(label_text, edit)
-        self._exported_heat_steam_kind = QComboBox(row)
-        self._exported_heat_steam_kind.setObjectName("exportedHeatSteamKindSelector")
+            form.addRow(get_field_spec(key).label, edit)
+        self._exported_heat_steam_kind = create_typed_input(
+            row,
+            get_field_spec("exported_heat_steam_kind"),
+            "exportedHeatSteamKindSelector",
+        )
         self._exported_heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
         self._exported_heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
-        form.addRow("蒸汽状态", self._exported_heat_steam_kind)
+        form.addRow(get_field_spec("exported_heat_steam_kind").label, self._exported_heat_steam_kind)
         hint = QLabel("I04 与 I02 共用上方 G05 热力因子选择器；输出热力同样必须标记排放源为“涉及”。", row)
         hint.setWordWrap(True)
         form.addRow("参数路径", hint)
@@ -667,7 +747,11 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _fuel(self) -> tuple[FuelInput, ...]:
         fuel_id = _value(self._fields["fuel_id"])
-        values = (_value(self._fields["fuel_activity"]), _value(self._fields["fuel_carbon"]), _value(self._fields["fuel_oxidation"]))
+        values = (
+            _value(self._fields["fuel_activity"]),
+            _value(self._fields["fuel_carbon"]),
+            _ui_value("fuel_oxidation", self._fields["fuel_oxidation"]),
+        )
         if fuel_id is None and all(value is None for value in values):
             return ()
         path = _enum(self._fields["fuel_path"].currentData(), FuelPath)  # type: ignore[union-attr]
@@ -681,7 +765,10 @@ class CarbonMaterialAccountingPage(BasePage):
             "fume": ("q", "qvar", "hm", "fch", "fox", "duration"),
             "fgd": ("cal", "i", "ef1", "tr"),
         }[prefix]
-        values = {field: _value(self._fields[f"{prefix}.{field}"]) for field in field_names}
+        values = {
+            field: _ui_value(f"{prefix}.{field}", self._fields[f"{prefix}.{field}"])
+            for field in field_names
+        }
         if all(value is None for value in values.values()):
             return None
         controls = self._material_controls.get(prefix)
