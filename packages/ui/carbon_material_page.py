@@ -258,6 +258,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self._fields: dict[str, QLineEdit] = {}
         self._material_controls: dict[str, dict[str, QWidget]] = {}
         self._heat_factor_records = {}
+        # Presentation-only feedback from the existing G05/Domain paths.
+        # These caches never become part of CarbonMaterialInput or persistence.
+        self._electricity_resolution_states: dict[str, str] = {}
+        self._known_source_errors: set[str] = set()
         self._build_page()
         self._input_dirty = False
         self._install_dirty_tracking()
@@ -896,8 +900,21 @@ class CarbonMaterialAccountingPage(BasePage):
         elif source_id == "CAR-SRC-PURCHASED-ELECTRICITY-001":
             active_rows = [row for row in self._electricity_rows if row.amount.text().strip()]
             present = bool(active_rows)
-            complete = present and all(row.detail_id.text().strip() and row.amount.hasAcceptableInput() for row in active_rows)
-            invalid = any(row.amount.text().strip() and not row.amount.hasAcceptableInput() for row in active_rows)
+            complete = present and all(
+                row.detail_id.text().strip()
+                and row.amount.hasAcceptableInput()
+                and self._electricity_resolution_states.get(row.detail_id.text().strip()) == "RESOLVED"
+                for row in active_rows
+            )
+            invalid = any(
+                row.amount.text().strip()
+                and (
+                    not row.amount.hasAcceptableInput()
+                    or self._electricity_resolution_states.get(row.detail_id.text().strip())
+                    in {"BLOCKED", "DELEGATED", "ERROR"}
+                )
+                for row in active_rows
+            )
             summary = f"{len(active_rows)} 条电力明细" if active_rows else "尚未录入电力明细"
         elif source_id == "CAR-SRC-PURCHASED-HEAT-001":
             present = self._field_has_value("heat_amount")
@@ -915,6 +932,11 @@ class CarbonMaterialAccountingPage(BasePage):
             invalid = self._field_has_error("exported_heat_amount") or self._field_has_error("exported_heat_enthalpy")
             summary = "已录入输出热力" if present else "尚未录入输出热力"
 
+        # A card may only report completed after a real existing validation run
+        # has stopped reporting a source-scoped error.  This deliberately
+        # consumes Domain feedback instead of reproducing Domain rules here.
+        if source_id in self._known_source_errors:
+            invalid = True
         if invalid or (present and not complete):
             return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
         if complete:
@@ -983,15 +1005,20 @@ class CarbonMaterialAccountingPage(BasePage):
         try:
             self._electricity("enterprise.current", self._period())
         except (DomainValidationError, InvalidOperation, ValueError):
+            self._electricity_resolution_states.clear()
             for row in self._electricity_rows:
+                if row.amount.text().strip():
+                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
                     "参数状态：等待完整明细",
                     "采用因子：尚未解析",
                     "来源：尚未解析",
                     "选择理由：补齐明细后解析",
                 )
+            self._refresh_source_cards()
 
     def _render_electricity_parameter_states(self, details: tuple[ElectricityConsumptionDetail, ...]) -> None:
+        self._electricity_resolution_states.clear()
         waiting = (
             "参数状态：待录入",
             "采用因子：尚未解析",
@@ -1005,6 +1032,8 @@ class CarbonMaterialAccountingPage(BasePage):
             return
         if self._parameter_resolver is None:
             for row in self._electricity_rows:
+                if row.amount.text().strip():
+                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
                     "参数状态：参数服务不可用",
                     "采用因子：未解析",
@@ -1019,6 +1048,8 @@ class CarbonMaterialAccountingPage(BasePage):
             )
         except (DomainValidationError, InvalidOperation, KeyError, ValueError) as exc:
             for row in self._electricity_rows:
+                if row.amount.text().strip():
+                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
                     "参数状态：解析失败",
                     "采用因子：未解析",
@@ -1031,6 +1062,7 @@ class CarbonMaterialAccountingPage(BasePage):
             if row is None:
                 continue
             if resolution.route.value == "DELEGATE_DIRECT_FUEL_PATH":
+                self._electricity_resolution_states[resolution.detail.detail_id] = "DELEGATED"
                 reason = resolution.problems[0].message if resolution.problems else "转交直接燃料排放路径"
                 row.show_parameter_state(
                     "参数状态：转交直接燃料路径（不进入购电间接排放）",
@@ -1042,6 +1074,7 @@ class CarbonMaterialAccountingPage(BasePage):
             selected = resolution.parameter_resolution.recommended if resolution.parameter_resolution else None
             snapshot = resolution.snapshot
             if selected is not None and snapshot is not None:
+                self._electricity_resolution_states[resolution.detail.detail_id] = "RESOLVED"
                 factor = selected.factor
                 category = selected.category.value
                 method = resolution.parameter_resolution.selection_method.value if resolution.parameter_resolution and resolution.parameter_resolution.selection_method else "UNKNOWN"
@@ -1054,6 +1087,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 )
                 continue
             problems = resolution.problems
+            self._electricity_resolution_states[resolution.detail.detail_id] = "BLOCKED"
             display_code = problems[0].code if problems else "GEN-PAR-NO-APPLICABLE-VALUE"
             if display_code == "GEN-VAL-NONFOSSIL-EVIDENCE":
                 display_code = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
@@ -1227,6 +1261,8 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _run_calculation(self) -> None:
         self.validation_list.clear()
+        self._known_source_errors.clear()
+        self._refresh_source_cards()
         if not self.enterprise_name.text().strip():
             self.validation_list.addItem("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
             self.result_total.setText("存在输入错误")
@@ -1237,6 +1273,21 @@ class CarbonMaterialAccountingPage(BasePage):
             self.validation_list.addItem(f"ERROR：{exc}")
             self.result_total.setText("存在输入错误")
             return
+        source_ids = tuple(self._source_cards)
+        self._known_source_errors = {
+            source_id
+            for source_id in source_ids
+            if any(
+                problem.level.value == "ERROR"
+                and problem.field_id is not None
+                and (
+                    problem.field_id == source_id
+                    or problem.field_id.startswith(f"{source_id}.")
+                )
+                for problem in outcome.problems
+            )
+        }
+        self._refresh_source_cards()
         for problem in outcome.problems:
             self.validation_list.addItem(f"{problem.level.value}：{problem.message} [{problem.code}]")
         if not outcome.problems:

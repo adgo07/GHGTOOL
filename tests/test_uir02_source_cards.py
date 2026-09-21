@@ -15,7 +15,12 @@ from PySide6.QtWidgets import QApplication, QComboBox, QPushButton, QWidget
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import CatalogQueryService
-from packages.core import ElectricityAcquisitionMode, ElectricityAttribute
+from packages.core import (
+    ElectricityAcquisitionMode,
+    ElectricityAttribute,
+    ElectricityProofStatus,
+    ElectricityProofType,
+)
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import EmissionSourceStatus, InMemoryRecordRepository
@@ -113,18 +118,37 @@ class UIR02SourceCardTests(unittest.TestCase):
         combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
         self.page.enterprise_name.setText("卡片保持企业")
         self.page.boundary_confirmed.setChecked(True)
-        self.page._fields["calcination.gc"].setText("12.5")
-        self.page._fields["calcination.wfc"].setText("20")
+        for field, value in {
+            "gc": "100",
+            "wfc": "50",
+            "cc": "70",
+            "ucc": "5",
+            "du": "1",
+            "wfc_c": "25",
+            "wvar": "10",
+            "wvar_c": "2",
+        }.items():
+            self.page._fields[f"calcination.{field}"].setText(value)
+        controls = self.page._material_controls["calcination"]
+        for key in ("mass_basis", "composition_basis", "normalized_basis"):
+            controls[key].setCurrentIndex(controls[key].findData("RECEIVED"))
+        controls["fixed_carbon_component_kind"].setCurrentIndex(
+            controls["fixed_carbon_component_kind"].findData("FIXED_CARBON")
+        )
+        controls["volatile_matter_component_kind"].setCurrentIndex(
+            controls["volatile_matter_component_kind"].findData("VOLATILE_MATTER")
+        )
         before = self.page._input()
         before_outcome = self.page.calculator.calculate(before)
+        self.assertTrue(before_outcome.successful, before_outcome.problems)
 
         card = self._card(source_id)
         card.set_expanded(False)
         self.assertFalse(card.body.isVisible())
         card.set_expanded(True)
         self.assertTrue(card.body.isVisible())
-        self.assertEqual(self.page._fields["calcination.gc"].text(), "12.5")
-        self.assertEqual(self.page._fields["calcination.wfc"].text(), "20")
+        self.assertEqual(self.page._fields["calcination.gc"].text(), "100")
+        self.assertEqual(self.page._fields["calcination.wfc"].text(), "50")
 
         after = self.page._input()
         self.assertEqual(before.source_states, after.source_states)
@@ -134,6 +158,7 @@ class UIR02SourceCardTests(unittest.TestCase):
             after,
         )
         after_outcome = self.page.calculator.calculate(after)
+        self.assertTrue(after_outcome.successful, after_outcome.problems)
         before_result = None if before_outcome.result is None else (before_outcome.result.total_amount, before_outcome.result.lines)
         after_result = None if after_outcome.result is None else (after_outcome.result.total_amount, after_outcome.result.lines)
         self.assertEqual(before_result, after_result)
@@ -225,6 +250,8 @@ class UIR02SourceCardTests(unittest.TestCase):
         rows[1].amount.setText("20")
         rows[1].acquisition.setCurrentIndex(rows[1].acquisition.findData(ElectricityAcquisitionMode.SELF_CONSUMED))
         rows[1].attribute.setCurrentIndex(rows[1].attribute.findData(ElectricityAttribute.NONFOSSIL))
+        rows[1].proof_type.setCurrentIndex(rows[1].proof_type.findData(ElectricityProofType.MONTHLY_ORIGINAL_RECORD))
+        rows[1].proof_status.setCurrentIndex(rows[1].proof_status.findData(ElectricityProofStatus.VALID))
 
         card = self._card(source_id)
         card.set_expanded(False)
@@ -236,6 +263,60 @@ class UIR02SourceCardTests(unittest.TestCase):
         )
         self.assertIn("2 条电力明细", card.summary_label.text())
         self.assertIn("已完成", card.summary_label.text())
+
+    def test_blocked_electricity_resolution_marks_card_needs_attention(self) -> None:
+        source_id = "CAR-SRC-PURCHASED-ELECTRICITY-001"
+        self._status_combo(source_id).setCurrentIndex(
+            self._status_combo(source_id).findData(EmissionSourceStatus.INVOLVED)
+        )
+        row = self.page._electricity_rows[0]
+        row.detail_id.setText("missing-proof")
+        row.amount.setText("20")
+        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.SELF_CONSUMED))
+        row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.NONFOSSIL))
+        self.application.processEvents()
+
+        card = self._card(source_id)
+        self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
+        self.assertIn("需要处理", card.summary_label.text())
+        self.assertIn("阻断", row.parameter_status.text())
+        self.assertNotIn("已完成", card.summary_label.text())
+
+    def test_existing_domain_error_marks_process_card_needs_attention(self) -> None:
+        source_id = "CAR-SRC-CALCINATION-001"
+        self._status_combo(source_id).setCurrentIndex(
+            self._status_combo(source_id).findData(EmissionSourceStatus.INVOLVED)
+        )
+        self.page.enterprise_name.setText("基准证据缺失企业")
+        self.page.boundary_confirmed.setChecked(True)
+        for field, value in {
+            "gc": "100",
+            "wfc": "50",
+            "cc": "70",
+            "ucc": "5",
+            "du": "1",
+            "wfc_c": "25",
+            "wvar": "10",
+            "wvar_c": "2",
+        }.items():
+            self.page._fields[f"calcination.{field}"].setText(value)
+        controls = self.page._material_controls["calcination"]
+        for key in ("mass_basis", "composition_basis"):
+            controls[key].setCurrentIndex(controls[key].findData("DRY"))
+        controls["normalized_basis"].setCurrentIndex(controls["normalized_basis"].findData("RECEIVED"))
+        controls["fixed_carbon_component_kind"].setCurrentIndex(
+            controls["fixed_carbon_component_kind"].findData("FIXED_CARBON")
+        )
+        controls["volatile_matter_component_kind"].setCurrentIndex(
+            controls["volatile_matter_component_kind"].findData("VOLATILE_MATTER")
+        )
+        self.page._run_calculation()
+        self.application.processEvents()
+
+        card = self._card(source_id)
+        self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
+        self.assertIn("需要处理", card.summary_label.text())
+        self.assertTrue(any("CAR-VAL-MATERIAL-BASIS-CONVERSION" in self.page.validation_list.item(i).text() for i in range(self.page.validation_list.count())))
 
 
 if __name__ == "__main__":
