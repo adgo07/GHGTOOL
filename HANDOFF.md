@@ -695,9 +695,46 @@ G00～G08 已完成 Windows V1 阶段门禁。以下是 V1 完成后的“新建
 - 必须回归 test_g06_page.py、test_g06_carbon_material.py、test_g07_records.py 和 test_g08_delivery.py，并记录全量测试、compileall、pip check 及必要的数据校验。
 - 完成后更新 TASK_STATE.md 和 IMPLEMENTATION_REPORT.md，提交并停止等待 Sol 验收；不得创建或实施 UIR02。
 
-### 21.3 UIR02——布局与分组重构（未启动）
+### 21.3 UIR02——排放源与活动数据卡片重构（当前阶段）
 
-仅在 UIR01 经 Sol 验收通过后，由新的 Goal 明确范围。不得在 UIR01 中提前实施卡片化、分步向导或大幅布局重排。
+#### Goal
+
+在不改变 Domain、计算和记录语义的前提下，将“排放源识别”和“活动数据”合并为统一的“排放源与活动数据”页面，使用统一、可展开/折叠的 Presentation 排放源业务卡片完成十个排放源的状态识别、活动数据录入、轻量完成度反馈和输入保持。本阶段只处理页面结构、业务分组和排放源卡片交互，不启动 UIR03。
+
+#### 模型边界
+
+- 现有 `EmissionSourceStatus` 和 `CarbonMaterialInput.source_states` 保持不变，不为卡片 UI 新增 Domain 枚举或数据库字段。
+- “不涉及 / 涉及 / 待确认”分别映射现有 `NOT_INVOLVED / INVOLVED / UNCONFIRMED`；“填写中 / 已完成 / 有错误或需要处理”是根据当前输入完整性和已有校验结果派生的 Presentation 状态，不得持久化为 Domain 状态。
+- 卡片的展开、折叠、编辑只改变 Presentation；只有明确的启用/改为不涉及业务动作才能改变 Domain source state。
+
+#### MUST
+
+1. 将当前页面一级结构中的“03 排放源识别”和“04 活动数据”合并为“02 排放源与活动数据”。基本信息与核算边界可以重新排版，但不得改变业务含义、必填规则或 Domain 映射；05～08 维持现有功能，不提前彻底重构。
+2. 十个排放源全部进入统一卡片体系：化石燃料燃烧 F01、原料煅烧 P01、焙烧/炭化 P02、石墨化 P03、烟气焚烧治理 P04A、烟气脱硫净化 P04B、购入电力 I01、购入热力/动力 I02、输出电力 I03、输出热力/动力 I04。
+3. 建立可复用的 Presentation 卡片组件或统一配置机制，统一处理标题、状态、展开/折叠、摘要、错误/完成状态和启用/编辑/收起操作；不得复制十套互不相关的折叠逻辑。
+4. “不涉及”默认折叠且不显示完整输入表单；用户应能在一屏或较短滚动范围内看到全部排放源状态。启用时映射为现有 `INVOLVED`、展开表单且不自动填造业务数据。
+5. 已填写卡片收起后显示不含内部 ID、变量名和开发术语的简短业务摘要，例如“1 种燃料 · 填写中”“已完成”“2 条电力明细 · 已完成”。
+6. 卡片展开→输入→折叠→再展开必须完整保留输入；继续保持 PR #2 的新建核算页面导航切换输入保留。不得引入草稿保存或跨启动恢复。
+7. 原料煅烧、焙烧/炭化、石墨化等复杂卡片展开后按投入数据、产出数据、其他必要数据等业务含义分组，不得按 `gc / wfc / cc / ...` 内部变量顺序堆叠；所有标签继续来自 UIR01 `FieldSpec`。
+8. 卡片化后继续使用 `field_specs.py` 和 `typed_inputs.py`；数量/百分比/整数输入限制、单位控制和百分比 0～100 到 Domain 0～1 转换不得退化。
+9. I01 继续支持多条电力明细的新增、删除、独立取得方式、电力属性、证明/参数解析、独立快照和汇总；不得退化为单条输入。
+10. “已完成”至少依据当前状态为 `INVOLVED`、阶段必要输入存在和 Presentation 基础校验无已知错误；启用但缺失必要输入可显示“填写中/需要处理”，不得复制或改写 Domain Validation。`UNCONFIRMED` 必须仍是待确认。
+11. 不改变 `CarbonMaterialInput`、`CarbonMaterialCalculator`、Decimal 计算、GB/T 32151.34 公式、`ParameterResolver`、Canonical、参数/因子规则、records.sqlite、成功记录、ERROR 门禁、历史快照和删除审计。
+12. 允许把 UIR03 的专业控件放入对应卡片内部以保持页面可用，但不得在本阶段改变物料/成分/归一化/固定碳/挥发分/证据/换算证明语义，不得实现专业详情隐藏或 UIR03 的简化规则。
+
+#### OUT OF SCOPE
+
+- 不实施 UIR03 的数据口径与换算简化、专业详情和参数高级信息隐藏；不实施 UIR04 的 05～08 彻底重构、最终错误跳转和 V1.1.0 收口。
+- 不实施 Excel 导入、报告/导出、其他七项标准、企业档案、草稿保存、跨启动恢复、云服务、G09 或数据库迁移；应用版本不升级到 1.1.0。
+- 不修改、删除或上传 `计算表/`，不打包标准全文 PDF/Word。
+
+#### 测试与阶段门禁
+
+- 必须新增 UIR02 专项测试，覆盖十卡片存在、默认不涉及折叠、启用映射与无自动数据、展开/折叠输入保持、导航输入保持、三类 Domain 状态映射、派生完成/需要处理状态、摘要无内部术语和多条电力不串位。
+- 必须回归 `tests.test_uir01_field_semantics`、`tests.test_g06_page`、`tests.test_g06_carbon_material`、`tests.test_g07_records`、`tests.test_g08_delivery`，并验证 UIR01 数值键盘/粘贴限制和比例转换仍有效。
+- 必须做 Domain parity：同一合法输入的 `CarbonMaterialInput` 关键值、`source_states`、`electricity_details`、计算结果和参数快照与卡片重构前等价，不得修改旧测试期望值掩盖行为变化。
+- 完成前必须执行 UIR02 定向、相关回归、`unittest discover -s tests -t . -v`、compileall、pip check、Canonical 校验、git diff --check 和 `计算表/` 保护检查，并确认无测试数据库、临时文件、标准全文或敏感数据进入提交。
+- UIR02 完成后更新 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md`，提交、推送独立分支、创建目标为 main 的 PR，等待最新 head 的 merge-ref full tests 与 exact PR-head standalone audit；停止等待 Sol 验收，不得启动 UIR03。
 
 ### 21.4 UIR03——交互辅助与错误呈现（未启动）
 

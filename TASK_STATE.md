@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR01 字段语义层与类型化输入控件
+Post-V1 新建核算 UI 重构：UIR02 排放源与活动数据卡片重构
 
 ## 状态
 
-UIR01_REWORK_READY_FOR_SOL_REVIEW
+UIR02_IN_PROGRESS
 
 ## 阶段验收状态
 
@@ -44,6 +44,8 @@ UIR01_REWORK_READY_FOR_SOL_REVIEW
 - G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
 - G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
 - G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现与测试提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
+- UIR01 正式验收结论：PASS（2026-09-21）；被验收 head 为 `97e2ba59f8ea4ffde8e111750caa0650f5000cf5`，PR #4 `feat: implement UIR01 field semantics and typed inputs` 已合并，merge commit 为 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3`。
+- UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1025,3 +1027,11 @@ Sol 验收发现原 NumericLineEdit 只覆盖了程序化 `setText()`，Qt 实�
 - `compileall`、`pip check`、Canonical 校验和三库从零重建均通过；Canonical 为 9 standards / 12 sources / 7 parameters / 7 factors。
 
 返工实现提交：`249e5f9c2849b06d8b40b064d35b6167d559407d`。当前停止等待 Sol 重新验收 UIR01；不得开始 UIR02。既有未跟踪 `docs/handoffs/` 保持原样且未纳入提交，`计算表/` 未修改。
+
+## UIR01 正式通过与 UIR02 启动状态（2026-09-21）
+
+**UIR02_IN_PROGRESS**
+
+UIR01 已由 Sol 正式验收 PASS，PR #4 已合并到 `main`；以上 UIR01 返工状态是历史实施记录，本节记录其后正式验收与合并事实，不改写历史内容。当前唯一实施阶段为 UIR02，基线为实时 `origin/main@09e9d5e66f30f46f4302f6b57f330c27c4a852a3`，分支为 `ui-refactor-uir02-source-cards`。
+
+当前仅同步治理文件，业务代码尚未开始修改。UIR02 只实现统一“排放源与活动数据”页面、十个排放源 Presentation 卡片、状态派生、业务分组、输入保持和指定回归；不得启动 UIR03。既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交；`计算表/` 保持未修改。
