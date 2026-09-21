@@ -45,7 +45,7 @@ UIR02_READY_FOR_SOL_REVIEW
 - G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
 - G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现与测试提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
 - UIR01 正式验收结论：PASS（2026-09-21）；被验收 head 为 `97e2ba59f8ea4ffde8e111750caa0650f5000cf5`，PR #4 `feat: implement UIR01 field semantics and typed inputs` 已合并，merge commit 为 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3`。
-- UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。实现与专项测试提交为 `ed752c0`，当前完成本地门禁并等待 PR Actions/Sol 验收。
+- UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。实现与专项测试提交为 `ed752c0`，PR #5 已创建；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 的 Actions run `35550650466` 已成功，当前等待最新报告提交后的检查与 Sol 验收。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1063,4 +1063,4 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 
 ### 阶段门禁
 
-本地实现与测试已完成，停止等待 PR 最新 head 的 GitHub Actions 和 Sol 独立验收。未执行 UIR03；既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+本地实现与测试已完成；PR #5 的代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 对应 Actions run `35550650466` 已成功通过 merge-ref full tests 与 exact PR-head standalone audit。报告同步提交后需以最新 head 的检查结果为准；随后停止等待 Sol 独立验收。未执行 UIR03；既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。

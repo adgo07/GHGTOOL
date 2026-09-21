@@ -1591,6 +1591,8 @@ Sol 独立 Qt 键盘测试发现，原控件依赖 QDoubleValidator 的 Intermed
 
 - 治理提交：`a90777a docs: define UIR02 source card governance`。
 - 实现与专项测试提交：`ed752c0 feat: add UIR02 source activity cards`。
-- 当前文档更新后将形成单独文档提交；既有未跟踪 `docs/handoffs/` 未处理、未提交。
-- 当前状态：`UIR02_READY_FOR_SOL_REVIEW`；推送分支、创建 PR、等待最新 head 的 GitHub Actions 后停止，等待 Sol 独立验收。
+- 文档与状态提交：本次报告同步提交；既有未跟踪 `docs/handoffs/` 未处理、未提交。
+- PR：[#5](https://github.com/adgo07/GHGTOOL/pull/5)，目标 `main`；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296`；Actions run `35550650466` 已成功。
+- GitHub Actions：`Windows / Python 3.12 / Merge-ref Full Tests` 成功；`Windows / Python 3.12 / PR-head Standalone Audit` 成功。后者的 exact-head delivery tests、standalone build、release audit、archive manifest、provenance 和 smoke 均成功。
+- 当前状态：`UIR02_READY_FOR_SOL_REVIEW`；本次报告同步提交后以最新 head 再确认 Actions，随后等待 Sol 独立验收。
 - 不得启动 UIR03；若验收发现需要改变 Domain 模型、计算规则、数据模型或阶段范围，应按 `AGENTS.md` 的 BLOCKED 格式上报。
