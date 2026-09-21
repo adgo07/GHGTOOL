@@ -1627,3 +1627,37 @@ Sol 对 PR #5 的独立验收判定 UIR02 FAIL：I01 卡片只依据电量、明
 - 当前分支：`ui-refactor-uir02-source-cards`；返工仍更新 PR #5，目标为 `main`。
 - UIR02 首次验收 HEAD `8c3a45267687f46200d4b1f1de3bcedda8a68598` 的 FAIL 问题已针对性修复；代码、测试和本报告待提交并推送后，以最新 PR head 重新运行 GitHub Actions。
 - 当前状态：`UIR02_REWORK_READY_FOR_SOL_REVIEW`；停止等待 Sol 重新验收，不启动 UIR03。
+
+## UIR02 I02 Domain 错误归属返工报告（2026-09-21）
+
+### 返工原因
+
+Sol 对 PR #5 最新 head `92595bb4` 的复验确认，I01 与过程源错误状态已修复，但 I02 购入热力/动力仍存在归属缺口：缺少焓值或压力时，既有 Domain 校验产生 `CAR-VAL-STEAM-STATE`，动态 `field_id=heat-1`，旧的 source ID/前缀匹配无法将该错误反馈给 I02 卡片，可能出现 Domain ERROR 与卡片“已完成”并存。
+
+### 实现
+
+- 在 `packages/ui/carbon_material_page.py` 增加 Presentation-only 的 Domain problem field → source card 归属映射。
+- 映射优先使用现有排放源 ID，并覆盖当前页面动态电力、购入/输出热力明细 ID 及稳定字段前缀；它只归属已有问题，不判断问题是否存在，也不复制 Domain 规则。
+- `_run_calculation()` 使用该归属结果更新卡片已知错误，因此 I02 缺少蒸汽状态时进入 `NEEDS_ATTENTION`，不会显示“已完成”。
+- 增加修正后重新检查路径：补充焓值，重新计算后 `CAR-VAL-STEAM-STATE` 消失，I02 卡片恢复 `COMPLETED`。
+- 在页面参数适配边界把 Canonical 的显示单位下标形式 `tCO₂/GJ` 转为 Domain 既有接受形式 `tCO2/GJ`；这是 Presentation 单位适配，未修改 Domain、Canonical、公式、SQLite schema 或 records 规则。
+
+### 测试与校验
+
+环境：Windows 工作区；`.venv` Python 3.12.14；PySide6 6.11.2；Qt 自动化测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；**10/10 通过**。
+- 指定相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**65/65 通过**。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**140/140 通过**，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 持久化：在新建隔离临时目录执行 `scripts\build_catalog.py` 与 `scripts\initialize_databases.py`，三库从零生成成功，临时目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；提交范围不包含测试数据库、临时文件、标准全文、敏感数据或 UIR03 产物。
+
+### Git 与门禁
+
+- 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
+- 修改范围仅为 `packages/ui/carbon_material_page.py`、`tests/test_uir02_source_cards.py`；治理文档在后续独立提交同步。
+- 既有未跟踪 `docs/handoffs/` 未处理、未提交。
+- 当前状态：UIR02 返工完成，待推送同一 PR #5 并等待新 head 的 GitHub Actions，随后停止等待 Sol 重新验收；不得启动 UIR03。

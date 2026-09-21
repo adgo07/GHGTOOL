@@ -1094,3 +1094,34 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 
 - 当前状态：返工完成，等待 Sol 重新验收 UIR02。
 - PR #5 保持以 `main` 为目标，修复将同步到同一 PR；不得合并 PR，不得启动 UIR03。
+
+## UIR02 I02 Domain 错误归属返工状态（2026-09-21）
+
+**UIR02_REWORK_READY_FOR_SOL_REVIEW**
+
+本轮继续只返工 UIR02，针对 Sol 在 PR #5 最新 head `92595bb4` 发现的 I02 阻断问题完成修复；未创建、未实施 UIR03。
+
+### 问题与修复
+
+- 原问题：购入热力/动力 I02 在有热力数量和因子、但缺少焓值或压力时，Domain 已产生 `CAR-VAL-STEAM-STATE`，其动态 `field_id` 为 `heat-1`，旧的仅按 source ID 前缀匹配逻辑无法把错误归属到 I02 卡片，卡片可能错误显示“已完成”。
+- 修复：在 Presentation 层增加 Domain problem field 到 source card 的归属映射，支持现有 source ID、动态电力/热力/输出明细 ID 及稳定字段前缀；卡片只消费既有 Domain 错误，不复制或改写 Domain 校验规则。
+- 增加 I02 回归：缺少蒸汽状态时必须显示“需要处理”且不得显示“已完成”；补充焓值后重新计算，错误消失并恢复“已完成”。
+- 页面参数边界增加显示单位到 Domain 单位的 Presentation 转换（例如 `tCO₂/GJ` 到 Domain 使用的 `tCO2/GJ`），未修改 Canonical、Domain 公式、数据模型或数据库 schema。
+
+### 验证
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；10/10 通过。
+- UIR02 与指定回归：UIR02、UIR01、G06 页面、G06 Domain、G07 records、G08 delivery；65/65 通过。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；140/140 通过，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：独立临时目录成功生成 `catalog.sqlite`、`user.sqlite`、`records.sqlite`，完成后已清理。
+- `git diff --check`：通过；`计算表/` 无差异；未加入测试数据库、临时文件、标准全文或敏感数据。
+
+### 阶段门禁
+
+- 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
+- 当前工作仍在 `ui-refactor-uir02-source-cards` 分支，后续同步到 PR #5；PR 不合并。
+- 既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+- 当前状态：返工完成，等待 GitHub 新 head 检查和 Sol 重新验收 UIR02；不得启动 UIR03。
