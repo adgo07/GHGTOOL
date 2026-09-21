@@ -6,7 +6,7 @@ Post-V1 新建核算 UI 重构：UIR02 排放源与活动数据卡片重构
 
 ## 状态
 
-UIR02_REWORK_READY_FOR_SOL_REVIEW
+UIR02_PASS
 
 ## 阶段验收状态
 
@@ -47,6 +47,8 @@ UIR02_REWORK_READY_FOR_SOL_REVIEW
 - UIR01 正式验收结论：PASS（2026-09-21）；被验收 head 为 `97e2ba59f8ea4ffde8e111750caa0650f5000cf5`，PR #4 `feat: implement UIR01 field semantics and typed inputs` 已合并，merge commit 为 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3`。
 - UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。实现与专项测试提交为 `ed752c0`，PR #5 已创建；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 的 Actions run `35550650466` 已成功，当前等待最新报告提交后的检查与 Sol 验收。
 - UIR02 首次正式验收结论：FAIL（2026-09-21）；被验收 HEAD 为 `8c3a45267687f46200d4b1f1de3bcedda8a68598`。卡片“已完成”未消费已有电力解析/Domain 校验结果，缺少 `NEEDS_ATTENTION` 门禁和合法成功 Domain parity；不允许进入 UIR03。
+
+- UIR02 正式重新验收结论：PASS（2026-09-21）；被验收 PR head 为 `5e2d793f099f9be5737ec0ca22008300b4ad10d4`，PR #5 已由用户合并，merge commit 为 `07ddf674b1095cb3e2651f9c5fd6e8089f4211dd`。UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1126,3 +1128,20 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 - 既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
 - GitHub Actions run `35581128076` 已针对该 head 完成：merge-ref full tests 与 PR-head standalone audit 均为 success。
 - 当前状态：返工完成，停止等待 Sol 重新验收 UIR02；不得启动 UIR03。
+
+
+## UIR02 Sol 正式重新验收结论（2026-09-21）
+
+**PASS**
+
+- 被验收候选 SHA：`5e2d793f099f9be5737ec0ca22008300b4ad10d4`。
+- GitHub PR：[#5 feat: implement UIR02 source activity cards](https://github.com/adgo07/GHGTOOL/pull/5)；用户已使用普通合并方式合并，merge commit 为 `07ddf674b1095cb3e2651f9c5fd6e8089f4211dd`。
+- 最新候选对应 GitHub Actions run `35581551238` 已完成且成功；Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均通过。
+- UIR02 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；10/10 通过。
+- 指定回归：UIR02、UIR01、G06 页面、G06 Domain、G07 records、G08 delivery；65/65 通过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；140/140 通过，0 失败，0 错误，0 跳过。
+- `compileall`、`pip check`、Canonical 校验和三库从零重建均通过；Canonical 为 9 standards / 12 sources / 7 parameters / 7 factors。
+- 上次剩余的 I02 阻断已关闭：购入热力/动力的 Domain 错误可正确归属到 I02 卡片，错误存在时显示“需要处理”，修正后恢复“已完成”。
+- 未修改 Domain、计算公式、Canonical、SQLite schema、记录语义或用户参考文件；未实施 UIR03。
+
+UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
