@@ -1675,3 +1675,133 @@ Sol 对 PR #5 最新 head `92595bb4` 的复验确认，I01 与过程源错误状
 - 未发现 UIR03 提前实施；未修改 Domain、计算公式、Canonical、数据库 schema、历史记录语义或 `计算表/`。
 
 结论：UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
+
+## UIR03 实施报告（2026-09-21）
+
+### 阶段
+
+UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进入 `main`；本轮仅实施 UIR03，不启动 UIR04。
+
+### 本轮完成
+
+- 在现有 UIR02 排放源卡片内将煅烧、焙烧/炭化、石墨化的普通录入改为“数据口径：收到基”摘要；默认隐藏高级口径、归一化和字段性质控件。
+- 非收到基或质量/成分基准不一致时自动条件展开“数据口径与换算”，明确展示两种口径、不能直接计算的原因以及数据来源、换算依据和报告/台账定位要求；不静默换算。
+- 固定碳与挥发分字段性质按已有字段定义自动生成，Qt 返回的枚举值在 Presentation 层显式转换后映射到原 Domain enum；Domain 默认值和错误校验语义未改动。
+- 删除普通主流程独立的“05 参数与排放因子”卡片，将参数摘要放回排放源与活动数据区；电力/热力推荐参数只读展示值、单位和业务状态，主动更改时才显示高级选择。
+- 增加默认关闭的“显示专业详情”开关。专业详情展示标准符号、标准条款、参数来源、参数/因子 ID、基准转换信息和选择理由；普通模式不展示内部 ID、变量名、resolver、candidate 或 G05 等开发术语。
+- 更新 G06/UIR02 受影响展示断言，新增 `tests/test_uir03_advanced_details.py`，覆盖默认隐藏、干基/其他有证基准、口径阻断、有效换算、自动字段性质、专业详情、电力/热力摘要和 Domain parity。
+
+### 未完成
+
+- 无已知 UIR03 实现缺口；GitHub Actions 和 Sol 独立验收尚未完成。
+- UIR04 未创建、未实施。
+
+### 与 HANDOFF 的偏差
+
+- 无。未修改 Domain、Canonical、公式、SQLite schema、数据库迁移、records 规则、标准全文或 `计算表/`。
+
+### 修改文件
+
+- `HANDOFF.md`
+- `TASK_STATE.md`
+- `packages/ui/carbon_material_page.py`
+- `packages/ui/field_specs.py`
+- `tests/test_g06_page.py`
+- `tests/test_uir02_source_cards.py`
+- `tests/test_uir03_advanced_details.py`
+
+### 数据与算法说明
+
+- 物料基准、成分基准、归一化基准及固定碳/挥发分 Domain 字段仍由 `CarbonMaterialInput` 传递；UI 只对默认 UNKNOWN 控件值作 Presentation 级默认映射，显式错误值仍交由原 Domain 校验。
+- 电力和热力仍调用原 `ParameterResolver`；页面仅把既有解析结果转换为普通摘要或专业只读详情，没有新增参数、因子或计算路径。
+- 生成参数快照、记录、历史快照和删除审计的行为保持原实现。
+
+### 测试
+
+#### L1
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details -v`
+
+结果：**7/7 通过**，0 失败、0 错误、0 跳过。
+
+#### L2
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`
+
+结果：**62/62 通过**，0 失败、0 错误、0 跳过。
+
+#### L3
+
+命令：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`
+
+结果：**147/147 通过**，0 失败、0 错误、0 跳过。
+
+其他校验：
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`：通过。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir03-db-check`：catalog.sqlite、user.sqlite、records.sqlite 从零生成成功；输出位于 `.gitignore` 忽略目录。
+- `git diff --check`：通过。
+- `计算表/`：无差异；既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### Git
+
+- 分支：`ui-refactor-uir03-advanced-details`。
+- 基线：`origin/main@011df173b33a81c019a19390ac6bbd884fbbccbf`。
+- 实现与测试提交：`0dc19d2` `feat: implement UIR03 advanced details`。
+- 治理文档与阶段状态已提交到当前 UIR03 分支；既有 `docs/handoffs/` 保持未跟踪。
+- PR：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)，目标为 `main`；阶段分支已推送，最新 head 与 PR checks 已核对。
+
+### 已知问题
+
+- GitHub Actions 已针对 PR 最新 head 完成：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均 success；当前仅等待 Sol 独立验收。
+
+### 建议 Sol 重点复核
+
+- 普通模式是否仅显示业务摘要，异常口径是否明确阻断而不猜算。
+- 专业详情开关打开/关闭时，参数来源、标准条款和稳定 ID 是否只在专业区域出现。
+- UIR01/UIR02 输入保持、电力多明细、热力参数规则和历史记录行为是否保持不变。
+
+## UIR03 小修实施报告（2026-09-21）
+
+### 范围
+
+本轮针对 Sol 对 PR #7 的 **PASS WITH MINOR FIXES** 结论，仅修正两项 Presentation 缺口，不启动 UIR04：
+
+1. P01/P02/P03 卡片普通业务摘要补齐标准默认参数实际值、单位/比例和“标准默认”状态；参数 ID、条款和选择理由继续只在专业详情中显示。
+2. 普通数据质量检查将 Domain 校验消息转换为业务化中文；原始消息、校验代码和内部定位只在“显示专业详情”打开时显示。
+
+未修改 Domain、Calculator、ParameterResolver、Canonical、公式、SQLite schema、records 生命周期、数据库迁移、标准原文、`计算表/` 或 `docs/handoffs/`。
+
+### 修改文件
+
+- `packages/ui/carbon_material_page.py`
+- `tests/test_uir03_advanced_details.py`
+- `tests/test_g06_page.py`
+- `tests/test_uir02_source_cards.py`
+- 本报告与 `TASK_STATE.md`
+
+### 测试与校验
+
+环境：Windows；项目 `.venv` Python 3.12.14；PySide6 6.11.2；`QT_QPA_PLATFORM=offscreen`。
+
+- UIR03 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details -v`；**10/10 通过**。
+- 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**65/65 通过**。
+- UIR02/G06 页面受影响回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_g06_page tests.test_uir02_source_cards -v`；**31/31 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**150/150 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir03-rework-check`；三库成功生成，隔离目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；无测试数据库、临时文件、标准全文或敏感数据进入提交。
+
+第一次使用系统 Python 3.11 运行 Qt 测试时因该解释器未安装 PySide6 导入失败；未计入正式测试结果，随后使用项目 `.venv` 重新执行并全部通过。
+
+### Git 与验收门禁
+
+- 实现与测试提交：`cc14d0d fix: complete UIR03 presentation details`。
+- 分支：`ui-refactor-uir03-advanced-details`；PR #7 继续以 `main` 为目标，未合并。
+- 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；随后治理文档提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
+- GitHub Actions run `35598601953`：成功验证实现与测试 head；随后 run `35599116099`：成功验证治理文档提交后的 PR head。两个 run 的 Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均完成且成功。
+- 当前状态：等待 Sol 重新验收 UIR03；禁止启动 UIR04。

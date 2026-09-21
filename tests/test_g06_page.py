@@ -143,11 +143,17 @@ class G06PageTests(unittest.TestCase):
             "electricity_nonfossil_zero_gbt32151_34_2024",
         )
         for row, factor_id in zip(self.page._electricity_rows, expected_factor_ids):
-            self.assertIn("已采用", row.parameter_status.text())
-            self.assertIn(factor_id, row.parameter_factor.text())
-            self.assertIn("来源", row.parameter_source.text())
-            self.assertIn("审核状态", row.parameter_source.text())
+            self.assertIn("已确定", row.parameter_status.text())
+            self.assertNotIn(factor_id, row.parameter_factor.text())
+            self.assertIn("来源说明", row.parameter_source.text())
+            self.assertNotIn("审核状态", row.parameter_source.text())
             self.assertTrue(row.parameter_reason.text().strip())
+            self.assertFalse(row.professional_details.isVisible())
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        for row, factor_id in zip(self.page._electricity_rows, expected_factor_ids):
+            self.assertIn(factor_id, row.professional_details.text())
+            self.assertIn("审核状态", row.professional_details.text())
             for object_name in (
                 row.parameter_status.objectName(),
                 row.parameter_factor.objectName(),
@@ -255,8 +261,12 @@ class G06PageTests(unittest.TestCase):
             self.page.validation_list.item(index).text()
             for index in range(self.page.validation_list.count())
         )
-        self.assertIn("GEN-VAL-REQUIRED-MISSING", validation_text)
+        self.assertIn("企业名称为必填项", validation_text)
+        self.assertNotIn("GEN-VAL-", validation_text)
         self.assertNotIn("未填写企业", validation_text)
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("GEN-VAL-REQUIRED-MISSING", self.page.validation_professional_details.text())
         self.assertEqual(self.page.calculator.record_repository.list_all(), ())
 
     def test_heat_parameter_selector_displays_source_review_and_selection_reason(self) -> None:
@@ -269,9 +279,15 @@ class G06PageTests(unittest.TestCase):
         self.assertIsNotNone(selector)
         self.assertGreater(selector.count(), 0)
         self.assertIn("heat_default_2025", [selector.itemData(index) for index in range(selector.count())])
-        self.assertIn("来源", metadata.text())
-        self.assertIn("审核", metadata.text())
+        self.assertIn("推荐热力因子", metadata.text())
+        self.assertNotIn("heat_default_2025", metadata.text())
+        self.assertNotIn("来源", metadata.text())
         self.assertTrue(reason.text().strip())
+        self.assertFalse(self.page.heat_factor_professional_details.isVisible())
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("heat_default_2025", self.page.heat_factor_professional_details.text())
+        self.assertIn("来源", self.page.heat_factor_professional_details.text())
         self.page._fields["heat_amount"].setText("1000")
         self.page._fields["heat_enthalpy"].setText("2800")
         value = self.page._input()
@@ -326,7 +342,11 @@ class G06PageTests(unittest.TestCase):
             self.page.validation_list.item(index).text()
             for index in range(self.page.validation_list.count())
         )
-        self.assertIn("CAR-VAL-BOUNDARY-UNCONFIRMED", validation_text)
+        self.assertIn("核算边界尚未确认", validation_text)
+        self.assertNotIn("CAR-VAL-", validation_text)
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("CAR-VAL-BOUNDARY-UNCONFIRMED", self.page.validation_professional_details.text())
         self.assertEqual(len(calculator_repository.list_all()), 1)
 
 
