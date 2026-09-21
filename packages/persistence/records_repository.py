@@ -217,7 +217,7 @@ class SQLiteRecordRepository:
         self,
         path: str | Path,
         *,
-        app_version: str = "1.0.0",
+        app_version: str = "1.1.0",
         data_version: str = "not_applicable",
     ) -> None:
         self.path = initialize_database(

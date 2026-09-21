@@ -121,4 +121,25 @@ def application_stylesheet() -> str:
         QLineEdit#reservedInput, QComboBox#reservedInput {{ min-height: 36px; border: 1px solid {BORDER}; border-radius: 6px; padding: 0 10px; background: #FFFFFF; }}
         QLineEdit#reservedInput:disabled, QComboBox#reservedInput:disabled, QPushButton#reservedControl:disabled {{ color: #98A2B3; background: #F2F4F7; border-color: #E4E7EC; }}
         QPushButton#reservedControl {{ min-height: 36px; border: 1px solid {BORDER}; border-radius: 6px; padding: 0 16px; color: {SECONDARY_TEXT}; background: #FFFFFF; }}
+        QFrame#calculationStatusBar {{
+            background: {SURFACE_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;
+        }}
+        QLabel#confirmedSourceCount, QLabel#calculationErrorCount,
+        QLabel#calculationReminderCount, QLabel#calculationStatusHint {{
+            color: {SECONDARY_TEXT}; font-size: 13px;
+        }}
+        QLabel#calculationStatus {{
+            color: {PRIMARY_TEXT}; font-size: 14px; font-weight: 600;
+        }}
+        QPushButton#calculateAccountingButton {{
+            min-height: 38px; border: 1px solid {PRIMARY_BRAND}; border-radius: 6px;
+            padding: 0 18px; color: #FFFFFF; background: {PRIMARY_BRAND}; font-weight: 600;
+        }}
+        QPushButton#calculateAccountingButton:hover {{
+            background: #076C9F; border-color: #076C9F;
+        }}
+        QPushButton#viewBreakdownButton, QPushButton#viewProcessButton {{
+            min-height: 32px; border: 1px solid {BORDER}; border-radius: 6px;
+            padding: 0 12px; color: {PRIMARY_BRAND}; background: {CARD_BACKGROUND};
+        }}
     """

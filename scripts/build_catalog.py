@@ -18,7 +18,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build Qingzhou catalog.sqlite")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE_PATH)
     parser.add_argument("--output", type=Path, default=Path("build/databases/catalog.sqlite"))
-    parser.add_argument("--app-version", default="1.0.0")
+    parser.add_argument("--app-version", default="1.1.0")
     args = parser.parse_args()
     output = build_catalog_database(args.source, args.output, app_version=args.app_version)
     print(f"built: {output}")

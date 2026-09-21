@@ -19,7 +19,7 @@ class AppConfig:
     """Immutable configuration needed by the desktop shell and catalog view."""
 
     app_name: str = "青舟温室气体排放核算软件"
-    app_version: str = "1.0.0"
+    app_version: str = "1.1.0"
     log_directory: Path | None = None
     catalog_database: Path | None = None
     records_database: Path | None = None
