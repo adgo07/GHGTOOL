@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR02 排放源与活动数据卡片重构
+Post-V1 新建核算 UI 重构：UIR03 数据口径简化与专业详情
 
 ## 状态
 
-UIR02_PASS
+UIR03_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1145,3 +1145,37 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 - 未修改 Domain、计算公式、Canonical、SQLite schema、记录语义或用户参考文件；未实施 UIR03。
 
 UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
+
+## UIR03 实施完成状态（2026-09-21）
+
+**UIR03_READY_FOR_SOL_REVIEW**
+
+UIR01、UIR02 已由 Sol 正式验收 PASS，且均已进入 `main`。本轮从实时 `origin/main@011df173b33a81c019a19390ac6bbd884fbbccbf` 创建独立分支 `ui-refactor-uir03-advanced-details`，仅实施 UIR03；未创建、未实施 UIR04。
+
+### 本轮完成
+
+- 普通模式对煅烧、焙烧/炭化、石墨化只显示收到基业务摘要；默认隐藏数据口径与换算编辑器、归一化基准和字段性质选择。
+- 非收到基或质量/成分基准不一致时条件展开，并明确指出实际口径、不能直接计算的原因及所需数据来源、换算依据和报告/台账定位；不静默猜算。
+- 固定碳/挥发分字段性质由字段定义自动映射，Domain 仍保留原枚举与校验能力。
+- 移除普通主流程的独立“05 参数与排放因子”，参数摘要回到排放源卡片；电力和热力推荐值使用只读业务摘要，高级选择和审计内容置于专业详情。
+- 增加默认关闭的“显示专业详情”开关；打开后展示标准条款、符号、来源、参数/因子 ID、基准转换和选择理由等只读信息，普通模式不泄露内部 ID、resolver、candidate、G05 等开发术语。
+- 未修改 Domain、Canonical、公式、SQLite schema、数据库迁移、records 语义、参数解析规则或 `计算表/`；PR #2 输入保持行为继续通过回归。
+
+### 测试与校验
+
+环境：Windows；`.venv` Python 3.12.14；PySide6 6.11.2；Qt 测试平台 `offscreen`。
+
+- UIR03 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details -v`；**7/7 通过**。
+- 指定回归：`.venv\Scripts\python.exe -m unittest tests.test_uir03_advanced_details tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**62/62 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**147/147 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir03-db-check`；catalog.sqlite、user.sqlite、records.sqlite 从零生成成功，输出位于忽略目录。
+- `git diff --check`：通过；`计算表/` 无差异；未将测试数据库、临时文件、标准全文、敏感数据或 `docs/handoffs/` 纳入提交。
+
+### Git 与门禁
+
+- 实现与测试提交：`0dc19d2` `feat: implement UIR03 advanced details`。
+- 当前治理文档待独立提交；分支目标为 `main`，推送和 UIR03 PR 创建在文档提交后进行。
+- 当前停止等待 GitHub Actions 与 Sol 验收；不得启动 UIR04。既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。

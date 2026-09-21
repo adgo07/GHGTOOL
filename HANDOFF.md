@@ -736,9 +736,38 @@ G00～G08 已完成 Windows V1 阶段门禁。以下是 V1 完成后的“新建
 - 完成前必须执行 UIR02 定向、相关回归、`unittest discover -s tests -t . -v`、compileall、pip check、Canonical 校验、git diff --check 和 `计算表/` 保护检查，并确认无测试数据库、临时文件、标准全文或敏感数据进入提交。
 - UIR02 完成后更新 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md`，提交、推送独立分支、创建目标为 main 的 PR，等待最新 head 的 merge-ref full tests 与 exact PR-head standalone audit；停止等待 Sol 验收，不得启动 UIR03。
 
-### 21.4 UIR03——交互辅助与错误呈现（未启动）
+### 21.4 UIR03——数据口径简化与专业详情
 
-仅在 UIR02 经 Sol 验收通过后启动。不得在 UIR01 中改变 Domain 校验规则、记录生命周期或引入草稿/项目保存机制。
+#### Goal
+
+UIR02 经 Sol 正式验收通过后，将煅烧、焙烧/炭化、石墨化以及电力、热力参数的开发/Domain 术语从普通录入路径移出，形成“正常情况自动处理，异常情况条件展开，审核信息进入专业详情”的 Presentation 体验。只改变页面展示和输入辅助，不改变 Domain、公式、参数解析、Canonical、SQLite schema 或 records 行为。
+
+#### MUST
+
+1. 煅烧、焙烧/炭化、石墨化普通模式只显示业务化的“数据口径：收到基（修改）”摘要；物料基准、成分性质基准、归一化基准、固定碳/挥发分字段性质、数据来源记录、换算依据和定位信息只在异常口径或用户主动修改时条件展开。
+2. `mass_basis`、`composition_basis` 保留现有 Domain 能力，但使用“质量数据基准”“成分含量基准”等业务名称；`normalized_basis` 不作为普通用户主动选择项，由页面按既有标准规则内部保持为收到基目标。
+3. 固定碳和挥发分字段性质由字段定义自动确定。不得让普通用户对“固定碳含量”再次选择它是否为固定碳；不得合并两个字段的性质校验。
+4. 非收到基或互不一致时必须说明两项数据的实际口径、为什么不能直接计算以及需要提供的数据来源记录、换算依据和报告/台账编号或来源说明；不得静默换算、猜算或改写 Domain 规则。
+5. 普通界面不使用孤立的“证据”技术字段；相关信息使用“数据来源”“换算依据”“报告/台账编号或来源说明”等业务语言。
+6. 从普通主流程移除独立的“05 参数与排放因子”区；参数状态回到所属排放源卡片内部。自动推荐参数只读展示值、单位和标准默认/官方发布等简要状态；只有用户主动更改时才展开高级选择。
+7. 增加统一且默认关闭的“显示专业详情”开关。打开后可查看标准符号、标准条款、参数来源、参数/因子 ID、基准转换详情和选择理由；专业详情不得改变普通输入路径。
+8. 电力和热力遵循同样的普通摘要/专业详情分层，普通界面不得显示 G05、resolver、candidate 或内部 ID 等开发术语。
+9. 保持现有 `CarbonMaterialInput`、`CarbonMaterialCalculator`、Decimal 精度、GB/T 32151.34 公式、`ParameterResolver`、参数/因子选择规则、成功记录、历史快照、删除审计和 PR #2 运行期间输入保持行为不变。
+10. 不得把标准全文写入软件，不得修改、删除或上传 `计算表/`，不得提前重构 UIR04 的结果区、质量区、最终错误跳转或 V1.1.0 收口。
+
+#### OUT OF SCOPE
+
+- Domain 校验规则、计算公式、Canonical 数据、SQLite schema、数据库迁移、records 记录生命周期和参数解析算法；
+- Excel 导入、报告/导出、其他七项标准、企业档案、草稿保存、跨启动恢复、云服务和 G09；
+- 标准全文 PDF/Word、用户参考文件以及 UIR04 的结果/质量区最终重构。
+
+#### 测试与阶段门禁
+
+- 必须覆盖收到基默认路径隐藏高级字段、干基/其他有证基准条件展开、口径不一致明确阻断说明、有效换算依据映射到 Domain、固定碳/挥发分性质自动生成；
+- 必须覆盖专业详情关闭时内部 ID/变量/开发术语不可见，打开时审计信息可查；电力/热力推荐值及高级选择继续使用现有 `ParameterResolver`；
+- 必须覆盖同一合法输入与重构前等价的 Domain Input、计算结果和参数快照稳定字段，并回归 G06、G07、G08；不得修改旧测试期望值掩盖行为变化；
+- 完成前执行 UIR03 定向测试、`tests.test_uir01_field_semantics`、`tests.test_g06_page`、`tests.test_g06_carbon_material`、`tests.test_g07_records`、`tests.test_g08_delivery`、全量 `unittest discover`、compileall、pip check、Canonical 校验、git diff --check 和 `计算表/` 保护检查；
+- 更新 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md`，提交并推送独立 UIR03 分支，创建目标为 main 的 PR，等待最新 head 的 GitHub Actions；完成后停止等待 Sol 验收，不得启动 UIR04。
 
 ### 21.5 UIR04——可用性收口与回归（未启动）
 
