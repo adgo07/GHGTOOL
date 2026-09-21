@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR03 数据口径简化与专业详情
+Post-V1 新建核算 UI 重构：UIR04 可用性收口与回归（Sol 小修返工）
 
 ## 状态
 
-UIR03_PASS
+UIR04_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1274,3 +1274,30 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 ### Git / PR 门禁
 
 当前分支为 `ui-refactor-uir04-finalize`，基线为 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e`。实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`），治理提交为 `498106e`（`docs: record UIR04 finalization`）。PR #10 已创建并以 `main` 为目标；`498106e` 对应 run `35610148543`，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均成功。随后仅为补齐本报告状态产生文档提交 `e212878`，其对应 run `35610796299` 的两个检查也均成功；没有新增业务实现。当前停止等待 Sol 最终验收，不启动 UIR05。
+
+## UIR04 Sol 小修返工完成状态（2026-09-21）
+
+**UIR04_REWORK_READY_FOR_SOL_REVIEW**
+
+针对 Sol 的 PASS WITH MINOR FIXES 意见，本轮仅完成以下四项收口：
+
+- 结果区、直接/间接排放、分项结果和专业计算轨迹改为 Presentation 层 Decimal 两位小数显示（`ROUND_HALF_UP`）；Domain 计算值、记录快照和审计数据继续保留未舍入高精度。
+- `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md` 顶部当前状态已同步为 UIR04 返工完成，历史阶段记录保留不重写。
+- 增加 Windows 常见缩放 125% / 150%（`QT_SCALE_FACTOR=1.25/1.5`）和 1366×768 无页面横向滚动验证，并纳入 PR 两个 Windows CI job。
+- 将最新 head 要求的 compileall、pip check、三库从零初始化及 GUI 场景 A～E 加入 PR 两个 Windows CI job；本地已在当前代码树复跑。
+
+### 本轮验证
+
+- UIR04 定向：`9/9` 通过。
+- UIR04 + G08：`18/18` 通过。
+- UIR01～UIR04、G06/G07/G08 相关回归：`84/84` 通过。
+- 项目全量：`159/159` 通过，0 失败、0 错误、0 跳过。
+- `compileall`、`pip check`、Canonical 校验（9 standards / 12 sources / 7 parameters / 7 factors）通过。
+- 三库从零初始化通过；GUI 场景 A～E 全部通过；125% / 150% 缩放验证 `2/2` 通过。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 及用户未跟踪架构文档未处理、未提交。
+
+### Git 门禁
+
+- 实现、测试和 CI 提交：`a63f0ad fix: close UIR04 presentation and verification gaps`。
+- 治理文档提交：本节文档提交后记录，最终 SHA 以 Git HEAD 和 PR 最新 head 核对。
+- PR #10 继续以 `main` 为目标，未合并；本轮不启动 UIR05/G09。
