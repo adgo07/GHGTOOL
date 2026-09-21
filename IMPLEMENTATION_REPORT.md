@@ -1751,10 +1751,11 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 基线：`origin/main@011df173b33a81c019a19390ac6bbd884fbbccbf`。
 - 实现与测试提交：`0dc19d2` `feat: implement UIR03 advanced details`。
 - 治理文档与阶段状态已提交到当前 UIR03 分支；既有 `docs/handoffs/` 保持未跟踪。
+- PR：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)，目标为 `main`；阶段分支已推送，最新 head 与 PR checks 已核对。
 
 ### 已知问题
 
-- GitHub Actions run `35591626672` 已针对当前 head 完成：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均 success；当前仅等待 Sol 独立验收。
+- GitHub Actions 已针对 PR 最新 head 完成：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均 success；当前仅等待 Sol 独立验收。
 
 ### 建议 Sol 重点复核
 

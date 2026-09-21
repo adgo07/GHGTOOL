@@ -1177,6 +1177,6 @@ UIR01、UIR02 已由 Sol 正式验收 PASS，且均已进入 `main`。本轮从�
 ### Git 与门禁
 
 - 实现与测试提交：`0dc19d2` `feat: implement UIR03 advanced details`。
-- PR #7：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)，目标为 `main`；当前 head 为 `3a6081fc1775c9cc5a347089e52e0c7b3c3fa9ef`。
-- GitHub Actions run `35591626672` 已绑定该 head 并完成成功：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均为 success。
+- PR #7：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)，目标为 `main`；阶段分支已推送，PR checks 以最新 head 为准。
+- GitHub Actions 已对 PR 最新提交完成成功检查：Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均为 success。
 - 当前停止等待 Sol 独立验收；不得启动 UIR04。既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
