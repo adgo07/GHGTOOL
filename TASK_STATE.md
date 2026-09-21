@@ -1298,6 +1298,12 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 ### Git 门禁
 
-- 实现、测试和 CI 提交：`a63f0ad fix: close UIR04 presentation and verification gaps`。
+- 实现、测试和 CI 提交：`a63f0ad fix: close UIR04 presentation and verification gaps`；Windows GUI 验收编码修复提交：`1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`。
 - 治理文档提交：本节文档提交后记录，最终 SHA 以 Git HEAD 和 PR 最新 head 核对。
 - PR #10 继续以 `main` 为目标，未合并；本轮不启动 UIR05/G09。
+
+## UIR04 CI 编码修复状态（2026-09-21）
+
+第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印脚本的中文观察结果，触发 `UnicodeEncodeError`，不是业务场景失败。已在 `scripts/uir04_manual_gui_acceptance.py` 的验收脚本入口显式将 stdout/stderr 配置为 UTF-8（无法表示的字符替换），不改变场景操作、断言或业务代码。
+
+本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，GUI 场景 A～E 全部通过；修复提交为 `1b658a1`。该提交随治理文档一起推送后，必须以新的 PR head 重新等待两个 Windows CI job。

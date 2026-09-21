@@ -1902,4 +1902,10 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 
 ### Git / PR 门禁
 
-实现、测试和 CI 提交为 `a63f0ad fix: close UIR04 presentation and verification gaps`；治理文档单独提交。继续更新 PR #10（目标 `main`），不直接推送或合并 `main`。最终 head、Actions run、standalone artifact 和检查状态在本轮推送完成后核对并在最终回复报告。
+实现、测试和 CI 提交为 `a63f0ad fix: close UIR04 presentation and verification gaps`；Windows GUI 验收编码修复提交为 `1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`；治理文档单独提交。继续更新 PR #10（目标 `main`），不直接推送或合并 `main`。最终 head、Actions run、standalone artifact 和检查状态在本轮推送完成后核对并在最终回复报告。
+
+## UIR04 Windows GUI 验收编码修复（2026-09-21）
+
+第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印中文观察结果，触发 `UnicodeEncodeError`，不是业务场景或结果校验失败。已在 `scripts/uir04_manual_gui_acceptance.py` 入口显式将 stdout/stderr 配置为 UTF-8，并保留替代字符保护，不改变场景操作、断言或业务代码。
+
+本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，场景 A～E 全部通过。修复提交：`1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`。修复后需以新的 PR head 重新确认 Windows CI 两个 job。
