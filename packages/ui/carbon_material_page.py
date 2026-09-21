@@ -118,6 +118,12 @@ def _review_status_label(status: ReviewStatus) -> str:
         ReviewStatus.DEPRECATED: "已弃用",
     }[status]
 
+
+def _domain_unit(unit: str) -> str:
+    """Translate display-safe Unicode subscripts to the Domain unit spelling."""
+
+    return unit.replace("₂", "2").replace("³", "3").replace("⁴", "4")
+
 class _ElectricityRow(QWidget):
     def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -835,6 +841,67 @@ class CarbonMaterialAccountingPage(BasePage):
     def _source_states(self) -> tuple[EmissionSourceState, ...]:
         return tuple(EmissionSourceState(source_id, _enum(combo.currentData(), EmissionSourceStatus)) for source_id, combo in self._source_statuses.items())
 
+    def _source_id_for_problem_field(self, field_id: str | None) -> str | None:
+        """Map an existing Domain problem field to a Presentation source card.
+
+        This is ownership metadata for the UI only.  It does not decide whether
+        a problem exists or reproduce any Domain validation rule.  Dynamic line
+        IDs are resolved from the current page input so errors such as
+        ``heat-1`` remain attributable to the correct card.
+        """
+
+        if not field_id:
+            return None
+        source_ids = tuple(self._source_cards)
+        for source_id in source_ids:
+            if field_id == source_id or field_id.startswith(f"{source_id}."):
+                return source_id
+
+        dynamic_field_owners: dict[str, str] = {}
+        for row in self._electricity_rows:
+            detail_id = row.detail_id.text().strip()
+            if detail_id:
+                dynamic_field_owners[detail_id] = "CAR-SRC-PURCHASED-ELECTRICITY-001"
+        for field_key, source_id, default_id in (
+            ("heat_id", "CAR-SRC-PURCHASED-HEAT-001", "heat-1"),
+            ("exported_electricity_id", "CAR-SRC-EXPORTED-ELECTRICITY-001", "exported-electricity-1"),
+            ("exported_heat_id", "CAR-SRC-EXPORTED-HEAT-001", "exported-heat-1"),
+        ):
+            if self._field_has_value(f"{field_key}") or self._field_has_value(f"{field_key.replace('_id', '_amount')}"):
+                dynamic_field_owners[_value(self._fields[field_key]) or default_id] = source_id
+
+        for dynamic_id, source_id in dynamic_field_owners.items():
+            if field_id == dynamic_id or field_id.startswith(f"{dynamic_id}."):
+                return source_id
+            if source_id in {
+                "CAR-SRC-PURCHASED-HEAT-001",
+                "CAR-SRC-EXPORTED-HEAT-001",
+            } and field_id.startswith(f"CAR-FLD-HEAT-{dynamic_id}-"):
+                return source_id
+
+        field_prefix_owners = (
+            ("CAR-FLD-F01-", "CAR-SRC-FUEL-001"),
+            ("CAR-FLD-P01-", "CAR-SRC-CALCINATION-001"),
+            ("CAR-FLD-P02-", "CAR-SRC-BAKING-001"),
+            ("CAR-FLD-P03-", "CAR-SRC-GRAPHITIZATION-001"),
+            ("CAR-FLD-P04A-", "CAR-SRC-FUME-INCINERATION-001"),
+            ("CAR-FLD-P04B-", "CAR-SRC-FGD-001"),
+            ("CAR-FLD-PWR-PURCHASED-", "CAR-SRC-PURCHASED-ELECTRICITY-001"),
+            ("CAR-FLD-POWER-EXPORTED-", "CAR-SRC-EXPORTED-ELECTRICITY-001"),
+            ("CAR-FLD-HEAT-PURCHASED-", "CAR-SRC-PURCHASED-HEAT-001"),
+            ("CAR-FLD-HEAT-EXPORTED-", "CAR-SRC-EXPORTED-HEAT-001"),
+        )
+        return next((source_id for prefix, source_id in field_prefix_owners if field_id.startswith(prefix)), None)
+
+    def _source_ids_for_domain_errors(self, problems: tuple[object, ...]) -> set[str]:
+        return {
+            source_id
+            for problem in problems
+            if getattr(getattr(problem, "level", None), "value", None) == "ERROR"
+            for source_id in (self._source_id_for_problem_field(getattr(problem, "field_id", None)),)
+            if source_id is not None
+        }
+
     @staticmethod
     def _input_has_value(widget: QWidget | None) -> bool:
         return isinstance(widget, QLineEdit) and bool(widget.text().strip())
@@ -1128,7 +1195,7 @@ class CarbonMaterialAccountingPage(BasePage):
         return ParameterValue(
             parameter_id=factor.parameter_id,
             value=factor.value,
-            unit=factor.unit,
+            unit=_domain_unit(factor.unit),
             source_kind=_parameter_source_kind(factor.value_type),
             source_id=factor.source_id,
             source_version=factor.version,
@@ -1242,6 +1309,8 @@ class CarbonMaterialAccountingPage(BasePage):
             controls["moisture_evidence"].setChecked(False)  # type: ignore[union-attr]
             controls["conversion_evidence"].setChecked(False)  # type: ignore[union-attr]
             controls["evidence_reference"].clear()  # type: ignore[union-attr]
+        self._electricity_resolution_states.clear()
+        self._known_source_errors.clear()
         self.heat_factor_selection_reason.clear()
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
@@ -1273,20 +1342,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self.validation_list.addItem(f"ERROR：{exc}")
             self.result_total.setText("存在输入错误")
             return
-        source_ids = tuple(self._source_cards)
-        self._known_source_errors = {
-            source_id
-            for source_id in source_ids
-            if any(
-                problem.level.value == "ERROR"
-                and problem.field_id is not None
-                and (
-                    problem.field_id == source_id
-                    or problem.field_id.startswith(f"{source_id}.")
-                )
-                for problem in outcome.problems
-            )
-        }
+        self._known_source_errors = self._source_ids_for_domain_errors(outcome.problems)
         self._refresh_source_cards()
         for problem in outcome.problems:
             self.validation_list.addItem(f"{problem.level.value}：{problem.message} [{problem.code}]")

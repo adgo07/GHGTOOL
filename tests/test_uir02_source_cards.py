@@ -318,6 +318,42 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.assertIn("需要处理", card.summary_label.text())
         self.assertTrue(any("CAR-VAL-MATERIAL-BASIS-CONVERSION" in self.page.validation_list.item(i).text() for i in range(self.page.validation_list.count())))
 
+    def test_heat_domain_error_maps_to_i02_and_recovers_after_recheck(self) -> None:
+        source_id = "CAR-SRC-PURCHASED-HEAT-001"
+        self._status_combo(source_id).setCurrentIndex(
+            self._status_combo(source_id).findData(EmissionSourceStatus.INVOLVED)
+        )
+        self.page.enterprise_name.setText("热力状态企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page.period_year.setValue(2026)
+        self.application.processEvents()
+        self.page._fields["heat_amount"].setText("1000")
+        self.assertTrue(self.page.heat_factor_selector.currentData())
+
+        self.page._run_calculation()
+        self.application.processEvents()
+
+        card = self._card(source_id)
+        validation_text = "\n".join(
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        )
+        self.assertIn("CAR-VAL-STEAM-STATE", validation_text)
+        self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
+        self.assertIn("需要处理", card.summary_label.text())
+        self.assertNotIn("已完成", card.summary_label.text())
+
+        self.page._fields["heat_enthalpy"].setText("2800")
+        self.page._run_calculation()
+        self.application.processEvents()
+
+        self.assertNotIn("CAR-VAL-STEAM-STATE", "\n".join(
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        ))
+        self.assertIs(card.presentation_state, SourceCardPresentationState.COMPLETED)
+        self.assertIn("已完成", card.summary_label.text())
+
 
 if __name__ == "__main__":
     unittest.main()
