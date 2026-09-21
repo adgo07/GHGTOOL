@@ -1819,3 +1819,50 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 未发现 UIR04 提前实施；未修改 Domain、计算公式、Canonical、数据库 schema、迁移、历史记录语义或 `计算表/`。
 
 结论：UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
+
+## UIR04 最终实施报告（2026-09-21）
+
+### 范围与实现
+
+本轮从实时 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e` 创建 `ui-refactor-uir04-finalize`，仅实施 UIR04，未启动 UIR05/G09。
+
+- 新建核算页面未计算时使用紧凑底部状态栏，显示已确认排放源数、错误数、提醒数和计算按钮；计算过程、空结果和空质量列表不再永久占用主流程大块空间。
+- 基础反馈随输入更新；质量问题使用业务中文。点击错误可展开并滚动到对应排放源卡片。
+- 只有成功计算才展示总排放量、直接排放、间接排放和 `已完成` / `已完成（含提醒）`；分项结果、计算过程和专业信息按需展示。
+- Domain 致命错误不会被误显示为成功结果，也不会生成成功记录；G07 的每次成功计算新增不可编辑记录、历史快照、删除审计和重启读取行为保持不变。
+- 增加 UIR04 专项测试和 `scripts/uir04_manual_gui_acceptance.py`，覆盖场景 A～E 及固定输入的 Domain/结果/记录 parity。
+- 应用与 standalone 交付版本更新为 `1.1.0`；Catalog `schema_version` 保持 `1.0.0`，没有新增数据库迁移。
+
+未修改 Domain、Calculator、ParameterResolver、Canonical 数据、公式、SQLite schema、records 生命周期或 `计算表/`；未实施 UIR05、G09、报告/导出、Excel 导入、其他七项标准、商业安装器、签名或云服务。既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### 测试与验证
+
+环境：Windows 11 x64；项目 `.venv` Python 3.12.14；PySide6 6.11.2；PyInstaller 6.22.3；Qt 测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR04 定向：
+  `.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization -v`；**8/8 通过**。
+- 相关回归：
+  `.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization tests.test_uir03_advanced_details tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**83/83 通过**。
+- 全量：
+  `.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**158/158 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir04-final-check`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 从零生成成功，隔离目录已清理。
+- 差异检查：`git diff --check` 通过；`计算表/` 无差异。
+- Windows standalone：`scripts\build_standalone.py --output-root dist --clean` 构建通过；`scripts\inspect_release.py dist\QingzhouCarbonAccounting` 为 **PASS（227 files）**；`scripts\verify_release_archive.py dist\QingzhouCarbonAccounting` 为 **PASS（228 visible files）**；`scripts\smoke_standalone.py dist\QingzhouCarbonAccounting` 为 **PASS（2 isolated starts）**。
+- 构建包元数据核对：`app_version=1.1.0`、`schema_version=1.0.0`、`data_version=2026.09.20-g08.1`、`app_compatibility=1.x`。
+
+### 确定性 GUI 验收脚本
+
+执行：`.venv\Scripts\python.exe scripts\uir04_manual_gui_acceptance.py`。
+
+- 场景 A：燃料 + 购入常规电力成功计算，结果 `ET=17.79866666666666666666666667 tCO2`，记录数为 1，状态为已完成。
+- 场景 B：原料煅烧收到基默认口径成功，状态为已完成（含提醒）。
+- 场景 C：干基/收到基差异被阻断，提示明确说明口径不一致、不能直接计算并要求换算依据。
+- 场景 D：有效非化石电力证明通过，电力因子已确定，状态为已完成。
+- 场景 E：企业名称缺失被阻断，显示业务化必填错误且不生成成功记录。
+
+### Git / PR / Actions
+
+实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`）；本治理报告提交、PR URL 和最终 GitHub Actions run 将在推送后按最新 PR head 记录。完成推送后停止等待 Sol 最终验收，不启动 UIR05。

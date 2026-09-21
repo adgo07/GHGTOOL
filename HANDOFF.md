@@ -772,3 +772,32 @@ UIR02 经 Sol 正式验收通过后，将煅烧、焙烧/炭化、石墨化以�
 ### 21.5 UIR04——可用性收口与回归（未启动）
 
 仅在 UIR03 经 Sol 验收通过后启动。不得在 UIR01～UIR03 中把可用性收口扩展为 G09 或其他业务模块。
+
+#### UIR04 正式 Goal（当前阶段）
+
+UIR03 已经由 Sol 正式 PASS 并合并进入 main。UIR04 只完成新建核算页面的结果区、数据质量反馈、视觉层级和全链路回归，形成 Windows V1.1.0 候选；不得启动 UIR05/G09。
+
+#### MUST
+
+1. 未计算时不永久占用独立大块的计算过程、核算结果空状态和数据质量空列表；页面底部保留紧凑状态栏，显示已确认排放源数、错误数量、提醒数量和计算按钮。
+2. 最基础的必填、输入格式和范围问题随输入更新；不要求用户先点击独立“检查数据”按钮才能发现。
+3. 数据质量错误使用业务中文，禁止普通模式直接显示 gc、wfc、CAR-FLD、CAR-PAR、G05、G06、resolver、candidate 等内部变量、ID 或开发术语；点击错误应尽可能定位并展开对应排放源卡片。专业详情可以保留必要审计 ID，但必须有中文含义。
+4. 只有成功计算后才显示结果区。结果默认显示总排放量、直接排放、间接排放和 COMPLETED / COMPLETED_WITH_WARNINGS 的业务化状态；分项结果、公式、变量代入、标准条款通过按需控件或专业详情展示。
+5. 保持 G07 记录语义：每次成功计算立即新增不可编辑记录；致命错误不得生成成功记录；删除历史记录、删除审计、重启后读取历史记录和冻结快照行为必须回归。
+6. 检查 1920×1080、1366×768 及常见 Windows 缩放下的关键控件可见性；允许表单纵向滚动，但普通操作不得产生页面级横向滚动。
+7. 应用版本更新为 1.1.0；不得新增数据库 schema 迁移，除非先按 AGENTS.md 的 BLOCKED 格式取得 Sol 批准。
+8. 必须构建 Windows standalone 并执行 inspect_release、归档校验和 standalone smoke；发布包不得含标准全文、计算表/、测试数据库、用户数据、密钥或其他敏感文件。
+
+#### 测试门禁
+
+- 新增 UIR04 L1 测试覆盖紧凑未计算状态、随输入更新的计数、业务错误文案、错误定位/展开、成功结果显示、专业详情按需展开和窗口尺寸/横向滚动约束。
+- 用固定合法输入验证 UIR02/UIR03 重构前后 CarbonMaterialInput 关键值、计算结果、问题等级、参数快照和 records 快照关键业务值等价；不得修改旧测试期望值掩盖行为变化。
+- 必须回归 UIR01、UIR02、UIR03、G06 页面与 Domain、G07 records、G08 delivery 及所有参数解析和持久化测试。
+- L3 必须执行：python -m unittest discover -s tests -t . -v、compileall、pip check、Canonical validation、三库从零初始化、git diff --check、计算表/保护检查、Windows standalone build、inspect_release、archive verification 和 standalone smoke。
+- 必须提供人工 GUI 验收脚本，覆盖：简单企业燃料+购入电力；原料煅烧全收到基；干基/收到基差异需换算依据；非化石电力有效证明；非法数值/缺失字段阻断，并记录实际观察结果。
+
+#### OUT OF SCOPE
+
+不得实施商业安装器、代码签名、报告/导出、Excel 导入、其他七项标准、云服务、企业档案、草稿/跨启动恢复、G09 或任何新的数据库迁移；不得修改、删除或上传 计算表/，不得加入标准全文 PDF/Word。
+
+完成后更新 TASK_STATE.md 与 IMPLEMENTATION_REPORT.md，提交实施代码、测试和报告，推送 ui-refactor-uir04-finalize，创建目标为 main 的最终 PR，等待最新 head 的 Windows/Python 3.12 GitHub Actions 全部完成后停止等待 Sol 最终验收。

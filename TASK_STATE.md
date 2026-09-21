@@ -1235,3 +1235,42 @@ Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Prese
 - 未修改 Domain、Calculator、ParameterResolver、Canonical、计算公式、SQLite schema、迁移或 records 生命周期；未实施 UIR04。
 
 UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
+
+## UIR04 实施状态（2026-09-21）
+
+**UIR04_IN_PROGRESS**
+
+UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main。本轮已执行 git fetch origin，确认实时基线为 origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e，并从该基线创建独立分支 ui-refactor-uir04-finalize。当前仅实施 HANDOFF.md 的 UIR04，禁止启动 UIR05/G09。
+
+本阶段只处理新建核算页面的紧凑未计算状态、随输入更新的基础校验反馈、业务化错误定位、成功结果展示、按需专业详情、视觉尺寸回归、V1.1.0 版本和 Windows standalone 全链路验证。保持 Domain、Canonical、公式、SQLite schema、records 语义、G07 历史记录、计算表/和既有未跟踪 docs/handoffs/不变。
+
+## UIR04 实施完成状态（2026-09-21）
+
+**UIR04_READY_FOR_SOL_REVIEW**
+
+### 已完成范围
+
+- 未计算时将计算过程、空结果和空质量列表收纳为紧凑底部状态栏；随输入更新已确认排放源、错误和提醒数量，并保留兼容用的隐藏检查入口。
+- 计算成功后才展示总排放量、直接排放、间接排放和人类可读记录状态；分项结果与计算过程按需展开。
+- 质量问题使用业务中文展示；点击问题可展开并定位对应排放源卡片。Domain 致命错误不会展示为成功结果，也不会创建成功记录。
+- 增加 UIR04 定向测试、固定输入结果/记录快照 parity 测试、错误定位测试和 1920×1080 / 1366×768 无横向滚动测试；新增场景 A～E 的确定性 GUI 验收脚本。
+- 应用与交付元数据更新为 V1.1.0；schema_version 保持 1.0.0，未新增迁移。Windows standalone 构建、发布审计、ZIP manifest 往返校验和两次隔离启动均通过。
+
+### 边界与保护
+
+- 本轮只修改 UIR04 Presentation、交付版本元数据、测试和文档；未修改 Domain、公式、Canonical、ParameterResolver、SQLite schema、records 生命周期或 `计算表/`。
+- 未实施 UIR05、G09、报告/导出、Excel 导入、其他行业标准、商业安装器、签名或云服务。
+- 既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### 本地验证
+
+- UIR04 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization -v`；**8/8 通过**。
+- 相关回归：UIR04、UIR03、UIR02、UIR01、G06 页面/Domain、G07 records、G08 delivery；**83/83 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**158/158 通过**，0 失败、0 错误、0 跳过。
+- `compileall`、`pip check`、Canonical（9 standards / 12 sources / 7 parameters / 7 factors）和三库从零初始化均通过。
+- standalone：构建通过；`inspect_release` **227 files**；ZIP manifest 往返校验 **228 visible files**；standalone smoke **2 isolated starts**。
+- GUI 验收脚本 A～E 均通过：燃料+购入常规电力成功、收到基煅烧成功、干基/收到基差异明确阻断、有效非化石电力证明成功、企业名称缺失阻断且无成功记录。
+
+### Git / PR 门禁
+
+当前分支为 `ui-refactor-uir04-finalize`，基线为 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e`。实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`）；治理文档、推送、最终 PR 和最新 GitHub Actions 仍待本阶段收尾完成。完成后停止等待 Sol 最终验收，不启动 UIR05。
