@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR01 字段语义层与类型化输入控件
+Post-V1 新建核算 UI 重构：UIR02 排放源与活动数据卡片重构
 
 ## 状态
 
-UIR01_REWORK_READY_FOR_SOL_REVIEW
+UIR02_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -44,6 +44,9 @@ UIR01_REWORK_READY_FOR_SOL_REVIEW
 - G07 历史详情小修完成（2026-09-19）；实现与测试提交为 `d6e4d91`，补充业务分组快照展示及修改当前 Catalog 后历史详情不变的回归测试，当前等待 Sol 重新验收；G08 未创建、未执行。
 - G07 最终正式重新验收结论：PASS（2026-09-19）；被验收 HEAD 为 `7e3573dfd7fc105cc013c07028c5eb8815836569`。两项小修已关闭，G07 全部 MUST 与阶段门禁通过；允许由用户另行启动 G08，本次未启动 G08。
 - G08 实施完成（2026-09-20）；从 `origin/main` 的 `fbe884d` 创建分支 `gxx-implementation`，仅执行 G08，未创建或执行 G09。实现与测试提交：`9aa0625` `feat: complete G08 Windows delivery baseline`。
+- UIR01 正式验收结论：PASS（2026-09-21）；被验收 head 为 `97e2ba59f8ea4ffde8e111750caa0650f5000cf5`，PR #4 `feat: implement UIR01 field semantics and typed inputs` 已合并，merge commit 为 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3`。
+- UIR02 已由用户启动（2026-09-21）；本阶段从实时 `origin/main` 创建 `ui-refactor-uir02-source-cards`，仅实施 UIR02，不启动 UIR03。实现与专项测试提交为 `ed752c0`，PR #5 已创建；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 的 Actions run `35550650466` 已成功，当前等待最新报告提交后的检查与 Sol 验收。
+- UIR02 首次正式验收结论：FAIL（2026-09-21）；被验收 HEAD 为 `8c3a45267687f46200d4b1f1de3bcedda8a68598`。卡片“已完成”未消费已有电力解析/Domain 校验结果，缺少 `NEEDS_ATTENTION` 门禁和合法成功 Domain parity；不允许进入 UIR03。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1025,3 +1028,101 @@ Sol 验收发现原 NumericLineEdit 只覆盖了程序化 `setText()`，Qt 实�
 - `compileall`、`pip check`、Canonical 校验和三库从零重建均通过；Canonical 为 9 standards / 12 sources / 7 parameters / 7 factors。
 
 返工实现提交：`249e5f9c2849b06d8b40b064d35b6167d559407d`。当前停止等待 Sol 重新验收 UIR01；不得开始 UIR02。既有未跟踪 `docs/handoffs/` 保持原样且未纳入提交，`计算表/` 未修改。
+
+## UIR01 正式通过与 UIR02 启动状态（2026-09-21）
+
+**UIR02_IN_PROGRESS**
+
+UIR01 已由 Sol 正式验收 PASS，PR #4 已合并到 `main`；以上 UIR01 返工状态是历史实施记录，本节记录其后正式验收与合并事实，不改写历史内容。当前唯一实施阶段为 UIR02，基线为实时 `origin/main@09e9d5e66f30f46f4302f6b57f330c27c4a852a3`，分支为 `ui-refactor-uir02-source-cards`。
+
+当前仅同步治理文件，业务代码尚未开始修改。UIR02 只实现统一“排放源与活动数据”页面、十个排放源 Presentation 卡片、状态派生、业务分组、输入保持和指定回归；不得启动 UIR03。既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交；`计算表/` 保持未修改。
+
+## UIR02 实施完成状态（2026-09-21）
+
+**UIR02_READY_FOR_SOL_REVIEW**
+
+UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a3` 上的独立分支 `ui-refactor-uir02-source-cards` 完成。治理扩展提交为 `a90777a`，实现与专项测试提交为 `ed752c0`；未创建、未实施 UIR03。
+
+### 实施范围
+
+- 将原“03 排放源识别”和“04 活动数据”合并为“02 排放源与活动数据”。
+- 新增可复用 `SourceCard` Presentation 组件和 UI-only `SourceCardPresentationState`，覆盖十个既有排放源；Domain `EmissionSourceStatus`、`CarbonMaterialInput.source_states` 和数据库模型未改动。
+- 默认“不涉及”卡片折叠；“启用”只将现有状态设为 `INVOLVED` 并展开，不制造活动数据；折叠/展开不改变 Domain 状态。
+- 为煅烧、焙烧/炭化、石墨化按投入数据、产出数据、其他必要数据分组；摘要只显示业务名称、数量和完成度，不显示内部变量名或稳定 ID。
+- 所有输入继续使用 UIR01 `FieldSpec`/typed input；I01 多条电力明细、独立取得方式/属性/证明/参数状态和页面导航输入保持行为未改变。
+
+### 验证结果
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；7/7 通过。
+- UIR02 与指定回归：`.venv\Scripts\python.exe -m unittest -v tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery`；62/62 通过。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；137/137 通过，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；通过，No broken requirements found。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；9 standards / 12 sources / 7 parameters / 7 factors，通过。
+- 三库从零重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 均成功生成，临时目录已清理。
+- `git diff --check`：通过；`计算表/` 无修改；没有将测试数据库、临时文件、标准全文或敏感数据加入提交。
+
+### 阶段门禁
+
+本地实现与测试已完成；PR #5 的代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296` 对应 Actions run `35550650466` 已成功通过 merge-ref full tests 与 exact PR-head standalone audit。报告同步提交后需以最新 head 的检查结果为准；随后停止等待 Sol 独立验收。未执行 UIR03；既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+
+## UIR02 返工状态（2026-09-21）
+
+**UIR02_REWORK_READY_FOR_SOL_REVIEW**
+
+本轮仅依据 Sol 对 PR #5 的 UIR02 FAIL 意见返工，仍在 `ui-refactor-uir02-source-cards` 分支上进行，未创建或实施 UIR03。
+
+### 返工内容
+
+- 在 `packages/ui/carbon_material_page.py` 增加 Presentation-only 的电力解析状态缓存；I01 卡片只有在每条活动明细均由现有 G05 解析形成参数快照时才显示“已完成”。证明缺失、解析阻断、自发自用化石能源转交或解析异常均显示“需要处理”，不改变 Domain 路径。
+- 在页面已有 `_run_calculation()` 结果上记录 source-scoped ERROR，仅将既有 Domain 校验反馈给对应卡片；未复制、重写或新增 Domain 校验规则。
+- 将多电力专项测试中的自发自用非化石明细补成有效月度原始记录证明，保留“证明缺失 → 需要处理”的独立回归。
+- 将 UIR02 折叠 parity 测试改为完整合法的 GB/T 32151.34 输入，并明确断言折叠前后均成功、结果和参数快照等价；新增非收到基缺少换算证明的卡片状态回归。
+
+### 返工验证
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；9/9 通过，0 失败，0 错误，0 跳过。
+- UIR02 与指定回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；64/64 通过，0 失败，0 错误，0 跳过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；139/139 通过，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：使用 `scripts\build_catalog.py` 和 `scripts\initialize_databases.py` 在隔离临时目录生成 catalog/user/records 三库，成功后已清理临时目录。
+- `git diff --check`：通过；`计算表/` 无修改；本轮未处理、未提交既有未跟踪 `docs/handoffs/`，未加入测试数据库、标准全文、敏感数据或 UIR03 产物。
+
+### 门禁
+
+- 当前状态：返工完成，等待 Sol 重新验收 UIR02。
+- PR #5 保持以 `main` 为目标，修复将同步到同一 PR；不得合并 PR，不得启动 UIR03。
+
+## UIR02 I02 Domain 错误归属返工状态（2026-09-21）
+
+**UIR02_REWORK_READY_FOR_SOL_REVIEW**
+
+本轮继续只返工 UIR02，针对 Sol 在 PR #5 最新 head `92595bb4` 发现的 I02 阻断问题完成修复；未创建、未实施 UIR03。
+
+### 问题与修复
+
+- 原问题：购入热力/动力 I02 在有热力数量和因子、但缺少焓值或压力时，Domain 已产生 `CAR-VAL-STEAM-STATE`，其动态 `field_id` 为 `heat-1`，旧的仅按 source ID 前缀匹配逻辑无法把错误归属到 I02 卡片，卡片可能错误显示“已完成”。
+- 修复：在 Presentation 层增加 Domain problem field 到 source card 的归属映射，支持现有 source ID、动态电力/热力/输出明细 ID 及稳定字段前缀；卡片只消费既有 Domain 错误，不复制或改写 Domain 校验规则。
+- 增加 I02 回归：缺少蒸汽状态时必须显示“需要处理”且不得显示“已完成”；补充焓值后重新计算，错误消失并恢复“已完成”。
+- 页面参数边界增加显示单位到 Domain 单位的 Presentation 转换（例如 `tCO₂/GJ` 到 Domain 使用的 `tCO2/GJ`），未修改 Canonical、Domain 公式、数据模型或数据库 schema。
+
+### 验证
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；10/10 通过。
+- UIR02 与指定回归：UIR02、UIR01、G06 页面、G06 Domain、G07 records、G08 delivery；65/65 通过。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；140/140 通过，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零重建：独立临时目录成功生成 `catalog.sqlite`、`user.sqlite`、`records.sqlite`，完成后已清理。
+- `git diff --check`：通过；`计算表/` 无差异；未加入测试数据库、临时文件、标准全文或敏感数据。
+
+### 阶段门禁
+
+- 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
+- 当前工作仍在 `ui-refactor-uir02-source-cards` 分支，已同步到 PR #5；当前 PR head 为 `273ea85d264a8eb087eb3699060f1981d572392f`，PR 不合并。
+- 既有未跟踪 `docs/handoffs/` 保持原样、不处理、不提交。
+- GitHub Actions run `35581128076` 已针对该 head 完成：merge-ref full tests 与 PR-head standalone audit 均为 success。
+- 当前状态：返工完成，停止等待 Sol 重新验收 UIR02；不得启动 UIR03。

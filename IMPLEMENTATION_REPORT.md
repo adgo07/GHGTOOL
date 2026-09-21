@@ -1,5 +1,9 @@
 # IMPLEMENTATION_REPORT
 
+## 当前阶段：UIR02
+
+本报告末尾的“UIR02 实施报告”是当前阶段的正式记录；前文 UIR01/G00-G08 内容保留为历史实施报告，不重写。
+
 ## 阶段
 
 UIR01 Post-V1 新建核算 UI：字段语义层与类型化输入控件
@@ -1533,3 +1537,127 @@ Sol 独立 Qt 键盘测试发现，原控件依赖 QDoubleValidator 的 Intermed
 - 本轮仅修改 `packages/ui/typed_inputs.py` 和 `tests/test_uir01_field_semantics.py`；本报告和 `TASK_STATE.md` 随后更新。
 - 既有未跟踪 `docs/handoffs/` 未处理、未提交；未修改 `计算表/`。
 - 当前状态：UIR01 返工完成，停止等待 Sol 重新验收；UIR02、UIR03、UIR04 均未启动。
+
+## UIR02 实施报告（2026-09-21）
+
+### 前置与范围
+
+- 已从实时 `origin/main@09e9d5e66f30f46f4302f6b57f330c27c4a852a3` 创建独立分支 `ui-refactor-uir02-source-cards`；未继续使用 UIR01 分支。
+- UIR01 已由 Sol 正式验收 PASS，PR #4 已合并；本轮只实施 UIR02，不启动 UIR03。
+- `HANDOFF.md` 已追加 UIR02 正式 Goal/MUST/OUT OF SCOPE/测试门禁章节；G00-G08 与 UIR01 历史内容未删除或重写。
+
+### 实现内容
+
+- 在 `packages/ui/source_cards.py` 建立可复用 `SourceCard` 与 UI-only `SourceCardPresentationState`，统一处理标题、既有 Domain 状态选择、启用/编辑/收起、摘要、展开/折叠和“不涉及”显式动作。
+- 在 `packages/ui/carbon_material_page.py` 将原“03 排放源识别”和“04 活动数据”合并为“02 排放源与活动数据”，十个既有排放源全部通过同一配置/组件路径进入卡片：F01、P01、P02、P03、P04A、P04B、I01、I02、I03、I04。
+- 卡片状态从当前 `EmissionSourceStatus` 和已有输入轻量派生为“不涉及、填写中、已完成、需要处理、待确认”；Presentation 状态不写入 Domain，不新增枚举、字段或数据库迁移。
+- 复杂过程卡片按“投入数据、产出数据、其他必要数据”分组；卡片摘要使用已有 FieldSpec/业务中文语义，不显示 `internal_key`、稳定 ID 或开发术语。
+- 保留 UIR01 typed input、Decimal 转换和既有 FieldSpec；保留多条 I01 电力明细及其独立取得方式、电力属性、证明、参数解析和快照；卡片折叠/展开和导航切换不销毁控件或用户输入。
+- 未修改 `CarbonMaterialInput`、`CarbonMaterialCalculator`、公式、Canonical、SQLite schema、records.sqlite 记录规则、G08 交付脚本或 `计算表/`。
+
+### 测试与验证
+
+环境：Windows 工作区；Python 3.12.14；PySide6 6.11.2；Qt 自动化测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+#### UIR02 定向
+
+命令：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`
+
+结果：7/7 通过，0 失败，0 错误，0 跳过。覆盖十卡片、默认折叠、启用映射、无自动活动数据、折叠输入保持、Domain 状态映射、Presentation 状态隔离、业务摘要、导航保持、多条电力独立性和 Domain parity（输入、结果、参数快照业务字段）。
+
+#### 指定相关回归
+
+命令：`.venv\Scripts\python.exe -m unittest -v tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery`
+
+结果：62/62 通过，0 失败，0 错误，0 跳过。
+
+#### 全量回归
+
+命令：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`
+
+结果：137/137 通过，0 失败，0 错误，0 跳过。
+
+#### L3 校验
+
+- `.venv\Scripts\python.exe -m compileall -q apps packages scripts tests`：通过。
+- `.venv\Scripts\python.exe -m pip check`：通过，No broken requirements found。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- `.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir <临时目录>`：从空目录成功重建 `catalog.sqlite`、`user.sqlite`、`records.sqlite`，临时目录已清理。
+- `git diff --check`：通过。
+- `计算表/`：无差异；提交范围无测试数据库、临时文件、标准全文、敏感数据或 G09/UIR03 产物。
+- 未执行 standalone 重构或交付构建：UIR02 未修改 G08 交付脚本；构建与 Actions 门禁在 PR 上继续执行。
+
+### Git、门禁与待验收项
+
+- 治理提交：`a90777a docs: define UIR02 source card governance`。
+- 实现与专项测试提交：`ed752c0 feat: add UIR02 source activity cards`。
+- 文档与状态提交：本次报告同步提交；既有未跟踪 `docs/handoffs/` 未处理、未提交。
+- PR：[#5](https://github.com/adgo07/GHGTOOL/pull/5)，目标 `main`；代码候选 head `ec8bfec1e5671fa6b92e1995ce6693f6ea22a296`；Actions run `35550650466` 已成功。
+- GitHub Actions：`Windows / Python 3.12 / Merge-ref Full Tests` 成功；`Windows / Python 3.12 / PR-head Standalone Audit` 成功。后者的 exact-head delivery tests、standalone build、release audit、archive manifest、provenance 和 smoke 均成功。
+- 当前状态：`UIR02_READY_FOR_SOL_REVIEW`；本次报告同步提交后以最新 head 再确认 Actions，随后等待 Sol 独立验收。
+- 不得启动 UIR03；若验收发现需要改变 Domain 模型、计算规则、数据模型或阶段范围，应按 `AGENTS.md` 的 BLOCKED 格式上报。
+
+## UIR02 返工报告（2026-09-21）
+
+### 返工原因
+
+Sol 对 PR #5 的独立验收判定 UIR02 FAIL：I01 卡片只依据电量、明细编号和输入合法性显示“已完成”，没有消费既有 G05 电力解析结果；因此缺少非化石电力证明时可能同时显示“已完成”和“参数解析阻断”。P01/P02/P03 等复杂排放源也没有把已有 Domain 校验错误反馈到卡片。原 UIR02 测试缺少 `NEEDS_ATTENTION` 明确门禁，折叠 parity 测试使用了不完整输入，未能证明合法成功结果等价。
+
+### 本轮修改
+
+- `packages/ui/carbon_material_page.py` 增加仅存在于 Presentation 层的电力解析状态缓存。I01 只有每条明细都经现有 `resolve_electricity_details()` 形成推荐值和参数快照时才进入“已完成”；阻断、证明缺失、直接燃料路径转交和解析异常均进入“需要处理”。未改变 `CarbonMaterialInput`、G05 resolver、计算公式或记录模型。
+- 页面已有 `_run_calculation()` 继续作为 Domain 校验入口；返工仅缓存带排放源字段定位的既有 ERROR，并在卡片派生时消费该结果，没有在 UI 复制 Domain 验证规则。
+- `tests/test_uir02_source_cards.py` 新增非化石电力证明缺失的 `NEEDS_ATTENTION` 回归、非收到基换算证明缺失的 Domain 错误反馈回归；多电力成功场景补充有效月度原始记录证明；折叠 parity 改为完整合法输入并断言前后均成功、结果和参数快照等价。
+
+### 测试与校验
+
+环境：Windows 工作区；`.venv` Python 3.12.14；PySide6 6.11.2；Qt 自动化测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；**9/9 通过**。
+- 指定相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**64/64 通过**。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**139/139 通过**，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 持久化回归：在隔离临时目录执行 `scripts\build_catalog.py` 和 `scripts\initialize_databases.py`，catalog.sqlite、user.sqlite、records.sqlite 均从零创建成功；临时数据库已清理。
+- `git diff --check`：通过；`计算表/` 无差异；提交范围不包含测试数据库、临时文件、标准全文、敏感数据、G09 或 UIR03。
+
+### 阶段状态
+
+- 当前分支：`ui-refactor-uir02-source-cards`；返工仍更新 PR #5，目标为 `main`。
+- UIR02 首次验收 HEAD `8c3a45267687f46200d4b1f1de3bcedda8a68598` 的 FAIL 问题已针对性修复；代码、测试和本报告待提交并推送后，以最新 PR head 重新运行 GitHub Actions。
+- 当前状态：`UIR02_REWORK_READY_FOR_SOL_REVIEW`；停止等待 Sol 重新验收，不启动 UIR03。
+
+## UIR02 I02 Domain 错误归属返工报告（2026-09-21）
+
+### 返工原因
+
+Sol 对 PR #5 最新 head `92595bb4` 的复验确认，I01 与过程源错误状态已修复，但 I02 购入热力/动力仍存在归属缺口：缺少焓值或压力时，既有 Domain 校验产生 `CAR-VAL-STEAM-STATE`，动态 `field_id=heat-1`，旧的 source ID/前缀匹配无法将该错误反馈给 I02 卡片，可能出现 Domain ERROR 与卡片“已完成”并存。
+
+### 实现
+
+- 在 `packages/ui/carbon_material_page.py` 增加 Presentation-only 的 Domain problem field → source card 归属映射。
+- 映射优先使用现有排放源 ID，并覆盖当前页面动态电力、购入/输出热力明细 ID 及稳定字段前缀；它只归属已有问题，不判断问题是否存在，也不复制 Domain 规则。
+- `_run_calculation()` 使用该归属结果更新卡片已知错误，因此 I02 缺少蒸汽状态时进入 `NEEDS_ATTENTION`，不会显示“已完成”。
+- 增加修正后重新检查路径：补充焓值，重新计算后 `CAR-VAL-STEAM-STATE` 消失，I02 卡片恢复 `COMPLETED`。
+- 在页面参数适配边界把 Canonical 的显示单位下标形式 `tCO₂/GJ` 转为 Domain 既有接受形式 `tCO2/GJ`；这是 Presentation 单位适配，未修改 Domain、Canonical、公式、SQLite schema 或 records 规则。
+
+### 测试与校验
+
+环境：Windows 工作区；`.venv` Python 3.12.14；PySide6 6.11.2；Qt 自动化测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR02 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；**10/10 通过**。
+- 指定相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**65/65 通过**。
+- 全量回归：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**140/140 通过**，0 失败，0 错误，0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 持久化：在新建隔离临时目录执行 `scripts\build_catalog.py` 与 `scripts\initialize_databases.py`，三库从零生成成功，临时目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；提交范围不包含测试数据库、临时文件、标准全文、敏感数据或 UIR03 产物。
+
+### Git 与门禁
+
+- 实现与测试提交：`7fe978c` `fix: map UIR02 domain errors to source cards`。
+- 修改范围仅为 `packages/ui/carbon_material_page.py`、`tests/test_uir02_source_cards.py`；治理文档在后续独立提交同步。
+- 既有未跟踪 `docs/handoffs/` 未处理、未提交。
+- 当前状态：UIR02 返工已推送到同一 PR #5；最新 head `273ea85d264a8eb087eb3699060f1981d572392f` 对应 GitHub Actions run `35581128076`，merge-ref full tests 与 PR-head standalone audit 均 success。停止等待 Sol 重新验收；不得启动 UIR03。
