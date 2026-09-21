@@ -1802,6 +1802,6 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 
 - 实现与测试提交：`cc14d0d fix: complete UIR03 presentation details`。
 - 分支：`ui-refactor-uir03-advanced-details`；PR #7 继续以 `main` 为目标，未合并。
-- 最新 PR head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`。
-- GitHub Actions run `35598601953`：成功。Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均完成且成功，两个 job 均绑定该 head。
+- 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；随后治理文档提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
+- GitHub Actions run `35598601953`：成功验证实现与测试 head；随后 run `35599116099`：成功验证治理文档提交后的 PR head。两个 run 的 Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均完成且成功。
 - 当前状态：等待 Sol 重新验收 UIR03；禁止启动 UIR04。

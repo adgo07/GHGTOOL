@@ -1216,5 +1216,5 @@ Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Prese
 
 - 实现与测试提交：`cc14d0d fix: complete UIR03 presentation details`。
 - 分支：`ui-refactor-uir03-advanced-details`；PR #7 仍以 `main` 为目标、未合并。
-- 最新 PR head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`。
-- GitHub Actions run `35598601953` 已成功；Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均完成且成功，均绑定该 head；当前不得启动 UIR04。
+- 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；治理文档随后提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
+- GitHub Actions run `35598601953` 已成功验证实现与测试 head；随后 run `35599116099` 已成功验证治理文档提交后的 PR head，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均完成且成功；当前不得启动 UIR04。
