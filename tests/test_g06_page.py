@@ -261,8 +261,12 @@ class G06PageTests(unittest.TestCase):
             self.page.validation_list.item(index).text()
             for index in range(self.page.validation_list.count())
         )
-        self.assertIn("GEN-VAL-REQUIRED-MISSING", validation_text)
+        self.assertIn("企业名称为必填项", validation_text)
+        self.assertNotIn("GEN-VAL-", validation_text)
         self.assertNotIn("未填写企业", validation_text)
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("GEN-VAL-REQUIRED-MISSING", self.page.validation_professional_details.text())
         self.assertEqual(self.page.calculator.record_repository.list_all(), ())
 
     def test_heat_parameter_selector_displays_source_review_and_selection_reason(self) -> None:
@@ -338,7 +342,11 @@ class G06PageTests(unittest.TestCase):
             self.page.validation_list.item(index).text()
             for index in range(self.page.validation_list.count())
         )
-        self.assertIn("CAR-VAL-BOUNDARY-UNCONFIRMED", validation_text)
+        self.assertIn("核算边界尚未确认", validation_text)
+        self.assertNotIn("CAR-VAL-", validation_text)
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("CAR-VAL-BOUNDARY-UNCONFIRMED", self.page.validation_professional_details.text())
         self.assertEqual(len(calculator_repository.list_all()), 1)
 
 

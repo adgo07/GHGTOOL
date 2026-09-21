@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+import re
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -71,6 +72,15 @@ from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState
 from .typed_inputs import create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
+
+
+_PROCESS_DEFAULT_PARAMETERS = {
+    "calcination": ("0.35", "比例", "CAR-PAR-K1", "第5.2.2条；一般取0.35"),
+    "baking": ("0.35", "比例", "CAR-PAR-K2", "第5.2.3条；一般取0.35"),
+    "graphitization": ("0.35", "比例", "CAR-PAR-K3", "第5.2.4条；一般取0.35"),
+}
+_INTERNAL_TOKEN_RE = re.compile(r"\b(?:CAR|GEN)-[A-Z0-9-]+\b")
+_INTERNAL_VARIABLE_RE = re.compile(r"\b(?:k[123]|resolver|candidate)\b", re.IGNORECASE)
 
 def _field(parent: QWidget, object_name: str, placeholder: str = "") -> QLineEdit:
     edit = QLineEdit(parent)
@@ -427,6 +437,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self.validation_list = QListWidget(quality_card)
         self.validation_list.setObjectName("calculationValidationList")
         quality_layout.addWidget(self.validation_list)
+        self.validation_professional_details = QLabel(
+            "打开“显示专业详情”后可查看原始校验信息和内部定位。",
+            quality_card,
+        )
+        self.validation_professional_details.setObjectName("calculationValidationProfessionalDetails")
+        self.validation_professional_details.setWordWrap(True)
+        quality_layout.addWidget(self.validation_professional_details)
+        self._register_professional_details(self.validation_professional_details)
         self.body_layout.addWidget(quality_card)
 
         action_row = QHBoxLayout()
@@ -626,6 +644,15 @@ class CarbonMaterialAccountingPage(BasePage):
         summary_row.addWidget(edit_button)
         metadata_layout.addLayout(summary_row)
 
+        default_value, default_unit, _default_parameter_id, _default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
+        parameter_summary = QLabel(
+            f"默认排放参数：{default_value}（{default_unit}）· 标准默认",
+            metadata,
+        )
+        parameter_summary.setObjectName(f"{prefix}_parameterSummary")
+        parameter_summary.setWordWrap(True)
+        metadata_layout.addWidget(parameter_summary)
+
         basis_editor = QWidget(metadata)
         basis_editor.setObjectName(f"{prefix}_basisAndConversionEditor")
         basis_editor_layout = QFormLayout(basis_editor)
@@ -729,6 +756,7 @@ class CarbonMaterialAccountingPage(BasePage):
             "basis_summary": basis_summary,
             "basis_warning": basis_warning,
             "basis_edit_button": edit_button,
+            "parameter_summary": parameter_summary,
             "professional_details": professional_details,
         }
         for widget in (mass_basis, composition_basis, moisture_evidence, conversion_evidence, evidence_reference):
@@ -856,17 +884,14 @@ class CarbonMaterialAccountingPage(BasePage):
             "baking": ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
             "graphitization": ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"),
         }[prefix]
-        parameter_id = {
-            "calcination": "CAR-PAR-K1",
-            "baking": "CAR-PAR-K2",
-            "graphitization": "CAR-PAR-K3",
-        }[prefix]
+        default_value, default_unit, parameter_id, default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
         detail_lines = [
             "专业详情（只读）",
             f"数据基准转换：质量数据 {mass_label}；成分含量 {composition_label}；内部归一目标：收到基。",
             "固定碳字段性质：固定碳（由字段定义自动确定）。",
             "挥发分字段性质：挥发分（由字段定义自动确定）。",
-            f"标准默认参数 ID：{parameter_id}；参数来源：标准默认值；选择理由：按适用标准默认规则采用。",
+            f"标准默认参数：{default_value}（{default_unit}）；参数 ID：{parameter_id}；"
+            f"标准条款：{default_clause}；参数来源：标准默认值；选择理由：按适用标准默认规则采用。",
         ]
         for field in field_names:
             spec = get_field_spec(f"{prefix}.{field}")
@@ -1654,6 +1679,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.parameter_snapshot_summary.setText("尚未计算，暂无参数快照。")
         self.trace_output.setText("点击“计算排放量”后显示分项计算结果。")
         self.trace_professional_details.setText("打开“显示专业详情”后可查看公式和变量代入信息。")
+        self.validation_professional_details.setText("打开“显示专业详情”后可查看原始校验信息和内部定位。")
         self._input_dirty = False
 
     def confirm_discard_if_needed(self) -> bool:
@@ -1661,26 +1687,84 @@ class CarbonMaterialAccountingPage(BasePage):
 
         return True
 
+    @staticmethod
+    def _problem_level_label(problem: object) -> str:
+        level = getattr(getattr(problem, "level", None), "value", "ERROR")
+        return {
+            "ERROR": "错误",
+            "WARNING": "提示",
+            "INFO": "信息",
+        }.get(str(level), "提示")
+
+    @classmethod
+    def _sanitize_business_message(cls, message: str) -> str:
+        business_message = message.replace(
+            "非收到基数据缺少水分/换算证据",
+            "非收到基数据缺少数据来源记录或换算依据",
+        )
+        business_message = business_message.replace("换算证据", "换算依据")
+        business_message = business_message.replace("证据", "数据来源或换算依据")
+        business_message = business_message.replace("G05", "电力参数规则")
+        business_message = business_message.replace("resolver", "参数服务")
+        business_message = business_message.replace("candidate", "适用值")
+        business_message = _INTERNAL_TOKEN_RE.sub("相关业务项目", business_message)
+        business_message = _INTERNAL_VARIABLE_RE.sub("参数规则", business_message)
+        return business_message
+
+    @classmethod
+    def _business_problem_message(cls, problem: object) -> str:
+        code = str(getattr(problem, "code", ""))
+        fixed_messages = {
+            "CAR-VAL-MATERIAL-BASIS-CONVERSION": "材料数据的口径或换算资料不完整，当前不能直接计算。请补充数据来源、换算依据和报告/台账编号或来源说明。",
+            "CAR-VAL-MATERIAL-BASIS-CONSISTENCY": "质量数据和成分含量的数据口径不一致，当前不能直接计算。请统一两项口径并提供换算依据。",
+            "CAR-VAL-MATERIAL-COMPONENT-KIND": "固定碳或挥发分字段性质与标准要求不一致，请检查对应字段。",
+            "CAR-VAL-BOUNDARY-UNCONFIRMED": "核算边界尚未确认，请确认本次核算边界。",
+            "CAR-VAL-OTHER-STANDARD": "发现当前标准未覆盖的其他活动或上下游运输，请改用适用标准核算。",
+            "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE": "非化石电力明细缺少有效证明材料，无法采用相应参数。",
+            "CAR-VAL-STEAM-STATE": "购入热力的蒸汽状态资料不完整，请补充焓值或压力等必要数据。",
+            "CAR-VAL-PARAMETER-RESOLVER-MISSING": "暂时无法取得适用的标准参数，请检查参数数据后重试。",
+            "GEN-PAR-NO-APPLICABLE-VALUE": "当前明细没有可用的适用参数，请补充或检查参数资料。",
+            "GEN-VAL-REQUIRED-MISSING": "必填信息不完整，请补充后再试。",
+        }
+        if code in fixed_messages:
+            return fixed_messages[code]
+        return cls._sanitize_business_message(str(getattr(problem, "message", "当前数据需要检查。")))
+
+    def _add_validation_problem(self, problem: object, technical_lines: list[str]) -> None:
+        level = str(getattr(getattr(problem, "level", None), "value", "ERROR"))
+        code = str(getattr(problem, "code", "未提供代码"))
+        raw_message = str(getattr(problem, "message", "当前数据需要检查。"))
+        self.validation_list.addItem(f"{self._problem_level_label(problem)}：{self._business_problem_message(problem)}")
+        technical_lines.append(f"{level}：{raw_message} [{code}]")
+
     def _run_calculation(self) -> None:
         self.validation_list.clear()
         self._known_source_errors.clear()
         self._refresh_source_cards()
+        technical_lines: list[str] = []
         if not self.enterprise_name.text().strip():
-            self.validation_list.addItem("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
+            self.validation_list.addItem("错误：企业名称为必填项，请填写企业名称。")
+            technical_lines.append("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
+            self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
             return
         try:
             outcome = self.calculator.calculate(self._input())
         except (DomainValidationError, InvalidOperation, ValueError) as exc:
-            self.validation_list.addItem(f"ERROR：{exc}")
+            raw_message = str(exc)
+            self.validation_list.addItem(f"错误：{self._sanitize_business_message(raw_message)}")
+            technical_lines.append(f"ERROR：{raw_message}")
+            self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
             return
         self._known_source_errors = self._source_ids_for_domain_errors(outcome.problems)
         self._refresh_source_cards()
         for problem in outcome.problems:
-            self.validation_list.addItem(f"{problem.level.value}：{problem.message} [{problem.code}]")
+            self._add_validation_problem(problem, technical_lines)
         if not outcome.problems:
-            self.validation_list.addItem("INFO：数据检查通过。")
+            self.validation_list.addItem("信息：数据检查通过。")
+            technical_lines.append("INFO：数据检查通过。")
+        self.validation_professional_details.setText("\n".join(technical_lines) if technical_lines else "暂无原始校验信息。")
         if outcome.result is None:
             self.result_total.setText("存在错误，未形成成功结果")
             return

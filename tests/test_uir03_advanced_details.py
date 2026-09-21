@@ -129,6 +129,26 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, visible_text)
 
+    def test_process_cards_show_standard_default_parameter_summary(self) -> None:
+        process_sources = (
+            ("CAR-SRC-CALCINATION-001", "calcination", "CAR-PAR-K1"),
+            ("CAR-SRC-BAKING-001", "baking", "CAR-PAR-K2"),
+            ("CAR-SRC-GRAPHITIZATION-001", "graphitization", "CAR-PAR-K3"),
+        )
+        for source_id, prefix, parameter_id in process_sources:
+            self._set_involved(source_id)
+            summary = self.page._material_controls[prefix]["parameter_summary"]
+            self.assertTrue(summary.isVisible())
+            self.assertIn("默认排放参数：0.35（比例）· 标准默认", summary.text())
+            self.assertNotIn(parameter_id, summary.text())
+
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        for _, prefix, parameter_id in process_sources:
+            details = self.page._material_controls[prefix]["professional_details"]
+            self.assertIn("标准默认参数：0.35（比例）", details.text())
+            self.assertIn(f"参数 ID：{parameter_id}", details.text())
+
     def test_basis_mismatch_expands_and_explains_required_action(self) -> None:
         self._set_involved(CALCINATION_SOURCE)
         self._set_basis("DRY", "RECEIVED")
@@ -187,7 +207,8 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.page.show_professional_details.setChecked(True)
         self.application.processEvents()
         self.assertTrue(controls["professional_details"].isVisible())
-        self.assertIn("标准默认参数 ID", controls["professional_details"].text())
+        self.assertIn("标准默认参数：0.35（比例）", controls["professional_details"].text())
+        self.assertIn("参数 ID：CAR-PAR-K1", controls["professional_details"].text())
         self.assertIn("标准条款", controls["professional_details"].text())
         self.assertTrue(self.page.heat_factor_professional_details.isVisible())
         self.assertIn("因子 ID", self.page.heat_factor_professional_details.text())
@@ -254,6 +275,54 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             [snapshot_signature(snapshot) for snapshot in default_outcome.parameter_snapshots],
             [snapshot_signature(snapshot) for snapshot in explicit_outcome.parameter_snapshots],
         )
+
+    def test_validation_errors_are_business_facing_until_professional_details_open(self) -> None:
+        self._fill_calcination()
+        self._set_basis("DRY", "DRY")
+        self.page._run_calculation()
+        self.application.processEvents()
+
+        ordinary_text = "\n".join(
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        )
+        self.assertIn("不能直接计算", ordinary_text)
+        self.assertIn("换算依据", ordinary_text)
+        self.assertNotIn("证据", ordinary_text)
+        self.assertNotIn("CAR-VAL-", ordinary_text)
+        self.assertNotIn("G05", ordinary_text)
+        self.assertNotIn("resolver", ordinary_text)
+        self.assertFalse(self.page.validation_professional_details.isVisible())
+
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        professional_text = self.page.validation_professional_details.text()
+        self.assertIn("CAR-VAL-MATERIAL-BASIS-CONVERSION", professional_text)
+        self.assertIn("证据", professional_text)
+
+    def test_parameter_service_error_is_business_facing_until_professional_details_open(self) -> None:
+        self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
+        self.page.enterprise_name.setText("参数服务异常企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page.period_year.setValue(2026)
+        self.page._fields["heat_amount"].setText("1000")
+        self.page.calculator.parameter_resolver = None
+        self.page._parameter_resolver = None
+        self.page._run_calculation()
+        self.application.processEvents()
+
+        ordinary_text = "\n".join(
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        )
+        self.assertIn("暂时无法取得标准参数", ordinary_text)
+        self.assertNotIn("CAR-VAL-", ordinary_text)
+        self.assertNotIn("G05", ordinary_text)
+        self.assertNotIn("resolver", ordinary_text)
+
+        self.page.show_professional_details.setChecked(True)
+        self.application.processEvents()
+        self.assertIn("CAR-VAL-PARAMETER-RESOLVER-MISSING", self.page.validation_professional_details.text())
 
 
 if __name__ == "__main__":
