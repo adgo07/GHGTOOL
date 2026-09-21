@@ -44,6 +44,15 @@ I01 = "CAR-SRC-PURCHASED-ELECTRICITY-001"
 P01 = "CAR-SRC-CALCINATION-001"
 
 
+def _configure_console_encoding() -> None:
+    """Keep Chinese business observations printable on Windows runners."""
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def _open_page(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path):
     repository = InMemoryRecordRepository()
     window = create_main_window(
@@ -204,6 +213,7 @@ def _scenario_e(application: QApplication, catalog_service: CatalogQueryService,
 
 
 def main() -> int:
+    _configure_console_encoding()
     application = QApplication.instance() or QApplication([])
     with tempfile.TemporaryDirectory(prefix="uir04-gui-") as directory:
         catalog_path = build_catalog_database(
