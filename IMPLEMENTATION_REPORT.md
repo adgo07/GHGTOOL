@@ -1865,4 +1865,4 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 
 ### Git / PR / Actions
 
-实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`）；本治理报告提交、PR URL 和最终 GitHub Actions run 将在推送后按最新 PR head 记录。完成推送后停止等待 Sol 最终验收，不启动 UIR05。
+实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`），治理提交为 `498106e`（`docs: record UIR04 finalization`）。PR #10：[feat: finalize UIR04 accounting result experience](https://github.com/adgo07/GHGTOOL/pull/10)，目标为 `main`；候选 head `498106e` 对应 GitHub Actions run `35610148543`，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均成功。最终停止等待 Sol 验收，不启动 UIR05。

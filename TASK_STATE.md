@@ -1273,4 +1273,4 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 ### Git / PR 门禁
 
-当前分支为 `ui-refactor-uir04-finalize`，基线为 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e`。实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`）；治理文档、推送、最终 PR 和最新 GitHub Actions 仍待本阶段收尾完成。完成后停止等待 Sol 最终验收，不启动 UIR05。
+当前分支为 `ui-refactor-uir04-finalize`，基线为 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e`。实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`），治理提交为 `498106e`（`docs: record UIR04 finalization`）。PR #10 已创建并以 `main` 为目标；候选 head `498106e` 对应 GitHub Actions run `35610148543`，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均成功。当前停止等待 Sol 最终验收，不启动 UIR05。
