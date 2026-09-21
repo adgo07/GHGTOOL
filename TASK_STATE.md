@@ -6,7 +6,7 @@ Post-V1 新建核算 UI 重构：UIR03 数据口径简化与专业详情
 
 ## 状态
 
-UIR03_READY_FOR_SOL_REVIEW
+UIR03_PASS
 
 ## 阶段验收状态
 
@@ -49,6 +49,8 @@ UIR03_READY_FOR_SOL_REVIEW
 - UIR02 首次正式验收结论：FAIL（2026-09-21）；被验收 HEAD 为 `8c3a45267687f46200d4b1f1de3bcedda8a68598`。卡片“已完成”未消费已有电力解析/Domain 校验结果，缺少 `NEEDS_ATTENTION` 门禁和合法成功 Domain parity；不允许进入 UIR03。
 
 - UIR02 正式重新验收结论：PASS（2026-09-21）；被验收 PR head 为 `5e2d793f099f9be5737ec0ca22008300b4ad10d4`，PR #5 已由用户合并，merge commit 为 `07ddf674b1095cb3e2651f9c5fd6e8089f4211dd`。UIR02 已通过，允许由用户另行启动 UIR03；本次未启动 UIR03。
+
+- UIR03 正式重新验收结论：PASS（2026-09-21）；被验收 PR head 为 `574563844195cfb16097dbf00b0ce3de40a9c165`，PR #7 已普通合并，merge commit 为 `78b1f9a2c7b76f51be7f38a8b86780879111bb24`。UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
 
 ## G06 BLOCKED 停止点（历史，2026-09-13；Sol R6 决策后已解除）
 
@@ -1218,3 +1220,18 @@ Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Prese
 - 分支：`ui-refactor-uir03-advanced-details`；PR #7 仍以 `main` 为目标、未合并。
 - 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；治理文档随后提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
 - GitHub Actions run `35598601953` 已成功验证实现与测试 head；随后 run `35599116099` 已成功验证治理文档提交后的 PR head，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均完成且成功；当前不得启动 UIR04。
+
+
+## UIR03 Sol 正式重新验收结论（2026-09-21）
+
+**PASS**
+
+- 被验收候选 SHA：`574563844195cfb16097dbf00b0ce3de40a9c165`；基线：`011df173b33a81c019a19390ac6bbd884fbbccbf`。
+- GitHub PR：[#7 feat: implement UIR03 advanced details](https://github.com/adgo07/GHGTOOL/pull/7)；已普通合并，merge commit 为 `78b1f9a2c7b76f51be7f38a8b86780879111bb24`。
+- 最新候选对应 GitHub Actions run `35599692564` 已成功；merge-ref 为 `645d512f6ac19c686da83868363b621e4bea97c4`，merge-ref full tests 与 exact PR-head standalone audit 均通过。
+- UIR03 定向 10/10、相关回归 65/65、UIR02/G06 受影响回归 31/31、项目全量 150/150 均通过；compileall、pip check、Canonical 校验、三库从零重建及交付审计均通过。
+- P01/P02/P03 普通模式均展示 `默认排放参数：0.35（比例）· 标准默认`；详细参数 ID、条款、来源和选择理由仅在专业详情展示。
+- 普通数据质量信息已业务化；原始 Domain message 与稳定校验码继续保留在专业详情中，审计信息未丢失。
+- 未修改 Domain、Calculator、ParameterResolver、Canonical、计算公式、SQLite schema、迁移或 records 生命周期；未实施 UIR04。
+
+UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。

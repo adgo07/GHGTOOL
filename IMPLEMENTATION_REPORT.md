@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：UIR02（已通过）
+## 当前阶段：UIR03（已通过）
 
 本报告末尾的“UIR02 实施报告”是当前阶段的正式记录；前文 UIR01/G00-G08 内容保留为历史实施报告，不重写。
 
@@ -1805,3 +1805,17 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；随后治理文档提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
 - GitHub Actions run `35598601953`：成功验证实现与测试 head；随后 run `35599116099`：成功验证治理文档提交后的 PR head。两个 run 的 Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均完成且成功。
 - 当前状态：等待 Sol 重新验收 UIR03；禁止启动 UIR04。
+
+
+## UIR03 Sol 正式验收结论（2026-09-21）
+
+**PASS**
+
+- 被验收候选 SHA：`574563844195cfb16097dbf00b0ce3de40a9c165`；基线：`011df173b33a81c019a19390ac6bbd884fbbccbf`。
+- PR #7 已普通合并至 `main`，merge commit：`78b1f9a2c7b76f51be7f38a8b86780879111bb24`。
+- GitHub Actions run `35599692564` 对应被验收 HEAD；merge-ref full tests 与 exact PR-head standalone audit 均成功，全量测试 150/150 通过。
+- 两项小修均已关闭：三个过程源普通摘要展示冻结默认参数 `0.35（比例）· 标准默认`；普通校验信息改为业务语言，原始 Domain 信息和稳定代码仍在专业详情可审计。
+- 收到基默认路径、异常口径条件展开、字段性质自动映射、专业详情展示分层、电力与热力原参数解析规则均保持有效。
+- 未发现 UIR04 提前实施；未修改 Domain、计算公式、Canonical、数据库 schema、迁移、历史记录语义或 `计算表/`。
+
+结论：UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
