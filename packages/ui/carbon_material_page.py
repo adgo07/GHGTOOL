@@ -1,6 +1,7 @@
 """G06 Qt page for hand-entered GB/T 32151.34 calculations.
 
-The page exposes G06 inputs and G05-backed parameter selection while keeping calculation rules in the Domain layer.
+The page keeps calculation rules in the Domain layer while presenting
+business-language summaries and optional professional details.
 """
 
 from __future__ import annotations
@@ -187,27 +188,48 @@ class _ElectricityRow(QWidget):
         detail_panel = QWidget(self)
         detail_layout = QVBoxLayout(detail_panel)
         detail_layout.setContentsMargins(0, 0, 0, 0)
-        self.parameter_status = QLabel("参数状态：待录入", detail_panel)
+        self.parameter_status = QLabel("电力因子：待录入", detail_panel)
         self.parameter_status.setObjectName(f"electricityParameterStatus{index}")
         self.parameter_status.setWordWrap(True)
-        self.parameter_factor = QLabel("采用因子：尚未解析", detail_panel)
+        self.parameter_factor = QLabel("电力因子：尚未确定", detail_panel)
         self.parameter_factor.setObjectName(f"electricityParameterFactor{index}")
         self.parameter_factor.setWordWrap(True)
-        self.parameter_source = QLabel("来源：尚未解析", detail_panel)
+        self.parameter_source = QLabel("来源说明：尚未确定", detail_panel)
         self.parameter_source.setObjectName(f"electricityParameterSource{index}")
         self.parameter_source.setWordWrap(True)
-        self.parameter_reason = QLabel("选择理由：尚未解析", detail_panel)
+        self.parameter_reason = QLabel("采用依据：尚未确定", detail_panel)
         self.parameter_reason.setObjectName(f"electricityParameterReason{index}")
         self.parameter_reason.setWordWrap(True)
-        for widget in (self.parameter_status, self.parameter_factor, self.parameter_source, self.parameter_reason):
+        self.professional_details = QLabel("", detail_panel)
+        self.professional_details.setObjectName(f"electricityProfessionalDetails{index}")
+        self.professional_details.setWordWrap(True)
+        self.professional_details.setVisible(False)
+        for widget in (
+            self.parameter_status,
+            self.parameter_factor,
+            self.parameter_source,
+            self.parameter_reason,
+            self.professional_details,
+        ):
             detail_layout.addWidget(widget)
         layout.addWidget(detail_panel, 1, 0, 1, 7)
 
-    def show_parameter_state(self, status: str, factor: str, source: str, reason: str) -> None:
+    def show_parameter_state(
+        self,
+        status: str,
+        factor: str,
+        source: str,
+        reason: str,
+        professional_details: str = "",
+    ) -> None:
         self.parameter_status.setText(status)
         self.parameter_factor.setText(factor)
         self.parameter_source.setText(source)
         self.parameter_reason.setText(reason)
+        self.professional_details.setText(professional_details)
+
+    def set_professional_details_visible(self, visible: bool) -> None:
+        self.professional_details.setVisible(visible)
 
     def build(self, enterprise_id: str, period: AccountingPeriod) -> ElectricityConsumptionDetail | None:
         amount = _value(self.amount)
@@ -264,6 +286,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._fields: dict[str, QLineEdit] = {}
         self._material_controls: dict[str, dict[str, QWidget]] = {}
         self._heat_factor_records = {}
+        self._professional_detail_widgets: list[QWidget] = []
         # Presentation-only feedback from the existing G05/Domain paths.
         # These caches never become part of CarbonMaterialInput or persistence.
         self._electricity_resolution_states: dict[str, str] = {}
@@ -357,30 +380,37 @@ class CarbonMaterialAccountingPage(BasePage):
         identity_layout.addWidget(boundary)
         self.body_layout.addWidget(identity)
 
+        presentation_options = QWidget(self)
+        presentation_options_layout = QHBoxLayout(presentation_options)
+        presentation_options_layout.setContentsMargins(0, 0, 0, 0)
+        self.show_professional_details = QCheckBox("显示专业详情", presentation_options)
+        self.show_professional_details.setObjectName("showProfessionalDetailsCheckBox")
+        self.show_professional_details.setToolTip("默认只显示业务录入信息；打开后查看标准条款、来源和参数审计信息。")
+        self.show_professional_details.toggled.connect(self._set_professional_details_visible)
+        presentation_options_layout.addWidget(self.show_professional_details)
+        presentation_options_layout.addWidget(
+            QLabel("普通录入按标准默认值自动处理，异常口径和换算信息会在需要时展开。", presentation_options)
+        )
+        presentation_options_layout.addStretch(1)
+        self.body_layout.addWidget(presentation_options)
+
         source_activity, source_activity_layout = _card("02 排放源与活动数据", self)
         self._build_source_cards(source_activity_layout)
         self.body_layout.addWidget(source_activity)
 
-        parameter_card, parameter_layout = _card("05 参数与排放因子", self)
-        parameter_label = QLabel("参数选择器接入 G05：候选值、推荐/其他适用/历史分类、来源、审核状态和选择理由均在录入区显示。", parameter_card)
-        parameter_label.setWordWrap(True)
-        parameter_layout.addWidget(parameter_label)
-        self.parameter_selection_status = QLabel("尚未选择参数。", parameter_card)
-        self.parameter_selection_status.setObjectName("parameterSelectionStatus")
-        self.parameter_selection_status.setWordWrap(True)
-        parameter_layout.addWidget(self.parameter_selection_status)
-        self.parameter_snapshot_summary = QLabel("尚未计算，暂无参数快照。", parameter_card)
-        self.parameter_snapshot_summary.setObjectName("parameterSnapshotSummary")
-        self.parameter_snapshot_summary.setWordWrap(True)
-        parameter_layout.addWidget(self.parameter_snapshot_summary)
-        self.body_layout.addWidget(parameter_card)
-        self._refresh_heat_factor_details()
-
         process_card, process_layout = _card("06 计算过程", self)
-        self.trace_output = QLabel("点击“计算排放量”后显示公式、变量和分项结果。", process_card)
+        self.trace_output = QLabel("点击“计算排放量”后显示分项计算结果。", process_card)
         self.trace_output.setObjectName("calculationTrace")
         self.trace_output.setWordWrap(True)
         process_layout.addWidget(self.trace_output)
+        self.trace_professional_details = QLabel(
+            "打开“显示专业详情”后可查看公式和变量代入信息。",
+            process_card,
+        )
+        self.trace_professional_details.setObjectName("calculationTraceProfessionalDetails")
+        self.trace_professional_details.setWordWrap(True)
+        process_layout.addWidget(self.trace_professional_details)
+        self._register_professional_details(self.trace_professional_details)
         self.body_layout.addWidget(process_card)
 
         result_card, result_layout = _card("07 核算结果", self)
@@ -412,6 +442,22 @@ class CarbonMaterialAccountingPage(BasePage):
         self.body_layout.addLayout(action_row)
         self.body_layout.addStretch(1)
         self._refresh_source_cards()
+
+    def _register_professional_details(self, widget: QWidget) -> None:
+        self._professional_detail_widgets.append(widget)
+        widget.setVisible(getattr(self, "show_professional_details", None) is not None and self.show_professional_details.isChecked())
+
+    def _set_professional_details_visible(self, visible: bool) -> None:
+        for widget in self._professional_detail_widgets:
+            widget.setVisible(visible)
+        for row in self._electricity_rows:
+            row.set_professional_details_visible(visible)
+        for controls in self._material_controls.values():
+            details = controls.get("professional_details")
+            if details is not None:
+                details.setVisible(visible)
+        if hasattr(self, "trace_professional_details") and not self.trace_professional_details.text().strip():
+            self.trace_professional_details.setText("暂无专业计算过程信息。")
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
         """Build all ten source cards through one shared Presentation path."""
@@ -486,6 +532,18 @@ class CarbonMaterialAccountingPage(BasePage):
             card.status_changed.connect(lambda _status, _source_id=source_id: self._refresh_source_cards())
             parent_layout.addWidget(card)
 
+        parameter_summary = QWidget(self)
+        parameter_summary_layout = QVBoxLayout(parameter_summary)
+        parameter_summary_layout.setContentsMargins(0, 8, 0, 0)
+        parameter_summary_title = QLabel("本次计算参数状态（只读）", parameter_summary)
+        parameter_summary_title.setObjectName("parameterSummaryTitle")
+        parameter_summary_layout.addWidget(parameter_summary_title)
+        self.parameter_snapshot_summary = QLabel("尚未计算，暂无参数快照。", parameter_summary)
+        self.parameter_snapshot_summary.setObjectName("parameterSnapshotSummary")
+        self.parameter_snapshot_summary.setWordWrap(True)
+        parameter_summary_layout.addWidget(self.parameter_snapshot_summary)
+        parent_layout.addWidget(parameter_summary)
+
         self._refresh_source_cards()
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
@@ -542,24 +600,56 @@ class CarbonMaterialAccountingPage(BasePage):
         if prefix not in {"calcination", "baking", "graphitization"}:
             return
 
+        self._build_material_controls(parent_layout, prefix)
+
+    def _build_material_controls(self, parent_layout: QVBoxLayout, prefix: str) -> None:
+        """Build business-language basis controls with conditional expansion.
+
+        The hidden widgets keep the existing Domain input contract and object
+        names for compatibility.  Users see the standard received-basis
+        summary by default; only a non-standard or inconsistent basis expands
+        the conversion section.
+        """
+
         metadata = QWidget(self)
         metadata.setObjectName(f"{prefix}_otherNecessaryData")
-        metadata_form = QFormLayout(metadata)
-        metadata_title = QLabel("其他必要数据", metadata)
-        metadata_title.setObjectName(f"{prefix}_otherNecessaryDataTitle")
-        metadata_form.addRow(metadata_title)
+        metadata_layout = QVBoxLayout(metadata)
+        metadata_layout.setContentsMargins(0, 8, 0, 0)
+        summary_row = QHBoxLayout()
+        basis_summary = QLabel("数据口径：收到基", metadata)
+        basis_summary.setObjectName(f"{prefix}_basisSummary")
+        basis_summary.setWordWrap(True)
+        summary_row.addWidget(basis_summary, 1)
+        edit_button = QPushButton("修改", metadata)
+        edit_button.setObjectName(f"{prefix}_basisEditButton")
+        edit_button.clicked.connect(lambda _checked=False, _prefix=prefix: self._toggle_basis_editor(_prefix))
+        summary_row.addWidget(edit_button)
+        metadata_layout.addLayout(summary_row)
+
+        basis_editor = QWidget(metadata)
+        basis_editor.setObjectName(f"{prefix}_basisAndConversionEditor")
+        basis_editor_layout = QFormLayout(basis_editor)
+        basis_editor_layout.setContentsMargins(0, 8, 0, 0)
+        basis_editor_title = QLabel("数据口径与换算", basis_editor)
+        basis_editor_title.setObjectName(f"{prefix}_basisAndConversionTitle")
+        basis_editor_title.setWordWrap(True)
+        basis_editor_layout.addRow(basis_editor_title)
+
         basis_options = (
             (MaterialBasis.UNKNOWN, "未确认"),
             (MaterialBasis.RECEIVED, "收到基"),
             (MaterialBasis.DRY, "干燥基"),
             (MaterialBasis.OTHER_DOCUMENTED, "其他有证基准"),
         )
-        mass_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.mass_basis"), f"{prefix}_massBasisSelector")
-        composition_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.composition_basis"), f"{prefix}_compositionBasisSelector")
-        normalized_basis = create_typed_input(metadata, get_field_spec(f"{prefix}.normalized_basis"), f"{prefix}_normalizedBasisSelector")
+        mass_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.mass_basis"), f"{prefix}_massBasisSelector")
+        composition_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.composition_basis"), f"{prefix}_compositionBasisSelector")
+        normalized_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.normalized_basis"), f"{prefix}_normalizedBasisSelector")
         for combo in (mass_basis, composition_basis, normalized_basis):
             for value, label_text in basis_options:
                 combo.addItem(label_text, value)
+        basis_editor_layout.addRow("质量数据基准", mass_basis)
+        basis_editor_layout.addRow("成分含量基准", composition_basis)
+
         component_options = (
             (MaterialComponentKind.UNKNOWN, "未确认"),
             (MaterialComponentKind.FIXED_CARBON, "固定碳"),
@@ -567,38 +657,65 @@ class CarbonMaterialAccountingPage(BasePage):
             (MaterialComponentKind.TOTAL_CARBON, "总碳（本字段不可直接采用）"),
         )
         fixed_carbon_component_kind = create_typed_input(
-            metadata,
+            basis_editor,
             get_field_spec(f"{prefix}.fixed_carbon_component_kind"),
             f"{prefix}_fixedCarbonComponentKindSelector",
         )
         volatile_matter_component_kind = create_typed_input(
-            metadata,
+            basis_editor,
             get_field_spec(f"{prefix}.volatile_matter_component_kind"),
             f"{prefix}_volatileMatterComponentKindSelector",
         )
         for combo in (fixed_carbon_component_kind, volatile_matter_component_kind):
             for value, label_text in component_options:
                 combo.addItem(label_text, value)
+        normalized_basis.setVisible(False)
+        fixed_carbon_component_kind.setVisible(False)
+        volatile_matter_component_kind.setVisible(False)
+
+        automatic_component_summary = QLabel(
+            "固定碳字段和挥发分字段由字段定义自动识别，不需要用户选择字段性质。",
+            basis_editor,
+        )
+        automatic_component_summary.setObjectName(f"{prefix}_automaticComponentSummary")
+        automatic_component_summary.setWordWrap(True)
+        basis_editor_layout.addRow("字段性质", automatic_component_summary)
+
         moisture_evidence = create_typed_input(
-            metadata,
+            basis_editor,
             get_field_spec(f"{prefix}.moisture_evidence"),
             f"{prefix}_moistureEvidenceCheckBox",
         )
-        moisture_evidence.setText("已有水分/基准证明")
+        moisture_evidence.setText("数据来源已记录")
         moisture_evidence.setObjectName(f"{prefix}_moistureEvidenceCheckBox")
         conversion_evidence = create_typed_input(
-            metadata,
+            basis_editor,
             get_field_spec(f"{prefix}.conversion_evidence"),
             f"{prefix}_conversionEvidenceCheckBox",
         )
-        conversion_evidence.setText("已有收到基换算证明")
+        conversion_evidence.setText("换算依据已提供")
         conversion_evidence.setObjectName(f"{prefix}_conversionEvidenceCheckBox")
         evidence_reference = create_typed_input(
-            metadata,
+            basis_editor,
             get_field_spec(f"{prefix}.evidence_reference"),
             f"{prefix}_basisEvidenceReferenceInput",
-            "证明编号或来源定位（非收到基必填）",
+            "报告/台账编号或来源说明（非收到基必填）",
         )
+        basis_editor.setVisible(False)
+        basis_warning = QLabel("", basis_editor)
+        basis_warning.setObjectName(f"{prefix}_basisWarning")
+        basis_warning.setWordWrap(True)
+        basis_editor_layout.addRow("提示", basis_warning)
+        basis_editor_layout.addRow("数据来源", moisture_evidence)
+        basis_editor_layout.addRow("换算依据", conversion_evidence)
+        basis_editor_layout.addRow("报告/台账编号或来源说明", evidence_reference)
+
+        professional_details = QLabel("", metadata)
+        professional_details.setObjectName(f"{prefix}_professionalDetails")
+        professional_details.setWordWrap(True)
+        metadata_layout.addWidget(basis_editor)
+        metadata_layout.addWidget(professional_details)
+
         self._material_controls[prefix] = {
             "mass_basis": mass_basis,
             "composition_basis": composition_basis,
@@ -608,16 +725,156 @@ class CarbonMaterialAccountingPage(BasePage):
             "moisture_evidence": moisture_evidence,
             "conversion_evidence": conversion_evidence,
             "evidence_reference": evidence_reference,
+            "basis_editor": basis_editor,
+            "basis_summary": basis_summary,
+            "basis_warning": basis_warning,
+            "basis_edit_button": edit_button,
+            "professional_details": professional_details,
         }
-        metadata_form.addRow(get_field_spec(f"{prefix}.mass_basis").label, mass_basis)
-        metadata_form.addRow(get_field_spec(f"{prefix}.composition_basis").label, composition_basis)
-        metadata_form.addRow(get_field_spec(f"{prefix}.normalized_basis").label, normalized_basis)
-        metadata_form.addRow(get_field_spec(f"{prefix}.fixed_carbon_component_kind").label, fixed_carbon_component_kind)
-        metadata_form.addRow(get_field_spec(f"{prefix}.volatile_matter_component_kind").label, volatile_matter_component_kind)
-        metadata_form.addRow(get_field_spec(f"{prefix}.moisture_evidence").label, moisture_evidence)
-        metadata_form.addRow(get_field_spec(f"{prefix}.conversion_evidence").label, conversion_evidence)
-        metadata_form.addRow(get_field_spec(f"{prefix}.evidence_reference").label, evidence_reference)
+        for widget in (mass_basis, composition_basis, moisture_evidence, conversion_evidence, evidence_reference):
+            if isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(lambda _index, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+            elif isinstance(widget, QCheckBox):
+                widget.toggled.connect(lambda _checked, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+            elif isinstance(widget, QLineEdit):
+                widget.textChanged.connect(lambda _text, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+        self._register_professional_details(professional_details)
         parent_layout.addWidget(metadata)
+        self._refresh_material_basis_display(prefix)
+
+    @staticmethod
+    def _basis_label(value: MaterialBasis) -> str:
+        return {
+            MaterialBasis.UNKNOWN: "未确认",
+            MaterialBasis.RECEIVED: "收到基",
+            MaterialBasis.DRY: "干燥基",
+            MaterialBasis.OTHER_DOCUMENTED: "其他有证基准",
+        }[value]
+
+    @staticmethod
+    def _component_kind_label(value: MaterialComponentKind) -> str:
+        return {
+            MaterialComponentKind.UNKNOWN: "未确认",
+            MaterialComponentKind.FIXED_CARBON: "固定碳",
+            MaterialComponentKind.VOLATILE_MATTER: "挥发分",
+            MaterialComponentKind.TOTAL_CARBON: "总碳",
+        }[value]
+
+    def _material_basis_value(
+        self,
+        controls: dict[str, QWidget],
+        key: str,
+        default: MaterialBasis,
+    ) -> MaterialBasis:
+        value = controls[key].currentData()  # type: ignore[union-attr]
+        try:
+            value = _enum(value, MaterialBasis)
+        except (TypeError, ValueError):
+            return default
+        if value is MaterialBasis.UNKNOWN:
+            return default
+        return value
+
+    def _material_component_value(
+        self,
+        controls: dict[str, QWidget],
+        key: str,
+        default: MaterialComponentKind,
+    ) -> MaterialComponentKind:
+        value = controls[key].currentData()  # type: ignore[union-attr]
+        try:
+            value = _enum(value, MaterialComponentKind)
+        except (TypeError, ValueError):
+            return default
+        if value is MaterialComponentKind.UNKNOWN:
+            return default
+        return value
+
+    def _toggle_basis_editor(self, prefix: str) -> None:
+        controls = self._material_controls[prefix]
+        editor = controls["basis_editor"]
+        requires_expansion = self._basis_requires_expansion(prefix)
+        visible = not editor.isVisible() or requires_expansion
+        if visible or not requires_expansion:
+            editor.setVisible(visible)
+        self._refresh_material_basis_display(prefix)
+
+    def _basis_requires_expansion(self, prefix: str) -> bool:
+        controls = self._material_controls[prefix]
+        mass = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
+        composition = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
+        return mass is not MaterialBasis.RECEIVED or composition is not MaterialBasis.RECEIVED or mass is not composition
+
+    def _refresh_material_basis_display(self, prefix: str) -> None:
+        controls = self._material_controls.get(prefix)
+        if controls is None:
+            return
+        mass = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
+        composition = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
+        mass_label = self._basis_label(mass)
+        composition_label = self._basis_label(composition)
+        if mass is MaterialBasis.RECEIVED and composition is MaterialBasis.RECEIVED:
+            summary = "数据口径：收到基"
+        elif mass is composition:
+            summary = f"数据口径：{mass_label}（需要换算为收到基）"
+        else:
+            summary = f"数据口径：不一致（质量数据：{mass_label}；成分含量：{composition_label}）"
+        controls["basis_summary"].setText(summary)  # type: ignore[union-attr]
+
+        requires_expansion = self._basis_requires_expansion(prefix)
+        editor = controls["basis_editor"]
+        if requires_expansion:
+            editor.setVisible(True)
+        controls["basis_edit_button"].setText("收起" if editor.isVisible() and not requires_expansion else "修改")  # type: ignore[union-attr]
+
+        warning = ""
+        if mass is not composition:
+            warning = (
+                f"数据基准不一致：质量数据使用“{mass_label}”，成分含量使用“{composition_label}”。"
+                "两者不能直接计算；请提供统一口径的换算依据和报告/台账编号或来源说明。"
+            )
+        elif mass is not MaterialBasis.RECEIVED:
+            missing: list[str] = []
+            if not controls["moisture_evidence"].isChecked():  # type: ignore[union-attr]
+                missing.append("数据来源记录")
+            if not controls["conversion_evidence"].isChecked():  # type: ignore[union-attr]
+                missing.append("换算依据")
+            if not _value(controls["evidence_reference"]):  # type: ignore[arg-type]
+                missing.append("报告/台账编号或来源说明")
+            warning = (
+                f"当前数据为“{mass_label}”，标准计算需要统一到收到基，不能静默换算。"
+                "请提供数据来源记录、换算依据和报告/台账编号或来源说明。"
+            )
+            if missing:
+                warning += f" 当前还缺少：{'、'.join(missing)}。"
+        elif editor.isVisible():
+            warning = "默认按收到基处理；如使用其他基准，请填写对应的来源和换算信息。"
+        controls["basis_warning"].setText(warning)  # type: ignore[union-attr]
+
+        field_names = {
+            "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),
+            "baking": ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
+            "graphitization": ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"),
+        }[prefix]
+        parameter_id = {
+            "calcination": "CAR-PAR-K1",
+            "baking": "CAR-PAR-K2",
+            "graphitization": "CAR-PAR-K3",
+        }[prefix]
+        detail_lines = [
+            "专业详情（只读）",
+            f"数据基准转换：质量数据 {mass_label}；成分含量 {composition_label}；内部归一目标：收到基。",
+            "固定碳字段性质：固定碳（由字段定义自动确定）。",
+            "挥发分字段性质：挥发分（由字段定义自动确定）。",
+            f"标准默认参数 ID：{parameter_id}；参数来源：标准默认值；选择理由：按适用标准默认规则采用。",
+        ]
+        for field in field_names:
+            spec = get_field_spec(f"{prefix}.{field}")
+            symbol = spec.standard_symbol or "未单列符号"
+            detail_lines.append(
+                f"{spec.display_name}（{symbol}）：标准条款 {spec.standard_clause}；来源定位：{spec.source_location}。"
+            )
+        controls["professional_details"].setText("\n".join(detail_lines))  # type: ignore[union-attr]
 
     def _build_electricity_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("购入电力/多条电力明细（I01；取得方式与电力属性独立）", self)
@@ -659,6 +916,7 @@ class CarbonMaterialAccountingPage(BasePage):
     def _add_electricity_row(self) -> None:
         row = _ElectricityRow(len(self._electricity_rows) + 1, self._remove_electricity_row, self)
         self._electricity_rows.append(row)
+        row.set_professional_details_visible(self.show_professional_details.isChecked())
         self.electricity_rows_layout.addWidget(row)
         row.detail_id.textChanged.connect(lambda _text: self._refresh_electricity_rows())
         row.amount.textChanged.connect(lambda _text: self._refresh_electricity_rows())
@@ -726,17 +984,39 @@ class CarbonMaterialAccountingPage(BasePage):
         self.heat_factor_selector.setProperty("fieldSpecKey", "heat_factor")
         self.heat_factor_selector.setToolTip(get_field_spec("heat_factor").help_text)
         self.heat_factor_selector.currentIndexChanged.connect(self._refresh_heat_factor_details)
-        form.addRow(get_field_spec("heat_factor").label, self.heat_factor_selector)
         self.heat_factor_metadata = create_read_only_parameter(row, get_field_spec("heat_factor"), "heatFactorMetadata")
-        self.heat_factor_metadata.setText("尚未加载热力因子候选值。")
-        form.addRow("候选来源与审核（只读）", self.heat_factor_metadata)
+        self.heat_factor_metadata.setText("推荐热力因子：尚未加载")
+        form.addRow("热力参数摘要（只读）", self.heat_factor_metadata)
+        self.parameter_selection_status = QLabel("采用依据：按核算期间自动确定标准默认值。", row)
+        self.parameter_selection_status.setObjectName("parameterSelectionStatus")
+        self.parameter_selection_status.setWordWrap(True)
+        form.addRow("采用依据", self.parameter_selection_status)
+        self.heat_factor_edit_button = QPushButton("更改参数", row)
+        self.heat_factor_edit_button.setObjectName("heatFactorEditButton")
+        self.heat_factor_edit_button.clicked.connect(self._toggle_heat_parameter_advanced)
+        form.addRow("", self.heat_factor_edit_button)
+
+        self.heat_factor_professional_details = QLabel("", row)
+        self.heat_factor_professional_details.setObjectName("heatFactorProfessionalDetails")
+        self.heat_factor_professional_details.setWordWrap(True)
+
+        advanced_panel = QWidget(row)
+        advanced_panel.setObjectName("heatFactorAdvancedPanel")
+        advanced_form = QFormLayout(advanced_panel)
+        advanced_form.addRow("高级参数选择", QLabel("需要更改自动推荐值时，请选择其他适用值并填写理由。", advanced_panel))
+        advanced_form.addRow("选择其他适用值", self.heat_factor_selector)
         self.heat_factor_selection_reason = create_typed_input(
-            row,
+            advanced_panel,
             get_field_spec("heat_factor_selection_reason"),
             "heatFactorSelectionReasonInput",
-            "自动推荐理由或人工确认理由",
+            "选择其他适用值时填写理由",
         )
-        form.addRow(get_field_spec("heat_factor_selection_reason").label, self.heat_factor_selection_reason)
+        advanced_form.addRow("参数选择理由", self.heat_factor_selection_reason)
+        advanced_panel.setVisible(False)
+        form.addRow("", advanced_panel)
+        form.addRow("专业详情", self.heat_factor_professional_details)
+        self._register_professional_details(self.heat_factor_professional_details)
+        self._heat_factor_advanced_panel = advanced_panel
         parent_layout.addWidget(row)
         self._populate_heat_factor_selector()
 
@@ -765,7 +1045,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._exported_heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
         self._exported_heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
         form.addRow(get_field_spec("exported_heat_steam_kind").label, self._exported_heat_steam_kind)
-        hint = QLabel("I04 与 I02 共用上方 G05 热力因子选择器；输出热力同样必须标记排放源为“涉及”。", row)
+        hint = QLabel("I04 与 I02 共用上方热力参数摘要；输出热力同样必须标记排放源为“涉及”。", row)
         hint.setWordWrap(True)
         form.addRow("参数路径", hint)
         parent_layout.addWidget(row)
@@ -781,11 +1061,11 @@ class CarbonMaterialAccountingPage(BasePage):
             category = self.catalog_service.value_category(record)
             category_label = self.catalog_service.value_category_label(category)
             self.heat_factor_selector.addItem(
-                f"{category_label} | {record.factor_id} | {record.normalized_value} {record.normalized_unit}",
+                f"{category_label}：{record.normalized_value} {record.normalized_unit}",
                 record.factor_id,
             )
         if not records:
-            self.heat_factor_selector.addItem("目录暂无可用热力因子候选值", None)
+            self.heat_factor_selector.addItem("暂无可用的标准热力参数", None)
             self.heat_factor_selector.setEnabled(False)
         self._refresh_heat_factor_details()
 
@@ -805,18 +1085,26 @@ class CarbonMaterialAccountingPage(BasePage):
             return
         factor_id = self.heat_factor_selector.currentData()
         if factor_id is None or factor_id not in self._heat_factor_records:
-            self.heat_factor_metadata.setText("目录暂无可用热力因子；输入热力时将由 G05 明确阻断，不能静默猜值。")
+            self.heat_factor_metadata.setText("推荐热力因子：暂无可用的标准参数；填写热力数据时会明确提示。")
             if hasattr(self, "parameter_selection_status"):
-                self.parameter_selection_status.setText("热力参数：无可用目录候选值。")
+                self.parameter_selection_status.setText("采用依据：当前没有可用的标准热力参数。")
             return
         record = self._heat_factor_records[factor_id]
         category = self.catalog_service.value_category(record)
-        metadata = (
-            f"{self.catalog_service.value_category_label(category)}；因子 {record.factor_id}；"
-            f"值 {record.normalized_value} {record.normalized_unit}；来源 {record.source_id}；"
-            f"审核 {_review_status_label(record.review_status)}；定位 {record.source_location}"
+        category_label = self.catalog_service.value_category_label(category)
+        self.heat_factor_metadata.setText(
+            f"推荐热力因子：{record.normalized_value} {record.normalized_unit} · "
+            f"{category_label} · {_review_status_label(record.review_status)}"
         )
-        self.heat_factor_metadata.setText(metadata)
+        professional_lines = (
+            "专业详情（只读）",
+            f"参数 ID：{record.parameter_id}",
+            f"因子 ID：{record.factor_id}",
+            f"标准条款：{get_field_spec('heat_factor').standard_clause}",
+            f"参数来源：{record.source_id or '未提供'}；来源定位：{record.source_location or '未提供'}",
+            f"审核状态：{_review_status_label(record.review_status)}",
+        )
+        self.heat_factor_professional_details.setText("\n".join(professional_lines))
         if self._parameter_resolver is not None:
             try:
                 resolution = self._parameter_resolver.resolve(self._heat_resolution_context())
@@ -825,11 +1113,16 @@ class CarbonMaterialAccountingPage(BasePage):
             if resolution is not None and resolution.recommended is not None and resolution.recommended.factor_id == factor_id:
                 if not self.heat_factor_selection_reason.text().strip():
                     self.heat_factor_selection_reason.setText(resolution.selection_reason)
-                status = f"推荐选择：{resolution.selection_reason}"
+                status = f"采用依据：按当前核算期间自动推荐的{category_label}。"
             else:
-                status = "当前候选不是本核算期间的自动推荐值；选择它必须填写人工确认理由。"
+                status = "采用依据：当前选择不是自动推荐值；请在高级参数选择中填写理由。"
             if hasattr(self, "parameter_selection_status"):
                 self.parameter_selection_status.setText(status)
+
+    def _toggle_heat_parameter_advanced(self) -> None:
+        visible = not self._heat_factor_advanced_panel.isVisible()
+        self._heat_factor_advanced_panel.setVisible(visible)
+        self.heat_factor_edit_button.setText("收起参数选择" if visible else "更改参数")
     def _period(self) -> AccountingPeriod:
         year = self.period_year.value()
         if _enum(self.period_type.currentData(), PeriodType) is PeriodType.ANNUAL:
@@ -924,8 +1217,22 @@ class CarbonMaterialAccountingPage(BasePage):
         if present and controls is not None:
             basis_keys = ("mass_basis", "composition_basis", "normalized_basis")
             component_keys = ("fixed_carbon_component_kind", "volatile_matter_component_kind")
+            basis_defaults = {
+                "mass_basis": MaterialBasis.RECEIVED,
+                "composition_basis": MaterialBasis.RECEIVED,
+                "normalized_basis": MaterialBasis.RECEIVED,
+            }
+            component_defaults = {
+                "fixed_carbon_component_kind": MaterialComponentKind.FIXED_CARBON,
+                "volatile_matter_component_kind": MaterialComponentKind.VOLATILE_MATTER,
+            }
             complete = complete and all(
-                controls[key].currentData() not in {MaterialBasis.UNKNOWN, MaterialComponentKind.UNKNOWN}
+                (
+                    self._material_basis_value(controls, key, basis_defaults[key])
+                    if key in basis_defaults
+                    else self._material_component_value(controls, key, component_defaults[key])
+                )
+                is not None
                 for key in basis_keys + component_keys
             )
         return present, complete, invalid
@@ -1047,13 +1354,26 @@ class CarbonMaterialAccountingPage(BasePage):
         if controls is None:
             return kind(**values)
         evidence_reference = _value(controls["evidence_reference"])
+        mass_basis = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
+        composition_basis = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
+        normalized_basis = self._material_basis_value(controls, "normalized_basis", MaterialBasis.RECEIVED)
+        fixed_kind = self._material_component_value(
+            controls,
+            "fixed_carbon_component_kind",
+            MaterialComponentKind.FIXED_CARBON,
+        )
+        volatile_kind = self._material_component_value(
+            controls,
+            "volatile_matter_component_kind",
+            MaterialComponentKind.VOLATILE_MATTER,
+        )
         return kind(
             **values,
-            mass_basis=_enum(controls["mass_basis"].currentData(), MaterialBasis),
-            composition_basis=_enum(controls["composition_basis"].currentData(), MaterialBasis),
-            normalized_basis=_enum(controls["normalized_basis"].currentData(), MaterialBasis),
-            fixed_carbon_component_kind=_enum(controls["fixed_carbon_component_kind"].currentData(), MaterialComponentKind),
-            volatile_matter_component_kind=_enum(controls["volatile_matter_component_kind"].currentData(), MaterialComponentKind),
+            mass_basis=_enum(mass_basis, MaterialBasis),
+            composition_basis=_enum(composition_basis, MaterialBasis),
+            normalized_basis=_enum(normalized_basis, MaterialBasis),
+            fixed_carbon_component_kind=_enum(fixed_kind, MaterialComponentKind),
+            volatile_matter_component_kind=_enum(volatile_kind, MaterialComponentKind),
             moisture_evidence=controls["moisture_evidence"].isChecked() and evidence_reference is not None,
             conversion_evidence=controls["conversion_evidence"].isChecked() and evidence_reference is not None,
         )
@@ -1077,20 +1397,20 @@ class CarbonMaterialAccountingPage(BasePage):
                 if row.amount.text().strip():
                     self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
-                    "参数状态：等待完整明细",
-                    "采用因子：尚未解析",
-                    "来源：尚未解析",
-                    "选择理由：补齐明细后解析",
+                    "电力因子：等待完整明细",
+                    "电力因子：尚未确定",
+                    "来源说明：尚未确定",
+                    "采用依据：请补齐本条明细后重新检查。",
                 )
             self._refresh_source_cards()
 
     def _render_electricity_parameter_states(self, details: tuple[ElectricityConsumptionDetail, ...]) -> None:
         self._electricity_resolution_states.clear()
         waiting = (
-            "参数状态：待录入",
-            "采用因子：尚未解析",
-            "来源：尚未解析",
-            "选择理由：录入电量后按本条明细独立解析",
+            "电力因子：待录入",
+            "电力因子：尚未确定",
+            "来源说明：尚未确定",
+            "采用依据：录入电量后按本条明细自动确定",
         )
         rows_by_id = {row.detail_id.text().strip(): row for row in self._electricity_rows}
         for row in self._electricity_rows:
@@ -1102,10 +1422,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 if row.amount.text().strip():
                     self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
-                    "参数状态：参数服务不可用",
-                    "采用因子：未解析",
-                    "来源：无独立参数快照",
-                    "选择理由：无法连接 G05 参数解析服务",
+                    "电力因子：暂不可用",
+                    "电力因子：尚未确定",
+                    "来源说明：暂未取得标准参数",
+                    "采用依据：当前无法取得适用的标准参数。",
+                    "专业说明：参数服务暂不可用；未形成参数快照。",
                 )
             return
         try:
@@ -1118,10 +1439,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 if row.amount.text().strip():
                     self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
                 row.show_parameter_state(
-                    "参数状态：解析失败",
-                    "采用因子：未解析",
-                    "来源：无独立参数快照",
-                    f"选择理由：{exc}",
+                    "电力因子：暂未确定",
+                    "电力因子：尚未确定",
+                    "来源说明：暂不可用",
+                    "采用依据：当前明细信息不足，无法确定适用参数。",
+                    f"专业说明：{exc}",
                 )
             return
         for resolution in resolutions:
@@ -1132,10 +1454,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._electricity_resolution_states[resolution.detail.detail_id] = "DELEGATED"
                 reason = resolution.problems[0].message if resolution.problems else "转交直接燃料排放路径"
                 row.show_parameter_state(
-                    "参数状态：转交直接燃料路径（不进入购电间接排放）",
-                    "采用因子：不适用",
-                    "来源：直接燃料路径转交",
-                    f"选择理由：{reason}",
+                    "电力因子：不适用",
+                    "电力因子：不进入购电路径",
+                    "来源说明：本明细按直接排放路径处理",
+                    "采用依据：自发自用化石能源电力不重复计入购入电力。",
+                    f"专业说明：{reason}",
                 )
                 continue
             selected = resolution.parameter_resolution.recommended if resolution.parameter_resolution else None
@@ -1143,14 +1466,22 @@ class CarbonMaterialAccountingPage(BasePage):
             if selected is not None and snapshot is not None:
                 self._electricity_resolution_states[resolution.detail.detail_id] = "RESOLVED"
                 factor = selected.factor
-                category = selected.category.value
-                method = resolution.parameter_resolution.selection_method.value if resolution.parameter_resolution and resolution.parameter_resolution.selection_method else "UNKNOWN"
+                category = self.catalog_service.value_category_label(selected.category)
                 review = self.catalog_service.review_status_label(factor.review_status)
                 row.show_parameter_state(
-                    f"参数状态：已采用｜{category}｜{method}",
-                    f"采用因子：{factor.factor_id} = {factor.value} {factor.unit}",
-                    f"来源：{factor.source_id or '未提供'}｜审核状态：{review}｜{factor.source_location or '未提供来源定位'}",
-                    f"选择理由：{resolution.parameter_resolution.selection_reason if resolution.parameter_resolution else '按当前规则确定'}",
+                    "电力因子：已确定",
+                    f"电力因子：{factor.value} {factor.unit} · {category}",
+                    f"来源说明：{review} · 已按当前标准规则确定",
+                    "采用依据：按核算期间、取得方式和电力属性自动确定。",
+                    (
+                        "专业详情（只读）\n"
+                        f"参数 ID：{factor.parameter_id}\n"
+                        f"因子 ID：{factor.factor_id}\n"
+                        f"标准条款：B.8；电力参数规则\n"
+                        f"参数来源：{factor.source_id or '未提供'}；来源定位：{factor.source_location or '未提供'}\n"
+                        f"审核状态：{review}\n"
+                        f"选择理由：{resolution.parameter_resolution.selection_reason if resolution.parameter_resolution else '按当前规则确定'}"
+                    ),
                 )
                 continue
             problems = resolution.problems
@@ -1160,25 +1491,26 @@ class CarbonMaterialAccountingPage(BasePage):
                 display_code = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
             reason = problems[0].message if problems else "当前明细未形成可用参数快照"
             row.show_parameter_state(
-                f"参数状态：阻断｜{display_code}",
-                "采用因子：未采用（不生成快照）",
-                "来源：无独立参数快照",
-                f"选择理由：{reason}",
+                "电力因子：需要处理",
+                "电力因子：未采用",
+                "来源说明：暂无可用的标准参数",
+                "采用依据：请检查取得方式、电力属性和相应材料状态。",
+                f"专业说明：校验代码 {display_code}；{reason}",
             )
 
     def _selected_heat_parameter_value(self) -> ParameterValue:
         factor_id = self.heat_factor_selector.currentData()
         if not isinstance(factor_id, str) or factor_id not in self._heat_factor_records:
-            raise DomainValidationError("热力输入缺少可用的 G05 热力因子候选值 [GEN-PAR-NO-APPLICABLE-VALUE]")
+            raise DomainValidationError("热力输入缺少可用的标准热力参数 [GEN-PAR-NO-APPLICABLE-VALUE]")
         if self._parameter_resolver is None:
-            raise DomainValidationError("热力输入未接入 G05 参数解析服务 [CAR-VAL-PARAMETER-RESOLVER-MISSING]")
+            raise DomainValidationError("热力输入暂时无法取得标准参数 [CAR-VAL-PARAMETER-RESOLVER-MISSING]")
 
         base_resolution = self._parameter_resolver.resolve(self._heat_resolution_context())
         selected_reason = self.heat_factor_selection_reason.text().strip()
         if base_resolution.recommended is not None and base_resolution.recommended.factor_id == factor_id and not base_resolution.blocked:
             resolution = base_resolution
         elif not selected_reason:
-            raise DomainValidationError("选择非推荐热力因子时必须填写选择理由 [GEN-PAR-CONFIRMATION-REASON]")
+            raise DomainValidationError("选择其他热力参数时必须填写选择理由 [GEN-PAR-CONFIRMATION-REASON]")
         else:
             resolution = self._parameter_resolver.resolve(
                 self._heat_resolution_context(
@@ -1320,7 +1652,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_total.setText("未计算")
         self.result_breakdown.clear()
         self.parameter_snapshot_summary.setText("尚未计算，暂无参数快照。")
-        self.trace_output.setText("点击“计算排放量”后显示公式、变量和分项结果。")
+        self.trace_output.setText("点击“计算排放量”后显示分项计算结果。")
+        self.trace_professional_details.setText("打开“显示专业详情”后可查看公式和变量代入信息。")
         self._input_dirty = False
 
     def confirm_discard_if_needed(self) -> bool:
@@ -1358,12 +1691,17 @@ class CarbonMaterialAccountingPage(BasePage):
             f"间接排放 EI：{by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0'))} tCO2；"
             f"状态：{'已生成正式核算记录' if outcome.record is not None else '存在阻断问题'}"
         )
-        self.parameter_snapshot_summary.setText(f"已形成 {len(outcome.parameter_snapshots)} 条参数快照；算法版本 {ALGORITHM_VERSION}。")
+        self.parameter_snapshot_summary.setText(f"已形成 {len(outcome.parameter_snapshots)} 条参数快照（只读）。")
         if outcome.record is not None:
             self._input_dirty = False
             self.record_created.emit(outcome.record.record_id)
         trace_lines = [f"{trace.formula_id}：{trace.substitution} = {trace.amount} tCO2" for trace in outcome.traces]
-        self.trace_output.setText("\n".join(trace_lines) if trace_lines else "无可展示计算过程。")
+        self.trace_professional_details.setText("\n".join(trace_lines) if trace_lines else "无可展示计算过程。")
+        self.trace_output.setText(
+            "计算过程已完成；如需查看公式和变量代入信息，请打开“显示专业详情”。"
+            if trace_lines
+            else "本次没有形成可展示的计算明细。"
+        )
 
 
 NewAccountingPage = CarbonMaterialAccountingPage

@@ -279,7 +279,9 @@ class UIR02SourceCardTests(unittest.TestCase):
         card = self._card(source_id)
         self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
         self.assertIn("需要处理", card.summary_label.text())
-        self.assertIn("阻断", row.parameter_status.text())
+        self.assertIn("需要处理", row.parameter_status.text())
+        self.assertNotIn("G05", row.parameter_status.text())
+        self.assertFalse(row.professional_details.isVisible())
         self.assertNotIn("已完成", card.summary_label.text())
 
     def test_existing_domain_error_marks_process_card_needs_attention(self) -> None:
