@@ -2,7 +2,7 @@
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
     "schema_version": "1.0.0",
-    "data_version": "2026.09.20-g08.2",
+    "data_version": "2026.09.20-g08.1",
     "app_compatibility": "1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
@@ -254,8 +254,7 @@
       ],
       "emission_source_refs": [],
       "calculation_status": "COMMON_RULES_ONLY",
-      "notes": "G02 只建立公共规则目录和参数引用，不实现规则解析。",
-      "scope": null
+      "notes": "G02 只建立公共规则目录和参数引用，不实现规则解析。"
     },
     {
       "standard_id": "gbt_32151_34_2024",
@@ -284,12 +283,7 @@
       ],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "行业模块规则留待 G06；G02 不录入公式。",
-      "scope": {
-        "text": "适用于炭素材料生产企业温室气体排放量的核算。",
-        "source_id": "SRC-32151-34-2024",
-        "source_location": "范围章节"
-      }
+      "notes": "适用于炭素材料生产企业温室气体排放量的核算。"
     },
     {
       "standard_id": "gbt_32151_1_2015",
@@ -313,8 +307,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     },
     {
       "standard_id": "gbt_32151_4_2026",
@@ -338,8 +331,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     },
     {
       "standard_id": "gbt_32151_5_2026",
@@ -363,8 +355,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "官方来源已核对；实施前仅展示即将实施状态，不录入核算规则。",
-      "scope": null
+      "notes": "官方来源已核对；实施前仅展示即将实施状态，不录入核算规则。"
     },
     {
       "standard_id": "gbt_32151_7_2023",
@@ -388,8 +379,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     },
     {
       "standard_id": "gbt_32151_8_2023",
@@ -413,8 +403,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     },
     {
       "standard_id": "gbt_32151_13_2023",
@@ -438,8 +427,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     },
     {
       "standard_id": "gbt_32151_41_2024",
@@ -463,8 +451,7 @@
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "仅作目录元数据，核算入口保持禁用。",
-      "scope": null
+      "notes": "仅作目录元数据，核算入口保持禁用。"
     }
   ],
   "parameters": [
