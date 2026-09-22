@@ -87,21 +87,6 @@ def _matches(query: str, values: Iterable[object]) -> bool:
     return any(normalized_query in _normalized_text(value) for value in values)
 
 
-def infer_industry(standard: StandardCatalogRecord) -> str:
-    """Return a conservative filter label derived only from the official title."""
-
-    title = standard.standard_name
-    if "钢铁" in title or "焦化" in title:
-        return "钢铁"
-    if "铝" in title or "工业硅" in title:
-        return "有色"
-    if "玻璃" in title or "水泥" in title:
-        return "建材"
-    if "发电" in title:
-        return "能源"
-    return "其他"
-
-
 def status_for(standard: StandardCatalogRecord, as_of: date) -> CatalogStatus:
     """Calculate the visible status from the official status and effective dates."""
 
@@ -216,12 +201,14 @@ class CatalogQueryService:
         return VALUE_CATEGORY_LABELS[category]
 
     def industry_options(self) -> tuple[str, ...]:
-        preferred = ("全部", "钢铁", "有色", "建材", "化工", "能源", "机械制造", "交通运输", "轻工", "其他")
-        discovered = {
-            infer_industry(standard)
-            for standard in self._repository.list_standards()
-        }
-        return tuple(option for option in preferred if option == "全部" or option in discovered or option in {"化工", "机械制造", "交通运输", "轻工"})
+        """Expose only verified industry metadata.
+
+        The current canonical catalog has no approved structured industry field.
+        Returning only the neutral option prevents standard titles from becoming
+        an implicit classification source.
+        """
+
+        return ("全部",)
 
     def publication_years(self) -> tuple[int, ...]:
         return tuple(
@@ -247,25 +234,26 @@ class CatalogQueryService:
         industry: str = "全部",
         publication_year: int | None = None,
     ) -> tuple[tuple[StandardCatalogRecord, CatalogStatus, str], ...]:
+        if industry != "全部":
+            return ()
+
         results: list[tuple[StandardCatalogRecord, CatalogStatus, str]] = []
         for standard in self._repository.list_standards():
             current_status = self.standard_status(standard)
-            current_industry = infer_industry(standard)
             source_text = (
                 standard.standard_number,
                 standard.standard_name,
                 standard.notes,
-                current_industry,
             )
             if not _matches(query, source_text):
                 continue
             if status is not CatalogStatus.ALL and current_status is not status:
                 continue
-            if industry != "全部" and current_industry != industry:
-                continue
             if publication_year is not None and standard.publication_date.year != publication_year:
                 continue
-            results.append((standard, current_status, current_industry))
+            # The third tuple item is retained for the existing page adapter,
+            # but it is not an inferred or user-visible industry classification.
+            results.append((standard, current_status, "—"))
         results.sort(key=lambda item: (item[0].standard_number, item[0].standard_id))
         return tuple(results)
 
