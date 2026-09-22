@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：CATUI01（范围文本已补录，待 Sol 复验）
+## 当前阶段：CATUI01（三项验收返工已完成，待 Sol 重新验收）
 
 本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
 
@@ -1980,3 +1980,53 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 本次只补充标准目录展示文本和直接回归测试，未修改计算公式、Domain、参数解析、记录规则或数据库 schema。
 
 `9c30af1fcc0fed92ab88159bfa89ba211e2d085e` 对应的 GitHub Actions run `35697933109` 已成功：merge-ref 全量 161/161；exact-head standalone audit 的 Canonical、compileall、pip check、三库重建、Windows 缩放、G08 9/9、构建、发布审计、归档、provenance 和 isolated smoke 全部通过。当前 CATUI01 等待 Sol 复验。
+
+
+## CATUI01 验收返工报告（2026-09-22）
+
+### 返工范围
+
+本轮仅处理 Sol 对 PR #11 指出的 F1/F2/F3：
+
+1. 移除标准名称推断行业；
+2. 恢复完整三项标准关系展示；
+3. 补齐首页 → 标准库 → 参数库 → 新建核算 → 首页的连续滚动回归。
+
+没有修改核算 Domain、公式、参数解析、记录模型、SQLite schema、数据库迁移、Canonical 结构或 UIR01～UIR04 已通过的业务行为。
+
+### 实施内容
+
+- `packages/application/catalog_queries.py`
+  - 删除 `infer_industry()` 及其标题关键词映射；
+  - `industry_options()` 仅返回“全部”；
+  - 非“全部”的行业筛选安全返回空结果；
+  - 标准搜索只使用标准编号、标准名称和已有 notes，不再把推断行业加入搜索文本；
+  - 保留查询结果适配器的第三项为“—”，不表示未经核对的行业分类。
+- `packages/ui/catalog_pages.py`
+  - “标准关系”固定展示“基础标准 / 通则”“替代关系”“规范性引用文件”；
+  - 基础标准使用现有 `StandardDetail.base_standards`；
+  - 没有已核对结构化数据的关系显示“暂无已核对的结构化数据。”。
+- `tests/test_g04_catalog.py`
+  - 新增行业筛选不从标准名称推断分类/搜索命中的测试；
+  - 增加三项关系字段和安全占位断言；
+  - 将滚动测试扩展为完整连续路由场景，并验证每次路由切换的当前页面、滚动顶部、标题可见和首页高度收缩。
+
+### 提交与验证
+
+- 基线：`main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a`；
+- 分支：`fix/catui01-standard-library-scroll`；
+- 实现/测试提交：
+  - `b1035e9` `fix: remove title-derived catalog industries`
+  - `227537c` `fix: restore complete standard relationship rows`
+  - `17aa5b1` `test: cover catalog filters relationships and route scrolling`
+- 文档提交：`11ad986` 及本报告提交；
+- `17aa5b1` 对应 GitHub Actions run `35714887923`：
+  - Windows / Python 3.12 merge-ref 全量：`162/162` 通过；
+  - exact-head standalone audit：G08 9/9；
+  - Canonical 校验、compileall、pip check、三库从零初始化、UIR04 场景 A～E、1.25/1.5 缩放、standalone build、release audit、archive verification、provenance 和 2 次 isolated smoke 均通过。
+- 本轮新增测试实际使全量从 161 增至 162，0 failed、0 error、0 skipped。
+- 本地命令本轮因 Codex 桌面运行器 `setup refresh had errors` 未能执行；没有将本地未执行结果冒充为本地通过。实现提交对应的 Windows Actions 已完成验证。
+
+### 当前交付状态
+
+文档提交后会再次产生 PR 新 head，并等待该最新 head 的两个 Windows job 完成。PR #11 未合并；CATUI01 等待 Sol 重新验收。未新增 BLOCKED，未启动其他阶段。
