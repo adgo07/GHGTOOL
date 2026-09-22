@@ -161,6 +161,10 @@ class G04CatalogTests(unittest.TestCase):
         self.assertIsNotNone(detail)
         assert detail is not None
         self.assertEqual(detail.standard.standard_number, "GB/T 32151.34—2024")
+        self.assertEqual(
+            detail.standard.notes,
+            "适用于炭素材料生产企业温室气体排放量的核算。",
+        )
         self.assertEqual(detail.source.document_no, "GB/T 32151.34—2024")
         self.assertEqual(detail.base_standards[0].standard_id, "gbt_32150_2025")
         self.assertEqual(
@@ -294,6 +298,8 @@ class G04CatalogTests(unittest.TestCase):
         self.shell.navigate(AppRoute.STANDARDS)
         self.application.processEvents()
         page = self.shell.pages[AppRoute.STANDARDS]
+        page.search_input.setText("32151.34")
+        self.application.processEvents()
         card_titles = [
             label.text()
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
@@ -308,7 +314,7 @@ class G04CatalogTests(unittest.TestCase):
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
-        self.assertIn("当前目录尚未录入可追溯的范围原文。", detail_text)
+        self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
         for forbidden in (
             "主管部门",
             "归口部门",
