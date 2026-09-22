@@ -6,7 +6,7 @@ CATUI01：标准库精简与公共滚动修复
 
 ## 状态
 
-CATUI01_BLOCKED_SCOPE_READY_FOR_SOL_REVIEW
+CATUI01_SCOPE_DATA_REUSED_IN_EXISTING_NOTES_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1312,7 +1312,7 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 **CATUI01_BLOCKED_SCOPE_READY_FOR_SOL_REVIEW**
 
-### BLOCKED
+### 历史 BLOCKED（已解除）
 
 问题：
 
@@ -1373,4 +1373,25 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 - 未修改 Domain、公式、参数解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
 - 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档保持原样，未处理、未提交。
 
-当前结论：NOT READY / BLOCKED（范围原文待 Sol 决策和 Canonical 补录）。不得将本任务标记为 READY FOR ACCEPTANCE。
+历史阻断结论已由后续范围文本补录修订，当前状态以本文件末尾的范围文本补录记录为准。
+
+
+## CATUI01 范围文本补录（2026-09-22）
+
+**CATUI01_SCOPE_DATA_REUSED_IN_EXISTING_NOTES_READY_FOR_SOL_REVIEW**
+
+用户已明确批准并提供 GB/T 32151.34—2024“适用范围”文本：
+“适用于炭素材料生产企业温室气体排放量的核算。”
+
+事实核查确认：
+
+- Canonical 原文件仍为 `data-source/carbon_accounting/catalog.json`；
+- 原有标准条目没有独立 `scope`、`standard_scope`、`applicability` 或 `description` 字段；
+- 现有标准条目已有 `notes` 文本字段；
+- `packages/persistence/catalog_builder.py` 已将标准 `notes` 写入现有 `standard_catalog.notes`；
+- `packages/persistence/catalog_repository.py` 已将该列映射为 `StandardCatalogRecord.notes`；
+- 未新增范围文件、未新增 `scope` 表、未新增 migration，user/records schema 未修改。
+
+按最小改动原则，已回退此前未获批准的 `scope` schema/model/validation 变更，并在现有 GB/T 32151.34 标准条目的 `notes` 字段承载批准文本。标准详情“适用范围”从现有目录读模型读取该文本；没有批准范围文本的其他标准继续显示安全占位。Canonical data_version 更新为 `2026.09.22-catui01.1`。
+
+本次范围补录仅改变目录展示数据及直接测试，不改变计算 Domain、公式、参数解析、记录、SQLite 表结构或迁移。相关测试和 GitHub Actions 完成后，等待 Sol 重新验收 CATUI01。
