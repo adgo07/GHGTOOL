@@ -156,6 +156,14 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(len(before_implementation), 1)
         self.assertIs(before_implementation[0][1], CatalogStatus.UPCOMING)
 
+    def test_industry_filter_does_not_infer_from_standard_titles(self) -> None:
+        self.assertEqual(self.service.industry_options(), ("全部",))
+        self.assertEqual(self.service.search_standards(industry="钢铁"), ())
+        self.assertEqual(self.service.search_standards("有色"), ())
+        self.assertTrue(
+            all(industry == "—" for _, _, industry in self.service.search_standards())
+        )
+
     def test_standard_detail_has_source_relationships_and_only_current_implemented_entry_can_start(self) -> None:
         detail = self.service.get_standard_detail("gbt_32151_34_2024")
         self.assertIsNotNone(detail)
@@ -315,6 +323,10 @@ class G04CatalogTests(unittest.TestCase):
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
+        self.assertIn("基础标准 / 通则", detail_text)
+        self.assertIn("替代关系", detail_text)
+        self.assertIn("规范性引用文件", detail_text)
+        self.assertIn("暂无已核对的结构化数据。", detail_text)
         for forbidden in (
             "主管部门",
             "归口部门",
@@ -336,16 +348,34 @@ class G04CatalogTests(unittest.TestCase):
             self.assertNotIn(forbidden, card_titles)
             self.assertNotIn(forbidden, detail_text)
 
-    def test_deep_catalog_scroll_enters_factors_and_home_at_top(self) -> None:
+    def test_deep_catalog_scroll_covers_continuous_route_path(self) -> None:
         shell = self.shell
         self.window.resize(1180, 720)
-        shell.navigate(AppRoute.STANDARDS)
-        for _ in range(4):
-            self.application.processEvents()
-
         scrollbar = shell.main_scroll_area.verticalScrollBar()
+
+        def assert_route_at_top(route: AppRoute) -> None:
+            for _ in range(4):
+                self.application.processEvents()
+            self.assertEqual(shell.current_route, route)
+            self.assertIs(shell.page_stack.currentWidget(), shell.pages[route])
+            self.assertEqual(scrollbar.value(), scrollbar.minimum())
+            title = shell.pages[route].findChild(QLabel, "pageTitle")
+            self.assertIsNotNone(title)
+            assert title is not None
+            title_rect = title.rect()
+            title_rect.moveTopLeft(title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
+            self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
+
+        # Scenario C: 首页 → 标准库 → 参数库 → 新建核算 → 首页.
+        shell.navigate(AppRoute.HOME)
+        assert_route_at_top(AppRoute.HOME)
+        self.assertEqual(scrollbar.maximum(), 0)
+
+        shell.navigate(AppRoute.STANDARDS)
+        assert_route_at_top(AppRoute.STANDARDS)
         self.assertGreater(scrollbar.maximum(), 0)
         standards_height = shell.page_stack.sizeHint().height()
+
         scrollbar.setValue(scrollbar.maximum())
         self.application.processEvents()
         self.assertEqual(scrollbar.value(), scrollbar.maximum())
@@ -355,32 +385,16 @@ class G04CatalogTests(unittest.TestCase):
         self.assertIsNotNone(factors_button)
         assert factors_button is not None
         factors_button.click()
-        for _ in range(4):
-            self.application.processEvents()
-        self.assertEqual(shell.current_route, AppRoute.FACTORS)
-        self.assertEqual(scrollbar.value(), scrollbar.minimum())
+        assert_route_at_top(AppRoute.FACTORS)
 
-        factors_title = shell.pages[AppRoute.FACTORS].findChild(QLabel, "pageTitle")
-        self.assertIsNotNone(factors_title)
-        assert factors_title is not None
-        title_rect = factors_title.rect()
-        title_rect.moveTopLeft(factors_title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
-        self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
+        shell.navigate(AppRoute.NEW_ACCOUNTING)
+        assert_route_at_top(AppRoute.NEW_ACCOUNTING)
 
         shell.navigate(AppRoute.HOME)
-        for _ in range(4):
-            self.application.processEvents()
-        self.assertEqual(scrollbar.value(), scrollbar.minimum())
+        assert_route_at_top(AppRoute.HOME)
         self.assertEqual(scrollbar.maximum(), 0)
         home_height = shell.page_stack.sizeHint().height()
         self.assertLess(home_height, standards_height)
-
-        home_title = shell.pages[AppRoute.HOME].findChild(QLabel, "pageTitle")
-        self.assertIsNotNone(home_title)
-        assert home_title is not None
-        title_rect = home_title.rect()
-        title_rect.moveTopLeft(home_title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
-        self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
 
     def test_parameter_factor_page_switches_views_and_hides_internal_ids(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
