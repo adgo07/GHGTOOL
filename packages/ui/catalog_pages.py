@@ -335,19 +335,28 @@ class StandardLibraryPage(BasePage):
             )
         )
 
-        relation_rows: list[tuple[str, str]] = []
-        if detail.base_standards:
-            relation_rows.append(
+        verified_placeholder = "暂无已核对的结构化数据。"
+        relation_rows = [
+            (
+                "基础标准 / 通则",
                 (
-                    "基础标准 / 通则",
                     "\n".join(
                         f"{item.standard_number} {item.standard_name}"
                         for item in detail.base_standards
-                    ),
-                )
-            )
-        if not relation_rows:
-            relation_rows.append(("已核对关系", "暂无已核对的结构化关系。"))
+                    )
+                    if detail.base_standards
+                    else verified_placeholder
+                ),
+            ),
+            (
+                "替代关系",
+                verified_placeholder,
+            ),
+            (
+                "规范性引用文件",
+                verified_placeholder,
+            ),
+        ]
         self.detail_layout.addWidget(
             _detail_section("标准关系", self.detail_host, relation_rows)
         )
