@@ -69,7 +69,7 @@ class PersistenceTests(unittest.TestCase):
             self.assertNotIn("source_documents", records_tables)
 
             self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.20-g08.1")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.22-catui01.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
