@@ -1394,4 +1394,12 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 按最小改动原则，已回退此前未获批准的 `scope` schema/model/validation 变更，并在现有 GB/T 32151.34 标准条目的 `notes` 字段承载批准文本。标准详情“适用范围”从现有目录读模型读取该文本；没有批准范围文本的其他标准继续显示安全占位。Canonical data_version 更新为 `2026.09.22-catui01.1`。
 
-本次范围补录仅改变目录展示数据及直接测试，不改变计算 Domain、公式、参数解析、记录、SQLite 表结构或迁移。相关测试和 GitHub Actions 完成后，等待 Sol 重新验收 CATUI01。
+本次范围补录仅改变目录展示数据及直接测试，不改变计算 Domain、公式、参数解析、记录、SQLite 表结构或迁移。
+
+最新 head `9c30af1fcc0fed92ab88159bfa89ba211e2d085e` 的 GitHub Actions run `35697933109` 已完成：
+
+- Windows merge-ref 全量测试：161/161 通过；
+- exact-head standalone audit：Canonical、compileall、pip check、三库从零重建、Windows 1.25/1.5 缩放、G08 delivery 9/9、standalone build、release audit、archive verification、provenance 和 2 次 isolated smoke 全部通过；
+- release audit 明确通过现有 catalog 和范围文本检查。
+
+当前状态：等待 Sol 重新验收 CATUI01。
