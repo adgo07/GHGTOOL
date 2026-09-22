@@ -352,11 +352,16 @@ class StandardLibraryPage(BasePage):
             _detail_section("标准关系", self.detail_host, relation_rows)
         )
 
+        scope_text = (
+            standard.notes
+            if standard.notes.strip().startswith("适用于")
+            else "当前目录尚未录入可追溯的范围原文。"
+        )
         self.detail_layout.addWidget(
             _text_section(
                 "适用范围",
                 self.detail_host,
-                "当前目录尚未录入可追溯的范围原文。",
+                scope_text,
             )
         )
 
