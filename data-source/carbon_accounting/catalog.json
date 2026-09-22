@@ -2,7 +2,7 @@
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
     "schema_version": "1.0.0",
-    "data_version": "2026.09.20-g08.1",
+    "data_version": "2026.09.22-catui01.1",
     "app_compatibility": "1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
