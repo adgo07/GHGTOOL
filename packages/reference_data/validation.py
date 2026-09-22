@@ -261,6 +261,17 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
             errors.append(f"$.standards[{row_number}].official_source_id: unknown source {source_id!r}")
         elif standard.get("official_source_url") != source.get("official_url"):
             errors.append(f"$.standards[{row_number}].official_source_url: does not match source URL")
+        scope = standard.get("scope")
+        if scope is not None:
+            scope_source_id = scope.get("source_id")
+            if scope_source_id not in sources:
+                errors.append(
+                    f"$.standards[{row_number}].scope.source_id: unknown source {scope_source_id!r}"
+                )
+            elif scope_source_id != source_id:
+                errors.append(
+                    f"$.standards[{row_number}].scope.source_id: must match official_source_id"
+                )
         for reference in standard.get("base_standard_ids", []):
             if reference not in standards:
                 errors.append(f"$.standards[{row_number}].base_standard_ids: unknown standard {reference!r}")
