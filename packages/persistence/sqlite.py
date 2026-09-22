@@ -124,7 +124,7 @@ def initialize_database(
     path: str | Path,
     kind: DatabaseKind,
     *,
-    app_version: str = "1.0.0",
+    app_version: str = "1.1.0",
     data_version: str = "not_applicable",
     deterministic: bool = True,
     runner: MigrationRunner | None = None,

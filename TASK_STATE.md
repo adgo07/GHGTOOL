@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR03 数据口径简化与专业详情
+Post-V1 新建核算 UI 重构：UIR04 可用性收口与回归（Sol 小修返工）
 
 ## 状态
 
-UIR03_PASS
+UIR04_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1235,3 +1235,75 @@ Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Prese
 - 未修改 Domain、Calculator、ParameterResolver、Canonical、计算公式、SQLite schema、迁移或 records 生命周期；未实施 UIR04。
 
 UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
+
+## UIR04 实施状态（2026-09-21）
+
+**UIR04_IN_PROGRESS**
+
+UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main。本轮已执行 git fetch origin，确认实时基线为 origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e，并从该基线创建独立分支 ui-refactor-uir04-finalize。当前仅实施 HANDOFF.md 的 UIR04，禁止启动 UIR05/G09。
+
+本阶段只处理新建核算页面的紧凑未计算状态、随输入更新的基础校验反馈、业务化错误定位、成功结果展示、按需专业详情、视觉尺寸回归、V1.1.0 版本和 Windows standalone 全链路验证。保持 Domain、Canonical、公式、SQLite schema、records 语义、G07 历史记录、计算表/和既有未跟踪 docs/handoffs/不变。
+
+## UIR04 实施完成状态（2026-09-21）
+
+**UIR04_READY_FOR_SOL_REVIEW**
+
+### 已完成范围
+
+- 未计算时将计算过程、空结果和空质量列表收纳为紧凑底部状态栏；随输入更新已确认排放源、错误和提醒数量，并保留兼容用的隐藏检查入口。
+- 计算成功后才展示总排放量、直接排放、间接排放和人类可读记录状态；分项结果与计算过程按需展开。
+- 质量问题使用业务中文展示；点击问题可展开并定位对应排放源卡片。Domain 致命错误不会展示为成功结果，也不会创建成功记录。
+- 增加 UIR04 定向测试、固定输入结果/记录快照 parity 测试、错误定位测试和 1920×1080 / 1366×768 无横向滚动测试；新增场景 A～E 的确定性 GUI 验收脚本。
+- 应用与交付元数据更新为 V1.1.0；schema_version 保持 1.0.0，未新增迁移。Windows standalone 构建、发布审计、ZIP manifest 往返校验和两次隔离启动均通过。
+
+### 边界与保护
+
+- 本轮只修改 UIR04 Presentation、交付版本元数据、测试和文档；未修改 Domain、公式、Canonical、ParameterResolver、SQLite schema、records 生命周期或 `计算表/`。
+- 未实施 UIR05、G09、报告/导出、Excel 导入、其他行业标准、商业安装器、签名或云服务。
+- 既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### 本地验证
+
+- UIR04 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization -v`；**8/8 通过**。
+- 相关回归：UIR04、UIR03、UIR02、UIR01、G06 页面/Domain、G07 records、G08 delivery；**83/83 通过**。
+- 全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**158/158 通过**，0 失败、0 错误、0 跳过。
+- `compileall`、`pip check`、Canonical（9 standards / 12 sources / 7 parameters / 7 factors）和三库从零初始化均通过。
+- standalone：构建通过；`inspect_release` **227 files**；ZIP manifest 往返校验 **228 visible files**；standalone smoke **2 isolated starts**。
+- GUI 验收脚本 A～E 均通过：燃料+购入常规电力成功、收到基煅烧成功、干基/收到基差异明确阻断、有效非化石电力证明成功、企业名称缺失阻断且无成功记录。
+
+### Git / PR 门禁
+
+当前分支为 `ui-refactor-uir04-finalize`，基线为 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e`。实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`），治理提交为 `498106e`（`docs: record UIR04 finalization`）。PR #10 已创建并以 `main` 为目标；`498106e` 对应 run `35610148543`，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均成功。随后仅为补齐本报告状态产生文档提交 `e212878`，其对应 run `35610796299` 的两个检查也均成功；没有新增业务实现。当前停止等待 Sol 最终验收，不启动 UIR05。
+
+## UIR04 Sol 小修返工完成状态（2026-09-21）
+
+**UIR04_REWORK_READY_FOR_SOL_REVIEW**
+
+针对 Sol 的 PASS WITH MINOR FIXES 意见，本轮仅完成以下四项收口：
+
+- 结果区、直接/间接排放、分项结果和专业计算轨迹改为 Presentation 层 Decimal 两位小数显示（`ROUND_HALF_UP`）；Domain 计算值、记录快照和审计数据继续保留未舍入高精度。
+- `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md` 顶部当前状态已同步为 UIR04 返工完成，历史阶段记录保留不重写。
+- 增加 Windows 常见缩放 125% / 150%（`QT_SCALE_FACTOR=1.25/1.5`）和 1366×768 无页面横向滚动验证，并纳入 PR 两个 Windows CI job。
+- 将最新 head 要求的 compileall、pip check、三库从零初始化及 GUI 场景 A～E 加入 PR 两个 Windows CI job；本地已在当前代码树复跑。
+
+### 本轮验证
+
+- UIR04 定向：`9/9` 通过。
+- UIR04 + G08：`18/18` 通过。
+- UIR01～UIR04、G06/G07/G08 相关回归：`84/84` 通过。
+- 项目全量：`159/159` 通过，0 失败、0 错误、0 跳过。
+- `compileall`、`pip check`、Canonical 校验（9 standards / 12 sources / 7 parameters / 7 factors）通过。
+- 三库从零初始化通过；GUI 场景 A～E 全部通过；125% / 150% 缩放验证 `2/2` 通过。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 及用户未跟踪架构文档未处理、未提交。
+
+### Git 门禁
+
+- 实现、测试和 CI 提交：`a63f0ad fix: close UIR04 presentation and verification gaps`；Windows GUI 验收编码修复提交：`1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`。
+- 治理文档提交：本节文档提交后记录，最终 SHA 以 Git HEAD 和 PR 最新 head 核对。
+- PR #10 继续以 `main` 为目标，未合并；本轮不启动 UIR05/G09。
+
+## UIR04 CI 编码修复状态（2026-09-21）
+
+第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印脚本的中文观察结果，触发 `UnicodeEncodeError`，不是业务场景失败。已在 `scripts/uir04_manual_gui_acceptance.py` 的验收脚本入口显式将 stdout/stderr 配置为 UTF-8（无法表示的字符替换），不改变场景操作、断言或业务代码。
+
+本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，GUI 场景 A～E 全部通过；修复提交为 `1b658a1`。该提交随治理文档一起推送后，必须以新的 PR head 重新等待两个 Windows CI job。

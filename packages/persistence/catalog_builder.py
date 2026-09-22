@@ -175,7 +175,7 @@ def build_catalog_database(
     source_path: str | Path = DEFAULT_SOURCE_PATH,
     output_path: str | Path = "build/databases/catalog.sqlite",
     *,
-    app_version: str = "1.0.0",
+    app_version: str = "1.1.0",
 ) -> Path:
     """Validate and atomically rebuild one catalog database."""
 
@@ -216,7 +216,7 @@ def build_all_databases(
     output_dir: str | Path = "build/databases",
     source_path: str | Path = DEFAULT_SOURCE_PATH,
     *,
-    app_version: str = "1.0.0",
+    app_version: str = "1.1.0",
 ) -> dict[str, Path]:
     """Build catalog and initialize the physically separate user and records databases."""
 

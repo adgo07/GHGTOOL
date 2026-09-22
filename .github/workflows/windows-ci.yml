@@ -36,6 +36,28 @@ jobs:
       - name: Validate canonical source
         run: python scripts/validate_canonical.py
 
+      - name: Compile Python sources
+        run: python -m compileall -q apps packages resources scripts tests
+
+      - name: Check Python dependencies
+        run: python -m pip check
+
+      - name: Rebuild isolated databases
+        run: python scripts/initialize_databases.py --output-dir build/databases/uir04-ci-check
+
+      - name: Run UIR04 GUI acceptance scenarios
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python scripts/uir04_manual_gui_acceptance.py
+
+      - name: Run UIR04 Windows scale acceptance
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_AUTO_SCREEN_SCALE_FACTOR: "0"
+        run: |
+          python scripts/uir04_scale_acceptance.py --scale 1.25
+          python scripts/uir04_scale_acceptance.py --scale 1.5
+
       - name: Run full merge-ref test suite
         env:
           QT_QPA_PLATFORM: offscreen
@@ -67,6 +89,28 @@ jobs:
 
       - name: Validate exact-head canonical source
         run: python scripts/validate_canonical.py
+
+      - name: Compile exact-head Python sources
+        run: python -m compileall -q apps packages resources scripts tests
+
+      - name: Check exact-head Python dependencies
+        run: python -m pip check
+
+      - name: Rebuild exact-head isolated databases
+        run: python scripts/initialize_databases.py --output-dir build/databases/uir04-ci-check
+
+      - name: Run exact-head UIR04 GUI acceptance scenarios
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python scripts/uir04_manual_gui_acceptance.py
+
+      - name: Run exact-head UIR04 Windows scale acceptance
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_AUTO_SCREEN_SCALE_FACTOR: "0"
+        run: |
+          python scripts/uir04_scale_acceptance.py --scale 1.25
+          python scripts/uir04_scale_acceptance.py --scale 1.5
 
       - name: Run G08 delivery tests on exact head
         env:

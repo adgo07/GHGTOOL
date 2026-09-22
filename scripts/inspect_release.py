@@ -81,7 +81,7 @@ def _check_catalog(path: Path, issues: list[str]) -> None:
 
     if metadata.get("schema_version") != "001":
         issues.append(f"unexpected catalog database schema version: {metadata.get('schema_version')!r}")
-    if metadata.get("app_version") != "1.0.0":
+    if metadata.get("app_version") != "1.1.0":
         issues.append(f"unexpected catalog app version: {metadata.get('app_version')!r}")
     if catalog_metadata.get("schema_version") != "1.0.0":
         issues.append(f"unexpected canonical schema version: {catalog_metadata.get('schema_version')!r}")
@@ -153,7 +153,7 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         issues.append("unsupported release manifest version")
     if manifest.get("artifact_name") != "QingzhouCarbonAccounting":
         issues.append("unexpected release artifact name")
-    if manifest.get("app_version") != "1.0.0":
+    if manifest.get("app_version") != "1.1.0":
         issues.append(f"unexpected manifest app version: {manifest.get('app_version')!r}")
     for provenance_field in ("source_commit", "pr_head_sha", "tested_merge_sha"):
         if not isinstance(manifest.get(provenance_field), str) or not manifest[provenance_field].strip():

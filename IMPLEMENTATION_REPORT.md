@@ -1,12 +1,12 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：UIR03（已通过）
+## 当前阶段：UIR04（返工完成，待 Sol 复验）
 
-本报告末尾的“UIR03 Sol 正式验收结论”是当前阶段的最终记录；前文 UIR01、UIR02 及 G00-G08 内容保留为历史实施与验收记录，不重写。
+本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
 
 ## 阶段
 
-UIR01 Post-V1 新建核算 UI：字段语义层与类型化输入控件
+UIR04 Post-V1 新建核算 UI：可用性收口与回归返工
 
 ## 前置验收与阶段边界
 
@@ -1819,3 +1819,93 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 - 未发现 UIR04 提前实施；未修改 Domain、计算公式、Canonical、数据库 schema、迁移、历史记录语义或 `计算表/`。
 
 结论：UIR03 已通过，允许由用户另行启动 UIR04；本次未启动 UIR04。
+
+## UIR04 最终实施报告（2026-09-21）
+
+### 范围与实现
+
+本轮从实时 `origin/main@a1a73ac824f140f72280f42c5249796a18b96a3e` 创建 `ui-refactor-uir04-finalize`，仅实施 UIR04，未启动 UIR05/G09。
+
+- 新建核算页面未计算时使用紧凑底部状态栏，显示已确认排放源数、错误数、提醒数和计算按钮；计算过程、空结果和空质量列表不再永久占用主流程大块空间。
+- 基础反馈随输入更新；质量问题使用业务中文。点击错误可展开并滚动到对应排放源卡片。
+- 只有成功计算才展示总排放量、直接排放、间接排放和 `已完成` / `已完成（含提醒）`；分项结果、计算过程和专业信息按需展示。
+- Domain 致命错误不会被误显示为成功结果，也不会生成成功记录；G07 的每次成功计算新增不可编辑记录、历史快照、删除审计和重启读取行为保持不变。
+- 增加 UIR04 专项测试和 `scripts/uir04_manual_gui_acceptance.py`，覆盖场景 A～E 及固定输入的 Domain/结果/记录 parity。
+- 应用与 standalone 交付版本更新为 `1.1.0`；Catalog `schema_version` 保持 `1.0.0`，没有新增数据库迁移。
+
+未修改 Domain、Calculator、ParameterResolver、Canonical 数据、公式、SQLite schema、records 生命周期或 `计算表/`；未实施 UIR05、G09、报告/导出、Excel 导入、其他七项标准、商业安装器、签名或云服务。既有未跟踪 `docs/handoffs/` 未处理、未提交。
+
+### 测试与验证
+
+环境：Windows 11 x64；项目 `.venv` Python 3.12.14；PySide6 6.11.2；PyInstaller 6.22.3；Qt 测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR04 定向：
+  `.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization -v`；**8/8 通过**。
+- 相关回归：
+  `.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization tests.test_uir03_advanced_details tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**83/83 通过**。
+- 全量：
+  `.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**158/158 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir04-final-check`；`catalog.sqlite`、`user.sqlite`、`records.sqlite` 从零生成成功，隔离目录已清理。
+- 差异检查：`git diff --check` 通过；`计算表/` 无差异。
+- Windows standalone：`scripts\build_standalone.py --output-root dist --clean` 构建通过；`scripts\inspect_release.py dist\QingzhouCarbonAccounting` 为 **PASS（227 files）**；`scripts\verify_release_archive.py dist\QingzhouCarbonAccounting` 为 **PASS（228 visible files）**；`scripts\smoke_standalone.py dist\QingzhouCarbonAccounting` 为 **PASS（2 isolated starts）**。
+- 构建包元数据核对：`app_version=1.1.0`、`schema_version=1.0.0`、`data_version=2026.09.20-g08.1`、`app_compatibility=1.x`。
+
+### 确定性 GUI 验收脚本
+
+执行：`.venv\Scripts\python.exe scripts\uir04_manual_gui_acceptance.py`。
+
+- 场景 A：燃料 + 购入常规电力成功计算，结果 `ET=17.79866666666666666666666667 tCO2`，记录数为 1，状态为已完成。
+- 场景 B：原料煅烧收到基默认口径成功，状态为已完成（含提醒）。
+- 场景 C：干基/收到基差异被阻断，提示明确说明口径不一致、不能直接计算并要求换算依据。
+- 场景 D：有效非化石电力证明通过，电力因子已确定，状态为已完成。
+- 场景 E：企业名称缺失被阻断，显示业务化必填错误且不生成成功记录。
+
+### Git / PR / Actions
+
+实现提交为 `39eed6e`（`feat: finalize UIR04 accounting result presentation`），治理提交为 `498106e`（`docs: record UIR04 finalization`）。PR #10：[feat: finalize UIR04 accounting result experience](https://github.com/adgo07/GHGTOOL/pull/10)，目标为 `main`；`498106e` 对应 run `35610148543`，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均成功。随后仅为补齐本报告状态产生文档提交 `e212878`，其对应 run `35610796299` 的两个检查也均成功；没有新增业务实现。最终停止等待 Sol 验收，不启动 UIR05。
+
+## UIR04 Sol 小修返工实施报告（2026-09-21）
+
+### 范围
+
+本轮针对 Sol 对 UIR04 的 PASS WITH MINOR FIXES 结论，仅修正结果展示精度、治理状态同步、Windows 缩放证据和 latest-head 验证门禁；不启动 UIR05/G09。
+
+### 修复内容
+
+- 新增 Presentation 层 `_display_amount`，使用 Decimal `ROUND_HALF_UP` 量化到两位小数，并统一显示 `tCO₂`。总排放量、直接排放、间接排放、分项结果和专业计算轨迹均使用该格式化路径；Domain、计算结果对象、records.sqlite 快照和审计值保持原始高精度。
+- `TASK_STATE.md` 与本报告顶部状态同步为 UIR04 返工完成，历史 UIR01～UIR03、G00～G08 和原 UIR04 实施记录保留。
+- 新增 `scripts/uir04_scale_acceptance.py`，在 1366×768 下以 `QT_SCALE_FACTOR=1.25` 和 `1.5` 验证控件可见、底部状态栏可见且页面无横向滚动；专项测试和两个 Windows CI job 均执行这两种缩放。
+- Windows CI 的 merge-ref full tests 与 exact-head standalone audit 都新增 compileall、pip check、三库从零初始化和 GUI 场景 A～E；latest head 会独立执行这些门禁。
+
+### 测试与验证
+
+环境：Windows 11 x64；项目 `.venv` Python 3.12.14；PySide6 6.11.2；PyInstaller 6.22.3；Qt GUI 测试使用 `QT_QPA_PLATFORM=offscreen`。
+
+- UIR04 定向：`.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization -v`；**9/9 通过**。
+- UIR04 + G08：`.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization tests.test_g08_delivery -v`；**18/18 通过**。
+- UIR01～UIR04、G06/G07/G08 相关回归：`.venv\Scripts\python.exe -m unittest tests.test_uir04_finalization tests.test_uir03_advanced_details tests.test_uir02_source_cards tests.test_uir01_field_semantics tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v`；**84/84 通过**。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；**159/159 通过**，0 失败、0 错误、0 跳过。
+- 编译：`.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`；通过。
+- 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`。
+- Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 三库从零初始化：`.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir build\databases\uir04-rework-latest-check`；catalog/user/records 三库生成成功，隔离目录已清理。
+- GUI 场景 A～E：`.venv\Scripts\python.exe scripts\uir04_manual_gui_acceptance.py`；A～E 全部通过；结果区显示两位小数，错误场景不生成成功记录。
+- Windows 缩放：`.venv\Scripts\python.exe scripts\uir04_scale_acceptance.py --scale 1.25` 与 `--scale 1.5`；**2/2 通过**，1366×768 无页面横向滚动。
+- `git diff --check` 通过；`计算表/` 无修改；未跟踪 `docs/handoffs/` 与用户架构文档未处理、未提交。
+
+### 边界
+
+本轮未修改 Domain、Calculator、ParameterResolver、Canonical 数据、标准公式、SQLite schema、数据库迁移、records 生命周期或历史记录规则；未加入标准全文、用户数据、测试数据库、G09/UIR05、报告/导出、Excel 导入、云服务或安装器。
+
+### Git / PR 门禁
+
+实现、测试和 CI 提交为 `a63f0ad fix: close UIR04 presentation and verification gaps`；Windows GUI 验收编码修复提交为 `1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`；治理文档单独提交。继续更新 PR #10（目标 `main`），不直接推送或合并 `main`。最终 head、Actions run、standalone artifact 和检查状态在本轮推送完成后核对并在最终回复报告。
+
+## UIR04 Windows GUI 验收编码修复（2026-09-21）
+
+第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印中文观察结果，触发 `UnicodeEncodeError`，不是业务场景或结果校验失败。已在 `scripts/uir04_manual_gui_acceptance.py` 入口显式将 stdout/stderr 配置为 UTF-8，并保留替代字符保护，不改变场景操作、断言或业务代码。
+
+本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，场景 A～E 全部通过。修复提交：`1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`。修复后需以新的 PR head 重新确认 Windows CI 两个 job。

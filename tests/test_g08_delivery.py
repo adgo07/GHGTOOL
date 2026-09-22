@@ -33,7 +33,7 @@ class G08DeliveryTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(project["project"]["version"], "1.0.0")
+        self.assertEqual(project["project"]["version"], "1.1.0")
         self.assertEqual(catalog["manifest"]["schema_version"], "1.0.0")
         self.assertEqual(catalog["manifest"]["data_version"], "2026.09.20-g08.1")
         self.assertEqual(catalog["manifest"]["app_compatibility"], "1.x")
@@ -79,7 +79,7 @@ class G08DeliveryTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     dict(connection.execute("SELECT key, value FROM database_metadata"))["app_version"],
-                    "1.0.0",
+                    "1.1.0",
                 )
             finally:
                 connection.close()
@@ -106,7 +106,7 @@ class G08DeliveryTests(unittest.TestCase):
             artifact = Path(directory)
             (artifact / "QingzhouCarbonAccounting.exe").write_bytes(b"standalone-stub")
             catalog_path = artifact / "databases" / "catalog.sqlite"
-            build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path, app_version="1.0.0")
+            build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path, app_version="1.1.0")
             (artifact / "migrations").mkdir()
             (artifact / "migrations" / ".gitkeep").write_text("", encoding="utf-8")
             (artifact / "resources" / "icons").mkdir(parents=True)
@@ -114,7 +114,7 @@ class G08DeliveryTests(unittest.TestCase):
             with patch("scripts.build_standalone._source_commit", return_value="checkout-sha"), patch.dict(os.environ, {"QZ_PR_HEAD_SHA": "pr-head-sha", "QZ_TESTED_MERGE_SHA": "tested-merge-sha"}, clear=False):
                 _write_manifest(
                     artifact,
-                    app_version="1.0.0",
+                    app_version="1.1.0",
                     catalog_meta={
                         "schema_version": "1.0.0",
                         "data_version": "2026.09.20-g08.1",
@@ -155,7 +155,7 @@ class G08DeliveryTests(unittest.TestCase):
                 records = repository.list_all()
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0].input_snapshot.enterprise_name, "G08 集成企业")
-                self.assertIn("tCO2", page.result_total.text())
+                self.assertIn("tCO₂", page.result_total.text())
                 first_window.close()
                 first_window.deleteLater()
                 application.processEvents()

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 import re
 
 from PySide6.QtCore import Qt, Signal
@@ -22,10 +22,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QListWidget,
+    QListWidgetItem,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
+    QFrame,
+    QScrollArea,
 )
 
 from packages.application.carbon_accounting import create_g06_parameter_resolver
@@ -63,7 +66,7 @@ from packages.standards.carbon_material import (
     ParameterValue,
     SteamKind,
 )
-from packages.core.models import AccountingPeriod, ReviewStatus, ValueType
+from packages.core.models import AccountingPeriod, RecordStatus, ReviewStatus, ValueType
 from packages.core.parameter_resolution import ParameterResolutionContext
 from packages.core.repositories import RecordRepository
 
@@ -134,6 +137,27 @@ def _domain_unit(unit: str) -> str:
     """Translate display-safe Unicode subscripts to the Domain unit spelling."""
 
     return unit.replace("₂", "2").replace("³", "3").replace("⁴", "4")
+
+
+_DISPLAY_QUANTUM = Decimal("0.01")
+
+
+def _display_unit(unit: str) -> str:
+    """Return the business-facing spelling of a calculation unit."""
+
+    return unit.replace("tCO2", "tCO₂")
+
+
+def _display_amount(value: Decimal, unit: str) -> str:
+    """Format a Domain amount for ordinary UI display without mutating it."""
+
+    amount = Decimal(str(value))
+    if amount.is_zero():
+        amount = abs(amount)
+    with localcontext() as context:
+        context.prec = max(28, len(amount.as_tuple().digits) + 4)
+        rounded = amount.quantize(_DISPLAY_QUANTUM, rounding=ROUND_HALF_UP)
+    return f"{rounded:.2f} {_display_unit(unit)}"
 
 class _ElectricityRow(QWidget):
     def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
@@ -301,6 +325,8 @@ class CarbonMaterialAccountingPage(BasePage):
         # These caches never become part of CarbonMaterialInput or persistence.
         self._electricity_resolution_states: dict[str, str] = {}
         self._known_source_errors: set[str] = set()
+        self._validation_count_override: tuple[int, int] | None = None
+        self._calculation_has_result = False
         self._build_page()
         self._input_dirty = False
         self._install_dirty_tracking()
@@ -409,6 +435,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.body_layout.addWidget(source_activity)
 
         process_card, process_layout = _card("06 计算过程", self)
+        self.process_card = process_card
         self.trace_output = QLabel("点击“计算排放量”后显示分项计算结果。", process_card)
         self.trace_output.setObjectName("calculationTrace")
         self.trace_output.setWordWrap(True)
@@ -421,21 +448,45 @@ class CarbonMaterialAccountingPage(BasePage):
         self.trace_professional_details.setWordWrap(True)
         process_layout.addWidget(self.trace_professional_details)
         self._register_professional_details(self.trace_professional_details)
+        process_card.setVisible(False)
         self.body_layout.addWidget(process_card)
 
         result_card, result_layout = _card("07 核算结果", self)
+        self.result_card = result_card
         self.result_total = QLabel("未计算", result_card)
         self.result_total.setObjectName("calculationTotal")
         result_layout.addWidget(self.result_total)
+        self.result_status = QLabel("状态：尚未计算", result_card)
+        self.result_status.setObjectName("calculationStatus")
+        result_layout.addWidget(self.result_status)
         self.result_breakdown = QLabel("", result_card)
         self.result_breakdown.setObjectName("calculationBreakdown")
         self.result_breakdown.setWordWrap(True)
         result_layout.addWidget(self.result_breakdown)
+        self.result_line_details = QLabel("", result_card)
+        self.result_line_details.setObjectName("calculationLineDetails")
+        self.result_line_details.setWordWrap(True)
+        self.result_line_details.setVisible(False)
+        result_layout.addWidget(self.result_line_details)
+        result_actions = QHBoxLayout()
+        self.view_breakdown_button = QPushButton("查看分项结果", result_card)
+        self.view_breakdown_button.setObjectName("viewBreakdownButton")
+        self.view_breakdown_button.clicked.connect(self._toggle_result_line_details)
+        self.view_process_button = QPushButton("查看计算过程", result_card)
+        self.view_process_button.setObjectName("viewProcessButton")
+        self.view_process_button.clicked.connect(self._toggle_process_details)
+        result_actions.addWidget(self.view_breakdown_button)
+        result_actions.addWidget(self.view_process_button)
+        result_actions.addStretch(1)
+        result_layout.addLayout(result_actions)
+        result_card.setVisible(False)
         self.body_layout.addWidget(result_card)
 
         quality_card, quality_layout = _card("08 数据质量检查", self)
+        self.quality_card = quality_card
         self.validation_list = QListWidget(quality_card)
         self.validation_list.setObjectName("calculationValidationList")
+        self.validation_list.itemClicked.connect(self._focus_validation_item)
         quality_layout.addWidget(self.validation_list)
         self.validation_professional_details = QLabel(
             "打开“显示专业详情”后可查看原始校验信息和内部定位。",
@@ -445,19 +496,39 @@ class CarbonMaterialAccountingPage(BasePage):
         self.validation_professional_details.setWordWrap(True)
         quality_layout.addWidget(self.validation_professional_details)
         self._register_professional_details(self.validation_professional_details)
+        quality_card.setVisible(False)
         self.body_layout.addWidget(quality_card)
 
-        action_row = QHBoxLayout()
         self.check_button = QPushButton("检查数据", self)
         self.check_button.setObjectName("checkAccountingButton")
         self.check_button.clicked.connect(self._run_calculation)
+        self.check_button.setVisible(False)
+
+        status_bar = QFrame(self)
+        status_bar.setObjectName("calculationStatusBar")
+        status_layout = QHBoxLayout(status_bar)
+        status_layout.setContentsMargins(16, 10, 16, 10)
+        status_layout.setSpacing(12)
+        self.confirmed_source_count = QLabel("已确认排放源：0", status_bar)
+        self.confirmed_source_count.setObjectName("confirmedSourceCount")
+        self.error_count = QLabel("错误：0", status_bar)
+        self.error_count.setObjectName("calculationErrorCount")
+        self.reminder_count = QLabel("提醒：0", status_bar)
+        self.reminder_count.setObjectName("calculationReminderCount")
+        self.calculation_status_hint = QLabel("填写数据后将自动更新基础检查结果。", status_bar)
+        self.calculation_status_hint.setObjectName("calculationStatusHint")
+        self.calculation_status_hint.setWordWrap(True)
+        status_layout.addWidget(self.confirmed_source_count)
+        status_layout.addWidget(self.error_count)
+        status_layout.addWidget(self.reminder_count)
+        status_layout.addWidget(self.calculation_status_hint, 1)
+
         self.calculate_button = QPushButton("计算排放量", self)
         self.calculate_button.setObjectName("calculateAccountingButton")
+        self.calculate_button.setProperty("primary", True)
         self.calculate_button.clicked.connect(self._run_calculation)
-        action_row.addWidget(self.check_button)
-        action_row.addWidget(self.calculate_button)
-        action_row.addStretch(1)
-        self.body_layout.addLayout(action_row)
+        status_layout.addWidget(self.calculate_button)
+        self.body_layout.addWidget(status_bar)
         self.body_layout.addStretch(1)
         self._refresh_source_cards()
 
@@ -476,6 +547,33 @@ class CarbonMaterialAccountingPage(BasePage):
                 details.setVisible(visible)
         if hasattr(self, "trace_professional_details") and not self.trace_professional_details.text().strip():
             self.trace_professional_details.setText("暂无专业计算过程信息。")
+
+    def _toggle_result_line_details(self) -> None:
+        visible = not self.result_line_details.isVisible()
+        self.result_line_details.setVisible(visible)
+        self.view_breakdown_button.setText("收起分项结果" if visible else "查看分项结果")
+
+    def _toggle_process_details(self) -> None:
+        visible = not self.process_card.isVisible()
+        self.process_card.setVisible(visible)
+        self.view_process_button.setText("收起计算过程" if visible else "查看计算过程")
+        if visible:
+            self._scroll_to_widget(self.process_card)
+
+    def _scroll_to_widget(self, widget: QWidget) -> None:
+        scroll_area = self.window().findChild(QScrollArea, "mainScrollArea")
+        if scroll_area is not None:
+            scroll_area.ensureWidgetVisible(widget)
+
+    def _focus_validation_item(self, item: QListWidgetItem) -> None:
+        source_id = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(source_id, str):
+            return
+        card = self._source_cards.get(source_id)
+        if card is None:
+            return
+        card.set_expanded(True)
+        self._scroll_to_widget(card)
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
         """Build all ten source cards through one shared Presentation path."""
@@ -1348,6 +1446,49 @@ class CarbonMaterialAccountingPage(BasePage):
         for source_id, card in self._source_cards.items():
             state, summary = self._derive_source_card_state(source_id)
             card.set_presentation_state(state, summary)
+        self._refresh_live_feedback()
+
+    def _refresh_live_feedback(self) -> None:
+        """Refresh lightweight Presentation feedback without invoking Domain calculation."""
+
+        if not hasattr(self, "confirmed_source_count"):
+            return
+        confirmed = sum(
+            _enum(combo.currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
+            for combo in self._source_statuses.values()
+        )
+        if self._validation_count_override is not None:
+            errors, reminders = self._validation_count_override
+        else:
+            errors = 0
+            reminders = 0
+            if not self.enterprise_name.text().strip():
+                errors += 1
+            if not self.boundary_confirmed.isChecked():
+                errors += 1
+            if self.other_activity_present.isChecked():
+                errors += 1
+            if self.transport_present.isChecked():
+                errors += 1
+            for card in self._source_cards.values():
+                if card.presentation_state is SourceCardPresentationState.NEEDS_ATTENTION:
+                    errors += 1
+                elif card.presentation_state in {
+                    SourceCardPresentationState.FILLING,
+                    SourceCardPresentationState.UNCONFIRMED,
+                }:
+                    reminders += 1
+        self.confirmed_source_count.setText(f"已确认排放源：{confirmed}")
+        self.error_count.setText(f"错误：{errors}")
+        self.reminder_count.setText(f"提醒：{reminders}")
+        if errors:
+            self.calculation_status_hint.setText("请先处理错误，再计算排放量。")
+        elif reminders:
+            self.calculation_status_hint.setText("仍有待确认或未完成的排放源；可继续填写后计算。")
+        elif self._calculation_has_result:
+            self.calculation_status_hint.setText("结果已生成；如修改输入，请重新计算以形成新的记录。")
+        else:
+            self.calculation_status_hint.setText("基础检查已通过，可以计算排放量。")
 
     def _fuel(self) -> tuple[FuelInput, ...]:
         fuel_id = _value(self._fields["fuel_id"])
@@ -1641,6 +1782,15 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _mark_input_dirty(self, *_args: object) -> None:
         self._input_dirty = True
+        self._validation_count_override = None
+        self._calculation_has_result = False
+        if hasattr(self, "result_card"):
+            self.result_card.setVisible(False)
+            self.process_card.setVisible(False)
+            self.result_line_details.setVisible(False)
+            self.view_breakdown_button.setText("查看分项结果")
+            self.view_process_button.setText("查看计算过程")
+        self._refresh_live_feedback()
 
     def _reset_for_new_accounting(self) -> None:
         """Restore every G06 control to the initial new-accounting state."""
@@ -1668,19 +1818,30 @@ class CarbonMaterialAccountingPage(BasePage):
             controls["evidence_reference"].clear()  # type: ignore[union-attr]
         self._electricity_resolution_states.clear()
         self._known_source_errors.clear()
+        self._validation_count_override = None
+        self._calculation_has_result = False
         self.heat_factor_selection_reason.clear()
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
         self._add_electricity_row()
         self._refresh_heat_factor_details()
         self.validation_list.clear()
+        self.quality_card.setVisible(False)
+        self.process_card.setVisible(False)
+        self.result_card.setVisible(False)
         self.result_total.setText("未计算")
+        self.result_status.setText("状态：尚未计算")
         self.result_breakdown.clear()
+        self.result_line_details.clear()
+        self.result_line_details.setVisible(False)
+        self.view_breakdown_button.setText("查看分项结果")
+        self.view_process_button.setText("查看计算过程")
         self.parameter_snapshot_summary.setText("尚未计算，暂无参数快照。")
         self.trace_output.setText("点击“计算排放量”后显示分项计算结果。")
         self.trace_professional_details.setText("打开“显示专业详情”后可查看公式和变量代入信息。")
         self.validation_professional_details.setText("打开“显示专业详情”后可查看原始校验信息和内部定位。")
         self._input_dirty = False
+        self._refresh_live_feedback()
 
     def confirm_discard_if_needed(self) -> bool:
         """Compatibility hook; navigation and close retain in-memory input without prompting."""
@@ -1734,19 +1895,39 @@ class CarbonMaterialAccountingPage(BasePage):
         level = str(getattr(getattr(problem, "level", None), "value", "ERROR"))
         code = str(getattr(problem, "code", "未提供代码"))
         raw_message = str(getattr(problem, "message", "当前数据需要检查。"))
-        self.validation_list.addItem(f"{self._problem_level_label(problem)}：{self._business_problem_message(problem)}")
+        item = QListWidgetItem(
+            f"{self._problem_level_label(problem)}：{self._business_problem_message(problem)}"
+        )
+        item.setData(
+            Qt.ItemDataRole.UserRole,
+            self._source_id_for_problem_field(getattr(problem, "field_id", None)),
+        )
+        self.validation_list.addItem(item)
         technical_lines.append(f"{level}：{raw_message} [{code}]")
 
     def _run_calculation(self) -> None:
         self.validation_list.clear()
         self._known_source_errors.clear()
+        self._validation_count_override = None
+        self._calculation_has_result = False
+        self.result_card.setVisible(False)
+        self.process_card.setVisible(False)
+        self.quality_card.setVisible(False)
+        self.result_line_details.setVisible(False)
+        self.view_breakdown_button.setText("查看分项结果")
+        self.view_process_button.setText("查看计算过程")
         self._refresh_source_cards()
         technical_lines: list[str] = []
         if not self.enterprise_name.text().strip():
-            self.validation_list.addItem("错误：企业名称为必填项，请填写企业名称。")
+            item = QListWidgetItem("错误：企业名称为必填项，请填写企业名称。")
+            self.validation_list.addItem(item)
             technical_lines.append("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
             self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
+            self.result_status.setText("状态：存在需要处理的问题")
+            self.quality_card.setVisible(True)
+            self._validation_count_override = (1, 0)
+            self._refresh_live_feedback()
             return
         try:
             outcome = self.calculator.calculate(self._input())
@@ -1756,36 +1937,81 @@ class CarbonMaterialAccountingPage(BasePage):
             technical_lines.append(f"ERROR：{raw_message}")
             self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
+            self.result_status.setText("状态：存在需要处理的问题")
+            self.quality_card.setVisible(True)
+            self._validation_count_override = (1, 0)
+            self._refresh_live_feedback()
             return
         self._known_source_errors = self._source_ids_for_domain_errors(outcome.problems)
         self._refresh_source_cards()
+        error_count = 0
+        reminder_count = 0
         for problem in outcome.problems:
             self._add_validation_problem(problem, technical_lines)
+            level = str(getattr(getattr(problem, "level", None), "value", "ERROR"))
+            if level == "ERROR":
+                error_count += 1
+            elif level in {"WARNING", "INFO"}:
+                reminder_count += 1
         if not outcome.problems:
-            self.validation_list.addItem("信息：数据检查通过。")
+            self.validation_list.addItem(QListWidgetItem("信息：数据检查通过。"))
             technical_lines.append("INFO：数据检查通过。")
         self.validation_professional_details.setText("\n".join(technical_lines) if technical_lines else "暂无原始校验信息。")
-        if outcome.result is None:
+        self.quality_card.setVisible(bool(outcome.problems))
+        self._validation_count_override = (error_count, reminder_count)
+        if outcome.result is None or outcome.blocked:
             self.result_total.setText("存在错误，未形成成功结果")
+            self.result_status.setText("状态：存在需要处理的问题")
+            self.quality_card.setVisible(True)
+            self._refresh_live_feedback()
             return
-        self.result_total.setText(f"总排放量 ET：{outcome.result.total_amount} tCO2")
+        self._calculation_has_result = True
+        self.result_card.setVisible(True)
+        self.result_total.setText(
+            f"总排放量 ET：{_display_amount(outcome.result.total_amount, outcome.result.total_unit)}"
+        )
         by_id = {line.line_id: line.amount for line in outcome.result.lines}
+        status_label = (
+            "已完成（含提醒）"
+            if outcome.record is not None and outcome.record.status is RecordStatus.COMPLETED_WITH_WARNINGS
+            else "已完成"
+            if outcome.record is not None
+            else "已计算但存在需要处理的问题"
+        )
+        self.result_status.setText(f"状态：{status_label}")
         self.result_breakdown.setText(
-            f"直接排放 ES：{by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0'))} tCO2；"
-            f"间接排放 EI：{by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0'))} tCO2；"
-            f"状态：{'已生成正式核算记录' if outcome.record is not None else '存在阻断问题'}"
+            f"直接排放 ES：{_display_amount(by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
+            f"间接排放 EI：{_display_amount(by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
+            f"记录：{'已生成不可编辑核算记录' if outcome.record is not None else '未生成记录'}"
+        )
+        line_details = []
+        for line in outcome.result.lines:
+            if line.line_id in {
+                "CAR-FLD-DIRECT-RESULT",
+                "CAR-FLD-INDIRECT-RESULT",
+                "CAR-FLD-TOTAL-RESULT",
+            }:
+                continue
+            source_label = SOURCE_LABELS.get(line.emission_source_id, "其他排放源")
+            line_details.append(f"{source_label}：{_display_amount(line.amount, line.unit)}")
+        self.result_line_details.setText(
+            "分项结果：\n" + "\n".join(line_details) if line_details else "分项结果：本次没有单独排放源明细。"
         )
         self.parameter_snapshot_summary.setText(f"已形成 {len(outcome.parameter_snapshots)} 条参数快照（只读）。")
         if outcome.record is not None:
             self._input_dirty = False
             self.record_created.emit(outcome.record.record_id)
-        trace_lines = [f"{trace.formula_id}：{trace.substitution} = {trace.amount} tCO2" for trace in outcome.traces]
+        trace_lines = [
+            f"{trace.formula_id}：{trace.substitution} = {_display_amount(trace.amount, 'tCO2')}"
+            for trace in outcome.traces
+        ]
         self.trace_professional_details.setText("\n".join(trace_lines) if trace_lines else "无可展示计算过程。")
         self.trace_output.setText(
             "计算过程已完成；如需查看公式和变量代入信息，请打开“显示专业详情”。"
             if trace_lines
             else "本次没有形成可展示的计算明细。"
         )
+        self._refresh_live_feedback()
 
 
 NewAccountingPage = CarbonMaterialAccountingPage
