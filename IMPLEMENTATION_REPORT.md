@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：UIR04（返工完成，待 Sol 复验）
+## 当前阶段：CATUI01（范围原文 BLOCKED，其他 UI 修复完成）
 
 本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
 
@@ -1909,3 +1909,54 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印中文观察结果，触发 `UnicodeEncodeError`，不是业务场景或结果校验失败。已在 `scripts/uir04_manual_gui_acceptance.py` 入口显式将 stdout/stderr 配置为 UTF-8，并保留替代字符保护，不改变场景操作、断言或业务代码。
 
 本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，场景 A～E 全部通过。修复提交：`1b658a1 fix: make UIR04 GUI acceptance Windows-encoding safe`。修复后需以新的 PR head 重新确认 Windows CI 两个 job。
+
+## CATUI01 实施报告（2026-09-22）
+
+### 任务与基线
+
+CATUI01 只处理标准库详情精简、AppShell 公共滚动和直接相关回归。实际开发基线为 origin/main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a；分支为 fix/catui01-standard-library-scroll。未在 main 或旧阶段分支上开发。
+
+### BLOCKED：适用范围原文缺少可追溯数据
+
+标准详情要求“适用范围”显示标准原文范围章节，但检查确认当前 Canonical 与查询链没有该数据：
+
+- data-source/carbon_accounting/catalog.json 的标准对象没有范围字段；
+- specs/common/canonical_catalog.schema.json、packages/standards/catalog.py 和 catalog migration 没有对应结构；
+- packages/application/catalog_queries.py 只查询标准目录、官方来源、基础标准、参数和因子；
+- 仓库搜索未发现可核对的 scope/范围原文记录。
+
+本 PR 没有在 UI Python 文件中硬编码标准正文，也没有修改 Canonical、schema、迁移或标准来源。适用范围区域只保留安全占位“当前目录尚未录入可追溯的范围原文”。后续需要 Sol 决定是否批准补充带来源定位的 Canonical 范围数据。按任务允许的方案 B，其余 UI 和滚动修复已完成；在范围数据补录前不标记 READY FOR ACCEPTANCE。
+
+### 实施内容
+
+- StandardLibraryPage 的详情主体固定为基本信息与官方来源、标准关系、适用范围、参数与因子；基本信息只保留标准编号、名称、状态、发布日期、实施日期、废止日期和发布单位。
+- 移除普通详情中的主管部门、归口部门、ICS、CCS、来源审核、备注、推断性行业分类及核算边界、排放源与温室气体、核算方法、数据质量与报告要求、附录与标准依据。
+- 保留已有基础标准关系和参数/因子表格；查看参数与因子库仍路由到 AppRoute.FACTORS；标准原文按钮仍使用现有官方 URL。
+- 新增 CurrentPageStack，让 page_stack 的 sizeHint/minimumSizeHint 跟随 currentWidget；scroll host 在当前页面尺寸变化后显式重算高度，避免长标准详情永久撑高首页和参数库。
+- AppShell 路由切换立即及异步布局稳定后都把公共垂直滚动条恢复到顶部。
+
+### 测试与校验
+
+- CATUI01 定向：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell tests.test_g04_catalog -v；19/19 通过，0 失败，0 错误，0 跳过。
+- 相关回归：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics tests.test_uir02_source_cards tests.test_uir03_advanced_details tests.test_uir04_finalization tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v；84/84 通过。
+- 全量：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v；161/161 通过，0 失败，0 错误，0 跳过。
+- compileall：.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests；通过。
+- pip check：.venv\Scripts\python.exe -m pip check；No broken requirements found。
+- Canonical：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库从零重建：.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir 隔离临时目录 --app-version catui01-check；catalog.sqlite、user.sqlite、records.sqlite 均成功生成，临时目录已清理。
+- git diff --check 通过；计算表/ 无差异；未运行 standalone 构建，因为本轮未修改 G08 交付脚本或发布元数据。
+
+Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后点击查看参数与因子库，路由为 FACTORS、参数库标题在 viewport 内可见且滚动值回到顶部；随后切换首页，滚动值回到顶部、短页面滚动范围为 0，并验证当前页面高度小于标准详情页面高度。
+
+### Git 范围与提交
+
+- 实现提交：d72e2d0 fix: simplify standard library details；c7a7054 fix: reset shell scroll on route changes。
+- 测试提交：d5ba79a test: cover catalog scroll navigation regression。
+- 本次变更文件：packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g03_shell.py、tests/test_g04_catalog.py，以及本报告和 TASK_STATE.md。
+- 候选实现 head 为 d5ba79a；治理文档提交后的最终 PR head 以 Git/PR 交付回执核对。
+- 未修改核算 Domain、公式、参数/因子解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
+- 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档未处理、未提交。
+
+### 结论
+
+CATUI01 当前为 NOT READY / BLOCKED。标准详情精简和公共滚动根因修复已完成，自动化回归全绿；但适用范围原文必须先通过 Canonical 数据补录获得可追溯来源。不得在此之前宣称 CATUI01 READY FOR ACCEPTANCE，也不得以 UI 占位冒充标准原文。

@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR04 可用性收口与回归（Sol 小修返工）
+CATUI01：标准库精简与公共滚动修复
 
 ## 状态
 
-UIR04_REWORK_READY_FOR_SOL_REVIEW
+CATUI01_BLOCKED_SCOPE_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1307,3 +1307,70 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印脚本的中文观察结果，触发 `UnicodeEncodeError`，不是业务场景失败。已在 `scripts/uir04_manual_gui_acceptance.py` 的验收脚本入口显式将 stdout/stderr 配置为 UTF-8（无法表示的字符替换），不改变场景操作、断言或业务代码。
 
 本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，GUI 场景 A～E 全部通过；修复提交为 `1b658a1`。该提交随治理文档一起推送后，必须以新的 PR head 重新等待两个 Windows CI job。
+
+## CATUI01 实施状态（2026-09-22）
+
+**CATUI01_BLOCKED_SCOPE_READY_FOR_SOL_REVIEW**
+
+### BLOCKED
+
+问题：
+
+- 标准详情要求展示标准原文“适用范围”，但当前仓库没有可追溯的范围原文 Canonical 数据。
+
+证据：
+
+- data-source/carbon_accounting/catalog.json 的标准条目只有编号、名称、版本、状态、日期、职责、官方来源、关系和备注字段，没有范围原文字段。
+- specs/common/canonical_catalog.schema.json 没有标准范围字段；packages/standards/catalog.py 的 StandardCatalogRecord 也没有对应读模型字段。
+- packages/application/catalog_queries.py 的 CatalogQueryService.get_standard_detail() 只能组装现有标准、来源、基础标准、参数和因子数据，没有范围查询。
+- packages/persistence/catalog_repository.py、catalog migration 和仓库搜索均未发现已核对的 scope/范围原文数据。
+
+为什么不能按原方案继续：
+
+- 直接在 packages/ui/catalog_pages.py 写入标准正文或根据标准名称推断范围，会违反 Canonical Source、官方来源可追溯和不得复制标准全文的规则；新增 Canonical 字段、模型、schema 或标准原文数据又超出本次 UI 小修的授权范围。
+
+可选方案 A：
+
+- 经 Sol 批准后，在 Canonical 中补充有来源定位的标准范围结构化数据，再由 Application Query Service 正式读取并展示。
+
+可选方案 B：
+
+- 本 PR 先完成其余标准详情精简和公共滚动修复，范围区保留安全占位，待数据补录后单独完成。
+
+建议：
+
+- 采用方案 B；本轮不改变 Canonical、schema、迁移或标准数据，避免为了 UI 补齐而猜写标准正文。
+
+需要 Sol 决策的具体问题：
+
+- 是否批准后续补充标准范围 Canonical 数据；在批准并完成数据补录前，CATUI01 不标记为 READY FOR ACCEPTANCE。
+
+### 已完成的安全范围
+
+- 标准详情收敛为“基本信息与官方来源”“标准关系”“适用范围”“参数与因子”四个主体区域。
+- 删除详情普通界面的主管部门、归口部门、ICS、CCS、来源审核、备注、推断性行业分类，以及核算边界、排放源与温室气体、核算方法、数据质量与报告要求、附录与标准依据等旧区块。
+- 范围区只显示安全占位“当前目录尚未录入可追溯的范围原文”，没有硬编码或改写标准正文。
+- 新增 CurrentPageStack，页面栈的 sizeHint/minimumSizeHint 跟随当前页面；公共 scroll host 在路由切换后按当前页面高度重算，滚动条异步布局完成后回到顶部。
+- 标准详情的“查看参数与因子库”仍进入 AppRoute.FACTORS；参数与因子查询、核算入口和业务计算路径未改变。
+
+### 测试与验证
+
+- CATUI01 定向（G03/G04）：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell tests.test_g04_catalog -v；19/19 通过。
+- UIR01～UIR04、G06、G07、G08 相关回归：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics tests.test_uir02_source_cards tests.test_uir03_advanced_details tests.test_uir04_finalization tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v；84/84 通过。
+- 项目全量：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v；161/161 通过，0 失败，0 错误，0 跳过。
+- 编译：.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests；通过。
+- 依赖：.venv\Scripts\python.exe -m pip check；No broken requirements found。
+- Canonical：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库：.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir 隔离临时目录 --app-version catui01-check；catalog/user/records 从零创建成功，临时目录已清理。
+- git diff --check 通过；计算表/ 无修改；未运行 standalone 构建，因为本轮未修改 G08 交付脚本或发布元数据。
+
+### Git 与范围
+
+- 实际基线：origin/main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a。
+- 分支：fix/catui01-standard-library-scroll。
+- 实现提交：d72e2d0、c7a7054；测试提交：d5ba79a。
+- 当前提交范围仅为 packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g03_shell.py、tests/test_g04_catalog.py；本节文档提交后最终 head 以 Git/PR 交付回执核对。
+- 未修改 Domain、公式、参数解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
+- 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档保持原样，未处理、未提交。
+
+当前结论：NOT READY / BLOCKED（范围原文待 Sol 决策和 Canonical 补录）。不得将本任务标记为 READY FOR ACCEPTANCE。
