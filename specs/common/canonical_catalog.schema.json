@@ -26,12 +26,32 @@
         "generated_from"
       ],
       "properties": {
-        "catalog_id": { "type": "string", "minLength": 1 },
-        "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-        "data_version": { "type": "string", "minLength": 1 },
-        "app_compatibility": { "type": "string", "minLength": 1 },
-        "canonical_format": { "type": "string", "enum": ["JSON"] },
-        "generated_from": { "type": "string", "minLength": 1 }
+        "catalog_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "data_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "app_compatibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical_format": {
+          "type": "string",
+          "enum": [
+            "JSON"
+          ]
+        },
+        "generated_from": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "sources": {
@@ -51,25 +71,76 @@
           "notes"
         ],
         "properties": {
-          "source_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9_.-]{2,127}$" },
+          "source_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_.-]{2,127}$"
+          },
           "source_type": {
             "type": "string",
-            "enum": ["OFFICIAL_STANDARD", "GOVERNMENT_PUBLICATION", "SCIENTIFIC_REFERENCE", "OTHER"]
+            "enum": [
+              "OFFICIAL_STANDARD",
+              "GOVERNMENT_PUBLICATION",
+              "SCIENTIFIC_REFERENCE",
+              "OTHER"
+            ]
           },
-          "document_no": { "type": "string", "minLength": 1 },
-          "document_name": { "type": "string", "minLength": 1 },
-          "publisher": { "type": "string", "minLength": 1 },
-          "publication_date": { "type": "string", "format": "date" },
-          "effective_from": { "type": ["string", "null"], "format": "date" },
-          "effective_to": { "type": ["string", "null"], "format": "date" },
-          "region": { "type": "string", "minLength": 1 },
-          "version": { "type": "string", "minLength": 1 },
-          "official_url": { "type": ["string", "null"], "format": "uri" },
+          "document_no": {
+            "type": "string",
+            "minLength": 1
+          },
+          "document_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publication_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "effective_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "effective_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "region": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "official_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
+            "enum": [
+              "VERIFIED",
+              "VERIFIED_WITH_INTERPRETATION",
+              "PENDING_SOURCE",
+              "DEPRECATED"
+            ]
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         }
       }
     },
@@ -78,20 +149,45 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["subject_id", "subject_type", "name", "aliases", "notes"],
+        "required": [
+          "subject_id",
+          "subject_type",
+          "name",
+          "aliases",
+          "notes"
+        ],
         "properties": {
-          "subject_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "subject_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$"
+          },
           "subject_type": {
             "type": "string",
-            "enum": ["FUEL", "ELECTRICITY", "HEAT", "GAS", "PROCESS", "GWP", "SYSTEM"]
+            "enum": [
+              "FUEL",
+              "ELECTRICITY",
+              "HEAT",
+              "GAS",
+              "PROCESS",
+              "GWP",
+              "SYSTEM"
+            ]
           },
-          "name": { "type": "string", "minLength": 1 },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
           "aliases": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         }
       }
     },
@@ -120,44 +216,139 @@
           "parameter_refs",
           "emission_source_refs",
           "calculation_status",
-          "notes"
+          "notes",
+          "scope"
         ],
         "properties": {
-          "standard_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
-          "standard_number": { "type": "string", "minLength": 1 },
-          "standard_name": { "type": "string", "minLength": 1 },
-          "standard_type": { "type": "string", "enum": ["COMMON_RULES", "INDUSTRY"] },
-          "version": { "type": "string", "minLength": 1 },
-          "official_status": { "type": "string", "enum": ["ACTIVE", "UPCOMING", "ABOLISHED", "UNKNOWN"] },
-          "publication_date": { "type": "string", "format": "date" },
-          "implementation_date": { "type": "string", "format": "date" },
-          "ics": { "type": "string", "minLength": 1 },
-          "ccs": { "type": "string", "minLength": 1 },
-          "issuing_authority": { "type": "string", "minLength": 1 },
-          "competent_authority": { "type": "string", "minLength": 1 },
-          "technical_committee": { "type": "string", "minLength": 1 },
-          "official_source_id": { "type": "string", "minLength": 1 },
-          "official_source_url": { "type": "string", "format": "uri" },
+          "standard_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$"
+          },
+          "standard_number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard_type": {
+            "type": "string",
+            "enum": [
+              "COMMON_RULES",
+              "INDUSTRY"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "official_status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "UPCOMING",
+              "ABOLISHED",
+              "UNKNOWN"
+            ]
+          },
+          "publication_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "implementation_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "ics": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ccs": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issuing_authority": {
+            "type": "string",
+            "minLength": 1
+          },
+          "competent_authority": {
+            "type": "string",
+            "minLength": 1
+          },
+          "technical_committee": {
+            "type": "string",
+            "minLength": 1
+          },
+          "official_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "official_source_url": {
+            "type": "string",
+            "format": "uri"
+          },
           "base_standard_ids": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
           "parameter_refs": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
           "emission_source_refs": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
           "calculation_status": {
             "type": "string",
-            "enum": ["COMMON_RULES_ONLY", "PLANNED", "IMPLEMENTED"]
+            "enum": [
+              "COMMON_RULES_ONLY",
+              "PLANNED",
+              "IMPLEMENTED"
+            ]
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          },
+          "scope": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "text",
+              "source_id",
+              "source_location"
+            ],
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_id": {
+                "type": "string",
+                "pattern": "^[A-Z0-9][A-Z0-9_.-]{2,127}$"
+              },
+              "source_location": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     },
@@ -179,7 +370,10 @@
           "notes"
         ],
         "properties": {
-          "parameter_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
+          "parameter_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$"
+          },
           "parameter_type": {
             "type": "string",
             "enum": [
@@ -197,21 +391,46 @@
               "SYSTEM_CONVERSION"
             ]
           },
-          "name": { "type": "string", "minLength": 1 },
-          "canonical_unit": { "type": "string", "minLength": 1 },
-          "subject_id": { "type": "string", "minLength": 1 },
-          "source_id": { "type": "string", "minLength": 1 },
-          "source_location": { "type": "string", "minLength": 1 },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "canonical_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_location": {
+            "type": "string",
+            "minLength": 1
+          },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
+            "enum": [
+              "VERIFIED",
+              "VERIFIED_WITH_INTERPRETATION",
+              "PENDING_SOURCE",
+              "DEPRECATED"
+            ]
           },
           "applicable_standard_ids": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         }
       }
     },
@@ -241,20 +460,69 @@
           "notes"
         ],
         "properties": {
-          "factor_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
-          "parameter_id": { "type": "string", "minLength": 1 },
-          "subject_id": { "type": "string", "minLength": 1 },
-          "value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
-          "unit": { "type": "string", "minLength": 1 },
-          "source_value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
-          "source_unit": { "type": "string", "minLength": 1 },
-          "normalized_value": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
-          "normalized_unit": { "type": "string", "minLength": 1 },
-          "source_id": { "type": "string", "minLength": 1 },
-          "source_location": { "type": "string", "minLength": 1 },
-          "factor_year": { "type": "integer", "minimum": 1900, "maximum": 2500 },
-          "valid_from": { "type": ["string", "null"], "format": "date" },
-          "valid_to": { "type": ["string", "null"], "format": "date" },
+          "factor_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$"
+          },
+          "parameter_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string",
+            "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_value": {
+            "type": "string",
+            "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+          },
+          "source_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "normalized_value": {
+            "type": "string",
+            "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+          },
+          "normalized_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "factor_year": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2500
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
           "value_type": {
             "type": "string",
             "enum": [
@@ -270,14 +538,24 @@
           },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
+            "enum": [
+              "VERIFIED",
+              "VERIFIED_WITH_INTERPRETATION",
+              "PENDING_SOURCE",
+              "DEPRECATED"
+            ]
           },
           "applicable_standard_ids": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
             "uniqueItems": true
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         }
       }
     },
@@ -298,18 +576,46 @@
           "notes"
         ],
         "properties": {
-          "conversion_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$" },
-          "from_unit": { "type": "string", "minLength": 1 },
-          "to_unit": { "type": "string", "minLength": 1 },
-          "multiplier": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
-          "offset": { "type": "string", "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$" },
-          "source_id": { "type": "string", "minLength": 1 },
-          "source_location": { "type": "string", "minLength": 1 },
+          "conversion_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,127}$"
+          },
+          "from_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "multiplier": {
+            "type": "string",
+            "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+          },
+          "offset": {
+            "type": "string",
+            "pattern": "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_location": {
+            "type": "string",
+            "minLength": 1
+          },
           "review_status": {
             "type": "string",
-            "enum": ["VERIFIED", "VERIFIED_WITH_INTERPRETATION", "PENDING_SOURCE", "DEPRECATED"]
+            "enum": [
+              "VERIFIED",
+              "VERIFIED_WITH_INTERPRETATION",
+              "PENDING_SOURCE",
+              "DEPRECATED"
+            ]
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         }
       }
     }
