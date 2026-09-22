@@ -120,6 +120,10 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(by_id["gbt_32150_2025"]["technical_committee"], "生态环境部")
         self.assertEqual(by_id["gbt_32151_34_2024"]["competent_authority"], "中国钢铁工业协会")
         self.assertEqual(by_id["gbt_32151_34_2024"]["technical_committee"], "中国钢铁工业协会")
+        self.assertEqual(
+            by_id["gbt_32151_34_2024"]["notes"],
+            "适用于炭素材料生产企业温室气体排放量的核算。",
+        )
 
     def test_standard_parameter_references_must_be_applicable(self) -> None:
         catalog = copy.deepcopy(self.catalog)
@@ -199,7 +203,7 @@ class CanonicalCatalogTests(unittest.TestCase):
             "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
         )
         self.assertEqual(self.catalog["manifest"]["schema_version"], "1.0.0")
-        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.09.20-g08.1")
+        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.09.22-catui01.1")
     def test_duplicate_stable_id_blocks_validation(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["sources"].append(copy.deepcopy(catalog["sources"][0]))

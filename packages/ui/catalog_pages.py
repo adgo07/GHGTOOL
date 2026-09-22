@@ -93,8 +93,13 @@ def _detail_section(
     return card
 
 
-def _unavailable_text() -> str:
-    return "暂无已核对的结构化数据。"
+def _text_section(title: str, parent: QWidget, text: str) -> QFrame:
+    card, layout = _card(title, parent)
+    description = QLabel(text, card)
+    description.setObjectName("detailParagraph")
+    description.setWordWrap(True)
+    layout.addWidget(description)
+    return card
 
 
 def _enum_data(value: object, enum_type: type[Enum]) -> Enum | None:
@@ -316,115 +321,60 @@ class StandardLibraryPage(BasePage):
 
         self.detail_layout.addWidget(
             _detail_section(
-                "基本信息",
+                "基本信息与官方来源",
                 self.detail_host,
                 (
                     ("标准编号", standard.standard_number),
                     ("标准名称", standard.standard_name),
+                    ("当前状态", self._service.status_label(detail.status)),
                     ("发布日期", _date_text(standard.publication_date)),
                     ("实施日期", _date_text(standard.implementation_date)),
                     ("废止日期", _date_text(standard.abolition_date)),
-                    ("当前状态", self._service.status_label(detail.status)),
-                    ("ICS", standard.ics),
-                    ("CCS", standard.ccs),
                     ("发布单位", standard.issuing_authority),
-                    ("主管部门", standard.competent_authority),
-                    ("归口部门", standard.technical_committee),
                 ),
             )
         )
 
-        base_text = "\n".join(
-            f"{item.standard_number} {item.standard_name}" for item in detail.base_standards
-        ) or "—"
-        self.detail_layout.addWidget(
-            _detail_section(
-                "标准关系",
-                self.detail_host,
-                (
-                    ("基础标准 / 通则", base_text),
-                    ("替代关系", "暂无已核对的结构化数据。"),
-                    ("规范性引用文件", "暂无已核对的结构化数据。"),
-                ),
-            )
-        )
-
-        source = detail.source
-        source_text = (
+        verified_placeholder = "暂无已核对的结构化数据。"
+        relation_rows = [
             (
-                ("来源文件", source.document_no),
-                ("来源名称", source.document_name),
-                ("发布单位", source.publisher),
-                ("发布日期", _date_text(source.publication_date)),
-                ("来源类型", self._service.source_type_label(source.source_type)),
-                ("来源审核", self._service.review_status_label(source.review_status)),
-                ("备注", source.notes),
-            )
-            if source is not None
-            else (("来源", "暂无已配置来源。"),)
-        )
+                "基础标准 / 通则",
+                (
+                    "\n".join(
+                        f"{item.standard_number} {item.standard_name}"
+                        for item in detail.base_standards
+                    )
+                    if detail.base_standards
+                    else verified_placeholder
+                ),
+            ),
+            (
+                "替代关系",
+                verified_placeholder,
+            ),
+            (
+                "规范性引用文件",
+                verified_placeholder,
+            ),
+        ]
         self.detail_layout.addWidget(
-            _detail_section("标准依据与官方来源", self.detail_host, source_text)
+            _detail_section("标准关系", self.detail_host, relation_rows)
         )
 
+        scope_text = (
+            standard.notes
+            if standard.notes.strip().startswith("适用于")
+            else "当前目录尚未录入可追溯的范围原文。"
+        )
         self.detail_layout.addWidget(
-            _detail_section(
+            _text_section(
                 "适用范围",
                 self.detail_host,
-                (
-                    ("标准范围", _unavailable_text()),
-                    ("适用行业", "基于标准名称的目录分类：" + _industry_text(standard.standard_name)),
-                    ("适用企业", _unavailable_text()),
-                    ("不适用情况", "—"),
-                ),
-            )
-        )
-        self.detail_layout.addWidget(
-            _detail_section(
-                "核算边界",
-                self.detail_host,
-                (("标准规定的核算边界", _unavailable_text()),),
-            )
-        )
-        self.detail_layout.addWidget(
-            _detail_section(
-                "排放源与温室气体",
-                self.detail_host,
-                (
-                    ("排放源", "—" if not standard.emission_source_refs else "\n".join(standard.emission_source_refs)),
-                    ("温室气体", _unavailable_text()),
-                ),
-            )
-        )
-        self.detail_layout.addWidget(
-            _detail_section(
-                "核算方法",
-                self.detail_host,
-                (("方法摘要", _unavailable_text()),),
+                scope_text,
             )
         )
 
         self._add_parameter_section(detail)
-        self.detail_layout.addWidget(
-            _detail_section(
-                "数据质量与报告要求",
-                self.detail_host,
-                (
-                    ("数据质量要求", _unavailable_text()),
-                    ("报告要求", _unavailable_text()),
-                ),
-            )
-        )
-        self.detail_layout.addWidget(
-            _detail_section(
-                "附录与标准依据",
-                self.detail_host,
-                (
-                    ("附录", _unavailable_text()),
-                    ("目录说明", standard.notes or "—"),
-                ),
-            )
-        )
         self.detail_layout.addStretch(1)
 
     def _add_parameter_section(self, detail: StandardDetail) -> None:
@@ -753,15 +703,3 @@ class ParameterFactorLibraryPage(BasePage):
             for standard_id in standard_ids
             if standard_id in standards
         ) or "—"
-
-
-def _industry_text(standard_name: str) -> str:
-    if "钢铁" in standard_name or "焦化" in standard_name:
-        return "钢铁"
-    if "铝" in standard_name or "工业硅" in standard_name:
-        return "有色"
-    if "玻璃" in standard_name or "水泥" in standard_name:
-        return "建材"
-    if "发电" in standard_name:
-        return "能源"
-    return "其他"

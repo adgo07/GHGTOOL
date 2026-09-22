@@ -2,7 +2,7 @@
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
     "schema_version": "1.0.0",
-    "data_version": "2026.09.20-g08.1",
+    "data_version": "2026.09.22-catui01.1",
     "app_compatibility": "1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
@@ -194,28 +194,38 @@
       "subject_id": "natural_gas",
       "subject_type": "FUEL",
       "name": "天然气",
-      "aliases": ["natural gas", "NG"],
+      "aliases": [
+        "natural gas",
+        "NG"
+      ],
       "notes": "首个行业模块明确示例燃料。"
     },
     {
       "subject_id": "purchased_electricity",
       "subject_type": "ELECTRICITY",
       "name": "外购电力",
-      "aliases": ["electricity"],
+      "aliases": [
+        "electricity"
+      ],
       "notes": "公共规则与行业模块均可引用。"
     },
     {
       "subject_id": "purchased_heat",
       "subject_type": "HEAT",
       "name": "外购热力",
-      "aliases": ["heat"],
+      "aliases": [
+        "heat"
+      ],
       "notes": "仅保留批准的公共缺省因子。"
     },
     {
       "subject_id": "co2",
       "subject_type": "GWP",
       "name": "二氧化碳",
-      "aliases": ["CO2", "CO₂"],
+      "aliases": [
+        "CO2",
+        "CO₂"
+      ],
       "notes": "首批 GWP 最小集合。"
     }
   ],
@@ -237,7 +247,11 @@
       "official_source_id": "SRC-32150-2025",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=6E4997D6B3118055931BC13C71B9A452",
       "base_standard_ids": [],
-      "parameter_refs": ["electricity_emission_factor_national", "heat_emission_factor_default", "gwp_co2_ar6_100"],
+      "parameter_refs": [
+        "electricity_emission_factor_national",
+        "heat_emission_factor_default",
+        "gwp_co2_ar6_100"
+      ],
       "emission_source_refs": [],
       "calculation_status": "COMMON_RULES_ONLY",
       "notes": "G02 只建立公共规则目录和参数引用，不实现规则解析。"
@@ -258,7 +272,9 @@
       "technical_committee": "中国钢铁工业协会",
       "official_source_id": "SRC-32151-34-2024",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=E32D6CB8AF14D795CC640F8BBC85538D",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [
         "natural_gas_lhv",
         "natural_gas_carbon_content",
@@ -267,7 +283,7 @@
       ],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
-      "notes": "行业模块规则留待 G06；G02 不录入公式。"
+      "notes": "适用于炭素材料生产企业温室气体排放量的核算。"
     },
     {
       "standard_id": "gbt_32151_1_2015",
@@ -285,7 +301,9 @@
       "technical_committee": "国家发展改革委",
       "official_source_id": "SRC-32151-1-2015",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=C3AD3D9EA0DA87FEA0344B960CDF0073",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -307,7 +325,9 @@
       "technical_committee": "生态环境部",
       "official_source_id": "SRC-32151-4-2026",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=D9326C7BB9C30346C0BFEA26F1450444",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -329,7 +349,9 @@
       "technical_committee": "生态环境部",
       "official_source_id": "SRC-32151-5-2026",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=31093310962538CE25DAA30330B1BA83",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -351,7 +373,9 @@
       "technical_committee": "中国建筑材料联合会",
       "official_source_id": "SRC-32151-7-2023",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=59EEEA566EF58A3065BE81C31F37F34D",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -373,7 +397,9 @@
       "technical_committee": "中国建筑材料联合会",
       "official_source_id": "SRC-32151-8-2023",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=DD40B4BCA50AA5F90469E38EBB86CD26",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -395,7 +421,9 @@
       "technical_committee": "中国钢铁工业协会",
       "official_source_id": "SRC-32151-13-2023",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=C659D4569181F800FB5887D1A3514571",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -417,7 +445,9 @@
       "technical_committee": "中国有色金属工业协会",
       "official_source_id": "SRC-32151-41-2024",
       "official_source_url": "https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=6B813C7EFCC0BF81BDEA9458BCFDA3F4",
-      "base_standard_ids": ["gbt_32150_2025"],
+      "base_standard_ids": [
+        "gbt_32150_2025"
+      ],
       "parameter_refs": [],
       "emission_source_refs": [],
       "calculation_status": "PLANNED",
@@ -434,7 +464,9 @@
       "source_id": "SRC-32151-34-2024",
       "source_location": "附录C表C.1：天然气低位发热量",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "保留为独立参数，不在代码中派生或散落。"
     },
     {
@@ -446,7 +478,9 @@
       "source_id": "SRC-32151-34-2024",
       "source_location": "附录C表C.1：天然气单位热值含碳量",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "保留为独立参数。"
     },
     {
@@ -458,7 +492,9 @@
       "source_id": "SRC-32151-34-2024",
       "source_location": "附录C表C.1：天然气碳氧化率",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "比例值使用 ratio，不接受页面显示文字作为枚举或单位。"
     },
     {
@@ -470,7 +506,10 @@
       "source_id": "SRC-ELEC-2023-47",
       "source_location": "公告2025年第47号表1：全国平均",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "源值 kgCO₂/kWh 与规范化值 tCO₂/MWh 数值等价，换算由 Canonical 规则记录。"
     },
     {
@@ -482,7 +521,9 @@
       "source_id": "SRC-32151-34-2024",
       "source_location": "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是采用附录D.1.1零因子的前置条件；本参数独立于electricity_emission_factor_national。"
     },
     {
@@ -494,7 +535,10 @@
       "source_id": "SRC-32150-2025",
       "source_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "共用规则层标准缺省值；无合格供热单位实测因子时采用，不代表所有供热单位的实测值。"
     },
     {
@@ -506,7 +550,10 @@
       "source_id": "SRC-IPCC-AR6-WGI",
       "source_location": "Chapter 7 Table 7.15 / Supplementary Table 7.SM.7：GWP-100",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "G02 只录入 CO₂ GWP=1 的最小集合。"
     }
   ],
@@ -528,7 +575,9 @@
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "标准推荐值；企业实测值留待后续输入和推荐逻辑阶段。"
     },
     {
@@ -548,7 +597,9 @@
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "标准推荐值。"
     },
     {
@@ -568,7 +619,9 @@
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "标准推荐值。"
     },
     {
@@ -588,7 +641,10 @@
       "valid_to": null,
       "value_type": "GOVERNMENT_PUBLISHED",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "1 kgCO₂/kWh = 1 tCO₂/MWh，数值以 Decimal 保留。"
     },
     {
@@ -608,7 +664,9 @@
       "valid_to": null,
       "value_type": "STANDARD_SPECIFIED",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ],
       "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是使用本零因子的前置条件。"
     },
     {
@@ -628,7 +686,10 @@
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "GB/T 32150—2025共用规则层标准缺省值；无符合要求的供热单位实测因子时推荐。"
     },
     {
@@ -648,7 +709,10 @@
       "valid_to": null,
       "value_type": "SCIENTIFIC_REFERENCE",
       "review_status": "VERIFIED",
-      "applicable_standard_ids": ["gbt_32150_2025", "gbt_32151_34_2024"],
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ],
       "notes": "CO₂ 的 GWP100 定义值。"
     }
   ],

@@ -61,6 +61,7 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("source_documents", catalog_tables)
             self.assertIn("parameter_definitions", catalog_tables)
             self.assertIn("catalog_manifest", catalog_tables)
+            self.assertNotIn("standard_scopes", catalog_tables)
             self.assertNotIn("user_settings", catalog_tables)
             self.assertIn("user_settings", user_tables)
             self.assertNotIn("source_documents", user_tables)
@@ -69,7 +70,7 @@ class PersistenceTests(unittest.TestCase):
             self.assertNotIn("source_documents", records_tables)
 
             self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.20-g08.1")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.22-catui01.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
@@ -100,7 +101,7 @@ class PersistenceTests(unittest.TestCase):
 
                 standard = connection.execute(
                     "SELECT official_status, issuing_authority, competent_authority, "
-                    "technical_committee, parameter_refs_json "
+                    "technical_committee, parameter_refs_json, notes "
                     "FROM standard_catalog WHERE standard_id=?",
                     ("gbt_32151_34_2024",),
                 ).fetchone()
@@ -108,6 +109,7 @@ class PersistenceTests(unittest.TestCase):
                 self.assertEqual(standard[1], "国家市场监督管理总局、国家标准化管理委员会")
                 self.assertEqual(standard[2], "中国钢铁工业协会")
                 self.assertEqual(standard[3], "中国钢铁工业协会")
+                self.assertEqual(standard[5], "适用于炭素材料生产企业温室气体排放量的核算。")
                 refs = json.loads(standard[4])
                 self.assertIn("natural_gas_lhv", refs)
                 self.assertIn("electricity_emission_factor_nonfossil", refs)

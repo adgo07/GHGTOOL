@@ -2,11 +2,11 @@
 
 ## 当前工作包
 
-Post-V1 新建核算 UI 重构：UIR04 可用性收口与回归（Sol 小修返工）
+CATUI01：标准库精简与公共滚动修复
 
 ## 状态
 
-UIR04_REWORK_READY_FOR_SOL_REVIEW
+CATUI01_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1307,3 +1307,129 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 第一次推送后的 Windows runner 实际执行了 compileall、pip check、三库初始化，并进入 GUI 场景 A～E；失败原因仅为 runner 默认 `cp1252` 无法打印脚本的中文观察结果，触发 `UnicodeEncodeError`，不是业务场景失败。已在 `scripts/uir04_manual_gui_acceptance.py` 的验收脚本入口显式将 stdout/stderr 配置为 UTF-8（无法表示的字符替换），不改变场景操作、断言或业务代码。
 
 本地以 `PYTHONIOENCODING=cp1252` 模拟 Windows 默认输出后，GUI 场景 A～E 全部通过；修复提交为 `1b658a1`。该提交随治理文档一起推送后，必须以新的 PR head 重新等待两个 Windows CI job。
+
+## CATUI01 实施状态（2026-09-22）
+
+**CATUI01_BLOCKED_SCOPE_READY_FOR_SOL_REVIEW**
+
+### 历史 BLOCKED（已解除）
+
+问题：
+
+- 标准详情要求展示标准原文“适用范围”，但当前仓库没有可追溯的范围原文 Canonical 数据。
+
+证据：
+
+- data-source/carbon_accounting/catalog.json 的标准条目只有编号、名称、版本、状态、日期、职责、官方来源、关系和备注字段，没有范围原文字段。
+- specs/common/canonical_catalog.schema.json 没有标准范围字段；packages/standards/catalog.py 的 StandardCatalogRecord 也没有对应读模型字段。
+- packages/application/catalog_queries.py 的 CatalogQueryService.get_standard_detail() 只能组装现有标准、来源、基础标准、参数和因子数据，没有范围查询。
+- packages/persistence/catalog_repository.py、catalog migration 和仓库搜索均未发现已核对的 scope/范围原文数据。
+
+为什么不能按原方案继续：
+
+- 直接在 packages/ui/catalog_pages.py 写入标准正文或根据标准名称推断范围，会违反 Canonical Source、官方来源可追溯和不得复制标准全文的规则；新增 Canonical 字段、模型、schema 或标准原文数据又超出本次 UI 小修的授权范围。
+
+可选方案 A：
+
+- 经 Sol 批准后，在 Canonical 中补充有来源定位的标准范围结构化数据，再由 Application Query Service 正式读取并展示。
+
+可选方案 B：
+
+- 本 PR 先完成其余标准详情精简和公共滚动修复，范围区保留安全占位，待数据补录后单独完成。
+
+建议：
+
+- 采用方案 B；本轮不改变 Canonical、schema、迁移或标准数据，避免为了 UI 补齐而猜写标准正文。
+
+需要 Sol 决策的具体问题：
+
+- 是否批准后续补充标准范围 Canonical 数据；在批准并完成数据补录前，CATUI01 不标记为 READY FOR ACCEPTANCE。
+
+### 已完成的安全范围
+
+- 标准详情收敛为“基本信息与官方来源”“标准关系”“适用范围”“参数与因子”四个主体区域。
+- 删除详情普通界面的主管部门、归口部门、ICS、CCS、来源审核、备注、推断性行业分类，以及核算边界、排放源与温室气体、核算方法、数据质量与报告要求、附录与标准依据等旧区块。
+- 范围区只显示安全占位“当前目录尚未录入可追溯的范围原文”，没有硬编码或改写标准正文。
+- 新增 CurrentPageStack，页面栈的 sizeHint/minimumSizeHint 跟随当前页面；公共 scroll host 在路由切换后按当前页面高度重算，滚动条异步布局完成后回到顶部。
+- 标准详情的“查看参数与因子库”仍进入 AppRoute.FACTORS；参数与因子查询、核算入口和业务计算路径未改变。
+
+### 测试与验证
+
+- CATUI01 定向（G03/G04）：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_g03_shell tests.test_g04_catalog -v；19/19 通过。
+- UIR01～UIR04、G06、G07、G08 相关回归：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest tests.test_uir01_field_semantics tests.test_uir02_source_cards tests.test_uir03_advanced_details tests.test_uir04_finalization tests.test_g06_page tests.test_g06_carbon_material tests.test_g07_records tests.test_g08_delivery -v；84/84 通过。
+- 项目全量：$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m unittest discover -s tests -t . -v；161/161 通过，0 失败，0 错误，0 跳过。
+- 编译：.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests；通过。
+- 依赖：.venv\Scripts\python.exe -m pip check；No broken requirements found。
+- Canonical：.venv\Scripts\python.exe scripts\validate_canonical.py；valid: 9 standards, 12 sources, 7 parameters, 7 factors。
+- 三库：.venv\Scripts\python.exe scripts\initialize_databases.py --output-dir 隔离临时目录 --app-version catui01-check；catalog/user/records 从零创建成功，临时目录已清理。
+- git diff --check 通过；计算表/ 无修改；未运行 standalone 构建，因为本轮未修改 G08 交付脚本或发布元数据。
+
+### Git 与范围
+
+- 实际基线：origin/main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a。
+- 分支：fix/catui01-standard-library-scroll。
+- 实现提交：d72e2d0、c7a7054；测试提交：d5ba79a。
+- 当前提交范围仅为 packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g04_catalog.py，以及本报告和 TASK_STATE.md；本节文档提交后最终 head 以 Git/PR 交付回执核对。
+- 未修改 Domain、公式、参数解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
+- 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档保持原样，未处理、未提交。
+
+历史阻断结论已由后续范围文本补录修订，当前状态以本文件末尾的范围文本补录记录为准。
+
+
+## CATUI01 范围文本补录（2026-09-22）
+
+**CATUI01_SCOPE_DATA_REUSED_IN_EXISTING_NOTES_READY_FOR_SOL_REVIEW**
+
+用户已明确批准并提供 GB/T 32151.34—2024“适用范围”文本：
+“适用于炭素材料生产企业温室气体排放量的核算。”
+
+事实核查确认：
+
+- Canonical 原文件仍为 `data-source/carbon_accounting/catalog.json`；
+- 原有标准条目没有独立 `scope`、`standard_scope`、`applicability` 或 `description` 字段；
+- 现有标准条目已有 `notes` 文本字段；
+- `packages/persistence/catalog_builder.py` 已将标准 `notes` 写入现有 `standard_catalog.notes`；
+- `packages/persistence/catalog_repository.py` 已将该列映射为 `StandardCatalogRecord.notes`；
+- 未新增范围文件、未新增 `scope` 表、未新增 migration，user/records schema 未修改。
+
+按最小改动原则，已回退此前未获批准的 `scope` schema/model/validation 变更，并在现有 GB/T 32151.34 标准条目的 `notes` 字段承载批准文本。标准详情“适用范围”从现有目录读模型读取该文本；没有批准范围文本的其他标准继续显示安全占位。Canonical data_version 更新为 `2026.09.22-catui01.1`。
+
+本次范围补录仅改变目录展示数据及直接测试，不改变计算 Domain、公式、参数解析、记录、SQLite 表结构或迁移。
+
+最新 head `9c30af1fcc0fed92ab88159bfa89ba211e2d085e` 的 GitHub Actions run `35697933109` 已完成：
+
+- Windows merge-ref 全量测试：161/161 通过；
+- exact-head standalone audit：Canonical、compileall、pip check、三库从零重建、Windows 1.25/1.5 缩放、G08 delivery 9/9、standalone build、release audit、archive verification、provenance 和 2 次 isolated smoke 全部通过；
+- release audit 明确通过现有 catalog 和范围文本检查。
+
+当前状态：等待 Sol 重新验收 CATUI01。
+
+
+## CATUI01 验收返工（2026-09-22）
+
+**CATUI01_REWORK_READY_FOR_SOL_REVIEW**
+
+针对 Sol 指出的三项阻断，本轮继续在原 CATUI01 分支和 PR #11 内完成最小返工：
+
+- 删除 `packages/application/catalog_queries.py` 中按标准名称推断行业的 `infer_industry()` 路径；当前没有获批的结构化行业数据，因此行业选项仅保留“全部”，行业筛选不会再从标准标题生成分类或额外搜索命中。
+- 恢复标准详情“标准关系”的三项固定展示：基础标准 / 通则、替代关系、规范性引用文件。基础标准继续来自 Query Service；后两项在没有已核对结构化数据时显示“暂无已核对的结构化数据。”，未新增字段、文件或 migration。
+- 将 CATUI01 连续路由回归扩展为“首页 → 标准库 → 参数库 → 新建核算 → 首页”，每次切换均验证当前路由、当前页面、滚动条回到顶部、页面标题可见；同时验证首页短页面不会继承标准库高度。
+
+实现与测试提交：
+
+- `b1035e9`：移除标准名称推断行业；
+- `227537c`：恢复三项标准关系展示；
+- `17aa5b1`：补充行业、关系和连续路由测试。
+
+验证基线：
+
+- 实现/测试提交 `17aa5b157ba87cf6c39578d82cd701d9aa60fe81`；
+- GitHub Actions run `35714887923`，Windows / Python 3.12 两个 job 均成功；
+- merge-ref 全量：`Ran 162 tests ... OK`；
+- Canonical：9 standards / 12 sources / 7 parameters / 7 factors；
+- compileall、pip check、三库从零重建、UIR04 A～E、1.25/1.5 缩放、standalone build/release/archive/provenance/smoke 全部通过；
+- 未修改 Domain、公式、参数解析、记录模型、SQLite schema、migration、计算表/或 UIR01～UIR04 既有业务行为。
+
+本地工作区命令本轮仍受 Codex 桌面运行器 `setup refresh had errors` 阻断，未将本地失败冒充为测试结果；以上验证来自该实现提交对应的最新 Windows Actions。文档提交后将再次等待 PR 最新 head 的两个 Windows job 完成。
+
+当前仍未合并 PR #11，等待 Sol 重新验收 CATUI01；不得进入其他阶段。

@@ -35,7 +35,7 @@ class G08DeliveryTests(unittest.TestCase):
         )
         self.assertEqual(project["project"]["version"], "1.1.0")
         self.assertEqual(catalog["manifest"]["schema_version"], "1.0.0")
-        self.assertEqual(catalog["manifest"]["data_version"], "2026.09.20-g08.1")
+        self.assertEqual(catalog["manifest"]["data_version"], "2026.09.22-catui01.1")
         self.assertEqual(catalog["manifest"]["app_compatibility"], "1.x")
 
     def test_frozen_runtime_resolves_bundled_catalog(self) -> None:
