@@ -54,6 +54,28 @@ class ContentScrollArea(QScrollArea):
             central.update_content_geometry()
 
 
+class CurrentPageStack(QStackedWidget):
+    """A page stack whose size hint follows the page currently being shown."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.currentChanged.connect(lambda _index: self.updateGeometry())
+
+    def sizeHint(self) -> QSize:  # type: ignore[override]
+        current = self.currentWidget()
+        if current is None:
+            return super().sizeHint()
+        hint = current.sizeHint()
+        minimum = current.minimumSizeHint()
+        return QSize(max(hint.width(), minimum.width()), max(hint.height(), minimum.height()))
+
+    def minimumSizeHint(self) -> QSize:  # type: ignore[override]
+        current = self.currentWidget()
+        if current is None:
+            return super().minimumSizeHint()
+        return current.minimumSizeHint()
+
+
 class AppShell(QWidget):
     """Fixed-sidebar shell with route-driven page presentation."""
 
@@ -256,10 +278,11 @@ class AppShell(QWidget):
 
         scroll_host = QWidget()
         scroll_host.setObjectName("scrollHost")
+        self.scroll_host = scroll_host
         scroll_layout = QVBoxLayout(scroll_host)
         scroll_layout.setContentsMargins(0, 0, 0, 0)
         scroll_layout.setSpacing(0)
-        self.page_stack = QStackedWidget(scroll_host)
+        self.page_stack = CurrentPageStack(scroll_host)
         self.page_stack.setObjectName("pageStack")
         self.page_stack.setSizePolicy(
             QSizePolicy.Policy.Fixed,
@@ -290,6 +313,23 @@ class AppShell(QWidget):
                 )
             )
         self.update_content_geometry()
+        self._reset_content_scroll_position()
+        QTimer.singleShot(0, self._settle_route_layout)
+
+    def _reset_content_scroll_position(self) -> None:
+        if not hasattr(self, "main_scroll_area"):
+            return
+        scrollbar = self.main_scroll_area.verticalScrollBar()
+        scrollbar.setValue(scrollbar.minimum())
+
+    def _settle_route_layout(self) -> None:
+        """Reapply the top position after Qt recalculates the new page range."""
+
+        if not hasattr(self, "page_stack"):
+            return
+        self.page_stack.updateGeometry()
+        self.update_content_geometry()
+        self._reset_content_scroll_position()
 
     def update_content_geometry(self) -> None:
         if not hasattr(self, "page_stack"):
@@ -299,6 +339,9 @@ class AppShell(QWidget):
         self.page_stack.setFixedWidth(content_width)
         available_height = max(0, self.main_scroll_area.viewport().height())
         self.page_stack.setMinimumHeight(available_height)
+        self.page_stack.adjustSize()
+        content_height = max(available_height, self.page_stack.sizeHint().height())
+        self.scroll_host.setFixedHeight(content_height)
         page_margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
         for page in self._pages.values():
             setter = getattr(page, "set_page_margin", None)
