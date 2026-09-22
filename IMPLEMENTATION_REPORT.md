@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：CATUI01（范围原文 BLOCKED，其他 UI 修复完成）
+## 当前阶段：CATUI01（范围文本已补录，待 Sol 复验）
 
 本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
 
@@ -1916,7 +1916,7 @@ UIR03：数据口径简化与专业详情。UIR01、UIR02 已正式 PASS 并进�
 
 CATUI01 只处理标准库详情精简、AppShell 公共滚动和直接相关回归。实际开发基线为 origin/main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a；分支为 fix/catui01-standard-library-scroll。未在 main 或旧阶段分支上开发。
 
-### BLOCKED：适用范围原文缺少可追溯数据
+### 历史 BLOCKED：适用范围原文缺少可追溯数据（已解除）
 
 标准详情要求“适用范围”显示标准原文范围章节，但检查确认当前 Canonical 与查询链没有该数据：
 
@@ -1959,4 +1959,22 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 ### 结论
 
-CATUI01 当前为 NOT READY / BLOCKED。标准详情精简和公共滚动根因修复已完成，自动化回归全绿；但适用范围原文必须先通过 Canonical 数据补录获得可追溯来源。不得在此之前宣称 CATUI01 READY FOR ACCEPTANCE，也不得以 UI 占位冒充标准原文。
+历史结论为 NOT READY / BLOCKED；范围文本补录后以本报告末尾修订记录为准。
+
+
+## CATUI01 范围文本补录修订（2026-09-22）
+
+用户批准的范围文本为：“适用于炭素材料生产企业温室气体排放量的核算。”
+
+本次按事实核查采用现有字段，不新增独立 `scope` 数据结构：
+
+- 原文件：`data-source/carbon_accounting/catalog.json`；
+- 原标准条目已有 `notes`，但没有独立 scope/applicability/description 字段；
+- 现有 builder 已把 `notes` 写入 `standard_catalog.notes`；
+- 现有 repository 已把该列读为 `StandardCatalogRecord.notes`；
+- 标准详情从该既有读模型显示批准文本；
+- 未新增 `migrations/catalog/002_standard_scope.sql`、独立范围文件、SQLite 表字段或 user/records schema；
+- 此前部分 `scope` schema/model/validation 提交已回退；
+- Canonical data_version 为 `2026.09.22-catui01.1`。
+
+本次只补充标准目录展示文本和直接回归测试，未修改计算公式、Domain、参数解析、记录规则或数据库 schema。待本次测试及最新 head Actions 完成后，CATUI01 状态为等待 Sol 复验。
