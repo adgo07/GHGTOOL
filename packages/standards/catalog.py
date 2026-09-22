@@ -71,6 +71,15 @@ class SubjectCatalogRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class StandardScopeRecord:
+    """Verified applicability text linked to the standard's official source."""
+
+    text: str
+    source_id: str
+    source_location: str
+
+
+@dataclass(frozen=True, slots=True)
 class StandardCatalogRecord:
     standard_id: str
     standard_number: str
@@ -93,6 +102,7 @@ class StandardCatalogRecord:
     calculation_status: str
     notes: str
     abolition_date: date | None = None
+    scope: StandardScopeRecord | None = None
 
 
 @dataclass(frozen=True, slots=True)
