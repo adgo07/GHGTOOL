@@ -1952,7 +1952,7 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 - 实现提交：d72e2d0 fix: simplify standard library details；c7a7054 fix: reset shell scroll on route changes。
 - 测试提交：d5ba79a test: cover catalog scroll navigation regression。
-- 本次变更文件：packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g03_shell.py、tests/test_g04_catalog.py，以及本报告和 TASK_STATE.md。
+- 本次变更文件：packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g04_catalog.py，以及本报告和 TASK_STATE.md。
 - 候选实现 head 为 d5ba79a；治理文档提交后的最终 PR head 以 Git/PR 交付回执核对。
 - 未修改核算 Domain、公式、参数/因子解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
 - 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档未处理、未提交。

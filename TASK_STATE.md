@@ -1369,7 +1369,7 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 - 实际基线：origin/main@ca6f20a421c610beb618d98a8c3872ef8a1ef45a。
 - 分支：fix/catui01-standard-library-scroll。
 - 实现提交：d72e2d0、c7a7054；测试提交：d5ba79a。
-- 当前提交范围仅为 packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g03_shell.py、tests/test_g04_catalog.py；本节文档提交后最终 head 以 Git/PR 交付回执核对。
+- 当前提交范围仅为 packages/ui/catalog_pages.py、packages/ui/shell.py、tests/test_g04_catalog.py，以及本报告和 TASK_STATE.md；本节文档提交后最终 head 以 Git/PR 交付回执核对。
 - 未修改 Domain、公式、参数解析、记录模型、SQLite schema、迁移、Canonical、UIR01～UIR04 业务行为或 计算表/。
 - 既有未跟踪 docs/handoffs/ 和用户未跟踪架构文档保持原样，未处理、未提交。
 
