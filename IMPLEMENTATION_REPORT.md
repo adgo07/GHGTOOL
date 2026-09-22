@@ -1977,4 +1977,6 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 - 此前部分 `scope` schema/model/validation 提交已回退；
 - Canonical data_version 为 `2026.09.22-catui01.1`。
 
-本次只补充标准目录展示文本和直接回归测试，未修改计算公式、Domain、参数解析、记录规则或数据库 schema。待本次测试及最新 head Actions 完成后，CATUI01 状态为等待 Sol 复验。
+本次只补充标准目录展示文本和直接回归测试，未修改计算公式、Domain、参数解析、记录规则或数据库 schema。
+
+`9c30af1fcc0fed92ab88159bfa89ba211e2d085e` 对应的 GitHub Actions run `35697933109` 已成功：merge-ref 全量 161/161；exact-head standalone audit 的 Canonical、compileall、pip check、三库重建、Windows 缩放、G08 9/9、构建、发布审计、归档、provenance 和 isolated smoke 全部通过。当前 CATUI01 等待 Sol 复验。
