@@ -11,6 +11,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTableWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
@@ -288,6 +289,92 @@ class G04CatalogTests(unittest.TestCase):
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_standard_id)
+
+    def test_standard_detail_has_only_compact_verified_sections(self) -> None:
+        self.shell.navigate(AppRoute.STANDARDS)
+        self.application.processEvents()
+        page = self.shell.pages[AppRoute.STANDARDS]
+        card_titles = [
+            label.text()
+            for label in page.detail_host.findChildren(QLabel, "cardTitle")
+            if label.isVisible()
+        ]
+        self.assertEqual(
+            card_titles,
+            ["基本信息与官方来源", "标准关系", "适用范围", "参数与因子"],
+        )
+        detail_text = "\n".join(
+            label.text()
+            for label in page.detail_host.findChildren(QLabel)
+            if label.isVisible()
+        )
+        self.assertIn("当前目录尚未录入可追溯的范围原文。", detail_text)
+        for forbidden in (
+            "主管部门",
+            "归口部门",
+            "ICS",
+            "CCS",
+            "来源审核",
+            "备注",
+            "标准范围",
+            "适用行业",
+            "适用企业",
+            "不适用情况",
+            "核算边界",
+            "排放源与温室气体",
+            "核算方法",
+            "数据质量与报告要求",
+            "附录与标准依据",
+            "基于标准名称的目录分类",
+        ):
+            self.assertNotIn(forbidden, card_titles)
+            self.assertNotIn(forbidden, detail_text)
+
+    def test_deep_catalog_scroll_enters_factors_and_home_at_top(self) -> None:
+        shell = self.shell
+        self.window.resize(1180, 720)
+        shell.navigate(AppRoute.STANDARDS)
+        for _ in range(4):
+            self.application.processEvents()
+
+        scrollbar = shell.main_scroll_area.verticalScrollBar()
+        self.assertGreater(scrollbar.maximum(), 0)
+        standards_height = shell.page_stack.sizeHint().height()
+        scrollbar.setValue(scrollbar.maximum())
+        self.application.processEvents()
+        self.assertEqual(scrollbar.value(), scrollbar.maximum())
+
+        standards_page = shell.pages[AppRoute.STANDARDS]
+        factors_button = standards_page.findChild(QPushButton, "viewFactorsButton")
+        self.assertIsNotNone(factors_button)
+        assert factors_button is not None
+        factors_button.click()
+        for _ in range(4):
+            self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.FACTORS)
+        self.assertEqual(scrollbar.value(), scrollbar.minimum())
+
+        factors_title = shell.pages[AppRoute.FACTORS].findChild(QLabel, "pageTitle")
+        self.assertIsNotNone(factors_title)
+        assert factors_title is not None
+        title_rect = factors_title.rect()
+        title_rect.moveTopLeft(factors_title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
+        self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
+
+        shell.navigate(AppRoute.HOME)
+        for _ in range(4):
+            self.application.processEvents()
+        self.assertEqual(scrollbar.value(), scrollbar.minimum())
+        self.assertEqual(scrollbar.maximum(), 0)
+        home_height = shell.page_stack.sizeHint().height()
+        self.assertLess(home_height, standards_height)
+
+        home_title = shell.pages[AppRoute.HOME].findChild(QLabel, "pageTitle")
+        self.assertIsNotNone(home_title)
+        assert home_title is not None
+        title_rect = home_title.rect()
+        title_rect.moveTopLeft(home_title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
+        self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
 
     def test_parameter_factor_page_switches_views_and_hides_internal_ids(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
