@@ -6,7 +6,7 @@ CATUI01：标准库精简与公共滚动修复
 
 ## 状态
 
-CATUI01_SCOPE_DATA_REUSED_IN_EXISTING_NOTES_READY_FOR_SOL_REVIEW
+CATUI01_REWORK_READY_FOR_SOL_REVIEW
 
 ## 阶段验收状态
 
@@ -1403,3 +1403,33 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 - release audit 明确通过现有 catalog 和范围文本检查。
 
 当前状态：等待 Sol 重新验收 CATUI01。
+
+
+## CATUI01 验收返工（2026-09-22）
+
+**CATUI01_REWORK_READY_FOR_SOL_REVIEW**
+
+针对 Sol 指出的三项阻断，本轮继续在原 CATUI01 分支和 PR #11 内完成最小返工：
+
+- 删除 `packages/application/catalog_queries.py` 中按标准名称推断行业的 `infer_industry()` 路径；当前没有获批的结构化行业数据，因此行业选项仅保留“全部”，行业筛选不会再从标准标题生成分类或额外搜索命中。
+- 恢复标准详情“标准关系”的三项固定展示：基础标准 / 通则、替代关系、规范性引用文件。基础标准继续来自 Query Service；后两项在没有已核对结构化数据时显示“暂无已核对的结构化数据。”，未新增字段、文件或 migration。
+- 将 CATUI01 连续路由回归扩展为“首页 → 标准库 → 参数库 → 新建核算 → 首页”，每次切换均验证当前路由、当前页面、滚动条回到顶部、页面标题可见；同时验证首页短页面不会继承标准库高度。
+
+实现与测试提交：
+
+- `b1035e9`：移除标准名称推断行业；
+- `227537c`：恢复三项标准关系展示；
+- `17aa5b1`：补充行业、关系和连续路由测试。
+
+验证基线：
+
+- 实现/测试提交 `17aa5b157ba87cf6c39578d82cd701d9aa60fe81`；
+- GitHub Actions run `35714887923`，Windows / Python 3.12 两个 job 均成功；
+- merge-ref 全量：`Ran 162 tests ... OK`；
+- Canonical：9 standards / 12 sources / 7 parameters / 7 factors；
+- compileall、pip check、三库从零重建、UIR04 A～E、1.25/1.5 缩放、standalone build/release/archive/provenance/smoke 全部通过；
+- 未修改 Domain、公式、参数解析、记录模型、SQLite schema、migration、计算表/或 UIR01～UIR04 既有业务行为。
+
+本地工作区命令本轮仍受 Codex 桌面运行器 `setup refresh had errors` 阻断，未将本地失败冒充为测试结果；以上验证来自该实现提交对应的最新 Windows Actions。文档提交后将再次等待 PR 最新 head 的两个 Windows job 完成。
+
+当前仍未合并 PR #11，等待 Sol 重新验收 CATUI01；不得进入其他阶段。
