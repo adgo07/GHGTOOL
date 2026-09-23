@@ -12,7 +12,12 @@ from packages.application import (
     ProjectWorkspace,
     ProjectWorkspaceService,
 )
-from packages.persistence import MigrationError, SQLiteProjectWorkspaceRepository, build_all_databases
+from packages.persistence import (
+    MigrationError,
+    ProjectWorkspaceRepositoryError,
+    SQLiteProjectWorkspaceRepository,
+    build_all_databases,
+)
 
 
 class ProjectWorkspacePersistenceTests(unittest.TestCase):
@@ -109,6 +114,68 @@ class ProjectWorkspacePersistenceTests(unittest.TestCase):
             unopenable.mkdir()
             with self.assertRaises(MigrationError):
                 SQLiteProjectWorkspaceRepository(unopenable)
+
+    def test_corrupt_workspace_json_is_reported_without_partial_data(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            repository = SQLiteProjectWorkspaceRepository(database)
+            workspace = ProjectWorkspaceService.new_workspace("损坏项目")
+            repository.save(workspace)
+            connection = sqlite3.connect(database)
+            try:
+                connection.execute(
+                    "UPDATE accounting_units SET form_state_json=? WHERE unit_id=?",
+                    ("{broken-json", workspace.active_unit_id),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "invalid project JSON"):
+                repository.list_all()
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "invalid project JSON"):
+                repository.get(workspace.project_id)
+
+    def test_pending_record_link_recovers_after_project_save_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            repository = SQLiteProjectWorkspaceRepository(database)
+            initial = ProjectWorkspaceService.new_workspace("关联恢复项目")
+            unit = replace(
+                initial.units[0],
+                form_state={"enterpriseNameInput": "恢复企业"},
+                result_snapshot={"record_id": "record.recover", "total": "1"},
+                record_ids=("record.recover",),
+                input_fingerprint="fingerprint.recover",
+            )
+            workspace = replace(initial, units=(unit,))
+            original_save = repository.save
+            repository.save = lambda _workspace: (_ for _ in ()).throw(  # type: ignore[method-assign]
+                ProjectWorkspaceRepositoryError("simulated project write failure")
+            )
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "queued for recovery"):
+                repository.save_after_record(workspace, "record.recover")
+            repository.save = original_save  # type: ignore[method-assign]
+
+            connection = sqlite3.connect(database)
+            try:
+                self.assertEqual(
+                    connection.execute("SELECT record_id FROM pending_record_links").fetchall(),
+                    [("record.recover",)],
+                )
+            finally:
+                connection.close()
+
+            recovered = SQLiteProjectWorkspaceRepository(database)
+            self.assertEqual(recovered.get(workspace.project_id), workspace)
+            connection = sqlite3.connect(database)
+            try:
+                self.assertEqual(
+                    connection.execute("SELECT COUNT(*) FROM pending_record_links").fetchone()[0],
+                    0,
+                )
+            finally:
+                connection.close()
 
 
 if __name__ == "__main__":

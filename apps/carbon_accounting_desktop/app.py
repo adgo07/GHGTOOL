@@ -10,7 +10,11 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from packages.application import CatalogQueryService, ProjectWorkspaceService
 from packages.core.repositories import RecordRepository
-from packages.persistence import MigrationError, SQLiteProjectWorkspaceRepository
+from packages.persistence import (
+    MigrationError,
+    ProjectWorkspaceRepositoryError,
+    SQLiteProjectWorkspaceRepository,
+)
 
 from .config import AppConfig
 from .logging_config import configure_logging
@@ -69,7 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 app_version=config.app_version,
             )
         )
-    except (MigrationError, OSError) as exc:
+    except (MigrationError, OSError, ProjectWorkspaceRepositoryError) as exc:
         logger.event(
             "projects_database_initialization_failed",
             component="project_store",

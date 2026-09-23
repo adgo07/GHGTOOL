@@ -32,6 +32,56 @@ def _load(value: str, field: str) -> Any:
         raise ProjectWorkspaceRepositoryError(f"invalid project JSON in {field}") from exc
 
 
+def _workspace_payload(workspace: ProjectWorkspace) -> dict[str, Any]:
+    return {
+        "project_id": workspace.project_id,
+        "name": workspace.name,
+        "active_unit_id": workspace.active_unit_id,
+        "units": [
+            {
+                "unit_id": unit.unit_id,
+                "name": unit.name,
+                "unit_type": unit.unit_type.value,
+                "position": unit.position,
+                "form_state": unit.form_state,
+                "result_snapshot": unit.result_snapshot,
+                "record_ids": list(unit.record_ids),
+                "input_fingerprint": unit.input_fingerprint,
+            }
+            for unit in workspace.units
+        ],
+    }
+
+
+def _workspace_from_payload(payload: Any) -> ProjectWorkspace:
+    if not isinstance(payload, dict) or not isinstance(payload.get("units"), list):
+        raise ProjectWorkspaceRepositoryError("invalid pending project workspace payload")
+    units = tuple(
+        AccountingUnitWorkspace(
+            unit_id=str(item["unit_id"]),
+            name=str(item["name"]),
+            unit_type=AccountingUnitType(str(item["unit_type"])),
+            position=int(item["position"]),
+            form_state=item["form_state"],
+            result_snapshot=item.get("result_snapshot"),
+            record_ids=tuple(str(record_id) for record_id in item.get("record_ids", ())),
+            input_fingerprint=(
+                str(item["input_fingerprint"])
+                if item.get("input_fingerprint") is not None
+                else None
+            ),
+        )
+        for item in payload["units"]
+        if isinstance(item, dict)
+    )
+    return ProjectWorkspace(
+        project_id=str(payload["project_id"]),
+        name=str(payload["name"]),
+        active_unit_id=str(payload["active_unit_id"]),
+        units=units,
+    )
+
+
 class SQLiteProjectWorkspaceRepository:
     """Stores editable project state; it has no table or FK into records.sqlite."""
 
@@ -43,6 +93,7 @@ class SQLiteProjectWorkspaceRepository:
             data_version="not_applicable",
             deterministic=False,
         )
+        self._recover_pending_links()
 
     def save(self, workspace: ProjectWorkspace) -> None:
         now = datetime.now(timezone.utc).isoformat()
@@ -84,6 +135,80 @@ class SQLiteProjectWorkspaceRepository:
             raise ProjectWorkspaceRepositoryError(f"cannot save project {workspace.project_id}: {exc}") from exc
         finally:
             connection.close()
+
+    def save_after_record(self, workspace: ProjectWorkspace, record_id: str) -> None:
+        """Durably queue, save and clear one successful-record association."""
+
+        linked_units = [unit for unit in workspace.units if record_id in unit.record_ids]
+        if len(linked_units) != 1:
+            raise ProjectWorkspaceRepositoryError(
+                f"record {record_id} must belong to exactly one accounting unit"
+            )
+        now = datetime.now(timezone.utc).isoformat()
+        connection = sqlite3.connect(self.path)
+        try:
+            with connection:
+                connection.execute(
+                    "INSERT INTO pending_record_links(record_id,project_id,unit_id,workspace_json,created_at) "
+                    "VALUES(?,?,?,?,?) ON CONFLICT(record_id) DO UPDATE SET "
+                    "project_id=excluded.project_id,unit_id=excluded.unit_id,"
+                    "workspace_json=excluded.workspace_json,created_at=excluded.created_at",
+                    (
+                        record_id,
+                        workspace.project_id,
+                        linked_units[0].unit_id,
+                        _dump(_workspace_payload(workspace)),
+                        now,
+                    ),
+                )
+        except (sqlite3.Error, TypeError, ValueError) as exc:
+            raise ProjectWorkspaceRepositoryError(
+                f"record {record_id} was created but its project recovery marker could not be saved: {exc}"
+            ) from exc
+        finally:
+            connection.close()
+
+        try:
+            self.save(workspace)
+        except ProjectWorkspaceRepositoryError as exc:
+            raise ProjectWorkspaceRepositoryError(
+                f"record {record_id} was created; its project association remains queued for recovery: {exc}"
+            ) from exc
+        self._clear_pending_link(record_id)
+
+    def _clear_pending_link(self, record_id: str) -> None:
+        connection = sqlite3.connect(self.path)
+        try:
+            with connection:
+                connection.execute("DELETE FROM pending_record_links WHERE record_id=?", (record_id,))
+        except sqlite3.Error as exc:
+            raise ProjectWorkspaceRepositoryError(
+                f"project association was saved but recovery marker {record_id} could not be cleared: {exc}"
+            ) from exc
+        finally:
+            connection.close()
+
+    def _recover_pending_links(self) -> None:
+        connection = sqlite3.connect(self.path)
+        try:
+            rows = connection.execute(
+                "SELECT record_id,workspace_json FROM pending_record_links ORDER BY created_at,record_id"
+            ).fetchall()
+        except sqlite3.Error as exc:
+            raise ProjectWorkspaceRepositoryError(f"cannot inspect pending record links: {exc}") from exc
+        finally:
+            connection.close()
+        for record_id, workspace_json in rows:
+            try:
+                workspace = _workspace_from_payload(
+                    _load(str(workspace_json), "pending_record_links.workspace_json")
+                )
+                self.save(workspace)
+                self._clear_pending_link(str(record_id))
+            except (KeyError, TypeError, ValueError, ProjectWorkspaceRepositoryError) as exc:
+                raise ProjectWorkspaceRepositoryError(
+                    f"cannot recover pending project association for record {record_id}: {exc}"
+                ) from exc
 
     def get(self, project_id: str) -> ProjectWorkspace | None:
         connection = sqlite3.connect(self.path)
@@ -128,6 +253,7 @@ class SQLiteProjectWorkspaceRepository:
         try:
             connection.execute("PRAGMA foreign_keys = ON")
             with connection:
+                connection.execute("DELETE FROM pending_record_links WHERE project_id=?", (project_id,))
                 cursor = connection.execute("DELETE FROM projects WHERE project_id=?", (project_id,))
             return cursor.rowcount > 0
         except sqlite3.Error as exc:

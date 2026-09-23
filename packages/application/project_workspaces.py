@@ -61,6 +61,7 @@ class ProjectWorkspace:
 
 class ProjectWorkspaceRepository(Protocol):
     def save(self, workspace: ProjectWorkspace) -> None: ...
+    def save_after_record(self, workspace: ProjectWorkspace, record_id: str) -> None: ...
     def get(self, project_id: str) -> ProjectWorkspace | None: ...
     def list_all(self) -> tuple[ProjectWorkspace, ...]: ...
     def delete(self, project_id: str) -> bool: ...
@@ -85,6 +86,11 @@ class ProjectWorkspaceService:
 
     def save(self, workspace: ProjectWorkspace) -> None:
         self.repository.save(workspace)
+
+    def save_after_record(self, workspace: ProjectWorkspace, record_id: str) -> None:
+        """Persist a successful-record link through the repository recovery path."""
+
+        self.repository.save_after_record(workspace, record_id)
 
     def get(self, project_id: str) -> ProjectWorkspace | None:
         return self.repository.get(project_id)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sqlite3
 import tempfile
 import unittest
 from datetime import date
@@ -13,10 +14,22 @@ from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
 
 from packages.application import CatalogQueryService, ProjectWorkspaceService
-from packages.core import PeriodType
+from packages.core import (
+    ElectricityAcquisitionMode,
+    ElectricityAttribute,
+    ElectricityProofStatus,
+    ElectricityProofType,
+    PeriodType,
+)
 from packages.persistence import SQLiteCatalogRepository, SQLiteProjectWorkspaceRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, FuelType, InMemoryRecordRepository
+from packages.standards.carbon_material import (
+    EmissionSourceStatus,
+    FuelPath,
+    FuelType,
+    InMemoryRecordRepository,
+    ParameterSourceKind,
+)
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 
 
@@ -31,6 +44,7 @@ class AccountingProjectUiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_directory = tempfile.TemporaryDirectory()
         root = Path(self.temp_directory.name)
+        self.root = root
         catalog_path = build_catalog_database(DEFAULT_SOURCE_PATH, root / "catalog.sqlite")
         self.catalog_service = CatalogQueryService(
             SQLiteCatalogRepository(catalog_path), as_of=date(2026, 9, 23)
@@ -179,6 +193,214 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(self.page.enterprise_name.text(), "")
         self.assertFalse(self.page._project_dirty)
         self.assertEqual(self.records.list_all(), ())
+
+    def test_electricity_rows_keep_stable_identity_through_delete_switch_and_reopen(self) -> None:
+        self.page.project_name.setText("多条电力项目")
+        self.page._add_electricity_row()
+        self.page._add_electricity_row()
+        middle = self.page._electricity_rows[1]
+        self.page._remove_electricity_row(middle)
+        self.page._add_electricity_row()
+        expected = (
+            (
+                "electricity-a",
+                "11",
+                ElectricityAcquisitionMode.PURCHASED,
+                ElectricityAttribute.ORDINARY,
+                ElectricityProofType.NONE,
+                ElectricityProofStatus.NOT_PROVIDED,
+            ),
+            (
+                "electricity-c",
+                "33",
+                ElectricityAcquisitionMode.SELF_CONSUMED,
+                ElectricityAttribute.NONFOSSIL,
+                ElectricityProofType.MONTHLY_ORIGINAL_RECORD,
+                ElectricityProofStatus.VALID,
+            ),
+            (
+                "electricity-d",
+                "44",
+                ElectricityAcquisitionMode.PURCHASED,
+                ElectricityAttribute.NONFOSSIL,
+                ElectricityProofType.GEC,
+                ElectricityProofStatus.VALID,
+            ),
+        )
+        for row, values in zip(self.page._electricity_rows, expected):
+            detail_id, amount, acquisition, attribute, proof_type, proof_status = values
+            row.detail_id.setText(detail_id)
+            row.amount.setText(amount)
+            row.acquisition.setCurrentIndex(row.acquisition.findData(acquisition))
+            row.attribute.setCurrentIndex(row.attribute.findData(attribute))
+            row.proof_type.setCurrentIndex(row.proof_type.findData(proof_type))
+            row.proof_status.setCurrentIndex(row.proof_status.findData(proof_status))
+        row_keys = [row.row_key for row in self.page._electricity_rows]
+        self.assertEqual(len(set(row_keys)), 3)
+        self.assertEqual(len({row.objectName() for row in self.page._electricity_rows}), 3)
+
+        first_unit_id = self.page._unit().unit_id
+        with (
+            patch("packages.ui.carbon_material_page.QInputDialog.getItem", return_value=("生产工序", True)),
+            patch("packages.ui.carbon_material_page.QInputDialog.getText", return_value=("切换测试单元", True)),
+        ):
+            self.page._add_accounting_unit()
+        self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
+        self.assertTrue(self.page._save_project())
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        self.page._open_selected_project()
+        first_index = self.page.unit_selector.findData(first_unit_id)
+        self.page.unit_selector.setCurrentIndex(first_index)
+        self.assertEqual([row.row_key for row in self.page._electricity_rows], row_keys)
+        actual = tuple(
+            (
+                row.detail_id.text(),
+                row.amount.text(),
+                row.acquisition.currentData(),
+                row.attribute.currentData(),
+                row.proof_type.currentData(),
+                row.proof_status.currentData(),
+            )
+            for row in self.page._electricity_rows
+        )
+        self.assertEqual(actual, expected)
+        self.assertEqual(len({row.detail_id.text() for row in self.page._electricity_rows}), 3)
+
+    def test_equal_fuel_values_with_enterprise_source_remain_measured_and_stable(self) -> None:
+        self.page.project_name.setText("实测参数来源项目")
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+        row.path.setCurrentIndex(row.path.findData(FuelPath.HEAT))
+        row.activity.setText("10")
+        row.source_reference.setText("企业检测报告-EQUAL-01")
+        before_row_key = row.row_key
+        before = self.page._fuel()[0]
+        self.assertIs(before.carbon_content.source_kind, ParameterSourceKind.MEASURED)
+        self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
+        self.assertIn("企业实测", row.parameter_summary.text())
+        self.assertEqual(self.page._capture_form_state()["fuel_rows"][0]["parameter_source"], "MEASURED")
+        self.assertTrue(self.page._save_project())
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        self.page._open_selected_project()
+        restored_row = self.page._fuel_rows[0]
+        after = self.page._fuel()[0]
+        self.assertEqual(restored_row.row_key, before_row_key)
+        self.assertEqual(restored_row.source_reference.text(), "企业检测报告-EQUAL-01")
+        self.assertEqual(restored_row.parameter_source, "MEASURED")
+        self.assertEqual(after.carbon_content.parameter_id, before.carbon_content.parameter_id)
+        self.assertEqual(after.oxidation_rate.parameter_id, before.oxidation_rate.parameter_id)
+        self.assertIs(after.carbon_content.source_kind, ParameterSourceKind.MEASURED)
+        self.assertIs(after.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
+
+    def test_changed_input_marks_result_stale_after_switch_save_and_reopen(self) -> None:
+        self.page.project_name.setText("结果过期项目")
+        self.page.enterprise_name.setText("结果过期企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._enable_fuel()
+        fuel = self.page._fuel_rows[0]
+        fuel.activity.setText("10")
+        fuel.carbon.setText("0.2")
+        fuel.oxidation.setText("98")
+        fuel.source_reference.setText("结果过期检测报告")
+        self.page._run_calculation()
+        self.assertEqual(len(self.records.list_all()), 1)
+        first_unit_id = self.page._unit().unit_id
+        persisted = self.project_service.get(self.page._workspace.project_id)
+        self.assertIsNotNone(persisted)
+        assert persisted is not None
+        self.assertEqual(persisted.units[0].record_ids, (self.records.list_all()[0].record_id,))
+
+        fuel.activity.setText("12")
+        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        with (
+            patch("packages.ui.carbon_material_page.QInputDialog.getItem", return_value=("生产工序", True)),
+            patch("packages.ui.carbon_material_page.QInputDialog.getText", return_value=("过期状态切换单元", True)),
+        ):
+            self.page._add_accounting_unit()
+        self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
+        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        self.assertTrue(self.page._save_project())
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        self.page._open_selected_project()
+        self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
+        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        self.assertTrue(self.page.result_card.isHidden())
+
+    def test_record_link_save_does_not_persist_other_units_unfinished_input(self) -> None:
+        self.page.project_name.setText("关联最小保存项目")
+        first_unit_id = self.page._unit().unit_id
+        with (
+            patch("packages.ui.carbon_material_page.QInputDialog.getItem", return_value=("生产工序", True)),
+            patch("packages.ui.carbon_material_page.QInputDialog.getText", return_value=("未完成单元", True)),
+        ):
+            self.page._add_accounting_unit()
+        second_unit_id = self.page._unit().unit_id
+        self.assertTrue(self.page._save_project())
+        self.page.enterprise_name.setText("不得静默保存的未完成输入")
+        self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
+
+        self.page.enterprise_name.setText("已完成核算企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._enable_fuel()
+        fuel = self.page._fuel_rows[0]
+        fuel.activity.setText("10")
+        fuel.carbon.setText("0.2")
+        fuel.oxidation.setText("98")
+        fuel.source_reference.setText("完成单元检测报告")
+        self.page._run_calculation()
+        self.assertEqual(len(self.records.list_all()), 1)
+
+        persisted = self.project_service.get(self.page._workspace.project_id)
+        self.assertIsNotNone(persisted)
+        assert persisted is not None
+        first = next(unit for unit in persisted.units if unit.unit_id == first_unit_id)
+        second = next(unit for unit in persisted.units if unit.unit_id == second_unit_id)
+        self.assertEqual(first.record_ids, (self.records.list_all()[0].record_id,))
+        self.assertNotEqual(
+            second.form_state.get("enterpriseNameInput"),
+            "不得静默保存的未完成输入",
+        )
+        self.assertTrue(self.page._project_dirty)
+
+    def test_corrupt_project_json_shows_safe_error_on_open_and_page_startup(self) -> None:
+        self.page.project_name.setText("损坏项目提示")
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+        connection = sqlite3.connect(self.root / "projects.sqlite")
+        try:
+            connection.execute(
+                "UPDATE accounting_units SET form_state_json=? WHERE project_id=?",
+                ("{broken-json", project_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        with patch("packages.ui.carbon_material_page.QMessageBox.critical") as critical:
+            self.page._open_selected_project()
+        critical.assert_called_once()
+        self.assertIn("打开项目失败", self.page.project_save_status.text())
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        with patch("packages.ui.carbon_material_page.QMessageBox.critical") as critical:
+            self.page = self._new_page()
+        critical.assert_called_once()
+        self.assertEqual(self.page.saved_projects.count(), 0)
+        self.assertIn("读取已保存项目失败", self.page.project_save_status.text())
 
     def test_multiple_fuels_and_unit_results_restore_independently_after_reopen(self) -> None:
         self.page.project_name.setText("多单元燃料企业")

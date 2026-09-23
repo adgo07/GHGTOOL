@@ -174,8 +174,16 @@ def _display_amount(value: Decimal, unit: str) -> str:
     return f"{rounded:.2f} {_display_unit(unit)}"
 
 class _ElectricityRow(QWidget):
-    def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        index: int,
+        remove: Callable[[QWidget], None],
+        parent: QWidget | None = None,
+        *,
+        row_key: str | None = None,
+    ) -> None:
         super().__init__(parent)
+        self.row_key = row_key or uuid4().hex
         self.setObjectName(f"electricityRow{index}")
         layout = QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -340,6 +348,7 @@ class _FuelRow(QWidget):
         layout.addWidget(self.parameter_summary, 2, 0, 1, 5)
         layout.addWidget(self.remove_button, 2, 5)
         self._last_default_values: tuple[str, str] | None = None
+        self.parameter_source = "AUTO"
 
 
 class CarbonMaterialAccountingPage(BasePage):
@@ -376,6 +385,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.standard_id = standard_id
         self._calculation_index = 0
         self._electricity_rows: list[_ElectricityRow] = []
+        self._electricity_row_serial = 0
         self._fuel_rows: list[_FuelRow] = []
         self._fuel_row_serial = 0
         self._source_statuses: dict[str, QComboBox] = {}
@@ -711,7 +721,12 @@ class CarbonMaterialAccountingPage(BasePage):
         current_id = self.saved_projects.currentData()
         self.saved_projects.clear()
         if self.project_service is not None:
-            for workspace in self.project_service.list_all():
+            try:
+                workspaces = self.project_service.list_all()
+            except Exception as exc:
+                self._show_project_store_error("读取已保存项目", exc)
+                workspaces = ()
+            for workspace in workspaces:
                 self.saved_projects.addItem(workspace.name, workspace.project_id)
         index = self.saved_projects.findData(current_id)
         if index >= 0:
@@ -720,6 +735,18 @@ class CarbonMaterialAccountingPage(BasePage):
         enabled = self.project_service is not None and self.saved_projects.count() > 0
         self.open_project_button.setEnabled(enabled)
         self.delete_project_button.setEnabled(enabled)
+
+    def _show_project_store_error(self, action: str, exc: Exception) -> None:
+        self.project_save_status.setText(
+            f"{action}失败；核算记录数据库未受影响。请检查项目数据文件后重试。"
+        )
+        QMessageBox.critical(
+            self,
+            "核算项目数据无法使用",
+            f"{action}失败。项目数据可能损坏、被占用或不可写；"
+            "既有核算记录没有被修改。\n\n"
+            f"详细信息：{exc}",
+        )
 
     def _workspace_with_current_form(self) -> ProjectWorkspace:
         units = list(self._workspace.units)
@@ -734,6 +761,43 @@ class CarbonMaterialAccountingPage(BasePage):
             units=tuple(units),
         )
 
+    def _workspace_for_record_link(self, completed_unit: AccountingUnitWorkspace) -> ProjectWorkspace:
+        """Build the smallest durable snapshot needed to recover one record link.
+
+        Other units keep their last explicitly saved state. Unsaved input from
+        unrelated units is deliberately not persisted by a successful calculation.
+        """
+
+        if self.project_service is None:
+            return self._workspace
+        persisted = self.project_service.get(self._workspace.project_id)
+        if persisted is None:
+            only_unit = replace(completed_unit, position=0)
+            return ProjectWorkspace(
+                project_id=self._workspace.project_id,
+                name=self.project_name.text().strip() or self._workspace.name,
+                active_unit_id=only_unit.unit_id,
+                units=(only_unit,),
+            )
+        units = list(persisted.units)
+        for index, saved_unit in enumerate(units):
+            if saved_unit.unit_id == completed_unit.unit_id:
+                units[index] = replace(
+                    saved_unit,
+                    form_state=completed_unit.form_state,
+                    result_snapshot=completed_unit.result_snapshot,
+                    record_ids=completed_unit.record_ids,
+                    input_fingerprint=completed_unit.input_fingerprint,
+                )
+                break
+        else:
+            units.append(replace(completed_unit, position=len(units)))
+        return replace(
+            persisted,
+            active_unit_id=completed_unit.unit_id,
+            units=tuple(units),
+        )
+
     def _capture_form_state(self) -> dict[str, object]:
         values: dict[str, object] = {}
         excluded = {
@@ -744,7 +808,12 @@ class CarbonMaterialAccountingPage(BasePage):
             name = widget.objectName()
             if not name or name in excluded:
                 continue
-            if name.startswith("fuel") or name.startswith("removeFuelButton"):
+            if (
+                name.startswith("fuel")
+                or name.startswith("removeFuelButton")
+                or name.startswith("electricity")
+                or name.startswith("removeElectricityButton")
+            ):
                 continue
             if isinstance(widget, QLineEdit):
                 values[name] = widget.text()
@@ -756,9 +825,23 @@ class CarbonMaterialAccountingPage(BasePage):
                 values[name] = widget.isChecked()
             elif isinstance(widget, QDateEdit):
                 values[name] = widget.date().toString("yyyy-MM-dd")
+        values["electricity_rows"] = [
+            {
+                "row_key": row.row_key,
+                "detail_id": row.detail_id.text(),
+                "amount": row.amount.text(),
+                "acquisition": row.acquisition.currentIndex(),
+                "attribute": row.attribute.currentIndex(),
+                "proof_type": row.proof_type.currentIndex(),
+                "proof_status": row.proof_status.currentIndex(),
+            }
+            for row in self._electricity_rows
+        ]
+        # Retain the count for projects saved by the first Post-V1 implementation.
         values["electricity_row_count"] = len(self._electricity_rows)
         values["fuel_rows"] = [
             {
+                "row_key": row.row_key,
                 "id": row.internal_id.text(),
                 "type": row.fuel_type.currentIndex(),
                 "path": row.path.currentIndex(),
@@ -766,6 +849,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "carbon": row.carbon.text(),
                 "oxidation": row.oxidation.text(),
                 "source_reference": row.source_reference.text(),
+                "parameter_source": row.parameter_source,
             }
             for row in self._fuel_rows
         ]
@@ -776,13 +860,34 @@ class CarbonMaterialAccountingPage(BasePage):
         default_state = self._default_form_state
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
-        electricity_count = state.get("electricity_row_count", default_state.get("electricity_row_count", 1))
-        try:
-            electricity_count = max(1, int(electricity_count))
-        except (TypeError, ValueError):
-            electricity_count = 1
-        for _ in range(electricity_count):
-            self._add_electricity_row()
+        self._electricity_row_serial = 0
+        stored_electricity_rows = state.get("electricity_rows")
+        if isinstance(stored_electricity_rows, list):
+            for stored in stored_electricity_rows or [{}]:
+                row_key = str(stored.get("row_key", "")) if isinstance(stored, dict) else ""
+                self._add_electricity_row(row_key=row_key or None)
+            for row, stored in zip(self._electricity_rows, stored_electricity_rows):
+                if not isinstance(stored, dict):
+                    continue
+                row.detail_id.setText(str(stored.get("detail_id", row.detail_id.text())))
+                row.amount.setText(str(stored.get("amount", "")))
+                for combo, key in (
+                    (row.acquisition, "acquisition"),
+                    (row.attribute, "attribute"),
+                    (row.proof_type, "proof_type"),
+                    (row.proof_status, "proof_status"),
+                ):
+                    index = stored.get(key)
+                    if isinstance(index, int) and 0 <= index < combo.count():
+                        combo.setCurrentIndex(index)
+        else:
+            electricity_count = state.get("electricity_row_count", default_state.get("electricity_row_count", 1))
+            try:
+                electricity_count = max(1, int(electricity_count))
+            except (TypeError, ValueError):
+                electricity_count = 1
+            for _ in range(electricity_count):
+                self._add_electricity_row()
         for row in tuple(self._fuel_rows):
             self.fuel_rows_layout.removeWidget(row)
             row.setParent(None)
@@ -804,6 +909,9 @@ class CarbonMaterialAccountingPage(BasePage):
         for row, stored in zip(self._fuel_rows, stored_fuel_rows):
             if not isinstance(stored, dict):
                 continue
+            stored_row_key = stored.get("row_key")
+            if isinstance(stored_row_key, str) and stored_row_key:
+                row.row_key = stored_row_key
             row.internal_id.setText(str(stored.get("id", row.internal_id.text())))
             for combo, key in ((row.fuel_type, "type"), (row.path, "path")):
                 index = stored.get(key)
@@ -812,6 +920,9 @@ class CarbonMaterialAccountingPage(BasePage):
             for widget, key in ((row.activity, "activity"), (row.carbon, "carbon"),
                                 (row.oxidation, "oxidation"), (row.source_reference, "source_reference")):
                 widget.setText(str(stored.get(key, "")))
+            stored_source = stored.get("parameter_source")
+            if stored_source in {"AUTO", "MEASURED", "STANDARD_DEFAULT"}:
+                row.parameter_source = str(stored_source)
             self._refresh_fuel_row(row)
         by_name: dict[str, QWidget] = {}
         for widget in self.findChildren(QWidget):
@@ -938,7 +1049,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if self.project_service is None:
             return
         project_id = self.saved_projects.currentData()
-        workspace = self.project_service.get(str(project_id)) if project_id else None
+        try:
+            workspace = self.project_service.get(str(project_id)) if project_id else None
+        except Exception as exc:
+            self._show_project_store_error("打开项目", exc)
+            return
         if workspace is None:
             return
         if self._project_dirty and not self._confirm_save_discard_cancel("打开其他项目"):
@@ -1196,6 +1311,9 @@ class CarbonMaterialAccountingPage(BasePage):
         self._bind_fuel_aliases(self._fuel_rows[0])
         row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
         row.path.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
+        row.source_reference.textChanged.connect(
+            lambda _text, _row=row: self._refresh_fuel_source_mode(_row)
+        )
         for widget in (row.activity, row.carbon, row.oxidation, row.source_reference):
             if isinstance(widget, QLineEdit):
                 widget.textChanged.connect(self._mark_input_dirty)
@@ -1273,6 +1391,10 @@ class CarbonMaterialAccountingPage(BasePage):
         for row in getattr(self, "_fuel_rows", ()):
             self._refresh_fuel_row(row)
 
+    def _refresh_fuel_source_mode(self, row: _FuelRow) -> None:
+        row.parameter_source = "MEASURED" if row.source_reference.text().strip() else "AUTO"
+        self._refresh_fuel_row(row)
+
     def _refresh_fuel_row(self, row: _FuelRow) -> None:
         try:
             path = _enum(row.path.currentData(), FuelPath)
@@ -1289,6 +1411,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 row.oxidation.clear()
             row._last_default_values = None
             has_values = bool(row.carbon.text().strip() or row.oxidation.text().strip())
+            row.parameter_source = "MEASURED" if has_values or row.source_reference.text().strip() else "AUTO"
             row.parameter_summary.setText(
                 "企业实测/检测参数（非标准默认）；请填写参数数据来源编号。"
                 if has_values
@@ -1303,11 +1426,13 @@ class CarbonMaterialAccountingPage(BasePage):
             row.oxidation.setText(new_defaults[1])
         current = (row.carbon.text().strip(), row.oxidation.text().strip())
         row._last_default_values = new_defaults if current == new_defaults else row._last_default_values
-        if current == new_defaults:
+        if current == new_defaults and not row.source_reference.text().strip():
+            row.parameter_source = "STANDARD_DEFAULT"
             row.parameter_summary.setText(
                 f"标准默认：{current[0]} {carbon_factor.unit}；{current[1]}%；来源：GB/T 32151.34—2024。"
             )
         else:
+            row.parameter_source = "MEASURED"
             row.parameter_summary.setText("企业实测/检测参数（非标准默认）；请填写参数数据来源编号。")
 
     def _build_process_section(self, parent_layout: QVBoxLayout, title: str, prefix: str, fields: tuple[str, ...]) -> None:
@@ -1666,8 +1791,14 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addLayout(buttons)
         self._add_electricity_row()
 
-    def _add_electricity_row(self) -> None:
-        row = _ElectricityRow(len(self._electricity_rows) + 1, self._remove_electricity_row, self)
+    def _add_electricity_row(self, *, row_key: str | None = None) -> None:
+        self._electricity_row_serial += 1
+        row = _ElectricityRow(
+            self._electricity_row_serial,
+            self._remove_electricity_row,
+            self,
+            row_key=row_key,
+        )
         self._electricity_rows.append(row)
         row.set_professional_details_visible(self.show_professional_details.isChecked())
         self.electricity_rows_layout.addWidget(row)
@@ -1682,6 +1813,8 @@ class CarbonMaterialAccountingPage(BasePage):
         for combo in (row.acquisition, row.attribute, row.proof_type, row.proof_status):
             combo.currentIndexChanged.connect(self._mark_input_dirty)
             combo.currentIndexChanged.connect(lambda _index: self._refresh_source_cards())
+        if hasattr(self, "result_card") and not self._restoring_workspace:
+            self._mark_input_dirty()
 
     def _remove_electricity_row(self, row: QWidget) -> None:
         if row in self._electricity_rows:
@@ -1690,6 +1823,8 @@ class CarbonMaterialAccountingPage(BasePage):
             row.setParent(None)
             row.deleteLater()
             self._refresh_source_cards()
+            if hasattr(self, "result_card") and not self._restoring_workspace:
+                self._mark_input_dirty()
 
     def _build_output_electricity_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("输出电力（I03；从间接排放中抵扣）", self)
@@ -2164,6 +2299,10 @@ class CarbonMaterialAccountingPage(BasePage):
             self.calculation_status_hint.setText("基础检查已通过，可以计算排放量。")
 
     def _fuel_row_uses_standard_defaults(self, row: _FuelRow) -> bool:
+        # A supplied enterprise source is an explicit measured-data choice even
+        # when its values happen to equal the standard defaults.
+        if row.parameter_source == "MEASURED" or row.source_reference.text().strip():
+            return False
         factors = self._fuel_default_factors(row)
         if factors is None:
             return False
@@ -2549,6 +2688,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self.result_line_details.setVisible(False)
             self.view_breakdown_button.setText("查看分项结果")
             self.view_process_button.setText("查看计算过程")
+        self._refresh_unit_result_summary()
         self._refresh_live_feedback()
 
     def _reset_for_new_accounting(self) -> None:
@@ -2869,7 +3009,33 @@ class CarbonMaterialAccountingPage(BasePage):
             units[self._active_unit_index] = updated_unit
             self._workspace = replace(self._workspace, units=tuple(units))
             self._project_dirty = True
-            self.project_save_status.setText("核算记录已生成；当前结果尚未保存到项目。点击“保存项目”可供以后打开。")
+            if self.project_service is not None:
+                try:
+                    association_workspace = self._workspace_for_record_link(updated_unit)
+                    self.project_service.save_after_record(
+                        association_workspace,
+                        outcome.record.record_id,
+                    )
+                except Exception as exc:
+                    self.project_save_status.setText(
+                        "核算记录已生成，但项目关联尚未完成；恢复信息将保留并可重试。"
+                    )
+                    QMessageBox.critical(
+                        self,
+                        "核算记录关联失败",
+                        "成功核算记录已经安全保存在记录库中，不会撤销或删除。"
+                        "项目关联未完成；请检查项目数据文件后重新打开软件或再次保存项目。\n\n"
+                        f"详细信息：{exc}",
+                    )
+                else:
+                    self._project_dirty = association_workspace != self._workspace
+                    self.project_save_status.setText(
+                        "核算记录已生成并关联到当前核算单元。"
+                        + ("其他未保存的项目修改仍需点击“保存项目”。" if self._project_dirty else "")
+                    )
+                    self._refresh_saved_projects()
+            else:
+                self.project_save_status.setText("核算记录已生成；当前项目未配置持久化服务。")
             self._refresh_unit_result_summary()
         self._refresh_live_feedback()
 
