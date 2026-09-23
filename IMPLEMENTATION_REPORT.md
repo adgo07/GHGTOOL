@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：Post-V1 新建核算实用性与多核算单元（本地实现完成，等待 PR 检查与 Sol 验收）
+## 当前阶段：Post-V1 PR #12 F1～F5 返修（本地验证通过，等待推送、CI 与 Sol 重新验收）
 
 CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
 
@@ -2084,3 +2084,44 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 - 未做人工逐项鼠标/键盘 GUI 操作验收；已使用 Qt offscreen 验收脚本执行并观察场景 A～E，另有独立 Windows EXE 构建和两次隔离启动。
 - 全厂与生产工序结果保持独立，不提供项目级合计/分摊；不支持的燃料参数组合需用户提供实测值和来源。
 - 当前无未执行的代码测试；Sol 验收仍待进行。不得合并 PR。
+
+## Post-V1 PR #12 F1～F5 返修实施报告（2026-09-23）
+
+### 返修范围与实现
+
+- **F1 电力行身份与序列化：** `_ElectricityRow` 增加稳定 `row_key`，页面使用单调序号创建唯一控件名；项目状态改为逐行保存 `detail_id`、金额、取得方式、电力属性、证明类型和证明状态。删除中间行后新增、切换核算单元、保存及重启恢复均不再覆盖其他行。保留旧 `electricity_row_count` 读取兼容。
+- **F2 燃料来源与测量参数身份：** 项目状态保存燃料 `row_key` 和 `parameter_source`。只要存在企业检测资料编号，即使输入值与标准默认值数值相等，也显式按 `MEASURED` 处理；恢复后测量参数 ID 继续由原稳定行身份生成。
+- **F3 结果过期状态：** `_mark_input_dirty` 立即刷新单元结果摘要；输入修改、单元往返、显式保存和重启后均保持“上一结果已过期”，不展示旧结果卡。
+- **F4 损坏项目库安全提示：** 项目列表初始化和打开项目捕获读取异常，清空不可安全读取的选择并显示不会影响 records 的解释性提示；应用入口同时捕获 `ProjectWorkspaceRepositoryError`。
+- **F5 成功记录关联恢复：** 新增 projects migration `002_pending_record_links.sql`。Repository 的 `save_after_record` 先提交待恢复关联，再保存项目单元关联，成功后清除待办；进程中断或项目保存失败时，下一次 Repository 初始化会重放待办。页面只合并当前已完成单元与其他单元“最后一次显式保存”的状态，不会因一次成功计算静默保存其他单元尚未完成的修改。成功记录仍先写 records.sqlite；不修改 records schema，不跨库假设原子事务，不撤销或删除成功记录。
+
+实现与测试提交：`361a747 fix: close post-v1 project recovery gaps`。未修改计算公式、Canonical 数据、ParameterResolver、历史记录生命周期或 `计算表/`。
+
+### 新增回归
+
+- 电力 1/2/3 三行删除中间行再新增，保存、切换单元、重启恢复后，三条金额、取得方式、电力属性、证明类型/状态、明细 ID 和行身份保持独立且唯一。
+- 天然气热量路径使用与默认值相等的企业检测值，保存/重启后仍为 `MEASURED`，碳含量和氧化率参数 ID 保持稳定。
+- 成功计算后修改输入，单元切换、保存和重启均显示旧结果过期。
+- 损坏 `form_state_json` 的 Repository 列表/读取、页面打开和页面启动均安全失败并提示。
+- 模拟 record 已成功但项目保存失败，确认 `pending_record_links` 保留；新 Repository 启动后自动恢复项目关联并清除待办。
+- 成功记录关联只保存已完成单元，不持久化其他单元未显式保存的未完成输入。
+
+### 本地实测
+
+环境：Windows 11 10.0.26200，CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3；Qt 使用 offscreen。
+
+- `.venv\Scripts\python.exe -m unittest tests.test_project_workspaces tests.test_accounting_projects_ui -v`：新增后合计 **17/17** 通过。
+- `.venv\Scripts\python.exe -m unittest discover -s tests -t . -q`：**183/183** 通过，0 失败、0 错误、0 跳过（20.566 秒）。
+- `.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`：通过。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 四库从零初始化：catalog/user/records/projects 均成功，隔离输出已清理。
+- `.venv\Scripts\python.exe scripts\uir04_manual_gui_acceptance.py`：场景 A～E 全部 PASS。
+- Windows standalone 隔离构建：成功；`inspect_release.py` **PASS（229 files）**；`verify_release_archive.py` **PASS（230 visible files）**；`smoke_standalone.py` **PASS（2 isolated starts）**；隔离构建目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；未跟踪 `docs/handoffs/` 和架构规范文档保持未处理。
+
+### 待完成门禁
+
+- 本报告提交后推送 `feature/accounting-practicality`，更新 PR #12 精确 diff 与测试结果。
+- 必须等待最终 PR head 对应的 Windows merge-ref full tests 和 exact-head standalone audit 全部完成；旧 run 不作为本 head 证据。
+- CI 通过后通知 Sol 重新验收。PR 仍不得合并。
