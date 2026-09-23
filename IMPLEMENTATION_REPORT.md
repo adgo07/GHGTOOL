@@ -2125,3 +2125,40 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 - PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已通过：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success。
 - CI 实际执行 Canonical、compileall、pip check、四库从零重建、GUI A～E、1.25/1.5 缩放、全量测试、G08 delivery、standalone build、release audit、ZIP manifest、provenance、2 次 isolated smoke 和 artifact upload，全部成功。
 - 本次治理状态提交推送后，继续等待最终文档 head 的两个 Windows job；通过后通知 Sol 重新验收。PR 仍不得合并。
+
+## Post-V1 PR #12 F5 合并式恢复返修报告（2026-09-23）
+
+### Sol 复验问题与根因
+
+F1～F4 经 Sol 核实关闭。F5 的恢复实现此前在 Repository 初始化时无条件执行 `save(pending_workspace)`。若 `save_after_record` 已成功保存关联、但 `_clear_pending_link` 失败，之后用户又显式保存了更新的项目名称或输入，下一次启动会用恢复标记中的旧完整 workspace 覆盖这些较新数据。
+
+### 最小修复
+
+- `packages/persistence/projects_repository.py` 新增合并式恢复：待恢复 JSON 仅用于证明目标项目、核算单元、record 关联和必要结果，不再被视为完整项目的新版本。
+- 若当前目标单元已包含该 record，只清标记，项目数据保持原样。
+- 若缺少关联，只把该 record 插入目标单元的记录序列；项目名称、当前单元、表单输入、其他单元和现有结果均以最新显式保存为准。
+- 当当前结果为空或仍是待恢复记录之前的旧结果时，补入待恢复记录的结果快照与输入指纹；若已有不属于待恢复快照的更晚结果，则只补历史关联，不替换更晚结果。
+- 恢复行的 project/unit 元数据不一致、目标单元不存在或 record 已指向其他单元时抛出可解释 Repository 错误，不进行全量覆盖或猜测关联。
+
+### 回归测试
+
+- `test_pending_marker_clear_failure_does_not_overwrite_newer_explicit_save`：精确覆盖 Sol 复现，验证新项目名称、新输入、record/result 均保持。
+- `test_pending_link_merges_into_newer_save_without_replacing_project_input`：项目保存失败留下标记后，验证较新显式保存的名称和输入保持，只补 record/result/fingerprint。
+- `test_pending_link_keeps_a_later_explicitly_saved_result`：验证恢复较早 record 时保留较晚成功结果及其 fingerprint，并保留两条关联。
+
+### 本地实测
+
+环境：Windows 11 10.0.26200，CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。
+
+- `.venv\Scripts\python.exe -m unittest tests.test_project_workspaces tests.test_accounting_projects_ui -v`：20/20 通过。
+- `.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：186/186 通过，0 失败、0 错误、0 跳过（19.968 秒）。
+- compileall：通过；pip check：`No broken requirements found.`。
+- Canonical：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- catalog/user/records/projects 四库从零初始化：通过；隔离目录已清理。
+- Qt offscreen GUI 验收场景 A～E：全部通过。
+- Windows standalone：构建成功；release audit 229 files；archive verification 230 visible files；2 isolated starts；隔离构建目录已清理。
+- `git diff --check`：通过；`计算表/` 无修改；用户原有未跟踪文档未处理。
+
+### 当前门禁
+
+本轮仅修改项目 Repository、直接回归测试和治理文档；未修改 migration、records schema、公式、Canonical、ParameterResolver 或 UI 行为。提交、推送及最终 PR head Windows CI 完成后，再向 Sol 发起重新验收；PR #12 继续保持未合并。

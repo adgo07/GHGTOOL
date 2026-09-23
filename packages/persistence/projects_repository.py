@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,89 @@ def _workspace_from_payload(payload: Any) -> ProjectWorkspace:
         active_unit_id=str(payload["active_unit_id"]),
         units=units,
     )
+
+
+def _merge_pending_record_link(
+    current: ProjectWorkspace,
+    pending: ProjectWorkspace,
+    record_id: str,
+    unit_id: str,
+) -> tuple[ProjectWorkspace, bool]:
+    """Merge only a queued record association into the latest saved project.
+
+    The pending payload is a recovery snapshot, not an authoritative project
+    revision.  Project metadata, form input and unrelated units therefore
+    always come from ``current``.
+    """
+
+    if pending.project_id != current.project_id:
+        raise ProjectWorkspaceRepositoryError(
+            f"pending record {record_id} belongs to a different project"
+        )
+    pending_units = [
+        unit for unit in pending.units
+        if unit.unit_id == unit_id and record_id in unit.record_ids
+    ]
+    if len(pending_units) != 1:
+        raise ProjectWorkspaceRepositoryError(
+            f"pending record {record_id} does not identify exactly one recovery unit"
+        )
+
+    current_links = [unit for unit in current.units if record_id in unit.record_ids]
+    if current_links:
+        if len(current_links) == 1 and current_links[0].unit_id == unit_id:
+            return current, False
+        raise ProjectWorkspaceRepositoryError(
+            f"record {record_id} is already linked to a different accounting unit"
+        )
+
+    target_indexes = [
+        index for index, unit in enumerate(current.units) if unit.unit_id == unit_id
+    ]
+    if len(target_indexes) != 1:
+        raise ProjectWorkspaceRepositoryError(
+            f"cannot recover record {record_id}: accounting unit {unit_id} is unavailable"
+        )
+
+    pending_unit = pending_units[0]
+    target_index = target_indexes[0]
+    current_unit = current.units[target_index]
+    pending_position = pending_unit.record_ids.index(record_id)
+    known_predecessors = set(pending_unit.record_ids[:pending_position])
+    insert_at = 0
+    for index, current_record_id in enumerate(current_unit.record_ids):
+        if current_record_id in known_predecessors:
+            insert_at = index + 1
+    record_ids_list = list(current_unit.record_ids)
+    record_ids_list.insert(insert_at, record_id)
+    record_ids = tuple(record_ids_list)
+
+    current_result_id = (
+        str(current_unit.result_snapshot.get("record_id"))
+        if current_unit.result_snapshot is not None
+        and current_unit.result_snapshot.get("record_id") is not None
+        else None
+    )
+    use_pending_result = (
+        current_result_id is None or current_result_id in pending_unit.record_ids
+    )
+    merged_unit = replace(
+        current_unit,
+        record_ids=record_ids,
+        result_snapshot=(
+            pending_unit.result_snapshot
+            if use_pending_result
+            else current_unit.result_snapshot
+        ),
+        input_fingerprint=(
+            pending_unit.input_fingerprint
+            if use_pending_result
+            else current_unit.input_fingerprint
+        ),
+    )
+    units = list(current.units)
+    units[target_index] = merged_unit
+    return replace(current, units=tuple(units)), True
 
 
 class SQLiteProjectWorkspaceRepository:
@@ -192,18 +276,35 @@ class SQLiteProjectWorkspaceRepository:
         connection = sqlite3.connect(self.path)
         try:
             rows = connection.execute(
-                "SELECT record_id,workspace_json FROM pending_record_links ORDER BY created_at,record_id"
+                "SELECT record_id,project_id,unit_id,workspace_json "
+                "FROM pending_record_links ORDER BY created_at,record_id"
             ).fetchall()
         except sqlite3.Error as exc:
             raise ProjectWorkspaceRepositoryError(f"cannot inspect pending record links: {exc}") from exc
         finally:
             connection.close()
-        for record_id, workspace_json in rows:
+        for record_id, project_id, unit_id, workspace_json in rows:
             try:
-                workspace = _workspace_from_payload(
+                pending = _workspace_from_payload(
                     _load(str(workspace_json), "pending_record_links.workspace_json")
                 )
-                self.save(workspace)
+                if pending.project_id != str(project_id):
+                    raise ProjectWorkspaceRepositoryError(
+                        f"pending record {record_id} has inconsistent project metadata"
+                    )
+                current = self.get(str(project_id))
+                if current is None:
+                    workspace = pending
+                    changed = True
+                else:
+                    workspace, changed = _merge_pending_record_link(
+                        current,
+                        pending,
+                        str(record_id),
+                        str(unit_id),
+                    )
+                if changed:
+                    self.save(workspace)
                 self._clear_pending_link(str(record_id))
             except (KeyError, TypeError, ValueError, ProjectWorkspaceRepositoryError) as exc:
                 raise ProjectWorkspaceRepositoryError(

@@ -6,7 +6,7 @@ Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF
 
 ## 状态
 
-POST_V1_F1_F5_REWORK_READY_FOR_SOL_REVIEW
+POST_V1_F5_MERGE_RECOVERY_REWORK_READY_FOR_SOL_REVIEW
 
 ## 前置阶段同步
 
@@ -1469,3 +1469,29 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已完成：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success；Canonical、compileall、pip check、四库重建、GUI A～E、缩放、全量测试、G08 delivery、standalone build/release/archive/provenance、2 次 isolated smoke 和 artifact upload 全部通过。
 
 当前仅等待本次治理状态提交后的最终 head CI 与 Sol 重新验收。PR 不得合并。
+
+## Post-V1 PR #12 F5 合并式恢复返工（2026-09-23）
+
+**POST_V1_F5_MERGE_RECOVERY_REWORK_READY_FOR_SOL_REVIEW**
+
+Sol 复验确认 F1～F4 已关闭，但发现 F5 的待恢复标记在“项目保存成功、标记清理失败、随后又有较新显式保存”路径中，会把标记内的旧完整 workspace 重放到数据库并覆盖较新的项目名称和单元输入。
+
+本轮最小修复将 `pending_record_links.workspace_json` 明确作为恢复证据而非项目版本：
+
+- 当前项目已经包含目标 `record_id` 且位于正确核算单元时，只清除恢复标记，不再写回旧 workspace。
+- 当前项目缺少目标关联时，只向目标单元合并该 `record_id` 及必要的结果快照/输入指纹；项目名称、活动单元、表单输入、其他单元及其显式保存状态全部保留当前值。
+- 当前单元已有更晚成功结果时，补回历史关联但保留更晚结果与指纹。
+- 项目尚不存在时仍可使用恢复快照完成首次关联恢复；元数据不一致、目标单元不存在或记录已关联到其他单元时安全失败，不猜测或覆盖。
+
+新增三条精确回归：标记清理失败后较新显式保存不被覆盖；首次项目保存失败后较新显式保存仅合并关联；已有更晚结果时旧恢复项不得替换最新结果。
+
+本地验证：
+
+- 项目 Repository + 项目 UI 定向：20/20 通过。
+- 全量 unittest：186/186 通过，0 失败、0 错误、0 跳过（19.968 秒）。
+- compileall、pip check、Canonical（9 standards / 12 sources / 7 parameters / 7 factors）、四库从零初始化：通过。
+- Qt offscreen GUI 场景 A～E：全部通过。
+- Windows standalone：构建通过；发布审计 229 files；ZIP 往返 230 visible files；2 次隔离启动通过；隔离输出已清理。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 和架构规范文档未处理。
+
+最新提交、推送及精确 PR head CI 尚待完成；PR #12 保持未合并，CI 通过后再次通知 Sol 验收。

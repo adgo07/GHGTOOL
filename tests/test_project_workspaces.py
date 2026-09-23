@@ -177,6 +177,142 @@ class ProjectWorkspacePersistenceTests(unittest.TestCase):
             finally:
                 connection.close()
 
+    def test_pending_marker_clear_failure_does_not_overwrite_newer_explicit_save(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            repository = SQLiteProjectWorkspaceRepository(database)
+            initial = ProjectWorkspaceService.new_workspace("original")
+            linked_unit = replace(
+                initial.units[0],
+                form_state={"enterprise_name": "original input"},
+                result_snapshot={"record_id": "record.clear", "total": "1"},
+                record_ids=("record.clear",),
+                input_fingerprint="fingerprint.clear",
+            )
+            linked = replace(initial, units=(linked_unit,))
+            original_clear = repository._clear_pending_link
+            repository._clear_pending_link = lambda _record_id: (_ for _ in ()).throw(  # type: ignore[method-assign]
+                ProjectWorkspaceRepositoryError("simulated marker clear failure")
+            )
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "clear failure"):
+                repository.save_after_record(linked, "record.clear")
+            repository._clear_pending_link = original_clear  # type: ignore[method-assign]
+
+            newer_unit = replace(
+                linked_unit,
+                form_state={"enterprise_name": "newer input"},
+            )
+            newer = replace(linked, name="newer explicit save", units=(newer_unit,))
+            repository.save(newer)
+
+            reopened = SQLiteProjectWorkspaceRepository(database)
+            recovered = reopened.get(initial.project_id)
+            self.assertIsNotNone(recovered)
+            assert recovered is not None
+            self.assertEqual(recovered.name, "newer explicit save")
+            self.assertEqual(recovered.units[0].form_state, {"enterprise_name": "newer input"})
+            self.assertEqual(recovered.units[0].record_ids, ("record.clear",))
+            self.assertEqual(recovered.units[0].result_snapshot, linked_unit.result_snapshot)
+            connection = sqlite3.connect(database)
+            try:
+                self.assertEqual(
+                    connection.execute("SELECT COUNT(*) FROM pending_record_links").fetchone()[0],
+                    0,
+                )
+            finally:
+                connection.close()
+
+    def test_pending_link_merges_into_newer_save_without_replacing_project_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            repository = SQLiteProjectWorkspaceRepository(database)
+            initial = ProjectWorkspaceService.new_workspace("original")
+            repository.save(initial)
+            pending_unit = replace(
+                initial.units[0],
+                form_state={"enterprise_name": "calculated input"},
+                result_snapshot={"record_id": "record.merge", "total": "2"},
+                record_ids=("record.merge",),
+                input_fingerprint="fingerprint.merge",
+            )
+            pending = replace(initial, units=(pending_unit,))
+            original_save = repository.save
+            repository.save = lambda _workspace: (_ for _ in ()).throw(  # type: ignore[method-assign]
+                ProjectWorkspaceRepositoryError("simulated project write failure")
+            )
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "queued for recovery"):
+                repository.save_after_record(pending, "record.merge")
+            repository.save = original_save  # type: ignore[method-assign]
+
+            newer_unit = replace(
+                initial.units[0],
+                form_state={"enterprise_name": "newer input"},
+            )
+            newer = replace(initial, name="newer explicit save", units=(newer_unit,))
+            repository.save(newer)
+
+            reopened = SQLiteProjectWorkspaceRepository(database)
+            recovered = reopened.get(initial.project_id)
+            self.assertIsNotNone(recovered)
+            assert recovered is not None
+            self.assertEqual(recovered.name, "newer explicit save")
+            self.assertEqual(recovered.units[0].form_state, {"enterprise_name": "newer input"})
+            self.assertEqual(recovered.units[0].record_ids, ("record.merge",))
+            self.assertEqual(recovered.units[0].result_snapshot, pending_unit.result_snapshot)
+            self.assertEqual(recovered.units[0].input_fingerprint, "fingerprint.merge")
+            connection = sqlite3.connect(database)
+            try:
+                self.assertEqual(
+                    connection.execute("SELECT COUNT(*) FROM pending_record_links").fetchone()[0],
+                    0,
+                )
+            finally:
+                connection.close()
+
+    def test_pending_link_keeps_a_later_explicitly_saved_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            repository = SQLiteProjectWorkspaceRepository(database)
+            initial = ProjectWorkspaceService.new_workspace("original")
+            repository.save(initial)
+            pending_unit = replace(
+                initial.units[0],
+                result_snapshot={"record_id": "record.pending", "total": "2"},
+                record_ids=("record.pending",),
+                input_fingerprint="fingerprint.pending",
+            )
+            pending = replace(initial, units=(pending_unit,))
+            original_save = repository.save
+            repository.save = lambda _workspace: (_ for _ in ()).throw(  # type: ignore[method-assign]
+                ProjectWorkspaceRepositoryError("simulated project write failure")
+            )
+            with self.assertRaisesRegex(ProjectWorkspaceRepositoryError, "queued for recovery"):
+                repository.save_after_record(pending, "record.pending")
+            repository.save = original_save  # type: ignore[method-assign]
+
+            later_result = {"record_id": "record.later", "total": "3"}
+            later_unit = replace(
+                initial.units[0],
+                form_state={"enterprise_name": "later input"},
+                result_snapshot=later_result,
+                record_ids=("record.later",),
+                input_fingerprint="fingerprint.later",
+            )
+            repository.save(replace(initial, name="later project", units=(later_unit,)))
+
+            reopened = SQLiteProjectWorkspaceRepository(database)
+            recovered = reopened.get(initial.project_id)
+            self.assertIsNotNone(recovered)
+            assert recovered is not None
+            self.assertEqual(recovered.name, "later project")
+            self.assertEqual(recovered.units[0].form_state, {"enterprise_name": "later input"})
+            self.assertEqual(
+                recovered.units[0].record_ids,
+                ("record.pending", "record.later"),
+            )
+            self.assertEqual(recovered.units[0].result_snapshot, later_result)
+            self.assertEqual(recovered.units[0].input_fingerprint, "fingerprint.later")
+
 
 if __name__ == "__main__":
     unittest.main()
