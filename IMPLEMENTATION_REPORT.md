@@ -4,7 +4,7 @@
 
 CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
 
-当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。实现提交为 `a50142d8af6b3473e87644c9b17e6b1a095a7d36`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本地测试和 Windows standalone 交付验证已通过；推送及 PR 最新 head GitHub Actions 待完成。详细结果见本报告末尾“Post-V1 实施结果”。
+当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。主要实现提交为 `a50142d8af6b3473e87644c9b17e6b1a095a7d36`，GitHub GUI 场景返修为 `7a10f35ee33228fae549bf2cdf1824a9007d7613`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本地最新测试和 Windows standalone 交付验证已通过。首次 PR Actions 发现的问题已修复；返修 head 的 GitHub Actions 待重新运行。详细结果见本报告末尾“Post-V1 实施结果”。
 
 ## 阶段
 
@@ -2035,16 +2035,16 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 ## Post-V1 实施结果（2026-09-23）
 
-**状态：本地实现及验证完成；推送、PR 最新 head 检查和 Sol 验收尚待完成。**
+**状态：本地实现及返修验证完成；返修提交和本报告待推送，随后等待 PR 最新 head Actions 与 Sol 验收。**
 
 ### 基线、授权与实现提交
 
 - Base branch：`main`；开工及推送前复核的 `origin/main` SHA：`1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
 - 工作分支：`feature/accounting-practicality`；未在 `main` 上开发。
 - 范围依据：HANDOFF.md §22（Sol 已批准）；独立项目状态保存只使用 `projects.sqlite`，没有修改 `records.sqlite` schema 或迁移。
-- 实现/测试提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`，`feat: add saved multi-unit accounting workspaces`。
-- 共 32 个已提交范围内文件；未暂存或处理预存的 `docs/handoffs/` 与架构规范文档。
-- 文件清单：`apps/carbon_accounting_desktop/{app.py,config.py,product.py}`；`migrations/projects/001_initial.sql`；`packages/application/{__init__.py,project_workspaces.py}`；`packages/core/{models.py,parameter_resolution.py}`；`packages/persistence/{__init__.py,catalog_builder.py,sqlite.py,projects_repository.py}`；`packages/standards/carbon_material.py`；`packages/ui/{carbon_material_page.py,field_specs.py,pages.py,shell.py,source_cards.py}`；`scripts/{build_standalone.py,initialize_databases.py,smoke_standalone.py}`；`tests/{test_accounting_projects_ui.py,test_g01_models.py,test_g02_persistence.py,test_g05_multi_electricity.py,test_g06_page.py,test_g07_records.py,test_g08_delivery.py,test_project_workspaces.py,test_uir01_field_semantics.py,test_uir02_source_cards.py,test_uir04_finalization.py}`。
+- 实现/测试提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`，`feat: add saved multi-unit accounting workspaces`；返修提交：`7a10f35ee33228fae549bf2cdf1824a9007d7613`，`fix: resolve fuel enum selections for defaults`。
+- 共 33 个不同实现/测试文件；未暂存或处理预存的 `docs/handoffs/` 与架构规范文档。
+- 文件清单：`apps/carbon_accounting_desktop/{app.py,config.py,product.py}`；`migrations/projects/001_initial.sql`；`packages/application/{__init__.py,project_workspaces.py}`；`packages/core/{models.py,parameter_resolution.py}`；`packages/persistence/{__init__.py,catalog_builder.py,sqlite.py,projects_repository.py}`；`packages/standards/carbon_material.py`；`packages/ui/{carbon_material_page.py,field_specs.py,pages.py,shell.py,source_cards.py}`；`scripts/{build_standalone.py,initialize_databases.py,smoke_standalone.py,uir04_manual_gui_acceptance.py}`；`tests/{test_accounting_projects_ui.py,test_g01_models.py,test_g02_persistence.py,test_g05_multi_electricity.py,test_g06_page.py,test_g07_records.py,test_g08_delivery.py,test_project_workspaces.py,test_uir01_field_semantics.py,test_uir02_source_cards.py,test_uir04_finalization.py}`。
 
 ### 实施内容
 
@@ -2060,18 +2060,27 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 环境：Windows 11（10.0.26200），CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。
 
-- `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v`：175/175 通过，0 失败，0 错误，0 跳过（21.355 秒）。
+- `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v`：176/176 通过，0 失败，0 错误，0 跳过（21.071 秒）。
 - `.venv/Scripts/python.exe -m unittest tests.test_g07_records -v`：13/13 通过，包含自定义周期 records 快照往返。
+- `.venv/Scripts/python.exe -m unittest tests.test_accounting_projects_ui -v`：7/7 通过，包含天然气标准默认参数控件回归。
 - `.venv/Scripts/python.exe -m compileall -q apps packages scripts tests`：通过。
 - `.venv/Scripts/python.exe -m pip check`：`No broken requirements found.`。
 - `.venv/Scripts/python.exe scripts/validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
 - `.venv/Scripts/python.exe scripts/initialize_databases.py --output-dir <独立临时目录>`：从零创建 catalog.sqlite、user.sqlite、records.sqlite、projects.sqlite；验证目录随后清理。
 - `git diff --check`：通过；`计算表/` 差异为空。未执行 pytest（仓库测试基线为 unittest）。
 - Windows standalone：在独立临时输出目录构建成功；`inspect_release.py` 通过（228 文件）；`verify_release_archive.py` 通过（229 个可见文件且 manifest 完整）；`smoke_standalone.py --starts 2` 通过。构建目录在审计/烟测后清理。
+- Qt offscreen GUI 验收脚本 `.venv/Scripts/python.exe scripts/uir04_manual_gui_acceptance.py`：场景 A～E 全部 PASS。实际观察：A 燃料+常规购电总量显示 11.17 tCO₂ 并新增 1 条记录；B 收到基煅烧完成（含提醒）；C 干/收基不一致被阻断并要求统一口径和换算依据；D 有效非化石电力证明计算完成；E 企业名称缺失被阻断且没有成功记录。不是人工逐项鼠标操作验收。
+
+### GitHub 首次检查发现与修复
+
+- PR #12 首次公开 head：`d3e71b14846a49ddd719213ce4d1619c0c54454f`；Actions run `35831594942`，Windows Server 2025 / CPython 3.12.10。
+- 该 run 的 Canonical、compileall、pip check、四库重建均通过；UIR04 GUI 场景 A 失败，导致 Windows 缩放、全量测试和 standalone audit 后续作业被跳过。
+- 根因：PySide `QComboBox` 的 `currentData()` 返回 str Enum 的字符串值；天然气参数查找直接用 `is FuelType.NATURAL_GAS` / `is FuelPath.HEAT`，因此没有识别到已有 Canonical 标准默认值，Domain 正确阻断了缺失的含碳量和氧化率。
+- 提交 `7a10f35` 改为显式将控件值映射回 FuelType/FuelPath；新增标准默认值 UI 回归，并将 GUI 场景 A 改为选择天然气+热量、使用 Canonical 已核对默认值。返修后的场景 A～E 已在本地重新通过；新 PR head Actions 尚待推送后执行。
 
 ### 未完成与限制
 
-- GitHub Actions 尚未针对 PR head 执行；Actions 结果必须在推送后按最新 SHA 单独记录，不得以本地测试替代。
-- 未做人工逐项 GUI 操作验收；本地验证由 Qt offscreen 自动 UI 测试、独立 Windows EXE 构建和两次隔离启动组成。
+- 首次 PR head Actions run `35831594942` 在返修前失败；不能作为最终通过证据。修复后的最新 PR head Actions 尚未运行，须等待 Windows merge-ref 全量和 exact-head standalone audit 全部完成。
+- 未做人工逐项鼠标/键盘 GUI 操作验收；已使用 Qt offscreen 验收脚本执行并观察场景 A～E，另有独立 Windows EXE 构建和两次隔离启动。
 - 全厂与生产工序结果保持独立，不提供项目级合计/分摊；不支持的燃料参数组合需用户提供实测值和来源。
 - 当前无未执行的代码测试；Sol 验收仍待进行。不得合并 PR。

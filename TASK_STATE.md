@@ -14,9 +14,9 @@ POST_V1_AWAITING_GITHUB_CHECKS_AND_SOL_ACCEPTANCE
 - CATUI01（PR #11）已由用户确认合并至 main；当前基线为 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
 - 本工作包由 Sol 明确批准，新增独立 `projects.sqlite` 保存可变项目及未完成输入；该批准仅为 HANDOFF.md §22 的范围受限例外，不改变 `records.sqlite` 成功记录/审计语义。
 - 本轮仅有一个 Post-V1 Goal；未启动新标准或其他阶段。
-- 实施代码与回归测试已提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`（32 个范围内文件）；工作分支 `feature/accounting-practicality`，基于 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
-- 本地全量测试 175/175 通过；compileall、pip check、Canonical 校验、四库从零初始化及 Windows standalone 构建/审计/归档/双次烟测均通过。详细命令和环境见 IMPLEMENTATION_REPORT.md。
-- 当前门禁：推送分支并创建 main 目标 PR，等待该 PR 最新 head 的 GitHub Actions；随后停止等待 Sol 验收。未合并 PR。
+- 实现提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`；CI 场景发现的天然气枚举修复提交：`7a10f35ee33228fae549bf2cdf1824a9007d7613`。当前分支 `feature/accounting-practicality`，基于 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 本地最新全量测试 176/176 通过；UIR04 GUI 验收场景 A～E 全部通过；compileall、pip check、Canonical 校验、四库从零初始化及最终 Windows standalone 构建/审计/归档/双次烟测均通过。详细命令和环境见 IMPLEMENTATION_REPORT.md。
+- PR #12 已创建。其首次公开 head 的 Actions run `35831594942` 发现 GUI 场景 A 中天然气默认参数因 PySide 字符串枚举未被识别；已在提交 `7a10f35` 修复并补回归。返修和本轮报告提交后将推送新 head，等待新 head Actions 后停止等待 Sol 验收。未合并 PR。
 
 ## 阶段验收状态
 
