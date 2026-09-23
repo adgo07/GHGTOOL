@@ -33,6 +33,8 @@ from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH  # noqa: E402
 from packages.standards.carbon_material import (  # noqa: E402
     EmissionSourceStatus,
+    FuelPath,
+    FuelType,
     InMemoryRecordRepository,
     MaterialBasis,
 )
@@ -86,13 +88,10 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         page.period_year.setValue(2026)
         page.boundary_confirmed.setChecked(True)
         _involve(page, F01)
-        for key, value in (
-            ("fuel_id", "natural-gas"),
-            ("fuel_activity", "10"),
-            ("fuel_carbon", "0.2"),
-            ("fuel_oxidation", "98"),
-        ):
-            page._fields[key].setText(value)
+        fuel = page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
+        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.HEAT))
+        fuel.activity.setText("10")
         _involve(page, I01)
         row = page._electricity_rows[0]
         row.detail_id.setText("grid-ordinary")
@@ -100,7 +99,13 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
         row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
         page._run_calculation()
-        assert page.result_card.isVisible()
+        assert page.result_card.isVisible(), {
+            "validation": [
+                page.validation_list.item(index).text()
+                for index in range(page.validation_list.count())
+            ],
+            "professional_details": page.validation_professional_details.text(),
+        }
         assert len(repository.list_all()) == 1
         return (
             f"场景A PASS：燃料+购入常规电力完成计算；结果={page.result_total.text()}；"

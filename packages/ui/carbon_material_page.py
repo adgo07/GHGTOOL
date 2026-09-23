@@ -1227,7 +1227,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _fuel_default_factors(self, row: _FuelRow) -> tuple[object, object] | None:
-        if row.fuel_type.currentData() is not FuelType.NATURAL_GAS or row.path.currentData() is not FuelPath.HEAT:
+        try:
+            fuel_type = _enum(row.fuel_type.currentData(), FuelType)
+            path = _enum(row.path.currentData(), FuelPath)
+        except (TypeError, ValueError):
+            return None
+        if fuel_type is not FuelType.NATURAL_GAS or path is not FuelPath.HEAT:
             return None
         try:
             factors = tuple(self.catalog_service.repository.list_factors())
@@ -1269,7 +1274,10 @@ class CarbonMaterialAccountingPage(BasePage):
             self._refresh_fuel_row(row)
 
     def _refresh_fuel_row(self, row: _FuelRow) -> None:
-        path = row.path.currentData()
+        try:
+            path = _enum(row.path.currentData(), FuelPath)
+        except (TypeError, ValueError):
+            path = None
         activity_unit = {FuelPath.VOLUME: "10⁴Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}.get(path, "")
         carbon_unit = {FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}.get(path, "")
         row.activity.setPlaceholderText(f"活动量（{activity_unit}）")

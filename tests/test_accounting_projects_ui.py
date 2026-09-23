@@ -78,6 +78,22 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIs(custom.period_type, PeriodType.CUSTOM)
         self.assertEqual((custom.start.isoformat(), custom.end.isoformat()), ("2026-03-14", "2026-08-22"))
 
+    def test_natural_gas_heat_path_uses_verified_canonical_defaults(self) -> None:
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+        row.path.setCurrentIndex(row.path.findData(FuelPath.HEAT))
+        row.activity.setText("10")
+
+        self.assertEqual(row.activity.placeholderText(), "活动量（GJ）")
+        self.assertEqual(row.carbon.placeholderText(), "单位含碳量（tC/GJ）")
+        self.assertEqual(row.carbon.text(), "0.0153")
+        self.assertEqual(row.oxidation.text(), "99.00")
+        self.assertIn("标准默认", row.parameter_summary.text())
+        fuel = self.page._fuel()[0]
+        self.assertEqual(fuel.carbon_content.parameter_id, "natural_gas_carbon_content")
+        self.assertEqual(str(fuel.carbon_content.value), "0.0153")
+        self.assertEqual(str(fuel.oxidation_rate.value), "0.99")
+
     def test_source_check_shows_preview_or_missing_input_without_creating_a_record(self) -> None:
         self.page.enterprise_name.setText("燃料预览企业")
         self.page.boundary_confirmed.setChecked(True)
