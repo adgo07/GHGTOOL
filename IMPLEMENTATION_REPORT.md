@@ -1,6 +1,6 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：Post-V1 PR #12 F1～F5 返修（本地验证通过，等待推送、CI 与 Sol 重新验收）
+## 当前阶段：Post-V1 PR #12 F1～F5 返修（本地与 GitHub CI 通过，等待 Sol 重新验收）
 
 CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
 
@@ -2122,6 +2122,6 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 ### 待完成门禁
 
-- 本报告提交后推送 `feature/accounting-practicality`，更新 PR #12 精确 diff 与测试结果。
-- 必须等待最终 PR head 对应的 Windows merge-ref full tests 和 exact-head standalone audit 全部完成；旧 run 不作为本 head 证据。
-- CI 通过后通知 Sol 重新验收。PR 仍不得合并。
+- PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已通过：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success。
+- CI 实际执行 Canonical、compileall、pip check、四库从零重建、GUI A～E、1.25/1.5 缩放、全量测试、G08 delivery、standalone build、release audit、ZIP manifest、provenance、2 次 isolated smoke 和 artifact upload，全部成功。
+- 本次治理状态提交推送后，继续等待最终文档 head 的两个 Windows job；通过后通知 Sol 重新验收。PR 仍不得合并。

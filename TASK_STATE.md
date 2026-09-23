@@ -6,7 +6,7 @@ Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF
 
 ## 状态
 
-POST_V1_F1_F5_REWORK_LOCAL_PASS_AWAITING_PUSH_AND_CI
+POST_V1_F1_F5_REWORK_READY_FOR_SOL_REVIEW
 
 ## 前置阶段同步
 
@@ -1447,7 +1447,7 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 ## Post-V1 PR #12 F1～F5 返修（2026-09-23）
 
-**POST_V1_F1_F5_REWORK_LOCAL_PASS_AWAITING_PUSH_AND_CI**
+**POST_V1_F1_F5_REWORK_READY_FOR_SOL_REVIEW**
 
 - F1：电力明细新增稳定 `row_key`、单调控件序号和逐行序列化；删除中间行再新增不会重用控件身份或覆盖字典值，金额、取得方式、电力属性、证明类型和证明状态可跨单元切换及应用重启恢复。旧 `electricity_row_count` 项目格式继续读取。
 - F2：燃料行持久化稳定 `row_key` 和显式 `parameter_source`；企业检测来源存在时，即使数值等于 Canonical 默认值，也按 `MEASURED` 形成稳定测量参数 ID，不再误写 `STANDARD_DEFAULT`。
@@ -1466,4 +1466,6 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 - Windows standalone：构建通过；发布审计 229 files；ZIP 往返 230 visible files；2 次隔离启动通过。
 - `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 和架构规范文档未处理。
 
-尚未完成：治理文档提交、推送、PR #12 最新 head 的 merge-ref full tests 与 exact-head standalone audit、Sol 重新验收。PR 不得合并。
+PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已完成：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success；Canonical、compileall、pip check、四库重建、GUI A～E、缩放、全量测试、G08 delivery、standalone build/release/archive/provenance、2 次 isolated smoke 和 artifact upload 全部通过。
+
+当前仅等待本次治理状态提交后的最终 head CI 与 Sol 重新验收。PR 不得合并。
