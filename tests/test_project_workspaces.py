@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+from dataclasses import replace
+import sqlite3
+import tempfile
+import unittest
+from pathlib import Path
+
+from packages.application import (
+    AccountingUnitType,
+    AccountingUnitWorkspace,
+    ProjectWorkspace,
+    ProjectWorkspaceService,
+)
+from packages.persistence import MigrationError, SQLiteProjectWorkspaceRepository, build_all_databases
+
+
+class ProjectWorkspacePersistenceTests(unittest.TestCase):
+    def test_multiple_units_round_trip_and_project_deletion_never_touches_records(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            paths = build_all_databases(directory)
+            records = sqlite3.connect(paths["records"])
+            try:
+                records.execute(
+                    "INSERT INTO accounting_records(record_id,status,created_at,standard_id,"
+                    "standard_version,algorithm_version,input_snapshot_json,calculation_snapshot_json,"
+                    "parameter_snapshot_json,warnings_json) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        "record.immutable",
+                        "COMPLETED",
+                        "2026-09-23T00:00:00+00:00",
+                        "gbt_32151_34_2024",
+                        "2024",
+                        "algorithm.1",
+                        "{}",
+                        "{}",
+                        "[]",
+                        "[]",
+                    ),
+                )
+                records.execute(
+                    "INSERT INTO audit_log(audit_id,record_id,action,occurred_at,actor,details_json) "
+                    "VALUES(?,?,?,?,?,?)",
+                    ("audit.immutable", "record.immutable", "CREATE", "2026-09-23T00:00:00+00:00", "test", "{}"),
+                )
+                records.commit()
+            finally:
+                records.close()
+
+            service = ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(paths["projects"]))
+            initial = service.new_workspace("炭素材料企业 2025")
+            whole_site = replace(
+                initial.units[0],
+                form_state={"enterprise_name": "炭素材料企业", "fuel_rows": [{"row_id": "fuel-row-1", "kind": "天然气"}]},
+                result_snapshot={"total": "12.345", "unit": "tCO₂"},
+                record_ids=("record.immutable",),
+            )
+            process = AccountingUnitWorkspace(
+                unit_id="unit.graphitization",
+                name="石墨化工序",
+                unit_type=AccountingUnitType.PROCESS,
+                position=1,
+                form_state={"source_enabled": {"P03": True}, "graphitization": {"gc": "100"}},
+                result_snapshot={"total": "8.000", "unit": "tCO₂"},
+                record_ids=("record.process",),
+                input_fingerprint="fingerprint.process",
+            )
+            workspace = replace(
+                initial,
+                active_unit_id=process.unit_id,
+                units=(whole_site, process),
+            )
+            service.save(workspace)
+
+            reloaded = service.get(workspace.project_id)
+            self.assertEqual(reloaded, workspace)
+            self.assertEqual(service.list_all(), (workspace,))
+            self.assertTrue(service.delete(workspace.project_id))
+            self.assertIsNone(service.get(workspace.project_id))
+
+            records = sqlite3.connect(paths["records"])
+            try:
+                self.assertEqual(records.execute("SELECT COUNT(*) FROM accounting_records").fetchone()[0], 1)
+                self.assertEqual(records.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0], 1)
+            finally:
+                records.close()
+
+    def test_a_project_cannot_be_saved_without_a_unit_or_valid_active_unit(self) -> None:
+        with self.assertRaises(ValueError):
+            ProjectWorkspace("project.bad", "Bad", "missing", ())
+
+    def test_project_migration_errors_fail_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            SQLiteProjectWorkspaceRepository(database)
+            connection = sqlite3.connect(database)
+            try:
+                connection.execute(
+                    "INSERT INTO schema_migrations(version,name,applied_at) VALUES(?,?,?)",
+                    (999, "future_migration", "2099-01-01T00:00:00+00:00"),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            with self.assertRaises(MigrationError):
+                SQLiteProjectWorkspaceRepository(database)
+
+            unopenable = Path(directory) / "unopenable.sqlite"
+            unopenable.mkdir()
+            with self.assertRaises(MigrationError):
+                SQLiteProjectWorkspaceRepository(unopenable)
+
+
+if __name__ == "__main__":
+    unittest.main()

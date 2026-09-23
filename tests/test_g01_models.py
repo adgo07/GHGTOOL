@@ -31,6 +31,7 @@ from packages.core import (
     ValidationProblem,
     contains_errors,
 )
+from packages.standards.carbon_material import FuelInput, FuelPath, FuelType
 
 
 NOW = datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc)
@@ -162,6 +163,10 @@ class DomainModelTest(unittest.TestCase):
         self.assertEqual(monthly.end.day, 29)
         with self.assertRaises(DomainValidationError):
             AccountingPeriod(PeriodType.MONTHLY, date(2024, 2, 2), date(2024, 2, 29))
+        custom = AccountingPeriod(PeriodType.CUSTOM, date(2025, 2, 13), date(2025, 4, 6))
+        self.assertEqual((custom.start, custom.end), (date(2025, 2, 13), date(2025, 4, 6)))
+        with self.assertRaises(DomainValidationError):
+            AccountingPeriod(PeriodType.CUSTOM, date(2025, 4, 6), date(2025, 2, 13))
 
         parameter = Parameter("param.lhv.ng", "fuel.natural_gas", ParameterType.LOWER_HEATING_VALUE, "低位发热量", "GJ", "1")
         factor = Factor(
@@ -180,6 +185,12 @@ class DomainModelTest(unittest.TestCase):
         self.assertEqual(factor.value, Decimal("389.31"))
         with self.assertRaises(FrozenInstanceError):
             factor.value = Decimal("1")  # type: ignore[misc]
+
+    def test_fuel_type_is_a_domain_enum_not_an_unchecked_string(self) -> None:
+        fuel = FuelInput("fuel.row.1", FuelPath.MASS, fuel_type=FuelType.COAL)
+        self.assertIs(fuel.fuel_type, FuelType.COAL)
+        with self.assertRaises(DomainValidationError):
+            FuelInput("fuel.row.2", FuelPath.MASS, fuel_type="COAL")
 
     def test_problem_levels_and_record_status(self) -> None:
         info = ValidationProblem("INPUT.SOURCE_INFO", IssueLevel.INFO, "已记录数据来源", "activity.energy")

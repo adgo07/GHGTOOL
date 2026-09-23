@@ -1,4 +1,4 @@
-"""SQLite migration primitives for the three physically isolated databases."""
+"""SQLite migration primitives for the isolated application databases."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Literal
 
 
-DatabaseKind = Literal["catalog", "user", "records"]
-DATABASE_KINDS = frozenset({"catalog", "user", "records"})
+DatabaseKind = Literal["catalog", "user", "records", "projects"]
+DATABASE_KINDS = frozenset({"catalog", "user", "records", "projects"})
 _MIGRATION_NAME = re.compile(r"^(?P<version>[0-9]+)_(?P<name>[a-z0-9][a-z0-9_.-]*)\.sql$")
 _DETERMINISTIC_TIMESTAMP = "1970-01-01T00:00:00+00:00"
 

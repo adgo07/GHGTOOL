@@ -218,7 +218,7 @@ def build_all_databases(
     *,
     app_version: str = "1.1.0",
 ) -> dict[str, Path]:
-    """Build catalog and initialize the physically separate user and records databases."""
+    """Build catalog and initialize physically separate user, records and projects databases."""
 
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=True)
@@ -241,4 +241,11 @@ def build_all_databases(
         data_version="not_applicable",
         deterministic=True,
     )
-    return {"catalog": catalog_path, "user": user_path, "records": records_path}
+    projects_path = initialize_database(
+        directory / "projects.sqlite",
+        "projects",
+        app_version=app_version,
+        data_version="not_applicable",
+        deterministic=True,
+    )
+    return {"catalog": catalog_path, "user": user_path, "records": records_path, "projects": projects_path}

@@ -7,11 +7,15 @@ business-language summaries and optional professional details.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from dataclasses import replace
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
+import hashlib
+import json
 import re
+from uuid import uuid4
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QDate, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -29,10 +33,18 @@ from PySide6.QtWidgets import (
     QWidget,
     QFrame,
     QScrollArea,
+    QDateEdit,
+    QInputDialog,
 )
 
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.project_workspaces import (
+    AccountingUnitType,
+    AccountingUnitWorkspace,
+    ProjectWorkspace,
+    ProjectWorkspaceService,
+)
 from packages.core import (
     DomainValidationError,
     ElectricityAcquisitionMode,
@@ -56,10 +68,12 @@ from packages.standards.carbon_material import (
     FGDInput,
     FuelInput,
     FuelPath,
+    FuelType,
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
     ElectricityOutputLine,
+    InMemoryRecordRepository,
     MaterialBasis,
     MaterialComponentKind,
     ParameterSourceKind,
@@ -283,6 +297,51 @@ class _ElectricityRow(QWidget):
         )
 
 
+class _FuelRow(QWidget):
+    def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName(f"fuelRow{index}")
+        self.row_key = uuid4().hex
+        layout = QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.internal_id = QLineEdit(f"fuel-{self.row_key}", self)
+        self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
+        self.internal_id.hide()
+        self.fuel_type = create_typed_input(self, get_field_spec("fuel_type"), f"fuelType{index}")
+        for label, value in (("柴油", FuelType.DIESEL), ("天然气", FuelType.NATURAL_GAS),
+                             ("焦炉煤气", FuelType.COKE_OVEN_GAS), ("煤", FuelType.COAL),
+                             ("其他燃料", FuelType.OTHER)):
+            self.fuel_type.addItem(label, value)
+        self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
+        for value, label in ((FuelPath.VOLUME, "体积"), (FuelPath.MASS, "质量"), (FuelPath.HEAT, "热量")):
+            self.path.addItem(label, value)
+        self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
+        self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
+        self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
+        self.source_reference = create_typed_input(
+            self,
+            get_field_spec("fuel_source_reference"),
+            f"fuelSourceReference{index}",
+        )
+        self.source_reference.setPlaceholderText("实测/检测资料编号")
+        self.parameter_summary = QLabel("参数来源待确定", self)
+        self.parameter_summary.setObjectName(f"fuelParameterSummary{index}")
+        self.parameter_summary.setWordWrap(True)
+        self.remove_button = QPushButton("删除本条燃料", self)
+        self.remove_button.setObjectName(f"removeFuelButton{index}")
+        self.remove_button.clicked.connect(lambda: remove(self))
+        for column, (label, widget) in enumerate((
+            ("燃料种类", self.fuel_type), ("计量方式", self.path), ("活动量", self.activity),
+            ("单位含碳量", self.carbon), ("碳氧化率", self.oxidation),
+            ("参数数据来源", self.source_reference),
+        )):
+            layout.addWidget(QLabel(label, self), 0, column)
+            layout.addWidget(widget, 1, column)
+        layout.addWidget(self.parameter_summary, 2, 0, 1, 5)
+        layout.addWidget(self.remove_button, 2, 5)
+        self._last_default_values: tuple[str, str] | None = None
+
+
 class CarbonMaterialAccountingPage(BasePage):
     """Long, scrollable G06 work sheet for the only implemented industry standard."""
 
@@ -294,10 +353,12 @@ class CarbonMaterialAccountingPage(BasePage):
         calculator: CarbonMaterialCalculator | None = None,
         record_repository: RecordRepository | None = None,
         standard_id: str = STANDARD_ID,
+        project_service: ProjectWorkspaceService | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(AppRoute.NEW_ACCOUNTING, parent)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.project_service = project_service
         resolver = None
         try:
             resolver = create_g06_parameter_resolver(self.catalog_service.repository)
@@ -315,6 +376,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self.standard_id = standard_id
         self._calculation_index = 0
         self._electricity_rows: list[_ElectricityRow] = []
+        self._fuel_rows: list[_FuelRow] = []
+        self._fuel_row_serial = 0
         self._source_statuses: dict[str, QComboBox] = {}
         self._source_cards: dict[str, SourceCard] = {}
         self._fields: dict[str, QLineEdit] = {}
@@ -327,13 +390,20 @@ class CarbonMaterialAccountingPage(BasePage):
         self._known_source_errors: set[str] = set()
         self._validation_count_override: tuple[int, int] | None = None
         self._calculation_has_result = False
+        self._workspace = project_service.new_workspace() if project_service is not None else ProjectWorkspaceService.new_workspace()
+        self._active_unit_index = 0
+        self._project_dirty = False
+        self._restoring_workspace = False
+        self._unit_outcomes: dict[str, dict[str, object]] = {}
         self._build_page()
+        self._default_form_state = self._capture_form_state()
         self._input_dirty = False
+        self._project_dirty = False
         self._install_dirty_tracking()
 
     def set_standard_id(self, standard_id: str) -> None:
         self.standard_id = standard_id
-        self.standard_id_label.setText(standard_id)
+        self.standard_id_label.setText("GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》")
         if hasattr(self, "heat_factor_selector"):
             self._refresh_heat_factor_details()
 
@@ -342,9 +412,9 @@ class CarbonMaterialAccountingPage(BasePage):
 
         identity, identity_layout = _card("01 核算信息与核算边界", self)
         form = QFormLayout()
-        self.standard_id_label = QLabel(self.standard_id, identity)
+        self.standard_id_label = QLabel("GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》", identity)
         self.standard_id_label.setObjectName("accountingStandardId")
-        form.addRow(get_field_spec("standard_id").label, self.standard_id_label)
+        form.addRow("核算标准", self.standard_id_label)
         self.enterprise_name = create_typed_input(
             identity,
             get_field_spec("enterprise_name"),
@@ -353,10 +423,11 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         form.addRow(get_field_spec("enterprise_name").label, self.enterprise_name)
         self.period_type = create_typed_input(identity, get_field_spec("period_type"), "accountingPeriodType")
-        self.period_type.addItem("年度", PeriodType.ANNUAL)
-        self.period_type.addItem("月度（内部周期结果）", PeriodType.MONTHLY)
-        self.period_type.currentIndexChanged.connect(lambda _index: self._refresh_heat_factor_details())
-        form.addRow(get_field_spec("period_type").label, self.period_type)
+        self.period_type.addItem("全年", PeriodType.ANNUAL)
+        for month in range(1, 13):
+            self.period_type.addItem(f"{month}月", (PeriodType.MONTHLY, month))
+        self.period_type.addItem("自定义", PeriodType.CUSTOM)
+        self.period_type.currentIndexChanged.connect(self._on_period_choice_changed)
         period_row = QWidget(identity)
         period_layout = QHBoxLayout(period_row)
         period_layout.setContentsMargins(0, 0, 0, 0)
@@ -366,18 +437,46 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_year.setRange(2000, 2100)
         self.period_year.setValue(2025)
         self.period_year.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
+        self.period_year.valueChanged.connect(lambda _value: self._refresh_fuel_defaults())
         self.period_month = QSpinBox(period_row)
         self.period_month.setObjectName("accountingPeriodMonth")
         self.period_month.setProperty("fieldSpecKey", "period_month")
         self.period_month.setRange(1, 12)
         self.period_month.setValue(1)
-        self.period_month.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
+        self.period_month.hide()
+        self.period_month.valueChanged.connect(self._sync_period_choice_from_month)
+        self.period_year.setPrefix("年份 ")
+        self.period_type.setMinimumWidth(140)
         period_layout.addWidget(self.period_year)
-        period_layout.addWidget(self.period_month)
-        form.addRow(
-            f"{get_field_spec('period_year').label} / {get_field_spec('period_month').label}",
-            period_row,
-        )
+        period_layout.addWidget(self.period_type)
+        period_layout.addStretch(1)
+        form.addRow("核算周期", period_row)
+        self.custom_period_row = QWidget(identity)
+        custom_layout = QHBoxLayout(self.custom_period_row)
+        custom_layout.setContentsMargins(0, 0, 0, 0)
+        custom_layout.addWidget(QLabel("开始日期"))
+        self.period_start = QDateEdit(self.custom_period_row)
+        self.period_start.setObjectName("accountingPeriodStart")
+        self.period_start.setCalendarPopup(True)
+        self.period_start.setDisplayFormat("yyyy-MM-dd")
+        self.period_start.setDate(QDate(2025, 1, 1))
+        custom_layout.addWidget(self.period_start)
+        custom_layout.addWidget(QLabel("结束日期"))
+        self.period_end = QDateEdit(self.custom_period_row)
+        self.period_end.setObjectName("accountingPeriodEnd")
+        self.period_end.setCalendarPopup(True)
+        self.period_end.setDisplayFormat("yyyy-MM-dd")
+        self.period_end.setDate(QDate(2025, 12, 31))
+        custom_layout.addWidget(self.period_end)
+        self.custom_period_hint = QLabel("自定义日期仅用于内部周期计算，不代表标准报告周期。", self.custom_period_row)
+        self.custom_period_hint.setWordWrap(True)
+        custom_layout.addWidget(self.custom_period_hint, 1)
+        self.custom_period_row.setVisible(False)
+        self.period_start.dateChanged.connect(lambda _value: self._refresh_heat_factor_details())
+        self.period_end.dateChanged.connect(lambda _value: self._refresh_heat_factor_details())
+        self.period_start.dateChanged.connect(lambda _value: self._refresh_fuel_defaults())
+        self.period_end.dateChanged.connect(lambda _value: self._refresh_fuel_defaults())
+        form.addRow("自定义周期", self.custom_period_row)
         identity_layout.addLayout(form)
 
         boundary = QWidget(identity)
@@ -415,6 +514,8 @@ class CarbonMaterialAccountingPage(BasePage):
         boundary_layout.addWidget(self.transport_present)
         identity_layout.addWidget(boundary)
         self.body_layout.addWidget(identity)
+
+        self._build_project_unit_controls()
 
         presentation_options = QWidget(self)
         presentation_options_layout = QHBoxLayout(presentation_options)
@@ -501,8 +602,8 @@ class CarbonMaterialAccountingPage(BasePage):
 
         self.check_button = QPushButton("检查数据", self)
         self.check_button.setObjectName("checkAccountingButton")
-        self.check_button.clicked.connect(self._run_calculation)
-        self.check_button.setVisible(False)
+        self.check_button.clicked.connect(self._check_data)
+        self.check_button.setVisible(True)
 
         status_bar = QFrame(self)
         status_bar.setObjectName("calculationStatusBar")
@@ -518,6 +619,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.calculation_status_hint = QLabel("填写数据后将自动更新基础检查结果。", status_bar)
         self.calculation_status_hint.setObjectName("calculationStatusHint")
         self.calculation_status_hint.setWordWrap(True)
+        status_layout.addWidget(self.check_button)
         status_layout.addWidget(self.confirmed_source_count)
         status_layout.addWidget(self.error_count)
         status_layout.addWidget(self.reminder_count)
@@ -531,6 +633,408 @@ class CarbonMaterialAccountingPage(BasePage):
         self.body_layout.addWidget(status_bar)
         self.body_layout.addStretch(1)
         self._refresh_source_cards()
+
+    def _build_project_unit_controls(self) -> None:
+        card, layout = _card("核算单元", self)
+        project_row = QHBoxLayout()
+        project_row.addWidget(QLabel("项目名称", card))
+        self.project_name = QLineEdit(self._workspace.name, card)
+        self.project_name.setObjectName("accountingProjectName")
+        project_row.addWidget(self.project_name, 1)
+        self.save_project_button = QPushButton("保存项目", card)
+        self.save_project_button.setObjectName("saveAccountingProjectButton")
+        self.save_project_button.clicked.connect(self._save_project)
+        project_row.addWidget(self.save_project_button)
+        self.saved_projects = QComboBox(card)
+        self.saved_projects.setObjectName("savedAccountingProjects")
+        project_row.addWidget(self.saved_projects)
+        self.open_project_button = QPushButton("打开", card)
+        self.open_project_button.setObjectName("openAccountingProjectButton")
+        self.open_project_button.clicked.connect(self._open_selected_project)
+        project_row.addWidget(self.open_project_button)
+        self.delete_project_button = QPushButton("删除项目", card)
+        self.delete_project_button.setObjectName("deleteAccountingProjectButton")
+        self.delete_project_button.clicked.connect(self._delete_selected_project)
+        project_row.addWidget(self.delete_project_button)
+        layout.addLayout(project_row)
+
+        unit_row = QHBoxLayout()
+        self.unit_selector = QComboBox(card)
+        self.unit_selector.setObjectName("accountingUnitSelector")
+        self.unit_selector.currentIndexChanged.connect(self._switch_unit)
+        unit_row.addWidget(self.unit_selector, 1)
+        self.add_unit_button = QPushButton("添加核算单元", card)
+        self.add_unit_button.setObjectName("addAccountingUnitButton")
+        self.add_unit_button.clicked.connect(self._add_accounting_unit)
+        unit_row.addWidget(self.add_unit_button)
+        self.rename_unit_button = QPushButton("修改名称", card)
+        self.rename_unit_button.setObjectName("renameAccountingUnitButton")
+        self.rename_unit_button.clicked.connect(self._rename_accounting_unit)
+        unit_row.addWidget(self.rename_unit_button)
+        self.delete_unit_button = QPushButton("删除单元", card)
+        self.delete_unit_button.setObjectName("deleteAccountingUnitButton")
+        self.delete_unit_button.clicked.connect(self._delete_accounting_unit)
+        unit_row.addWidget(self.delete_unit_button)
+        layout.addLayout(unit_row)
+        self.unit_result_summary = QLabel("当前核算单元尚无成功计算结果。", card)
+        self.unit_result_summary.setObjectName("accountingUnitResultSummary")
+        self.unit_result_summary.setWordWrap(True)
+        layout.addWidget(self.unit_result_summary)
+        self.project_save_status = QLabel("项目尚未保存。", card)
+        self.project_save_status.setObjectName("accountingProjectSaveStatus")
+        layout.addWidget(self.project_save_status)
+        self._refresh_unit_selector()
+        self._refresh_saved_projects()
+
+    def _unit(self) -> AccountingUnitWorkspace:
+        return self._workspace.units[self._active_unit_index]
+
+    def _refresh_unit_selector(self, selected_unit_id: str | None = None) -> None:
+        blocker = QSignalBlocker(self.unit_selector)
+        self.unit_selector.clear()
+        for unit in self._workspace.units:
+            label = {
+                AccountingUnitType.WHOLE_SITE: "全厂",
+                AccountingUnitType.PROCESS: "生产工序",
+                AccountingUnitType.OTHER: "其他核算范围",
+            }[unit.unit_type]
+            self.unit_selector.addItem(f"{unit.name}（{label}）", unit.unit_id)
+        target = selected_unit_id or self._workspace.active_unit_id
+        index = self.unit_selector.findData(target)
+        self.unit_selector.setCurrentIndex(max(0, index))
+        self._active_unit_index = self.unit_selector.currentIndex()
+        del blocker
+        self._refresh_unit_result_summary()
+
+    def _refresh_saved_projects(self) -> None:
+        blocker = QSignalBlocker(self.saved_projects)
+        current_id = self.saved_projects.currentData()
+        self.saved_projects.clear()
+        if self.project_service is not None:
+            for workspace in self.project_service.list_all():
+                self.saved_projects.addItem(workspace.name, workspace.project_id)
+        index = self.saved_projects.findData(current_id)
+        if index >= 0:
+            self.saved_projects.setCurrentIndex(index)
+        del blocker
+        enabled = self.project_service is not None and self.saved_projects.count() > 0
+        self.open_project_button.setEnabled(enabled)
+        self.delete_project_button.setEnabled(enabled)
+
+    def _workspace_with_current_form(self) -> ProjectWorkspace:
+        units = list(self._workspace.units)
+        units[self._active_unit_index] = replace(
+            units[self._active_unit_index],
+            form_state=self._capture_form_state(),
+        )
+        return replace(
+            self._workspace,
+            name=self.project_name.text().strip() or self._workspace.name,
+            active_unit_id=units[self._active_unit_index].unit_id,
+            units=tuple(units),
+        )
+
+    def _capture_form_state(self) -> dict[str, object]:
+        values: dict[str, object] = {}
+        excluded = {
+            "accountingProjectName", "savedAccountingProjects", "accountingUnitSelector",
+            "showProfessionalDetailsCheckBox", "accountingPeriodMonth",
+        }
+        for widget in self.findChildren(QWidget):
+            name = widget.objectName()
+            if not name or name in excluded:
+                continue
+            if name.startswith("fuel") or name.startswith("removeFuelButton"):
+                continue
+            if isinstance(widget, QLineEdit):
+                values[name] = widget.text()
+            elif isinstance(widget, QComboBox):
+                values[name] = widget.currentIndex()
+            elif isinstance(widget, QSpinBox):
+                values[name] = widget.value()
+            elif isinstance(widget, QCheckBox):
+                values[name] = widget.isChecked()
+            elif isinstance(widget, QDateEdit):
+                values[name] = widget.date().toString("yyyy-MM-dd")
+        values["electricity_row_count"] = len(self._electricity_rows)
+        values["fuel_rows"] = [
+            {
+                "id": row.internal_id.text(),
+                "type": row.fuel_type.currentIndex(),
+                "path": row.path.currentIndex(),
+                "activity": row.activity.text(),
+                "carbon": row.carbon.text(),
+                "oxidation": row.oxidation.text(),
+                "source_reference": row.source_reference.text(),
+            }
+            for row in self._fuel_rows
+        ]
+        return values
+
+    def _restore_form_state(self, state: dict[str, object]) -> None:
+        self._restoring_workspace = True
+        default_state = self._default_form_state
+        for row in tuple(self._electricity_rows):
+            self._remove_electricity_row(row)
+        electricity_count = state.get("electricity_row_count", default_state.get("electricity_row_count", 1))
+        try:
+            electricity_count = max(1, int(electricity_count))
+        except (TypeError, ValueError):
+            electricity_count = 1
+        for _ in range(electricity_count):
+            self._add_electricity_row()
+        for row in tuple(self._fuel_rows):
+            self.fuel_rows_layout.removeWidget(row)
+            row.setParent(None)
+            row.deleteLater()
+        self._fuel_rows.clear()
+        self._fuel_row_serial = 0
+        self._fields.pop("fuel_id", None)
+        self._fields.pop("fuel_path", None)
+        self._fields.pop("fuel_activity", None)
+        self._fields.pop("fuel_carbon", None)
+        self._fields.pop("fuel_oxidation", None)
+        stored_fuel_rows = state.get("fuel_rows", default_state.get("fuel_rows", []))
+        if not isinstance(stored_fuel_rows, list):
+            stored_fuel_rows = default_state.get("fuel_rows", [])
+        if not isinstance(stored_fuel_rows, list):
+            stored_fuel_rows = []
+        for _ in range(max(1, len(stored_fuel_rows))):
+            self._add_fuel_row()
+        for row, stored in zip(self._fuel_rows, stored_fuel_rows):
+            if not isinstance(stored, dict):
+                continue
+            row.internal_id.setText(str(stored.get("id", row.internal_id.text())))
+            for combo, key in ((row.fuel_type, "type"), (row.path, "path")):
+                index = stored.get(key)
+                if isinstance(index, int) and 0 <= index < combo.count():
+                    combo.setCurrentIndex(index)
+            for widget, key in ((row.activity, "activity"), (row.carbon, "carbon"),
+                                (row.oxidation, "oxidation"), (row.source_reference, "source_reference")):
+                widget.setText(str(stored.get(key, "")))
+            self._refresh_fuel_row(row)
+        by_name: dict[str, QWidget] = {}
+        for widget in self.findChildren(QWidget):
+            if widget.objectName():
+                by_name[widget.objectName()] = widget
+        def apply_values(values: dict[str, object]) -> None:
+            for name, value in values.items():
+                widget = by_name.get(name)
+                if widget is None:
+                    continue
+                if isinstance(widget, QLineEdit) and isinstance(value, str):
+                    widget.setText(value)
+                elif isinstance(widget, QComboBox) and isinstance(value, int) and 0 <= value < widget.count():
+                    widget.setCurrentIndex(value)
+                elif isinstance(widget, QSpinBox) and isinstance(value, int):
+                    widget.setValue(value)
+                elif isinstance(widget, QCheckBox) and isinstance(value, bool):
+                    widget.setChecked(value)
+                elif isinstance(widget, QDateEdit) and isinstance(value, str):
+                    parsed = QDate.fromString(value, "yyyy-MM-dd")
+                    if parsed.isValid():
+                        widget.setDate(parsed)
+
+        # A blank unit must not inherit controls from the previously active unit.
+        apply_values(default_state)
+        apply_values(state)
+        self.validation_list.clear()
+        self.quality_card.setVisible(False)
+        self.process_card.setVisible(False)
+        self.result_card.setVisible(False)
+        self.result_line_details.setVisible(False)
+        self._calculation_has_result = False
+        for card in self._source_cards.values():
+            card.check_result_label.clear()
+        self._restoring_workspace = False
+        self._input_dirty = False
+        self._refresh_heat_factor_details()
+        self._refresh_electricity_rows()
+        self._refresh_source_cards()
+        self._restore_unit_result()
+
+    def _switch_unit(self, index: int) -> None:
+        if self._restoring_workspace or index < 0 or index >= len(self._workspace.units):
+            return
+        if index == self._active_unit_index:
+            return
+        self._workspace = self._workspace_with_current_form()
+        selected = self._workspace.units[index]
+        self._active_unit_index = index
+        self._workspace = replace(self._workspace, active_unit_id=selected.unit_id)
+        self._restore_form_state(selected.form_state)
+        self._project_dirty = True
+        self.project_save_status.setText(f"项目有未保存的修改（当前单元：{selected.name}）。")
+
+    def _add_accounting_unit(self) -> None:
+        kinds = ("全厂", "生产工序", "其他核算范围")
+        kind, accepted = QInputDialog.getItem(self, "添加核算单元", "单元类型", kinds, 1, False)
+        if not accepted:
+            return
+        name, accepted = QInputDialog.getText(self, "添加核算单元", "核算单元名称")
+        if not accepted or not name.strip():
+            return
+        self._workspace = self._workspace_with_current_form()
+        unit = AccountingUnitWorkspace(
+            unit_id=f"unit.{uuid4().hex}",
+            name=name.strip(),
+            unit_type={"全厂": AccountingUnitType.WHOLE_SITE, "生产工序": AccountingUnitType.PROCESS, "其他核算范围": AccountingUnitType.OTHER}[kind],
+            position=len(self._workspace.units),
+            form_state={},
+        )
+        self._workspace = replace(self._workspace, active_unit_id=unit.unit_id, units=(*self._workspace.units, unit))
+        self._refresh_unit_selector(unit.unit_id)
+        self._restore_form_state(unit.form_state)
+        self._project_dirty = True
+        self.project_save_status.setText("项目有未保存的修改。")
+
+    def _rename_accounting_unit(self) -> None:
+        unit = self._unit()
+        name, accepted = QInputDialog.getText(self, "修改核算单元名称", "核算单元名称", text=unit.name)
+        if not accepted or not name.strip():
+            return
+        units = list(self._workspace.units)
+        units[self._active_unit_index] = replace(unit, name=name.strip())
+        self._workspace = replace(self._workspace, units=tuple(units))
+        self._refresh_unit_selector(unit.unit_id)
+        self._project_dirty = True
+        self.project_save_status.setText("项目有未保存的修改。")
+
+    def _delete_accounting_unit(self) -> None:
+        if len(self._workspace.units) <= 1:
+            QMessageBox.information(self, "无法删除", "项目必须至少保留一个核算单元。")
+            return
+        unit = self._unit()
+        answer = QMessageBox.question(self, "删除核算单元", f"删除“{unit.name}”的未保存项目数据？历史核算记录不会删除。")
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        units = [item for item in self._workspace.units if item.unit_id != unit.unit_id]
+        target = units[max(0, self._active_unit_index - 1)]
+        self._workspace = replace(self._workspace, active_unit_id=target.unit_id, units=tuple(units))
+        self._refresh_unit_selector(target.unit_id)
+        self._restore_form_state(target.form_state)
+        self._project_dirty = True
+        self.project_save_status.setText("项目有未保存的修改。历史核算记录未删除。")
+
+    def _save_project(self) -> bool:
+        name = self.project_name.text().strip()
+        if not name:
+            QMessageBox.warning(self, "项目名称不能为空", "请填写项目名称后再保存。")
+            return False
+        self._workspace = self._workspace_with_current_form()
+        if self.project_service is not None:
+            try:
+                self.project_service.save(self._workspace)
+            except Exception as exc:
+                QMessageBox.critical(self, "保存失败", f"项目未能保存：{exc}")
+                return False
+        self._project_dirty = False
+        self._input_dirty = False
+        self.project_save_status.setText("项目已保存；历史核算记录仍独立保存。")
+        self._refresh_saved_projects()
+        return True
+
+    def _open_selected_project(self) -> None:
+        if self.project_service is None:
+            return
+        project_id = self.saved_projects.currentData()
+        workspace = self.project_service.get(str(project_id)) if project_id else None
+        if workspace is None:
+            return
+        if self._project_dirty and not self._confirm_save_discard_cancel("打开其他项目"):
+            return
+        self._workspace = workspace
+        self.project_name.setText(workspace.name)
+        self._active_unit_index = next(i for i, unit in enumerate(workspace.units) if unit.unit_id == workspace.active_unit_id)
+        self._refresh_unit_selector(workspace.active_unit_id)
+        self._restore_form_state(workspace.units[self._active_unit_index].form_state)
+        self._project_dirty = False
+        self.project_save_status.setText("已打开已保存项目。")
+
+    def _delete_selected_project(self) -> None:
+        if self.project_service is None:
+            return
+        project_id = self.saved_projects.currentData()
+        if not project_id:
+            return
+        answer = QMessageBox.question(self, "删除项目", "删除所选项目及其未完成输入？既有核算记录和审计不会删除。")
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        deleted = self.project_service.delete(str(project_id))
+        if deleted and str(project_id) == self._workspace.project_id:
+            self._workspace = self.project_service.new_workspace()
+            self.project_name.setText(self._workspace.name)
+            self._active_unit_index = 0
+            self._refresh_unit_selector(self._workspace.active_unit_id)
+            self._restore_form_state({})
+            self._project_dirty = False
+            self._input_dirty = False
+            self.project_save_status.setText("项目已删除；历史核算记录和审计未删除。")
+        self._refresh_saved_projects()
+
+    def _refresh_unit_result_summary(self) -> None:
+        if not hasattr(self, "unit_result_summary"):
+            return
+        unit = self._workspace.units[self._active_unit_index]
+        if unit.result_snapshot is None:
+            self.unit_result_summary.setText(f"{unit.name}：尚无成功计算结果。")
+            return
+        current_fingerprint = self._fingerprint_state(self._capture_form_state()) if hasattr(self, "enterprise_name") else unit.input_fingerprint
+        is_stale = bool(unit.input_fingerprint and current_fingerprint != unit.input_fingerprint)
+        state = "输入已变更，上一结果已过期" if is_stale else "上次成功结果"
+        self.unit_result_summary.setText(
+            f"{unit.name}：{state} {unit.result_snapshot.get('total_display', '—')}。重新计算会新增记录，不覆盖历史记录。"
+        )
+
+    @staticmethod
+    def _fingerprint_state(state: dict[str, object]) -> str:
+        payload = json.dumps(state, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _restore_unit_result(self) -> None:
+        result = self._unit().result_snapshot
+        if not result:
+            self.result_card.setVisible(False)
+            self.process_card.setVisible(False)
+            self._calculation_has_result = False
+            self._refresh_unit_result_summary()
+            return
+        current_fingerprint = self._fingerprint_state(self._capture_form_state())
+        if self._unit().input_fingerprint and current_fingerprint != self._unit().input_fingerprint:
+            self.result_card.setVisible(False)
+            self.process_card.setVisible(False)
+            self._calculation_has_result = False
+            self._refresh_unit_result_summary()
+            return
+        self.result_card.setVisible(True)
+        self.result_total.setText(f"总排放量 ET：{result.get('total_display', '—')}")
+        self.result_status.setText(f"状态：{result.get('status_label', '已完成')}")
+        self.result_breakdown.setText(str(result.get("breakdown", "")))
+        self.result_line_details.setText(str(result.get("line_details", "")))
+        self.trace_professional_details.setText(str(result.get("trace_details", "")))
+        self.parameter_snapshot_summary.setText(
+            str(result.get("parameter_snapshot_summary", "历史参数快照已保留在核算记录中。"))
+        )
+        self.result_line_details.setVisible(bool(result.get("show_breakdown", False)))
+        self._calculation_has_result = True
+        self._refresh_unit_result_summary()
+
+    def _confirm_save_discard_cancel(self, action: str) -> bool:
+        answer = QMessageBox.question(
+            self,
+            "保存项目修改？",
+            f"当前核算项目有未保存修改。是否先保存再{action}？",
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
+        )
+        if answer == QMessageBox.StandardButton.Save:
+            return self._save_project()
+        return answer == QMessageBox.StandardButton.Discard
+
+    def confirm_project_close(self) -> bool:
+        if self.project_service is None or not self._project_dirty:
+            return True
+        return self._confirm_save_discard_cancel("关闭软件")
 
     def _register_professional_details(self, widget: QWidget) -> None:
         self._professional_detail_widgets.append(widget)
@@ -634,8 +1138,8 @@ class CarbonMaterialAccountingPage(BasePage):
             card = SourceCard(source_id, SOURCE_LABELS[source_id], self)
             source_spec = get_field_spec(f"source_status.{source_id}")
             combo = create_typed_input(card, source_spec, f"sourceStatus_{source_id}")
-            combo.addItem("不涉及", EmissionSourceStatus.NOT_INVOLVED)
-            combo.addItem("涉及", EmissionSourceStatus.INVOLVED)
+            combo.addItem("未启用", EmissionSourceStatus.NOT_INVOLVED)
+            combo.addItem("已启用", EmissionSourceStatus.INVOLVED)
             combo.addItem("待确认", EmissionSourceStatus.UNCONFIRMED)
             self._source_statuses[source_id] = combo
             self._source_cards[source_id] = card
@@ -663,22 +1167,140 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
-        row = QWidget(self)
-        layout = QGridLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        fuel_keys = ("fuel_id", "fuel_path", "fuel_activity", "fuel_carbon", "fuel_oxidation")
-        for column, key in enumerate(fuel_keys):
-            layout.addWidget(QLabel(get_field_spec(key).label), 0, column)
-        self._fields["fuel_id"] = create_typed_input(row, get_field_spec("fuel_id"), "fuelIdInput", "natural-gas")  # type: ignore[assignment]
-        self._fields["fuel_path"] = create_typed_input(row, get_field_spec("fuel_path"), "fuelPathInput")  # type: ignore[assignment]
-        for path, label in ((FuelPath.VOLUME, "体积"), (FuelPath.MASS, "质量"), (FuelPath.HEAT, "热量")):
-            self._fields["fuel_path"].addItem(label, path)  # type: ignore[union-attr]
-        self._fields["fuel_activity"] = create_typed_input(row, get_field_spec("fuel_activity"), "fuelActivityInput")  # type: ignore[assignment]
-        self._fields["fuel_carbon"] = create_typed_input(row, get_field_spec("fuel_carbon"), "fuelCarbonInput")  # type: ignore[assignment]
-        self._fields["fuel_oxidation"] = create_typed_input(row, get_field_spec("fuel_oxidation"), "fuelOxidationInput")  # type: ignore[assignment]
-        for column, key in enumerate(("fuel_id", "fuel_path", "fuel_activity", "fuel_carbon", "fuel_oxidation")):
-            layout.addWidget(self._fields[key], 1, column)
-        parent_layout.addWidget(row)
+        self.fuel_rows_host = QWidget(self)
+        self.fuel_rows_layout = QVBoxLayout(self.fuel_rows_host)
+        self.fuel_rows_layout.setContentsMargins(0, 0, 0, 0)
+        parent_layout.addWidget(self.fuel_rows_host)
+        self.add_fuel_button = QPushButton("添加燃料", self)
+        self.add_fuel_button.setObjectName("addFuelButton")
+        self.add_fuel_button.clicked.connect(self._add_fuel_row)
+        parent_layout.addWidget(self.add_fuel_button)
+        self._add_fuel_row()
+
+    def _bind_fuel_aliases(self, row: _FuelRow | None) -> None:
+        if row is None:
+            return
+        self._fields.update({
+            "fuel_id": row.internal_id,
+            "fuel_path": row.path,  # type: ignore[dict-item]
+            "fuel_activity": row.activity,
+            "fuel_carbon": row.carbon,
+            "fuel_oxidation": row.oxidation,
+        })
+
+    def _add_fuel_row(self) -> None:
+        self._fuel_row_serial += 1
+        row = _FuelRow(self._fuel_row_serial, self._remove_fuel_row, self)
+        self._fuel_rows.append(row)
+        self.fuel_rows_layout.addWidget(row)
+        self._bind_fuel_aliases(self._fuel_rows[0])
+        row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
+        row.path.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
+        for widget in (row.activity, row.carbon, row.oxidation, row.source_reference):
+            if isinstance(widget, QLineEdit):
+                widget.textChanged.connect(self._mark_input_dirty)
+                widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
+        row.fuel_type.currentIndexChanged.connect(self._mark_input_dirty)
+        row.path.currentIndexChanged.connect(self._mark_input_dirty)
+        row.fuel_type.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+        row.path.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+        self._refresh_fuel_row(row)
+
+    def _remove_fuel_row(self, row: QWidget) -> None:
+        if row not in self._fuel_rows:
+            return
+        if len(self._fuel_rows) == 1:
+            assert isinstance(row, _FuelRow)
+            row.activity.clear()
+            row.carbon.clear()
+            row.oxidation.clear()
+            row.source_reference.clear()
+            row.internal_id.setText(f"fuel-{uuid4().hex}")
+            self._refresh_fuel_row(row)
+        else:
+            self._fuel_rows.remove(row)  # type: ignore[arg-type]
+            self.fuel_rows_layout.removeWidget(row)
+            row.setParent(None)
+            row.deleteLater()
+            self._bind_fuel_aliases(self._fuel_rows[0])
+            self._mark_input_dirty()
+        self._refresh_source_cards()
+
+    def _fuel_default_factors(self, row: _FuelRow) -> tuple[object, object] | None:
+        if row.fuel_type.currentData() is not FuelType.NATURAL_GAS or row.path.currentData() is not FuelPath.HEAT:
+            return None
+        try:
+            factors = tuple(self.catalog_service.repository.list_factors())
+        except (AttributeError, TypeError, ValueError):
+            return None
+        required = ("natural_gas_carbon_content", "natural_gas_oxidation_rate")
+        selected = []
+        try:
+            period = self._period()
+        except (DomainValidationError, ValueError):
+            return None
+        for parameter_id in required:
+            candidates = [
+                factor for factor in factors
+                if factor.parameter_id == parameter_id
+                and STANDARD_ID in factor.applicable_standard_ids
+                and factor.review_status is ReviewStatus.VERIFIED
+                and factor.value_type is ValueType.STANDARD_DEFAULT
+            ]
+            candidates = [
+                factor for factor in candidates
+                if not (
+                    (factor.valid_from is not None and factor.valid_from > period.end)
+                    or (factor.valid_to is not None and factor.valid_to < period.start)
+                    or (
+                        period.period_type is PeriodType.CUSTOM
+                        and ((factor.valid_from is not None and period.start < factor.valid_from)
+                             or (factor.valid_to is not None and period.end > factor.valid_to))
+                    )
+                )
+            ]
+            if not candidates:
+                return None
+            selected.append(candidates[0])
+        return selected[0], selected[1]
+
+    def _refresh_fuel_defaults(self) -> None:
+        for row in getattr(self, "_fuel_rows", ()):
+            self._refresh_fuel_row(row)
+
+    def _refresh_fuel_row(self, row: _FuelRow) -> None:
+        path = row.path.currentData()
+        activity_unit = {FuelPath.VOLUME: "10⁴Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}.get(path, "")
+        carbon_unit = {FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}.get(path, "")
+        row.activity.setPlaceholderText(f"活动量（{activity_unit}）")
+        row.carbon.setPlaceholderText(f"单位含碳量（{carbon_unit}）")
+        factors = self._fuel_default_factors(row)
+        if factors is None:
+            if row._last_default_values is not None and (row.carbon.text().strip(), row.oxidation.text().strip()) == row._last_default_values:
+                row.carbon.clear()
+                row.oxidation.clear()
+            row._last_default_values = None
+            has_values = bool(row.carbon.text().strip() or row.oxidation.text().strip())
+            row.parameter_summary.setText(
+                "企业实测/检测参数（非标准默认）；请填写参数数据来源编号。"
+                if has_values
+                else "当前组合暂无已核对的标准默认参数；请填写企业实测/检测值和来源编号。"
+            )
+            return
+        carbon_factor, oxidation_factor = factors
+        current = (row.carbon.text().strip(), row.oxidation.text().strip())
+        new_defaults = (str(carbon_factor.value), str(oxidation_factor.value * Decimal("100")))
+        if not current[0] and not current[1] or current == row._last_default_values:
+            row.carbon.setText(new_defaults[0])
+            row.oxidation.setText(new_defaults[1])
+        current = (row.carbon.text().strip(), row.oxidation.text().strip())
+        row._last_default_values = new_defaults if current == new_defaults else row._last_default_values
+        if current == new_defaults:
+            row.parameter_summary.setText(
+                f"标准默认：{current[0]} {carbon_factor.unit}；{current[1]}%；来源：GB/T 32151.34—2024。"
+            )
+        else:
+            row.parameter_summary.setText("企业实测/检测参数（非标准默认）；请填写参数数据来源编号。")
 
     def _build_process_section(self, parent_layout: QVBoxLayout, title: str, prefix: str, fields: tuple[str, ...]) -> None:
         field_groups = {
@@ -1057,6 +1679,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if row in self._electricity_rows:
             self._electricity_rows.remove(row)
             self.electricity_rows_layout.removeWidget(row)
+            row.setParent(None)
             row.deleteLater()
             self._refresh_source_cards()
 
@@ -1246,16 +1869,46 @@ class CarbonMaterialAccountingPage(BasePage):
         visible = not self._heat_factor_advanced_panel.isVisible()
         self._heat_factor_advanced_panel.setVisible(visible)
         self.heat_factor_edit_button.setText("收起参数选择" if visible else "更改参数")
+
+    def _on_period_choice_changed(self, index: int) -> None:
+        self.custom_period_row.setVisible(index == 13)
+        if 1 <= index <= 12:
+            blocker = QSignalBlocker(self.period_month)
+            self.period_month.setValue(index)
+            del blocker
+        self._refresh_heat_factor_details()
+        self._refresh_fuel_defaults()
+
+    def _sync_period_choice_from_month(self, month: int) -> None:
+        if 1 <= month <= 12:
+            blocker = QSignalBlocker(self.period_type)
+            self.period_type.setCurrentIndex(month)
+            del blocker
+            self.custom_period_row.setVisible(False)
+        self._refresh_heat_factor_details()
+        self._refresh_fuel_defaults()
+
     def _period(self) -> AccountingPeriod:
         year = self.period_year.value()
-        if _enum(self.period_type.currentData(), PeriodType) is PeriodType.ANNUAL:
-            return AccountingPeriod(PeriodType.ANNUAL, __import__("datetime").date(year, 1, 1), __import__("datetime").date(year, 12, 31))
-        month = self.period_month.value()
-        import calendar
-        return AccountingPeriod(PeriodType.MONTHLY, __import__("datetime").date(year, month, 1), __import__("datetime").date(year, month, calendar.monthrange(year, month)[1]))
+        index = self.period_type.currentIndex()
+        if index == 0:
+            return AccountingPeriod(PeriodType.ANNUAL, date(year, 1, 1), date(year, 12, 31))
+        if 1 <= index <= 12:
+            month = index
+            import calendar
+            return AccountingPeriod(PeriodType.MONTHLY, date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1]))
+        return AccountingPeriod(
+            PeriodType.CUSTOM,
+            self.period_start.date().toPython(),
+            self.period_end.date().toPython(),
+        )
 
     def _source_states(self) -> tuple[EmissionSourceState, ...]:
         return tuple(EmissionSourceState(source_id, _enum(combo.currentData(), EmissionSourceStatus)) for source_id, combo in self._source_statuses.items())
+
+    def _source_is_enabled(self, source_id: str) -> bool:
+        combo = self._source_statuses[source_id]
+        return _enum(combo.currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
 
     def _source_id_for_problem_field(self, field_id: str | None) -> str | None:
         """Map an existing Domain problem field to a Presentation source card.
@@ -1363,20 +2016,33 @@ class CarbonMaterialAccountingPage(BasePage):
     def _derive_source_card_state(self, source_id: str) -> tuple[SourceCardPresentationState, str]:
         status = _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus)
         if status is EmissionSourceStatus.NOT_INVOLVED:
-            return SourceCardPresentationState.NOT_INVOLVED, "未启用 · 不涉及"
+            return SourceCardPresentationState.NOT_INVOLVED, "未启用"
         if status is EmissionSourceStatus.UNCONFIRMED:
-            return SourceCardPresentationState.UNCONFIRMED, "待确认 · 尚未确定是否涉及"
+            return SourceCardPresentationState.UNCONFIRMED, "待确认"
 
         present = False
         complete = False
         invalid = False
         summary = "尚未录入活动数据"
         if source_id == "CAR-SRC-FUEL-001":
-            keys = ("fuel_id", "fuel_activity", "fuel_carbon", "fuel_oxidation")
-            present = any(self._field_has_value(key) for key in keys)
-            complete = present and all(self._field_has_value(key) for key in keys)
-            invalid = any(self._field_has_error(key) for key in keys)
-            summary = "1 种燃料" if present else "尚未录入燃料"
+            active_rows = [row for row in self._fuel_rows if row.activity.text().strip()]
+            present = bool(active_rows)
+            complete = present and all(
+                row.carbon.text().strip()
+                and row.oxidation.text().strip()
+                and (
+                    self._fuel_row_uses_standard_defaults(row)
+                    or bool(row.source_reference.text().strip())
+                )
+                for row in active_rows
+            )
+            invalid = any(
+                not row.activity.hasAcceptableInput()
+                or bool(row.carbon.text().strip() and not row.carbon.hasAcceptableInput())
+                or bool(row.oxidation.text().strip() and not row.oxidation.hasAcceptableInput())
+                for row in active_rows
+            )
+            summary = f"{len(active_rows)} 条燃料明细" if present else "尚未录入燃料"
         elif source_id in {
             "CAR-SRC-CALCINATION-001",
             "CAR-SRC-BAKING-001",
@@ -1434,11 +2100,11 @@ class CarbonMaterialAccountingPage(BasePage):
         # consumes Domain feedback instead of reproducing Domain rules here.
         if source_id in self._known_source_errors:
             invalid = True
-        if invalid or (present and not complete):
+        if invalid or not present or (present and not complete):
             return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
         if complete:
             return SourceCardPresentationState.COMPLETED, f"{summary} · 已完成"
-        return SourceCardPresentationState.FILLING, f"{summary} · 填写中"
+        return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
 
     def _refresh_source_cards(self, *_args: object) -> None:
         if not self._source_cards or not hasattr(self, "heat_factor_selector"):
@@ -1474,7 +2140,6 @@ class CarbonMaterialAccountingPage(BasePage):
                 if card.presentation_state is SourceCardPresentationState.NEEDS_ATTENTION:
                     errors += 1
                 elif card.presentation_state in {
-                    SourceCardPresentationState.FILLING,
                     SourceCardPresentationState.UNCONFIRMED,
                 }:
                     reminders += 1
@@ -1490,17 +2155,98 @@ class CarbonMaterialAccountingPage(BasePage):
         else:
             self.calculation_status_hint.setText("基础检查已通过，可以计算排放量。")
 
-    def _fuel(self) -> tuple[FuelInput, ...]:
-        fuel_id = _value(self._fields["fuel_id"])
-        values = (
-            _value(self._fields["fuel_activity"]),
-            _value(self._fields["fuel_carbon"]),
-            _ui_value("fuel_oxidation", self._fields["fuel_oxidation"]),
+    def _fuel_row_uses_standard_defaults(self, row: _FuelRow) -> bool:
+        factors = self._fuel_default_factors(row)
+        if factors is None:
+            return False
+        carbon_factor, oxidation_factor = factors
+        try:
+            carbon = Decimal(row.carbon.text().strip())
+            oxidation = ui_to_domain_value(get_field_spec("fuel_oxidation"), row.oxidation.text().strip())
+            return carbon == carbon_factor.value and Decimal(str(oxidation)) == oxidation_factor.value
+        except (InvalidOperation, TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _measured_fuel_parameter(
+        *, row: _FuelRow, value: str | Decimal, unit: str, suffix: str, source_reference: str
+    ) -> ParameterValue:
+        return ParameterValue(
+            parameter_id=f"enterprise_fuel_{row.row_key}_{suffix}",
+            value=value,
+            unit=unit,
+            source_kind=ParameterSourceKind.MEASURED,
+            source_id=f"USER-FUEL-SOURCE-{row.row_key}",
+            source_version="user-input",
+            source_location=f"企业实测/检测资料编号：{source_reference}",
+            selection_reason=f"企业提供实测/检测值；资料编号：{source_reference}。",
         )
-        if fuel_id is None and all(value is None for value in values):
-            return ()
-        path = _enum(self._fields["fuel_path"].currentData(), FuelPath)  # type: ignore[union-attr]
-        return (FuelInput(fuel_id or "fuel-1", path, *values),)
+
+    def _fuel(self) -> tuple[FuelInput, ...]:
+        fuels: list[FuelInput] = []
+        units = {FuelPath.VOLUME: "tC/10^4Nm3", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}
+        for row in self._fuel_rows:
+            activity = row.activity.text().strip()
+            if not activity:
+                continue
+            path = _enum(row.path.currentData(), FuelPath)
+            carbon_text = row.carbon.text().strip()
+            oxidation_text = _ui_value("fuel_oxidation", row.oxidation)
+            source_reference = row.source_reference.text().strip()
+            defaults = self._fuel_default_factors(row)
+            standard_default = self._fuel_row_uses_standard_defaults(row)
+            if standard_default and defaults is not None:
+                carbon_factor, oxidation_factor = defaults
+                carbon_value: ParameterValue | None = ParameterValue(
+                    "natural_gas_carbon_content",
+                    carbon_factor.value,
+                    carbon_factor.unit,
+                    ParameterSourceKind.STANDARD_DEFAULT,
+                    carbon_factor.source_id,
+                    f"v{carbon_factor.factor_year}",
+                    carbon_factor.source_location,
+                    "按当前期间适用且已核对的天然气标准默认参数采用。",
+                    carbon_factor.factor_id,
+                    carbon_factor.factor_year,
+                )
+                oxidation_value: ParameterValue | None = ParameterValue(
+                    "natural_gas_oxidation_rate",
+                    oxidation_factor.value,
+                    oxidation_factor.unit,
+                    ParameterSourceKind.STANDARD_DEFAULT,
+                    oxidation_factor.source_id,
+                    f"v{oxidation_factor.factor_year}",
+                    oxidation_factor.source_location,
+                    "按当前期间适用且已核对的天然气标准默认参数采用。",
+                    oxidation_factor.factor_id,
+                    oxidation_factor.factor_year,
+                )
+            else:
+                if (carbon_text or oxidation_text) and not source_reference:
+                    raise DomainValidationError("燃料使用企业实测/检测参数时，必须填写数据来源编号。")
+                carbon_value = self._measured_fuel_parameter(
+                    row=row,
+                    value=carbon_text,
+                    unit=units[path],
+                    suffix="carbon",
+                    source_reference=source_reference,
+                ) if carbon_text else None
+                oxidation_value = self._measured_fuel_parameter(
+                    row=row,
+                    value=Decimal(str(oxidation_text)),
+                    unit="ratio",
+                    suffix="oxidation",
+                    source_reference=source_reference,
+                ) if oxidation_text else None
+            fuels.append(FuelInput(
+                fuel_id=row.internal_id.text().strip() or f"fuel-{row.row_key}",
+                path=path,
+                activity=activity,
+                carbon_content=carbon_value,
+                oxidation_rate=oxidation_value,
+                fuel_type=_enum(row.fuel_type.currentData(), FuelType),
+            ))
+        return tuple(fuels)
 
     def _process(self, prefix: str, kind):
         field_names = {
@@ -1753,20 +2499,22 @@ class CarbonMaterialAccountingPage(BasePage):
             other_activity_present=self.other_activity_present.isChecked(),
             transport_present=self.transport_present.isChecked(),
             source_states=self._source_states(),
-            fuel_inputs=self._fuel(),
-            calcination=self._process("calcination", CalcinationInput),
-            baking=self._process("baking", BakingInput),
-            graphitization=self._process("graphitization", GraphitizationInput),
-            fume_incineration=self._process("fume", FumeIncinerationInput),
-            fgd=self._process("fgd", FGDInput),
-            electricity_details=self._electricity(enterprise_id, period),
-            exported_electricity=self._exported_electricity(),
-            purchased_heat=self._heat("heat", heat_factor),
-            exported_heat=self._heat("exported_heat", heat_factor),
+            fuel_inputs=self._fuel() if self._source_is_enabled("CAR-SRC-FUEL-001") else (),
+            calcination=self._process("calcination", CalcinationInput) if self._source_is_enabled("CAR-SRC-CALCINATION-001") else None,
+            baking=self._process("baking", BakingInput) if self._source_is_enabled("CAR-SRC-BAKING-001") else None,
+            graphitization=self._process("graphitization", GraphitizationInput) if self._source_is_enabled("CAR-SRC-GRAPHITIZATION-001") else None,
+            fume_incineration=self._process("fume", FumeIncinerationInput) if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") else None,
+            fgd=self._process("fgd", FGDInput) if self._source_is_enabled("CAR-SRC-FGD-001") else None,
+            electricity_details=self._electricity(enterprise_id, period) if self._source_is_enabled("CAR-SRC-PURCHASED-ELECTRICITY-001") else (),
+            exported_electricity=self._exported_electricity() if self._source_is_enabled("CAR-SRC-EXPORTED-ELECTRICITY-001") else (),
+            purchased_heat=self._heat("heat", heat_factor) if self._source_is_enabled("CAR-SRC-PURCHASED-HEAT-001") else (),
+            exported_heat=self._heat("exported_heat", heat_factor) if self._source_is_enabled("CAR-SRC-EXPORTED-HEAT-001") else (),
         )
 
     def _install_dirty_tracking(self) -> None:
         for widget in self.findChildren(QWidget):
+            if widget.objectName() == "showProfessionalDetailsCheckBox":
+                continue
             if isinstance(widget, QLineEdit):
                 widget.textChanged.connect(self._mark_input_dirty)
                 widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
@@ -1781,7 +2529,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 widget.toggled.connect(lambda *_args: self._refresh_source_cards())
 
     def _mark_input_dirty(self, *_args: object) -> None:
+        if getattr(self, "_restoring_workspace", False):
+            return
         self._input_dirty = True
+        self._project_dirty = True
         self._validation_count_override = None
         self._calculation_has_result = False
         if hasattr(self, "result_card"):
@@ -1800,11 +2551,16 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_type.setCurrentIndex(0)
         self.period_year.setValue(2025)
         self.period_month.setValue(1)
+        self.period_start.setDate(QDate(2025, 1, 1))
+        self.period_end.setDate(QDate(2025, 12, 31))
         self.boundary_confirmed.setChecked(False)
         self.other_activity_present.setChecked(False)
         self.transport_present.setChecked(False)
         for combo in self._source_statuses.values():
             combo.setCurrentIndex(0)
+        # Remove stale secondary entries so the next form starts with one row.
+        for row in tuple(self._fuel_rows[1:]):
+            self._remove_fuel_row(row)
         for widget in self._fields.values():
             if isinstance(widget, QLineEdit):
                 widget.clear()
@@ -1824,6 +2580,7 @@ class CarbonMaterialAccountingPage(BasePage):
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
         self._add_electricity_row()
+        self.custom_period_row.setVisible(False)
         self._refresh_heat_factor_details()
         self.validation_list.clear()
         self.quality_card.setVisible(False)
@@ -1904,6 +2661,74 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         self.validation_list.addItem(item)
         technical_lines.append(f"{level}：{raw_message} [{code}]")
+
+    def _check_data(self) -> None:
+        """Run the existing Domain checks using an ephemeral record repository."""
+
+        self.validation_list.clear()
+        self.quality_card.setVisible(False)
+        self._known_source_errors.clear()
+        self._validation_count_override = None
+        self._calculation_has_result = False
+        self.result_card.setVisible(False)
+        if not self.enterprise_name.text().strip():
+            self.validation_list.addItem("错误：企业名称不能为空，请填写企业名称。")
+            self.quality_card.setVisible(True)
+            self._validation_count_override = (1, 0)
+            for card in self._source_cards.values():
+                card.check_result_label.setText("检查未完成：请先填写企业名称。")
+            self._refresh_live_feedback()
+            return
+        try:
+            preview_calculator = CarbonMaterialCalculator(
+                parameter_resolver=self._parameter_resolver,
+                record_repository=InMemoryRecordRepository(),
+                standard_version=self.calculator.standard_version,
+            )
+            outcome = preview_calculator.calculate(self._input())
+        except (DomainValidationError, InvalidOperation, ValueError) as exc:
+            self.validation_list.addItem(f"错误：{self._sanitize_business_message(str(exc))}")
+            self.quality_card.setVisible(True)
+            self._validation_count_override = (1, 0)
+            self._refresh_live_feedback()
+            return
+        technical: list[str] = []
+        counts = {"ERROR": 0, "WARNING": 0, "INFO": 0}
+        source_messages: dict[str, list[str]] = {}
+        for problem in outcome.problems:
+            self._add_validation_problem(problem, technical)
+            level = str(getattr(getattr(problem, "level", None), "value", "ERROR"))
+            counts[level] = counts.get(level, 0) + 1
+            source_id = self._source_id_for_problem_field(getattr(problem, "field_id", None))
+            if source_id:
+                source_messages.setdefault(source_id, []).append(self._business_problem_message(problem))
+        self.validation_professional_details.setText("\n".join(technical) if technical else "暂无原始校验信息。")
+        self.quality_card.setVisible(bool(outcome.problems))
+        self._validation_count_override = (counts["ERROR"], counts["WARNING"] + counts["INFO"])
+        line_totals: dict[str, Decimal] = {}
+        if outcome.result is not None:
+            for line in outcome.result.lines:
+                if line.emission_source_id in self._source_cards:
+                    line_totals[line.emission_source_id] = line_totals.get(line.emission_source_id, Decimal("0")) + line.amount
+        for source_id, card in self._source_cards.items():
+            if source_messages.get(source_id):
+                card.check_result_label.setText("需要补充：" + source_messages[source_id][0])
+            elif source_id in line_totals and outcome.successful:
+                card.check_result_label.setText(
+                    f"本排放源排放量（预览）：{_display_amount(line_totals[source_id], 'tCO2')}；尚未生成记录。"
+                )
+            elif _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED:
+                card.check_result_label.setText("当前输入未形成可用的排放量结果，请检查下方提示。")
+            else:
+                card.check_result_label.setText("")
+        self._known_source_errors = self._source_ids_for_domain_errors(outcome.problems)
+        self._refresh_source_cards()
+        if not outcome.problems:
+            self.validation_list.addItem("信息：数据检查通过；此操作未生成核算记录。")
+        self._refresh_live_feedback()
+        if hasattr(self, "project_save_status"):
+            self.project_save_status.setText("项目有未保存的修改。")
+            self._refresh_unit_result_summary()
 
     def _run_calculation(self) -> None:
         self.validation_list.clear()
@@ -2011,6 +2836,33 @@ class CarbonMaterialAccountingPage(BasePage):
             if trace_lines
             else "本次没有形成可展示的计算明细。"
         )
+        if outcome.record is not None:
+            state = self._capture_form_state()
+            fingerprint = self._fingerprint_state(state)
+            active = self._unit()
+            result_snapshot = {
+                "total": str(outcome.result.total_amount),
+                "total_display": _display_amount(outcome.result.total_amount, outcome.result.total_unit),
+                "status_label": status_label,
+                "breakdown": self.result_breakdown.text(),
+                "line_details": self.result_line_details.text(),
+                "trace_details": self.trace_professional_details.text(),
+                "parameter_snapshot_summary": self.parameter_snapshot_summary.text(),
+                "record_id": outcome.record.record_id,
+            }
+            updated_unit = replace(
+                active,
+                form_state=state,
+                result_snapshot=result_snapshot,
+                record_ids=(*active.record_ids, outcome.record.record_id),
+                input_fingerprint=fingerprint,
+            )
+            units = list(self._workspace.units)
+            units[self._active_unit_index] = updated_unit
+            self._workspace = replace(self._workspace, units=tuple(units))
+            self._project_dirty = True
+            self.project_save_status.setText("核算记录已生成；当前结果尚未保存到项目。点击“保存项目”可供以后打开。")
+            self._refresh_unit_result_summary()
         self._refresh_live_feedback()
 
 

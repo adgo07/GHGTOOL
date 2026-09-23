@@ -218,6 +218,15 @@ for _source_id, _source_name in SOURCE_LABELS.items():
 # F01 燃料燃烧。计量路径由枚举决定，用户不能自由填写单位。
 for _item in (
     _spec(
+        "fuel_type",
+        "燃料种类",
+        FieldDataType.ENUM,
+        required=True,
+        help_text="选择本条燃料明细的种类；相同燃料可按不同计量点分别录入。",
+        standard_clause="B.2",
+        source_location=_STANDARD,
+    ),
+    _spec(
         "fuel_id",
         "燃料品种/明细标识",
         FieldDataType.TEXT,
@@ -267,6 +276,14 @@ for _item in (
         standard_clause="附录 C.1；B.2",
         source_location=_STANDARD,
         domain_unit="ratio",
+    ),
+    _spec(
+        "fuel_source_reference",
+        "参数数据来源",
+        FieldDataType.TEXT,
+        help_text="使用企业实测/检测参数时，填写检测报告、台账或其他来源编号。",
+        standard_clause="第5.2.1条；附录C.1",
+        source_location=_STANDARD,
     ),
 ):
     _register(_item)

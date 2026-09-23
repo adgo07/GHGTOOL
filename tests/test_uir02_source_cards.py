@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QComboBox, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QLineEdit, QPushButton, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -110,7 +110,7 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.assertTrue(card.is_expanded)
         self.assertTrue(card.body.isVisible())
         self.assertFalse(self.page._field_has_value("calcination.gc"))
-        self.assertEqual(card.presentation_state, SourceCardPresentationState.FILLING)
+        self.assertEqual(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
 
     def test_expand_input_collapse_reexpand_preserves_values_and_domain_parity(self) -> None:
         source_id = "CAR-SRC-CALCINATION-001"
@@ -192,7 +192,7 @@ class UIR02SourceCardTests(unittest.TestCase):
         card = self._card(source_id)
         expected = (
             (EmissionSourceStatus.NOT_INVOLVED, SourceCardPresentationState.NOT_INVOLVED),
-            (EmissionSourceStatus.INVOLVED, SourceCardPresentationState.FILLING),
+            (EmissionSourceStatus.INVOLVED, SourceCardPresentationState.NEEDS_ATTENTION),
             (EmissionSourceStatus.UNCONFIRMED, SourceCardPresentationState.UNCONFIRMED),
         )
         for domain_status, presentation_status in expected:
@@ -215,10 +215,11 @@ class UIR02SourceCardTests(unittest.TestCase):
             ("fuel_oxidation", "98"),
         ):
             self.page._fields[key].setText(value)
+        self.page.findChild(QLineEdit, "fuelSourceReference1").setText("检测报告-UIR02")
         card = self._card(source_id)
         card.set_expanded(False)
         summary = card.summary_label.text()
-        self.assertIn("1 种燃料", summary)
+        self.assertIn("1 条燃料明细", summary)
         self.assertIn("已完成", summary)
         for forbidden in ("fuel_", "CAR-SRC", "resolver", "candidate"):
             self.assertNotIn(forbidden, summary)

@@ -19,6 +19,7 @@ from .models import (
     ParameterSelectionMethod,
     ParameterSnapshot,
     ParameterType,
+    PeriodType,
     ReviewStatus,
     ValueType,
 )
@@ -133,10 +134,16 @@ class FactorApplicability:
         if self.greenhouse_gas and self.greenhouse_gas != context.greenhouse_gas:
             return False
         period = context.accounting_period
-        if self.applicable_period_from and (period is None or period.end < self.applicable_period_from):
-            return False
-        if self.applicable_period_to and (period is None or period.start > self.applicable_period_to):
-            return False
+        if period and period.period_type is PeriodType.CUSTOM:
+            if self.applicable_period_from and period.start < self.applicable_period_from:
+                return False
+            if self.applicable_period_to and period.end > self.applicable_period_to:
+                return False
+        else:
+            if self.applicable_period_from and (period is None or period.end < self.applicable_period_from):
+                return False
+            if self.applicable_period_to and (period is None or period.start > self.applicable_period_to):
+                return False
         values = dict(context.extra_context)
         return all(values.get(key) == value for key, value in self.conditions)
 
@@ -545,6 +552,12 @@ class ParameterResolver:
         if applicability is not None and not applicability.matches(context):
             return False
         period = context.accounting_period
+        if period and period.period_type is PeriodType.CUSTOM:
+            if factor.valid_from and period.start < factor.valid_from:
+                return False
+            if factor.valid_to and period.end > factor.valid_to:
+                return False
+            return True
         if period and factor.valid_from and factor.valid_from > period.end:
             return False
         if period and factor.valid_to and factor.valid_to < period.start:

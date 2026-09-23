@@ -49,15 +49,16 @@ def _rows(path: Path, table: str, order_column: str) -> list[tuple[object, ...]]
 
 
 class PersistenceTests(unittest.TestCase):
-    def test_builds_three_physically_separate_databases(self) -> None:
+    def test_builds_four_physically_separate_databases(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             paths = build_all_databases(directory)
-            self.assertEqual(set(paths), {"catalog", "user", "records"})
+            self.assertEqual(set(paths), {"catalog", "user", "records", "projects"})
             self.assertTrue(all(path.is_file() for path in paths.values()))
 
             catalog_tables = _tables(paths["catalog"])
             user_tables = _tables(paths["user"])
             records_tables = _tables(paths["records"])
+            projects_tables = _tables(paths["projects"])
             self.assertIn("source_documents", catalog_tables)
             self.assertIn("parameter_definitions", catalog_tables)
             self.assertIn("catalog_manifest", catalog_tables)
@@ -68,11 +69,16 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("accounting_records", records_tables)
             self.assertIn("audit_log", records_tables)
             self.assertNotIn("source_documents", records_tables)
+            self.assertIn("projects", projects_tables)
+            self.assertIn("accounting_units", projects_tables)
+            self.assertNotIn("accounting_records", projects_tables)
+            self.assertNotIn("audit_log", projects_tables)
 
             self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
             self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.22-catui01.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
+            self.assertEqual(_metadata(paths["projects"])["data_version"], "not_applicable")
             connection = sqlite3.connect(paths["catalog"])
             try:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)

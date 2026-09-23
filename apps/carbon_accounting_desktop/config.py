@@ -23,6 +23,7 @@ class AppConfig:
     log_directory: Path | None = None
     catalog_database: Path | None = None
     records_database: Path | None = None
+    projects_database: Path | None = None
     logo_resource: str = "branding/qingzhou_logo.png"
 
     def resolved_log_directory(self) -> Path:
@@ -73,6 +74,20 @@ class AppConfig:
             else Path.home() / "AppData" / "Local"
         )
         return base_directory / "QingzhouEnergySuite" / "carbon_accounting" / "data" / "records.sqlite"
+
+    def resolved_projects_database(self) -> Path:
+        """Resolve mutable saved projects separately from immutable records."""
+
+        if self.projects_database is not None:
+            return self.projects_database
+
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        base_directory = (
+            Path(local_app_data)
+            if local_app_data
+            else Path.home() / "AppData" / "Local"
+        )
+        return base_directory / "QingzhouEnergySuite" / "carbon_accounting" / "data" / "projects.sqlite"
 
     def icons_directory(self) -> Path:
         """Resolve the shared SVG navigation icon directory."""

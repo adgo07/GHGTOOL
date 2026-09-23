@@ -671,6 +671,7 @@ def create_page(
     parent: QWidget | None = None,
     catalog_service: CatalogQueryService | None = None,
     record_repository: RecordRepository | None = None,
+    project_service=None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
@@ -696,6 +697,7 @@ def create_page(
         return CarbonMaterialAccountingPage(
             catalog_service=catalog_service or CatalogQueryService.empty(),
             record_repository=record_repository,
+            project_service=project_service,
             parent=parent,
         )
 

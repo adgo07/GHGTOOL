@@ -243,6 +243,8 @@ class G06PageTests(unittest.TestCase):
 
         self.page.enterprise_name.setText("输出能源控件企业")
         self.page.period_year.setValue(2026)
+        self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"].setCurrentIndex(1)
+        self.page._source_statuses["CAR-SRC-EXPORTED-HEAT-001"].setCurrentIndex(1)
         self.page._fields["exported_electricity_amount"].setText("2")
         self.page._fields["exported_heat_amount"].setText("100")
         self.page._fields["exported_heat_enthalpy"].setText("2800")
@@ -290,6 +292,7 @@ class G06PageTests(unittest.TestCase):
         self.assertIn("来源", self.page.heat_factor_professional_details.text())
         self.page._fields["heat_amount"].setText("1000")
         self.page._fields["heat_enthalpy"].setText("2800")
+        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(1)
         value = self.page._input()
         selected = value.purchased_heat[0].factor
         self.assertIsNotNone(selected)
@@ -323,7 +326,8 @@ class G06PageTests(unittest.TestCase):
         self.application.processEvents()
         self.assertEqual(self.shell.current_route, AppRoute.NEW_ACCOUNTING)
         self.assertEqual(self.shell.selected_standard_id, STANDARD_ID)
-        self.assertEqual(self.page.standard_id_label.text(), STANDARD_ID)
+        self.assertIn("GB/T 32151.34—2024", self.page.standard_id_label.text())
+        self.assertIn("炭素材料生产企业", self.page.standard_id_label.text())
 
     def test_calculation_renders_result_and_boundary_error_without_persistence(self) -> None:
         self.page.enterprise_name.setText("UI 测试企业")

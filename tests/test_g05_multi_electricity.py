@@ -215,6 +215,29 @@ class G05MultiElectricityTests(unittest.TestCase):
             ElectricityAcquisitionMode.SELF_CONSUMED,
         )
 
+    def test_custom_period_crossing_factor_validity_boundary_is_not_auto_matched(self) -> None:
+        custom_period = AccountingPeriod(
+            PeriodType.CUSTOM,
+            date(2025, 1, 1),
+            date(2025, 12, 31),
+        )
+        detail = replace(
+            _detail(
+                "detail.custom.crosses.validity",
+                "20",
+                ElectricityAcquisitionMode.PURCHASED,
+                ElectricityAttribute.ORDINARY,
+            ),
+            accounting_period=custom_period,
+        )
+
+        result = _resolver().resolve_electricity_details((detail,), snapshot_at=SNAPSHOT_AT)[0]
+
+        self.assertTrue(result.blocked)
+        self.assertIsNone(result.snapshot)
+        assert result.result is not None
+        self.assertIsNone(result.result.recommended)
+
     def test_missing_proof_is_error_without_zero_or_national_fallback(self) -> None:
         result = _resolver().resolve_electricity_details(
             (

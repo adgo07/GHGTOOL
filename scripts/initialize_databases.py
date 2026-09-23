@@ -1,4 +1,4 @@
-"""Build all three isolated databases from the canonical source."""
+"""Build the isolated catalog, user, records and projects databases."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from packages.reference_data import DEFAULT_SOURCE_PATH  # noqa: E402
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Initialize Qingzhou catalog/user/records databases")
+    parser = argparse.ArgumentParser(description="Initialize Qingzhou catalog/user/records/projects databases")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE_PATH)
     parser.add_argument("--output-dir", type=Path, default=Path("build/databases"))
     parser.add_argument("--app-version", default="1.1.0")
