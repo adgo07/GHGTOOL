@@ -1,8 +1,10 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：CATUI01（三项验收返工已完成，待 Sol 重新验收）
+## 当前阶段：Post-V1 新建核算实用性与多核算单元（实施中）
 
-本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
+CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
+
+当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本报告稍后追加本 Goal 的实现、测试、提交和 PR 证据；本段仅记录已批准范围及开工基线，不代表实现已完成。
 
 ## 阶段
 

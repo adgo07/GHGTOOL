@@ -2,11 +2,18 @@
 
 ## 当前工作包
 
-CATUI01：标准库精简与公共滚动修复
+Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF.md §22）
 
 ## 状态
 
-CATUI01_REWORK_READY_FOR_SOL_REVIEW
+POST_V1_ACCOUNTING_PRACTICALITY_IN_PROGRESS
+
+## 前置阶段同步
+
+- G00～G08、UIR01～UIR04 均保留各自历史验收记录。
+- CATUI01（PR #11）已由用户确认合并至 main；当前基线为 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 本工作包由 Sol 明确批准，新增独立 `projects.sqlite` 保存可变项目及未完成输入；该批准仅为 HANDOFF.md §22 的范围受限例外，不改变 `records.sqlite` 成功记录/审计语义。
+- 本轮仅有一个 Post-V1 Goal；未启动新标准或其他阶段。
 
 ## 阶段验收状态
 
