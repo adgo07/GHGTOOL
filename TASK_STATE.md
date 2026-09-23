@@ -6,7 +6,7 @@ Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF
 
 ## 状态
 
-POST_V1_ACCOUNTING_PRACTICALITY_IN_PROGRESS
+POST_V1_AWAITING_GITHUB_CHECKS_AND_SOL_ACCEPTANCE
 
 ## 前置阶段同步
 
@@ -14,6 +14,9 @@ POST_V1_ACCOUNTING_PRACTICALITY_IN_PROGRESS
 - CATUI01（PR #11）已由用户确认合并至 main；当前基线为 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
 - 本工作包由 Sol 明确批准，新增独立 `projects.sqlite` 保存可变项目及未完成输入；该批准仅为 HANDOFF.md §22 的范围受限例外，不改变 `records.sqlite` 成功记录/审计语义。
 - 本轮仅有一个 Post-V1 Goal；未启动新标准或其他阶段。
+- 实施代码与回归测试已提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`（32 个范围内文件）；工作分支 `feature/accounting-practicality`，基于 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 本地全量测试 175/175 通过；compileall、pip check、Canonical 校验、四库从零初始化及 Windows standalone 构建/审计/归档/双次烟测均通过。详细命令和环境见 IMPLEMENTATION_REPORT.md。
+- 当前门禁：推送分支并创建 main 目标 PR，等待该 PR 最新 head 的 GitHub Actions；随后停止等待 Sol 验收。未合并 PR。
 
 ## 阶段验收状态
 

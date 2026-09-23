@@ -1,10 +1,10 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：Post-V1 新建核算实用性与多核算单元（实施中）
+## 当前阶段：Post-V1 新建核算实用性与多核算单元（本地实现完成，等待 PR 检查与 Sol 验收）
 
 CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
 
-当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本报告稍后追加本 Goal 的实现、测试、提交和 PR 证据；本段仅记录已批准范围及开工基线，不代表实现已完成。
+当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。实现提交为 `a50142d8af6b3473e87644c9b17e6b1a095a7d36`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本地测试和 Windows standalone 交付验证已通过；推送及 PR 最新 head GitHub Actions 待完成。详细结果见本报告末尾“Post-V1 实施结果”。
 
 ## 阶段
 
@@ -2031,4 +2031,47 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 ### 当前交付状态
 
-文档提交后会再次产生 PR 新 head，并等待该最新 head 的两个 Windows job 完成。PR #11 未合并；CATUI01 等待 Sol 重新验收。未新增 BLOCKED，未启动其他阶段。
+以上为 CATUI01 当时的历史状态。其后 PR #11 已合并，并成为本 Post-V1 Goal 的 `origin/main` 基线。
+
+## Post-V1 实施结果（2026-09-23）
+
+**状态：本地实现及验证完成；推送、PR 最新 head 检查和 Sol 验收尚待完成。**
+
+### 基线、授权与实现提交
+
+- Base branch：`main`；开工及推送前复核的 `origin/main` SHA：`1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 工作分支：`feature/accounting-practicality`；未在 `main` 上开发。
+- 范围依据：HANDOFF.md §22（Sol 已批准）；独立项目状态保存只使用 `projects.sqlite`，没有修改 `records.sqlite` schema 或迁移。
+- 实现/测试提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`，`feat: add saved multi-unit accounting workspaces`。
+- 共 32 个已提交范围内文件；未暂存或处理预存的 `docs/handoffs/` 与架构规范文档。
+- 文件清单：`apps/carbon_accounting_desktop/{app.py,config.py,product.py}`；`migrations/projects/001_initial.sql`；`packages/application/{__init__.py,project_workspaces.py}`；`packages/core/{models.py,parameter_resolution.py}`；`packages/persistence/{__init__.py,catalog_builder.py,sqlite.py,projects_repository.py}`；`packages/standards/carbon_material.py`；`packages/ui/{carbon_material_page.py,field_specs.py,pages.py,shell.py,source_cards.py}`；`scripts/{build_standalone.py,initialize_databases.py,smoke_standalone.py}`；`tests/{test_accounting_projects_ui.py,test_g01_models.py,test_g02_persistence.py,test_g05_multi_electricity.py,test_g06_page.py,test_g07_records.py,test_g08_delivery.py,test_project_workspaces.py,test_uir01_field_semantics.py,test_uir02_source_cards.py,test_uir04_finalization.py}`。
+
+### 实施内容
+
+- 核算周期合并为年份与周期选择；全年不保存月份，月度选择可恢复，自定义周期使用日期控件并明确标注为内部周期。旧年度/月度 records 继续按既有结构读取；新增 G07 SQLite 快照往返测试覆盖自定义日期。
+- 新增核算单元区域，支持项目新建/保存/打开/删除，单元新增/切换/改名/删除；每单元独立保存表单、排放源状态、参数选择、结果快照和 record 关联。单元结果不自动求和、分摊或共享。
+- 按 Sol 批准新增独立 `projects.sqlite` 与 `migrations/projects/001_initial.sql`。初始化、迁移、损坏/不可用错误走安全提示；项目/单元删除不触碰 records/audit。没有 records migration。
+- F01 支持多条具有稳定行身份的燃料明细和独立增删；标准已有、可追溯的天然气默认参数继续按 Canonical/解析器使用，其他组合只能标记并提交用户实测参数及来源，不伪造标准默认。
+- 排放源卡片只保留启用/停用操作，不向普通界面显示“涉及/不涉及”“填写中”或“核定”。代码检查确认本轮基线原本没有“核定”控件，因此没有删除或改变数据生命周期行为。
+- 数据检查可以预览单项排放源结果且不创建记录；最终成功计算仍按 G07 立即追加不可编辑 record，ERROR 不创建成功记录。标准显示使用完整业务名称，普通界面隐藏稳定内部 ID。
+- 计算器公式和 Canonical 数据未改；Domain 只增加自定义周期兼容与可选 FuelType 约束。参数解析仅为自定义区间增加“因子有效期须覆盖完整区间”的阻断，避免静默跨期选值。
+
+### 本地验证（Windows）
+
+环境：Windows 11（10.0.26200），CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。
+
+- `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v`：175/175 通过，0 失败，0 错误，0 跳过（21.355 秒）。
+- `.venv/Scripts/python.exe -m unittest tests.test_g07_records -v`：13/13 通过，包含自定义周期 records 快照往返。
+- `.venv/Scripts/python.exe -m compileall -q apps packages scripts tests`：通过。
+- `.venv/Scripts/python.exe -m pip check`：`No broken requirements found.`。
+- `.venv/Scripts/python.exe scripts/validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- `.venv/Scripts/python.exe scripts/initialize_databases.py --output-dir <独立临时目录>`：从零创建 catalog.sqlite、user.sqlite、records.sqlite、projects.sqlite；验证目录随后清理。
+- `git diff --check`：通过；`计算表/` 差异为空。未执行 pytest（仓库测试基线为 unittest）。
+- Windows standalone：在独立临时输出目录构建成功；`inspect_release.py` 通过（228 文件）；`verify_release_archive.py` 通过（229 个可见文件且 manifest 完整）；`smoke_standalone.py --starts 2` 通过。构建目录在审计/烟测后清理。
+
+### 未完成与限制
+
+- GitHub Actions 尚未针对 PR head 执行；Actions 结果必须在推送后按最新 SHA 单独记录，不得以本地测试替代。
+- 未做人工逐项 GUI 操作验收；本地验证由 Qt offscreen 自动 UI 测试、独立 Windows EXE 构建和两次隔离启动组成。
+- 全厂与生产工序结果保持独立，不提供项目级合计/分摊；不支持的燃料参数组合需用户提供实测值和来源。
+- 当前无未执行的代码测试；Sol 验收仍待进行。不得合并 PR。
