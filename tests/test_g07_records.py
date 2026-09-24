@@ -105,6 +105,27 @@ def _record(record_id: str, *, warning: bool = False) -> AccountingRecord:
 
 
 class G07RecordRepositoryTests(unittest.TestCase):
+    def test_custom_accounting_period_round_trips_in_record_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = SQLiteRecordRepository(Path(directory) / "records.sqlite")
+            record = _record("record.custom-period")
+            custom_period = AccountingPeriod(
+                PeriodType.CUSTOM,
+                date(2025, 3, 12),
+                date(2025, 4, 8),
+            )
+            record = replace(
+                record,
+                input_snapshot=replace(record.input_snapshot, period=custom_period),
+            )
+
+            repository.create(record)
+
+            restored = repository.get(record.record_id)
+            self.assertIsNotNone(restored)
+            self.assertEqual(restored.input_snapshot.period, custom_period)
+            self.assertEqual(restored, record)
+
     def test_successful_statuses_and_all_snapshots_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = SQLiteRecordRepository(Path(directory) / "records.sqlite")
@@ -295,7 +316,7 @@ class G07UiTests(unittest.TestCase):
 
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         self.assertEqual(page.enterprise_name.text(), "未计算企业")
-        self.assertEqual(page.period_type.currentIndex(), 1)
+        self.assertEqual(page.period_type.currentIndex(), 7)
         self.assertEqual(page.period_year.value(), 2030)
         self.assertEqual(page.period_month.value(), 7)
         self.assertTrue(page.boundary_confirmed.isChecked())

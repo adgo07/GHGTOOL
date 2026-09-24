@@ -12,7 +12,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QComboBox, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QLineEdit, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -107,7 +107,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.assertFalse(self.page.quality_card.isVisible())
         self.assertTrue(self.page.findChild(QWidget, "calculationStatusBar").isVisible())
         self.assertTrue(self.page.calculate_button.isVisible())
-        self.assertFalse(self.page.check_button.isVisible())
+        self.assertTrue(self.page.check_button.isVisible())
         self.assertIn("已确认排放源：0", self.page.confirmed_source_count.text())
         self.assertIn("错误：2", self.page.error_count.text())
 
@@ -120,7 +120,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self._involve(P01)
         self.application.processEvents()
         self.assertIn("已确认排放源：1", self.page.confirmed_source_count.text())
-        self.assertIn("提醒：1", self.page.reminder_count.text())
+        self.assertIn("错误：1", self.page.error_count.text())
         self.page._fields["calcination.gc"].setText("10")
         self.application.processEvents()
         self.assertIs(
@@ -210,6 +210,7 @@ class UIR04FinalizationTests(unittest.TestCase):
             ("fuel_oxidation", "98"),
         ):
             self.page._fields[key].setText(value)
+        self.page.findChild(QLineEdit, "fuelSourceReference1").setText("燃料检测报告-1")
         self._involve(I01)
         row = self.page._electricity_rows[0]
         row.detail_id.setText("grid-ordinary")

@@ -10,11 +10,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
-from packages.persistence import MigrationError, SQLiteRecordRepository, build_catalog_database, initialize_database
+from packages.application import ProjectWorkspaceService
+from packages.persistence import (
+    MigrationError,
+    SQLiteProjectWorkspaceRepository,
+    SQLiteRecordRepository,
+    build_catalog_database,
+    initialize_database,
+)
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.ui.view_models import AppRoute
 from scripts.build_standalone import _write_manifest
@@ -25,6 +32,26 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class G08DeliveryTests(unittest.TestCase):
+    def test_project_database_startup_failure_is_explained_to_user(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            logger = unittest.mock.Mock()
+            with (
+                patch.dict(os.environ, {"LOCALAPPDATA": directory}, clear=False),
+                patch("apps.carbon_accounting_desktop.app.QApplication", return_value=object()),
+                patch("apps.carbon_accounting_desktop.app.configure_logging", return_value=logger),
+                patch(
+                    "apps.carbon_accounting_desktop.app.SQLiteProjectWorkspaceRepository",
+                    side_effect=MigrationError("projects database is incompatible"),
+                ),
+                patch("apps.carbon_accounting_desktop.app.QMessageBox.critical") as critical,
+            ):
+                from apps.carbon_accounting_desktop.app import main
+
+                self.assertEqual(main([]), 1)
+            critical.assert_called_once()
+            self.assertIn("核算记录数据库未被修改", critical.call_args.args[2])
+            logger.close.assert_called_once()
+
     def test_final_version_and_catalog_manifest(self) -> None:
         with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
             project = tomllib.load(stream)
@@ -37,6 +64,8 @@ class G08DeliveryTests(unittest.TestCase):
         self.assertEqual(catalog["manifest"]["schema_version"], "1.0.0")
         self.assertEqual(catalog["manifest"]["data_version"], "2026.09.22-catui01.1")
         self.assertEqual(catalog["manifest"]["app_compatibility"], "1.x")
+        build_source = (PROJECT_ROOT / "scripts" / "build_standalone.py").read_text(encoding="utf-8")
+        self.assertIn('"projects": "001"', build_source)
 
     def test_frozen_runtime_resolves_bundled_catalog(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -141,7 +170,11 @@ class G08DeliveryTests(unittest.TestCase):
                     log_directory=root / "logs",
                 )
                 self.assertFalse(config.resolved_records_database().exists())
-                first_window = create_main_window(config)
+                self.assertFalse(config.resolved_projects_database().exists())
+                first_project_service = ProjectWorkspaceService(
+                    SQLiteProjectWorkspaceRepository(config.resolved_projects_database())
+                )
+                first_window = create_main_window(config, project_service=first_project_service)
                 first_window.show()
                 application.processEvents()
                 first_shell = first_window.centralWidget()
@@ -156,11 +189,19 @@ class G08DeliveryTests(unittest.TestCase):
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0].input_snapshot.enterprise_name, "G08 集成企业")
                 self.assertIn("tCO₂", page.result_total.text())
-                first_window.close()
+                self.assertTrue(config.resolved_projects_database().is_file())
+                with patch(
+                    "packages.ui.carbon_material_page.QMessageBox.question",
+                    return_value=QMessageBox.StandardButton.Discard,
+                ):
+                    first_window.close()
                 first_window.deleteLater()
                 application.processEvents()
 
-                second_window = create_main_window(config)
+                second_project_service = ProjectWorkspaceService(
+                    SQLiteProjectWorkspaceRepository(config.resolved_projects_database())
+                )
+                second_window = create_main_window(config, project_service=second_project_service)
                 second_window.show()
                 application.processEvents()
                 second_shell = second_window.centralWidget()

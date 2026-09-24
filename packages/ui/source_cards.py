@@ -20,8 +20,7 @@ from PySide6.QtWidgets import (
 class SourceCardPresentationState(str, Enum):
     """UI-only status derived from Domain status and current inputs."""
 
-    NOT_INVOLVED = "不涉及"
-    FILLING = "填写中"
+    NOT_INVOLVED = "未启用"
     COMPLETED = "已完成"
     NEEDS_ATTENTION = "需要处理"
     UNCONFIRMED = "待确认"
@@ -63,7 +62,7 @@ class SourceCard(QFrame):
         title_label.setWordWrap(True)
         header_layout.addWidget(title_label, 1)
 
-        self.presentation_state_label = QLabel("不涉及", header)
+        self.presentation_state_label = QLabel("未启用", header)
         self.presentation_state_label.setObjectName(f"sourceCardState_{source_id}")
         header_layout.addWidget(self.presentation_state_label)
 
@@ -73,18 +72,17 @@ class SourceCard(QFrame):
         self._action_button.clicked.connect(self._on_action_clicked)
         header_layout.addWidget(self._action_button)
 
-        self._not_involved_button = QPushButton("改为不涉及", header)
-        self._not_involved_button.setObjectName(f"sourceCardNotInvolved_{source_id}")
-        self._not_involved_button.setAutoDefault(False)
-        self._not_involved_button.clicked.connect(self._set_not_involved)
-        self._not_involved_button.setVisible(False)
-        header_layout.addWidget(self._not_involved_button)
         outer.addWidget(header)
 
         self.summary_label = QLabel("未启用", self)
         self.summary_label.setObjectName(f"sourceCardSummary_{source_id}")
         self.summary_label.setWordWrap(True)
         outer.addWidget(self.summary_label)
+
+        self.check_result_label = QLabel("", self)
+        self.check_result_label.setObjectName(f"sourceCardCheckResult_{source_id}")
+        self.check_result_label.setWordWrap(True)
+        outer.addWidget(self.check_result_label)
 
         self.body = QWidget(self)
         self.body.setObjectName(f"sourceCardBody_{source_id}")
@@ -121,8 +119,9 @@ class SourceCard(QFrame):
         header = self.findChild(QWidget, f"sourceCardHeader_{self.source_id}")
         if header is None:
             raise RuntimeError("source card header is missing")
-        header.layout().insertWidget(1, QLabel("本次状态", header))  # type: ignore[union-attr]
-        header.layout().insertWidget(2, widget)  # type: ignore[union-attr]
+        # Keep the existing typed Domain enum control as an internal adapter;
+        # the ordinary user sees only the single enable/disable action.
+        widget.hide()
         widget.currentIndexChanged.connect(lambda _index: self._on_status_changed())
         self._on_status_changed()
 
@@ -156,13 +155,8 @@ class SourceCard(QFrame):
         status = self._domain_status()
         if status == self._not_involved_value:
             self._action_button.setText("启用")
-            self._not_involved_button.setVisible(False)
-        elif self._expanded:
-            self._action_button.setText("收起")
-            self._not_involved_button.setVisible(True)
         else:
-            self._action_button.setText("编辑")
-            self._not_involved_button.setVisible(True)
+            self._action_button.setText("停用")
 
     def set_expanded(self, expanded: bool) -> None:
         status = self._domain_status()
@@ -179,15 +173,8 @@ class SourceCard(QFrame):
 
     def _on_action_clicked(self) -> None:
         status = self._domain_status()
-        if status == self._not_involved_value:
-            index = self.status_widget.findData(self._involved_value)
-            if index >= 0:
-                self.status_widget.setCurrentIndex(index)
-            return
-        self.set_expanded(not self._expanded)
-
-    def _set_not_involved(self) -> None:
-        index = self.status_widget.findData(self._not_involved_value)
+        target = self._involved_value if status != self._involved_value else self._not_involved_value
+        index = self.status_widget.findData(target)
         if index >= 0:
             self.status_widget.setCurrentIndex(index)
 

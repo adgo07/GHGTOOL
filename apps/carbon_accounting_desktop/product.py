@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from packages.application import CatalogQueryService, create_catalog_query_service
+from packages.application import CatalogQueryService, ProjectWorkspaceService, create_catalog_query_service
 from packages.core.repositories import RecordRepository
-from packages.persistence import SQLiteRecordRepository
+from packages.persistence import SQLiteProjectWorkspaceRepository, SQLiteRecordRepository
 
 from .config import AppConfig
 from packages.ui.shell import AppShell
@@ -39,6 +39,7 @@ def create_shell(
     config: AppConfig,
     catalog_service: CatalogQueryService | None = None,
     record_repository: RecordRepository | None = None,
+    project_service: ProjectWorkspaceService | None = None,
 ) -> AppShell:
     """Build the product shell while keeping database access in the application edge."""
 
@@ -56,4 +57,5 @@ def create_shell(
             config.resolved_catalog_database()
         ),
         record_repository=record_repository,
+        project_service=project_service,
     )

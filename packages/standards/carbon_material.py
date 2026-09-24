@@ -77,6 +77,14 @@ class FuelPath(str, Enum):
     HEAT = "HEAT"
 
 
+class FuelType(str, Enum):
+    DIESEL = "DIESEL"
+    NATURAL_GAS = "NATURAL_GAS"
+    COKE_OVEN_GAS = "COKE_OVEN_GAS"
+    COAL = "COAL"
+    OTHER = "OTHER"
+
+
 class MaterialBasis(str, Enum):
     RECEIVED = "RECEIVED"
     DRY = "DRY"
@@ -216,12 +224,15 @@ class FuelInput:
     oxidation_rate: object | None = None
     lower_heating_value: object | None = None
     electricity_detail_id: str | None = None
+    fuel_type: FuelType | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.fuel_id, str) or not self.fuel_id.strip():
             raise DomainValidationError("fuel_id is required")
         if not isinstance(self.path, FuelPath):
             raise DomainValidationError("path must be a FuelPath")
+        if self.fuel_type is not None and not isinstance(self.fuel_type, FuelType):
+            raise DomainValidationError("fuel_type must be a FuelType")
         activity_unit = {
             FuelPath.VOLUME: "ten_thousand_Nm3",
             FuelPath.MASS: "t",
@@ -1403,5 +1414,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "FuelPath", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
 ]

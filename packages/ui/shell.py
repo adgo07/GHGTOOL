@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.repositories import RecordRepository
+from packages.application.project_workspaces import ProjectWorkspaceService
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
@@ -88,6 +89,7 @@ class AppShell(QWidget):
         parent: QWidget | None = None,
         catalog_service: CatalogQueryService | None = None,
         record_repository: RecordRepository | None = None,
+        project_service: ProjectWorkspaceService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -96,6 +98,7 @@ class AppShell(QWidget):
         self._icon_directory = icon_directory
         self.catalog_service = catalog_service or CatalogQueryService.empty()
         self.record_repository = record_repository
+        self.project_service = project_service
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
@@ -120,6 +123,7 @@ class AppShell(QWidget):
                     self,
                     catalog_service=self.catalog_service,
                     record_repository=self.record_repository,
+                    project_service=self.project_service,
                 )
             else:
                 page = self._page_factory(item.route, view_model, self.navigate, self)
@@ -151,6 +155,13 @@ class AppShell(QWidget):
         """Compatibility hook; in-memory input remains while the application runs."""
 
         return True
+
+    def confirm_before_close(self) -> bool:
+        """Offer explicit save, discard or cancel for unsaved project changes."""
+
+        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        prompt = getattr(page, "confirm_project_close", None)
+        return bool(prompt()) if callable(prompt) else True
 
     def navigate(self, route: AppRoute) -> None:
         """Switch pages without discarding the active new-accounting input."""

@@ -46,6 +46,13 @@ def smoke(artifact: str | Path, *, starts: int = 2, wait_seconds: float = 8.0) -
                     / "data"
                     / "records.sqlite"
                 )
+                projects = (
+                    Path(data_root)
+                    / "QingzhouEnergySuite"
+                    / "carbon_accounting"
+                    / "data"
+                    / "projects.sqlite"
+                )
                 logs = (
                     Path(data_root)
                     / "QingzhouEnergySuite"
@@ -55,6 +62,8 @@ def smoke(artifact: str | Path, *, starts: int = 2, wait_seconds: float = 8.0) -
                 )
                 if not records.is_file():
                     raise RuntimeError(f"records database missing after startup {attempt}")
+                if not projects.is_file():
+                    raise RuntimeError(f"projects database missing after startup {attempt}")
                 if not logs.is_file():
                     raise RuntimeError(f"structured log missing after startup {attempt}")
             finally:

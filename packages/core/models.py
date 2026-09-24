@@ -298,6 +298,7 @@ class ActivityData:
 class PeriodType(str, Enum):
     ANNUAL = "ANNUAL"
     MONTHLY = "MONTHLY"
+    CUSTOM = "CUSTOM"
 
 
 @dataclass(frozen=True, slots=True)
@@ -317,6 +318,10 @@ class AccountingPeriod:
             last_day = calendar.monthrange(self.start.year, self.start.month)[1]
             if self.start.day != 1 or self.end.year != self.start.year or self.end.month != self.start.month or self.end.day != last_day:
                 raise DomainValidationError("monthly period must cover one calendar month")
+        elif self.period_type is PeriodType.CUSTOM:
+            # A custom period is an explicitly selected internal calculation
+            # window; it is not represented as an annual or monthly report.
+            return
         else:
             raise DomainValidationError("unsupported accounting period type")
 

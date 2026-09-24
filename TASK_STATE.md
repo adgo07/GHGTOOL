@@ -2,11 +2,22 @@
 
 ## 当前工作包
 
-CATUI01：标准库精简与公共滚动修复
+Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF.md §22）
 
 ## 状态
 
-CATUI01_REWORK_READY_FOR_SOL_REVIEW
+POST_V1_F5_MERGE_RECOVERY_REWORK_READY_FOR_SOL_REVIEW
+
+## 前置阶段同步
+
+- G00～G08、UIR01～UIR04 均保留各自历史验收记录。
+- CATUI01（PR #11）已由用户确认合并至 main；当前基线为 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 本工作包由 Sol 明确批准，新增独立 `projects.sqlite` 保存可变项目及未完成输入；该批准仅为 HANDOFF.md §22 的范围受限例外，不改变 `records.sqlite` 成功记录/审计语义。
+- 本轮仅有一个 Post-V1 Goal；未启动新标准或其他阶段。
+- 实现提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`；CI 场景发现的天然气枚举修复提交：`7a10f35ee33228fae549bf2cdf1824a9007d7613`。当前分支 `feature/accounting-practicality`，基于 `origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 本地最新全量测试 176/176 通过；UIR04 GUI 验收场景 A～E 全部通过；compileall、pip check、Canonical 校验、四库从零初始化及最终 Windows standalone 构建/审计/归档/双次烟测均通过。详细命令和环境见 IMPLEMENTATION_REPORT.md。
+- PR #12 已创建。其首次公开 head 的 Actions run `35831594942` 发现 GUI 场景 A 中天然气默认参数因 PySide 字符串枚举未被识别；已在提交 `7a10f35` 修复并补回归。返修和本轮报告提交后将推送新 head，等待新 head Actions 后停止等待 Sol 验收。未合并 PR。
+- Sol 对 `e355361b48079ef41f008a90172206280113ac6c` 提出 F1～F5 阻断；实现与回归提交 `361a747` 已完成本地验证，待治理文档提交、推送及最新 head Windows CI。
 
 ## 阶段验收状态
 
@@ -1433,3 +1444,54 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 本地工作区命令本轮仍受 Codex 桌面运行器 `setup refresh had errors` 阻断，未将本地失败冒充为测试结果；以上验证来自该实现提交对应的最新 Windows Actions。文档提交后将再次等待 PR 最新 head 的两个 Windows job 完成。
 
 当前仍未合并 PR #11，等待 Sol 重新验收 CATUI01；不得进入其他阶段。
+
+## Post-V1 PR #12 F1～F5 返修（2026-09-23）
+
+**POST_V1_F1_F5_REWORK_READY_FOR_SOL_REVIEW**
+
+- F1：电力明细新增稳定 `row_key`、单调控件序号和逐行序列化；删除中间行再新增不会重用控件身份或覆盖字典值，金额、取得方式、电力属性、证明类型和证明状态可跨单元切换及应用重启恢复。旧 `electricity_row_count` 项目格式继续读取。
+- F2：燃料行持久化稳定 `row_key` 和显式 `parameter_source`；企业检测来源存在时，即使数值等于 Canonical 默认值，也按 `MEASURED` 形成稳定测量参数 ID，不再误写 `STANDARD_DEFAULT`。
+- F3：输入变化后立即刷新核算单元结果摘要；切换单元、显式保存和重启后均显示“上一结果已过期”，并隐藏过期结果卡。
+- F4：项目 JSON 损坏时，项目列表初始化与打开项目均捕获 Repository 错误并显示安全、可解释提示；应用入口同时捕获待恢复关联初始化错误，不修改 records 数据。
+- F5：新增 `migrations/projects/002_pending_record_links.sql`。成功 record 生成后，先在 projects.sqlite 写入待恢复关联，再保存当前已完成单元的最小项目快照，最后清除待恢复项；中途失败保留待恢复状态，重启自动重放。其他单元未完成且未显式保存的输入不会被这一步静默持久化；records schema、成功记录和审计不回滚、不删除。
+
+实现与测试提交：`361a747 fix: close post-v1 project recovery gaps`。
+
+本地验证：
+
+- F1～F5 项目/页面定向：17/17 通过。
+- 全量 unittest：183/183 通过，0 失败、0 错误、0 跳过（20.566 秒）。
+- compileall、pip check、Canonical（9 standards / 12 sources / 7 parameters / 7 factors）、四库从零初始化：通过。
+- Qt offscreen GUI 场景 A～E：全部通过。
+- Windows standalone：构建通过；发布审计 229 files；ZIP 往返 230 visible files；2 次隔离启动通过。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 和架构规范文档未处理。
+
+PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已完成：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success；Canonical、compileall、pip check、四库重建、GUI A～E、缩放、全量测试、G08 delivery、standalone build/release/archive/provenance、2 次 isolated smoke 和 artifact upload 全部通过。
+
+当前仅等待本次治理状态提交后的最终 head CI 与 Sol 重新验收。PR 不得合并。
+
+## Post-V1 PR #12 F5 合并式恢复返工（2026-09-23）
+
+**POST_V1_F5_MERGE_RECOVERY_REWORK_READY_FOR_SOL_REVIEW**
+
+Sol 复验确认 F1～F4 已关闭，但发现 F5 的待恢复标记在“项目保存成功、标记清理失败、随后又有较新显式保存”路径中，会把标记内的旧完整 workspace 重放到数据库并覆盖较新的项目名称和单元输入。
+
+本轮最小修复将 `pending_record_links.workspace_json` 明确作为恢复证据而非项目版本：
+
+- 当前项目已经包含目标 `record_id` 且位于正确核算单元时，只清除恢复标记，不再写回旧 workspace。
+- 当前项目缺少目标关联时，只向目标单元合并该 `record_id` 及必要的结果快照/输入指纹；项目名称、活动单元、表单输入、其他单元及其显式保存状态全部保留当前值。
+- 当前单元已有更晚成功结果时，补回历史关联但保留更晚结果与指纹。
+- 项目尚不存在时仍可使用恢复快照完成首次关联恢复；元数据不一致、目标单元不存在或记录已关联到其他单元时安全失败，不猜测或覆盖。
+
+新增三条精确回归：标记清理失败后较新显式保存不被覆盖；首次项目保存失败后较新显式保存仅合并关联；已有更晚结果时旧恢复项不得替换最新结果。
+
+本地验证：
+
+- 项目 Repository + 项目 UI 定向：20/20 通过。
+- 全量 unittest：186/186 通过，0 失败、0 错误、0 跳过（19.968 秒）。
+- compileall、pip check、Canonical（9 standards / 12 sources / 7 parameters / 7 factors）、四库从零初始化：通过。
+- Qt offscreen GUI 场景 A～E：全部通过。
+- Windows standalone：构建通过；发布审计 229 files；ZIP 往返 230 visible files；2 次隔离启动通过；隔离输出已清理。
+- `git diff --check` 通过；`计算表/` 无修改；既有未跟踪 `docs/handoffs/` 和架构规范文档未处理。
+
+最新提交、推送及精确 PR head CI 尚待完成；PR #12 保持未合并，CI 通过后再次通知 Sol 验收。

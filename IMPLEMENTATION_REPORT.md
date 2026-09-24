@@ -1,8 +1,10 @@
 # IMPLEMENTATION_REPORT
 
-## 当前阶段：CATUI01（三项验收返工已完成，待 Sol 重新验收）
+## 当前阶段：Post-V1 PR #12 F1～F5 返修（本地与 GitHub CI 通过，等待 Sol 重新验收）
 
-本报告末尾的 UIR04 返工记录是当前实施状态；前文 UIR01、UIR02、UIR03 及 G00-G08 内容保留为历史实施与验收记录，不重写。
+CATUI01（PR #11）已合并至 main。本报告前文 G00～G08、UIR01～UIR04 和 CATUI01 内容均为历史记录并保留；本轮按 HANDOFF.md §22 执行一个经 Sol 批准的 Post-V1 Goal。
+
+当前基线：`origin/main@1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`；当前分支：`feature/accounting-practicality`。主要实现提交为 `a50142d8af6b3473e87644c9b17e6b1a095a7d36`，GitHub GUI 场景返修为 `7a10f35ee33228fae549bf2cdf1824a9007d7613`。Sol 已批准独立 `projects.sqlite` 用于可变项目/未完成输入；`records.sqlite` 仍仅保存成功的不可变记录与审计。本地最新测试和 Windows standalone 交付验证已通过。首次 PR Actions 发现的问题已修复；返修 head 的 GitHub Actions 待重新运行。详细结果见本报告末尾“Post-V1 实施结果”。
 
 ## 阶段
 
@@ -2029,4 +2031,134 @@ Qt 离屏 GUI 回归实际覆盖 1180×720：标准库深滚动到 maximum 后�
 
 ### 当前交付状态
 
-文档提交后会再次产生 PR 新 head，并等待该最新 head 的两个 Windows job 完成。PR #11 未合并；CATUI01 等待 Sol 重新验收。未新增 BLOCKED，未启动其他阶段。
+以上为 CATUI01 当时的历史状态。其后 PR #11 已合并，并成为本 Post-V1 Goal 的 `origin/main` 基线。
+
+## Post-V1 实施结果（2026-09-23）
+
+**状态：本地实现及返修验证完成；返修提交和本报告待推送，随后等待 PR 最新 head Actions 与 Sol 验收。**
+
+### 基线、授权与实现提交
+
+- Base branch：`main`；开工及推送前复核的 `origin/main` SHA：`1bc35f18eef30c8a63c413cb02ae0fd5ac1435b2`。
+- 工作分支：`feature/accounting-practicality`；未在 `main` 上开发。
+- 范围依据：HANDOFF.md §22（Sol 已批准）；独立项目状态保存只使用 `projects.sqlite`，没有修改 `records.sqlite` schema 或迁移。
+- 实现/测试提交：`a50142d8af6b3473e87644c9b17e6b1a095a7d36`，`feat: add saved multi-unit accounting workspaces`；返修提交：`7a10f35ee33228fae549bf2cdf1824a9007d7613`，`fix: resolve fuel enum selections for defaults`。
+- 共 33 个不同实现/测试文件；未暂存或处理预存的 `docs/handoffs/` 与架构规范文档。
+- 文件清单：`apps/carbon_accounting_desktop/{app.py,config.py,product.py}`；`migrations/projects/001_initial.sql`；`packages/application/{__init__.py,project_workspaces.py}`；`packages/core/{models.py,parameter_resolution.py}`；`packages/persistence/{__init__.py,catalog_builder.py,sqlite.py,projects_repository.py}`；`packages/standards/carbon_material.py`；`packages/ui/{carbon_material_page.py,field_specs.py,pages.py,shell.py,source_cards.py}`；`scripts/{build_standalone.py,initialize_databases.py,smoke_standalone.py,uir04_manual_gui_acceptance.py}`；`tests/{test_accounting_projects_ui.py,test_g01_models.py,test_g02_persistence.py,test_g05_multi_electricity.py,test_g06_page.py,test_g07_records.py,test_g08_delivery.py,test_project_workspaces.py,test_uir01_field_semantics.py,test_uir02_source_cards.py,test_uir04_finalization.py}`。
+
+### 实施内容
+
+- 核算周期合并为年份与周期选择；全年不保存月份，月度选择可恢复，自定义周期使用日期控件并明确标注为内部周期。旧年度/月度 records 继续按既有结构读取；新增 G07 SQLite 快照往返测试覆盖自定义日期。
+- 新增核算单元区域，支持项目新建/保存/打开/删除，单元新增/切换/改名/删除；每单元独立保存表单、排放源状态、参数选择、结果快照和 record 关联。单元结果不自动求和、分摊或共享。
+- 按 Sol 批准新增独立 `projects.sqlite` 与 `migrations/projects/001_initial.sql`。初始化、迁移、损坏/不可用错误走安全提示；项目/单元删除不触碰 records/audit。没有 records migration。
+- F01 支持多条具有稳定行身份的燃料明细和独立增删；标准已有、可追溯的天然气默认参数继续按 Canonical/解析器使用，其他组合只能标记并提交用户实测参数及来源，不伪造标准默认。
+- 排放源卡片只保留启用/停用操作，不向普通界面显示“涉及/不涉及”“填写中”或“核定”。代码检查确认本轮基线原本没有“核定”控件，因此没有删除或改变数据生命周期行为。
+- 数据检查可以预览单项排放源结果且不创建记录；最终成功计算仍按 G07 立即追加不可编辑 record，ERROR 不创建成功记录。标准显示使用完整业务名称，普通界面隐藏稳定内部 ID。
+- 计算器公式和 Canonical 数据未改；Domain 只增加自定义周期兼容与可选 FuelType 约束。参数解析仅为自定义区间增加“因子有效期须覆盖完整区间”的阻断，避免静默跨期选值。
+
+### 本地验证（Windows）
+
+环境：Windows 11（10.0.26200），CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。
+
+- `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v`：176/176 通过，0 失败，0 错误，0 跳过（21.071 秒）。
+- `.venv/Scripts/python.exe -m unittest tests.test_g07_records -v`：13/13 通过，包含自定义周期 records 快照往返。
+- `.venv/Scripts/python.exe -m unittest tests.test_accounting_projects_ui -v`：7/7 通过，包含天然气标准默认参数控件回归。
+- `.venv/Scripts/python.exe -m compileall -q apps packages scripts tests`：通过。
+- `.venv/Scripts/python.exe -m pip check`：`No broken requirements found.`。
+- `.venv/Scripts/python.exe scripts/validate_canonical.py`：通过，9 standards / 12 sources / 7 parameters / 7 factors。
+- `.venv/Scripts/python.exe scripts/initialize_databases.py --output-dir <独立临时目录>`：从零创建 catalog.sqlite、user.sqlite、records.sqlite、projects.sqlite；验证目录随后清理。
+- `git diff --check`：通过；`计算表/` 差异为空。未执行 pytest（仓库测试基线为 unittest）。
+- Windows standalone：在独立临时输出目录构建成功；`inspect_release.py` 通过（228 文件）；`verify_release_archive.py` 通过（229 个可见文件且 manifest 完整）；`smoke_standalone.py --starts 2` 通过。构建目录在审计/烟测后清理。
+- Qt offscreen GUI 验收脚本 `.venv/Scripts/python.exe scripts/uir04_manual_gui_acceptance.py`：场景 A～E 全部 PASS。实际观察：A 燃料+常规购电总量显示 11.17 tCO₂ 并新增 1 条记录；B 收到基煅烧完成（含提醒）；C 干/收基不一致被阻断并要求统一口径和换算依据；D 有效非化石电力证明计算完成；E 企业名称缺失被阻断且没有成功记录。不是人工逐项鼠标操作验收。
+
+### GitHub 首次检查发现与修复
+
+- PR #12 首次公开 head：`d3e71b14846a49ddd719213ce4d1619c0c54454f`；Actions run `35831594942`，Windows Server 2025 / CPython 3.12.10。
+- 该 run 的 Canonical、compileall、pip check、四库重建均通过；UIR04 GUI 场景 A 失败，导致 Windows 缩放、全量测试和 standalone audit 后续作业被跳过。
+- 根因：PySide `QComboBox` 的 `currentData()` 返回 str Enum 的字符串值；天然气参数查找直接用 `is FuelType.NATURAL_GAS` / `is FuelPath.HEAT`，因此没有识别到已有 Canonical 标准默认值，Domain 正确阻断了缺失的含碳量和氧化率。
+- 提交 `7a10f35` 改为显式将控件值映射回 FuelType/FuelPath；新增标准默认值 UI 回归，并将 GUI 场景 A 改为选择天然气+热量、使用 Canonical 已核对默认值。返修后的场景 A～E 已在本地重新通过；新 PR head Actions 尚待推送后执行。
+
+### 未完成与限制
+
+- 首次 PR head Actions run `35831594942` 在返修前失败；不能作为最终通过证据。修复后的最新 PR head Actions 尚未运行，须等待 Windows merge-ref 全量和 exact-head standalone audit 全部完成。
+- 未做人工逐项鼠标/键盘 GUI 操作验收；已使用 Qt offscreen 验收脚本执行并观察场景 A～E，另有独立 Windows EXE 构建和两次隔离启动。
+- 全厂与生产工序结果保持独立，不提供项目级合计/分摊；不支持的燃料参数组合需用户提供实测值和来源。
+- 当前无未执行的代码测试；Sol 验收仍待进行。不得合并 PR。
+
+## Post-V1 PR #12 F1～F5 返修实施报告（2026-09-23）
+
+### 返修范围与实现
+
+- **F1 电力行身份与序列化：** `_ElectricityRow` 增加稳定 `row_key`，页面使用单调序号创建唯一控件名；项目状态改为逐行保存 `detail_id`、金额、取得方式、电力属性、证明类型和证明状态。删除中间行后新增、切换核算单元、保存及重启恢复均不再覆盖其他行。保留旧 `electricity_row_count` 读取兼容。
+- **F2 燃料来源与测量参数身份：** 项目状态保存燃料 `row_key` 和 `parameter_source`。只要存在企业检测资料编号，即使输入值与标准默认值数值相等，也显式按 `MEASURED` 处理；恢复后测量参数 ID 继续由原稳定行身份生成。
+- **F3 结果过期状态：** `_mark_input_dirty` 立即刷新单元结果摘要；输入修改、单元往返、显式保存和重启后均保持“上一结果已过期”，不展示旧结果卡。
+- **F4 损坏项目库安全提示：** 项目列表初始化和打开项目捕获读取异常，清空不可安全读取的选择并显示不会影响 records 的解释性提示；应用入口同时捕获 `ProjectWorkspaceRepositoryError`。
+- **F5 成功记录关联恢复：** 新增 projects migration `002_pending_record_links.sql`。Repository 的 `save_after_record` 先提交待恢复关联，再保存项目单元关联，成功后清除待办；进程中断或项目保存失败时，下一次 Repository 初始化会重放待办。页面只合并当前已完成单元与其他单元“最后一次显式保存”的状态，不会因一次成功计算静默保存其他单元尚未完成的修改。成功记录仍先写 records.sqlite；不修改 records schema，不跨库假设原子事务，不撤销或删除成功记录。
+
+实现与测试提交：`361a747 fix: close post-v1 project recovery gaps`。未修改计算公式、Canonical 数据、ParameterResolver、历史记录生命周期或 `计算表/`。
+
+### 新增回归
+
+- 电力 1/2/3 三行删除中间行再新增，保存、切换单元、重启恢复后，三条金额、取得方式、电力属性、证明类型/状态、明细 ID 和行身份保持独立且唯一。
+- 天然气热量路径使用与默认值相等的企业检测值，保存/重启后仍为 `MEASURED`，碳含量和氧化率参数 ID 保持稳定。
+- 成功计算后修改输入，单元切换、保存和重启均显示旧结果过期。
+- 损坏 `form_state_json` 的 Repository 列表/读取、页面打开和页面启动均安全失败并提示。
+- 模拟 record 已成功但项目保存失败，确认 `pending_record_links` 保留；新 Repository 启动后自动恢复项目关联并清除待办。
+- 成功记录关联只保存已完成单元，不持久化其他单元未显式保存的未完成输入。
+
+### 本地实测
+
+环境：Windows 11 10.0.26200，CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3；Qt 使用 offscreen。
+
+- `.venv\Scripts\python.exe -m unittest tests.test_project_workspaces tests.test_accounting_projects_ui -v`：新增后合计 **17/17** 通过。
+- `.venv\Scripts\python.exe -m unittest discover -s tests -t . -q`：**183/183** 通过，0 失败、0 错误、0 跳过（20.566 秒）。
+- `.venv\Scripts\python.exe -m compileall -q apps packages resources scripts tests`：通过。
+- `.venv\Scripts\python.exe -m pip check`：`No broken requirements found.`。
+- `.venv\Scripts\python.exe scripts\validate_canonical.py`：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- 四库从零初始化：catalog/user/records/projects 均成功，隔离输出已清理。
+- `.venv\Scripts\python.exe scripts\uir04_manual_gui_acceptance.py`：场景 A～E 全部 PASS。
+- Windows standalone 隔离构建：成功；`inspect_release.py` **PASS（229 files）**；`verify_release_archive.py` **PASS（230 visible files）**；`smoke_standalone.py` **PASS（2 isolated starts）**；隔离构建目录已清理。
+- `git diff --check`：通过；`计算表/` 无差异；未跟踪 `docs/handoffs/` 和架构规范文档保持未处理。
+
+### 待完成门禁
+
+- PR #12 head `41ab32ab4202a099dc06ed0734080010c47bc1cb` 对应 GitHub Actions run `35851373338` 已通过：Windows merge-ref full tests 与 exact PR-head standalone audit 均为 success。
+- CI 实际执行 Canonical、compileall、pip check、四库从零重建、GUI A～E、1.25/1.5 缩放、全量测试、G08 delivery、standalone build、release audit、ZIP manifest、provenance、2 次 isolated smoke 和 artifact upload，全部成功。
+- 本次治理状态提交推送后，继续等待最终文档 head 的两个 Windows job；通过后通知 Sol 重新验收。PR 仍不得合并。
+
+## Post-V1 PR #12 F5 合并式恢复返修报告（2026-09-23）
+
+### Sol 复验问题与根因
+
+F1～F4 经 Sol 核实关闭。F5 的恢复实现此前在 Repository 初始化时无条件执行 `save(pending_workspace)`。若 `save_after_record` 已成功保存关联、但 `_clear_pending_link` 失败，之后用户又显式保存了更新的项目名称或输入，下一次启动会用恢复标记中的旧完整 workspace 覆盖这些较新数据。
+
+### 最小修复
+
+- `packages/persistence/projects_repository.py` 新增合并式恢复：待恢复 JSON 仅用于证明目标项目、核算单元、record 关联和必要结果，不再被视为完整项目的新版本。
+- 若当前目标单元已包含该 record，只清标记，项目数据保持原样。
+- 若缺少关联，只把该 record 插入目标单元的记录序列；项目名称、当前单元、表单输入、其他单元和现有结果均以最新显式保存为准。
+- 当当前结果为空或仍是待恢复记录之前的旧结果时，补入待恢复记录的结果快照与输入指纹；若已有不属于待恢复快照的更晚结果，则只补历史关联，不替换更晚结果。
+- 恢复行的 project/unit 元数据不一致、目标单元不存在或 record 已指向其他单元时抛出可解释 Repository 错误，不进行全量覆盖或猜测关联。
+
+### 回归测试
+
+- `test_pending_marker_clear_failure_does_not_overwrite_newer_explicit_save`：精确覆盖 Sol 复现，验证新项目名称、新输入、record/result 均保持。
+- `test_pending_link_merges_into_newer_save_without_replacing_project_input`：项目保存失败留下标记后，验证较新显式保存的名称和输入保持，只补 record/result/fingerprint。
+- `test_pending_link_keeps_a_later_explicitly_saved_result`：验证恢复较早 record 时保留较晚成功结果及其 fingerprint，并保留两条关联。
+
+### 本地实测
+
+环境：Windows 11 10.0.26200，CPython 3.12.14，PySide6 6.11.2，PyInstaller 6.22.3。
+
+- `.venv\Scripts\python.exe -m unittest tests.test_project_workspaces tests.test_accounting_projects_ui -v`：20/20 通过。
+- `.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`：186/186 通过，0 失败、0 错误、0 跳过（19.968 秒）。
+- compileall：通过；pip check：`No broken requirements found.`。
+- Canonical：`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
+- catalog/user/records/projects 四库从零初始化：通过；隔离目录已清理。
+- Qt offscreen GUI 验收场景 A～E：全部通过。
+- Windows standalone：构建成功；release audit 229 files；archive verification 230 visible files；2 isolated starts；隔离构建目录已清理。
+- `git diff --check`：通过；`计算表/` 无修改；用户原有未跟踪文档未处理。
+
+### 当前门禁
+
+本轮仅修改项目 Repository、直接回归测试和治理文档；未修改 migration、records schema、公式、Canonical、ParameterResolver 或 UI 行为。提交、推送及最终 PR head Windows CI 完成后，再向 Sol 发起重新验收；PR #12 继续保持未合并。
