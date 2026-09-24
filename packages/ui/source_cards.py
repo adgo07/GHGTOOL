@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -168,7 +168,18 @@ class SourceCard(QFrame):
             return
         self._expanded = expanded
         self.body.setVisible(expanded)
+        # Visibility changes alter the page's size hint.  The main scroll host
+        # has a fixed geometry, so notify Qt and ask the shell to recalculate
+        # its content height after the layout request has settled.
+        self.body.updateGeometry()
+        self.updateGeometry()
         self.expansion_changed.emit(expanded)
+        window = self.window()
+        central_widget = getattr(window, "centralWidget", None)
+        shell = central_widget() if callable(central_widget) else None
+        update_content_geometry = getattr(shell, "update_content_geometry", None)
+        if callable(update_content_geometry):
+            QTimer.singleShot(0, update_content_geometry)
         self._sync_controls()
 
     def _on_action_clicked(self) -> None:
