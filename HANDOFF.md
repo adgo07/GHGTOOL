@@ -699,7 +699,7 @@ G00～G08 已完成 Windows V1 阶段门禁。以下是 V1 完成后的“新建
 
 #### Goal
 
-在不改变 Domain、计算和记录语义的前提下，将“排放源识别”和“活动数据”合并为统一的“排放源与活动数据”页面，使用统一、可展开/折叠的 Presentation 排放源业务卡片完成十个排放源的状态识别、活动数据录入、轻量完成度反馈和输入保持。本阶段只处理页面结构、业务分组和排放源卡片交互，不启动 UIR03。
+在不改变 Domain、计算和记录语义的前提下，将“排放源识别”和“活动数据”合并为统一的“02 排放源与活动数据”页面，使用统一、可展开/折叠的 Presentation 排放源业务卡片完成十个排放源的状态识别、活动数据录入、轻量完成度反馈和输入保持。本阶段只处理页面结构、业务分组和排放源卡片交互，不启动 UIR03。
 
 #### 模型边界
 
@@ -839,3 +839,33 @@ Sol 明确批准本 Goal 对原有“不得保存项目/草稿、不得跨启动
 - Domain/持久化 parity：同一合法输入的 `CarbonMaterialInput`、既有公式结果、问题等级、参数快照及不可变 record 快照保持原行为；预览不写 records，最终成功计算恰好新增新记录，ERROR 不新增记录。
 - 执行新增定向测试、G06/G07、UIR01～UIR04 和 G08 相关回归、全量 `python -m unittest discover -s tests -t . -v`、compileall、pip check、Canonical 校验、包含 projects.sqlite 的隔离数据库从零初始化、`git diff --check`、保护 `计算表/` 检查；在 Windows 上执行 standalone build/release audit/smoke（若打包清单需调整，只允许因新项目数据库运行时需求所必需的最小改动）。
 - 报告必须将本地实测与 GitHub Actions 实测分开，准确注明环境、数量、失败/跳过和未执行原因；检查结果必须绑定最终 PR head SHA。
+
+## 23. QZC-A01 — Qingzhou-contracts 公共治理接入
+
+### 接入状态
+
+- 接入日期：`2026-09-28`；
+- 接入分支：`chore/qingzhou-contracts-adoption`；
+- 接入 PR：`#14`；
+- 上位治理仓库：`https://github.com/adgo07/Qingzhou-contracts.git`；
+- 当前无正式 contracts release/tag；
+- 锁定状态：`pre-release / bootstrap baseline`；
+- 锁定 commit：`0cd74d783fa23add6dc881b408a8c8ba8503f8e8`；
+- Architecture：`V2.1 FROZEN`；
+- Numeric / Unit / Module-Capability / Workspace-Attempt-Record-Result / qzpack：均为 `v1 DRAFT / NOT YET RELEASED`。
+
+### 生效方式
+
+当前项目只受根目录 `PLATFORM_BASELINE.md` 和 `platform-lock.json` 锁定的中央基线约束，不自动、实时跟随 `Qingzhou-contracts/main`。中央仓后续公共 Contract 变化只有在本项目显式升级 baseline 并完成兼容性核对/验收后才生效。
+
+### 本次范围
+
+QZC-A01 只建立上位治理、版本锁与差异报告，不修改 GB/T 32151.34 公式、Canonical 数据、`CarbonMaterialCalculator`、正式数值结果、数据库 schema/migration、业务 UI 或已有 Record/Workspace 生命周期；不抽公共代码、不合仓、不启动 Suite/Mobile/qzpack 全量迁移。
+
+当前兼容状态、已知本地治理文本陈旧、实现差距和 RFC Candidate 统一见：
+
+```text
+docs/governance/PLATFORM_ADOPTION_REPORT.md
+```
+
+该报告只记录后续候选，不构成自动实施授权。
