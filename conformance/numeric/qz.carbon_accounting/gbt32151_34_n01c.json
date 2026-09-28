@@ -1,0 +1,42 @@
+{
+  "schema_version": "n01c-candidate-1",
+  "pilot_id": "N01-C",
+  "module_id": "qz.carbon_accounting",
+  "standard_id": "gbt_32151_34_2024",
+  "numeric_profile": {
+    "representation": "decimal",
+    "precision": 40,
+    "rounding": "ROUND_HALF_UP",
+    "display_places": 2,
+    "business_comparison": "exact"
+  },
+  "vectors": [
+    {"case_id":"N01C-U01","category":"unit","operation":"convert","input":{"value":"1","from_unit":"t","to_unit":"kg"},"expected":"1000"},
+    {"case_id":"N01C-U02","category":"unit","operation":"convert","input":{"value":"1000","from_unit":"kg","to_unit":"t"},"expected":"1"},
+    {"case_id":"N01C-U03","category":"unit","operation":"convert","input":{"value":"1","from_unit":"MWh","to_unit":"GJ"},"expected":"3.6"},
+    {"case_id":"N01C-U04","category":"unit","operation":"convert","input":{"value":"1","from_unit":"ten_thousand_Nm3","to_unit":"Nm3"},"expected":"10000"},
+    {"case_id":"N01C-U05","category":"unit","operation":"convert","input":{"value":"1","from_unit":"percent","to_unit":"ratio"},"expected":"0.01"},
+
+    {"case_id":"N01C-Q01","category":"quantity","operation":"minimal_quantity","input":{"value":"1","quantity_type":"mass_carbon","unit_id":"t"}},
+    {"case_id":"N01C-Q02","category":"quantity","operation":"extended_quantity","input":{"value":"1","quantity_type":"substance_mass","unit_id":"t","substance_id":"CO2"}},
+    {"case_id":"N01C-Q03","category":"quantity","operation":"extended_quantity","input":{"value":"1","quantity_type":"substance_mass","unit_id":"t","substance_id":"CH4"}},
+
+    {"case_id":"N01C-C01","category":"coefficient","operation":"c_to_co2","input":{"value":"1","unit_id":"t"},"coefficient":{"coefficient_id":"stoich.co2_from_c.44_12","coefficient_type":"STOICHIOMETRIC","rational_expression":"44/12","numerator":"44","denominator":"12","formula_id":"CAR-FML-FUEL-001","source_id":"SRC-32151-34-2024","source_location":"GB/T 32151.34—2024 第5.2.1条"},"expected":"3.666666666666666666666666666666666666667"},
+    {"case_id":"N01C-C02","category":"coefficient","operation":"coefficient_value","coefficient":{"coefficient_id":"stoich.co2_from_ch4_related.44_16","coefficient_type":"STOICHIOMETRIC","rational_expression":"44/16","numerator":"44","denominator":"16","formula_id":"CAR-FML-CALCINATION-001","source_id":"SRC-32151-34-2024","source_location":"GB/T 32151.34—2024 第5.2.2条"},"expected":"2.75"},
+
+    {"case_id":"N01C-G01","category":"gwp","operation":"gwp_to_co2e_candidate","candidate_only":true,"input":{"value":"1","quantity_type":"substance_mass","unit_id":"t","substance_id":"CO2"},"gwp":{"factor_id":"gwp_co2_ar6_100","value":"1","time_horizon_years":100,"assessment_id":"IPCC-AR6-WGI","source_id":"SRC-IPCC-AR6-WGI","source_location":"Chapter 7 Table 7.15 / Supplementary Table 7.SM.7","factor_year":2021},"expected":{"value":"1","quantity_type":"co2e_mass","unit_id":"t"}},
+
+    {"case_id":"N01C-F01","category":"formula","operation":"fuel_volume","input":{"afv":"2","fcv":"0.015","fox":"0.98"},"expected":"0.1078"},
+    {"case_id":"N01C-F02","category":"formula","operation":"graphitization","expected":"1.439166666666666666666666666666666666667"},
+    {"case_id":"N01C-F03","category":"formula","operation":"fume","input":{"q":"1000","qvar":"10","hm":"30","fch":"0.02","fox":"0.98","duration":"1"},"expected":"0.00051744"},
+
+    {"case_id":"N01C-B01","category":"boundary","operation":"exact_ratio_boundary","input":{"equal":"1","below":"0.9999999999999999999999999999","above":"1.0000000000000000000000000001"}},
+    {"case_id":"N01C-D01","category":"display","operation":"display_separation","input":"1.235","expected_display":"1.24","expected_calculation":"1.235"},
+    {"case_id":"N01C-X01","category":"context","operation":"ambient_invariance","contexts":[{"precision":28,"rounding":"ROUND_HALF_EVEN"},{"precision":40,"rounding":"ROUND_HALF_UP"},{"precision":16,"rounding":"ROUND_DOWN"}]},
+    {"case_id":"N01C-P01","category":"precision","operation":"precision_sensitivity","precisions":[28,34,40,50],"reference_precision":50,"candidate_precision":40},
+
+    {"case_id":"N01C-I01","category":"invalid","operation":"reject_minimal_quantity","input":{"value":"1","quantity_type":"mass_carbon","unit_id":"MWh"}},
+    {"case_id":"N01C-I02","category":"invalid","operation":"reject_extended_quantity","input":{"value":"1","quantity_type":"co2e_mass","unit_id":"t"}},
+    {"case_id":"N01C-S01","category":"serialization","operation":"quantity_round_trip","input":{"value":"12.500","quantity_type":"substance_mass","unit_id":"t","substance_id":"C"}}
+  ]
+}
