@@ -92,3 +92,19 @@ Luna Max 必须以根目录 `HANDOFF.md` 为当前实施基线，按其中阶段
 - 每个阶段完成后生成或更新 `IMPLEMENTATION_REPORT.md`，然后停止并等待 Sol 验收。
 - 不得仅写“测试通过”；必须记录命令、通过/失败数量、未执行项和原因。
 
+# Qingzhou Contracts 上位治理
+
+本项目是青舟工业能源软件体系三个业务产品之一，受公共规范权威仓库 `https://github.com/adgo07/Qingzhou-contracts.git` 的上位公共架构与 Contract 治理约束。
+
+1. 当前批准的公共基线只以根目录 `PLATFORM_BASELINE.md` 和 `platform-lock.json` 锁定内容为准。
+2. 不得实时采用或自动跟随 `Qingzhou-contracts/main`；中央仓后续变化在本项目显式升级 baseline 前不自动生效。
+3. 只有经过显式 baseline 升级、版本/兼容性核对和本项目批准后，新的公共 Contract 才对本项目生效。
+4. 普通产品 Bug、单标准公式/解释、业务 UI、产品特有数据库字段及本模块自治问题继续在本仓库解决。
+5. 如果发现跨三个产品或跨平台的 Numeric、Unit、Module/Capability、Workspace/Attempt/Record/Result、qzpack、Conformance 等公共 Contract 缺口，不得在本项目永久私自定义同名公共规则。
+6. 上述公共缺口应先记录为 RFC Candidate，并按 Qingzhou-contracts 变更流程提交中央仓统一处理；在公共语义未冻结前只允许明确、可逆且不冒充公共规范的本地试验。
+7. Qingzhou-contracts 中状态为 `DRAFT / NOT YET RELEASED` 的内容不得在本项目描述成 `FROZEN` 或已发布正式 Contract。
+8. 公共 Contract 不得覆盖更具体且有权威依据的标准原文、已批准标准映射、标准专属业务规则和当前业务模块合法自治范围；发生真实冲突时按本仓现有 BLOCKED 流程记录，不得偷偷改掉现有治理。
+9. 当前 QZC-A01 接入只建立治理关系和版本锁，不要求重构业务代码、修改计算算法、迁移数据库、抽公共代码或重写 UI。
+10. 已发现的本地历史治理文本陈旧或公共 Contract 差距统一记录于 `docs/governance/PLATFORM_ADOPTION_REPORT.md`；该报告本身不授权实施其中的后续迁移。
+
+当前中央基线无正式 Contract release/tag，锁定的是 `Qingzhou-contracts@0cd74d783fa23add6dc881b408a8c8ba8503f8e8` 的 **pre-release / bootstrap baseline**。Architecture `V2.1` 为 **FROZEN**；Numeric、Unit、Module/Capability、Workspace/Attempt/Record/Result 与 qzpack v1 均仍为 **DRAFT**。
