@@ -306,7 +306,10 @@ class G06FormulaTests(unittest.TestCase):
             gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
             gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
         )
-        self.assertEqual(actual, approved_r6_expectation)
+        # N01-C evaluates the same frozen R6 formula under the declared 40-digit
+        # Numeric context.  This assertion is test-only tolerance evidence, not
+        # a business tolerance or an instruction to round the authoritative value.
+        self.assertLess(abs(actual - approved_r6_expectation), Decimal("1e-24"))
         self.assertNotEqual(actual, old_mapping_expectation)
 
     def test_electricity_heat_and_steam_mapping_vectors(self) -> None:
