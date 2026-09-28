@@ -1,5 +1,21 @@
 # TASK_STATE
 
+## QZC-A01 当前状态
+
+**QZC_A01_PLATFORM_GOVERNANCE_ADOPTION_READY_FOR_REVIEW**
+
+- 业务仓基线：`main@bbc753c9ad5e662b9d294cda7611a1e4e4bf8dd8`；PR #12 已合并进入 `main`。
+- 接入分支：`chore/qingzhou-contracts-adoption`；接入 PR：`#14`。
+- 上位仓库：`https://github.com/adgo07/Qingzhou-contracts.git`。
+- 当前中央仓没有正式 release/tag；本仓锁定 `pre-release / bootstrap baseline`。
+- 锁定 commit：`0cd74d783fa23add6dc881b408a8c8ba8503f8e8`。
+- Architecture：`V2.1 FROZEN`；Numeric / Unit / Module-Capability / Workspace-Attempt-Record-Result / qzpack 均为 `v1 DRAFT / NOT YET RELEASED`。
+- 当前批准基线以 `PLATFORM_BASELINE.md` 与 `platform-lock.json` 为准，不自动跟随 `Qingzhou-contracts/main`；中央后续变化只有显式升级 baseline 后才生效。
+- 本任务只修改治理文件，不修改业务公式、Canonical 数据、calculator、数据库 schema/migration 或业务 UI。
+- 兼容差距、现有治理冲突与 RFC Candidate 见 `docs/governance/PLATFORM_ADOPTION_REPORT.md`。
+
+> 下方“当前工作包 / 状态”等为 QZC-A01 接入前的历史状态原文，继续保留用于审计；其中 PR #12“未合并/等待验收”等旧表述不再代表当前默认分支状态。
+
 ## 当前工作包
 
 Post-V1：新建核算实用性与多核算单元（基于 Sol 批准的 HANDOFF.md §22）
@@ -97,6 +113,7 @@ POST_V1_F5_MERGE_RECOVERY_REWORK_READY_FOR_SOL_REVIEW
 需要 Sol 决策的具体问题：
 
 - G06 式（8）在上述固定输入下，最终批准值应为 1.439166666666666666666666667（正式标准公式）还是 3.364166666…（当前冻结映射向量）？
+
 ## 已完成
 
 - 新增 specs/common/canonical_catalog.schema.json，为 Canonical JSON 建立严格结构、枚举、日期、URI、Decimal 字符串和未知字段约束。
@@ -380,6 +397,7 @@ G05 未通过，不允许进入 G06。修正完成后应发送“重新验收G05
 需要 Sol 决策的具体问题：
 
 - G06 式（8）在上述固定输入下，最终批准值应为 1.439166666666666666666666667（正式标准公式）还是 3.364166666…（当前冻结映射向量）？
+
 ## 已完成的安全修正
 
 - CAR-RULE-NONFOSSIL-POWER-001 仅在非化石电力上下文（包括市场化绿电和自发自用绿电别名）命中；普通购电继续使用通则官方最新因子。
@@ -541,7 +559,7 @@ G05已通过，允许由用户另行启动G06；本次未启动G06。
 - 编译：`.venv\Scripts\python.exe -m compileall -q packages apps tests`；成功。
 - 依赖：`.venv\Scripts\python.exe -m pip check`；`No broken requirements found.`
 - Canonical：`.venv\Scripts\python.exe scripts\validate_canonical.py`；`valid: 9 standards, 12 sources, 7 parameters, 7 factors`。
-- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir D:\project\碳排放核算工具\tmp\sol-g06-acceptance-20260913 --app-version 0.1.0`；三库成功生成，验收临时目录已清理。
+- 三库重建：`.venv\Scripts\python.exe scripts\initialize_databases.py --source data-source\carbon_accounting\catalog.json --output-dir D:\project\碳排放核算工具\tmp\sol-g06-acceptance-20260913 --app-version g06-sol-acceptance`；三库成功生成，验收临时目录已清理。
 - 页面独立探针：空企业名称得到“未填写企业”，`exported_electricity` 与 `exported_heat` 均为 0 条，未发现输出能源或参数选择控件。
 
 G06 未通过，不允许进入 G07。本次未创建或执行 G07。请 Luna 只修正上述 G06 未通过项并补充对应测试；修正完成后发送“重新验收G06”。
@@ -880,6 +898,7 @@ Sol 当前执行环境限制：
 - 本次验收只更新 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`，不修改业务代码、测试代码、标准数据或用户文件。
 
 **G07已通过，允许由用户另行启动G08；本次未启动G08。**
+
 ## G08 实施状态（2026-09-20）
 
 **G08_REWORK_IN_PROGRESS**
@@ -908,6 +927,7 @@ Sol 当前执行环境限制：
 ### 阶段门禁
 
 当前等待 GitHub PR 检查和 Sol 预验收；不得开始 G09。提交 SHA、PR 链接和 GitHub 检查状态将在推送后补录。
+
 ## G08 预验收 NEEDS FIX 返工状态（2026-09-20）
 
 **G08_REWORK_READY_FOR_GITHUB_CHECKS**
@@ -970,6 +990,7 @@ G08 已通过。G08 是当前 `HANDOFF.md` 定义的最终阶段，Windows V1 �
 - compileall apps packages scripts tests：成功。
 - 修复分支：codex/g08-discard-confirmation-fix；main 未直接修改。
 - G09 未创建、未执行；计算表/ 和既有未跟踪 docs/handoffs/ 未处理。
+
 ## G08 验收后输入保留行为调整（2026-09-20）
 
 **READY_FOR_REVIEW**
@@ -1142,7 +1163,6 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 - GitHub Actions run `35581128076` 已针对该 head 完成：merge-ref full tests 与 PR-head standalone audit 均为 success。
 - 当前状态：返工完成，停止等待 Sol 重新验收 UIR02；不得启动 UIR03。
 
-
 ## UIR02 Sol 正式重新验收结论（2026-09-21）
 
 **PASS**
@@ -1152,7 +1172,7 @@ UIR02 已在实时 `origin/main` 基线 `09e9d5e66f30f46f4302f6b57f330c27c4a852a
 - 最新候选对应 GitHub Actions run `35581551238` 已完成且成功；Windows / Python 3.12 merge-ref full tests 与 exact PR-head standalone audit 均通过。
 - UIR02 定向测试：`.venv\Scripts\python.exe -m unittest tests.test_uir02_source_cards -v`；10/10 通过。
 - 指定回归：UIR02、UIR01、G06 页面、G06 Domain、G07 records、G08 delivery；65/65 通过。
-- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；140/140 通过，0 失败，0 错误，0 跳过。
+- 项目全量：`.venv\Scripts\python.exe -m unittest discover -s tests -t . -v`；140/140 通过，0 失败、0 错误、0 跳过。
 - `compileall`、`pip check`、Canonical 校验和三库从零重建均通过；Canonical 为 9 standards / 12 sources / 7 parameters / 7 factors。
 - 上次剩余的 I02 阻断已关闭：购入热力/动力的 Domain 错误可正确归属到 I02 卡片，错误存在时显示“需要处理”，修正后恢复“已完成”。
 - 未修改 Domain、计算公式、Canonical、SQLite schema、记录语义或用户参考文件；未实施 UIR03。
@@ -1231,7 +1251,6 @@ Sol 对 PR #7 给出 **PASS WITH MINOR FIXES** 后，本轮仅完成两项 Prese
 - 分支：`ui-refactor-uir03-advanced-details`；PR #7 仍以 `main` 为目标、未合并。
 - 实现与测试 head：`687ff425f9928b0889bd01c4a39be7e14f8eaf40`；治理文档随后提交为 `fa5d1d5a14f33c227bd2300ce4e301cc31792f0f`。
 - GitHub Actions run `35598601953` 已成功验证实现与测试 head；随后 run `35599116099` 已成功验证治理文档提交后的 PR head，Windows / Python 3.12 merge-ref full tests 与 PR-head standalone audit 均完成且成功；当前不得启动 UIR04。
-
 
 ## UIR03 Sol 正式重新验收结论（2026-09-21）
 
@@ -1386,7 +1405,6 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 
 历史阻断结论已由后续范围文本补录修订，当前状态以本文件末尾的范围文本补录记录为准。
 
-
 ## CATUI01 范围文本补录（2026-09-22）
 
 **CATUI01_SCOPE_DATA_REUSED_IN_EXISTING_NOTES_READY_FOR_SOL_REVIEW**
@@ -1414,7 +1432,6 @@ UIR01、UIR02、UIR03 均已由 Sol 正式 PASS 并通过 PR 合并进入 main�
 - release audit 明确通过现有 catalog 和范围文本检查。
 
 当前状态：等待 Sol 重新验收 CATUI01。
-
 
 ## CATUI01 验收返工（2026-09-22）
 
