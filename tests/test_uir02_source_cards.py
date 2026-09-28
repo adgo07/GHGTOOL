@@ -109,6 +109,8 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.assertEqual(self._status_combo(source_id).currentData(), EmissionSourceStatus.INVOLVED)
         self.assertTrue(card.is_expanded)
         self.assertTrue(card.body.isVisible())
+        self.assertGreater(card.body.height(), 0)
+        self.assertGreater(self.page._fields["calcination.gc"].height(), 0)
         self.assertFalse(self.page._field_has_value("calcination.gc"))
         self.assertEqual(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
 
