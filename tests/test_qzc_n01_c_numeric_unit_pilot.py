@@ -9,19 +9,17 @@ import unittest
 from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.units import UnitService
-from packages.standards import _carbon_material_impl as legacy_impl
+from packages.standards._numeric_authority import ORIGINAL_CALCULATE
 from packages.standards.carbon_material import (
     ALGORITHM_VERSION,
-    BakingInput,
     CarbonMaterialCalculator,
     CarbonMaterialInput,
     FuelInput,
-    GraphitizationInput,
-    InputValue,
-    calcination_emission,
+    baking_emission,
     fume_incineration_emission,
     graphitization_emission,
     superheated_steam_enthalpy,
+    total_emission,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,11 +51,11 @@ def _candidate_validate(quantity: dict[str, object]) -> None:
     Decimal(str(quantity["value"]))
 
 
-def _explicit_context_value(precision: int, fn, *args):
+def _explicit_context_value(precision: int, fn):
     with localcontext() as context:
         context.prec = precision
         context.rounding = ROUND_HALF_UP
-        return fn(*args)
+        return fn()
 
 
 class N01CNumericPolicyCoverageTests(unittest.TestCase):
@@ -76,15 +74,14 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
         self.assertEqual(half_up.add(left, right), Decimal("1.000000000000000000000000001"))
         self.assertEqual(half_even.add(left, right), Decimal("1.000000000000000000000000000"))
 
-    def test_before_fix_legacy_calculator_depends_on_ambient_context(self) -> None:
+    def test_before_fix_original_calculator_depends_on_ambient_context(self) -> None:
         results = []
         for precision, rounding in ((28, ROUND_HALF_EVEN), (40, ROUND_HALF_UP), (50, ROUND_HALF_EVEN)):
             with localcontext() as context:
                 context.prec = precision
                 context.rounding = rounding
-                outcome = legacy_impl.CarbonMaterialCalculator().calculate(
-                    _fuel_only_input(), calculated_at=SNAPSHOT_AT
-                )
+                calculator = CarbonMaterialCalculator()
+                outcome = ORIGINAL_CALCULATE(calculator, _fuel_only_input(), calculated_at=SNAPSHOT_AT)
                 self.assertTrue(outcome.successful)
                 results.append(outcome.result.total_amount)
         self.assertNotEqual(results[0], results[1])
@@ -97,23 +94,18 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
             with localcontext() as context:
                 context.prec = precision
                 context.rounding = rounding
-                outcome = CarbonMaterialCalculator().calculate(
-                    _fuel_only_input(), calculated_at=SNAPSHOT_AT
-                )
+                outcome = CarbonMaterialCalculator().calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
                 self.assertTrue(outcome.successful)
                 self.assertEqual(outcome.algorithm_version, ALGORITHM_VERSION)
                 results.append(outcome.result.total_amount)
         self.assertTrue(all(value == results[0] for value in results[1:]))
-        self.assertEqual(
-            results[0],
-            Decimal("3.666666666666666666666666666666666666667"),
-        )
+        self.assertEqual(results[0], Decimal("3.666666666666666666666666666666666666667"))
         print("N01C_AFTER_FIX_AMBIENT", [str(value) for value in results])
 
     def test_precision_28_34_40_50_sensitivity_on_representative_formulas(self) -> None:
         formulae = {
-            "fuel": lambda: legacy_impl.fuel_volume_emission("2", "0.015", "0.98"),
-            "baking": lambda: legacy_impl.baking_emission(
+            "fuel": lambda: __import__("packages.standards.carbon_material", fromlist=["fuel_volume_emission"]).fuel_volume_emission("2", "0.015", "0.98"),
+            "baking": lambda: baking_emission(
                 bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
                 bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
             ),
@@ -123,12 +115,12 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
             ),
             "fume": lambda: fume_incineration_emission("1000", "10", "30", "0.02", "0.98", "1"),
             "steam": lambda: superheated_steam_enthalpy("1.5", "325")[0],
-            "total": lambda: legacy_impl.total_emission(
-                legacy_impl.baking_emission(
+            "total": lambda: total_emission(
+                baking_emission(
                     bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
                     bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
                 ),
-                legacy_impl.graphitization_emission(
+                graphitization_emission(
                     gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
                     gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
                 ),
@@ -147,9 +139,7 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
         values: dict[int, Decimal] = {}
         for precision in (28, 34, 40, 50):
             calculator = CarbonMaterialCalculator(policy=DecimalPolicy(precision=precision))
-            values[precision] = calculator.calculate(
-                _fuel_only_input(), calculated_at=SNAPSHOT_AT
-            ).result.total_amount
+            values[precision] = calculator.calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT).result.total_amount
         self.assertNotEqual(values[28], values[40])
         self.assertNotEqual(values[34], values[40])
         self.assertLessEqual(abs(values[40] - values[50]), Decimal("1E-39"))
@@ -218,7 +208,7 @@ class N01CUnitQuantitySemanticsTests(unittest.TestCase):
         self.assertEqual(value <= limit, vector["expected_lte"])
 
     def test_business_boundaries_are_exact_and_is_close_is_not_called_by_calculator(self) -> None:
-        source = (ROOT / "packages" / "standards" / "_carbon_material_impl.py").read_text(encoding="utf-8")
+        source = (ROOT / "packages" / "standards" / "carbon_material.py").read_text(encoding="utf-8")
         self.assertNotIn("is_close(", source)
         self.assertIn('if amount < 0:', source)
         self.assertIn('if fractions > Decimal("1"):', source)
