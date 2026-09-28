@@ -16,6 +16,7 @@ from packages.standards.carbon_material import (
     CarbonMaterialInput,
     FuelInput,
     baking_emission,
+    calcination_emission,
     fume_incineration_emission,
     graphitization_emission,
     superheated_steam_enthalpy,
@@ -51,11 +52,41 @@ def _candidate_validate(quantity: dict[str, object]) -> None:
     Decimal(str(quantity["value"]))
 
 
-def _explicit_context_value(precision: int, fn):
+def _explicit_context_value(precision: int, fn, rounding: str = ROUND_HALF_UP):
     with localcontext() as context:
         context.prec = precision
-        context.rounding = ROUND_HALF_UP
+        context.rounding = rounding
         return fn()
+
+
+def _representative_formulae():
+    return {
+        "fuel": lambda: __import__("packages.standards.carbon_material", fromlist=["fuel_volume_emission"]).fuel_volume_emission("2", "0.015", "0.98"),
+        "calcination": lambda: calcination_emission(
+            gc="100", wfc="0.008", cc="70", ucc="5", du="1", wfc_c="0.002",
+            wvar="0.10", wvar_c="0.02", k1="0.35",
+        ),
+        "baking": lambda: baking_emission(
+            bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
+            bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
+        ),
+        "graphitization": lambda: graphitization_emission(
+            gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
+            gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
+        ),
+        "fume": lambda: fume_incineration_emission("1000", "10", "30", "0.02", "0.98", "1"),
+        "steam": lambda: superheated_steam_enthalpy("1.5", "325")[0],
+        "total": lambda: total_emission(
+            baking_emission(
+                bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
+                bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
+            ),
+            graphitization_emission(
+                gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
+                gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
+            ),
+        ),
+    }
 
 
 class N01CNumericPolicyCoverageTests(unittest.TestCase):
@@ -103,37 +134,23 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
         print("N01C_AFTER_FIX_AMBIENT", [str(value) for value in results])
 
     def test_precision_28_34_40_50_sensitivity_on_representative_formulas(self) -> None:
-        formulae = {
-            "fuel": lambda: __import__("packages.standards.carbon_material", fromlist=["fuel_volume_emission"]).fuel_volume_emission("2", "0.015", "0.98"),
-            "baking": lambda: baking_emission(
-                bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
-                bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
-            ),
-            "graphitization": lambda: graphitization_emission(
-                gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
-                gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
-            ),
-            "fume": lambda: fume_incineration_emission("1000", "10", "30", "0.02", "0.98", "1"),
-            "steam": lambda: superheated_steam_enthalpy("1.5", "325")[0],
-            "total": lambda: total_emission(
-                baking_emission(
-                    bpm="10", bpmfc="0.005", bg="100", bgfc="0.007", bwt="0.05",
-                    bp="95", bpfc="0.006", bpmvar="0.10", bgvar="0.02", k2="0.35",
-                ),
-                graphitization_emission(
-                    gpm="10", gpmfc="0.005", gta="100", gtafc="0.007", gwt="0.05",
-                    gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
-                ),
-            ),
-        }
         sensitivity: dict[str, dict[int, str]] = {}
-        for name, fn in formulae.items():
+        for name, fn in _representative_formulae().items():
             values: dict[int, Decimal] = {}
             for precision in (28, 34, 40, 50):
                 values[precision] = _explicit_context_value(precision, fn)
             sensitivity[name] = {precision: str(value) for precision, value in values.items()}
             self.assertLessEqual(abs(values[40] - values[50]), Decimal("1E-38"), name)
         print("N01C_PRECISION_SENSITIVITY", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
+
+    def test_rounding_mode_sensitivity_at_precision_40_is_measured(self) -> None:
+        sensitivity: dict[str, dict[str, str]] = {}
+        for name, fn in _representative_formulae().items():
+            half_up = _explicit_context_value(40, fn, ROUND_HALF_UP)
+            half_even = _explicit_context_value(40, fn, ROUND_HALF_EVEN)
+            sensitivity[name] = {"ROUND_HALF_UP": str(half_up), "ROUND_HALF_EVEN": str(half_even)}
+            self.assertEqual(half_up, half_even, name)
+        print("N01C_ROUNDING_MODE_SENSITIVITY", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
 
     def test_calculator_supports_explicit_28_34_40_50_profiles(self) -> None:
         values: dict[int, Decimal] = {}
@@ -187,7 +204,10 @@ class N01CUnitQuantitySemanticsTests(unittest.TestCase):
             coefficient = vector["coefficient"]
             self.assertEqual(coefficient["coefficient_type"], "STOICHIOMETRIC")
             evaluated = DecimalPolicy().divide(coefficient["numerator"], coefficient["denominator"])
-            self.assertGreater(evaluated, 0)
+            if coefficient["rational_expression"] == "44/12":
+                self.assertEqual(evaluated, Decimal("3.666666666666666666666666666666666666667"))
+            else:
+                self.assertEqual(evaluated, Decimal("2.75"))
             self.assertNotEqual(vector["input_quantity"]["substance_id"], vector["output_quantity"]["substance_id"])
 
     def test_gwp_vector_is_candidate_only_and_has_provenance(self) -> None:
@@ -217,17 +237,31 @@ class N01CUnitQuantitySemanticsTests(unittest.TestCase):
     def test_tolerance_taxonomy_is_test_only_for_confirmed_is_close_call(self) -> None:
         production_hits = []
         test_hits = []
+        audit = {key: set() for key in ("is_close", "tolerance", "abs", "approximate", "interpol")}
         for path in ROOT.rglob("*.py"):
             text = path.read_text(encoding="utf-8")
+            rel = path.relative_to(ROOT).as_posix()
+            lowered = text.lower()
+            for key, needle in (
+                ("is_close", "is_close("),
+                ("tolerance", "tolerance"),
+                ("abs", "abs("),
+                ("approximate", "approx"),
+                ("interpol", "interpol"),
+            ):
+                if needle in lowered:
+                    audit[key].add(rel)
             if "is_close(" not in text:
                 continue
-            rel = path.relative_to(ROOT).as_posix()
             if rel.startswith("tests/"):
                 test_hits.append(rel)
             elif rel != "packages/core/decimal_policy.py":
                 production_hits.append(rel)
         self.assertEqual(production_hits, [])
         self.assertIn("tests/test_g01_decimal_units.py", test_hits)
+        self.assertIn("packages/standards/carbon_material.py", audit["interpol"])
+        printable = {key: sorted(value) for key, value in audit.items()}
+        print("N01C_TOLERANCE_SCAN", json.dumps(printable, ensure_ascii=False, sort_keys=True))
 
 
 if __name__ == "__main__":
