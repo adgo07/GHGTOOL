@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import (
     ROUND_05UP,
@@ -13,11 +14,12 @@ from decimal import (
     ROUND_HALF_EVEN,
     ROUND_HALF_UP,
     ROUND_UP,
+    Context,
     Decimal,
     InvalidOperation,
     localcontext,
 )
-from typing import Callable
+from typing import Callable, Iterator
 
 
 class DecimalPolicyError(ValueError):
@@ -61,6 +63,21 @@ class DecimalPolicy:
         if self.rounding not in _VALID_ROUNDING_MODES:
             raise DecimalPolicyError("rounding must be a supported Decimal rounding mode")
 
+    @contextmanager
+    def calculation_context(self) -> Iterator[Context]:
+        """Run an authoritative operation sequence under this declared policy.
+
+        Domain formulas that use direct ``Decimal`` operators still need one
+        explicit context around the complete operation sequence.  Keeping that
+        boundary here prevents their results from inheriting a caller's global
+        Decimal context while avoiding per-operator wrapper noise.
+        """
+
+        with localcontext() as context:
+            context.prec = self.precision
+            context.rounding = self.rounding
+            yield context
+
     def parse(self, value: str | Decimal | int) -> Decimal:
         """Parse a strict decimal input without accepting binary floats."""
 
@@ -95,9 +112,7 @@ class DecimalPolicy:
     ) -> Decimal:
         left_decimal = self.parse(left)
         right_decimal = self.parse(right)
-        with localcontext() as context:
-            context.prec = self.precision
-            context.rounding = self.rounding
+        with self.calculation_context():
             result = operation(left_decimal, right_decimal)
             if not result.is_finite():
                 raise DecimalPolicyError("operation produced a non-finite Decimal")
@@ -148,6 +163,5 @@ class DecimalPolicy:
         right: str | Decimal | int,
         tolerance: str | Decimal | int = "0.0000000000000000000000000001",
     ) -> bool:
-        with localcontext() as context:
-            context.prec = self.precision
+        with self.calculation_context():
             return abs(self.parse(left) - self.parse(right)) <= self.parse(tolerance)
