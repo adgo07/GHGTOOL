@@ -1,20 +1,35 @@
 from __future__ import annotations
 
+from contextlib import ExitStack
 from datetime import date, datetime, timezone
-from decimal import Decimal, ROUND_HALF_EVEN, ROUND_HALF_UP, localcontext
+from decimal import Decimal, ROUND_HALF_EVEN, ROUND_HALF_UP, getcontext, localcontext
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
+from packages.core.errors import DomainValidationError
 from packages.core.units import UnitService
-from packages.standards._numeric_authority import ORIGINAL_CALCULATE
+import packages.standards.carbon_material as carbon_material
+from packages.standards._numeric_authority import (
+    ORIGINAL_CALCULATE,
+    current_declared_numeric_profile,
+    declared_numeric_profile,
+)
 from packages.standards.carbon_material import (
     ALGORITHM_VERSION,
+    BakingInput,
+    CalcinationInput,
     CarbonMaterialCalculator,
     CarbonMaterialInput,
     FuelInput,
+    FumeIncinerationInput,
+    GraphitizationInput,
+    HeatInput,
+    ParameterValue,
+    SteamKind,
     baking_emission,
     calcination_emission,
     fume_incineration_emission,
@@ -25,18 +40,88 @@ from packages.standards.carbon_material import (
 
 ROOT = Path(__file__).resolve().parents[1]
 VECTOR_PATH = ROOT / "conformance" / "numeric" / "qz.carbon_accounting" / "gbt32151_34_n01c.json"
-SNAPSHOT_AT = datetime(2026, 9, 29, 0, 0, tzinfo=timezone.utc)
+SNAPSHOT_AT = datetime(2026, 9, 30, 0, 0, tzinfo=timezone.utc)
 PERIOD = AccountingPeriod(PeriodType.ANNUAL, date(2025, 1, 1), date(2025, 12, 31))
 
 
-def _fuel_only_input() -> CarbonMaterialInput:
+def _fuel_only_input(activity: str = "1") -> CarbonMaterialInput:
     return CarbonMaterialInput(
         input_id="n01c.context",
         enterprise_id="enterprise.n01c",
         enterprise_name="N01-C",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.context", "1", "1", "1"),),
+        fuel_inputs=(FuelInput.mass("fuel.context", activity, "1", "1"),),
+    )
+
+
+def _full_profile_input() -> CarbonMaterialInput:
+    """Exercise all R1 representative authoritative formula families."""
+
+    return CarbonMaterialInput(
+        input_id="n01c.r1.full-profile",
+        enterprise_id="enterprise.n01c.r1",
+        enterprise_name="N01-C-R1",
+        period=PERIOD,
+        boundary_confirmed=True,
+        fuel_inputs=(FuelInput.mass("fuel.profile", "1", "1", "1"),),
+        calcination=CalcinationInput(
+            gc="100",
+            wfc="0.008",
+            cc="70",
+            ucc="5",
+            du="1",
+            wfc_c="0.002",
+            wvar="0.10",
+            wvar_c="0.02",
+            k1="0.35",
+        ),
+        baking=BakingInput(
+            bpm="10",
+            bpmfc="0.005",
+            bg="100",
+            bgfc="0.007",
+            bwt="0.05",
+            bp="95",
+            bpfc="0.006",
+            bpmvar="0.10",
+            bgvar="0.02",
+            k2="0.35",
+        ),
+        graphitization=GraphitizationInput(
+            gpm="10",
+            gpmfc="0.005",
+            gta="100",
+            gtafc="0.007",
+            gwt="0.05",
+            gp="95",
+            gpfc="0.006",
+            gpmvar="0.10",
+            k3="0.35",
+        ),
+        fume_incineration=FumeIncinerationInput(
+            q="1000",
+            qvar="10",
+            hm="30",
+            fch="0.02",
+            fox="0.98",
+            duration="1",
+        ),
+        purchased_heat=(
+            HeatInput(
+                line_id="heat.profile",
+                amount="1000",
+                factor=ParameterValue(
+                    "heat.profile.factor",
+                    "0.11",
+                    "tCO2/GJ",
+                    source_location="N01-C-R1 profile fixture",
+                ),
+                steam_kind=SteamKind.SUPERHEATED,
+                pressure_mpa="1.5",
+                temperature_c="325",
+            ),
+        ),
     )
 
 
@@ -59,9 +144,16 @@ def _explicit_context_value(precision: int, fn, rounding: str = ROUND_HALF_UP):
         return fn()
 
 
+def _declared_profile_value(precision: int, fn, rounding: str = ROUND_HALF_UP):
+    policy = DecimalPolicy(precision=precision, rounding=rounding)
+    with declared_numeric_profile(policy):
+        return fn()
+
+
 def _representative_formulae():
     return {
-        "fuel": lambda: __import__("packages.standards.carbon_material", fromlist=["fuel_volume_emission"]).fuel_volume_emission("2", "0.015", "0.98"),
+        "44/12": lambda: Decimal(44) / Decimal(12),
+        "fuel": lambda: carbon_material.fuel_volume_emission("2", "0.015", "0.98"),
         "calcination": lambda: calcination_emission(
             gc="100", wfc="0.008", cc="70", ucc="5", du="1", wfc_c="0.002",
             wvar="0.10", wvar_c="0.02", k1="0.35",
@@ -86,6 +178,26 @@ def _representative_formulae():
                 gp="95", gpfc="0.006", gpmvar="0.10", k3="0.35",
             ),
         ),
+    }
+
+
+def _full_calculator_values(precision: int, rounding: str = ROUND_HALF_UP) -> dict[str, Decimal]:
+    policy = DecimalPolicy(precision=precision, rounding=rounding)
+    outcome = CarbonMaterialCalculator(policy=policy).calculate(_full_profile_input(), calculated_at=SNAPSHOT_AT)
+    if not outcome.successful or outcome.result is None:
+        raise AssertionError(f"R1 full profile calculation failed: {outcome.problems!r}")
+    line_map = {line.line_id: line.amount for line in outcome.result.lines}
+    with declared_numeric_profile(policy):
+        steam = superheated_steam_enthalpy("1.5", "325")[0]
+    return {
+        "44/12": policy.divide("44", "12"),
+        "fuel": line_map["CAR-SRC-FUEL-001.fuel.profile"],
+        "calcination": line_map["CAR-FLD-P01-RESULT"],
+        "baking": line_map["CAR-FLD-P02-RESULT"],
+        "graphitization": line_map["CAR-FLD-P03-RESULT"],
+        "fume": line_map["CAR-FLD-P04A-RESULT"],
+        "steam": steam,
+        "total": outcome.result.total_amount,
     }
 
 
@@ -119,47 +231,183 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
         self.assertNotEqual(results[0], results[2])
         print("N01C_BEFORE_FIX_AMBIENT", [str(value) for value in results])
 
-    def test_after_fix_authoritative_calculator_ignores_ambient_context(self) -> None:
-        results = []
-        for precision, rounding in ((28, ROUND_HALF_EVEN), (34, ROUND_HALF_EVEN), (40, ROUND_HALF_UP), (50, ROUND_HALF_EVEN)):
-            with localcontext() as context:
-                context.prec = precision
-                context.rounding = rounding
-                outcome = CarbonMaterialCalculator().calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
-                self.assertTrue(outcome.successful)
-                self.assertEqual(outcome.algorithm_version, ALGORITHM_VERSION)
-                results.append(outcome.result.total_amount)
-        self.assertTrue(all(value == results[0] for value in results[1:]))
-        self.assertEqual(results[0], Decimal("3.666666666666666666666666666666666666667"))
-        print("N01C_AFTER_FIX_AMBIENT", [str(value) for value in results])
+    def test_ambient_context_independence_is_separate_from_declared_profile(self) -> None:
+        vectors = json.loads(VECTOR_PATH.read_text(encoding="utf-8"))["vectors"]
+        expected_by_precision = {
+            int(v["requested_numeric_profile"]["precision"]): Decimal(v["expected_total"])
+            for v in vectors
+            if v["kind"] == "profile_propagation"
+        }
+        observations: dict[int, list[str]] = {}
+        ambient_profiles = (
+            (28, ROUND_HALF_EVEN),
+            (34, ROUND_HALF_EVEN),
+            (40, ROUND_HALF_UP),
+            (50, ROUND_HALF_EVEN),
+        )
+        for declared_precision in (28, 34, 40, 50):
+            values = []
+            for ambient_precision, ambient_rounding in ambient_profiles:
+                with localcontext() as context:
+                    context.prec = ambient_precision
+                    context.rounding = ambient_rounding
+                    outcome = CarbonMaterialCalculator(
+                        policy=DecimalPolicy(precision=declared_precision, rounding=ROUND_HALF_UP)
+                    ).calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
+                    self.assertTrue(outcome.successful)
+                    values.append(outcome.result.total_amount)
+            self.assertTrue(all(value == values[0] for value in values[1:]))
+            self.assertEqual(values[0], expected_by_precision[declared_precision])
+            observations[declared_precision] = [str(value) for value in values]
+        print("N01C_R1_AMBIENT_INDEPENDENCE", json.dumps(observations, ensure_ascii=False, sort_keys=True))
 
-    def test_precision_28_34_40_50_sensitivity_on_representative_formulas(self) -> None:
+    def test_declared_profile_propagates_across_authoritative_helpers(self) -> None:
+        target_names = (
+            "_mul",
+            "fuel_mass_emission",
+            "calcination_emission",
+            "baking_emission",
+            "graphitization_emission",
+            "fume_incineration_emission",
+            "superheated_steam_enthalpy",
+            "purchased_heat_emission",
+            "direct_emission",
+            "indirect_emission",
+            "total_emission",
+        )
+        audit: dict[int, list[tuple[str, int | None, str | None, int, str]]] = {}
+        for precision in (28, 34, 40, 50):
+            seen: list[tuple[str, int | None, str | None, int, str]] = []
+            originals = {name: getattr(carbon_material, name) for name in target_names}
+
+            def make_probe(name: str):
+                original = originals[name]
+
+                def probe(*args, **kwargs):
+                    active = current_declared_numeric_profile()
+                    seen.append(
+                        (
+                            name,
+                            None if active is None else active.precision,
+                            None if active is None else active.rounding,
+                            getcontext().prec,
+                            getcontext().rounding,
+                        )
+                    )
+                    return original(*args, **kwargs)
+
+                return probe
+
+            with ExitStack() as stack:
+                for name in target_names:
+                    stack.enter_context(patch.object(carbon_material, name, side_effect=make_probe(name)))
+                outcome = CarbonMaterialCalculator(
+                    policy=DecimalPolicy(precision=precision, rounding=ROUND_HALF_UP)
+                ).calculate(_full_profile_input(), calculated_at=SNAPSHOT_AT)
+            self.assertTrue(outcome.successful)
+            self.assertTrue(set(target_names).issubset({entry[0] for entry in seen}))
+            for name, active_precision, active_rounding, context_precision, context_rounding in seen:
+                self.assertEqual(active_precision, precision, name)
+                self.assertEqual(active_rounding, ROUND_HALF_UP, name)
+                self.assertEqual(context_precision, precision, name)
+                self.assertEqual(context_rounding, ROUND_HALF_UP, name)
+            audit[precision] = seen
+        printable = {
+            precision: [
+                {
+                    "helper": name,
+                    "active_precision": active_precision,
+                    "active_rounding": active_rounding,
+                    "context_precision": context_precision,
+                    "context_rounding": context_rounding,
+                }
+                for name, active_precision, active_rounding, context_precision, context_rounding in entries
+            ]
+            for precision, entries in audit.items()
+        }
+        print("N01C_R1_PROFILE_PROPAGATION_AUDIT", json.dumps(printable, ensure_ascii=False, sort_keys=True))
+
+    def test_profile_mismatch_between_calculator_and_unit_service_fails(self) -> None:
+        calculator = CarbonMaterialCalculator(
+            policy=DecimalPolicy(precision=50, rounding=ROUND_HALF_UP),
+            unit_service=UnitService(DecimalPolicy(precision=40, rounding=ROUND_HALF_UP)),
+        )
+        with self.assertRaisesRegex(DomainValidationError, "numeric profile mismatch"):
+            calculator.calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
+
+    def test_profile_propagation_conformance_vectors_execute(self) -> None:
+        vectors = json.loads(VECTOR_PATH.read_text(encoding="utf-8"))["vectors"]
+        propagation = [v for v in vectors if v["kind"] == "profile_propagation"]
+        self.assertEqual({v["case_id"] for v in propagation}, {"N01C-P28", "N01C-P34", "N01C-P40", "N01C-P50", "N01C-P60"})
+        for vector in propagation:
+            requested = vector["requested_numeric_profile"]
+            effective = vector["effective_numeric_profile"]
+            self.assertEqual(requested, effective)
+            policy = DecimalPolicy(
+                precision=int(requested["precision"]),
+                rounding=requested["rounding_mode"],
+            )
+            outcome = CarbonMaterialCalculator(policy=policy).calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
+            self.assertTrue(outcome.successful)
+            self.assertEqual(outcome.result.total_amount, Decimal(vector["expected_total"]))
+
+    def test_true_full_calculator_precision_sensitivity_28_34_40_50_60(self) -> None:
+        observations = {
+            precision: _full_calculator_values(precision)
+            for precision in (28, 34, 40, 50, 60)
+        }
+        for name in observations[40]:
+            self.assertLessEqual(abs(observations[40][name] - observations[50][name]), Decimal("1E-38"), name)
+            self.assertLessEqual(abs(observations[50][name] - observations[60][name]), Decimal("1E-48"), name)
+        self.assertNotEqual(observations[28]["44/12"], observations[40]["44/12"])
+        self.assertNotEqual(observations[34]["fuel"], observations[40]["fuel"])
+        self.assertNotEqual(observations[28]["total"], observations[40]["total"])
+        printable = {
+            precision: {name: str(value) for name, value in values.items()}
+            for precision, values in observations.items()
+        }
+        print("N01C_R1_TRUE_PRECISION_SENSITIVITY", json.dumps(printable, ensure_ascii=False, sort_keys=True))
+
+    def test_formula_helpers_use_declared_profile_for_precision_sensitivity(self) -> None:
         sensitivity: dict[str, dict[int, str]] = {}
         for name, fn in _representative_formulae().items():
             values: dict[int, Decimal] = {}
-            for precision in (28, 34, 40, 50):
-                values[precision] = _explicit_context_value(precision, fn)
+            for precision in (28, 34, 40, 50, 60):
+                values[precision] = _declared_profile_value(precision, fn)
             sensitivity[name] = {precision: str(value) for precision, value in values.items()}
             self.assertLessEqual(abs(values[40] - values[50]), Decimal("1E-38"), name)
-        print("N01C_PRECISION_SENSITIVITY", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
+            self.assertLessEqual(abs(values[50] - values[60]), Decimal("1E-48"), name)
+        print("N01C_R1_FORMULA_PRECISION_SENSITIVITY", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
 
     def test_rounding_mode_sensitivity_at_precision_40_is_measured(self) -> None:
         sensitivity: dict[str, dict[str, str]] = {}
         for name, fn in _representative_formulae().items():
-            half_up = _explicit_context_value(40, fn, ROUND_HALF_UP)
-            half_even = _explicit_context_value(40, fn, ROUND_HALF_EVEN)
+            half_up = _declared_profile_value(40, fn, ROUND_HALF_UP)
+            half_even = _declared_profile_value(40, fn, ROUND_HALF_EVEN)
             sensitivity[name] = {"ROUND_HALF_UP": str(half_up), "ROUND_HALF_EVEN": str(half_even)}
             self.assertEqual(half_up, half_even, name)
-        print("N01C_ROUNDING_MODE_SENSITIVITY", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
+        print("N01C_R1_ROUNDING_MODE_REPRESENTATIVE", json.dumps(sensitivity, ensure_ascii=False, sort_keys=True))
 
-    def test_calculator_supports_explicit_28_34_40_50_profiles(self) -> None:
-        values: dict[int, Decimal] = {}
-        for precision in (28, 34, 40, 50):
-            calculator = CarbonMaterialCalculator(policy=DecimalPolicy(precision=precision))
-            values[precision] = calculator.calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT).result.total_amount
-        self.assertNotEqual(values[28], values[40])
-        self.assertNotEqual(values[34], values[40])
-        self.assertLessEqual(abs(values[40] - values[50]), Decimal("1E-39"))
+    def test_rounding_mode_reaches_authoritative_mul_when_halfway_is_hit(self) -> None:
+        activity = "1.0000000000000000000000000005"
+        half_up = CarbonMaterialCalculator(
+            policy=DecimalPolicy(precision=28, rounding=ROUND_HALF_UP)
+        ).calculate(_fuel_only_input(activity), calculated_at=SNAPSHOT_AT)
+        half_even = CarbonMaterialCalculator(
+            policy=DecimalPolicy(precision=28, rounding=ROUND_HALF_EVEN)
+        ).calculate(_fuel_only_input(activity), calculated_at=SNAPSHOT_AT)
+        self.assertTrue(half_up.successful)
+        self.assertTrue(half_even.successful)
+        self.assertEqual(half_up.result.total_amount, Decimal("3.666666666666666666666666671"))
+        self.assertEqual(half_even.result.total_amount, Decimal("3.666666666666666666666666667"))
+        self.assertNotEqual(half_up.result.total_amount, half_even.result.total_amount)
+        print(
+            "N01C_R1_AUTHORITATIVE_ROUNDING_EVIDENCE",
+            {
+                "ROUND_HALF_UP": str(half_up.result.total_amount),
+                "ROUND_HALF_EVEN": str(half_even.result.total_amount),
+            },
+        )
 
 
 class N01CUnitQuantitySemanticsTests(unittest.TestCase):
