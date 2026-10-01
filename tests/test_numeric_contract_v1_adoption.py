@@ -85,6 +85,20 @@ class NumericContractV1AdoptionTests(unittest.TestCase):
             "presentation_only_no_feedback_to_authoritative_decision",
         )
 
+    def test_formal_result_and_record_algorithm_version_map_to_numeric_v1_profile(self) -> None:
+        profile = self.vectors["numeric_profile"]
+        outcome = CarbonMaterialCalculator(policy=DecimalPolicy()).calculate(
+            _fuel_only_input(), calculated_at=SNAPSHOT_AT
+        )
+        self.assertTrue(outcome.successful)
+        self.assertIsNotNone(outcome.result)
+        self.assertIsNotNone(outcome.record)
+        self.assertEqual(outcome.algorithm_version, profile["calculator_version"])
+        self.assertEqual(outcome.result.algorithm_version, profile["calculator_version"])
+        self.assertEqual(outcome.record.algorithm_version, profile["calculator_version"])
+        self.assertEqual(profile["numeric_contract_version"], "v1")
+        self.assertEqual(profile["numeric_profile_id"], CARBON_PROFILE_ID)
+
     def test_current_carbon_decimal_policy_is_project_p40_half_up(self) -> None:
         policy = DecimalPolicy()
         self.assertEqual(policy.precision, 40)
