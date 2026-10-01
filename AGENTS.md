@@ -199,3 +199,18 @@ Standard Issue
 ```
 
 解释变化时必须同步检查测试和历史结果兼容性。本治理同步不授权修改碳核算公式、数据库、Excel、UI 或启动其他行业标准 Calculator。
+
+## 7. UI 设计前置原则
+
+后续涉及桌面 UI 的 Design / Execution / Acceptance 还必须检查中央 `docs/ui/UI_DESIGN_GUIDELINES_V0.1.md` 的当前适用版本，并遵守以下原则：
+
+1. 当前 Windows Desktop 默认 UI 技术栈为 PySide6；
+2. 用户可见内容中文优先；
+3. 普通 UI 不得默认泄露内部 `key / field / field_id / rule_id / internal_id`、Python 变量、内部枚举或调试标识；
+4. 简单业务采用 `One-page first`，但复杂核算不强制压成单屏或单步骤；
+5. 技术 trace、Numeric Profile、Calculator version、内部 Rule 等采用渐进展示，不删除审计能力；
+6. UI 设计优先满足真实用户任务，不按数据库、JSON 或代码结构组织普通页面；
+7. `Qingzhou Desktop UI Guidelines v0.1` 是 **ACTIVE / EVOLVING** 的 Product Design Guideline，不是 Frozen Contract；
+8. AI 不得因为 v0.1 的推荐 AppShell、页面示意或当前实现而拒绝合理的页面改进，也不得把当前七项导航误当永久冻结结构。
+
+该 UI Guideline 不改变本仓 `platform-lock.json` 的 Frozen Contract 锁定语义，也不授权本任务修复 `UI_CURRENT_STATE_AUDIT.md` 中记录的问题。
