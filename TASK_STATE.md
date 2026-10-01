@@ -1,6 +1,6 @@
 # TASK_STATE
 
-## QZC-A01 当前状态
+## QZC-A01 接入状态（历史接入记录；其中锁定 SHA 与 Contract 状态已被后续 Numeric v1 adoption 取代，见下方说明）
 
 **QZC_A01_PLATFORM_GOVERNANCE_ADOPTION_READY_FOR_REVIEW**
 
@@ -13,6 +13,12 @@
 - 当前批准基线以 `PLATFORM_BASELINE.md` 与 `platform-lock.json` 为准，不自动跟随 `Qingzhou-contracts/main`；中央后续变化只有显式升级 baseline 后才生效。
 - 本任务只修改治理文件，不修改业务公式、Canonical 数据、calculator、数据库 schema/migration 或业务 UI。
 - 兼容差距、现有治理冲突与 RFC Candidate 见 `docs/governance/PLATFORM_ADOPTION_REPORT.md`。
+
+> **锁定基线修正说明（2026-10-02，Governance Streamline 任务补充；不重写上方历史正文）**
+>
+> - **历史口径**（QZC-A01 接入当时）：锁定 `Qingzhou-contracts@0cd74d783fa23add6dc881b408a8c8ba8503f8e8`；Numeric / Unit / Module-Capability / Workspace-Attempt-Record-Result / qzpack 均为 `v1 DRAFT / NOT YET RELEASED`。上方列表保留该历史原文，仅代表 QZC-A01 当时状态。
+> - **当前口径**：本仓其后通过独立 Numeric Contract v1 compatibility/adoption 任务升级为 `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`；Architecture `V2.1` 与 Numeric Contract `v1` 为 `FROZEN / ADOPTED`；Unit、Module/Capability、Workspace/Attempt/Record/Result、qzpack v1 仍为 `DRAFT`，Quantity public schema 仍 `NOT FROZEN`。
+> - **当前权威来源**：根目录 `platform-lock.json` 与 `PLATFORM_BASELINE.md`（`REFERENCE_STANDARD_ROADMAP.md` 记录的是升级后 SHA，与本说明一致；`HANDOFF.md §23` 保留同一历史口径）。两者不一致时以 `platform-lock.json` / `PLATFORM_BASELINE.md` 为准。
 
 > 下方“当前工作包 / 状态”等为 QZC-A01 接入前的历史状态原文，继续保留用于审计；其中 PR #12“未合并/等待验收”等旧表述不再代表当前默认分支状态。
 
