@@ -174,3 +174,28 @@ Luna Max 必须以根目录 `HANDOFF.md` 为当前实施基线，按其中阶段
 > 用户界面、治理文档、路线、执行/验收报告、PR/Issue 描述、错误/校验提示、结果解释和面向人的说明优先使用中文。
 
 机器字段与稳定技术标识保持英文；人阅读时优先使用“中文名称（英文标识）”。
+
+## 6. 标准问题与解释治理
+
+开工前必须读取根目录 `STANDARD_ISSUES_REGISTER.md`，确认当前任务是否涉及已有 Standard Issue。
+
+正式 Design、Execution Report、Acceptance Report 的“平台 / Contract 预检查”必须增加：
+
+```text
+是否存在与当前任务相关的 Standard Issue：是 / 否
+涉及的问题编号：……
+本任务是否改变既有软件解释：是 / 否
+```
+
+在标准映射、软件设计、Calculator、Golden Case、测试、Excel、用户实际使用或标准更新过程中发现新的标准疑似笔误、歧义、冲突、未规定、术语、引用或软件实现解释问题时，必须先登记台账，再完成正式实现说明。
+
+每个问题必须区分“标准原文事实”“技术判断”“软件实现决定”。不得把内部判断或软件选择写成标准明文，不得静默纠正标准。影响正式业务结果的问题必须能追踪：
+
+```text
+Standard Issue
+→ Software Decision
+→ Rule / Calculator
+→ Test / Golden Case
+```
+
+解释变化时必须同步检查测试和历史结果兼容性。本治理同步不授权修改碳核算公式、数据库、Excel、UI 或启动其他行业标准 Calculator。
