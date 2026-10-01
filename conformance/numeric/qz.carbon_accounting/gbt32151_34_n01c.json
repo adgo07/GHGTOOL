@@ -2,13 +2,27 @@
   "pilot_id": "N01-C",
   "module_id": "qz.carbon_accounting",
   "standard_id": "gbt_32151_34_2024",
-  "status": "CANDIDATE_NOT_PLATFORM_FROZEN",
+  "status": "NUMERIC_V1_ADOPTED__UNIT_QUANTITY_CANDIDATES_REMAIN_OPEN",
+  "numeric_contract": {
+    "version": "v1",
+    "status": "FROZEN",
+    "central_baseline_sha": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+    "document": "contracts/numeric/NUMERIC_CONTRACT_V1_FROZEN.md",
+    "profiles_document": "contracts/numeric/NUMERIC_PROFILES_V1_FROZEN.md"
+  },
   "numeric_profile": {
+    "numeric_profile_id": "GHGTOOL_CARBON_DECIMAL40_CURRENT",
+    "numeric_contract_version": "v1",
+    "calculator_version": "CAR-SM01-2026-09-30-N01C-R1.1",
     "representation": "decimal",
     "working_precision": 40,
     "rounding_mode": "ROUND_HALF_UP",
     "display_places": 2,
-    "business_comparison": "exact_full_value"
+    "comparison_policy": "full_value_exact",
+    "explicit_rounding_policy": "governing_source_or_rule_only",
+    "transcendental_policy": "not_applicable_to_current_carbon_profile_arithmetic_interpolation_evidence",
+    "tolerance_policy": "purpose_specific_no_global_business_epsilon",
+    "display_policy": "presentation_only_no_feedback_to_authoritative_decision"
   },
   "vectors": [
     {"case_id":"N01C-U01","kind":"unit_conversion","value":"1000","from_unit":"kg","to_unit":"t","expected":"1"},
