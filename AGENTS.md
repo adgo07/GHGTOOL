@@ -107,4 +107,4 @@ Luna Max 必须以根目录 `HANDOFF.md` 为当前实施基线，按其中阶段
 9. 当前 QZC-A01 接入只建立治理关系和版本锁，不要求重构业务代码、修改计算算法、迁移数据库、抽公共代码或重写 UI。
 10. 已发现的本地历史治理文本陈旧或公共 Contract 差距统一记录于 `docs/governance/PLATFORM_ADOPTION_REPORT.md`；该报告本身不授权实施其中的后续迁移。
 
-当前中央基线无正式 Contract release/tag，锁定的是 `Qingzhou-contracts@0cd74d783fa23add6dc881b408a8c8ba8503f8e8` 的 **pre-release / bootstrap baseline**。Architecture `V2.1` 为 **FROZEN**；Numeric、Unit、Module/Capability、Workspace/Attempt/Record/Result 与 qzpack v1 均仍为 **DRAFT**。
+当前显式锁定基线已升级为 `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`。Architecture `V2.1` 与 Numeric Contract `v1` 为 **FROZEN**；Numeric v1 已通过本项目单独 compatibility/adoption 任务采用。Unit、Module/Capability、Workspace/Attempt/Record/Result 与 qzpack v1 继续为 **DRAFT**，Quantity public schema 继续 **NOT FROZEN**。具体状态以 `PLATFORM_BASELINE.md` 与 `platform-lock.json` 为准。
