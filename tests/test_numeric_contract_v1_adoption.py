@@ -10,7 +10,12 @@ from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError
 from packages.core.units import UnitService
-from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput, FuelInput
+from packages.standards.carbon_material import (
+    ALGORITHM_VERSION,
+    CarbonMaterialCalculator,
+    CarbonMaterialInput,
+    FuelInput,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +71,7 @@ class NumericContractV1AdoptionTests(unittest.TestCase):
         self.assertEqual(contract["central_baseline_sha"], CENTRAL_NUMERIC_V1_SHA)
         self.assertEqual(profile["numeric_profile_id"], CARBON_PROFILE_ID)
         self.assertEqual(profile["numeric_contract_version"], "v1")
+        self.assertEqual(profile["calculator_version"], ALGORITHM_VERSION)
         self.assertEqual(profile["representation"], "decimal")
         self.assertEqual(profile["working_precision"], 40)
         self.assertEqual(profile["rounding_mode"], "ROUND_HALF_UP")
