@@ -1,8 +1,8 @@
 # GHGTOOL 参考标准开发路线
 
-状态：**CURRENT INVENTORY / GOVERNANCE ROADMAP**  
-盘点日期：2026-10-01  
-盘点基线：`main@f2f9c4f581fb4f39382b4b3f7db873bfddfaee4f`  
+状态：**CURRENT INVENTORY / GOVERNANCE ROADMAP**
+盘点日期：2026-10-01
+盘点基线：`main@f2f9c4f581fb4f39382b4b3f7db873bfddfaee4f`
 参考标准：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 
 > 本文件只盘点当前真实产品能力并调整后续交付优先级，不修改 Calculator、排放公式、Numeric Profile、数据库、Excel 功能、GUI 或 Frozen Contract。
