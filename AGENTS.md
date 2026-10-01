@@ -44,8 +44,8 @@ Luna Max 必须以根目录 `HANDOFF.md` 为当前实施基线，按其中阶段
 - 点击“计算排放量”并通过致命校验后，立即生成一条不可编辑的新核算记录；再次计算不得覆盖旧记录。
 - 记录只允许 `COMPLETED` 或 `COMPLETED_WITH_WARNINGS`；致命错误不生成核算记录。
 - 删除核算记录必须二次确认并留下审计日志；不得直接修改历史记录。
-- Excel 导入只保留禁用入口和占位说明，内部默认不可点击、不可选择。
-- 报告与导出、企业档案完善、企业层级、企业真实输入基准和黄金算例暂不实施。
+- 当前实现中 Excel 导入仍只保留禁用入口和占位说明；这描述的是**当前产品状态**，不是永久豁免。后续必须按 `REFERENCE_STANDARD_ROADMAP.md` 和中央产品交付 Policy 在软件核心闭环后单独完成 Excel 适配器，本治理任务不启用或实现该功能。
+- 当前 V1 的报告与导出、企业档案完善、企业层级、企业真实输入基准和黄金算例仍未实施；其中后续 Reference Standard 所需的必要导出按中央产品交付 Policy 单独规划，本治理任务不顺手实现。
 - 标准全文不得复制或打包进软件；“打开标准原文”只能调用官方网址。
 - GB/T 32151.34 遇到其他行业活动或上下游运输时只提示需要其他标准，不得猜算、套算或并入当前结果。
 - 内部使用十进制高精度计算；中间结果默认不舍入；最终界面默认显示 2 位小数，标准明确要求除外。
@@ -108,3 +108,69 @@ Luna Max 必须以根目录 `HANDOFF.md` 为当前实施基线，按其中阶段
 10. 已发现的本地历史治理文本陈旧或公共 Contract 差距统一记录于 `docs/governance/PLATFORM_ADOPTION_REPORT.md`；该报告本身不授权实施其中的后续迁移。
 
 当前显式锁定基线已升级为 `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`。Architecture `V2.1` 与 Numeric Contract `v1` 为 **FROZEN**；Numeric v1 已通过本项目单独 compatibility/adoption 任务采用。Unit、Module/Capability、Workspace/Attempt/Record/Result 与 qzpack v1 继续为 **DRAFT**，Quantity public schema 继续 **NOT FROZEN**。具体状态以 `PLATFORM_BASELINE.md` 与 `platform-lock.json` 为准。
+
+# 青舟平台开发前置检查（Qingzhou Platform Contract Preflight）
+
+本节统一约束后续设计、开发、重构、修复、标准接入、Calculator、Numeric、Excel、Record、数据库、Schema、Module、Package、跨平台和导入导出任务。
+
+## 1. 开工前必须检查锁定中央规则
+
+```text
+读取本仓 platform-lock.json
+→ 确认锁定的 Qingzhou-contracts commit SHA
+→ 按 locked SHA 读取相关 Frozen Contract
+→ 提取适用于本任务的 MUST / MUST NOT
+→ 检查是否冲突并分类
+→ 确认后再开始设计或编码
+```
+
+不得直接把 Qingzhou-contracts 最新 `main` 当成本仓新基线。只有任务明确要求升级中央 Contract 时，才允许通过独立治理变更 `PLATFORM_BASELINE.md` / `platform-lock.json`。
+
+中央产品交付治理文件：
+
+`docs/governance/PRODUCT_DELIVERY_POLICY_V1.md`
+
+它是 Architecture V2.1 下的 **ACTIVE GOVERNANCE POLICY**，用于统一产品优先级与交付顺序；不是 Frozen Contract，不自动改变本仓 Contract lock。
+
+## 2. 当前产品交付优先级
+
+- **Windows-first**：Windows Desktop 是当前第一正式交付、GUI、测试、打包、文件/Excel 和用户验收平台；
+- **Reference Standard first**：当前参考标准为 `GB/T 32151.34—2024` 炭素材料生产企业核算模块，并继续受 GB/T 32150—2025 通用规则约束；
+- **Product-core-first**：先确认现有软件核心纵向闭环完整，再补参考标准 Excel；
+- **Excel-as-adapter**：后续 Excel 必须作为 Import/Export Adapter 进入同一 Canonical input / Application / Domain / Calculator / result model，不得形成第二套碳核算算法；
+- **Cross-platform-ready**：当前不全面开发 Android/iOS/HarmonyOS，但 Domain/Application 不得依赖 Windows UI/API；
+- **逐标准扩展**：Reference Standard + Excel 闭环正式验收前，七个计划行业标准继续 catalog-only，不得批量启动新 Calculator。
+
+当前 Reference Standard 真实状态统一见：
+
+`REFERENCE_STANDARD_ROADMAP.md`
+
+## 3. Contract 冲突分类
+
+发现本仓与中央规则不一致时，必须使用：
+
+- `LOCAL DEFECT`：本地实现违反已采用 Frozen Contract；修本地；
+- `ALLOWED PROJECT DIFFERENCE`：中央明确允许项目级差异，例如 Carbon p40/HALF_UP Profile；不得为了表面统一强改；
+- `REGISTERED DEVIATION`：已登记但未关闭的偏差；按治理状态处理；
+- `CENTRAL CONTRACT GAP`：真实业务需求无法被当前中央 Contract 表达；不得在 GHGTOOL 永久私自定义另一套公共规则，应整理业务证据/实际案例/Contract 缺口/Candidate 返回 Qingzhou-contracts。
+
+## 4. 正式报告必须包含平台预检查
+
+后续正式 Design、Execution Report、Acceptance Report 至少记录：
+
+- 当前业务仓 SHA；
+- `platform-lock.json` / locked central SHA；
+- 本任务相关 Frozen Contract；
+- 适用 MUST / MUST NOT；
+- 是否发现冲突及其分类；
+- 是否需要中央 Contract 修改。
+
+如果任务确实与中央公共语义无关，也必须明确写：`本任务不涉及中央公共 Contract。`
+
+## 5. 中文优先
+
+在不破坏稳定机器接口、JSON/YAML/schema/API/enum/Module ID/Contract ID、Python 标识符、自动化测试和跨平台兼容的前提下：
+
+> 用户界面、治理文档、路线、执行/验收报告、PR/Issue 描述、错误/校验提示、结果解释和面向人的说明优先使用中文。
+
+机器字段与稳定技术标识保持英文；人阅读时优先使用“中文名称（英文标识）”。
