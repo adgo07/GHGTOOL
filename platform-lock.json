@@ -2,8 +2,8 @@
   "repository": "https://github.com/adgo07/Qingzhou-contracts.git",
   "contracts_release": null,
   "release_tag": null,
-  "baseline_status": "pre-release-bootstrap",
-  "commit_sha": "0cd74d783fa23add6dc881b408a8c8ba8503f8e8",
+  "baseline_status": "numeric-v1-frozen-baseline",
+  "commit_sha": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
   "architecture_version": {
     "version": "2.1",
     "status": "FROZEN",
@@ -11,8 +11,8 @@
   },
   "numeric_contract": {
     "version": "v1",
-    "status": "DRAFT",
-    "document": "contracts/numeric/NUMERIC_CONTRACT_V1_DRAFT.md"
+    "status": "FROZEN",
+    "document": "contracts/numeric/NUMERIC_CONTRACT_V1_FROZEN.md"
   },
   "unit_contract": {
     "version": "v1",
@@ -35,6 +35,6 @@
     "document": "contracts/package/QZPACK_CONTRACT_V1_DRAFT.md"
   },
   "module_id": "qz.carbon_accounting",
-  "adopted_at": "2026-09-28",
+  "adopted_at": "2026-10-01",
   "auto_upgrade": false
 }
