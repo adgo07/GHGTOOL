@@ -1,7 +1,7 @@
 # GHG-RS01-A 实施报告
 
 日期：2026-10-02；工作包：GB/T 32151.34—2024 Core Function Check。
-状态：**审计及Local完成，待PR最新head CI与独立验收**。
+状态：**GHG-RS01-A审计及交付完成，待独立验收**；最终文档head仍须等待其实际CI回执。
 
 ## 1. 基线与范围
 
@@ -74,9 +74,16 @@ Windows，仓库 `.venv/Scripts/python.exe` 3.12.14；Qt使用QT_QPA_PLATFORM=of
 
 ## 6. GitHub Actions — 与Local分开
 
-**首次报告提交时：NOT EXECUTED，本任务PR尚未创建，无本任务run。** 旧PR #21 CI不是本任务证据。
+任务PR：[PR #22](https://github.com/adgo07/GHGTOOL/pull/22)，目标main、保持open，不自行合并。
 
-PR创建后必须等待最新head的Merge-ref Full Tests与PR-head Standalone Audit；实际head/run/jobs写入后续稳定断点。CI记录提交产生新文档head后，仍等待该最新head，不预写通过。
+已实际完成的CI证据：[Windows CI run 36971166108](https://github.com/adgo07/GHGTOOL/actions/runs/36971166108)，绑定审计提交 `47bae76785b0526e593ce61da857994adde23d45`。
+
+| Job | 结果 |
+|---|---|
+| Merge-ref Full Tests，110725244478 | success；日志Ran 214 tests in 31.935s / OK；Canonical、compileall、pip check、四库重建、GUI A～E、125%/150%均成功 |
+| PR-head Standalone Audit，110725575929 | success；精确审计head构建、Canonical、compileall、pip check、四库重建、GUI/缩放、G08 delivery、standalone build、release audit、archive manifest、provenance、isolated smoke和artifact upload全部成功 |
+
+上表是GitHub Actions，不是Local。首次报告提交时本任务确实尚无PR/run，未预写CI通过。该CI证据写入产生新文档head后，仍须等待PR最新head的实际两项检查；最终run/head以PR与交付回执为准，不把47bae76的成功自动当作新head通过。
 
 ## 7. 停止点
 
