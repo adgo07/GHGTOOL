@@ -4,8 +4,11 @@
 Execution base：`main@29f8718064e6038afd2407f7eb0566b6c31132a8`  
 Reference Standard：`GB/T 32151.34—2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业`  
 状态：**AUDIT ONLY / 只盘点，不修改 UI**
+文件定位：**专项 UI 盘点证据**，不是当前整体产品路线
 
 > 本文件只记录当前默认分支真实 UI 状态。不得由本 Audit 自动修改 Calculator、数据库、Excel、正式 UI、Mapping、其他行业标准或 Frozen Contract。
+>
+> 本文件**不是** Roadmap。产品级路线以 `REFERENCE_STANDARD_ROADMAP.md` 为唯一权威；本文件登记的问题按该 Roadmap 第 9 节归入对应阶段，不再派生独立的 UIR05～UIRxx 平行路线。
 
 ## 1. 审计依据与边界
 
@@ -195,6 +198,18 @@ AppShell：`packages/ui/shell.py::AppShell`，采用固定左侧导航 + `QStack
 | `GHG-UI-005` | `LANGUAGE` | P3 | 普通结果仍使用 `ET` 等公式符号，虽专业用户可理解但可读性仍可改善 | 保留标准符号，同时补充更自然中文解释 |
 
 当前没有发现仅凭源码即可认定为 P0 的 UI 问题。
+
+### 7.1 阶段归属（以 `REFERENCE_STANDARD_ROADMAP.md` 为准）
+
+| 登记项 | 归属阶段 |
+|---|---|
+| `GHG-UI-001` | `RS01` / `RS02`（结果可达性与信息层级） |
+| `GHG-UI-002` | `RS01` / `RS02`（普通层内部编号泄露） |
+| `GHG-UI-003` | `RS03`（随 Excel 正式闭环自然解决） |
+| `GHG-UI-004` | 非阻塞技术债，在适当 UI 工作包中解除，不单独开路线 |
+| `GHG-UI-005` | `RS01` / `RS02`（普通层公式符号可读性） |
+
+本文件只保有登记与归属，不派生 UIR05～UIRxx 平行路线，也不授权自动重构。
 
 ## 8. 正向设计记录
 
