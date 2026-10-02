@@ -854,6 +854,12 @@ Sol 明确批准本 Goal 对原有“不得保存项目/草稿、不得跨启动
 - Architecture：`V2.1 FROZEN`；
 - Numeric / Unit / Module-Capability / Workspace-Attempt-Record-Result / qzpack：均为 `v1 DRAFT / NOT YET RELEASED`。
 
+> **锁定基线修正说明（2026-10-02，Governance Streamline 任务补充；不重写上方历史正文）**
+>
+> - **历史口径**（QZC-A01 接入当时）：锁定 `0cd74d783fa23add6dc881b408a8c8ba8503f8e8`，Numeric 等 Contract 均为 `v1 DRAFT / NOT YET RELEASED`。
+> - **当前口径**：本仓其后通过独立 Numeric Contract v1 compatibility/adoption 任务升级为 `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`；Architecture `V2.1` 与 Numeric Contract `v1` 为 `FROZEN / ADOPTED`，Unit、Module/Capability、Workspace/Attempt/Record/Result、qzpack v1 仍为 `DRAFT`，Quantity public schema 仍 `NOT FROZEN`。
+> - **当前权威来源**：根目录 `platform-lock.json` 与 `PLATFORM_BASELINE.md`（`TASK_STATE.md` 顶部已同步同一说明）。
+
 ### 生效方式
 
 当前项目只受根目录 `PLATFORM_BASELINE.md` 和 `platform-lock.json` 锁定的中央基线约束，不自动、实时跟随 `Qingzhou-contracts/main`。中央仓后续公共 Contract 变化只有在本项目显式升级 baseline 并完成兼容性核对/验收后才生效。

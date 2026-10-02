@@ -1,5 +1,13 @@
 # PLATFORM_ADOPTION_REPORT
 
+> 状态：**HISTORICAL-SUPERSEDED（QZC-A01 接入当时的上位基线记录）**
+>
+> 用途：Qingzhou-contracts 公共治理首次接入（QZC-A01）的历史 adoption 证据与当时的兼容差距记录
+>
+> 注意：不得作为当前正式规则依据。本报告记录的 `commit_sha: 0cd74d78…` 与“Numeric Contract 为 v1 DRAFT”属于 QZC-A01 历史口径；本仓其后已通过独立 Numeric Contract v1 compatibility/adoption 升级基线，`platform-lock.json` / `PLATFORM_BASELINE.md` 是唯一当前权威。
+>
+> 当前权威：根目录 `platform-lock.json`、`PLATFORM_BASELINE.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md`
+
 ## 1. 当前仓信息
 
 ```text

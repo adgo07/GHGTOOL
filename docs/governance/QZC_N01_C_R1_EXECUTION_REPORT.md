@@ -1,5 +1,13 @@
 # QZC-N01-C-R1 — Declared Numeric Profile Propagation Fix Execution Report
 
+> 状态：**HISTORICAL-SUPERSEDED**
+>
+> 用途：N01-C Independent Acceptance FAIL 后定点整改的历史 Execution 证据（历史审计证据）
+>
+> 注意：不得作为当前正式规则依据。本报告中的中央锁定 SHA（`0cd74d78…`）与“Numeric Contract 仍为 DRAFT”等表述属于该任务历史口径；Independent Re-Acceptance 其后已 PASS，Numeric Contract v1 已由独立 adoption 任务采用为 FROZEN。
+>
+> 当前权威：根目录 `platform-lock.json`、`PLATFORM_BASELINE.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md`
+
 状态：**REMEDIATION EXECUTION COMPLETE / INDEPENDENT ACCEPTANCE NOT STARTED**  
 代表标准：**GB/T 32151.34—2024**  
 Module ID：`qz.carbon_accounting`  
