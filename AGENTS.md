@@ -5,11 +5,50 @@
 ## 1. 仓库身份
 
 - Module ID `qz.carbon_accounting`；产品：青舟温室气体排放核算软件（Windows V1.1.0）；技术栈/平台：Python 3.12 + PySide6/Qt Widgets + SQLite，Windows x64。
+- Canonical repository：`https://github.com/adgo07/GHGTOOL.git`。
 - 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准），并继续受 `GB/T 32150—2025` 通用规则约束。
 - 当前主要产品阶段：Post-V1 — Windows 离线产品已交付，参考标准核心纵向闭环接近完整；缺口为“结果解释的 Reference Standard 集中产品验收”与“正式 Excel 闭环”，真实状态以 `REFERENCE_STANDARD_ROADMAP.md` 为准。
 - 实施基线 `HANDOFF.md`（稳定断点同步 `TASK_STATE.md`）；Sol 决策验收、Luna Max 实施，一个阶段只能建立一个 Goal。
 
 第一条完整业务链只实现 `GB/T 32150—2025` + `GB/T 32151.34—2024`；其余七项计划标准本阶段只允许建立标准目录和状态信息，不得实现、猜测或复用计算规则。
+
+### 1.1 仓库身份与本地执行环境
+
+**仓库身份**以 GitHub owner/repository 与 `git origin` 为准，**不以本地文件夹名或绝对路径为准**：
+
+| 仓库 | Canonical repository |
+|---|---|
+| 本仓（GHGTOOL） | `https://github.com/adgo07/GHGTOOL.git` |
+| 中央治理仓（Qingzhou-contracts） | `https://github.com/adgo07/Qingzhou-contracts.git` |
+| 兄弟业务仓 | `https://github.com/adgo07/ECQuota-Insight.git`、`https://github.com/adgo07/EquipEffi.git` |
+
+规则：
+
+1. 本仓长期身份以 GitHub owner/repository + `git origin` 为准；**本地绝对路径只是当前运行环境，不是仓库身份**；
+2. **不得**把某台电脑的 `C:\` / `D:\` / `E:\` / `G:\` 等绝对路径当成跨机器固定路径；
+3. 历史 HANDOFF / 报告中的绝对路径只是**历史执行环境记录**，不得直接作为当前 checkout 地址；
+4. **不得仅凭文件夹名判断仓库**；
+5. **不得假设** `Qingzhou-contracts` 一定位于 `../Qingzhou-contracts` 或任何固定相对位置。
+
+**本地正式任务开始前必须实际确认**（不得凭记忆或上次会话推断）：
+
+```powershell
+git rev-parse --show-toplevel      # 实际工作树根
+git remote get-url origin          # 实际 origin
+git branch --show-current          # 当前分支
+git rev-parse HEAD                 # 当前 head
+git status --short                 # 工作区状态
+git fetch origin                   # 同步远端
+```
+
+6. 必须确认当前 `origin` 与本任务指定的 GitHub 仓库**一致**；
+7. **若 `origin` 不一致，必须 `BLOCKED` 停止，不得继续修改错误仓库**；
+8. `fetch` 后检查默认分支 / `origin` 默认分支是否同步，并核对默认分支名（本仓默认分支为 `main`）；
+9. 需要读取 `Qingzhou-contracts` 或其他青舟仓库时：
+   - **已存在本地 clone**：先验证其 `origin` 指向预期 GitHub 仓库，再读取；
+   - **没有可信本地 clone**：从 GitHub 读取；
+   - 不得仅凭文件夹名判断仓库；
+   - 不得假设中央仓位于任何固定相对路径。
 
 ## 2. 本仓专属硬规则
 
@@ -41,7 +80,11 @@
 
 ### 2.4 Workspace / Record
 
-- 碳核算 V1 不向用户提供 `.qzproj` 项目文件，不设置项目保存、草稿、审批状态或恢复未计算输入。
+- **项目保存与 `.qzproj` 是两件事，必须区分：**
+  - 当前仍**不提供** `.qzproj` 可移植项目文件（平台无关的交换/归档格式仍未冻结，见中央 Workspace 相关 DRAFT Contract）；
+  - Post-V1 **已支持**基于独立 `projects.sqlite` 的本地项目保存、打开，以及未完成输入的跨启动恢复（依据 `HANDOFF.md` §22，Sol 已批准并实施）；
+  - **可变** Project / Workspace 状态只写入独立 `projects.sqlite` 与独立迁移目录 / Repository，**不得混入不可变 `records.sqlite`**；
+  - 正式 Record 的语义保持不变：成功核算记录只写入 `records.sqlite`，**不可编辑、每次成功计算新增一条**。
 - runtime `form_state` 只是 **Presentation State**（含 Qt `objectName()`、`currentIndex()` 等），不得成为跨平台 Workspace Contract，也不得被未来 `.qzproj` / Suite / Mobile 直接复制。
 - 点击“计算排放量”并通过致命校验后，立即生成一条不可编辑的新核算记录，再次计算不得覆盖旧记录；记录只允许 `COMPLETED` 或 `COMPLETED_WITH_WARNINGS`，致命错误不生成核算记录；删除记录必须二次确认并留审计日志，不得直接修改历史记录。
 - 不可变正式 Record 与参数快照：正式记录保存输入、结果、参数快照、有效规则集和审计信息，Catalog / 算法升级不得使历史正式 Record 自动漂移。
