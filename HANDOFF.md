@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-03（GHG-GOV-R1）
+最后更新：2026-10-02（GHG-GOV-R1）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -65,9 +65,18 @@ Module ID：`qz.carbon_accounting`
 - `44/12`、`44/16` 是 quantity transformation 使用的 stoichiometric / standard-formula coefficient；GWP 是 characterization / equivalence factor。三者都**不是** ordinary unit conversion multiplier。
 - 单位换算只能通过 `UnitService`；算法模块不得散落手写换算常数。
 
-### 3.3 记录生命周期
+### 3.3 未计算输入与记录生命周期
 
-- 未点击计算前，输入只存在于页面/项目状态中；离开含未计算输入的页面时提示数据将丢失。
+本节描述当前真实行为；任何“离开页面即提示未计算数据丢失”的表述都是已废弃的旧 G07 语义，不再是本仓当前规则。
+
+- 未点击计算前不生成 Record；输入保持在页面状态中。
+- **在同一运行期内离开新建核算页面不弹确认框，输入完整保留**：切换到其他页面再返回后，企业名、核算期、边界、排放源状态、燃料与多电力明细等输入仍然存在（回归：`tests/test_g07_records.py::test_leaving_uncomputed_page_preserves_every_input_without_confirmation`）。
+- 明确保存的项目与未完成输入写入独立 `projects.sqlite`，可在应用重启后恢复。
+- 关闭软件时只在存在**尚未保存的项目修改**时询问“保存 / 放弃 / 取消”；没有未保存修改或没有项目服务时直接关闭（回归：`tests/test_g07_records.py::test_closing_uncomputed_page_closes_without_confirmation`）。
+- 项目内多个核算单元之间切换使用各自的单元状态，不做隐式合并或分摊。
+
+记录生命周期本身保持不变：
+
 - 致命校验失败：不执行完整计算，**不生成** Record。
 - 成功计算：立即写入一条新的不可编辑 Record；无警告为 `COMPLETED`，有非致命警告为 `COMPLETED_WITH_WARNINGS`。
 - 历史 Record 只读，不允许原地修改或覆盖；再次计算必须新增 Record。
@@ -77,7 +86,7 @@ Module ID：`qz.carbon_accounting`
 ### 3.4 数据存储与 Project / `.qzproj`
 
 - Canonical Source 是可校验的 JSON（`data-source/carbon_accounting/catalog.json`）；SQLite 只是 Windows 查询与部署格式。
-- 数据库物理隔离：`catalog.sqlite`（官方标准与参数）、`user.sqlite`（用户设置）、`records.sqlite`（成功核算记录）。
+- 数据库物理隔离：`catalog.sqlite`（官方标准与参数）、`user.sqlite`（用户设置）、`records.sqlite`（成功核算记录）、`projects.sqlite`（可变项目与未完成输入）。
 - **Project 保存与 `.qzproj` 是两件事，必须区分**：
 
 ```text

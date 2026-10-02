@@ -1,7 +1,7 @@
 # TASK_STATE
 
 状态：**CURRENT STATE**
-最后更新：2026-10-03（GHG-GOV-R1）
+最后更新：2026-10-02（GHG-GOV-R1 / R1 返工）
 
 > 本文件是**当前状态文件**，不是历史流水账。
 > 每次历史 FAIL / 返工 / PR head / 中间 SHA 的完整过程保存在 Git history 与 `docs/governance/*`，本文件不再复制。
@@ -15,7 +15,8 @@
 | 默认分支 | `main` |
 | 当前 base | 本分支创建时的 `origin/main`（以 Git 为准，不在本文件写死历史 SHA） |
 | 当前任务分支 | `governance/consolidate-reference-standard-roadmap-and-current-state`（已推送到 `origin`） |
-| PR | 需在 GitHub 手动创建（本机无 `gh`）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
+| PR | 需在 GitHub 创建（本机无 `gh` 与 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state`；正式 head 由 PR 本身提供，不在仓库内记录自引用 head |
+| 已收到验收结论 | GHG-GOV-R1 首轮 Independent Acceptance：**FAIL（小范围治理返工）**；已按 R1 完成 6 项最小修正 |
 | Module ID | `qz.carbon_accounting` |
 | `platform-lock.json` locked SHA | `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`（`auto_upgrade=false`，本任务未修改） |
 | 应用版本 | `1.1.0`（Windows V1.1.0） |

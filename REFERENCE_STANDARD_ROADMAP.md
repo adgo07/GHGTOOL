@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-03（GHG-GOV-R1）
+最后更新：2026-10-02（GHG-GOV-R1）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -251,7 +251,9 @@ Golden 至少应逐步覆盖：
 - 历史记录稳定性；
 - GUI ↔ Excel parity。
 
-RS04 PASS 后可以达到：`READY_FOR_RELEASE`。
+RS04 PASS 表示 Golden / Formal Support Candidate Gate 完成，**允许进入 RS05**。
+
+本阶段**不新增任何标准支持状态**。标准支持状态仍只使用中央 `STANDARD_DEVELOPMENT_GUIDE_V0.1` 定义的五种合法状态（`CATALOG_ONLY` / `MAPPING` / `READY_FOR_IMPLEMENTATION` / `IMPLEMENTED` / `SUPPORTED`），RS04 完成后通常仍为 `IMPLEMENTED`，只有 RS05 正式验收通过后才推进为 `SUPPORTED`。
 
 但**不得**在 Windows 正式版 Gate 之前仅凭单元测试宣布最终 Release 完成。
 

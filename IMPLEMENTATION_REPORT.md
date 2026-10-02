@@ -1,11 +1,13 @@
 # IMPLEMENTATION_REPORT
 
 任务：**GHG-GOV-R1 — Reference Standard Roadmap Consolidation & Repository Governance Cleanup**
+返工轮次：**GHG-GOV-R1-R1**（针对 Independent Acceptance FAIL 的小范围治理返工；未重新设计 Roadmap）
 任务性质：治理收口 / 路线修正（不修改正式业务代码）
-报告日期：2026-10-03
+报告日期：2026-10-02
 
 > 本文件是**当前/最近一个正式工作包的实施报告**，不是历史任务的永久追加日志。
 > 历史任务的报告由 Git history 与 `docs/governance/*REPORT.md` 保存，不再向本文件追加。
+> 正式 PR head 由 GitHub PR 本身提供，**不在仓库内用 tracked 文件记录自引用 head**。
 
 ## 1. Baseline
 
@@ -15,14 +17,14 @@
 | default branch | `main` |
 | base SHA | `cae2ff33b2f09d115db950fae4b0829f698ec8fa`（本分支创建时的 `origin/main`，`git fetch origin` 后确认） |
 | execution branch | `governance/consolidate-reference-standard-roadmap-and-current-state` |
-| 实现提交（被验证） | `642c26e278986904cad4841475ed8157b0787eac`（10 files changed, +925 / −4621） |
-| 最终治理提交 | 记录本次任务执行头与 PR 入口的文档提交（`TASK_STATE.md` / `IMPLEMENTATION_REPORT.md` / `PR_BODY_DRAFT.md`），位于实现提交之后；最新 head 以远端分支为准 |
-| PR | 需在 GitHub 手动创建（本机无 `gh` 且无 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
+| 首轮验收被拒 head | `8ed14a70c06ff9c29fc12a85d3fab43f10874d2b`（Independent Acceptance FAIL） |
+| R1 返工内容 | 见 §10 |
+| PR | 需在 GitHub 创建（本机无 `gh` 与 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
 | PR 标题 | `governance: consolidate GHGTOOL reference-standard roadmap and current-state docs` |
-| PR 正文 | 使用仓库根目录 `PR_BODY_DRAFT.md` |
-| changed files | `AGENTS.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`、`README.md`、`UI_CURRENT_STATE_AUDIT.md`、`docs/DELIVERY.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md`、`PR_BODY_DRAFT.md`（新增） |
-| 提交统计 | 10 files changed, +925 / −4621 |
-| 净瘦身 | `HANDOFF.md` 56,522 → 9,492 bytes；`TASK_STATE.md` 159,563 → 6,144 bytes；`IMPLEMENTATION_REPORT.md` 192,113 → 15,011 bytes（相对 `origin/main`） |
+| PR 正文 | 直接在 GitHub 界面撰写（不再使用 tracked `PR_BODY_DRAFT.md`） |
+| changed files（首轮） | `AGENTS.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`、`README.md`、`UI_CURRENT_STATE_AUDIT.md`、`docs/DELIVERY.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md` |
+| 提交统计（首轮） | 10 files changed, +925 / −4621 |
+| 净瘦身 | `HANDOFF.md` 56,522 → 约 9.7 KB；`TASK_STATE.md` 159,563 → 约 6.1 KB；`IMPLEMENTATION_REPORT.md` 192,113 → 约 15 KB（相对 `origin/main`） |
 
 范围：只修改治理文档、路线、当前状态文件与 README / 导航类说明。**未修改任何业务代码、Calculator、Canonical、SQLite schema/迁移、Excel、UI 业务语义或标准解释。**
 
@@ -69,7 +71,7 @@ merge 后权威层级与冲突顺序如下（同时写入 `AGENTS.md`、`REFEREN
 | `GHG-RS01` | GB/T 32151.34 完整参考标准业务收口（Standard Completeness Matrix，回答标准要求的软件业务能力是否完整落地） |
 | `GHG-RS02` | 生命周期 / Record / 结果解释 / Trace 最终闭环（结果可追溯、可复现、可解释，历史不漂移） |
 | `GHG-RS03` | Excel 正式闭环（Excel 作为同一业务内核的 Import / Export Adapter） |
-| `GHG-RS04` | Golden / Formal Support Candidate Gate（用权威 Golden Case 证明正式支持条件，达到 `READY_FOR_RELEASE`） |
+| `GHG-RS04` | Golden / Formal Support Candidate Gate（用权威 Golden Case 证明正式支持条件，完成后具备进入 RS05 的条件；不新增标准支持状态） |
 | `GHG-RS05` | Windows 正式版 Release Gate（证明完整产品可作为正式 Windows 产品交付，之后才可标记正式支持状态） |
 | `GHG-RS06+` | 第二标准及后续演进（同时承担架构扩展验证；不得早于 RS05） |
 
@@ -137,14 +139,16 @@ merge 后权威层级与冲突顺序如下（同时写入 `AGENTS.md`、`REFEREN
 - 数据库从零初始化改写到 `tmp/` 下成功；
 - 其余验证均为直接执行结果。
 
-### 7.2 GitHub Actions（待最新 PR head）
+### 7.2 GitHub Actions（本报告完成时：尚未执行）
 
 ```text
 GitHub Actions (Windows / Python 3.12):
-EXECUTED — 见本任务 PR 最新 head 的 Windows CI（merge-ref full tests + exact PR-head standalone audit）。
+NOT EXECUTED — PR 尚未创建，该 head 上没有任何 workflow run（total_count = 0）。
 ```
 
-`windows-ci.yml` 实际执行的检查：Canonical validation、`compileall`、`pip check`、四库从零初始化、UIR04 GUI 验收场景 A～E、1.25 / 1.5 缩放验收、全量 `unittest discover`、G08 delivery tests、standalone 构建、发布审计、归档清单校验、provenance 校验、启动 smoke。
+因此本报告**不主张** GitHub CI 已通过。创建 PR 并等最新 head 的 Windows CI 真正完成后，再以 GitHub 实际状态单独验收。
+
+`windows-ci.yml` 在 PR 上将会执行的检查：Canonical validation、`compileall`、`pip check`、四库从零初始化、UIR04 GUI 验收场景 A～E、1.25 / 1.5 缩放验收、全量 `unittest discover`、G08 delivery tests、standalone 构建、发布审计、归档清单校验、provenance 校验、启动 smoke。
 
 范围证据：`git diff --name-only` 确认改动仅限 Markdown 治理文档，未触及 `apps/`、`packages/`、`migrations/`、`scripts/`、`tests/`、`data-source/`、`conformance/`。
 
@@ -161,8 +165,30 @@ EXECUTED — 见本任务 PR 最新 head 的 Windows CI（merge-ref full tests +
 | 发现 | 证据 | 分类 | 为什么不在本任务修改 | 建议去向 |
 |---|---|---|---|---|
 | 本机 Python 子进程对已存在 `build/`、`*/__pycache__/` 目录的写入限制 | 见 §7.1 环境限制说明 | Development Environment Maintenance | 不属于产品路线阶段，且已通过 `PYTHONPYCACHEPREFIX` 与 `tmp/` 输出目录绕过 | 独立环境修复工作（不占路线编号） |
-| 中央 `D-011`（Quantity / coefficient 公共边界）与 Excel lossless ingress 仍 OPEN | 中央 `DECISIONS_NEEDED.md`、`NUMERIC_CONTRACT_V1_FROZEN.md` §16 | `CENTRAL CONTRACT GAP` | 本仓不得私自冻结公共规则 | RS03 中如实标 `OPEN` / `PARTIAL`，必要时形成 RFC Candidate 返回中央 |
+| 中央 `D-011`（Carbon quantity / unit / stoichiometric coefficient 边界）：**PARTIALLY RESOLVED**——四类概念边界（ordinary unit conversion / quantity transformation / stoichiometric-standard-formula coefficient / characterization-equivalence factor）已在 Numeric Contract v1 冻结；**仍 OPEN** 的是 Quantity public schema、`quantity_type` 公共 enum、`substance_id`、`coefficient` public schema、CO₂e 模型、provenance 字段最终位置等残项 | 中央 `DECISIONS_NEEDED.md` D-011、`NUMERIC_CONTRACT_V1_FROZEN.md` §15–16 | `CENTRAL CONTRACT GAP`（仅残项部分） | 本仓不得私自冻结公共规则 | RS03 中如实标 `OPEN` / `PARTIAL`，必要时形成 RFC Candidate 返回中央 |
+| 中央 Excel/openpyxl lossless ingress 与 Decimal lexical interchange 公共方案 | 中央 `NUMERIC_CONTRACT_V1_FROZEN.md` §2.1、§16 | `CENTRAL CONTRACT GAP` | 本仓不得私自冻结公共规则 | RS03 中如实标 `OPEN` / `PARTIAL` |
 | 中央 `D-013`（Presentation State vs Business Workspace）仍 OPEN | 中央 `DECISIONS_NEEDED.md` | `CENTRAL CONTRACT GAP` | 不要求返工现有 `projects.sqlite` | Workspace Contract 阶段处理 |
 | `GHG-UI-004`（`AppRoute` 展示结构硬冻结） | `UI_CURRENT_STATE_AUDIT.md` | 非阻塞技术债 | 本任务不改业务代码 | 适当 UI 工作包内解除 |
 
 以上均**未阻塞**本任务建立一致 Roadmap。
+
+## 10. GHG-GOV-R1-R1 返工记录（针对 Independent Acceptance FAIL）
+
+首轮验收结论为 FAIL（小范围治理返工），路线方案与治理瘦身方向获认可。本轮只做下列最小修正，**未重新设计 Roadmap，未恢复任何历史流水账，未修改业务代码**：
+
+| # | 验收缺陷 | 本轮修正 |
+|---|---|---|
+| 1 | `HANDOFF.md §3.3` 仍写“离开含未计算输入的页面时提示数据将丢失”，与当前真实行为冲突 | 该节重写为“未计算输入与记录生命周期”：同运行期离开页面不弹确认框且输入完整保留；关闭软件只在存在未保存项目修改时询问保存/放弃/取消；均标注对应回归测试 |
+| 2 | 新增的 tracked `PR_BODY_DRAFT.md` 记录自引用 `execution head`，本身变成新的陈旧治理文件 | **删除该文件**，不合并进 `main`；PR 正文直接在 GitHub 界面撰写，正式 head 由 PR 本身提供 |
+| 3 | `IMPLEMENTATION_REPORT.md` 与 PR 正文把未发生的 CI 写成 `EXECUTED` | 改为 `NOT EXECUTED — PR 尚未创建，该 head 上没有任何 workflow run（total_count = 0）`，不主张 CI 已通过 |
+| 4 | Roadmap 自创标准状态 `READY_FOR_RELEASE`，与中央五状态体系冲突且自相矛盾 | 删除该自创状态；改为“RS04 PASS 后具备进入 RS05 的条件，不新增标准支持状态，仍只使用中央五种合法状态，RS05 通过后才为 `SUPPORTED`” |
+| 5 | 中央 `D-011` 被写成“仍 OPEN”，实际为 `PARTIALLY RESOLVED` | 改为“`PARTIALLY RESOLVED`：四类概念边界已冻结；Quantity/coefficient public schema、`quantity_type`、`substance_id`、CO₂e 模型、provenance 字段位置等残项仍 OPEN”，并把 Excel lossless ingress 单列一行 |
+| 6 | 大量文档写成未来日期 `2026-10-03` | 统一改为真实日期 `2026-10-02`（`REFERENCE_STANDARD_ROADMAP.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`） |
+
+证据来源（未计算输入与关闭行为）：
+
+- `tests/test_g07_records.py::test_leaving_uncomputed_page_preserves_every_input_without_confirmation`：“切到核算记录页 → `QMessageBox.question` 未被调用 → 返回新建核算页 → 企业名、核算期、边界、排放源状态、燃料 ID、两条电力明细全部保留”。
+- `tests/test_g07_records.py::test_closing_uncomputed_page_closes_without_confirmation`：未保存项目修改不存在时关闭窗口不弹确认框。
+- `packages/ui/shell.py::AppShell.confirm_before_close` 与 `packages/ui/carbon_material_page.py::CarbonMaterialPage.confirm_project_close`：只有存在未保存项目修改时才触发保存/放弃/取消。
+- `packages/ui/shell.py::AppShell.navigate`：切换路由不丢弃当前新建核算输入。
+
