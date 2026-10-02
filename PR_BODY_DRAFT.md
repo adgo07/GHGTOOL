@@ -10,9 +10,12 @@
 | default branch | `main` |
 | base SHA | `cae2ff33b2f09d115db950fae4b0829f698ec8fa` |
 | execution branch | `governance/consolidate-reference-standard-roadmap-and-current-state` |
-| execution head | 见本 PR 最新 head |
+| execution head | `642c26e278986904cad4841475ed8157b0787eac`（已推送到 `origin`） |
 
 分支从**最新 `origin/main`** 创建（`git fetch origin` 后确认 `origin/main` 与该 SHA 一致）。
+
+> 本机无 GitHub CLI 与 CI token，因此 PR 需手动创建：
+> `https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state`
 
 ## 2. 本 PR 同时完成两件事（不拆成两个 PR）
 

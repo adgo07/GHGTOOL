@@ -14,7 +14,8 @@
 | 仓库 | `https://github.com/adgo07/GHGTOOL.git`（`adgo07/GHGTOOL`） |
 | 默认分支 | `main` |
 | 当前 base | 本分支创建时的 `origin/main`（以 Git 为准，不在本文件写死历史 SHA） |
-| 当前任务分支 | `governance/consolidate-reference-standard-roadmap-and-current-state` |
+| 当前任务分支 | `governance/consolidate-reference-standard-roadmap-and-current-state`（已推送到 `origin`） |
+| PR | 需在 GitHub 手动创建（本机无 `gh`）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
 | Module ID | `qz.carbon_accounting` |
 | `platform-lock.json` locked SHA | `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`（`auto_upgrade=false`，本任务未修改） |
 | 应用版本 | `1.1.0`（Windows V1.1.0） |

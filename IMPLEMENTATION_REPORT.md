@@ -15,8 +15,12 @@
 | default branch | `main` |
 | base SHA | `cae2ff33b2f09d115db950fae4b0829f698ec8fa`（本分支创建时的 `origin/main`，`git fetch origin` 后确认） |
 | execution branch | `governance/consolidate-reference-standard-roadmap-and-current-state` |
-| execution head | 见 PR / 交付回执（本报告提交后由最新 PR head 确认） |
-| changed files | `AGENTS.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`、`README.md`、`UI_CURRENT_STATE_AUDIT.md` |
+| pushed head（实现提交） | `642c26e278986904cad4841475ed8157b0787eac`（已推送到 `origin`，与远端分支一致） |
+| PR | 需在 GitHub 手动创建（本机无 `gh` 且无 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
+| PR 标题 | `governance: consolidate GHGTOOL reference-standard roadmap and current-state docs` |
+| PR 正文 | 使用仓库根目录 `PR_BODY_DRAFT.md` |
+| changed files | `AGENTS.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`、`README.md`、`UI_CURRENT_STATE_AUDIT.md`、`docs/DELIVERY.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md`、`PR_BODY_DRAFT.md`（新增） |
+| 提交统计 | 10 files changed, +925 / −4621 |
 
 范围：只修改治理文档、路线、当前状态文件与 README / 导航类说明。**未修改任何业务代码、Calculator、Canonical、SQLite schema/迁移、Excel、UI 业务语义或标准解释。**
 
