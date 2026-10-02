@@ -1,92 +1,60 @@
-# GHG-RS01-A 实施报告
+# GHG-RS01-A-R1 实施报告
 
-日期：2026-10-02；工作包：GB/T 32151.34—2024 Core Function Check。
-状态：**GHG-RS01-A审计及交付完成，待独立验收**；最终文档head仍须等待其实际CI回执。
+状态：**GHG-RS01-A-R1 completed，等待独立重新验收**；日期2026-10-02。只做Evidence Closure & Audit Correction，未重新执行完整RS01-A。
 
-## 1. 基线与范围
+## 1. 起点、交付对象与范围
 
-- origin实际为 `https://github.com/adgo07/GHGTOOL.git`，默认main。执行 `git fetch origin` 后从最新main建立 `codex/ghg-rs01-a-core-check`。
-- Base：`c8f7a8ce2139e21b239ce54fac6cbbb9c25aae72`；Git合并记录及GitHub PR元数据均确认PR #21已合并。
-- 开工跟踪文件无改动。既有未跟踪 `docs/handoffs/`、`docs/青舟工业能源软件架构与产品一致性规范.md` 保留、不提交。
-- 用户明确启动RS01-A，附件限定本包只核对；覆盖HANDOFF §7上一治理工作包“不启动RS01”的旧范围。Roadmap所要求Mapping纳入仓库仍为明确前置，登记009，本轮不假装完成。
-- 仅提交CORE_CHECK、GAPS、TASK_STATE、本报告四份Markdown。不修改Calculator、Rule、Canonical正式数据、UI业务、正式测试、数据库/迁移、baseline或用户计算表。
-- 当前PR/head由Git/PR提供，不预写自引用最终SHA。未实施Excel、报告导出、Golden、新标准或Release。
+- 仓库origin实际确认：https://github.com/adgo07/GHGTOOL.git。
+- Base：`c8f7a8ce2139e21b239ce54fac6cbbb9c25aae72`；PR #22实际base及origin/main一致。
+- R1起始head：`eb01a35bf085e51a2248dde2920f609ddf203901`；本地与PR远端一致，没有未知跟踪修改。
+- 继续分支 `codex/ghg-rs01-a-core-check`，继续[PR #22](https://github.com/adgo07/GHGTOOL/pull/22)，保持open、不合并。
+- R1新head为本报告所在交付提交；确切SHA与latest-head CI结果写入PR说明及最终交付回执（以PR实际head为准），避免为自引用SHA/CI反复制造提交。
+- 仅修改用户允许的7份Markdown：Mapping、CORE_CHECK、GAPS、STANDARD_ISSUES_REGISTER、REFERENCE_STANDARD_ROADMAP、TASK_STATE、本报告。
+- 未修改apps/packages/tests/data-source/migrations/conformance/platform-lock.json；未改业务、算法、参数数据、架构或既有标准执行解释；未启动Excel、RS02/RS03或RS01-B。
+- 用户既有未跟踪docs/handoffs/及工业能源架构文档保留、不提交；计算表/未处理。用户R1范围覆盖HANDOFF旧治理任务范围，本轮不扩大修改HANDOFF。
 
-## 2. 实际专业来源
+## 2. 专业证据入仓
 
-| 依据 | 实际使用 |
+| 项目 | 实际结果 |
 |---|---|
-| 标准 | `34.GB_T 32151.34-2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业.pdf`，43页；SHA256 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738` |
-| Verified Mapping | `GB T 32151.34—2024 炭素材料生产企业映射方案.md`，SM01-2026-09-13-R6、FROZEN；SHA256 `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B` |
-| 历史批准证据 | 外部 `IMPLEMENTATION_REPORT_SM01.md`、`G06_R6_修正清单_给Sol_2026-09-13.md`；`5b8d35db65375907ccef18d426fba9ec4319aa64:TASK_STATE.md`记录G06最终PASS（验收对象c2ca02e）及R6原始LF哈希，与本次文件一致 |
+| Mapping源文件 | `GB T 32151.34—2024 炭素材料生产企业映射方案.md`；本次环境来源D:/MD仓库/杂/碳排放计算软件/，只是执行环境 |
+| 正式版本/状态 | SM01-2026-09-13-R6 / FROZEN，实际核对正文§1及§17.1 |
+| source SHA256 | `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`，复制前实际Get-FileHash确认 |
+| repo路径 | `specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md` |
+| 复制件 | 原样复制，实际SHA256与source相同；未美化/重写冻结内容，R4/R5未替代 |
+| 标准PDF | `34.GB_T 32151.34-2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业.pdf`，43页；仍外置不入Git |
+| PDF SHA256 | RS01-A既有核验证据 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`，文件名及PDF/印刷页定位保留CORE_CHECK |
 
-本次本机实际路径见CORE_CHECK §1，只是执行来源，不作为仓库身份。提取PDF文字并视觉核验核心公式、C.1/C.2/C.4/C.5/D表页，临时提取物在忽略目录 `tmp/rs01-a/`；标准全文/PDF不入Git、不进程序包。未从代码反推标准或重新制作大型Mapping。
+GAP-009中“Mapping不可复核”部分关闭；独立历史批准原件仍缺失，冻结R6、G06 Git最终PASS历史及正式验收记录证明既有口径曾被采用。剩余为provenance debt、业务影响NO，无B阶段业务修改动作，不阻止B，不再次请求确认既有R6口径。未来改变历史解释前才需加强证据或重新获得项目所有者确认。
 
-沿用Mapping批准的含碳量单位、式（4）符号、蒸汽压力键及收到基固定碳决定，不称官方勘误。当前R6不与历史R4合并。独立确认记录链接缺失为009；不把用户未跟踪R4反馈冒充完整批准原件。没有新增需要选取的标准解释，台账仍0条。
+## 3. 审计修订与治理收口
 
-## 3. 平台 / Contract 预检查
+- CORE_CHECK增加精简Standard Completeness Matrix：25行，OK4 / GAP17 / N/A独立行0 / later-stage4（RS02两行、RS03一行、RS04一行）；列内N/A均有理由。它与原16项核心核对分别计数。
+- 16项核心核对修正：OK4 / GAP12 / NEEDS_CONFIRMATION0 / N/A0，输出电力改为GAP。
+- 新增GAP-011：表B.8、Mapping §13/TV-CAR-REPORT-003、多行exported_electricity tuple及Calculator逐行能力，与UI _exported_electricity只构造一行的证据对应。只给复用多行能力/逐行适用因子原则，不设计GUI、不重写公式。
+- Gap总数11：IMPLEMENTATION8 / TEST1 / EVIDENCE2 / 未解决STANDARD_ISSUE Gap0 / CENTRAL_CONTRACT0。
+- 业务影响YES5（001～004、011）、NO6（005～010）、UNKNOWN0；009按用户要求由UNKNOWN改NO，故旧NO5/UNKNOWN1合计不再适用。
+- 历史4条Standard Issues正式登记001～004，类型CONFLICT/TYPO/CONFLICT/AMBIGUITY，均RESOLVED，分别区分标准事实、技术判断和项目软件决定；确认程度均非官方勘误/官方解释。它们不计作新增未解决Standard Issue Gap。
+- Roadmap记录RS01内部A/B工作包；排放源、活动数据、参数/因子、校验、目录及总量覆盖由无条件DONE改为已有实现+待修Gap；Calculator保留“核心单组公式已实现”，不宣称完整标准支持。
+- GAP-008及Minimum Validation补001～004/011、Domain不成记录、UI→Domain一致性及回归最低要求；未新建Test Plan。Golden仅列RS04 CANDIDATE，未冻结。
 
-- 业务base见§1；中央locked SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`，auto_upgrade=false，未升级。
-- 实际按locked SHA读取Architecture V2.1 FROZEN、Numeric Contract v1 FROZEN、Numeric Profiles v1 FROZEN对应文件。
-- 读取中央当前合并版本Standard Development Guide v0.1、UI Design Guidelines v0.1，均ACTIVE/EVOLVING，不作为新Frozen adoption。
-- MUST：确定性十进制、有效Profile贯穿helper/单位换算/汇总、ambient independence、full-value exact comparison、版本/来源可追溯；保持分层及Canonical参考数据/版本化Calculator分工。
-- MUST NOT：binary float静默成权威值、显示修约回流、隐含业务epsilon、混淆44/12及44/16与普通单位转换、历史Record自动重算；不把p40/HALF_UP当平台默认。
-- ALLOWED PROJECT DIFFERENCE：Carbon使用 `GHGTOOL_CARBON_DECIMAL40_CURRENT`。已读取 `_numeric_authority.py`、`standards/__init__.py`安装的实际权威入口及Conformance，未仅凭旧helper正文误报Profile泄漏。
-- 本次缺口均为本地软件/证据问题，新增CENTRAL CONTRACT GAP为0；不修改公共Contract。Unit、Workspace/Result/Record、qzpack仍DRAFT，Quantity未冻结。
-- Standard Issue新增0，相关新增编号无；本轮不改变既有软件解释。009相关解释修改前必须补证。
+## 4. 平台 / Contract 预检查
 
-## 4. 审计模块与交付
+本任务不涉及中央公共Contract。不新增/改变公共语义，不升级baseline；实际platform-lock仍锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。沿用RS01-A已经读取的Architecture V2.1、Numeric v1及Profile v1 Frozen；保持Decimal权威计算、显示修约不回流、历史Record不漂移。4条Standard Issue只登记历史执行决定，没有新增解释选择。CENTRAL_CONTRACT_GAP为0。
 
-| 链路 | 实际审计 |
+## 5. Local验证（本轮实际执行）
+
+| 命令 | 结果 |
 |---|---|
-| 输入/校验/计算/汇总/快照/记录 | `packages/standards/carbon_material.py`、`_numeric_authority.py`；`packages/core/models.py`、`decimal_policy.py`，现有Numeric测试 |
-| Rule / 参数选择 | `packages/core/rules.py`、`parameter_resolution.py`的default_g05_rules与解析器；`packages/application/carbon_accounting.py` |
-| 用户录入 / 单元 | `packages/ui/carbon_material_page.py`、`field_specs.py`；`packages/application/project_workspaces.py`及Project Repository/UI回归 |
-| Canonical / 入口 | `data-source/carbon_accounting/catalog.json`、`packages/application/catalog_queries.py`及目录回归 |
-| tests | G06 Calculator/Page、G05、Project Workspace/UI、Numeric v1 adoption/N01-C及全量 |
-
-新建 `specs/carbon_accounting/GB_T_32151_34_2024_CORE_CHECK.md` 与 `GB_T_32151_34_2024_GAPS.md`。
-
-- 核对16项：OK5 / GAP11 / NEEDS_CONFIRMATION0 / N/A0。
-- Gap10条：IMPLEMENTATION_GAP7 / TEST_GAP1 / EVIDENCE_GAP2 / STANDARD_ISSUE0 / CENTRAL_CONTRACT_GAP0。
-- YES4：001实测供热因子、002未知碳酸盐fallback、003负参数成功记录、004同单元多过程/热源覆盖；NO5；UNKNOWN1（009原始批准附件）。YES均绑定原文/Mapping，不修复、不做新增解释。
-- RS02展示问题独立列于CORE_CHECK，不扩成UI重构。没有宣布完整支持或RS01整体完成。
-
-## 5. Local — 已实际执行
-
-Windows，仓库 `.venv/Scripts/python.exe` 3.12.14；Qt使用QT_QPA_PLATFORM=offscreen；测试PYTHONDONTWRITEBYTECODE=1。代码树绑定本包base，文档改动不改变被测实现。
-
-| 命令 | 实际结果 |
-|---|---|
-| `.venv/Scripts/python.exe -m unittest tests.test_g06_carbon_material tests.test_g06_page tests.test_g05_rules tests.test_accounting_projects_ui tests.test_project_workspaces tests.test_numeric_contract_v1_adoption tests.test_qzc_n01_c_numeric_unit_pilot -v` | 88/88，0失败/错误/跳过，21.085秒，exit0 |
-| `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v` | 214/214，0失败/错误/跳过，21.563秒，exit0 |
+| `git diff --check`（工作区及最终暂存差异） | exit0；只允许Markdown文件 |
+| `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v` | 214/214，21.451秒，0失败/错误/跳过，exit0；实际等待进程结束 |
 | `.venv/Scripts/python.exe scripts/validate_canonical.py` | exit0；9 standards / 12 sources / 7 parameters / 7 factors |
-| `.venv/Scripts/python.exe -m compileall -q apps packages resources scripts tests` | exit0，PYTHONPYCACHEPREFIX指向本次tmp新目录 |
-| `.venv/Scripts/python.exe -m pip check` | exit0，No broken requirements found |
-| `.venv/Scripts/python.exe scripts/initialize_databases.py --output-dir tmp/rs01-a/databases --app-version rs01-a-audit` | exit0，catalog/user/records/projects四库从零创建，用户库未触碰 |
-| `git diff --check` | 已通过；提交前再核对 |
+| `Get-FileHash <Mapping源/复制件> -Algorithm SHA256` | 两者完全一致，见§2 |
 
-实际等待测试进程结束并核对Ran/OK/exit0，没有把启动当完成。日志在忽略目录tmp/rs01-a/core-tests.log、full-tests.log。
+Qt offscreen、PYTHONDONTWRITEBYTECODE=1，日志忽略目录tmp/rs01-a/r1-full-tests.log。未重跑完整RS01-A专业审计、Domain/GUI探查、独立核心88项、compileall/pip check/四库重建或本地standalone：纯Markdown收口不需要重复上一轮全部工作；CI会执行其规定检查。未添加/修改正式测试，回归通过不表示业务Gap已修复。
 
-只读探查（不是新增正式测试）：Domain脱硫只填10t→3.9600成功记录；负含碳量→-0.733333…、负热力因子→-0.308，均成功且无错误；GUI脱硫只填10t→3.96并生成1条记录，热力选项仅0.11无实测入口。只用内存Record或本轮隔离数据库。探查首次错取结果字段输出中断，修正为total_amount后重跑exit0，未把首次失败计作通过。另观察K=1.01可接受，但原文/Mapping无明确上限证据，未制造K上限Gap或修复要求。
+## 6. GitHub Actions与停止点
 
-未执行新的Golden、企业真实基准、Excel parity：本包明确排除；未本地重建standalone：纯文档未改发布能力，PR已有CI会执行发布审计。
+Local与CI严格分开。latest-head CI结果的正式回执在[PR #22检查页](https://github.com/adgo07/GHGTOOL/pull/22/checks)及PR说明，绑定R1实际新head。推送后必须实际等待Merge-ref Full Tests与PR-head Standalone Audit均success再交付；不冒用eb01a35旧run，不把启动当完成。确切head/run和最终结果以最终回执为准，不为把run SHA写回本Markdown新增自引用提交。
 
-## 6. GitHub Actions — 与Local分开
-
-任务PR：[PR #22](https://github.com/adgo07/GHGTOOL/pull/22)，目标main、保持open，不自行合并。
-
-已实际完成的CI证据：[Windows CI run 36971166108](https://github.com/adgo07/GHGTOOL/actions/runs/36971166108)，绑定审计提交 `47bae76785b0526e593ce61da857994adde23d45`。
-
-| Job | 结果 |
-|---|---|
-| Merge-ref Full Tests，110725244478 | success；日志Ran 214 tests in 31.935s / OK；Canonical、compileall、pip check、四库重建、GUI A～E、125%/150%均成功 |
-| PR-head Standalone Audit，110725575929 | success；精确审计head构建、Canonical、compileall、pip check、四库重建、GUI/缩放、G08 delivery、standalone build、release audit、archive manifest、provenance、isolated smoke和artifact upload全部成功 |
-
-上表是GitHub Actions，不是Local。首次报告提交时本任务确实尚无PR/run，未预写CI通过。该CI证据写入产生新文档head后，仍须等待PR最新head的实际两项检查；最终run/head以PR与交付回执为准，不把47bae76的成功自动当作新head通过。
-
-## 7. 停止点
-
-审计只发现Gap，没有关闭业务Gap。PR不得自行合并，交付后停止等待独立验收。
-
-**GHG-RS01-B NOT STARTED**。
+**GHG-RS01-B NOT STARTED**。交付后停止等待独立重新验收，不合并PR #22。
