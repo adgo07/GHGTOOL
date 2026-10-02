@@ -29,17 +29,16 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 当前已完成：Windows V1.1.0 离线产品的核心纵向闭环，以及全部治理收口。
-- 当前未启动：任何 `GHG-RS` 产品阶段。
-- **下一正式产品阶段：`GHG-RS01 — GB/T 32151.34 完整参考标准业务收口`**（定义见 `REFERENCE_STANDARD_ROADMAP.md`）。
-- 启动 RS01 的前提：
+- 已完成：RS01-A-R1及RS01-B1实施；B1工作结果等待latest-head CI与独立重新验收。
+- 当前工作包：`GHG-RS01-B1 — Calculation Safety & Reference Data Closure`；执行基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- **RS01-B2 — Multi-entry Business Input Closure：NOT STARTED**。不得将B1单条输入实现扩展为多过程/多能源来源输入；需B1独立验收并由用户另行启动。
+- 后续RS01仍须遵守：
 
 ```text
-1. 用户明确启动该阶段（一个阶段只建立一个 Goal）；
+1. 用户明确启动对应工作包（一个阶段只建立一个 Goal）；
 2. 重新读取 AGENTS.md、REFERENCE_STANDARD_ROADMAP.md、TASK_STATE.md；
-3. 确认仓库内存在当前可追溯的 GB/T 32151.34—2024 Standard Mapping；
-   若尚未纳入仓库，先把“纳入 Mapping”作为 RS01 的第一个工作包；
-4. 确认 platform-lock.json 的 locked SHA 未变（本阶段不得升级 baseline）。
+3. 使用仓库内当前可追溯、已冻结的 GB/T 32151.34—2024 Standard Mapping；
+4. 确认 platform-lock.json 的 locked SHA 未变（RS01期间不得升级baseline）。
 ```
 
 - 一个阶段未完成、未形成报告或存在 BLOCKED 时，不得进入下一阶段。
@@ -180,9 +179,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件对应的工作包（GHG-GOV-R1）只做治理收口与路线重建：
+本文件当前对应工作包 GHG-RS01-B1；该包只处理单条业务输入的计算安全、标准参考数据、参数接通和目录真实性：
 
-- 只修改治理文档、路线、当前状态文件与 README/导航类说明；
-- 不修改正式业务代码、Calculator、Canonical、SQLite schema/迁移、Excel、UI 业务语义或标准解释；
-- 不实施 `GHG-RS01`；
-- 完成后停止，等待独立验收。
+- 已完成GAP-002/003/005/006/007/010以及对应B1测试与证据同步；
+- GAP-001/004/011、多行UI及其测试覆盖属于RS01-B2，本轮不得实施；
+- 不修改SQLite schema/迁移、platform-lock、中央baseline或已批准标准解释；
+- B1交付后等待latest-head CI与独立验收；RS01-B2保持NOT STARTED。

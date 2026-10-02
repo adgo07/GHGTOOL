@@ -1,60 +1,80 @@
-# GHG-RS01-A-R1 实施报告
+# GHG-RS01-B1 — Calculation Safety & Reference Data Closure
 
-状态：**GHG-RS01-A-R1 completed，等待独立重新验收**；日期2026-10-02。只做Evidence Closure & Audit Correction，未重新执行完整RS01-A。
+日期：2026-10-02
+状态：实现与本地验证完成；PR #23 已创建，等待其 latest-head GitHub Actions和独立重新验收。
+范围：仅单条业务输入下的计算安全、参考数据、参数接通和目录真实性；不实施RS01-B2。
 
-## 1. 起点、交付对象与范围
+## 1. Base / Head / PR
 
-- 仓库origin实际确认：https://github.com/adgo07/GHGTOOL.git。
-- Base：`c8f7a8ce2139e21b239ce54fac6cbbb9c25aae72`；PR #22实际base及origin/main一致。
-- R1起始head：`eb01a35bf085e51a2248dde2920f609ddf203901`；本地与PR远端一致，没有未知跟踪修改。
-- 继续分支 `codex/ghg-rs01-a-core-check`，继续[PR #22](https://github.com/adgo07/GHGTOOL/pull/22)，保持open、不合并。
-- R1新head为本报告所在交付提交；确切SHA与latest-head CI结果写入PR说明及最终交付回执（以PR实际head为准），避免为自引用SHA/CI反复制造提交。
-- 仅修改用户允许的7份Markdown：Mapping、CORE_CHECK、GAPS、STANDARD_ISSUES_REGISTER、REFERENCE_STANDARD_ROADMAP、TASK_STATE、本报告。
-- 未修改apps/packages/tests/data-source/migrations/conformance/platform-lock.json；未改业务、算法、参数数据、架构或既有标准执行解释；未启动Excel、RS02/RS03或RS01-B。
-- 用户既有未跟踪docs/handoffs/及工业能源架构文档保留、不提交；计算表/未处理。用户R1范围覆盖HANDOFF旧治理任务范围，本轮不扩大修改HANDOFF。
+- Base：origin/main 1bad93c66bb98fb5a6d23c29b3d7b135258ebe9d（PR #22的合并结果已包含）。
+- 分支：codex/ghg-rs01-b1-calculation-safety，从该最新main创建。
+- B1实现head：773f21bf8d609efab669109165dfd1969ba52378。
+- PR：[#23 — GHG-RS01-B1: Calculation Safety & Reference Data Closure](https://github.com/adgo07/GHGTOOL/pull/23)，base `main`，PR创建时head为773f21bf8d609efab669109165dfd1969ba52378；交付回执报告最终latest head。
+- platform-lock.json SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；锁定Qingzhou-contracts SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。
 
-## 2. 专业证据入仓
+## 2. B1实际变更
 
-| 项目 | 实际结果 |
-|---|---|
-| Mapping源文件 | `GB T 32151.34—2024 炭素材料生产企业映射方案.md`；本次环境来源D:/MD仓库/杂/碳排放计算软件/，只是执行环境 |
-| 正式版本/状态 | SM01-2026-09-13-R6 / FROZEN，实际核对正文§1及§17.1 |
-| source SHA256 | `01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`，复制前实际Get-FileHash确认 |
-| repo路径 | `specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md` |
-| 复制件 | 原样复制，实际SHA256与source相同；未美化/重写冻结内容，R4/R5未替代 |
-| 标准PDF | `34.GB_T 32151.34-2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业.pdf`，43页；仍外置不入Git |
-| PDF SHA256 | RS01-A既有核验证据 `60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`，文件名及PDF/印刷页定位保留CORE_CHECK |
+- Canonical新增附录C.1具体燃料默认参数、C.2全表因子、K1/K2/K3与FGD正式缺省；扩大Catalog查询/构建/验证及对应回归。
+- Domain增加集中ParameterValue语义门禁；燃料质量、体积与热量单条路径改为消费可追溯Canonical参数；脱硫未知种类不再使用0.44；Catalog状态/引用修复；边界Rule来源定位修正。
+- UI补具体燃料、C.2碳酸盐选择、来源编号和热值输入的FieldSpec及标准默认值接通；旧Project兼容测试覆盖缺种类重算阻断。
+- 更新CORE_CHECK、GAPS、REFERENCE_STANDARD_ROADMAP、HANDOFF、TASK_STATE及本报告。
+- 未改SQLite schema/迁移、platform-lock、中央Frozen Contract或已批准标准解释；未开始B2。
 
-GAP-009中“Mapping不可复核”部分关闭；独立历史批准原件仍缺失，冻结R6、G06 Git最终PASS历史及正式验收记录证明既有口径曾被采用。剩余为provenance debt、业务影响NO，无B阶段业务修改动作，不阻止B，不再次请求确认既有R6口径。未来改变历史解释前才需加强证据或重新获得项目所有者确认。
+## 3. Canonical正式参考数据
 
-## 3. 审计修订与治理收口
+- 总量：98 parameters / 98 factors；行业标准parameter_refs 95；10项排放源引用与实际业务源一致。
+- C.1：26种标准燃料×3项（LHV、单位热值含碳量、碳氧化率）。原有天然气3项保留，新增25种燃料共75组参数/因子。
+- C.2：11项碳酸盐因子，含CaCO3 0.440、MgCO3 0.522、Na2CO3 0.415及其余8项；每项source、2024版本/因子年、tCO2/t单位和标准表定位均可追溯。
+- 另新增K1/K2/K3=0.35、脱硫剂碳酸盐含量=0.90、转化率=1.00，各有正式标准来源；90%/100%不与0.44混用。
+- 标准文件：GB/T 32151.34—2024；外置PDF文件名为“34.GB_T 32151.34-2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业.pdf”，43页；SHA-256 60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738。PDF未入仓。
+- 冻结Mapping：SM01-2026-09-13-R6，FROZEN；源文件名“GB T 32151.34—2024 炭素材料生产企业映射方案.md”；源文件SHA-256 01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B；仓库路径specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md。
 
-- CORE_CHECK增加精简Standard Completeness Matrix：25行，OK4 / GAP17 / N/A独立行0 / later-stage4（RS02两行、RS03一行、RS04一行）；列内N/A均有理由。它与原16项核心核对分别计数。
-- 16项核心核对修正：OK4 / GAP12 / NEEDS_CONFIRMATION0 / N/A0，输出电力改为GAP。
-- 新增GAP-011：表B.8、Mapping §13/TV-CAR-REPORT-003、多行exported_electricity tuple及Calculator逐行能力，与UI _exported_electricity只构造一行的证据对应。只给复用多行能力/逐行适用因子原则，不设计GUI、不重写公式。
-- Gap总数11：IMPLEMENTATION8 / TEST1 / EVIDENCE2 / 未解决STANDARD_ISSUE Gap0 / CENTRAL_CONTRACT0。
-- 业务影响YES5（001～004、011）、NO6（005～010）、UNKNOWN0；009按用户要求由UNKNOWN改NO，故旧NO5/UNKNOWN1合计不再适用。
-- 历史4条Standard Issues正式登记001～004，类型CONFLICT/TYPO/CONFLICT/AMBIGUITY，均RESOLVED，分别区分标准事实、技术判断和项目软件决定；确认程度均非官方勘误/官方解释。它们不计作新增未解决Standard Issue Gap。
-- Roadmap记录RS01内部A/B工作包；排放源、活动数据、参数/因子、校验、目录及总量覆盖由无条件DONE改为已有实现+待修Gap；Calculator保留“核心单组公式已实现”，不宣称完整标准支持。
-- GAP-008及Minimum Validation补001～004/011、Domain不成记录、UI→Domain一致性及回归最低要求；未新建Test Plan。Golden仅列RS04 CANDIDATE，未冻结。
+## 4. C.4/C.5策略与参数门禁
 
-## 4. 平台 / Contract 预检查
+- 采用方案B：完整C.4/C.5表和查表/插值继续在版本化Domain Calculator；没有新增reference-table schema、DSL或repository。
+- Canonical标准来源元数据记录C.4/C.5 PDF/印刷页、SM01-R6版本、原文异常和获批键修正、代表性验证锚点。
+- 1.40 MPa/195.04 ℃、1.40 MPa/204.3 ℃及1.50 MPa/207.1 ℃原始证据保留；后两项按项目冻结口径采用1.70/1.80 MPa解释，不称官方勘误。
+- Calculator内统一Domain门禁覆盖正式ParameterValue来源：明确非负量要求值≥0，比例为0至1，有标准明文范围时按标准处理；合法0可以继续。未加经验范围或未证实的物理关系判断。致命错误不生成成功Record。
+- Catalog calculation_status仍使用已有本地枚举IMPLEMENTED，只代表GHGTOOL本地Catalog中的Calculator当前可用；不代表中央五态、SUPPORTED或RS01/RS02/RS05验收通过。
 
-本任务不涉及中央公共Contract。不新增/改变公共语义，不升级baseline；实际platform-lock仍锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。沿用RS01-A已经读取的Architecture V2.1、Numeric v1及Profile v1 Frozen；保持Decimal权威计算、显示修约不回流、历史Record不漂移。4条Standard Issue只登记历史执行决定，没有新增解释选择。CENTRAL_CONTRACT_GAP为0。
+## 5. GAP-002兼容及历史Record
 
-## 5. Local验证（本轮实际执行）
+- 未选碳酸盐种类且无显式可追溯因子：普通中文提示、Domain ERROR、没有成功Record；不会猜CaCO3或静默0.44。
+- 旧Project仍可打开；原消耗量保留；未自动选择CaCO3；重新计算得到可操作提示且不创建Record。没有破坏性Project migration。
+- 历史Record仍为不可变快照，只读查看原输入/参数/结果，不随新Catalog或Calculator重算、覆盖、迁移；test_historical_snapshot_stays_stable_after_catalog_parameter_change通过。
 
-| 命令 | 结果 |
-|---|---|
-| `git diff --check`（工作区及最终暂存差异） | exit0；只允许Markdown文件 |
-| `.venv/Scripts/python.exe -m unittest discover -s tests -t . -v` | 214/214，21.451秒，0失败/错误/跳过，exit0；实际等待进程结束 |
-| `.venv/Scripts/python.exe scripts/validate_canonical.py` | exit0；9 standards / 12 sources / 7 parameters / 7 factors |
-| `Get-FileHash <Mapping源/复制件> -Algorithm SHA256` | 两者完全一致，见§2 |
+## 6. 测试预期变化
 
-Qt offscreen、PYTHONDONTWRITEBYTECODE=1，日志忽略目录tmp/rs01-a/r1-full-tests.log。未重跑完整RS01-A专业审计、Domain/GUI探查、独立核心88项、compileall/pip check/四库重建或本地standalone：纯Markdown收口不需要重复上一轮全部工作；CI会执行其规定检查。未添加/修改正式测试，回归通过不表示业务Gap已修复。
+A. 数据/契约扩展（旧断言 → 新断言）：
+- Canonical和隔离Catalog的parameters、factors：7/7 → 98/98；因为上述91项有标准来源的新增C.1/C.2/K/FGD数据。
+- 标准参数refs/详情与SRC-32151-34-2024查询：4 → 95；9个标准、12个来源、13条换算规则维持原值。
+- “天然气”因子搜索：3 → 6，新增LNG的3项会被同一中文查询匹配；多版本LHV搜索3 → 4，新增LNG标准值。
+- 来源验证逐项检查C.1/C.2数值、单位、来源ID、来源版本/年份及条款页码；标准PDF哈希作为外置来源证据。
+B. 行为预期修正：
+- 旧FGDInput(cal=10)成功采用0.90/0.44/1的测试预期反转为未确认碳酸盐/因子ERROR且不生成Record。这是纠正错误旧行为，不是为使测试变绿。
+- K1/K2/K3和FGD标准缺省由Canonical ParameterValue提供并留下来源快照；缺少Canonical值时阻断。
+- UI→Domain等价测试改为用真实Canonical目录提供必需缺省；空Catalog缺参仍阻断。
 
-## 6. GitHub Actions与停止点
+## 7. Gap与文档状态
 
-Local与CI严格分开。latest-head CI结果的正式回执在[PR #22检查页](https://github.com/adgo07/GHGTOOL/pull/22/checks)及PR说明，绑定R1实际新head。推送后必须实际等待Merge-ref Full Tests与PR-head Standalone Audit均success再交付；不冒用eb01a35旧run，不把启动当完成。确切head/run和最终结果以最终回执为准，不为把run SHA写回本Markdown新增自引用提交。
+- 已关闭：GAP-003（集中参数门禁）、GAP-002（未知碳酸盐阻断/C.2全表）、GAP-005（C.1单条燃料路径）、GAP-006（正式参考数据与C.4/C.5 provenance）、GAP-007（本地状态/10来源引用）、GAP-010（Rule定位）。
+- 仍开放：GAP-001、GAP-004、GAP-011归RS01-B2；GAP-008仅剩B2测试覆盖；GAP-009为非阻塞provenance debt。
+- Gap总数11：IMPLEMENTATION_GAP 8、TEST_GAP 1、EVIDENCE_GAP 2、未解决STANDARD_ISSUE Gap 0、CENTRAL_CONTRACT_GAP 0；已关闭6、开放5。
+- CORE_CHECK：25行Matrix，GAP 14、OK 7、N/A独立行0、later-stage 4。
+- Roadmap/HANDOFF均记录RS01-A/B和B1/B2；Roadmap的过期无条件DONE已纠正。RS01-B2 NOT STARTED。
 
-**GHG-RS01-B NOT STARTED**。交付后停止等待独立重新验收，不合并PR #22。
+## 8. 本地验证与GitHub CI
+
+- 定向核心、Catalog、边界Rule、UI、Project兼容、Result/Record回归：111/111通过。
+- 全量：python -m unittest discover -s tests -t . -v，223/223通过，0失败/错误/跳过。
+- Canonical：python scripts/validate_canonical.py通过，9 standards / 12 sources / 98 parameters / 98 factors。
+- compileall：python -m compileall -q apps packages scripts tests通过。
+- pip check：No broken requirements found。
+- 隔离临时目录重建4个数据库并查询Catalog：通过；读回98/98，行业本地状态IMPLEMENTED，10个source refs。
+- UIR04 Windows缩放验收：1366×768，1.25与1.5均通过；无横向滚动，计算按钮和状态栏可见。
+- git diff --check通过。
+- GitHub Actions：PR #23创建后开始运行；报告提交时实施head 773f21bf8d609efab669109165dfd1969ba52378 的Windows CI仍在运行。最终latest-head结果以交付回执中的精确head和PR checks为准。
+
+## 9. 后续边界
+
+本报告结束后仅等待最新B1 PR head CI及独立重新验收。不合并PR，不启动RS01-B2，不开展RS02/RS03。

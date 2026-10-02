@@ -44,6 +44,7 @@ from packages.standards.carbon_material import (
     FGDInput,
     FuelInput,
     FuelPath,
+    FuelType,
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
@@ -52,6 +53,7 @@ from packages.standards.carbon_material import (
     ParameterValue,
     MaterialComponentKind,
     SteamKind,
+    ParameterSourceKind,
     fgd_emission,
     fuel_energy_from_mass,
     fuel_energy_from_volume,
@@ -312,6 +314,12 @@ class G06FormulaTests(unittest.TestCase):
     def test_electricity_heat_and_steam_mapping_vectors(self) -> None:
         self.assertEqual(purchased_electricity_emission("100", "0.5306"), Decimal("53.06"))
         self.assertEqual(purchased_heat_emission("1000", "2800", "0.11"), Decimal("0.308"))
+        c4_170 = saturated_steam_enthalpy("1.70")
+        c4_180 = saturated_steam_enthalpy("1.80")
+        self.assertEqual(c4_170[0], Decimal("2793.8"))
+        self.assertEqual(c4_170[1:], (False, (Decimal("1.70"), Decimal("1.70"))))
+        self.assertEqual(c4_180[0], Decimal("2795.1"))
+        self.assertEqual(c4_180[1:], (False, (Decimal("1.80"), Decimal("1.80"))))
         enthalpy, interpolated, endpoints = saturated_steam_enthalpy("1.75")
         self.assertEqual(enthalpy, Decimal("2794.45"))
         self.assertTrue(interpolated)
@@ -320,6 +328,8 @@ class G06FormulaTests(unittest.TestCase):
         self.assertTrue(superheated_interpolated)
         self.assertEqual(superheated_endpoints, (Decimal("1"), Decimal("3")))
         self.assertGreater(superheated, Decimal("3000"))
+        self.assertEqual(superheated_steam_enthalpy("1", "300")[0], Decimal("3051.3"))
+        self.assertEqual(superheated_steam_enthalpy("3", "350")[0], Decimal("3115.7"))
         with self.assertRaises(ValueError):
             superheated_steam_enthalpy("31", "300")
 
@@ -537,8 +547,9 @@ class G06CalculatorTests(unittest.TestCase):
         for source_id, input_value in percentage_cases:
             with self.subTest(error="percentage", source_id=source_id):
                 outcome = calculator.calculate(input_value, calculated_at=SNAPSHOT_AT)
+                expected_code = "CAR-VAL-PARAMETER-RATIO-RANGE" if source_id == SOURCE_FUEL else "CAR-VAL-PERCENT-RANGE"
                 self.assertTrue(
-                    any(problem.code == "CAR-VAL-PERCENT-RANGE" for problem in outcome.problems),
+                    any(problem.code == expected_code for problem in outcome.problems),
                     (source_id, outcome.problems),
                 )
 
@@ -600,24 +611,33 @@ class G06CalculatorTests(unittest.TestCase):
                 )
 
     def test_defaults_emit_warnings_and_parameter_snapshots(self) -> None:
+        k1_default = ParameterValue(
+            "car-par-k1", "0.35", "ratio", ParameterSourceKind.STANDARD_DEFAULT,
+            "SRC-32151-34-2024", "2024", "第5.2.2条；PDF第12页；印刷页4",
+            "来自本地Canonical标准一般取值因子。", "methane_conversion_factor_calcination_gbt32151_34_2024", 2024,
+        )
         default_k1 = CarbonMaterialCalculator().calculate(
             _input(calcination=CalcinationInput(
                 gc="1", wfc="0", cc="0", ucc="0", du="0", wfc_c="0", wvar="0", wvar_c="0",
+                k1=k1_default,
             )),
             calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(default_k1.successful)
-        self.assertTrue(any(problem.code == "CAR-VAL-K1-DEFAULT" for problem in default_k1.problems))
-        self.assertIn("CAR-PAR-K1", {snapshot.parameter_id for snapshot in default_k1.parameter_snapshots})
+        self.assertIn("car-par-k1", {snapshot.parameter_id for snapshot in default_k1.parameter_snapshots})
 
-        default_fgd = CarbonMaterialCalculator().calculate(
+        record_store = InMemoryRecordRepository()
+        unknown_fgd = CarbonMaterialCalculator(record_repository=record_store).calculate(
             _input(fgd=FGDInput(cal="10")), calculated_at=SNAPSHOT_AT
         )
-        self.assertTrue(default_fgd.successful, default_fgd.problems)
-        self.assertTrue(any(problem.code == "CAR-VAL-I-DEFAULT" for problem in default_fgd.problems))
-        self.assertTrue(any(problem.code == "CAR-VAL-TR-DEFAULT" for problem in default_fgd.problems))
-        self.assertTrue({"CAR-PAR-P04B-I", "CAR-PAR-P04B-TR"}.issubset(
-            {snapshot.parameter_id for snapshot in default_fgd.parameter_snapshots}
+        self.assertFalse(unknown_fgd.successful)
+        self.assertTrue(unknown_fgd.blocked)
+        self.assertIsNone(unknown_fgd.record)
+        self.assertEqual(record_store.list_all(), ())
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-CARBONATE-FACTOR-MISSING"
+            and "请选择脱硫剂中的碳酸盐种类" in problem.message
+            for problem in unknown_fgd.problems
         ))
 
         default_heat = CarbonMaterialCalculator().calculate(
@@ -626,6 +646,134 @@ class G06CalculatorTests(unittest.TestCase):
         )
         self.assertTrue(default_heat.successful, default_heat.problems)
         self.assertTrue(any(problem.code == "CAR-VAL-HEAT-FACTOR-DEFAULT" for problem in default_heat.problems))
+
+    def test_domain_parameter_gate_blocks_invalid_values_from_every_source_without_records(self) -> None:
+        for source_kind in ParameterSourceKind:
+            with self.subTest(source_kind=source_kind):
+                record_store = InMemoryRecordRepository()
+                carbon = ParameterValue(
+                    "fuel_carbon", "-0.01", "tC/10^4Nm3", source_kind,
+                    "test-source", "test-version", "test location", "validation fixture",
+                )
+                oxidation = ParameterValue(
+                    "fuel_oxidation", "0.98", "ratio", source_kind,
+                    "test-source", "test-version", "test location", "validation fixture",
+                )
+                outcome = CarbonMaterialCalculator(record_repository=record_store).calculate(
+                    _input(fuel_inputs=(FuelInput("negative-carbon", FuelPath.VOLUME, "1", carbon, oxidation),)),
+                    calculated_at=SNAPSHOT_AT,
+                )
+                self.assertTrue(outcome.blocked)
+                self.assertTrue(any(problem.code == "CAR-VAL-PARAMETER-NONNEGATIVE" for problem in outcome.problems))
+                self.assertIsNone(outcome.record)
+                self.assertEqual(record_store.list_all(), ())
+
+        record_store = InMemoryRecordRepository()
+        negative_heat = CarbonMaterialCalculator(record_repository=record_store).calculate(
+            _input(purchased_heat=(HeatInput(
+                "negative-heat", "1", "2800",
+                ParameterValue("measured_heat_factor", "-0.11", "tCO2/GJ", ParameterSourceKind.MEASURED,
+                               "test-report", "2026", "report page 2", "measured fixture"),
+            ),)),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(negative_heat.blocked)
+        self.assertTrue(any(problem.code == "CAR-VAL-PARAMETER-NONNEGATIVE" for problem in negative_heat.problems))
+        self.assertIsNone(negative_heat.record)
+        self.assertEqual(record_store.list_all(), ())
+
+    def test_ratio_parameter_range_and_legal_zero(self) -> None:
+        for value in ("-0.01", "1.01", "101"):
+            unit = "percent" if value == "101" else "ratio"
+            outcome = CarbonMaterialCalculator().calculate(
+                _input(fuel_inputs=(FuelInput(
+                    "bad-ratio", FuelPath.VOLUME, "1",
+                    ParameterValue("fuel_carbon", "0.015", "tC/10^4Nm3", source_location="test"),
+                    ParameterValue("fuel_oxidation", value, unit, source_location="test"),
+                ),)),
+                calculated_at=SNAPSHOT_AT,
+            )
+            self.assertTrue(outcome.blocked, (value, outcome.problems))
+            self.assertTrue(any(problem.code == "CAR-VAL-PARAMETER-RATIO-RANGE" for problem in outcome.problems))
+            self.assertIsNone(outcome.record)
+
+        zero = CarbonMaterialCalculator().calculate(
+            _input(fuel_inputs=(FuelInput(
+                "zero-ratio", FuelPath.VOLUME, "1",
+                ParameterValue("fuel_carbon", "0.015", "tC/10^4Nm3", source_location="test"),
+                ParameterValue("fuel_oxidation", "0", "ratio", source_location="test"),
+            ),)),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(zero.successful, zero.problems)
+        self.assertEqual(zero.result.total_amount, Decimal("0"))
+
+    def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
+        fuels = (
+            FuelInput(
+                "diesel-default", FuelPath.MASS, "1",
+                ParameterValue("diesel_carbon_content", "0.0202", "tC/GJ", source_location="C.1"),
+                ParameterValue("diesel_oxidation_rate", "0.98", "ratio", source_location="C.1"),
+                ParameterValue("diesel_lhv", "42.652", "GJ/t", source_location="C.1"),
+                fuel_type=FuelType.DIESEL,
+            ),
+            FuelInput(
+                "gas-default", FuelPath.VOLUME, "1",
+                ParameterValue("natural_gas_carbon_content", "0.0153", "tC/GJ", source_location="C.1"),
+                ParameterValue("natural_gas_oxidation_rate", "0.99", "ratio", source_location="C.1"),
+                ParameterValue("natural_gas_lhv", "389.31", "GJ/10⁴Nm³", source_location="C.1"),
+                fuel_type=FuelType.NATURAL_GAS,
+            ),
+            FuelInput(
+                "heat-path", FuelPath.HEAT, "2",
+                ParameterValue("heat_path_carbon", "0.0153", "tC/GJ", source_location="measured"),
+                ParameterValue("heat_path_oxidation", "0.99", "ratio", source_location="C.1"),
+                fuel_type=FuelType.NATURAL_GAS,
+            ),
+        )
+        outcome = CarbonMaterialCalculator().calculate(_input(fuel_inputs=fuels), calculated_at=SNAPSHOT_AT)
+        self.assertTrue(outcome.successful, outcome.problems)
+        by_id = {line.line_id: line.amount for line in outcome.result.lines}
+        expected_diesel = fuel_heat_emission(fuel_energy_from_mass("1", "42.652"), "0.0202", "0.98")
+        expected_gas = fuel_heat_emission(fuel_energy_from_volume("1", "389.31"), "0.0153", "0.99")
+        expected_heat = fuel_heat_emission("2", "0.0153", "0.99")
+        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.diesel-default"] - expected_diesel), Decimal("1e-24"))
+        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.gas-default"] - expected_gas), Decimal("1e-24"))
+        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.heat-path"] - expected_heat), Decimal("1e-24"))
+        snapshots = {snapshot.parameter_id for snapshot in outcome.parameter_snapshots}
+        self.assertTrue({"diesel_lhv", "diesel_carbon_content", "diesel_oxidation_rate", "natural_gas_lhv"}.issubset(snapshots))
+
+    def test_heat_activity_path_cannot_apply_a_second_heating_value(self) -> None:
+        records = InMemoryRecordRepository()
+        outcome = CarbonMaterialCalculator(record_repository=records).calculate(
+            _input(fuel_inputs=(FuelInput(
+                "heat-with-lhv", FuelPath.HEAT, "1",
+                ParameterValue("heat_carbon", "0.0153", "tC/GJ", source_location="test"),
+                ParameterValue("heat_oxidation", "0.99", "ratio", source_location="test"),
+                ParameterValue("inapplicable_lhv", "1", "GJ/GJ", source_location="test"),
+            ),)),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(outcome.blocked)
+        self.assertTrue(any(problem.code == "CAR-VAL-FUEL-LHV-NOT-APPLICABLE" for problem in outcome.problems))
+        self.assertIsNone(outcome.record)
+        self.assertEqual(records.list_all(), ())
+
+    def test_explicit_measured_carbonate_factor_keeps_source_and_is_accepted(self) -> None:
+        measured = ParameterValue(
+            "measured_carbonate_factor", "0.50", "tCO2/t", ParameterSourceKind.MEASURED,
+            "TEST-LAB-2026-01", "2026", "report page 3", "measured factor test",
+        )
+        outcome = CarbonMaterialCalculator().calculate(
+            _input(fgd=FGDInput(components=(CarbonateComponent("10", "0.90", measured, "1"),))),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(outcome.successful, outcome.problems)
+        factor_snapshot = next(s for s in outcome.parameter_snapshots if s.parameter_id == "measured_carbonate_factor")
+        self.assertEqual(factor_snapshot.source_id, "TEST-LAB-2026-01")
+        self.assertEqual(factor_snapshot.value_used, Decimal("0.50"))
+        fgd_line = next(line for line in outcome.result.lines if line.line_id == "CAR-FLD-P04B-RESULT")
+        self.assertEqual(fgd_line.amount, Decimal("4.500"))
 
     def test_superheated_without_enthalpy_does_not_use_saturated_table(self) -> None:
         outcome = CarbonMaterialCalculator().calculate(

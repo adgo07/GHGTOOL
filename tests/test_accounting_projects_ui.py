@@ -4,6 +4,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch
@@ -25,6 +26,7 @@ from packages.persistence import SQLiteCatalogRepository, SQLiteProjectWorkspace
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     EmissionSourceStatus,
+    FGDInput,
     FuelPath,
     FuelType,
     InMemoryRecordRepository,
@@ -74,6 +76,52 @@ class AccountingProjectUiTests(unittest.TestCase):
         assert action is not None
         action.click()
         self.assertTrue(self.page._source_is_enabled(F01))
+
+    def test_legacy_project_without_carbonate_selection_opens_and_blocks_recalculation(self) -> None:
+        self.page.project_name.setText("旧版脱硫项目")
+        self.page.enterprise_name.setText("旧项目企业")
+        self.page.boundary_confirmed.setChecked(True)
+        fgd_status = self.page._source_statuses["CAR-SRC-FGD-001"]
+        fgd_status.setCurrentIndex(fgd_status.findData(EmissionSourceStatus.INVOLVED))
+        self.page._fields["fgd.cal"].setText("10")
+        self.assertTrue(self.page._save_project())
+
+        workspace = self.project_service.get(self.page._workspace.project_id)
+        self.assertIsNotNone(workspace)
+        assert workspace is not None
+        unit = workspace.units[0]
+        legacy_state = dict(unit.form_state)
+        self.assertIn("fgdCarbonateTypeSelector", legacy_state)
+        legacy_state.pop("fgdCarbonateTypeSelector")
+        legacy_unit = replace(unit, form_state=legacy_state)
+        legacy_workspace = replace(workspace, units=(legacy_unit,))
+        self.project_service.save(legacy_workspace)
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(workspace.project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        self.assertEqual(self.page._fields["fgd.cal"].text(), "10")
+        self.assertIsNone(self.page._carbonate_type_selector.currentData())
+        restored = self.page._process("fgd", FGDInput)
+        self.assertIsNotNone(restored)
+        assert restored is not None
+        self.assertEqual(str(restored.components[0].amount.value), "10")
+        self.assertIsNone(restored.components[0].emission_factor)
+
+        self.page._run_calculation()
+        validation_text = "\n".join(
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        )
+        self.assertIn("请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。", validation_text)
+        self.assertTrue(self.page.result_card.isHidden())
+        self.assertEqual(self.records.list_all(), ())
 
     def test_period_choices_map_to_annual_month_and_custom_domain_periods(self) -> None:
         self.assertIs(self.page._period().period_type, PeriodType.ANNUAL)

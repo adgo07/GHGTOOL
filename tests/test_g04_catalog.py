@@ -169,22 +169,20 @@ class G04CatalogTests(unittest.TestCase):
         self.assertIsNotNone(detail)
         assert detail is not None
         self.assertEqual(detail.standard.standard_number, "GB/T 32151.34—2024")
-        self.assertEqual(
-            detail.standard.notes,
-            "适用于炭素材料生产企业温室气体排放量的核算。",
-        )
+        self.assertEqual(detail.standard.notes, "适用于炭素材料生产企业温室气体排放量的核算。")
+        self.assertEqual(detail.standard.calculation_status, "IMPLEMENTED")
         self.assertEqual(detail.source.document_no, "GB/T 32151.34—2024")
         self.assertEqual(detail.base_standards[0].standard_id, "gbt_32150_2025")
-        self.assertEqual(
-            {parameter.parameter_id for parameter in detail.parameters},
-            {
-                "natural_gas_lhv",
-                "natural_gas_carbon_content",
-                "natural_gas_oxidation_rate",
-                "electricity_emission_factor_nonfossil",
-            },
-        )
-        self.assertEqual(len(detail.factors), 4)
+        self.assertEqual(len(detail.parameters), 95)
+        self.assertEqual(len(detail.factors), 95)
+        self.assertTrue({
+            "natural_gas_lhv",
+            "natural_gas_carbon_content",
+            "natural_gas_oxidation_rate",
+            "electricity_emission_factor_nonfossil",
+            "car-par-c2-caco3",
+            "car-par-k1",
+        }.issubset({parameter.parameter_id for parameter in detail.parameters}))
 
         upcoming_detail = self.service.get_standard_detail("gbt_32151_5_2026")
         self.assertIsNotNone(upcoming_detail)
@@ -199,6 +197,9 @@ class G04CatalogTests(unittest.TestCase):
                 "natural_gas_lhv_gbt32151_34_c1",
                 "natural_gas_carbon_content_gbt32151_34_c1",
                 "natural_gas_oxidation_rate_gbt32151_34_c1",
+                "liquefied_natural_gas_lhv_gbt32151_34_c1",
+                "liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+                "liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
             },
         )
 
@@ -206,13 +207,13 @@ class G04CatalogTests(unittest.TestCase):
             "GB/T 32151.34",
             view_mode=ParameterViewMode.BY_SOURCE,
         )
-        self.assertEqual(len(by_source), 7)
+        self.assertEqual(len(by_source), 98)
         self.assertTrue(all(item.source is not None for item in by_source))
         source_specific = self.service.search_parameter_factors(
             view_mode=ParameterViewMode.BY_SOURCE,
             source_id="SRC-32151-34-2024",
         )
-        self.assertEqual(len(source_specific), 4)
+        self.assertEqual(len(source_specific), 95)
         self.assertTrue(
             all(item.source is not None and item.source.source_id == "SRC-32151-34-2024" for item in source_specific)
         )
@@ -243,7 +244,7 @@ class G04CatalogTests(unittest.TestCase):
             review_status=ReviewStatus.VERIFIED,
             factor_year=2024,
         )
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result), 95)
         self.assertTrue(all(item.factor is not None for item in result))
         self.assertEqual(self.service.review_status_label(ReviewStatus.VERIFIED), "已核对")
 
@@ -406,13 +407,16 @@ class G04CatalogTests(unittest.TestCase):
 
         page.search_input.setText("天然气")
         self.application.processEvents()
-        self.assertEqual(table.rowCount(), 3)
+        self.assertEqual(table.rowCount(), 6)
         self.assertIn(
             page.selected_factor_id,
             {
                 "natural_gas_lhv_gbt32151_34_c1",
                 "natural_gas_carbon_content_gbt32151_34_c1",
                 "natural_gas_oxidation_rate_gbt32151_34_c1",
+                "liquefied_natural_gas_lhv_gbt32151_34_c1",
+                "liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+                "liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
             },
         )
         detail_heading = page.factor_detail_layout.itemAt(0).widget()
@@ -422,7 +426,7 @@ class G04CatalogTests(unittest.TestCase):
         self.assertNotIn("全球变暖潜势", detail_heading.text())
         page.view_mode_filter.setCurrentIndex(1)
         self.application.processEvents()
-        self.assertEqual(table.rowCount(), 3)
+        self.assertEqual(table.rowCount(), 6)
         detail_text = "\n".join(
             label.text() for label in page.factor_detail_host.findChildren(QLabel)
         )
@@ -445,7 +449,7 @@ class G04CatalogTests(unittest.TestCase):
             as_of=date(2026, 9, 12),
         )
         results = service.search_parameter_factors("天然气低位发热量")
-        self.assertEqual(len(results), 3)
+        self.assertEqual(len(results), 4)
         categories = {
             result.factor.factor_id: service.value_category(result.factor)
             for result in results
@@ -457,6 +461,7 @@ class G04CatalogTests(unittest.TestCase):
                 "natural_gas_lhv_gbt32151_34_c1": CatalogValueCategory.RECOMMENDED,
                 "natural_gas_lhv_other_2023": CatalogValueCategory.OTHER_APPLICABLE,
                 "natural_gas_lhv_historical_2020": CatalogValueCategory.HISTORICAL,
+                "liquefied_natural_gas_lhv_gbt32151_34_c1": CatalogValueCategory.RECOMMENDED,
             },
         )
         page = ParameterFactorLibraryPage(service, lambda _route: None)
@@ -465,7 +470,7 @@ class G04CatalogTests(unittest.TestCase):
         try:
             page.search_input.setText("天然气低位发热量")
             self.application.processEvents()
-            self.assertEqual(page.factor_table.rowCount(), 3)
+            self.assertEqual(page.factor_table.rowCount(), 4)
             state_values = {
                 page.factor_table.item(row, 5).text()
                 for row in range(page.factor_table.rowCount())

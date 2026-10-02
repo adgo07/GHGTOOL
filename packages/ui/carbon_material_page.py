@@ -92,10 +92,89 @@ from .view_models import AppRoute
 
 
 _PROCESS_DEFAULT_PARAMETERS = {
-    "calcination": ("0.35", "比例", "CAR-PAR-K1", "第5.2.2条；一般取0.35"),
-    "baking": ("0.35", "比例", "CAR-PAR-K2", "第5.2.3条；一般取0.35"),
-    "graphitization": ("0.35", "比例", "CAR-PAR-K3", "第5.2.4条；一般取0.35"),
+    "calcination": ("CAR-PAR-K1", "第5.2.2条"),
+    "baking": ("CAR-PAR-K2", "第5.2.3条"),
+    "graphitization": ("CAR-PAR-K3", "第5.2.4条"),
 }
+_FUEL_C1_SUBJECT_IDS = {
+    FuelType.ANTHRACITE: "anthracite",
+    FuelType.BITUMINOUS_COAL: "bituminous_coal",
+    FuelType.LIGNITE: "lignite",
+    FuelType.CLEANED_COAL: "cleaned_coal",
+    FuelType.OTHER_CLEANED_COAL: "other_cleaned_coal",
+    FuelType.BRIQUETTE: "briquette",
+    FuelType.OTHER_COAL_PRODUCTS: "other_coal_products",
+    FuelType.COKE: "coke",
+    FuelType.PETROLEUM_COKE: "petroleum_coke",
+    FuelType.CRUDE_OIL: "crude_oil",
+    FuelType.FUEL_OIL: "fuel_oil",
+    FuelType.GASOLINE: "gasoline",
+    FuelType.DIESEL: "diesel",
+    FuelType.KEROSENE: "kerosene",
+    FuelType.LIQUEFIED_NATURAL_GAS: "liquefied_natural_gas",
+    FuelType.LIQUEFIED_PETROLEUM_GAS: "liquefied_petroleum_gas",
+    FuelType.NAPHTHA: "naphtha",
+    FuelType.TAR: "tar",
+    FuelType.CRUDE_BENZENE: "crude_benzene",
+    FuelType.OTHER_PETROLEUM_PRODUCTS: "other_petroleum_products",
+    FuelType.NATURAL_GAS: "natural_gas",
+    FuelType.BLAST_FURNACE_GAS: "blast_furnace_gas",
+    FuelType.CONVERTER_GAS: "converter_gas",
+    FuelType.COKE_OVEN_GAS: "coke_oven_gas",
+    FuelType.REFINERY_DRY_GAS: "refinery_dry_gas",
+    FuelType.OTHER_GAS: "other_gas",
+}
+_FUEL_C1_ACTIVITY_PATH = {
+    FuelType.NATURAL_GAS: FuelPath.VOLUME,
+    FuelType.BLAST_FURNACE_GAS: FuelPath.VOLUME,
+    FuelType.CONVERTER_GAS: FuelPath.VOLUME,
+    FuelType.COKE_OVEN_GAS: FuelPath.VOLUME,
+    FuelType.OTHER_GAS: FuelPath.VOLUME,
+    FuelType.REFINERY_DRY_GAS: FuelPath.MASS,
+}
+_FUEL_TYPE_OPTIONS = (
+    ("柴油", FuelType.DIESEL),
+    ("天然气", FuelType.NATURAL_GAS),
+    ("焦炉煤气", FuelType.COKE_OVEN_GAS),
+    ("煤（需选择具体煤种）", FuelType.COAL),
+    ("其他燃料（无统一标准默认值）", FuelType.OTHER),
+    ("无烟煤", FuelType.ANTHRACITE),
+    ("烟煤", FuelType.BITUMINOUS_COAL),
+    ("褐煤", FuelType.LIGNITE),
+    ("洗精煤", FuelType.CLEANED_COAL),
+    ("其他洗煤", FuelType.OTHER_CLEANED_COAL),
+    ("型煤", FuelType.BRIQUETTE),
+    ("其他煤制品", FuelType.OTHER_COAL_PRODUCTS),
+    ("焦炭", FuelType.COKE),
+    ("石油焦", FuelType.PETROLEUM_COKE),
+    ("原油", FuelType.CRUDE_OIL),
+    ("燃料油", FuelType.FUEL_OIL),
+    ("汽油", FuelType.GASOLINE),
+    ("一般煤油", FuelType.KEROSENE),
+    ("液化天然气", FuelType.LIQUEFIED_NATURAL_GAS),
+    ("液化石油气", FuelType.LIQUEFIED_PETROLEUM_GAS),
+    ("石脑油", FuelType.NAPHTHA),
+    ("焦油", FuelType.TAR),
+    ("粗苯", FuelType.CRUDE_BENZENE),
+    ("其他石油制品", FuelType.OTHER_PETROLEUM_PRODUCTS),
+    ("高炉煤气", FuelType.BLAST_FURNACE_GAS),
+    ("转炉煤气", FuelType.CONVERTER_GAS),
+    ("炼厂干气", FuelType.REFINERY_DRY_GAS),
+    ("其他煤气", FuelType.OTHER_GAS),
+)
+_C2_CARBONATES = (
+    ("CaCO₃", "car-par-c2-caco3"),
+    ("MgCO₃", "car-par-c2-mgco3"),
+    ("Na₂CO₃", "car-par-c2-na2co3"),
+    ("NaHCO₃", "car-par-c2-nahco3"),
+    ("FeCO₃", "car-par-c2-feco3"),
+    ("MnCO₃", "car-par-c2-mnco3"),
+    ("BaCO₃", "car-par-c2-baco3"),
+    ("Li₂CO₃", "car-par-c2-li2co3"),
+    ("K₂CO₃", "car-par-c2-k2co3"),
+    ("SrCO₃", "car-par-c2-srco3"),
+    ("CaMg(CO₃)₂", "car-par-c2-camgco3-2"),
+)
 _INTERNAL_TOKEN_RE = re.compile(r"\b(?:CAR|GEN)-[A-Z0-9-]+\b")
 _INTERNAL_VARIABLE_RE = re.compile(r"\b(?:k[123]|resolver|candidate)\b", re.IGNORECASE)
 
@@ -316,9 +395,7 @@ class _FuelRow(QWidget):
         self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
         self.internal_id.hide()
         self.fuel_type = create_typed_input(self, get_field_spec("fuel_type"), f"fuelType{index}")
-        for label, value in (("柴油", FuelType.DIESEL), ("天然气", FuelType.NATURAL_GAS),
-                             ("焦炉煤气", FuelType.COKE_OVEN_GAS), ("煤", FuelType.COAL),
-                             ("其他燃料", FuelType.OTHER)):
+        for label, value in _FUEL_TYPE_OPTIONS:
             self.fuel_type.addItem(label, value)
         self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
         for value, label in ((FuelPath.VOLUME, "体积"), (FuelPath.MASS, "质量"), (FuelPath.HEAT, "热量")):
@@ -326,6 +403,11 @@ class _FuelRow(QWidget):
         self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
         self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
         self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
+        self.lower_heating_value = create_typed_input(
+            self,
+            get_field_spec("fuel_lhv"),
+            f"fuelLhvInput{index}",
+        )
         self.source_reference = create_typed_input(
             self,
             get_field_spec("fuel_source_reference"),
@@ -340,14 +422,15 @@ class _FuelRow(QWidget):
         self.remove_button.clicked.connect(lambda: remove(self))
         for column, (label, widget) in enumerate((
             ("燃料种类", self.fuel_type), ("计量方式", self.path), ("活动量", self.activity),
-            ("单位含碳量", self.carbon), ("碳氧化率", self.oxidation),
+            ("单位热值含碳量/单位含碳量", self.carbon), ("碳氧化率", self.oxidation),
+            ("低位发热量", self.lower_heating_value),
             ("参数数据来源", self.source_reference),
         )):
             layout.addWidget(QLabel(label, self), 0, column)
             layout.addWidget(widget, 1, column)
-        layout.addWidget(self.parameter_summary, 2, 0, 1, 5)
-        layout.addWidget(self.remove_button, 2, 5)
-        self._last_default_values: tuple[str, str] | None = None
+        layout.addWidget(self.parameter_summary, 2, 0, 1, 6)
+        layout.addWidget(self.remove_button, 2, 6)
+        self._last_default_values: tuple[str, str, str] | None = None
         self.parameter_source = "AUTO"
 
 
@@ -848,6 +931,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "activity": row.activity.text(),
                 "carbon": row.carbon.text(),
                 "oxidation": row.oxidation.text(),
+                "lower_heating_value": row.lower_heating_value.text(),
                 "source_reference": row.source_reference.text(),
                 "parameter_source": row.parameter_source,
             }
@@ -918,7 +1002,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 if isinstance(index, int) and 0 <= index < combo.count():
                     combo.setCurrentIndex(index)
             for widget, key in ((row.activity, "activity"), (row.carbon, "carbon"),
-                                (row.oxidation, "oxidation"), (row.source_reference, "source_reference")):
+                                (row.oxidation, "oxidation"), (row.lower_heating_value, "lower_heating_value"),
+                                (row.source_reference, "source_reference")):
                 widget.setText(str(stored.get(key, "")))
             stored_source = stored.get("parameter_source")
             if stored_source in {"AUTO", "MEASURED", "STANDARD_DEFAULT"}:
@@ -1309,12 +1394,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self._fuel_rows.append(row)
         self.fuel_rows_layout.addWidget(row)
         self._bind_fuel_aliases(self._fuel_rows[0])
-        row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
+        row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._on_fuel_type_changed(_row))
         row.path.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
         row.source_reference.textChanged.connect(
             lambda _text, _row=row: self._refresh_fuel_source_mode(_row)
         )
-        for widget in (row.activity, row.carbon, row.oxidation, row.source_reference):
+        for widget in (row.activity, row.carbon, row.oxidation, row.lower_heating_value, row.source_reference):
             if isinstance(widget, QLineEdit):
                 widget.textChanged.connect(self._mark_input_dirty)
                 widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
@@ -1322,6 +1407,19 @@ class CarbonMaterialAccountingPage(BasePage):
         row.path.currentIndexChanged.connect(self._mark_input_dirty)
         row.fuel_type.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
         row.path.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+        self._on_fuel_type_changed(row)
+
+    def _on_fuel_type_changed(self, row: _FuelRow) -> None:
+        if not self._restoring_workspace and not row.activity.text().strip():
+            try:
+                fuel_type = _enum(row.fuel_type.currentData(), FuelType)
+            except (TypeError, ValueError):
+                fuel_type = None
+            if fuel_type in _FUEL_C1_SUBJECT_IDS:
+                standard_path = _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS)
+                path_index = row.path.findData(standard_path)
+                if path_index >= 0 and row.path.currentIndex() != path_index:
+                    row.path.setCurrentIndex(path_index)
         self._refresh_fuel_row(row)
 
     def _remove_fuel_row(self, row: QWidget) -> None:
@@ -1332,6 +1430,7 @@ class CarbonMaterialAccountingPage(BasePage):
             row.activity.clear()
             row.carbon.clear()
             row.oxidation.clear()
+            row.lower_heating_value.clear()
             row.source_reference.clear()
             row.internal_id.setText(f"fuel-{uuid4().hex}")
             self._refresh_fuel_row(row)
@@ -1344,48 +1443,65 @@ class CarbonMaterialAccountingPage(BasePage):
             self._mark_input_dirty()
         self._refresh_source_cards()
 
-    def _fuel_default_factors(self, row: _FuelRow) -> tuple[object, object] | None:
+    def _canonical_default_factor(self, parameter_id: str, *, value_type: ValueType = ValueType.STANDARD_DEFAULT) -> object | None:
+        parameter_id = parameter_id.lower()
+        try:
+            factors = tuple(self.catalog_service.repository.list_factors())
+            period = self._period()
+        except (AttributeError, TypeError, ValueError, DomainValidationError):
+            return None
+        candidates = [
+            factor for factor in factors
+            if factor.parameter_id == parameter_id
+            and STANDARD_ID in factor.applicable_standard_ids
+            and factor.review_status is ReviewStatus.VERIFIED
+            and factor.value_type is value_type
+            and not (
+                (factor.valid_from is not None and factor.valid_from > period.end)
+                or (factor.valid_to is not None and factor.valid_to < period.start)
+                or (
+                    period.period_type is PeriodType.CUSTOM
+                    and ((factor.valid_from is not None and period.start < factor.valid_from)
+                         or (factor.valid_to is not None and period.end > factor.valid_to))
+                )
+            )
+        ]
+        return sorted(candidates, key=lambda factor: factor.factor_id)[0] if candidates else None
+
+    @staticmethod
+    def _parameter_value_from_factor(factor: object, reason: str) -> ParameterValue:
+        return ParameterValue(
+            factor.parameter_id,
+            factor.value,
+            factor.unit,
+            _parameter_source_kind(factor.value_type),
+            factor.source_id,
+            str(factor.factor_year),
+            factor.source_location,
+            reason,
+            factor.factor_id,
+            factor.factor_year,
+        )
+
+    def _fuel_default_factors(self, row: _FuelRow) -> tuple[object | None, object, object] | None:
         try:
             fuel_type = _enum(row.fuel_type.currentData(), FuelType)
             path = _enum(row.path.currentData(), FuelPath)
         except (TypeError, ValueError):
             return None
-        if fuel_type is not FuelType.NATURAL_GAS or path is not FuelPath.HEAT:
+        subject_id = _FUEL_C1_SUBJECT_IDS.get(fuel_type)
+        if subject_id is None:
             return None
-        try:
-            factors = tuple(self.catalog_service.repository.list_factors())
-        except (AttributeError, TypeError, ValueError):
+        if path is not FuelPath.HEAT and path is not _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS):
             return None
-        required = ("natural_gas_carbon_content", "natural_gas_oxidation_rate")
-        selected = []
-        try:
-            period = self._period()
-        except (DomainValidationError, ValueError):
+        lhv_factor = self._canonical_default_factor(f"{subject_id}_lhv") if path is not FuelPath.HEAT else None
+        carbon_factor = self._canonical_default_factor(f"{subject_id}_carbon_content")
+        oxidation_factor = self._canonical_default_factor(f"{subject_id}_oxidation_rate")
+        if carbon_factor is None or oxidation_factor is None:
             return None
-        for parameter_id in required:
-            candidates = [
-                factor for factor in factors
-                if factor.parameter_id == parameter_id
-                and STANDARD_ID in factor.applicable_standard_ids
-                and factor.review_status is ReviewStatus.VERIFIED
-                and factor.value_type is ValueType.STANDARD_DEFAULT
-            ]
-            candidates = [
-                factor for factor in candidates
-                if not (
-                    (factor.valid_from is not None and factor.valid_from > period.end)
-                    or (factor.valid_to is not None and factor.valid_to < period.start)
-                    or (
-                        period.period_type is PeriodType.CUSTOM
-                        and ((factor.valid_from is not None and period.start < factor.valid_from)
-                             or (factor.valid_to is not None and period.end > factor.valid_to))
-                    )
-                )
-            ]
-            if not candidates:
-                return None
-            selected.append(candidates[0])
-        return selected[0], selected[1]
+        if path is not FuelPath.HEAT and lhv_factor is None:
+            return None
+        return lhv_factor, carbon_factor, oxidation_factor
 
     def _refresh_fuel_defaults(self) -> None:
         for row in getattr(self, "_fuel_rows", ()):
@@ -1401,16 +1517,24 @@ class CarbonMaterialAccountingPage(BasePage):
         except (TypeError, ValueError):
             path = None
         activity_unit = {FuelPath.VOLUME: "10⁴Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}.get(path, "")
-        carbon_unit = {FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}.get(path, "")
+        factors = self._fuel_default_factors(row)
+        carbon_unit = "tC/GJ" if factors is not None else {
+            FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"
+        }.get(path, "")
         row.activity.setPlaceholderText(f"活动量（{activity_unit}）")
         row.carbon.setPlaceholderText(f"单位含碳量（{carbon_unit}）")
-        factors = self._fuel_default_factors(row)
+        row.lower_heating_value.setPlaceholderText(
+            "热量路径无需低位发热量" if path is FuelPath.HEAT else
+            "低位发热量（GJ/10⁴Nm³）" if path is FuelPath.VOLUME else "低位发热量（GJ/t）"
+        )
         if factors is None:
-            if row._last_default_values is not None and (row.carbon.text().strip(), row.oxidation.text().strip()) == row._last_default_values:
+            current = (row.lower_heating_value.text().strip(), row.carbon.text().strip(), row.oxidation.text().strip())
+            if row._last_default_values is not None and current == row._last_default_values:
+                row.lower_heating_value.clear()
                 row.carbon.clear()
                 row.oxidation.clear()
             row._last_default_values = None
-            has_values = bool(row.carbon.text().strip() or row.oxidation.text().strip())
+            has_values = bool(row.lower_heating_value.text().strip() or row.carbon.text().strip() or row.oxidation.text().strip())
             row.parameter_source = "MEASURED" if has_values or row.source_reference.text().strip() else "AUTO"
             row.parameter_summary.setText(
                 "企业实测/检测参数（非标准默认）；请填写参数数据来源编号。"
@@ -1418,18 +1542,25 @@ class CarbonMaterialAccountingPage(BasePage):
                 else "当前组合暂无已核对的标准默认参数；请填写企业实测/检测值和来源编号。"
             )
             return
-        carbon_factor, oxidation_factor = factors
-        current = (row.carbon.text().strip(), row.oxidation.text().strip())
-        new_defaults = (str(carbon_factor.value), str(oxidation_factor.value * Decimal("100")))
-        if not current[0] and not current[1] or current == row._last_default_values:
-            row.carbon.setText(new_defaults[0])
-            row.oxidation.setText(new_defaults[1])
-        current = (row.carbon.text().strip(), row.oxidation.text().strip())
+        lhv_factor, carbon_factor, oxidation_factor = factors
+        current = (row.lower_heating_value.text().strip(), row.carbon.text().strip(), row.oxidation.text().strip())
+        new_defaults = (
+            "" if lhv_factor is None else str(lhv_factor.value),
+            str(carbon_factor.value),
+            str(oxidation_factor.value * Decimal("100")),
+        )
+        if not any(current) or current == row._last_default_values:
+            row.lower_heating_value.setText(new_defaults[0])
+            row.carbon.setText(new_defaults[1])
+            row.oxidation.setText(new_defaults[2])
+        current = (row.lower_heating_value.text().strip(), row.carbon.text().strip(), row.oxidation.text().strip())
         row._last_default_values = new_defaults if current == new_defaults else row._last_default_values
         if current == new_defaults and not row.source_reference.text().strip():
             row.parameter_source = "STANDARD_DEFAULT"
             row.parameter_summary.setText(
-                f"标准默认：{current[0]} {carbon_factor.unit}；{current[1]}%；来源：GB/T 32151.34—2024。"
+                f"标准默认：单位热值含碳量 {carbon_factor.value} tC/GJ；"
+                f"碳氧化率 {oxidation_factor.value * Decimal('100')}%；"
+                f"低位发热量 {new_defaults[0] or '热量路径不适用'}；来源：GB/T 32151.34—2024 附录C.1。"
             )
         else:
             row.parameter_source = "MEASURED"
@@ -1468,6 +1599,28 @@ class CarbonMaterialAccountingPage(BasePage):
             group_layout.addWidget(row)
             parent_layout.addWidget(group)
 
+        if prefix == "fgd":
+            carbonate_row = QWidget(self)
+            carbonate_form = QFormLayout(carbonate_row)
+            self._carbonate_type_selector = QComboBox(carbonate_row)
+            self._carbonate_type_selector.setObjectName("fgdCarbonateTypeSelector")
+            self._carbonate_type_selector.setProperty("fieldSpecKey", "fgd.ef1")
+            self._carbonate_type_selector.addItem("未选择碳酸盐种类", None)
+            for label, parameter_id in _C2_CARBONATES:
+                self._carbonate_type_selector.addItem(label, parameter_id)
+            carbonate_form.addRow("脱硫剂中的碳酸盐种类", self._carbonate_type_selector)
+            self._fields["fgd.factor_source_reference"] = create_typed_input(
+                carbonate_row,
+                get_field_spec("fgd.factor_source_reference"),
+                "fgdFactorSourceReferenceInput",
+            )
+            self._fields["fgd.factor_source_reference"].setPlaceholderText(
+                "实测因子或手工参数的资料编号"
+            )
+            carbonate_form.addRow("参数来源编号", self._fields["fgd.factor_source_reference"])
+            parent_layout.addWidget(carbonate_row)
+            return
+
         if prefix not in {"calcination", "baking", "graphitization"}:
             return
 
@@ -1497,11 +1650,14 @@ class CarbonMaterialAccountingPage(BasePage):
         summary_row.addWidget(edit_button)
         metadata_layout.addLayout(summary_row)
 
-        default_value, default_unit, _default_parameter_id, _default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
-        parameter_summary = QLabel(
-            f"默认排放参数：{default_value}（{default_unit}）· 标准默认",
-            metadata,
+        default_parameter_id, _default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
+        default_factor = self._canonical_default_factor(default_parameter_id)
+        default_summary = (
+            f"默认排放参数：{default_factor.value}（比例）· 标准默认"
+            if default_factor is not None
+            else "当前目录暂无已核验的标准缺省参数；计算时会提示并阻断。"
         )
+        parameter_summary = QLabel(default_summary, metadata)
         parameter_summary.setObjectName(f"{prefix}_parameterSummary")
         parameter_summary.setWordWrap(True)
         metadata_layout.addWidget(parameter_summary)
@@ -1737,14 +1893,20 @@ class CarbonMaterialAccountingPage(BasePage):
             "baking": ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
             "graphitization": ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"),
         }[prefix]
-        default_value, default_unit, parameter_id, default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
+        parameter_id, default_clause = _PROCESS_DEFAULT_PARAMETERS[prefix]
+        default_factor = self._canonical_default_factor(parameter_id)
         detail_lines = [
             "专业详情（只读）",
             f"数据基准转换：质量数据 {mass_label}；成分含量 {composition_label}；内部归一目标：收到基。",
             "固定碳字段性质：固定碳（由字段定义自动确定）。",
             "挥发分字段性质：挥发分（由字段定义自动确定）。",
-            f"标准默认参数：{default_value}（{default_unit}）；参数 ID：{parameter_id}；"
-            f"标准条款：{default_clause}；参数来源：标准默认值；选择理由：按适用标准默认规则采用。",
+            (
+                f"标准默认参数：{default_factor.value}（比例）；参数 ID：{parameter_id}；"
+                f"标准条款：{default_clause}；参数来源：{default_factor.source_id}；"
+                f"版本：{default_factor.factor_year}；定位：{default_factor.source_location}。"
+                if default_factor is not None
+                else f"标准默认参数：缺少已核验Catalog值；参数 ID：{parameter_id}；标准条款：{default_clause}。"
+            ),
         ]
         for field in field_names:
             spec = get_field_spec(f"{prefix}.{field}")
@@ -2306,11 +2468,13 @@ class CarbonMaterialAccountingPage(BasePage):
         factors = self._fuel_default_factors(row)
         if factors is None:
             return False
-        carbon_factor, oxidation_factor = factors
+        lhv_factor, carbon_factor, oxidation_factor = factors
         try:
+            lhv = row.lower_heating_value.text().strip()
             carbon = Decimal(row.carbon.text().strip())
             oxidation = ui_to_domain_value(get_field_spec("fuel_oxidation"), row.oxidation.text().strip())
-            return carbon == carbon_factor.value and Decimal(str(oxidation)) == oxidation_factor.value
+            expected_lhv = "" if lhv_factor is None else str(lhv_factor.value)
+            return lhv == expected_lhv and carbon == carbon_factor.value and Decimal(str(oxidation)) == oxidation_factor.value
         except (InvalidOperation, TypeError, ValueError):
             return False
 
@@ -2339,58 +2503,48 @@ class CarbonMaterialAccountingPage(BasePage):
             path = _enum(row.path.currentData(), FuelPath)
             carbon_text = row.carbon.text().strip()
             oxidation_text = _ui_value("fuel_oxidation", row.oxidation)
+            lhv_text = row.lower_heating_value.text().strip()
             source_reference = row.source_reference.text().strip()
             defaults = self._fuel_default_factors(row)
             standard_default = self._fuel_row_uses_standard_defaults(row)
+            lhv_factor, carbon_factor, oxidation_factor = defaults if defaults is not None else (None, None, None)
             if standard_default and defaults is not None:
-                carbon_factor, oxidation_factor = defaults
-                carbon_value: ParameterValue | None = ParameterValue(
-                    "natural_gas_carbon_content",
-                    carbon_factor.value,
-                    carbon_factor.unit,
-                    ParameterSourceKind.STANDARD_DEFAULT,
-                    carbon_factor.source_id,
-                    f"v{carbon_factor.factor_year}",
-                    carbon_factor.source_location,
-                    "按当前期间适用且已核对的天然气标准默认参数采用。",
-                    carbon_factor.factor_id,
-                    carbon_factor.factor_year,
-                )
-                oxidation_value: ParameterValue | None = ParameterValue(
-                    "natural_gas_oxidation_rate",
-                    oxidation_factor.value,
-                    oxidation_factor.unit,
-                    ParameterSourceKind.STANDARD_DEFAULT,
-                    oxidation_factor.source_id,
-                    f"v{oxidation_factor.factor_year}",
-                    oxidation_factor.source_location,
-                    "按当前期间适用且已核对的天然气标准默认参数采用。",
-                    oxidation_factor.factor_id,
-                    oxidation_factor.factor_year,
-                )
+                carbon_value = self._parameter_value_from_factor(carbon_factor, "采用所选燃料在当前期间适用的GB/T 32151.34—2024附录C.1标准默认值。")
+                oxidation_value = self._parameter_value_from_factor(oxidation_factor, "采用所选燃料在当前期间适用的GB/T 32151.34—2024附录C.1标准默认值。")
+                lhv_value = self._parameter_value_from_factor(lhv_factor, "采用所选燃料在当前期间适用的GB/T 32151.34—2024附录C.1低位发热量。") if lhv_factor is not None else None
             else:
-                if (carbon_text or oxidation_text) and not source_reference:
+                if (carbon_text or oxidation_text or lhv_text) and not source_reference:
                     raise DomainValidationError("燃料使用企业实测/检测参数时，必须填写数据来源编号。")
+                lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
+                lhv_value = self._measured_fuel_parameter(row=row, value=lhv_text, unit=lhv_unit, suffix="lhv", source_reference=source_reference) if lhv_text else (
+                    self._parameter_value_from_factor(lhv_factor, "采用附录C.1标准低位发热量。") if lhv_factor is not None else None
+                )
+                carbon_unit = "tC/GJ" if lhv_text or lhv_factor is not None or path is FuelPath.HEAT else units[path]
                 carbon_value = self._measured_fuel_parameter(
                     row=row,
                     value=carbon_text,
-                    unit=units[path],
+                    unit=carbon_unit,
                     suffix="carbon",
                     source_reference=source_reference,
-                ) if carbon_text else None
+                ) if carbon_text and (source_reference or carbon_factor is None) else (
+                    self._parameter_value_from_factor(carbon_factor, "采用附录C.1标准单位热值含碳量。") if carbon_factor is not None else None
+                )
                 oxidation_value = self._measured_fuel_parameter(
                     row=row,
                     value=Decimal(str(oxidation_text)),
                     unit="ratio",
                     suffix="oxidation",
                     source_reference=source_reference,
-                ) if oxidation_text else None
+                ) if oxidation_text and (source_reference or oxidation_factor is None) else (
+                    self._parameter_value_from_factor(oxidation_factor, "采用附录C.1标准碳氧化率。") if oxidation_factor is not None else None
+                )
             fuels.append(FuelInput(
                 fuel_id=row.internal_id.text().strip() or f"fuel-{row.row_key}",
                 path=path,
                 activity=activity,
                 carbon_content=carbon_value,
                 oxidation_rate=oxidation_value,
+                lower_heating_value=lhv_value,
                 fuel_type=_enum(row.fuel_type.currentData(), FuelType),
             ))
         return tuple(fuels)
@@ -2409,6 +2563,61 @@ class CarbonMaterialAccountingPage(BasePage):
         }
         if all(value is None for value in values.values()):
             return None
+        if prefix == "fgd":
+            source_reference = _value(self._fields["fgd.factor_source_reference"])
+            selected_parameter_id = self._carbonate_type_selector.currentData()
+            carbonate_type = self._carbonate_type_selector.currentText() if selected_parameter_id else None
+            ef_text = values["ef1"]
+            if ef_text is not None:
+                factor_parameter_id = selected_parameter_id or "fgd_carbonate_emission_factor_measured"
+                factor_value = ParameterValue(
+                    factor_parameter_id,
+                    ef_text,
+                    "tCO2/t",
+                    ParameterSourceKind.MEASURED,
+                    "USER-FGD-SOURCE" if source_reference else None,
+                    "user-input",
+                    f"企业检测/技术资料编号：{source_reference}" if source_reference else None,
+                    f"企业提供可追溯因子；资料编号：{source_reference}" if source_reference else "企业提供的实测因子。",
+                )
+            elif isinstance(selected_parameter_id, str):
+                factor = self._canonical_default_factor(selected_parameter_id, value_type=ValueType.STANDARD_SPECIFIED)
+                factor_value = self._parameter_value_from_factor(factor, f"按选择的碳酸盐种类采用GB/T 32151.34—2024附录C.2对应值。") if factor is not None else None
+            else:
+                factor_value = None
+
+            def fgd_ratio(field: str, parameter_id: str) -> ParameterValue | None:
+                raw = values[field]
+                if raw is None:
+                    factor = self._canonical_default_factor(parameter_id)
+                    return self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。") if factor is not None else None
+                return ParameterValue(
+                    parameter_id,
+                    Decimal(str(raw)),
+                    "ratio",
+                    ParameterSourceKind.MEASURED,
+                    "USER-FGD-SOURCE" if source_reference else None,
+                    "user-input",
+                    f"企业检测/技术资料编号：{source_reference}" if source_reference else None,
+                    f"企业提供实测值；资料编号：{source_reference}" if source_reference else "企业提供的参数值。",
+                )
+
+            return kind(
+                cal=values["cal"],
+                i=fgd_ratio("i", "CAR-PAR-P04B-I"),
+                ef1=factor_value,
+                tr=fgd_ratio("tr", "CAR-PAR-P04B-TR"),
+                carbonate_type=carbonate_type,
+            )
+
+        if prefix in _PROCESS_DEFAULT_PARAMETERS:
+            default_parameter_id = _PROCESS_DEFAULT_PARAMETERS[prefix][0]
+            factor = self._canonical_default_factor(default_parameter_id)
+            parameter_name = {"calcination": "k1", "baking": "k2", "graphitization": "k3"}[prefix]
+            values[parameter_name] = (
+                self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。")
+                if factor is not None else None
+            )
         controls = self._material_controls.get(prefix)
         if controls is None:
             return kind(**values)
@@ -2789,6 +2998,11 @@ class CarbonMaterialAccountingPage(BasePage):
             "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE": "非化石电力明细缺少有效证明材料，无法采用相应参数。",
             "CAR-VAL-STEAM-STATE": "购入热力的蒸汽状态资料不完整，请补充焓值或压力等必要数据。",
             "CAR-VAL-PARAMETER-RESOLVER-MISSING": "暂时无法取得适用的标准参数，请检查参数数据后重试。",
+            "GEN-PAR-STANDARD-DEFAULT-MISSING": "当前无法取得适用的标准缺省参数，请检查标准参数目录后重试。",
+            "CAR-VAL-PARAMETER-NONNEGATIVE": "含碳量、热值或排放因子不能为负数，请核对录入值和参数来源。",
+            "CAR-VAL-PARAMETER-RATIO-RANGE": "比例参数须在0到1之间，请核对录入值。",
+            "CAR-VAL-CARBONATE-FACTOR-MISSING": "请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。",
+            "CAR-VAL-FUEL-LHV-NOT-APPLICABLE": "热量路径的活动量已经是热量，不需要低位发热量；请清空低位发热量后重试。",
             "GEN-PAR-NO-APPLICABLE-VALUE": "当前明细没有可用的适用参数，请补充或检查参数资料。",
             "GEN-VAL-REQUIRED-MISSING": "必填信息不完整，请补充后再试。",
         }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, SourceType, ValueType
@@ -23,8 +24,8 @@ class CanonicalCatalogTests(unittest.TestCase):
     def test_approved_minimal_catalog_loads(self) -> None:
         self.assertEqual(len(self.catalog["standards"]), 9)
         self.assertEqual(len(self.catalog["sources"]), 12)
-        self.assertEqual(len(self.catalog["parameters"]), 7)
-        self.assertEqual(len(self.catalog["factors"]), 7)
+        self.assertEqual(len(self.catalog["parameters"]), 98)
+        self.assertEqual(len(self.catalog["factors"]), 98)
         self.assertEqual(self.catalog["manifest"]["canonical_format"], "JSON")
         self.assertNotIn("full_text", json.dumps(self.catalog, ensure_ascii=False))
         self.assertTrue(DEFAULT_SOURCE_PATH.is_file())
@@ -88,16 +89,15 @@ class CanonicalCatalogTests(unittest.TestCase):
             standard for standard in self.catalog["standards"]
             if standard["standard_id"] == "gbt_32151_34_2024"
         )
-        self.assertEqual(industry["calculation_status"], "PLANNED")
-        self.assertEqual(
-            industry["parameter_refs"],
-            [
-                "natural_gas_lhv",
-                "natural_gas_carbon_content",
-                "natural_gas_oxidation_rate",
-                "electricity_emission_factor_nonfossil",
-            ],
-        )
+        self.assertEqual(industry["calculation_status"], "IMPLEMENTED")
+        self.assertEqual(len(industry["emission_source_refs"]), 10)
+        self.assertEqual(len(industry["parameter_refs"]), 95)
+        self.assertTrue({
+            "natural_gas_lhv",
+            "natural_gas_carbon_content",
+            "natural_gas_oxidation_rate",
+            "electricity_emission_factor_nonfossil",
+        }.issubset(set(industry["parameter_refs"])))
 
     def test_standard_names_and_responsibilities_are_officially_distinguished(self) -> None:
         by_id = {standard["standard_id"]: standard for standard in self.catalog["standards"]}
@@ -120,10 +120,102 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(by_id["gbt_32150_2025"]["technical_committee"], "生态环境部")
         self.assertEqual(by_id["gbt_32151_34_2024"]["competent_authority"], "中国钢铁工业协会")
         self.assertEqual(by_id["gbt_32151_34_2024"]["technical_committee"], "中国钢铁工业协会")
-        self.assertEqual(
-            by_id["gbt_32151_34_2024"]["notes"],
-            "适用于炭素材料生产企业温室气体排放量的核算。",
-        )
+        industry_notes = by_id["gbt_32151_34_2024"]["notes"]
+        self.assertEqual(industry_notes, "适用于炭素材料生产企业温室气体排放量的核算。")
+
+    def test_gbt_32151_34_c1_and_c2_reference_data_are_complete_and_traceable(self) -> None:
+        c1_expected = {
+            "anthracite": ("26.7", "0.0274", "0.94"),
+            "bituminous_coal": ("19.570", "0.0261", "0.93"),
+            "lignite": ("11.9", "0.028", "0.96"),
+            "cleaned_coal": ("26.334", "0.02541", "0.90"),
+            "other_cleaned_coal": ("12.545", "0.02541", "0.90"),
+            "briquette": ("17.460", "0.0336", "0.90"),
+            "other_coal_products": ("17.460", "0.0336", "0.98"),
+            "coke": ("28.435", "0.0295", "0.93"),
+            "petroleum_coke": ("32.5", "0.02750", "0.98"),
+            "crude_oil": ("41.816", "0.0201", "0.98"),
+            "fuel_oil": ("41.816", "0.0211", "0.98"),
+            "gasoline": ("43.070", "0.0189", "0.98"),
+            "diesel": ("42.652", "0.0202", "0.98"),
+            "kerosene": ("43.070", "0.0196", "0.98"),
+            "liquefied_natural_gas": ("51.498", "0.0153", "0.98"),
+            "liquefied_petroleum_gas": ("50.179", "0.0172", "0.98"),
+            "naphtha": ("44.5", "0.0200", "0.98"),
+            "tar": ("33.453", "0.0220", "0.98"),
+            "crude_benzene": ("41.816", "0.0227", "0.98"),
+            "other_petroleum_products": ("41.031", "0.0200", "0.98"),
+            "natural_gas": ("389.31", "0.0153", "0.99"),
+            "blast_furnace_gas": ("33.00", "0.07080", "0.99"),
+            "converter_gas": ("84.00", "0.04960", "0.99"),
+            "coke_oven_gas": ("179.81", "0.01358", "0.99"),
+            "refinery_dry_gas": ("45.998", "0.0182", "0.99"),
+            "other_gas": ("52.270", "0.0122", "0.99"),
+        }
+        factor_by_parameter = {item["parameter_id"]: item for item in self.catalog["factors"]}
+        industry = next(item for item in self.catalog["standards"] if item["standard_id"] == "gbt_32151_34_2024")
+        volume_fuels = {
+            "natural_gas", "blast_furnace_gas", "converter_gas", "coke_oven_gas", "other_gas",
+        }
+        for subject_id, (lhv, carbon, oxidation) in c1_expected.items():
+            for suffix, expected in (("lhv", lhv), ("carbon_content", carbon), ("oxidation_rate", oxidation)):
+                parameter_id = f"{subject_id}_{suffix}"
+                with self.subTest(parameter_id=parameter_id):
+                    self.assertIn(parameter_id, industry["parameter_refs"])
+                    factor = factor_by_parameter[parameter_id]
+                    expected_unit = (
+                        "GJ/10⁴Nm³" if subject_id in volume_fuels else "GJ/t"
+                    ) if suffix == "lhv" else "tC/GJ" if suffix == "carbon_content" else "ratio"
+                    self.assertEqual(Decimal(factor["normalized_value"]), Decimal(expected))
+                    self.assertEqual(factor["normalized_unit"], expected_unit)
+                    self.assertEqual(factor["source_id"], "SRC-32151-34-2024")
+                    self.assertIn("附录C表C.1", factor["source_location"])
+                    self.assertEqual(factor["factor_year"], 2024)
+
+        c2_expected = {
+            "caco3": "0.440", "mgco3": "0.522", "na2co3": "0.415", "nahco3": "0.524",
+            "feco3": "0.380", "mnco3": "0.383", "baco3": "0.223", "li2co3": "0.595",
+            "k2co3": "0.318", "srco3": "0.298", "camgco3_2": "0.477",
+        }
+        c2 = [item for item in self.catalog["parameters"] if item["parameter_id"].startswith("car-par-c2-")]
+        self.assertEqual(len(c2), 11)
+        for suffix, expected in c2_expected.items():
+            parameter_id = f"car-par-c2-{suffix.replace('_2', '-2')}"
+            with self.subTest(parameter_id=parameter_id):
+                factor = factor_by_parameter[parameter_id]
+                self.assertEqual(Decimal(factor["normalized_value"]), Decimal(expected))
+                self.assertEqual(factor["normalized_unit"], "tCO2/t")
+                self.assertEqual(factor["value_type"], ValueType.STANDARD_SPECIFIED.value)
+                self.assertEqual(factor["source_id"], "SRC-32151-34-2024")
+                self.assertEqual(factor["factor_year"], 2024)
+                self.assertIn("附录C表C.2", factor["source_location"])
+
+        defaults = {item["parameter_id"]: factor_by_parameter[item["parameter_id"]]["normalized_value"] for item in self.catalog["parameters"]}
+        for parameter_id, expected in (
+            ("car-par-k1", "0.35"),
+            ("car-par-k2", "0.35"),
+            ("car-par-k3", "0.35"),
+            ("car-par-p04b-i", "0.90"),
+            ("car-par-p04b-tr", "1"),
+        ):
+            factor = factor_by_parameter[parameter_id]
+            with self.subTest(parameter_id=parameter_id):
+                self.assertEqual(defaults[parameter_id], expected)
+                self.assertEqual(factor["source_id"], "SRC-32151-34-2024")
+                self.assertEqual(factor["factor_year"], 2024)
+                self.assertIn("第5.2.", factor["source_location"])
+                self.assertEqual(factor["value_type"], ValueType.STANDARD_DEFAULT.value)
+        source = next(item for item in self.catalog["sources"] if item["source_id"] == "SRC-32151-34-2024")
+        self.assertEqual(source["document_no"], "GB/T 32151.34—2024")
+        self.assertEqual(source["version"], "2024")
+        self.assertIn("60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738", source["notes"])
+        self.assertIn("C.4定位：PDF第27–28页、印刷页19–20", source["notes"])
+        self.assertIn("C.5定位：PDF第29页、印刷页21", source["notes"])
+        self.assertIn("1.70 MPa及1.80 MPa解释", source["notes"])
+        self.assertIn("1.40 MPa/195.04 ℃", source["notes"])
+        self.assertIn("不宣称官方勘误", source["notes"])
+        self.assertIn("1.70 MPa=2793.8 kJ/kg", source["notes"])
+        self.assertIn("3.0 MPa/350 ℃=3115.7 kJ/kg", source["notes"])
 
     def test_standard_parameter_references_must_be_applicable(self) -> None:
         catalog = copy.deepcopy(self.catalog)

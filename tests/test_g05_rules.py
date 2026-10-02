@@ -600,6 +600,10 @@ class G05RuleTests(unittest.TestCase):
             "GB/T 32151.34—2024 第5.2.2～5.2.5条；PDF12～14；印刷页4～6")
         self.assertEqual(industry_by_id["CAR-RULE-FUGITIVE-COVERAGE-001"].source_location,
             "GB/T 32151.34—2024 第4.2、5.2条；SM01-DECISION-001")
+        self.assertEqual(
+            industry_by_id["CAR-RULE-BOUNDARY-001"].source_location,
+            "GB/T 32151.34—2024 第4.1条；PDF第10页；印刷页2",
+        )
         power_heat = industry_by_id["CAR-RULE-POWER-HEAT-001"]
         self.assertEqual(
             set(power_heat.parameter_ids),

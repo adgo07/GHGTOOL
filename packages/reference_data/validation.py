@@ -138,6 +138,7 @@ _COMPOUND_UNITS = frozenset(
         "GJ/t",
         "tC/t",
         "tCO2/10^4Nm3",
+        "tCO2/t",
     }
 )
 

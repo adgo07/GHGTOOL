@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-02（GHG-RS01-A-R1）
+最后更新：2026-10-02（GHG-RS01-B1）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -95,7 +95,10 @@ GHG-RS06+ 第二标准及后续演进
 RS01内部工作包（不是新产品阶段）：
 
 - **RS01-A**：专业依据入仓、核心功能审计、Standard Completeness Matrix及Gap Register；不修改业务实现。R1已将准确冻结SM01-R6原样纳入 `specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md`，Matrix位于同目录CORE_CHECK，缺口见GAPS。
-- **RS01-B**：按已验收Gap修复标准核心业务能力并增加对应测试；最低验证见GAPS的RS01-B Minimum Validation。当前NOT STARTED，须独立重新验收A-R1后另行授权。
+- **RS01-B**：按已验收Gap修复标准核心业务能力并增加对应测试；B1/B2是其内部工作包，不是新产品阶段。
+- **RS01-B1 — Calculation Safety & Reference Data Closure**：单条业务输入下消除非法ParameterValue和未确认碳酸盐造成的错误结果，接通标准参考数据并使参数来源可追溯。状态：实施完成，等待latest-head CI及独立重新验收。
+- **RS01-B2 — Multi-entry Business Input Closure**：同一核算单元支持多过程/多能源来源逐项录入、逐项计算和按标准汇总。状态：NOT STARTED；B1不包含B2结构或GUI设计。
+- B1关闭GAP-002/003/005/006/007/010；GAP-001/004/011仍开放，GAP-008仅剩B2测试覆盖，GAP-009为不阻止实施的provenance debt。
 - 历史4条已确认标准问题正式登记为RESOLVED，均为项目执行口径，非官方勘误；本轮无新增未解决Standard Issue Gap。GAP-009仅剩历史批准附件provenance debt，不阻止B，也不要求重新确认既有R6解释；未来变更解释前须加强证据或重新确认。
 
 必须建立并逐项填写 **Standard Completeness Matrix**：
@@ -319,17 +322,17 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 | 项目 | 状态 | 证据与说明 |
 |---|---|---|
-| 标准库 | `PARTIAL` | 标准目录/详情已具备；GB/T 32151.34是唯一已实现核心公式的行业模块，目录状态/引用仍有GAP-007；其余catalog-only，不宣称完整支持 |
+| 标准库 | `PARTIAL` | 标准目录/详情已具备；本地calculation_status=IMPLEMENTED只表示当前Catalog可用Calculator，不是中央标准支持状态，也不表示标准完整支持；GAP-007已关闭；其余catalog-only |
 | 企业信息 | `PARTIAL` | 核算所需基础字段可用；企业主数据/企业层级未实施，不阻断单次正式核算 |
 | 核算周期 | `DONE` | 年度/月度/自定义周期语义已进入正式记录快照 |
 | 核算边界 | `DONE` | 按本行业核算边界运行；其他行业活动/上下游运输只提示需要其他标准 |
-| 排放源 | `PARTIAL` | 已有核心实现；RS01-A仍有GAP-004多过程、GAP-011输出电力多来源UI，待RS01-B |
-| 活动数据 | `PARTIAL` | 手工录入为主路径；多过程/多热源及多输出电力输入GAP-004/011待RS01-B |
-| 参数和因子 | `PARTIAL` | 已有核心实现和快照；GAP-001/002/005/006/007待RS01-B，不能以现有Canonical链宣称完整 |
-| 校验 | `PARTIAL` | 已有基础致命门禁；GAP-003非法参数与GAP-008保护测试仍缺，待RS01-B |
-| Calculator | `DONE` | 核心单组公式已实现、RS01-A审计一致；已有电热tuple逐行能力。此DONE只指现有公式，不等于标准完整支持或UI多过程覆盖完成 |
+| 排放源 | `PARTIAL` | 已有核心单条实现；GAP-004多过程/多来源输入与GAP-011输出电力多行UI仍开放，留RS01-B2 |
+| 活动数据 | `PARTIAL` | 单条燃料C.1参数与路径已接通；多过程、多热力来源及多输出电力输入GAP-001/004/011仍开放 |
+| 参数和因子 | `PARTIAL` | C.1/C.2/K1-K3/脱硫缺省值已进入Canonical；GAP-001的实测热力因子路径仍开放，不能宣称标准完整支持 |
+| 校验 | `PARTIAL` | GAP-003 Domain ParameterValue门禁已关闭；GAP-008仅剩GAP-001/004/011对应B2覆盖 |
+| Calculator | `DONE` | 核心单组公式一致；燃料质量/体积换热、C.4/C.5查表与插值由版本化Calculator执行。此DONE只指已审计计算路径，不等于多过程UI覆盖或标准完整支持 |
 | 分项排放 | `DONE` | 包含各排放源/分项结果与 trace |
-| 总排放 | `PARTIAL` | 现有输入可正确聚合进不可编辑记录；全厂多来源覆盖仍有GAP-004/011，待RS01-B |
+| 总排放 | `PARTIAL` | 现有单条输入按直接/间接公式聚合进不可编辑记录；全厂多过程、多热力和多输出电力覆盖仍有GAP-001/004/011，待RS01-B2 |
 | 结果解释 | `PARTIAL` | 已能展示结果、输入/规则/参数快照与追踪信息；“计算依据 + 标准依据/来源 + 面向用户解释”需在 RS01 / RS02 集中收口 |
 | 正式记录 | `DONE` | 成功计算自动新增不可编辑记录；标准版本/规则/输入/参数/结果快照落库；致命失败不生成记录 |
 | 历史记录 | `DONE` | 列表/详情/只读快照、审计与删除治理已通过 G07 |
@@ -338,12 +341,12 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。RS01-A-R1登记11条Gap（实现8、测试1、证据2），核心业务缺口待RS01-B；结果解释/Trace待RS02，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是新增标准支持enum。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：B1关闭6条，当前开放5条（实现3、测试1、证据1）；GAP-009只剩非阻塞provenance debt。RS01-B2处理001/004/011及剩余测试；结果解释/Trace待RS02，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum。
 
 ## 8. 当前阶段与下一步
 
-- 当前阶段：**GHG-RS01-A-R1文档与专业证据收口，交付后等待独立重新验收**。
-- 下一工作包：RS01内部的**RS01-B**，当前NOT STARTED；不跳到RS02/RS03。
+- 当前阶段：**GHG-RS01-B1 — Calculation Safety & Reference Data Closure**；实现已提交/待最新PR head CI和独立重新验收。
+- RS01-B2 — Multi-entry Business Input Closure：**NOT STARTED**；当前仍在RS01内部，不跳到RS02/RS03。
 - 第二标准不得早于 **RS05**。
 
 ## 9. 相关治理登记项的归属
@@ -358,10 +361,10 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | `STANDARD_ISSUES_REGISTER.md` | 长期保留；发现标准问题按中央 Standard Development Guide 登记 |
 | Standard Mapping 纳入仓库 | RS01明确前置，A-R1已完成准确R6入仓；历史附件债见GAP-009 |
 
-## 10. 本文件不做的事
+## 10. 路线与实施授权边界
 
-- 不授权实施 RS01～RS06+ 中的任何实现工作；
-- 不修改 Calculator、Canonical、Rule、SQLite schema/迁移、UI 业务语义或标准解释；
+- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次RS01-B1由用户明确启动，RS01-B2及RS02～RS06+未获本轮启动；
+- 本次B1已按其明确范围修改Calculator、Canonical、Rule与单条输入UI；未改SQLite schema/迁移、已批准标准解释或中央Contract；
 - 不修改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或任何中央 Contract；
 - 不把 `DRAFT` / `NOT FROZEN` 描述成 `FROZEN`；
 - 不建立第二套产品路线。
