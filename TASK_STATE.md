@@ -9,7 +9,7 @@
 - 新分支：codex/ghg-rs01-b1-calculation-safety；从上述最新main创建，不基于RS01-A分支。
 - platform-lock.json SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；中央Frozen锁定SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。
 - B1包含单条输入的参数安全、标准参考数据、燃料参数接通、Catalog本地计算状态和边界Rule定位；未修改SQLite schema/迁移或中央baseline。
-- 新B1 PR及最终HEAD在推送、创建PR后登记；当前待提交/发布。
+- 新B1 PR：[#23](https://github.com/adgo07/GHGTOOL/pull/23)，base `main`；实现head为773f21bf8d609efab669109165dfd1969ba52378。报告元数据提交后的最终latest head见交付回执。
 
 **GHG-RS01-B1实现和本地验证完成；交付门槛还需新PR latest-head GitHub Actions成功及独立重新验收。**
 
@@ -54,4 +54,4 @@ B. Gap修复导致的行为预期变化：
 - git diff --check：通过。
 - GitHub Actions exact latest-head结果：PR创建后等待并记录；不得使用旧head CI代替。
 
-下一步仅推送B1分支、创建新的main目标PR、等待最新head CI，然后停止等待独立验收。不要合并，也不要开始RS01-B2。
+下一步仅等待PR #23最新head CI，然后停止等待独立验收。不要合并，也不要开始RS01-B2。

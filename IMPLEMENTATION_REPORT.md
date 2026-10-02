@@ -1,15 +1,15 @@
 # GHG-RS01-B1 — Calculation Safety & Reference Data Closure
 
 日期：2026-10-02
-状态：实现与本地验证完成；等待新PR latest-head GitHub Actions和独立重新验收。
+状态：实现与本地验证完成；PR #23 已创建，等待其 latest-head GitHub Actions和独立重新验收。
 范围：仅单条业务输入下的计算安全、参考数据、参数接通和目录真实性；不实施RS01-B2。
 
 ## 1. Base / Head / PR
 
 - Base：origin/main 1bad93c66bb98fb5a6d23c29b3d7b135258ebe9d（PR #22的合并结果已包含）。
 - 分支：codex/ghg-rs01-b1-calculation-safety，从该最新main创建。
-- B1实现head：当前分支提交；最终SHA随完成回执和新B1 PR latest head报告，避免将包含自身的SHA写回本报告。
-- PR：新建目标main的B1 PR；PR链接及最终latest head随交付回执给出。
+- B1实现head：773f21bf8d609efab669109165dfd1969ba52378。
+- PR：[#23 — GHG-RS01-B1: Calculation Safety & Reference Data Closure](https://github.com/adgo07/GHGTOOL/pull/23)，base `main`，PR创建时head为773f21bf8d609efab669109165dfd1969ba52378；交付回执报告最终latest head。
 - platform-lock.json SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；锁定Qingzhou-contracts SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。
 
 ## 2. B1实际变更
@@ -73,7 +73,7 @@ B. 行为预期修正：
 - 隔离临时目录重建4个数据库并查询Catalog：通过；读回98/98，行业本地状态IMPLEMENTED，10个source refs。
 - UIR04 Windows缩放验收：1366×768，1.25与1.5均通过；无横向滚动，计算按钮和状态栏可见。
 - git diff --check通过。
-- GitHub Actions：创建B1 PR后等待并核验Merge-ref Full Tests、PR-head Standalone Audit在latest head成功；最终状态以PR checks页和交付回执中的精确head为准。
+- GitHub Actions：PR #23创建后开始运行；报告提交时实施head 773f21bf8d609efab669109165dfd1969ba52378 的Windows CI仍在运行。最终latest-head结果以交付回执中的精确head和PR checks为准。
 
 ## 9. 后续边界
 
