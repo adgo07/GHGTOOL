@@ -15,8 +15,9 @@
 | 默认分支 | `main` |
 | 当前 base | 本分支创建时的 `origin/main`（以 Git 为准，不在本文件写死历史 SHA） |
 | 当前任务分支 | `governance/consolidate-reference-standard-roadmap-and-current-state`（已推送到 `origin`） |
-| PR | 需在 GitHub 创建（本机无 `gh` 与 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state`；正式 head 由 PR 本身提供，不在仓库内记录自引用 head |
+| PR | **#21** `https://github.com/adgo07/GHGTOOL/pull/21`（open）；正式 head 由 PR 本身提供，不在仓库内记录自引用 head |
 | 已收到验收结论 | GHG-GOV-R1 首轮 Independent Acceptance：**FAIL（小范围治理返工）**；已按 R1 完成 6 项最小修正 |
+| 最新 CI | PR #21 run `36964100689`：Merge-ref Full Tests 与 PR-head Standalone Audit 均 success（绑定 head `fd86dc7`） |
 | Module ID | `qz.carbon_accounting` |
 | `platform-lock.json` locked SHA | `Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`（`auto_upgrade=false`，本任务未修改） |
 | 应用版本 | `1.1.0`（Windows V1.1.0） |

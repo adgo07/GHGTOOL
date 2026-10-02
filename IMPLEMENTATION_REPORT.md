@@ -139,16 +139,26 @@ merge 后权威层级与冲突顺序如下（同时写入 `AGENTS.md`、`REFEREN
 - 数据库从零初始化改写到 `tmp/` 下成功；
 - 其余验证均为直接执行结果。
 
-### 7.2 GitHub Actions（本报告完成时：尚未执行）
+### 7.2 GitHub Actions（EXECUTED）
 
 ```text
 GitHub Actions (Windows / Python 3.12):
-NOT EXECUTED — PR 尚未创建，该 head 上没有任何 workflow run（total_count = 0）。
+EXECUTED — PR #21
+  run 36964100689  head_sha fd86dc75090f2d9c1e0ca92b6eeff3629c4556ef  conclusion success
+  JOB Windows / Python 3.12 / Merge-ref Full Tests          success
+  JOB Windows / Python 3.12 / PR-head Standalone Audit      success
 ```
 
-因此本报告**不主张** GitHub CI 已通过。创建 PR 并等最新 head 的 Windows CI 真正完成后，再以 GitHub 实际状态单独验收。
+该 run 的实际步骤结论：
 
-`windows-ci.yml` 在 PR 上将会执行的检查：Canonical validation、`compileall`、`pip check`、四库从零初始化、UIR04 GUI 验收场景 A～E、1.25 / 1.5 缩放验收、全量 `unittest discover`、G08 delivery tests、standalone 构建、发布审计、归档清单校验、provenance 校验、启动 smoke。
+- Merge-ref Full Tests：Canonical 校验、`compileall`、`pip check`、四库从零初始化、UIR04 GUI 场景 A～E、1.25 / 1.5 缩放验收、全量 `unittest discover` —— 全部 success。
+- PR-head Standalone Audit：exact-head Canonical / `compileall` / `pip check` / 四库初始化、G08 delivery tests、standalone 构建、发布审计、归档清单校验、provenance 校验、启动 smoke、artifact 上传 —— 全部 success。
+
+说明（证据纪律）：本节原先一度写成 `EXECUTED`，但当时 PR 尚未创建、该 head 上 `total_count = 0`，属错误表述；首轮验收已指出。现已按真实 run 记录，并绑定被验证的 head SHA。后续每次文档更新都会产生新 head 并触发新的 run，以 PR 最新 head 的实际结论为准。
+
+参考：<https://github.com/adgo07/GHGTOOL/actions/runs/36964100689>
+
+`windows-ci.yml` 执行的检查：Canonical validation、`compileall`、`pip check`、四库从零初始化、UIR04 GUI 验收场景 A～E、1.25 / 1.5 缩放验收、全量 `unittest discover`、G08 delivery tests、standalone 构建、发布审计、归档清单校验、provenance 校验、启动 smoke。
 
 范围证据：`git diff --name-only` 确认改动仅限 Markdown 治理文档，未触及 `apps/`、`packages/`、`migrations/`、`scripts/`、`tests/`、`data-source/`、`conformance/`。
 
