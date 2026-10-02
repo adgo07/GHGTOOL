@@ -15,7 +15,8 @@
 | default branch | `main` |
 | base SHA | `cae2ff33b2f09d115db950fae4b0829f698ec8fa`（本分支创建时的 `origin/main`，`git fetch origin` 后确认） |
 | execution branch | `governance/consolidate-reference-standard-roadmap-and-current-state` |
-| pushed head（实现提交） | `642c26e278986904cad4841475ed8157b0787eac`（已推送到 `origin`，与远端分支一致） |
+| 实现提交（被验证） | `642c26e278986904cad4841475ed8157b0787eac`（10 files changed, +925 / −4621） |
+| 最终治理提交 | 记录本次任务执行头与 PR 入口的文档提交（`TASK_STATE.md` / `IMPLEMENTATION_REPORT.md` / `PR_BODY_DRAFT.md`），位于实现提交之后；最新 head 以远端分支为准 |
 | PR | 需在 GitHub 手动创建（本机无 `gh` 且无 CI token）：`https://github.com/adgo07/GHGTOOL/pull/new/governance/consolidate-reference-standard-roadmap-and-current-state` |
 | PR 标题 | `governance: consolidate GHGTOOL reference-standard roadmap and current-state docs` |
 | PR 正文 | 使用仓库根目录 `PR_BODY_DRAFT.md` |
