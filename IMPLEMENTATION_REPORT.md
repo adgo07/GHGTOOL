@@ -22,6 +22,7 @@
 | PR 正文 | 使用仓库根目录 `PR_BODY_DRAFT.md` |
 | changed files | `AGENTS.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`、`README.md`、`UI_CURRENT_STATE_AUDIT.md`、`docs/DELIVERY.md`、`docs/governance/NUMERIC_CONTRACT_V1_ADOPTION_REPORT.md`、`PR_BODY_DRAFT.md`（新增） |
 | 提交统计 | 10 files changed, +925 / −4621 |
+| 净瘦身 | `HANDOFF.md` 56,522 → 9,492 bytes；`TASK_STATE.md` 159,563 → 6,144 bytes；`IMPLEMENTATION_REPORT.md` 192,113 → 15,011 bytes（相对 `origin/main`） |
 
 范围：只修改治理文档、路线、当前状态文件与 README / 导航类说明。**未修改任何业务代码、Calculator、Canonical、SQLite schema/迁移、Excel、UI 业务语义或标准解释。**
 
