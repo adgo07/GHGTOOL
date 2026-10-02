@@ -71,7 +71,7 @@
 | B.8/B.9数据表Excel适配 | §13/15 | 同一Canonical输入 | RS03 | RS03 | N/A — 复用同一Calculator | RS03 | RS03 | RS03 | RS03 |
 | 标准完整支持与正式验收 | §16 | 版本化来源 | 完整企业案例Candidate | RS04 | 现有Calculator | RS04 | RS04 Golden Candidate | RS04 | RS04 |
 
-Matrix共25行：GAP 14；OK 7；N/A独立状态0；later-stage 4（RS02 2、RS03 1、RS04 1）。列内N/A均附原因。B1已关闭002/003/005/006/007/010；仍开放001/004/011，以及GAP-008的B2测试覆盖和009非阻塞provenance debt。业务输入GAP-001/004/011不因报告呈现归RS02而推迟。
+Matrix共25行：GAP 13；OK 8；N/A独立状态0；later-stage 4（RS02 2、RS03 1、RS04 1）。列内N/A均附原因。B1已关闭002/003/005/006/007/010；仍开放001/004/011，以及GAP-008的B2测试覆盖和009非阻塞provenance debt。业务输入GAP-001/004/011不因报告呈现归RS02而推迟。
 
 ## 3. 总体判断
 
