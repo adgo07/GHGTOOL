@@ -1,6 +1,7 @@
 # Numeric Contract v1 Adoption Report
 
-状态：**ADOPTION IMPLEMENTED / INITIAL FULL CI PASS / FINAL REPORT HEAD SUBJECT TO CI**  
+状态：**ADOPTION COMPLETE / MERGED**
+> 合并后补充（2026-10-03，GHG-GOV-R1）：PR #17 已合并进入 `main`（merge commit `f2f9c4f`）。下文“最终报告 head 仍须通过 CI”“PR #17 保持 open / unmerged”等表述属本次合并前的历史记录，保留用于审计，不代表当前状态。本报告为**历史专项证据**，当前权威状态以 `platform-lock.json` / `PLATFORM_BASELINE.md` / `REFERENCE_STANDARD_ROADMAP.md` 为准。
 项目：`adgo07/GHGTOOL`  
 Module ID：`qz.carbon_accounting`  
 Adoption branch：`chore/numeric-contract-v1-adoption`  

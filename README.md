@@ -1,6 +1,15 @@
 # 青舟温室气体排放核算软件
 
-青舟温室气体排放核算软件是面向 Windows x64 的 V1.1.0 桌面应用，采用 Python、PySide6/Qt Widgets 和 SQLite。当前交付链覆盖 GB/T 32150—2025 通用规则及 GB/T 32151.34—2024 炭素材料生产企业模块；其他标准仅维护目录和状态信息。
+面向 Windows x64 的离线桌面应用，采用 Python 3.12、PySide6/Qt Widgets 与 SQLite。
+
+| 项目 | 当前状态 |
+|---|---|
+| 当前 Reference Standard | `GB/T 32151.34—2024`（炭素材料生产企业），通用规则层 `GB/T 32150—2025` |
+| 当前主要实现标准 | 仅 `GB/T 32151.34—2024` 完整可计算；其余计划标准只有目录与状态信息 |
+| 正式支持状态 | **尚未达到正式支持（`SUPPORTED`）状态**；当前处于参考标准产品成熟路线中，路线见 `REFERENCE_STANDARD_ROADMAP.md` |
+| Windows 交付 | 已具备 PyInstaller onedir 便携式交付基线与发布审计（尚无 MSI / 安装向导 / 代码签名 / 自动升级） |
+| Excel | **尚未实现**：界面仅保留禁用入口与占位说明；正式 Excel 闭环属于 Roadmap 的 `GHG-RS03` |
+| 下一产品阶段 | `GHG-RS01 — GB/T 32151.34 完整参考标准业务收口`（尚未启动） |
 
 ## 环境要求
 
@@ -16,11 +25,11 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m apps.carbon_accounting_desktop
 ```
 
-如果系统中存在多个 Python，请确认创建虚拟环境的解释器为 Python 3.12 x64。源码模式下，Catalog 由 `build\databases\catalog.sqlite` 提供；用户记录和日志写入 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting`。
+如果系统中存在多个 Python，请确认创建虚拟环境的解释器为 Python 3.12 x64。源码模式下 Catalog 由 `build\databases\catalog.sqlite` 提供；用户记录与日志写入 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting`。
 
 ## Windows 便携式交付
 
-G08 使用 PyInstaller `onedir` 构建便携式目录。构建依赖和启动、数据目录、卸载保留、限制及排障说明见 [docs/DELIVERY.md](docs/DELIVERY.md)。快速构建命令：
+构建依赖、启动、数据目录、卸载保留、限制与排障说明见 [docs/DELIVERY.md](docs/DELIVERY.md)。
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[build]"
@@ -28,7 +37,7 @@ G08 使用 PyInstaller `onedir` 构建便携式目录。构建依赖和启动、
 .\.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting
 ```
 
-当前没有 MSI、安装向导、代码签名或自动升级服务。发布包不得包含标准全文、`计算表`、测试数据库、开发文件或密钥。
+发布包不得包含标准全文、`计算表/`、测试数据库、开发文件或密钥。
 
 ## 测试与校验
 
@@ -40,18 +49,23 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .\.venv\Scripts\python.exe scripts\validate_canonical.py
 ```
 
-Windows CI 会安装构建依赖、执行全量测试、校验 Canonical、构建便携式目录并执行发布审计。G08 不实施 G09 的功能或页面。
+Windows CI 会安装构建依赖、执行全量测试、校验 Canonical、构建便携式目录并执行发布审计。正式验证证据可来自本地或 GitHub Actions（Windows / Python 3.12）；报告须如实区分来源。
 
 ## 范围边界
 
-- 项目保存与 `.qzproj` 是两个不同概念：当前仍不提供 `.qzproj` 可移植项目文件；Post-V1 已支持基于独立 `projects.sqlite` 的本地项目保存、打开和未完成输入恢复。项目/工作区可变状态不写入记录库。
-- Excel 导入只保留禁用入口和占位说明；报告/导出、企业档案完善和云端服务暂不实施。
+- 项目保存与 `.qzproj` 是两个不同概念：当前仍不提供 `.qzproj` 可移植项目文件；已支持基于独立 `projects.sqlite` 的本地项目保存、打开和未完成输入恢复。项目/工作区可变状态不写入记录库。
+- Excel 导入当前只有禁用入口与占位说明；报告/导出、企业档案完善和云端服务暂不实施。
 - 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
 - 不修改、删除或覆盖 `计算表/` 中的用户参考文件。
 
-构建完成后，在目标 Windows 机器上可用以下命令验证发布目录：
+## 仓库治理
 
-```powershell
-.\.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting
-.\.venv\Scripts\python.exe scripts\smoke_standalone.py dist\QingzhouCarbonAccounting
-```
+| 文件 | 作用 |
+|---|---|
+| [AGENTS.md](AGENTS.md) | 本仓长期硬规则与中央治理入口 |
+| [REFERENCE_STANDARD_ROADMAP.md](REFERENCE_STANDARD_ROADMAP.md) | 唯一当前产品路线（`GHG-RS01`～`GHG-RS06+`） |
+| [HANDOFF.md](HANDOFF.md) | 当前阶段实施交接 |
+| [TASK_STATE.md](TASK_STATE.md) | 当前执行状态 |
+| [IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md) | 当前/最近一个工作包的实施报告 |
+| [STANDARD_ISSUES_REGISTER.md](STANDARD_ISSUES_REGISTER.md) | 标准问题与解释台账 |
+| [PLATFORM_BASELINE.md](PLATFORM_BASELINE.md) / [platform-lock.json](platform-lock.json) | 锁定的中央 Frozen 基线 |
