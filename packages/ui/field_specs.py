@@ -265,6 +265,16 @@ for _item in (
         source_location=_STANDARD,
     ),
     _spec(
+        "fuel_lhv",
+        "低位发热量",
+        FieldDataType.QUANTITY,
+        unit="由计量路径确定",
+        minimum=0,
+        help_text="质量/体积路径按燃料种类取得附录C.1缺省值；使用实测值时记录资料来源编号。热量路径不使用低位发热量。",
+        standard_clause="式（4）/（5）；附录 C.1",
+        source_location=_STANDARD,
+    ),
+    _spec(
         "fuel_oxidation",
         "碳氧化率",
         FieldDataType.PERCENTAGE,
@@ -377,6 +387,16 @@ _register_process_fields(
         ("ef1", "碳酸盐完全转化排放因子", "quantity", "tCO₂/t", "EF1"),
         ("tr", "转化率", "percentage", "%", "TR"),
     ),
+)
+_register(
+    _spec(
+        "fgd.factor_source_reference",
+        "脱硫剂参数来源编号",
+        FieldDataType.TEXT,
+        help_text="使用企业实测碳酸盐因子或参数时，填写检测报告、台账或其他可追溯来源编号。",
+        standard_clause="第5.2.5.2条；附录C.2",
+        source_location=_STANDARD,
+    )
 )
 
 

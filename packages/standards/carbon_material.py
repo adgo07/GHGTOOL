@@ -83,6 +83,29 @@ class FuelType(str, Enum):
     COKE_OVEN_GAS = "COKE_OVEN_GAS"
     COAL = "COAL"
     OTHER = "OTHER"
+    ANTHRACITE = "ANTHRACITE"
+    BITUMINOUS_COAL = "BITUMINOUS_COAL"
+    LIGNITE = "LIGNITE"
+    CLEANED_COAL = "CLEANED_COAL"
+    OTHER_CLEANED_COAL = "OTHER_CLEANED_COAL"
+    BRIQUETTE = "BRIQUETTE"
+    OTHER_COAL_PRODUCTS = "OTHER_COAL_PRODUCTS"
+    COKE = "COKE"
+    PETROLEUM_COKE = "PETROLEUM_COKE"
+    CRUDE_OIL = "CRUDE_OIL"
+    FUEL_OIL = "FUEL_OIL"
+    GASOLINE = "GASOLINE"
+    KEROSENE = "KEROSENE"
+    LIQUEFIED_NATURAL_GAS = "LIQUEFIED_NATURAL_GAS"
+    LIQUEFIED_PETROLEUM_GAS = "LIQUEFIED_PETROLEUM_GAS"
+    NAPHTHA = "NAPHTHA"
+    TAR = "TAR"
+    CRUDE_BENZENE = "CRUDE_BENZENE"
+    OTHER_PETROLEUM_PRODUCTS = "OTHER_PETROLEUM_PRODUCTS"
+    BLAST_FURNACE_GAS = "BLAST_FURNACE_GAS"
+    CONVERTER_GAS = "CONVERTER_GAS"
+    REFINERY_DRY_GAS = "REFINERY_DRY_GAS"
+    OTHER_GAS = "OTHER_GAS"
 
 
 class MaterialBasis(str, Enum):
@@ -246,7 +269,12 @@ class FuelInput:
         object.__setattr__(self, "activity", _coerce_input(self.activity, activity_unit))
         object.__setattr__(self, "carbon_content", _coerce_parameter(self.carbon_content, f"CAR-PAR-{self.fuel_id}-CARBON", carbon_unit, source_location="附录C.1；第5.2.1条"))
         object.__setattr__(self, "oxidation_rate", _coerce_parameter(self.oxidation_rate, f"CAR-PAR-{self.fuel_id}-OXIDATION", "ratio", source_location="附录C.1；第5.2.1条"))
-        object.__setattr__(self, "lower_heating_value", _coerce_parameter(self.lower_heating_value, f"CAR-PAR-{self.fuel_id}-LHV", "GJ", source_location="附录C.1；第5.2.1条"))
+        lhv_unit = {
+            FuelPath.VOLUME: "GJ/10⁴Nm³",
+            FuelPath.MASS: "GJ/t",
+            FuelPath.HEAT: "GJ/GJ",
+        }[self.path]
+        object.__setattr__(self, "lower_heating_value", _coerce_parameter(self.lower_heating_value, f"CAR-PAR-{self.fuel_id}-LHV", lhv_unit, source_location="附录C.1；第5.2.1条"))
         if self.electricity_detail_id is not None and not self.electricity_detail_id.strip():
             raise DomainValidationError("electricity_detail_id cannot be blank")
 
@@ -420,14 +448,19 @@ class FumeIncinerationInput:
 class CarbonateComponent:
     amount: object
     carbonate_fraction: object
-    emission_factor: object
+    emission_factor: object | None
     conversion_rate: object = 1
+    carbonate_type: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "amount", _coerce_input(self.amount, "t"))
-        object.__setattr__(self, "carbonate_fraction", _coerce_input(self.carbonate_fraction, "ratio"))
+        if not isinstance(self.carbonate_fraction, ParameterValue):
+            object.__setattr__(self, "carbonate_fraction", _coerce_input(self.carbonate_fraction, "ratio"))
         object.__setattr__(self, "emission_factor", _coerce_parameter(self.emission_factor, "CAR-PAR-P04B-EF1", "tCO2/t", source_location="第5.2.5.2条、附录C.2"))
-        object.__setattr__(self, "conversion_rate", _coerce_input(self.conversion_rate, "ratio"))
+        if not isinstance(self.conversion_rate, ParameterValue):
+            object.__setattr__(self, "conversion_rate", _coerce_input(self.conversion_rate, "ratio"))
+        if self.carbonate_type is not None and not self.carbonate_type.strip():
+            raise DomainValidationError("carbonate_type cannot be blank")
 
 
 @dataclass(frozen=True, slots=True)
@@ -437,6 +470,7 @@ class FGDInput:
     i: object | None = None
     ef1: object | None = None
     tr: object | None = None
+    carbonate_type: str | None = None
 
     def __post_init__(self) -> None:
         components = tuple(self.components)
@@ -446,9 +480,10 @@ class FGDInput:
             components = (
                 CarbonateComponent(
                     self.cal,
-                    self.i if self.i is not None else Decimal("0.90"),
-                    self.ef1 if self.ef1 is not None else Decimal("0.44"),
-                    self.tr if self.tr is not None else Decimal("1"),
+                    self.i,
+                    self.ef1,
+                    self.tr,
+                    self.carbonate_type,
                 ),
             )
         object.__setattr__(self, "components", components)
@@ -903,15 +938,32 @@ class CarbonMaterialCalculator:
             problems.append(_problem("CAR-VAL-PERCENT-RANGE", IssueLevel.ERROR, f"字段 {field_id} 必须处于 0% 到 100% 范围内。", field_id))
         return converted
 
+    @staticmethod
+    def _check_parameter_semantics(value: Decimal, expected_unit: str, field_id: str, problems: list[ValidationProblem]) -> None:
+        """Apply the one Domain gate for numeric ParameterValues, regardless of provenance."""
+        if expected_unit == "ratio":
+            if not Decimal("0") <= value <= Decimal("1"):
+                problems.append(_problem("CAR-VAL-PARAMETER-RATIO-RANGE", IssueLevel.ERROR, f"参数 {field_id} 必须处于 0 到 1 之间。", field_id))
+            return
+        nonnegative_units = {
+            "tC/GJ", "tC/t", "tC/10^4Nm3", "tCO2/GJ", "tCO2/t",
+            "tCO2/MWh", "tCO₂/MWh", "GJ", "GJ/t", "GJ/10⁴Nm³", "GJ/GJ", "kJ/kg",
+        }
+        if expected_unit in nonnegative_units and value < 0:
+            problems.append(_problem("CAR-VAL-PARAMETER-NONNEGATIVE", IssueLevel.ERROR, f"参数 {field_id} 不得为负数。", field_id))
+
     def _parameter(self, value: ParameterValue | None, expected_unit: str, field_id: str, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, required: bool = True) -> Decimal | None:
         if value is None:
             if required:
                 problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, f"缺少参数 {field_id}。", field_id))
             return None
         try:
-            if value.unit != expected_unit:
-                problems.append(_problem("GEN-VAL-UNIT-INCOMPATIBLE", IssueLevel.ERROR, f"参数 {field_id} 单位 {value.unit} 与要求 {expected_unit} 不一致。", field_id))
-                return None
+            converted = self.units.convert(value.value, value.unit, expected_unit) if value.unit != expected_unit else value.value
+        except (UnitError, ValueError) as exc:
+            problems.append(_problem("GEN-VAL-UNIT-INCOMPATIBLE", IssueLevel.ERROR, f"参数 {field_id} 单位 {value.unit} 无法转换为 {expected_unit}：{exc}", field_id))
+            return None
+        try:
+            self._check_parameter_semantics(converted, expected_unit, field_id, problems)
             if value.source_id is None or value.source_version is None or value.source_location is None:
                 problems.append(_problem("CAR-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 缺少来源、版本或定位。", field_id))
             snapshot_id = f"{field_id}.parameter-snapshot"
@@ -920,8 +972,8 @@ class CarbonMaterialCalculator:
                     snapshot_id=snapshot_id,
                     parameter_id=value.parameter_id,
                     factor_id=value.factor_id,
-                    value_used=value.value,
-                    unit_used=value.unit,
+                    value_used=converted,
+                    unit_used=expected_unit,
                     source_id=value.source_id,
                     source_version=value.source_version,
                     selection_method=_parameter_method(value.source_kind),
@@ -937,46 +989,10 @@ class CarbonMaterialCalculator:
                 problems.append(_problem("GEN-VAL-CUSTOM-FACTOR", IssueLevel.WARNING, f"参数 {field_id} 使用用户自定义值。", field_id))
             if value.source_kind is ParameterSourceKind.MEASURED and value.source_location is None:
                 problems.append(_problem("GEN-VAL-MEASURED-NO-TEST-INFO", IssueLevel.WARNING, f"参数 {field_id} 缺少检测/取样信息。", field_id))
-            return value.value
+            return converted
         except DomainValidationError as exc:
             problems.append(_problem("GEN-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 无法形成快照：{exc}", field_id))
             return None
-
-    def _default_parameter(self, parameter_id: str, value: str, field_id: str, source_location: str, code: str, problems: list[ValidationProblem]) -> ParameterValue:
-        problems.append(_problem(code, IssueLevel.WARNING, f"{field_id} 未填写，采用标准缺省值 {value}。", field_id))
-        return ParameterValue(parameter_id, value, "ratio", source_location=source_location, selection_reason=f"未提供企业值，按 {source_location} 的标准一般取值采用。")
-
-    def _default_ratio_snapshot(
-        self,
-        *,
-        parameter_id: str,
-        value: str,
-        field_id: str,
-        code: str,
-        source_location: str,
-        snapshots: list[ParameterSnapshot],
-        problems: list[ValidationProblem],
-        snapshot_at: datetime,
-    ) -> None:
-        """Record a mapping default that is not represented as a ParameterValue."""
-        problems.append(_problem(code, IssueLevel.WARNING, f"{field_id} 未填写，采用标准缺省值 {value}。", field_id))
-        snapshots.append(
-            ParameterSnapshot(
-                snapshot_id=f"{field_id}.parameter-snapshot",
-                parameter_id=parameter_id,
-                factor_id=None,
-                value_used=value,
-                unit_used="ratio",
-                source_id=EVIDENCE_SOURCE_ID,
-                source_version=MAPPING_VERSION,
-                selection_method=ParameterSelectionMethod.STANDARD_REQUIRED,
-                selection_reason=f"未提供企业值，按 {source_location} 的标准一般取值采用。",
-                standard_id=STANDARD_ID,
-                snapshot_at=snapshot_at,
-                factor_version=MAPPING_VERSION,
-                source_location=source_location,
-            )
-        )
 
     def _basis(self, item: object, field_id: str, problems: list[ValidationProblem]) -> None:
         mass_basis = getattr(item, "mass_basis")
@@ -994,10 +1010,11 @@ class CarbonMaterialCalculator:
             if not getattr(item, "moisture_evidence") or not getattr(item, "conversion_evidence") or normalized is not MaterialBasis.RECEIVED:
                 problems.append(_problem("CAR-VAL-MATERIAL-BASIS-CONVERSION", IssueLevel.ERROR, f"{field_id} 非收到基数据缺少水分/换算证据或未归一为收到基。", field_id))
 
-    def _required_parameter(self, item: object, attr: str, parameter_id: str, default: str, field_id: str, source_location: str, code: str, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
+    def _required_parameter(self, item: object, attr: str, parameter_id: str, field_id: str, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
         value = getattr(item, attr)
         if value is None:
-            value = self._default_parameter(parameter_id, default, field_id, source_location, code, problems)
+            problems.append(_problem("GEN-PAR-STANDARD-DEFAULT-MISSING", IssueLevel.ERROR, f"缺少已核验的标准缺省参数 {parameter_id}。", field_id))
+            return None
         return self._parameter(value, "ratio", field_id, snapshots, problems, snapshot_at)
 
     def _resolve_parameter(self, context: ParameterResolutionContext, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, detail_id: str | None = None) -> Decimal | None:
@@ -1015,7 +1032,9 @@ class CarbonMaterialCalculator:
         except DomainValidationError as exc:
             problems.append(_problem("GEN-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {context.parameter_id} 无法形成快照：{exc}", context.parameter_id))
             return None
-        return resolution.recommended.factor.value
+        factor = resolution.recommended.factor
+        self._check_parameter_semantics(factor.value, factor.unit, context.parameter_id, problems)
+        return factor.value
 
     @staticmethod
     def _map_electricity_resolution_problems(
@@ -1049,11 +1068,29 @@ class CarbonMaterialCalculator:
 
     def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
         activity = self._quantity(item.activity, {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[item.path], f"CAR-FLD-F01-{item.fuel_id}-ACTIVITY", problems)
-        carbon_unit = {FuelPath.VOLUME: "tC/10^4Nm3", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}[item.path]
+        if item.lower_heating_value is not None:
+            lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[item.path]
+            lhv = self._parameter(item.lower_heating_value, lhv_unit, f"CAR-FLD-F01-{item.fuel_id}-LHV", snapshots, problems, snapshot_at)
+        else:
+            lhv = None
+        carbon_unit = "tC/GJ" if lhv is not None or item.path is FuelPath.HEAT else {
+            FuelPath.VOLUME: "tC/10^4Nm3", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"
+        }[item.path]
         carbon = self._parameter(item.carbon_content, carbon_unit, f"CAR-FLD-F01-{item.fuel_id}-CARBON", snapshots, problems, snapshot_at)
-        fox = self._ratio(item.oxidation_rate, f"CAR-FLD-F01-{item.fuel_id}-FOX", problems)
+        fox = self._parameter(item.oxidation_rate, "ratio", f"CAR-FLD-F01-{item.fuel_id}-FOX", snapshots, problems, snapshot_at)
+        if item.path is FuelPath.HEAT and item.lower_heating_value is not None:
+            problems.append(_problem(
+                "CAR-VAL-FUEL-LHV-NOT-APPLICABLE",
+                IssueLevel.ERROR,
+                "热量路径的活动量已经是热量，不应再填写低位发热量；请清空该字段。",
+                f"CAR-FLD-F01-{item.fuel_id}-LHV",
+            ))
+            return None
         if activity is None or carbon is None or fox is None:
             return None
+        if lhv is not None:
+            energy = fuel_energy_from_volume(activity, lhv) if item.path is FuelPath.VOLUME else fuel_energy_from_mass(activity, lhv)
+            return fuel_heat_emission(energy, carbon, fox)
         return {
             FuelPath.VOLUME: fuel_volume_emission(activity, carbon, fox),
             FuelPath.MASS: fuel_mass_emission(activity, carbon, fox),
@@ -1157,13 +1194,13 @@ class CarbonMaterialCalculator:
                 if value is not None:
                     values[attr] = value
             if isinstance(payload, CalcinationInput):
-                k1 = self._required_parameter(payload, "k1", "CAR-PAR-K1", "0.35", "CAR-FLD-P01-K1", "第5.2.2条；一般取0.35", "CAR-VAL-K1-DEFAULT", snapshots, problems, snapshot_at)
+                k1 = self._required_parameter(payload, "k1", "CAR-PAR-K1", "CAR-FLD-P01-K1", snapshots, problems, snapshot_at)
                 if k1 is not None: values["k1"] = k1
             elif isinstance(payload, BakingInput):
-                k2 = self._required_parameter(payload, "k2", "CAR-PAR-K2", "0.35", "CAR-FLD-P02-K2", "第5.2.3条；一般取0.35", "CAR-VAL-K2-DEFAULT", snapshots, problems, snapshot_at)
+                k2 = self._required_parameter(payload, "k2", "CAR-PAR-K2", "CAR-FLD-P02-K2", snapshots, problems, snapshot_at)
                 if k2 is not None: values["k2"] = k2
             else:
-                k3 = self._required_parameter(payload, "k3", "CAR-PAR-K3", "0.35", "CAR-FLD-P03-K3", "第5.2.4条；一般取0.35", "CAR-VAL-K3-DEFAULT", snapshots, problems, snapshot_at)
+                k3 = self._required_parameter(payload, "k3", "CAR-PAR-K3", "CAR-FLD-P03-K3", snapshots, problems, snapshot_at)
                 if k3 is not None: values["k3"] = k3
             if len(values) < len(field_defs[type(payload)]) + 1:
                 return Decimal("0")
@@ -1210,43 +1247,35 @@ class CarbonMaterialCalculator:
                         SOURCE_FGD,
                     )
                 )
-            if input_value.fgd.cal is not None and input_value.fgd.i is None:
-                self._default_ratio_snapshot(
-                    parameter_id="CAR-PAR-P04B-I",
-                    value="0.90",
-                    field_id="CAR-FLD-P04B-I-0",
-                    code="CAR-VAL-I-DEFAULT",
-                    source_location="第5.2.5.2条；一般取90%",
-                    snapshots=snapshots,
-                    problems=problems,
-                    snapshot_at=snapshot_at,
-                )
-            if input_value.fgd.cal is not None and input_value.fgd.tr is None:
-                self._default_ratio_snapshot(
-                    parameter_id="CAR-PAR-P04B-TR",
-                    value="1",
-                    field_id="CAR-FLD-P04B-TR-0",
-                    code="CAR-VAL-TR-DEFAULT",
-                    source_location="第5.2.5.2条；一般取100%",
-                    snapshots=snapshots,
-                    problems=problems,
-                    snapshot_at=snapshot_at,
-                )
             fractions = Decimal("0")
-            for index, component in enumerate(components):
-                fraction = self._ratio(component.carbonate_fraction, f"CAR-FLD-P04B-I-{index}", problems)
-                if fraction is not None:
-                    fractions += fraction
-            if fractions > Decimal("1"):
-                problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "多种碳酸盐组分含量合计不得超过100%。", SOURCE_FGD))
             validated: list[CarbonateComponent] = []
             for index, component in enumerate(components):
                 amount = self._quantity(component.amount, "t", f"CAR-FLD-P04B-CAL-{index}", problems)
-                fraction = self._ratio(component.carbonate_fraction, f"CAR-FLD-P04B-I-{index}", problems)
-                factor = self._parameter(component.emission_factor, "tCO2/t", f"CAR-FLD-P04B-EF1-{index}", snapshots, problems, snapshot_at)
-                conversion = self._ratio(component.conversion_rate, f"CAR-FLD-P04B-TR-{index}", problems)
+                fraction_field = f"CAR-FLD-P04B-I-{index}"
+                if isinstance(component.carbonate_fraction, ParameterValue):
+                    fraction = self._parameter(component.carbonate_fraction, "ratio", fraction_field, snapshots, problems, snapshot_at)
+                else:
+                    fraction = self._ratio(component.carbonate_fraction, fraction_field, problems)
+                if isinstance(component.emission_factor, ParameterValue):
+                    factor = self._parameter(component.emission_factor, "tCO2/t", f"CAR-FLD-P04B-EF1-{index}", snapshots, problems, snapshot_at)
+                else:
+                    factor = None
+                    problems.append(_problem(
+                        "CAR-VAL-CARBONATE-FACTOR-MISSING",
+                        IssueLevel.ERROR,
+                        "请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。",
+                        f"CAR-FLD-P04B-EF1-{index}",
+                    ))
+                conversion_field = f"CAR-FLD-P04B-TR-{index}"
+                if isinstance(component.conversion_rate, ParameterValue):
+                    conversion = self._parameter(component.conversion_rate, "ratio", conversion_field, snapshots, problems, snapshot_at)
+                else:
+                    conversion = self._ratio(component.conversion_rate, conversion_field, problems)
                 if None not in (amount, fraction, factor, conversion):
                     validated.append(CarbonateComponent(amount, fraction, factor, conversion))
+                    fractions += fraction
+            if fractions > Decimal("1"):
+                problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "多种碳酸盐组分含量合计不得超过100%。", SOURCE_FGD))
             if validated:
                 fgd_total = fgd_emission(validated)
                 lines.append(CalculationLine("CAR-FLD-P04B-RESULT", SOURCE_FGD, CO2_ID, fgd_total, "tCO2"))

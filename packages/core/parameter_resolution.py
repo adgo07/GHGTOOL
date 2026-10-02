@@ -1196,7 +1196,7 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             source_location="GB/T 32151.34—2024 第3.1条；PDF9；印刷页1", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-BOUNDARY-001", "boundary", RuleRelation.SPECIALIZE, "炭素材料生产系统边界。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="boundary.systems",
-            source_location="GB/T 32151.34—2024 第5.1、5.2条；PDF11～15；印刷页3～7", evidence_source_id=carbon_source),
+            source_location="GB/T 32151.34—2024 第4.1条；PDF第10页；印刷页2", evidence_source_id=carbon_source),
         _frozen_rule("CAR-RULE-FUEL-001", "method", RuleRelation.SPECIALIZE, "炭素材料天然气参数直接规定值。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="method.fuel",
             parameter_ids=("natural_gas_lhv", "natural_gas_carbon_content", "natural_gas_oxidation_rate"),

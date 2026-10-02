@@ -3,7 +3,10 @@ from __future__ import annotations
 import os
 import unittest
 from dataclasses import replace
+from datetime import date
 from decimal import Decimal
+from pathlib import Path
+import tempfile
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -33,6 +36,8 @@ from packages.ui.field_specs import (
     ui_to_domain_value,
 )
 from packages.ui.typed_inputs import create_typed_input
+from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+from packages.reference_data import DEFAULT_SOURCE_PATH
 
 
 class UIR01FieldSemanticsTests(unittest.TestCase):
@@ -89,6 +94,7 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
             "fuel_activity",
             "fuel_carbon",
             "fuel_oxidation",
+            "fuel_lhv",
             "fuel_source_reference",
             "exported_electricity_id",
             "exported_electricity_amount",
@@ -239,7 +245,18 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
         self.assertIsNone(ui_to_domain_value(spec, None))
 
     def test_same_legal_input_maps_to_equal_domain_and_equal_result(self) -> None:
-        page = self._page()
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        catalog_path = Path(directory.name) / "catalog.sqlite"
+        build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path)
+        service = CatalogQueryService(
+            SQLiteCatalogRepository(catalog_path),
+            as_of=date(2026, 9, 12),
+        )
+        page = CarbonMaterialAccountingPage(
+            catalog_service=service,
+            calculator=CarbonMaterialCalculator(),
+        )
         page.enterprise_name.setText("UIR01 等价企业")
         page.boundary_confirmed.setChecked(True)
         source = page._source_statuses["CAR-SRC-CALCINATION-001"]
@@ -276,6 +293,7 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
             wfc_c=InputValue("0.25", "ratio"),
             wvar=InputValue("0.1", "ratio"),
             wvar_c=InputValue("0.02", "ratio"),
+            k1=ui_input.calcination.k1,
             mass_basis=MaterialBasis.RECEIVED,
             composition_basis=MaterialBasis.RECEIVED,
             normalized_basis=MaterialBasis.RECEIVED,

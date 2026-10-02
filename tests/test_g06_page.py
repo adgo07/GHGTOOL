@@ -23,12 +23,17 @@ from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     STANDARD_ID,
+    FGDInput,
+    FuelPath,
+    FuelType,
     MaterialBasis,
     MaterialComponentKind,
     EmissionSourceStatus,
     InMemoryRecordRepository,
+    ParameterSourceKind,
 )
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
+from packages.ui.carbon_material_page import _C2_CARBONATES, _FUEL_C1_ACTIVITY_PATH, _FUEL_C1_SUBJECT_IDS
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
 
@@ -81,6 +86,111 @@ class G06PageTests(unittest.TestCase):
             "calculationValidationList",
         ):
             self.assertIsNotNone(self.page.findChild(QWidget, object_name))
+
+    def test_c1_specific_fuels_resolve_canonical_defaults_through_supported_paths(self) -> None:
+        row = self.page._fuel_rows[0]
+        self.assertEqual(row.lower_heating_value.property("fieldSpecKey"), "fuel_lhv")
+        self.assertEqual(len(_FUEL_C1_SUBJECT_IDS), 26)
+        for fuel_type, subject_id in _FUEL_C1_SUBJECT_IDS.items():
+            with self.subTest(fuel_type=fuel_type):
+                row.activity.clear()
+                row.fuel_type.setCurrentIndex(row.fuel_type.findData(fuel_type))
+                expected_path = _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS)
+                self.assertIs(FuelPath(row.path.currentData()), expected_path)
+                row.activity.setText("1")
+                fuel = self.page._fuel()[0]
+                self.assertIs(fuel.path, expected_path)
+                self.assertIs(fuel.carbon_content.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+                self.assertIs(fuel.oxidation_rate.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+                self.assertEqual(fuel.carbon_content.parameter_id, f"{subject_id}_carbon_content")
+                self.assertEqual(fuel.oxidation_rate.parameter_id, f"{subject_id}_oxidation_rate")
+                self.assertEqual(fuel.carbon_content.source_id, "SRC-32151-34-2024")
+                self.assertEqual(fuel.oxidation_rate.source_id, "SRC-32151-34-2024")
+                if expected_path is FuelPath.HEAT:
+                    self.assertIsNone(fuel.lower_heating_value)
+                else:
+                    self.assertIsNotNone(fuel.lower_heating_value)
+                    self.assertEqual(fuel.lower_heating_value.parameter_id, f"{subject_id}_lhv")
+                    self.assertIs(fuel.lower_heating_value.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+
+                row.path.setCurrentIndex(row.path.findData(FuelPath.HEAT))
+                heat_fuel = self.page._fuel()[0]
+                self.assertIs(heat_fuel.path, FuelPath.HEAT)
+                self.assertIsNone(heat_fuel.lower_heating_value)
+                self.assertEqual(heat_fuel.carbon_content.parameter_id, f"{subject_id}_carbon_content")
+                self.assertIs(heat_fuel.carbon_content.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+                row.activity.clear()
+
+        row.activity.clear()
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.COAL))
+        self.assertIsNone(self.page._fuel_default_factors(row))
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
+        self.assertIsNone(self.page._fuel_default_factors(row))
+
+    def test_fgd_ui_uses_each_c2_carbonate_factor_and_blocks_unknown_legacy_input(self) -> None:
+        self.page.enterprise_name.setText("碳酸盐UI企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-FGD-001")
+        self.page._fields["fgd.cal"].setText("10")
+        expected = {
+            "car-par-c2-caco3": "0.440",
+            "car-par-c2-mgco3": "0.522",
+            "car-par-c2-na2co3": "0.415",
+            "car-par-c2-nahco3": "0.524",
+            "car-par-c2-feco3": "0.380",
+            "car-par-c2-mnco3": "0.383",
+            "car-par-c2-baco3": "0.223",
+            "car-par-c2-li2co3": "0.595",
+            "car-par-c2-k2co3": "0.318",
+            "car-par-c2-srco3": "0.298",
+            "car-par-c2-camgco3-2": "0.477",
+        }
+        self.assertEqual({parameter_id for _, parameter_id in _C2_CARBONATES}, set(expected))
+        for parameter_id, expected_factor in expected.items():
+            with self.subTest(carbonate=parameter_id):
+                selector = self.page._carbonate_type_selector
+                selector.setCurrentIndex(selector.findData(parameter_id))
+                fgd = self.page._process("fgd", FGDInput)
+                self.assertIsNotNone(fgd)
+                assert fgd is not None
+                factor = fgd.components[0].emission_factor
+                self.assertIsNotNone(factor)
+                assert factor is not None
+                self.assertEqual(factor.parameter_id, parameter_id)
+                self.assertEqual(str(factor.value), expected_factor)
+                self.assertIs(factor.source_kind, ParameterSourceKind.STANDARD_SPECIFIED)
+                self.assertEqual(factor.source_id, "SRC-32151-34-2024")
+
+        selector = self.page._carbonate_type_selector
+        selector.setCurrentIndex(0)
+        legacy_fgd = self.page._process("fgd", FGDInput)
+        self.assertIsNotNone(legacy_fgd)
+        assert legacy_fgd is not None
+        self.assertIsNone(legacy_fgd.components[0].emission_factor)
+        outcome = self.page.calculator.calculate(self.page._input())
+        self.assertTrue(outcome.blocked)
+        self.assertTrue(any(problem.code == "CAR-VAL-CARBONATE-FACTOR-MISSING" for problem in outcome.problems))
+        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+
+        self.page._fields["fgd.ef1"].setText("0.500")
+        self.page._fields["fgd.factor_source_reference"].setText("脱硫剂检测报告-UI-01")
+        measured = self.page._process("fgd", FGDInput)
+        self.assertIsNotNone(measured)
+        assert measured is not None
+        factor = measured.components[0].emission_factor
+        self.assertIsNotNone(factor)
+        assert factor is not None
+        self.assertIs(factor.source_kind, ParameterSourceKind.MEASURED)
+        self.assertEqual(factor.source_id, "USER-FGD-SOURCE")
+        self.assertIn("脱硫剂检测报告-UI-01", factor.source_location)
+        measured_outcome = self.page.calculator.calculate(self.page._input())
+        self.assertTrue(measured_outcome.successful, measured_outcome.problems)
+        measured_snapshot = next(
+            snapshot for snapshot in measured_outcome.parameter_snapshots
+            if snapshot.parameter_id == "fgd_carbonate_emission_factor_measured"
+        )
+        self.assertEqual(measured_snapshot.source_id, "USER-FGD-SOURCE")
+        self.assertIn("脱硫剂检测报告-UI-01", measured_snapshot.source_location)
 
     def test_electricity_rows_keep_acquisition_and_attribute_independent(self) -> None:
         self.page.findChild(QWidget, "addElectricityButton").click()

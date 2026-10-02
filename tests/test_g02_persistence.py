@@ -83,8 +83,8 @@ class PersistenceTests(unittest.TestCase):
             try:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 12)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 7)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 7)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 98)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 98)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM conversion_rules").fetchone()[0], 13)
             finally:
                 connection.close()
