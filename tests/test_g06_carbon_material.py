@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 import unittest
 
 from packages.core import (
@@ -54,6 +54,7 @@ from packages.standards.carbon_material import (
     MaterialComponentKind,
     SteamKind,
     ParameterSourceKind,
+    calcination_emission,
     fgd_emission,
     fuel_energy_from_mass,
     fuel_energy_from_volume,
@@ -335,6 +336,113 @@ class G06FormulaTests(unittest.TestCase):
 
 
 class G06CalculatorTests(unittest.TestCase):
+    def test_multi_entry_processes_calculate_each_instance_then_sum_without_merging(self) -> None:
+        calcination_a = CalcinationInput(
+            gc="100", wfc="0.06", cc="45", ucc="4", du="1", wfc_c="0.06",
+            wvar="0.10", wvar_c="0.02", k1="0.35", instance_id="calc-a",
+        )
+        calcination_b = CalcinationInput(
+            gc="200", wfc="0.06", cc="90", ucc="10", du="0", wfc_c="0.06",
+            wvar="0.10", wvar_c="0.02", k1="0.20", instance_id="calc-b",
+        )
+        bakings = (
+            BakingInput("10", "0.005", "100", "0.007", "0.05", "95", "0.006", "0.10", "0.02", "0.35", instance_id="bake-a"),
+            BakingInput("25", "0.012", "150", "0.01", "0.02", "110", "0.009", "0.08", "0.03", "0.35", instance_id="bake-b"),
+        )
+        graphitizations = (
+            GraphitizationInput("10", "0.005", "100", "0.007", "0.05", "95", "0.006", "0.10", "0.35", instance_id="graph-a"),
+            GraphitizationInput("20", "0.012", "140", "0.01", "0.02", "115", "0.008", "0.08", "0.35", instance_id="graph-b"),
+        )
+        fumes = (
+            FumeIncinerationInput("1000", "10", "30", "0.02", "0.98", "1", instance_id="fume-a"),
+            FumeIncinerationInput("500", "15", "25", "0.03", "0.95", "2", instance_id="fume-b"),
+        )
+        fgd_units = (
+            FGDInput(components=(CarbonateComponent("10", "0.45", "0.44", "1"), CarbonateComponent("2", "0.45", "0.522", "1")), instance_id="fgd-a"),
+            FGDInput(components=(CarbonateComponent("5", "0.90", "0.415", "1"),), instance_id="fgd-b"),
+        )
+        exported_power = (
+            ElectricityOutputLine("power-out-a", "10", _explicit_factor("electricity_emission_factor_national", "0.50", "tCO2/MWh")),
+            ElectricityOutputLine("power-out-b", "4", _explicit_factor("electricity_emission_factor_national", "0.25", "tCO2/MWh")),
+        )
+        purchased_heat = (
+            HeatInput("heat-in-a", "1000", "2800", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
+            HeatInput("heat-in-b", "500", "3000", _explicit_factor("heat_emission_factor_default", "0.20", "tCO2/GJ")),
+        )
+        exported_heat = (
+            HeatInput("heat-out-a", "250", "2700", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
+            HeatInput("heat-out-b", "750", "2900", _explicit_factor("heat_emission_factor_default", "0.16", "tCO2/GJ")),
+        )
+        outcome = CarbonMaterialCalculator(parameter_resolver=_resolver()).calculate(
+            _input(
+                calcinations=(calcination_a, calcination_b), bakings=bakings,
+                graphitizations=graphitizations, fume_incinerations=fumes, fgd_units=fgd_units,
+                exported_electricity=exported_power, purchased_heat=purchased_heat, exported_heat=exported_heat,
+            ),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(outcome.successful, outcome.problems)
+        lines = {line.line_id: line for line in outcome.result.lines}
+        for line_id in (
+            "CAR-FLD-P01-RESULT.calc-a", "CAR-FLD-P01-RESULT.calc-b",
+            "CAR-FLD-P02-RESULT.bake-a", "CAR-FLD-P02-RESULT.bake-b",
+            "CAR-FLD-P03-RESULT.graph-a", "CAR-FLD-P03-RESULT.graph-b",
+            "CAR-FLD-P04A-RESULT.fume-a", "CAR-FLD-P04A-RESULT.fume-b",
+            "CAR-FLD-P04B-RESULT.fgd-a", "CAR-FLD-P04B-RESULT.fgd-b",
+            "CAR-FLD-POWER-EXPORTED-RESULT.power-out-a", "CAR-FLD-POWER-EXPORTED-RESULT.power-out-b",
+            "CAR-FLD-HEAT-PURCHASED-RESULT.heat-in-a", "CAR-FLD-HEAT-PURCHASED-RESULT.heat-in-b",
+            "CAR-FLD-HEAT-EXPORTED-RESULT.heat-out-a", "CAR-FLD-HEAT-EXPORTED-RESULT.heat-out-b",
+        ):
+            self.assertIn(line_id, lines)
+        with localcontext() as context:
+            context.prec = 60
+            calc_sum = lines["CAR-FLD-P01-RESULT.calc-a"].amount + lines["CAR-FLD-P01-RESULT.calc-b"].amount
+            self.assertEqual(lines["CAR-FLD-P01-RESULT.calc-a"].amount, Decimal("19.75875"))
+            self.assertEqual(lines["CAR-FLD-P01-RESULT.calc-b"].amount, Decimal("32.01"))
+            self.assertEqual(calc_sum, Decimal("51.76875"))
+            direct = lines["CAR-FLD-DIRECT-RESULT"].amount
+            expected_direct = calc_sum + sum(
+                (lines[line_id].amount for line_id in (
+                    "CAR-FLD-P02-RESULT.bake-a", "CAR-FLD-P02-RESULT.bake-b",
+                    "CAR-FLD-P03-RESULT.graph-a", "CAR-FLD-P03-RESULT.graph-b",
+                    "CAR-FLD-P04A-RESULT.fume-a", "CAR-FLD-P04A-RESULT.fume-b",
+                    "CAR-FLD-P04B-RESULT.fgd-a", "CAR-FLD-P04B-RESULT.fgd-b",
+                )),
+                Decimal("0"),
+            )
+            self.assertLess(abs(direct - expected_direct), Decimal("1e-35"))
+        # Independent Eq. (1) reference values: each process is evaluated with
+        # its own K1, while the intentionally wrong merged case reuses K1=0.35.
+        merged_wrong_expected = calcination_emission(
+            gc=Decimal("300"), wfc=Decimal("0.06"), cc=Decimal("135"), ucc=Decimal("14"),
+            du=Decimal("1"), wfc_c=Decimal("0.06"), wvar=Decimal("0.10"), wvar_c=Decimal("0.02"), k1=Decimal("0.35"),
+        )
+        self.assertEqual(merged_wrong_expected, Decimal("59.27625"))
+        self.assertNotEqual(calc_sum, merged_wrong_expected)
+        trace_ids = [trace.trace_id for trace in outcome.traces]
+        self.assertEqual(len(trace_ids), len(set(trace_ids)))
+        heat_snapshots = {snapshot.snapshot_id for snapshot in outcome.parameter_snapshots if snapshot.parameter_id == "heat_emission_factor_default"}
+        self.assertTrue(all(
+            any(line_id in snapshot_id for snapshot_id in heat_snapshots)
+            for line_id in ("heat-in-a", "heat-in-b", "heat-out-a", "heat-out-b")
+        ))
+
+    def test_incomplete_process_instance_blocks_aggregate_record(self) -> None:
+        complete = CalcinationInput(
+            gc="100", wfc="0.008", cc="70", ucc="5", du="1", wfc_c="0.002",
+            wvar="0.10", wvar_c="0.02", k1="0.35", instance_id="valid-line",
+        )
+        incomplete = CalcinationInput(gc="50", instance_id="missing-line")
+        repository = InMemoryRecordRepository()
+        outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+            _input(calcinations=(complete, incomplete)), calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(outcome.blocked)
+        self.assertIsNone(outcome.result)
+        self.assertIsNone(outcome.record)
+        self.assertEqual(repository.list_all(), ())
+        self.assertTrue(any("missing-line" in (problem.field_id or "") for problem in outcome.problems))
+
     def test_three_electricity_details_have_independent_results_and_snapshots(self) -> None:
         details = (
             _detail("power.ordinary", "100", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
@@ -871,7 +979,8 @@ class G06CalculatorTests(unittest.TestCase):
         )
         self.assertTrue(blocked.blocked)
         self.assertTrue(any(problem.code == "GEN-VAL-SELF-CONSUMED-FOSSIL-ROUTE" for problem in blocked.problems))
-        self.assertFalse(any(line.emission_source_id == SOURCE_PURCHASED_ELECTRICITY for line in blocked.result.lines))
+        self.assertIsNone(blocked.result)
+        self.assertIsNone(blocked.record)
 
         linked_fuel = FuelInput("fossil-fuel", __import__(
             "packages.standards.carbon_material", fromlist=["FuelPath"]
@@ -902,7 +1011,11 @@ class G06CalculatorTests(unittest.TestCase):
             ),
             calculated_at=SNAPSHOT_AT,
         )
-        self.assertTrue(any(problem.code == "GEN-VAL-REQUIRED-MISSING" and problem.field_id == SOURCE_FGD for problem in fgd_missing.problems))
+        self.assertTrue(any(
+            problem.code == "GEN-VAL-REQUIRED-MISSING"
+            and problem.field_id.startswith(f"{SOURCE_FGD}.")
+            for problem in fgd_missing.problems
+        ))
 
     def test_fixed_and_volatile_component_kinds_are_validated_independently(self) -> None:
         cases = (
@@ -924,7 +1037,8 @@ class G06CalculatorTests(unittest.TestCase):
             )
             self.assertTrue(any(
                 problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-                and problem.field_id == f"{source_id}.fixed-carbon"
+                and problem.field_id.startswith(f"{source_id}.")
+                and problem.field_id.endswith(".fixed-carbon")
                 for problem in outcome.problems
             ))
 
@@ -941,7 +1055,8 @@ class G06CalculatorTests(unittest.TestCase):
             )
             self.assertTrue(any(
                 problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-                and problem.field_id == f"{source_id}.volatile-matter"
+                and problem.field_id.startswith(f"{source_id}.")
+                and problem.field_id.endswith(".volatile-matter")
                 for problem in outcome.problems
             ))
 

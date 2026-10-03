@@ -1,80 +1,56 @@
-# GHG-RS01-B1 — Calculation Safety & Reference Data Closure
+# GHG-RS01-B2 — Multi-entry Business Input Closure
 
-日期：2026-10-02
-状态：实现与本地验证完成；PR #23 已创建，等待其 latest-head GitHub Actions和独立重新验收。
-范围：仅单条业务输入下的计算安全、参考数据、参数接通和目录真实性；不实施RS01-B2。
+日期：2026-10-03
 
-## 1. Base / Head / PR
+状态：实现及本地验证完成；等待新PR latest-head GitHub Actions与独立重新验收。
 
-- Base：origin/main 1bad93c66bb98fb5a6d23c29b3d7b135258ebe9d（PR #22的合并结果已包含）。
-- 分支：codex/ghg-rs01-b1-calculation-safety，从该最新main创建。
-- B1实现head：773f21bf8d609efab669109165dfd1969ba52378。
-- PR：[#23 — GHG-RS01-B1: Calculation Safety & Reference Data Closure](https://github.com/adgo07/GHGTOOL/pull/23)，base `main`，PR创建时head为773f21bf8d609efab669109165dfd1969ba52378；交付回执报告最终latest head。
-- platform-lock.json SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；锁定Qingzhou-contracts SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。
+范围：同一核算单元下多过程/多能源来源逐项输入、逐项计算和标准汇总；RS02/RS03/Golden Freeze/第二标准不在本工作包内。
 
-## 2. B1实际变更
+## 1. 基线与治理预检查
 
-- Canonical新增附录C.1具体燃料默认参数、C.2全表因子、K1/K2/K3与FGD正式缺省；扩大Catalog查询/构建/验证及对应回归。
-- Domain增加集中ParameterValue语义门禁；燃料质量、体积与热量单条路径改为消费可追溯Canonical参数；脱硫未知种类不再使用0.44；Catalog状态/引用修复；边界Rule来源定位修正。
-- UI补具体燃料、C.2碳酸盐选择、来源编号和热值输入的FieldSpec及标准默认值接通；旧Project兼容测试覆盖缺种类重算阻断。
-- 更新CORE_CHECK、GAPS、REFERENCE_STANDARD_ROADMAP、HANDOFF、TASK_STATE及本报告。
-- 未改SQLite schema/迁移、platform-lock、中央Frozen Contract或已批准标准解释；未开始B2。
+- 仓库：`https://github.com/adgo07/GHGTOOL.git`；origin已核验。
+- Base / `origin/main`：`24537ba766579db17ef5012151b5cd788724afe9`，已包含PR #23合并结果。
+- 分支：`codex/ghg-rs01-b2-multi-entry-closure`，从已同步的最新`origin/main`创建。
+- 新PR：本报告编辑时待推送和创建；最终PR号与精确latest head见交付回执。为避免自引用，报告不复制包含本报告的提交SHA。
+- `platform-lock.json` SHA-256：`4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D`；locked Central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`未变。
+- 按locked SHA读取Architecture V2.1 FROZEN、Numeric Contract v1 FROZEN和Numeric Profiles v1 FROZEN；读取当前ACTIVE/Evolving UI Guidelines。保持Domain不依赖UI/数据库、既有Decimal Profile/输入快照规则、中文用户提示和内部细节渐进展示。
+- 本任务沿用本仓既有Project/Workspace及不可变Record语义；中央Workspace相关DRAFT未作为Frozen Contract采用。本任务不涉及中央公共Contract，不改`platform-lock.json`、`PLATFORM_BASELINE.md`或中央内容。
+- `STANDARD_ISSUES_REGISTER.md`已有4条历史RESOLVED问题；未改变既有执行解释，未新增标准问题。
 
-## 3. Canonical正式参考数据
+## 2. 实际变更
 
-- 总量：98 parameters / 98 factors；行业标准parameter_refs 95；10项排放源引用与实际业务源一致。
-- C.1：26种标准燃料×3项（LHV、单位热值含碳量、碳氧化率）。原有天然气3项保留，新增25种燃料共75组参数/因子。
-- C.2：11项碳酸盐因子，含CaCO3 0.440、MgCO3 0.522、Na2CO3 0.415及其余8项；每项source、2024版本/因子年、tCO2/t单位和标准表定位均可追溯。
-- 另新增K1/K2/K3=0.35、脱硫剂碳酸盐含量=0.90、转化率=1.00，各有正式标准来源；90%/100%不与0.44混用。
-- 标准文件：GB/T 32151.34—2024；外置PDF文件名为“34.GB_T 32151.34-2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业.pdf”，43页；SHA-256 60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738。PDF未入仓。
-- 冻结Mapping：SM01-2026-09-13-R6，FROZEN；源文件名“GB T 32151.34—2024 炭素材料生产企业映射方案.md”；源文件SHA-256 01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B；仓库路径specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md。
+- `packages/standards/carbon_material.py`：给五类过程实例及脱硫设施保留稳定身份；`CarbonMaterialInput`接受多实例tuple并兼容既有单例构造入口；Calculator逐实例验证/计算并汇总，错误定位到实例，任一致命错误不写成功Record。热力参数依购入/输出方向独立解析。
+- `packages/ui/carbon_material_page.py`：新增/删除煅烧、焙烧、石墨化、烟气焚烧和脱硫设施实例；脱硫设施内可逐项添加碳酸盐组分；购入/输出热力与输出电力可逐来源输入和保留适用因子、实测值、来源及结果。输入身份写入既有form state，不更改SQLite schema或Project迁移。
+- 多过程和能源行删除、表单恢复及Project保存/重开均保留稳定身份；fingerprint对身份顺序规范化，行排序不造成业务结果变化。旧单例Project及legacy v1 fingerprint可兼容读取；不重算或改写历史正式Record。
+- 错误提示保留普通中文并标明对应过程序号和需补字段。首条过程ID与旧单例稳定ID契约一致，新增行使用不复用的序列ID；行ID不出现在普通用户标签。
+- 回归变更：`tests/test_g06_carbon_material.py`、`tests/test_g06_page.py`、`tests/test_accounting_projects_ui.py`、`tests/test_uir01_field_semantics.py`。未修改Canonical参考数据或公式。
 
-## 4. C.4/C.5策略与参数门禁
+## 3. 计算与兼容边界
 
-- 采用方案B：完整C.4/C.5表和查表/插值继续在版本化Domain Calculator；没有新增reference-table schema、DSL或repository。
-- Canonical标准来源元数据记录C.4/C.5 PDF/印刷页、SM01-R6版本、原文异常和获批键修正、代表性验证锚点。
-- 1.40 MPa/195.04 ℃、1.40 MPa/204.3 ℃及1.50 MPa/207.1 ℃原始证据保留；后两项按项目冻结口径采用1.70/1.80 MPa解释，不称官方勘误。
-- Calculator内统一Domain门禁覆盖正式ParameterValue来源：明确非负量要求值≥0，比例为0至1，有标准明文范围时按标准处理；合法0可以继续。未加经验范围或未证实的物理关系判断。致命错误不生成成功Record。
-- Catalog calculation_status仍使用已有本地枚举IMPLEMENTED，只代表GHGTOOL本地Catalog中的Calculator当前可用；不代表中央五态、SUPPORTED或RS01/RS02/RS05验收通过。
+- 复用已有Domain/Calculator公式，不合并不同过程，不将来源平均；每个煅烧、焙烧、石墨化、烟气焚烧、脱硫设施/组分和能源行分别算出结果，再按标准汇总。
+- 多输出电力逐行使用自己的适用因子，形成逐行结果与总抵扣值。购入/输出热力分开取值；实测因子优先，无实测值时才采用适用的0.11缺省。热力焓继续使用版本化C.4/C.5 Calculator及既有R6批准的压力键解释。
+- 不重写公式、Canonical schema、reference-table架构、GUI整体设计或fingerprint多行模型；不启动Excel、RS02、Golden Freeze或RS01-B2之后工作。
+- Project仅扩展既有form state承载实例/行身份；无破坏性数据库迁移。历史Record的输入、参数和结果仍只读快照，按`test_historical_snapshot_stays_stable_after_catalog_parameter_change`验证不漂移。
 
-## 5. GAP-002兼容及历史Record
+## 4. 缺口与Matrix
 
-- 未选碳酸盐种类且无显式可追溯因子：普通中文提示、Domain ERROR、没有成功Record；不会猜CaCO3或静默0.44。
-- 旧Project仍可打开；原消耗量保留；未自动选择CaCO3；重新计算得到可操作提示且不创建Record。没有破坏性Project migration。
-- 历史Record仍为不可变快照，只读查看原输入/参数/结果，不随新Catalog或Calculator重算、覆盖、迁移；test_historical_snapshot_stays_stable_after_catalog_parameter_change通过。
+- B2关闭：GAP-001（购入/输出多热源与逐行因子）、GAP-004（多过程和多来源输入/逐项求和）、GAP-008（剩余B2测试覆盖）、GAP-011（多输出电力来源及逐行因子/结果/汇总）。
+- B1已关闭：GAP-002/003/005/006/007/010。共11条登记Gap；10条关闭，唯一开放项GAP-009为非阻塞历史附件provenance debt。类型总量：IMPLEMENTATION_GAP 8、TEST_GAP 1、EVIDENCE_GAP 2、STANDARD_ISSUE 0、CENTRAL_CONTRACT_GAP 0。
+- `CORE_CHECK.md`的Standard Completeness Matrix共26行：主状态OK 21、GAP 0、later-stage 5（RS02 3、RS03 1、RS04 1）、独立N/A状态0。closed Gap保留为完成证据；未将报告/Excel/Golden/正式支持等later-stage能力计作当前完成。
+- `REFERENCE_STANDARD_ROADMAP.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、CORE_CHECK和GAPS已同步B2实施状态。整体参考标准仍为PARTIAL，不宣称正式SUPPORTED。
 
-## 6. 测试预期变化
+## 5. 测试与验收
 
-A. 数据/契约扩展（旧断言 → 新断言）：
-- Canonical和隔离Catalog的parameters、factors：7/7 → 98/98；因为上述91项有标准来源的新增C.1/C.2/K/FGD数据。
-- 标准参数refs/详情与SRC-32151-34-2024查询：4 → 95；9个标准、12个来源、13条换算规则维持原值。
-- “天然气”因子搜索：3 → 6，新增LNG的3项会被同一中文查询匹配；多版本LHV搜索3 → 4，新增LNG标准值。
-- 来源验证逐项检查C.1/C.2数值、单位、来源ID、来源版本/年份及条款页码；标准PDF哈希作为外置来源证据。
-B. 行为预期修正：
-- 旧FGDInput(cal=10)成功采用0.90/0.44/1的测试预期反转为未确认碳酸盐/因子ERROR且不生成Record。这是纠正错误旧行为，不是为使测试变绿。
-- K1/K2/K3和FGD标准缺省由Canonical ParameterValue提供并留下来源快照；缺少Canonical值时阻断。
-- UI→Domain等价测试改为用真实Canonical目录提供必需缺省；空Catalog缺参仍阻断。
+- 定向核心/UI/Workspace/Record测试：80/80通过。
+- 全量命令：`python -m unittest discover -s tests -t . -v`；234/234通过，0失败、0错误、0跳过。较B1基线223项增加11项回归。
+- Canonical：`python scripts/validate_canonical.py`通过，9 standards、12 sources、98 parameters、98 factors。
+- 编译：`python -m compileall -q apps packages scripts tests`通过。
+- 依赖：`python -m pip check`通过，No broken requirements found。
+- 多行Domain独立计算/求和、UI全部过程来源组装、脱硫多设施/组分、不同热力/电力因子、删除中间行后身份恢复、Project保存重开和旧单例Project/v1 fingerprint兼容均有专门测试。
+- 历史Record测试保持通过；四数据库隔离构建与Canonical重建测试在全量回归内通过；UI缩放/无横向滚动验收测试在全量回归内通过。
+- `git diff --check`通过；Matrix逐行复核结果为26行、OK 21、GAP 0、later-stage 5、N/A独立状态0。
+- GitHub Actions：新PR创建后核对Windows / Python 3.12 Merge-ref Full Tests与PR-head Standalone Audit。最终要求两项均为success，且workflow `head_sha`精确等于新PR latest head；结果以交付回执为准。
 
-## 7. Gap与文档状态
+## 6. 后续状态
 
-- 已关闭：GAP-003（集中参数门禁）、GAP-002（未知碳酸盐阻断/C.2全表）、GAP-005（C.1单条燃料路径）、GAP-006（正式参考数据与C.4/C.5 provenance）、GAP-007（本地状态/10来源引用）、GAP-010（Rule定位）。
-- 仍开放：GAP-001、GAP-004、GAP-011归RS01-B2；GAP-008仅剩B2测试覆盖；GAP-009为非阻塞provenance debt。
-- Gap总数11：IMPLEMENTATION_GAP 8、TEST_GAP 1、EVIDENCE_GAP 2、未解决STANDARD_ISSUE Gap 0、CENTRAL_CONTRACT_GAP 0；已关闭6、开放5。
-- CORE_CHECK：25行Matrix，GAP 14、OK 7、N/A独立行0、later-stage 4。
-- Roadmap/HANDOFF均记录RS01-A/B和B1/B2；Roadmap的过期无条件DONE已纠正。RS01-B2 NOT STARTED。
-
-## 8. 本地验证与GitHub CI
-
-- 定向核心、Catalog、边界Rule、UI、Project兼容、Result/Record回归：111/111通过。
-- 全量：python -m unittest discover -s tests -t . -v，223/223通过，0失败/错误/跳过。
-- Canonical：python scripts/validate_canonical.py通过，9 standards / 12 sources / 98 parameters / 98 factors。
-- compileall：python -m compileall -q apps packages scripts tests通过。
-- pip check：No broken requirements found。
-- 隔离临时目录重建4个数据库并查询Catalog：通过；读回98/98，行业本地状态IMPLEMENTED，10个source refs。
-- UIR04 Windows缩放验收：1366×768，1.25与1.5均通过；无横向滚动，计算按钮和状态栏可见。
-- git diff --check通过。
-- GitHub Actions：PR #23创建后开始运行；报告提交时实施head 773f21bf8d609efab669109165dfd1969ba52378 的Windows CI仍在运行。最终latest-head结果以交付回执中的精确head和PR checks为准。
-
-## 9. 后续边界
-
-本报告结束后仅等待最新B1 PR head CI及独立重新验收。不合并PR，不启动RS01-B2，不开展RS02/RS03。
+RS01-B2实现及本地验证已完成，等待新PR latest-head CI及独立重新验收。RS01-B2后续独立验收前，不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。
