@@ -30,7 +30,7 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS01-B2 — Multi-entry Business Input Closure`；实现与本地验证已完成，等待新PR latest-head CI及独立重新验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- 当前工作包：`GHG-RS01-B2 — Multi-entry Business Input Closure`；实现与本地验证已完成，PR #24等待独立重新验收；latest-head CI以PR checks为准。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
 - RS01-B2仅完成同一核算单元的多过程/多能源来源逐项输入、逐项计算与标准汇总；RS02/RS03、Golden Freeze和第二标准未启动。
 - 后续RS01仍须遵守：
 

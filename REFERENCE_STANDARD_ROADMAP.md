@@ -97,7 +97,7 @@ RS01内部工作包（不是新产品阶段）：
 - **RS01-A**：专业依据入仓、核心功能审计、Standard Completeness Matrix及Gap Register；不修改业务实现。R1已将准确冻结SM01-R6原样纳入 `specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md`，Matrix位于同目录CORE_CHECK，缺口见GAPS。
 - **RS01-B**：按已验收Gap修复标准核心业务能力并增加对应测试；B1/B2是其内部工作包，不是新产品阶段。
 - **RS01-B1 — Calculation Safety & Reference Data Closure**：单条业务输入下消除非法ParameterValue和未确认碳酸盐造成的错误结果，接通标准参考数据并使参数来源可追溯。已合并到main。
-- **RS01-B2 — Multi-entry Business Input Closure**：同一核算单元支持多过程/多能源来源逐项录入、逐项计算和按标准汇总。当前工作包；实现与本地验证完成，等待新PR latest-head CI及独立重新验收。
+- **RS01-B2 — Multi-entry Business Input Closure**：同一核算单元支持多过程/多能源来源逐项录入、逐项计算和按标准汇总。实现与本地验证完成；PR #24保持open，等待独立重新验收，latest-head CI状态以PR checks为准。
 - B1关闭GAP-002/003/005/006/007/010；B2关闭GAP-001/004/008/011。GAP-009为不阻止实施的provenance debt。
 - 历史4条已确认标准问题正式登记为RESOLVED，均为项目执行口径，非官方勘误；本轮无新增未解决Standard Issue Gap。GAP-009仅剩历史批准附件provenance debt，不阻止B，也不要求重新确认既有R6解释；未来变更解释前须加强证据或重新确认。
 
@@ -341,11 +341,11 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01-B2实现已完成，等待latest-head CI及独立重新验收；结果解释/正式年度报告呈现待RS02，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01-B2实现已完成，PR #24等待独立重新验收；latest-head CI以PR checks为准。结果解释/正式年度报告呈现待RS02，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum。
 
 ## 8. 当前阶段与下一步
 
-- 当前阶段：**GHG-RS01-B2 — Multi-entry Business Input Closure**；实现与本地验证完成，等待新PR latest-head CI及独立重新验收。
+- 当前阶段：**GHG-RS01-B2 — Multi-entry Business Input Closure**；实现与本地验证完成，PR #24等待独立重新验收；latest-head CI结果由PR checks提供。
 - RS01-B1 — Calculation Safety & Reference Data Closure：已完成并合并；B2仍属RS01内部工作包。RS02/RS03尚未启动。
 - 第二标准不得早于 **RS05**。
 

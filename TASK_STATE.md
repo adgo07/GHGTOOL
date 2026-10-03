@@ -10,9 +10,9 @@
 - `platform-lock.json` SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；中央Frozen锁定SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。
 - Contract预检查：按locked SHA读取Architecture V2.1 FROZEN、Numeric Contract v1 FROZEN、Numeric Profiles v1 FROZEN；另读取当前ACTIVE/Evolving UI Guidelines。沿用既有本地Project/Workspace与不可变Record规则；不采纳DRAFT Workspace文本为Frozen、不修改中央公共Contract或baseline。本任务不涉及中央公共Contract。
 - 相关标准问题：台账已有4条历史RESOLVED解释；本任务未改变其执行口径，也未新增标准问题。
-- 预计仅更新业务实现、回归测试和B2要求的治理文档；不改SQLite schema/迁移、platform-lock或PLATFORM_BASELINE；不启动RS02/RS03、Golden Freeze或第二标准。
+- 实际仅更新业务实现、回归测试和B2治理文档；未改SQLite schema/迁移、platform-lock或PLATFORM_BASELINE；未启动RS02/RS03、Golden Freeze或第二标准。
 
-**B2实现和本地验证完成；PR #24 已创建。初始实现head的Merge-ref Full Tests已通过，PR-head Standalone Audit正在运行；当前治理文档同步后将验证最终latest-head GitHub Actions，再等待独立重新验收。RS01-B2不代表正式SUPPORTED。**
+**B2实现和本地验证完成；PR #24 保持 open，等待独立重新验收。PR当前head必须有两项Windows CI success，实时状态以PR checks为准；RS01-B2不代表正式SUPPORTED。**
 
 ## 已交付范围
 
@@ -33,6 +33,6 @@
 - Dependencies：`python -m pip check`通过，No broken requirements found。
 - `test_historical_snapshot_stays_stable_after_catalog_parameter_change`、旧Project单例/v1 fingerprint、以及多过程/能源来源保存重开专项回归已通过。
 - `git diff --check`通过；Matrix逐行主状态计数为26行：OK 21、GAP 0、later-stage 5（RS02 3、RS03 1、RS04 1）、独立N/A 0。
-- GitHub Actions：PR #24 初始实现head `3c826c48870771b222e80245e964d7e77e55784c` 对应run #130（run ID `37090829842`）；Merge-ref Full Tests已success，PR-head Standalone Audit仍queued。该head不是最终验证目标，因为本次治理文档同步会更新PR head；最终只以更新后PR最新head SHA对应的两项Windows作业为证。
+- GitHub Actions历史核验：初始head `3c826c48870771b222e80245e964d7e77e55784c` 的run #130（ID `37090829842`）Merge-ref Full Tests通过；后续head `be48dc9be90ba7f811e239a44e5ac1ed42060915` 的run #131（ID `37091010125`）两项Windows作业均success。对当前最新head的最终结果以PR checks为准，避免提交自引用的CI SHA。
 
-下一步：提交并推送本次PR跟踪文档更新；等待更新后最新PR head的两项Windows CI成功，再等待独立重新验收。不要合并，不要启动RS02/RS03。
+下一步：等待PR #24独立重新验收；任何新增提交后先确认最新head的两项Windows CI成功。不要合并，不要启动RS02/RS03。

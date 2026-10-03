@@ -2,7 +2,7 @@
 
 日期：2026-10-03
 
-状态：实现及本地验证完成；PR #24 已创建。初始实现head的Merge-ref Full Tests通过，PR-head Standalone Audit仍在运行；本次报告更新会形成新的PR head，最终以新head对应CI为准。之后等待独立重新验收。
+状态：RS01-B2实现与本地验证完成；PR #24 保持 open，等待独立重新验收。latest-head Windows CI以PR当前checks为准；本报告不把PR head或工作流结果写入同一个会触发CI的提交。
 
 范围：同一核算单元下多过程/多能源来源逐项输入、逐项计算和标准汇总；RS02/RS03/Golden Freeze/第二标准不在本工作包内。
 
@@ -29,7 +29,7 @@
 
 - 复用已有Domain/Calculator公式，不合并不同过程，不将来源平均；每个煅烧、焙烧、石墨化、烟气焚烧、脱硫设施/组分和能源行分别算出结果，再按标准汇总。
 - 多输出电力逐行使用自己的适用因子，形成逐行结果与总抵扣值。购入/输出热力分开取值；实测因子优先，无实测值时才采用适用的0.11缺省。热力焓继续使用版本化C.4/C.5 Calculator及既有R6批准的压力键解释。
-- 不重写公式、Canonical schema、reference-table架构、GUI整体设计或fingerprint多行模型；不启动Excel、RS02、Golden Freeze或RS01-B2之后工作。
+- 不重写公式、Canonical schema、reference-table架构、GUI整体设计或fingerprint多行模型；不启动Excel、RS02/RS03、Golden Freeze或第二标准。
 - Project仅扩展既有form state承载实例/行身份；无破坏性数据库迁移。历史Record的输入、参数和结果仍只读快照，按`test_historical_snapshot_stays_stable_after_catalog_parameter_change`验证不漂移。
 
 ## 4. 缺口与Matrix
@@ -49,8 +49,8 @@
 - 多行Domain独立计算/求和、UI全部过程来源组装、脱硫多设施/组分、不同热力/电力因子、删除中间行后身份恢复、Project保存重开和旧单例Project/v1 fingerprint兼容均有专门测试。
 - 历史Record测试保持通过；四数据库隔离构建与Canonical重建测试在全量回归内通过；UI缩放/无横向滚动验收测试在全量回归内通过。
 - `git diff --check`通过；Matrix逐行复核结果为26行、OK 21、GAP 0、later-stage 5、N/A独立状态0。
-- GitHub Actions：初始PR head `3c826c48870771b222e80245e964d7e77e55784c` 的run #130（run ID `37090829842`）中，Windows / Python 3.12 / Merge-ref Full Tests已success，PR-head Standalone Audit检查时仍queued。报告/状态文档的本次PR更新会产生新的head；必须再确认最新head的两项作业均为success，最终结果以交付回执为准。
+- GitHub Actions历史核验：初始head `3c826c48870771b222e80245e964d7e77e55784c` 的run #130（ID `37090829842`）Merge-ref Full Tests通过；后续head `be48dc9be90ba7f811e239a44e5ac1ed42060915` 的run #131（ID `37091010125`）两项Windows作业均success。每次新提交都会触发新检查；PR #24当前head的exact-head结果以GitHub PR checks及交付回执为准。
 
 ## 6. 后续状态
 
-RS01-B2实现及本地验证已完成，PR #24等待最终latest-head CI及独立重新验收。RS01-B2后续独立验收前，不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。
+RS01-B2实现及本地验证已完成；PR #24保持open，等待独立重新验收。提交后须确认PR当前head的两项Windows作业均success；检查结果由PR checks提供，不为记录检查SHA而追加提交。独立验收前不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。
