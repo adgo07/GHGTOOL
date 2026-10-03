@@ -140,7 +140,7 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
                 "proof_status",
             )
         )
-        self.assertTrue(keys.issubset(FIELD_SPECS))
+        self.assertTrue(keys.issubset(FIELD_SPECS), sorted(keys.difference(FIELD_SPECS)))
         page.deleteLater()
 
     def test_typed_numeric_inputs_reject_letters_negative_and_invalid_fraction(self) -> None:

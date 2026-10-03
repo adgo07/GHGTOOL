@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime, timezone
-from dataclasses import replace
+from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
+from enum import Enum
 import hashlib
 import json
 import re
@@ -63,6 +64,7 @@ from packages.standards.carbon_material import (
     CalcinationInput,
     CarbonMaterialCalculator,
     CarbonMaterialInput,
+    CarbonateComponent,
     EmissionSourceState,
     EmissionSourceStatus,
     FGDInput,
@@ -471,6 +473,18 @@ class CarbonMaterialAccountingPage(BasePage):
         self._electricity_row_serial = 0
         self._fuel_rows: list[_FuelRow] = []
         self._fuel_row_serial = 0
+        self._process_rows: dict[str, list[dict[str, object]]] = {
+            key: [] for key in ("calcination", "baking", "graphitization", "fume", "fgd")
+        }
+        self._process_row_serials = {key: 0 for key in self._process_rows}
+        self._process_rows_layout: dict[str, QVBoxLayout] = {}
+        self._process_sections: dict[str, tuple[str, tuple[str, ...]]] = {}
+        self._business_row_serial = 0
+        self._output_electricity_row_serial = 0
+        self._output_electricity_rows: list[dict[str, object]] = []
+        self._heat_row_serials = {"heat": 1, "exported_heat": 1}
+        self._heat_rows: dict[str, list[dict[str, object]]] = {"heat": [], "exported_heat": []}
+        self._electricity_factor_records = {}
         self._source_statuses: dict[str, QComboBox] = {}
         self._source_cards: dict[str, SourceCard] = {}
         self._fields: dict[str, QLineEdit] = {}
@@ -937,10 +951,40 @@ class CarbonMaterialAccountingPage(BasePage):
             }
             for row in self._fuel_rows
         ]
+        values["process_instances"] = {
+            prefix: [
+                {
+                    "instance_id": str(row["instance_id"]),
+                    "component_ids": [
+                        str(component["component_id"])
+                        for component in row.get("components", [])
+                        if isinstance(component, dict) and component.get("component_id")
+                    ],
+                }
+                for row in rows
+            ]
+            for prefix, rows in self._process_rows.items()
+        }
+        values["exported_electricity_line_ids"] = [
+            str(_value(row["id"]) or row["default_line_id"])
+            for row in self._output_electricity_rows
+        ]
+        values["heat_line_ids"] = {
+            prefix: [str(_value(row["id"]) or row["default_line_id"]) for row in rows]
+            for prefix, rows in self._heat_rows.items()
+        }
+        values["business_fingerprint_version"] = 2
         return values
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
         self._restoring_workspace = True
+        active_before_restore = self._unit() if self._workspace.units else None
+        legacy_fingerprint_matches = bool(
+            active_before_restore is not None
+            and active_before_restore.input_fingerprint
+            and state.get("business_fingerprint_version") != 2
+            and active_before_restore.input_fingerprint == self._fingerprint_state(state)
+        )
         default_state = self._default_form_state
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
@@ -1009,6 +1053,75 @@ class CarbonMaterialAccountingPage(BasePage):
             if stored_source in {"AUTO", "MEASURED", "STANDARD_DEFAULT"}:
                 row.parameter_source = str(stored_source)
             self._refresh_fuel_row(row)
+
+        stored_processes = state.get("process_instances", default_state.get("process_instances", {}))
+        if not isinstance(stored_processes, dict):
+            stored_processes = default_state.get("process_instances", {})
+        for prefix, rows in self._process_rows.items():
+            for old_row in tuple(rows):
+                old_widget = old_row.get("widget")
+                if isinstance(old_widget, QWidget):
+                    old_widget.setParent(None)
+                    old_widget.deleteLater()
+            rows.clear()
+            self._material_controls.pop(prefix, None)
+            for key in tuple(self._material_controls):
+                if key.startswith(f"{prefix}@"):
+                    self._material_controls.pop(key, None)
+            for key in tuple(self._fields):
+                if key.startswith(f"{prefix}@") or key.startswith(f"{prefix}."):
+                    self._fields.pop(key, None)
+            saved_rows = stored_processes.get(prefix, []) if isinstance(stored_processes, dict) else []
+            if not isinstance(saved_rows, list):
+                saved_rows = []
+            for saved in saved_rows:
+                if not isinstance(saved, dict):
+                    continue
+                instance_id = saved.get("instance_id")
+                if not isinstance(instance_id, str) or not instance_id:
+                    continue
+                component_ids = saved.get("component_ids", [])
+                if not isinstance(component_ids, list) or any(not isinstance(value, str) for value in component_ids):
+                    component_ids = []
+                self._add_process_row(prefix, instance_id=instance_id, component_ids=tuple(component_ids))
+            self._bind_process_aliases(prefix)
+
+        stored_output_ids = state.get("exported_electricity_line_ids", default_state.get("exported_electricity_line_ids", []))
+        if not isinstance(stored_output_ids, list) or any(not isinstance(item, str) for item in stored_output_ids):
+            stored_output_ids = default_state.get("exported_electricity_line_ids", [])
+        if not stored_output_ids:
+            stored_output_ids = ["exported-electricity-1"]
+        while len(self._output_electricity_rows) > len(stored_output_ids):
+            row = self._output_electricity_rows[-1]
+            widget = row["widget"]
+            if isinstance(widget, QWidget):
+                self._remove_output_electricity_row(widget)
+        while len(self._output_electricity_rows) < len(stored_output_ids):
+            self._add_output_electricity_row(line_id=stored_output_ids[len(self._output_electricity_rows)])
+        for row, line_id in zip(self._output_electricity_rows, stored_output_ids):
+            if line_id:
+                row["default_line_id"] = line_id
+        self._bind_output_electricity_aliases()
+
+        stored_heat_ids = state.get("heat_line_ids", default_state.get("heat_line_ids", {}))
+        if not isinstance(stored_heat_ids, dict):
+            stored_heat_ids = default_state.get("heat_line_ids", {})
+        for prefix, rows in self._heat_rows.items():
+            saved_ids = stored_heat_ids.get(prefix, []) if isinstance(stored_heat_ids, dict) else []
+            if not isinstance(saved_ids, list) or any(not isinstance(item, str) for item in saved_ids):
+                saved_ids = default_state.get("heat_line_ids", {}).get(prefix, [])
+            if not saved_ids:
+                saved_ids = [f"{prefix.replace('_', '-')}-1"]
+            while len(rows) > len(saved_ids):
+                row_widget = rows[-1]["widget"]
+                if isinstance(row_widget, QWidget):
+                    self._remove_heat_row(prefix, row_widget)
+            while len(rows) < len(saved_ids):
+                self._add_heat_row(prefix, line_id=saved_ids[len(rows)])
+            for row, line_id in zip(rows, saved_ids):
+                if line_id:
+                    row["default_line_id"] = line_id
+            self._bind_heat_aliases(prefix)
         by_name: dict[str, QWidget] = {}
         for widget in self.findChildren(QWidget):
             if widget.objectName():
@@ -1047,6 +1160,17 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_heat_factor_details()
         self._refresh_electricity_rows()
         self._refresh_source_cards()
+        if legacy_fingerprint_matches and active_before_restore is not None and active_before_restore.result_snapshot is not None:
+            migrated_fingerprint = self._current_business_fingerprint()
+            if migrated_fingerprint is not None:
+                current_unit = self._unit()
+                units = list(self._workspace.units)
+                units[self._active_unit_index] = replace(
+                    current_unit,
+                    form_state=self._capture_form_state(),
+                    input_fingerprint=migrated_fingerprint,
+                )
+                self._workspace = replace(self._workspace, units=tuple(units))
         self._restore_unit_result()
 
     def _switch_unit(self, index: int) -> None:
@@ -1179,8 +1303,8 @@ class CarbonMaterialAccountingPage(BasePage):
         if unit.result_snapshot is None:
             self.unit_result_summary.setText(f"{unit.name}：尚无成功计算结果。")
             return
-        current_fingerprint = self._fingerprint_state(self._capture_form_state()) if hasattr(self, "enterprise_name") else unit.input_fingerprint
-        is_stale = bool(unit.input_fingerprint and current_fingerprint != unit.input_fingerprint)
+        current_fingerprint = self._current_business_fingerprint() if hasattr(self, "enterprise_name") else None
+        is_stale = not unit.input_fingerprint or current_fingerprint is None or current_fingerprint != unit.input_fingerprint
         state = "输入已变更，上一结果已过期" if is_stale else "上次成功结果"
         self.unit_result_summary.setText(
             f"{unit.name}：{state} {unit.result_snapshot.get('total_display', '—')}。重新计算会新增记录，不覆盖历史记录。"
@@ -1191,6 +1315,69 @@ class CarbonMaterialAccountingPage(BasePage):
         payload = json.dumps(state, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    @classmethod
+    def _fingerprint_business_input(cls, input_value: CarbonMaterialInput) -> str:
+        tuple_sort_keys = {
+            "source_states": "source_id",
+            "fuel_inputs": "fuel_id",
+            "electricity_details": "detail_id",
+            "exported_electricity": "line_id",
+            "purchased_heat": "line_id",
+            "exported_heat": "line_id",
+            "calcinations": "instance_id",
+            "bakings": "instance_id",
+            "graphitizations": "instance_id",
+            "fume_incinerations": "instance_id",
+            "fgd_units": "instance_id",
+        }
+        legacy_process_aliases = {"calcination", "baking", "graphitization", "fume_incineration", "fgd"}
+
+        def normalize(value: object, field_name: str | None = None) -> object:
+            if value is None or isinstance(value, (str, bool, int)):
+                return value
+            if isinstance(value, Decimal):
+                if not value.is_finite():
+                    raise ValueError("business input contains a non-finite Decimal")
+                rendered = format(value, "f")
+                if "." in rendered:
+                    rendered = rendered.rstrip("0").rstrip(".")
+                return "0" if rendered in {"-0", ""} else rendered
+            if isinstance(value, float):
+                raise TypeError("business fingerprints do not accept float values")
+            if isinstance(value, Enum):
+                return value.value
+            if isinstance(value, (date, datetime)):
+                return value.isoformat()
+            if is_dataclass(value):
+                result: dict[str, object] = {}
+                for data_field in dataclass_fields(value):
+                    if value is input_value and data_field.name == "input_id":
+                        continue
+                    if value is input_value and data_field.name in legacy_process_aliases:
+                        continue
+                    result[data_field.name] = normalize(getattr(value, data_field.name), data_field.name)
+                return result
+            if isinstance(value, tuple):
+                normalized_values = [normalize(item) for item in value]
+                sort_key = tuple_sort_keys.get(field_name or "")
+                if sort_key:
+                    normalized_values.sort(key=lambda item: str(item.get(sort_key, "")) if isinstance(item, dict) else "")
+                elif field_name == "components":
+                    normalized_values.sort(
+                        key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    )
+                return normalized_values
+            raise TypeError(f"unsupported business fingerprint value: {type(value).__name__}")
+
+        payload = json.dumps(normalize(input_value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _current_business_fingerprint(self) -> str | None:
+        try:
+            return self._fingerprint_business_input(self._input(increment=False, render_electricity=False))
+        except (DomainValidationError, InvalidOperation, TypeError, ValueError):
+            return None
+
     def _restore_unit_result(self) -> None:
         result = self._unit().result_snapshot
         if not result:
@@ -1199,8 +1386,8 @@ class CarbonMaterialAccountingPage(BasePage):
             self._calculation_has_result = False
             self._refresh_unit_result_summary()
             return
-        current_fingerprint = self._fingerprint_state(self._capture_form_state())
-        if self._unit().input_fingerprint and current_fingerprint != self._unit().input_fingerprint:
+        current_fingerprint = self._current_business_fingerprint()
+        if not self._unit().input_fingerprint or current_fingerprint is None or current_fingerprint != self._unit().input_fingerprint:
             self.result_card.setVisible(False)
             self.process_card.setVisible(False)
             self._calculation_has_result = False
@@ -1567,66 +1754,240 @@ class CarbonMaterialAccountingPage(BasePage):
             row.parameter_summary.setText("企业实测/检测参数（非标准默认）；请填写参数数据来源编号。")
 
     def _build_process_section(self, parent_layout: QVBoxLayout, title: str, prefix: str, fields: tuple[str, ...]) -> None:
-        field_groups = {
-            "calcination": (
-                ("投入数据", ("gc", "wfc", "wvar")),
-                ("产出数据", ("cc", "ucc", "du", "wfc_c", "wvar_c")),
-            ),
-            "baking": (
-                ("投入数据", ("bpm", "bpmfc", "bg", "bgfc", "bpmvar", "bgvar")),
-                ("产出数据", ("bwt", "bp", "bpfc")),
-            ),
-            "graphitization": (
-                ("投入数据", ("gpm", "gpmfc", "gta", "gtafc", "gpmvar")),
-                ("产出数据", ("gwt", "gp", "gpfc")),
-            ),
-        }.get(prefix, (("活动数据", fields),))
-        for group_name, group_fields in field_groups:
-            group = QWidget(self)
-            group.setObjectName(f"{prefix}_{group_name}")
-            group_layout = QVBoxLayout(group)
-            group_layout.setContentsMargins(0, 0, 0, 0)
-            group_title = QLabel(group_name, group)
-            group_title.setObjectName(f"{prefix}_{group_name}_title")
-            group_layout.addWidget(group_title)
-            row = QWidget(group)
-            form = QFormLayout(row)
-            for field in group_fields:
-                spec = get_field_spec(f"{prefix}.{field}")
-                edit = create_typed_input(row, spec, f"{prefix}_{field}")
-                self._fields[f"{prefix}.{field}"] = edit
-                form.addRow(spec.label, edit)
-            group_layout.addWidget(row)
-            parent_layout.addWidget(group)
+        self._process_sections[prefix] = (title, fields)
+        host = QWidget(self)
+        host.setObjectName(f"{prefix}_instances")
+        host_layout = QVBoxLayout(host)
+        host_layout.setContentsMargins(0, 0, 0, 0)
+        self._process_rows_layout[prefix] = host_layout
+        parent_layout.addWidget(host)
+        buttons = QHBoxLayout()
+        add_button = QPushButton(f"新增{title.split('（')[0]}", host)
+        add_button.setObjectName(f"add_{prefix}_instance")
+        add_button.clicked.connect(lambda _checked=False, _prefix=prefix: self._add_process_row(_prefix))
+        buttons.addWidget(add_button)
+        buttons.addStretch(1)
+        parent_layout.addLayout(buttons)
+        self._add_process_row(prefix)
 
+    def _build_business_field(self, parent: QWidget, prefix: str, field: str, instance_id: str, *, first: bool) -> QWidget:
+        spec = get_field_spec(f"{prefix}.{field}")
+        name = f"{prefix}_{field}" if first else f"{prefix}_{instance_id}_{field}"
+        widget = create_typed_input(parent, spec, name)
+        self._wire_dirty_tracking(widget)
+        return widget
+
+    def _add_process_row(self, prefix: str, *, instance_id: str | None = None, component_ids: tuple[str, ...] | None = None) -> dict[str, object]:
+        if prefix not in self._process_rows_layout:
+            return {}
+        rows = self._process_rows[prefix]
+        if instance_id is None:
+            serial = self._process_row_serials[prefix]
+            existing_ids = {str(row.get("instance_id", "")) for row in rows}
+            while True:
+                serial += 1
+                instance_id = f"{prefix}-{serial}"
+                if instance_id not in existing_ids:
+                    break
+            self._process_row_serials[prefix] = serial
+        else:
+            restored_serial = instance_id.rsplit("-", 1)
+            if len(restored_serial) == 2 and restored_serial[0] == prefix and restored_serial[1].isdigit():
+                self._process_row_serials[prefix] = max(self._process_row_serials[prefix], int(restored_serial[1]))
+        first = not rows
+        fields = self._process_sections[prefix][1]
+        host = QWidget(self)
+        host.setObjectName(f"{prefix}Instance{instance_id}")
+        host_layout = QVBoxLayout(host)
+        host_layout.setContentsMargins(0, 8, 0, 8)
+        title, _ = self._process_sections[prefix]
+        display_title = title.split("（")[0]
+        toolbar = QHBoxLayout()
+        title_label = QLabel(f"{display_title} {len(rows) + 1}", host)
+        toolbar.addWidget(title_label)
+        toolbar.addStretch(1)
+        remove_button = QPushButton("删除本条", host)
+        remove_button.setObjectName(f"remove_{prefix}_{instance_id}")
+        remove_button.clicked.connect(lambda _checked=False, _prefix=prefix, _id=instance_id: self._remove_process_row(_prefix, _id))
+        toolbar.addWidget(remove_button)
+        host_layout.addLayout(toolbar)
+        row: dict[str, object] = {
+            "instance_id": instance_id,
+            "widget": host,
+            "title": title_label,
+            "display_title": display_title,
+            "fields": {},
+            "components": [],
+        }
         if prefix == "fgd":
-            carbonate_row = QWidget(self)
-            carbonate_form = QFormLayout(carbonate_row)
-            self._carbonate_type_selector = QComboBox(carbonate_row)
-            self._carbonate_type_selector.setObjectName("fgdCarbonateTypeSelector")
-            self._carbonate_type_selector.setProperty("fieldSpecKey", "fgd.ef1")
-            self._carbonate_type_selector.addItem("未选择碳酸盐种类", None)
-            for label, parameter_id in _C2_CARBONATES:
-                self._carbonate_type_selector.addItem(label, parameter_id)
-            carbonate_form.addRow("脱硫剂中的碳酸盐种类", self._carbonate_type_selector)
-            self._fields["fgd.factor_source_reference"] = create_typed_input(
-                carbonate_row,
-                get_field_spec("fgd.factor_source_reference"),
-                "fgdFactorSourceReferenceInput",
-            )
-            self._fields["fgd.factor_source_reference"].setPlaceholderText(
-                "实测因子或手工参数的资料编号"
-            )
-            carbonate_form.addRow("参数来源编号", self._fields["fgd.factor_source_reference"])
-            parent_layout.addWidget(carbonate_row)
+            component_host = QWidget(host)
+            component_layout = QVBoxLayout(component_host)
+            component_layout.setContentsMargins(0, 0, 0, 0)
+            host_layout.addWidget(component_host)
+            row["component_host"] = component_host
+            row["component_layout"] = component_layout
+            add_component = QPushButton("新增碳酸盐组分", host)
+            add_component.setObjectName(f"add_fgd_component_{instance_id}")
+            add_component.clicked.connect(lambda _checked=False, _row=row: self._add_fgd_component(_row))
+            host_layout.addWidget(add_component)
+            for component_id in component_ids or ():
+                self._add_fgd_component(row, component_id=component_id)
+            if component_ids is None:
+                self._add_fgd_component(row)
+        else:
+            field_groups = {
+                "calcination": (("投入数据", ("gc", "wfc", "wvar")), ("产出数据", ("cc", "ucc", "du", "wfc_c", "wvar_c"))),
+                "baking": (("投入数据", ("bpm", "bpmfc", "bg", "bgfc", "bpmvar", "bgvar")), ("产出数据", ("bwt", "bp", "bpfc"))),
+                "graphitization": (("投入数据", ("gpm", "gpmfc", "gta", "gtafc", "gpmvar")), ("产出数据", ("gwt", "gp", "gpfc"))),
+            }.get(prefix, (("活动数据", fields),))
+            widgets: dict[str, QWidget] = {}
+            for group_name, group_fields in field_groups:
+                group = QWidget(host)
+                group_layout = QVBoxLayout(group)
+                group_layout.setContentsMargins(0, 0, 0, 0)
+                group_layout.addWidget(QLabel(group_name, group))
+                form_row = QWidget(group)
+                form = QFormLayout(form_row)
+                for field in group_fields:
+                    spec = get_field_spec(f"{prefix}.{field}")
+                    edit = self._build_business_field(form_row, prefix, field, instance_id, first=first)
+                    widgets[field] = edit
+                    form.addRow(spec.label, edit)
+                group_layout.addWidget(form_row)
+                host_layout.addWidget(group)
+            row["fields"] = widgets
+            if prefix in _PROCESS_DEFAULT_PARAMETERS:
+                controls_key = f"{prefix}@{instance_id}"
+                self._build_material_controls(host_layout, prefix, instance_id=instance_id, controls_key=controls_key, first=first)
+                row["controls_key"] = controls_key
+            flags: dict[str, QCheckBox] = {}
+            if prefix in {"calcination", "baking"}:
+                checkbox = QCheckBox("产品中的碳已计入本过程输入/产量（重复计入会阻断计算）", host)
+                checkbox.setObjectName(f"{prefix}_carbonOutputIncludedInInput" if first else f"{prefix}_{instance_id}_carbonOutputIncludedInInput")
+                host_layout.addWidget(checkbox)
+                flags["carbon_output_included_in_input"] = checkbox
+                self._wire_dirty_tracking(checkbox)
+            elif prefix == "graphitization":
+                checkbox = QCheckBox("炉体炭质材料氧化烧损已计入本过程（标准禁止）", host)
+                checkbox.setObjectName(f"{prefix}_furnaceLossIncluded" if first else f"{prefix}_{instance_id}_furnaceLossIncluded")
+                host_layout.addWidget(checkbox)
+                flags["furnace_loss_included"] = checkbox
+                self._wire_dirty_tracking(checkbox)
+            row["flags"] = flags
+        self._process_rows_layout[prefix].addWidget(host)
+        rows.append(row)
+        self._bind_process_aliases(prefix)
+        self._refresh_source_cards()
+        return row
+
+    def _add_fgd_component(self, unit: dict[str, object], *, component_id: str | None = None) -> dict[str, object]:
+        component_id = component_id or uuid4().hex
+        components = unit["components"]
+        assert isinstance(components, list)
+        first = not components and len(self._process_rows["fgd"]) == 0
+        unit_index = self._process_rows["fgd"].index(unit) + 1 if unit in self._process_rows["fgd"] else len(self._process_rows["fgd"]) + 1
+        component_host = unit["component_host"]
+        component_layout = unit["component_layout"]
+        assert isinstance(component_host, QWidget) and isinstance(component_layout, QVBoxLayout)
+        container = QWidget(component_host)
+        container.setObjectName(f"fgdComponent{component_id}")
+        form = QFormLayout(container)
+        widgets: dict[str, QWidget] = {}
+        for field in ("cal", "i", "ef1", "tr"):
+            spec = get_field_spec(f"fgd.{field}")
+            name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
+            edit = create_typed_input(container, spec, name)
+            widgets[field] = edit
+            form.addRow(spec.label, edit)
+            self._wire_dirty_tracking(edit)
+        selector = QComboBox(container)
+        selector.setObjectName("fgdCarbonateTypeSelector" if first else f"fgd_{unit['instance_id']}_{component_id}_carbonateTypeSelector")
+        selector.setProperty("fieldSpecKey", "fgd.ef1")
+        selector.addItem("未选择碳酸盐种类", None)
+        for label, parameter_id in _C2_CARBONATES:
+            selector.addItem(label, parameter_id)
+        widgets["carbonate_type"] = selector
+        form.addRow("脱硫剂中的碳酸盐种类", selector)
+        self._wire_dirty_tracking(selector)
+        source_ref = create_typed_input(container, get_field_spec("fgd.factor_source_reference"), "fgdFactorSourceReferenceInput" if first else f"fgd_{unit['instance_id']}_{component_id}_factorSourceReference")
+        source_ref.setPlaceholderText("实测因子或手工参数的资料编号")
+        widgets["factor_source_reference"] = source_ref
+        form.addRow("参数来源编号", source_ref)
+        self._wire_dirty_tracking(source_ref)
+        remove = QPushButton("删除组分", container)
+        remove.setObjectName(f"remove_fgd_component_{unit['instance_id']}_{component_id}")
+        remove.clicked.connect(lambda _checked=False, _unit=unit, _id=component_id: self._remove_fgd_component(_unit, _id))
+        form.addRow(remove)
+        component_layout.addWidget(container)
+        widgets["_widget"] = container
+        widgets["_component_id"] = QLineEdit(component_id, container)
+        widgets["component_id"] = component_id
+        components.append(widgets)
+        self._bind_process_aliases("fgd")
+        return widgets
+
+    def _remove_fgd_component(self, unit: dict[str, object], component_id: str) -> None:
+        components = unit["components"]
+        assert isinstance(components, list)
+        for component in tuple(components):
+            if component.get("component_id") == component_id:
+                widget = component.get("_widget")
+                if isinstance(widget, QWidget):
+                    widget.setParent(None)
+                    widget.deleteLater()
+                components.remove(component)
+        self._refresh_source_cards()
+
+    def _remove_process_row(self, prefix: str, instance_id: str) -> None:
+        rows = self._process_rows[prefix]
+        for row in tuple(rows):
+            if row.get("instance_id") == instance_id:
+                widget = row.get("widget")
+                if isinstance(widget, QWidget):
+                    widget.setParent(None)
+                    widget.deleteLater()
+                rows.remove(row)
+        for index, row in enumerate(rows, start=1):
+            title = row.get("title")
+            display_title = row.get("display_title")
+            if isinstance(title, QLabel) and isinstance(display_title, str):
+                title.setText(f"{display_title} {index}")
+        self._bind_process_aliases(prefix)
+        self._refresh_source_cards()
+
+    def _bind_process_aliases(self, prefix: str) -> None:
+        rows = self._process_rows[prefix]
+        if not rows:
             return
-
-        if prefix not in {"calcination", "baking", "graphitization"}:
+        if prefix == "fgd":
+            components = rows[0].get("components", [])
+            if components:
+                for key in ("cal", "i", "ef1", "tr", "factor_source_reference"):
+                    self._fields[f"fgd.{key}"] = components[0][key]  # type: ignore[index]
+                self._carbonate_type_selector = components[0]["carbonate_type"]  # type: ignore[assignment,index]
             return
+        fields = rows[0].get("fields", {})
+        for key, widget in fields.items():  # type: ignore[union-attr]
+            self._fields[f"{prefix}.{key}"] = widget
 
-        self._build_material_controls(parent_layout, prefix)
+    def _wire_dirty_tracking(self, widget: QWidget) -> None:
+        if widget.property("dirtyTracked"):
+            return
+        widget.setProperty("dirtyTracked", True)
+        if isinstance(widget, QLineEdit):
+            widget.textChanged.connect(self._mark_input_dirty)
+            widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
+        elif isinstance(widget, QComboBox):
+            widget.currentIndexChanged.connect(self._mark_input_dirty)
+            widget.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+        elif isinstance(widget, QSpinBox):
+            widget.valueChanged.connect(self._mark_input_dirty)
+            widget.valueChanged.connect(lambda *_args: self._refresh_source_cards())
+        elif isinstance(widget, QCheckBox):
+            widget.toggled.connect(self._mark_input_dirty)
+            widget.toggled.connect(lambda *_args: self._refresh_source_cards())
 
-    def _build_material_controls(self, parent_layout: QVBoxLayout, prefix: str) -> None:
+    def _build_material_controls(self, parent_layout: QVBoxLayout, prefix: str, *, instance_id: str, controls_key: str, first: bool) -> None:
         """Build business-language basis controls with conditional expansion.
 
         The hidden widgets keep the existing Domain input contract and object
@@ -1635,18 +1996,19 @@ class CarbonMaterialAccountingPage(BasePage):
         the conversion section.
         """
 
+        suffix = "" if first else f"_{instance_id}"
         metadata = QWidget(self)
-        metadata.setObjectName(f"{prefix}_otherNecessaryData")
+        metadata.setObjectName(f"{prefix}{suffix}_otherNecessaryData")
         metadata_layout = QVBoxLayout(metadata)
         metadata_layout.setContentsMargins(0, 8, 0, 0)
         summary_row = QHBoxLayout()
         basis_summary = QLabel("数据口径：收到基", metadata)
-        basis_summary.setObjectName(f"{prefix}_basisSummary")
+        basis_summary.setObjectName(f"{prefix}{suffix}_basisSummary")
         basis_summary.setWordWrap(True)
         summary_row.addWidget(basis_summary, 1)
         edit_button = QPushButton("修改", metadata)
-        edit_button.setObjectName(f"{prefix}_basisEditButton")
-        edit_button.clicked.connect(lambda _checked=False, _prefix=prefix: self._toggle_basis_editor(_prefix))
+        edit_button.setObjectName(f"{prefix}{suffix}_basisEditButton")
+        edit_button.clicked.connect(lambda _checked=False, _key=controls_key: self._toggle_basis_editor(_key))
         summary_row.addWidget(edit_button)
         metadata_layout.addLayout(summary_row)
 
@@ -1658,16 +2020,16 @@ class CarbonMaterialAccountingPage(BasePage):
             else "当前目录暂无已核验的标准缺省参数；计算时会提示并阻断。"
         )
         parameter_summary = QLabel(default_summary, metadata)
-        parameter_summary.setObjectName(f"{prefix}_parameterSummary")
+        parameter_summary.setObjectName(f"{prefix}{suffix}_parameterSummary")
         parameter_summary.setWordWrap(True)
         metadata_layout.addWidget(parameter_summary)
 
         basis_editor = QWidget(metadata)
-        basis_editor.setObjectName(f"{prefix}_basisAndConversionEditor")
+        basis_editor.setObjectName(f"{prefix}{suffix}_basisAndConversionEditor")
         basis_editor_layout = QFormLayout(basis_editor)
         basis_editor_layout.setContentsMargins(0, 8, 0, 0)
         basis_editor_title = QLabel("数据口径与换算", basis_editor)
-        basis_editor_title.setObjectName(f"{prefix}_basisAndConversionTitle")
+        basis_editor_title.setObjectName(f"{prefix}{suffix}_basisAndConversionTitle")
         basis_editor_title.setWordWrap(True)
         basis_editor_layout.addRow(basis_editor_title)
 
@@ -1677,9 +2039,9 @@ class CarbonMaterialAccountingPage(BasePage):
             (MaterialBasis.DRY, "干燥基"),
             (MaterialBasis.OTHER_DOCUMENTED, "其他有证基准"),
         )
-        mass_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.mass_basis"), f"{prefix}_massBasisSelector")
-        composition_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.composition_basis"), f"{prefix}_compositionBasisSelector")
-        normalized_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.normalized_basis"), f"{prefix}_normalizedBasisSelector")
+        mass_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.mass_basis"), f"{prefix}{suffix}_massBasisSelector")
+        composition_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.composition_basis"), f"{prefix}{suffix}_compositionBasisSelector")
+        normalized_basis = create_typed_input(basis_editor, get_field_spec(f"{prefix}.normalized_basis"), f"{prefix}{suffix}_normalizedBasisSelector")
         for combo in (mass_basis, composition_basis, normalized_basis):
             for value, label_text in basis_options:
                 combo.addItem(label_text, value)
@@ -1695,12 +2057,12 @@ class CarbonMaterialAccountingPage(BasePage):
         fixed_carbon_component_kind = create_typed_input(
             basis_editor,
             get_field_spec(f"{prefix}.fixed_carbon_component_kind"),
-            f"{prefix}_fixedCarbonComponentKindSelector",
+            f"{prefix}{suffix}_fixedCarbonComponentKindSelector",
         )
         volatile_matter_component_kind = create_typed_input(
             basis_editor,
             get_field_spec(f"{prefix}.volatile_matter_component_kind"),
-            f"{prefix}_volatileMatterComponentKindSelector",
+            f"{prefix}{suffix}_volatileMatterComponentKindSelector",
         )
         for combo in (fixed_carbon_component_kind, volatile_matter_component_kind):
             for value, label_text in component_options:
@@ -1713,33 +2075,33 @@ class CarbonMaterialAccountingPage(BasePage):
             "固定碳字段和挥发分字段由字段定义自动识别，不需要用户选择字段性质。",
             basis_editor,
         )
-        automatic_component_summary.setObjectName(f"{prefix}_automaticComponentSummary")
+        automatic_component_summary.setObjectName(f"{prefix}{suffix}_automaticComponentSummary")
         automatic_component_summary.setWordWrap(True)
         basis_editor_layout.addRow("字段性质", automatic_component_summary)
 
         moisture_evidence = create_typed_input(
             basis_editor,
             get_field_spec(f"{prefix}.moisture_evidence"),
-            f"{prefix}_moistureEvidenceCheckBox",
+            f"{prefix}{suffix}_moistureEvidenceCheckBox",
         )
         moisture_evidence.setText("数据来源已记录")
-        moisture_evidence.setObjectName(f"{prefix}_moistureEvidenceCheckBox")
+        moisture_evidence.setObjectName(f"{prefix}{suffix}_moistureEvidenceCheckBox")
         conversion_evidence = create_typed_input(
             basis_editor,
             get_field_spec(f"{prefix}.conversion_evidence"),
-            f"{prefix}_conversionEvidenceCheckBox",
+            f"{prefix}{suffix}_conversionEvidenceCheckBox",
         )
         conversion_evidence.setText("换算依据已提供")
-        conversion_evidence.setObjectName(f"{prefix}_conversionEvidenceCheckBox")
+        conversion_evidence.setObjectName(f"{prefix}{suffix}_conversionEvidenceCheckBox")
         evidence_reference = create_typed_input(
             basis_editor,
             get_field_spec(f"{prefix}.evidence_reference"),
-            f"{prefix}_basisEvidenceReferenceInput",
+            f"{prefix}{suffix}_basisEvidenceReferenceInput",
             "报告/台账编号或来源说明（非收到基必填）",
         )
         basis_editor.setVisible(False)
         basis_warning = QLabel("", basis_editor)
-        basis_warning.setObjectName(f"{prefix}_basisWarning")
+        basis_warning.setObjectName(f"{prefix}{suffix}_basisWarning")
         basis_warning.setWordWrap(True)
         basis_editor_layout.addRow("提示", basis_warning)
         basis_editor_layout.addRow("数据来源", moisture_evidence)
@@ -1747,12 +2109,12 @@ class CarbonMaterialAccountingPage(BasePage):
         basis_editor_layout.addRow("报告/台账编号或来源说明", evidence_reference)
 
         professional_details = QLabel("", metadata)
-        professional_details.setObjectName(f"{prefix}_professionalDetails")
+        professional_details.setObjectName(f"{prefix}{suffix}_professionalDetails")
         professional_details.setWordWrap(True)
         metadata_layout.addWidget(basis_editor)
         metadata_layout.addWidget(professional_details)
 
-        self._material_controls[prefix] = {
+        controls = {
             "mass_basis": mass_basis,
             "composition_basis": composition_basis,
             "normalized_basis": normalized_basis,
@@ -1768,16 +2130,20 @@ class CarbonMaterialAccountingPage(BasePage):
             "parameter_summary": parameter_summary,
             "professional_details": professional_details,
         }
+        self._material_controls[controls_key] = controls
+        if first:
+            self._material_controls[prefix] = controls
         for widget in (mass_basis, composition_basis, moisture_evidence, conversion_evidence, evidence_reference):
             if isinstance(widget, QComboBox):
-                widget.currentIndexChanged.connect(lambda _index, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+                widget.currentIndexChanged.connect(lambda _index, _key=controls_key: self._refresh_material_basis_display(_key))
             elif isinstance(widget, QCheckBox):
-                widget.toggled.connect(lambda _checked, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+                widget.toggled.connect(lambda _checked, _key=controls_key: self._refresh_material_basis_display(_key))
             elif isinstance(widget, QLineEdit):
-                widget.textChanged.connect(lambda _text, _prefix=prefix: self._refresh_material_basis_display(_prefix))
+                widget.textChanged.connect(lambda _text, _key=controls_key: self._refresh_material_basis_display(_key))
+            self._wire_dirty_tracking(widget)
         self._register_professional_details(professional_details)
         parent_layout.addWidget(metadata)
-        self._refresh_material_basis_display(prefix)
+        self._refresh_material_basis_display(controls_key)
 
     @staticmethod
     def _basis_label(value: MaterialBasis) -> str:
@@ -1827,23 +2193,24 @@ class CarbonMaterialAccountingPage(BasePage):
             return default
         return value
 
-    def _toggle_basis_editor(self, prefix: str) -> None:
-        controls = self._material_controls[prefix]
+    def _toggle_basis_editor(self, controls_key: str) -> None:
+        controls = self._material_controls[controls_key]
         editor = controls["basis_editor"]
-        requires_expansion = self._basis_requires_expansion(prefix)
+        requires_expansion = self._basis_requires_expansion(controls_key)
         visible = not editor.isVisible() or requires_expansion
         if visible or not requires_expansion:
             editor.setVisible(visible)
-        self._refresh_material_basis_display(prefix)
+        self._refresh_material_basis_display(controls_key)
 
-    def _basis_requires_expansion(self, prefix: str) -> bool:
-        controls = self._material_controls[prefix]
+    def _basis_requires_expansion(self, controls_key: str) -> bool:
+        controls = self._material_controls[controls_key]
         mass = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
         composition = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
         return mass is not MaterialBasis.RECEIVED or composition is not MaterialBasis.RECEIVED or mass is not composition
 
-    def _refresh_material_basis_display(self, prefix: str) -> None:
-        controls = self._material_controls.get(prefix)
+    def _refresh_material_basis_display(self, controls_key: str) -> None:
+        prefix = controls_key.split("@", 1)[0]
+        controls = self._material_controls.get(controls_key)
         if controls is None:
             return
         mass = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
@@ -1858,7 +2225,7 @@ class CarbonMaterialAccountingPage(BasePage):
             summary = f"数据口径：不一致（质量数据：{mass_label}；成分含量：{composition_label}）"
         controls["basis_summary"].setText(summary)  # type: ignore[union-attr]
 
-        requires_expansion = self._basis_requires_expansion(prefix)
+        requires_expansion = self._basis_requires_expansion(controls_key)
         editor = controls["basis_editor"]
         if requires_expansion:
             editor.setVisible(True)
@@ -1992,23 +2359,106 @@ class CarbonMaterialAccountingPage(BasePage):
         label = QLabel("输出电力（I03；从间接排放中抵扣）", self)
         label.setObjectName("exportedElectricitySectionTitle")
         parent_layout.addWidget(label)
-        row = QWidget(self)
-        form = QFormLayout(row)
-        self._fields["exported_electricity_id"] = create_typed_input(
-            row,
-            get_field_spec("exported_electricity_id"),
-            "exportedElectricityLineIdInput",
-            "exported-electricity-1",
+        self._output_electricity_host = QWidget(self)
+        self._output_electricity_layout = QVBoxLayout(self._output_electricity_host)
+        self._output_electricity_layout.setContentsMargins(0, 0, 0, 0)
+        parent_layout.addWidget(self._output_electricity_host)
+        add_button = QPushButton("新增输出电力来源", self)
+        add_button.setObjectName("addExportedElectricityButton")
+        add_button.clicked.connect(lambda: self._add_output_electricity_row())
+        parent_layout.addWidget(add_button)
+        self._add_output_electricity_row(first=True)
+
+    def _add_output_electricity_row(self, *, first: bool = False, line_id: str | None = None) -> dict[str, object]:
+        existing_ids = {
+            _value(row["id"]) or str(row["default_line_id"])
+            for row in self._output_electricity_rows
+        }
+        if line_id is None:
+            while True:
+                self._output_electricity_row_serial += 1
+                line_id = f"exported-electricity-{self._output_electricity_row_serial}"
+                if line_id not in existing_ids:
+                    break
+        else:
+            serial = line_id.rsplit("-", 1)
+            if len(serial) == 2 and serial[0] == "exported-electricity" and serial[1].isdigit():
+                self._output_electricity_row_serial = max(self._output_electricity_row_serial, int(serial[1]))
+        row_widget = QWidget(self._output_electricity_host)
+        row_widget.setObjectName("exportedElectricityRow" if first else f"exportedElectricityRow_{line_id}")
+        form = QFormLayout(row_widget)
+        object_suffix = "" if first else f"_{line_id}"
+        line_id_widget = create_typed_input(
+            row_widget, get_field_spec("exported_electricity_id"),
+            "exportedElectricityLineIdInput" if first else f"exportedElectricityLineIdInput_{line_id}",
+            "可选：填写来源名称或凭证编号",
         )
-        self._fields["exported_electricity_amount"] = create_typed_input(
-            row,
-            get_field_spec("exported_electricity_amount"),
-            "exportedElectricityAmountInput",
-            "MWh",
+        amount_widget = create_typed_input(
+            row_widget, get_field_spec("exported_electricity_amount"),
+            "exportedElectricityAmountInput" if first else f"exportedElectricityAmountInput_{line_id}", "MWh",
         )
-        form.addRow(get_field_spec("exported_electricity_id").label, self._fields["exported_electricity_id"])
-        form.addRow(get_field_spec("exported_electricity_amount").label, self._fields["exported_electricity_amount"])
-        parent_layout.addWidget(row)
+        factor_selector = QComboBox(row_widget)
+        factor_selector.setObjectName(f"exportedElectricityFactorSelector{object_suffix}")
+        factor_selector.addItem("自動采用适用标准因子", None)
+        self._populate_factor_combo(factor_selector, "electricity_emission_factor_national")
+        measured_value = QLineEdit(row_widget)
+        measured_value.setObjectName(f"exportedElectricityMeasuredFactor{object_suffix}")
+        measured_value.setPlaceholderText("可选：本来源实测排放因子（tCO₂/MWh）")
+        source_reference = QLineEdit(row_widget)
+        source_reference.setObjectName(f"exportedElectricityFactorSource{object_suffix}")
+        source_reference.setPlaceholderText("填写实测来源编号")
+        form.addRow("来源标识", line_id_widget)
+        form.addRow("输出电量", amount_widget)
+        form.addRow("适用排放因子", factor_selector)
+        form.addRow("实测因子", measured_value)
+        form.addRow("实测来源", source_reference)
+        remove_button = QPushButton("删除本条来源", row_widget)
+        remove_button.setObjectName(f"removeExportedElectricity{object_suffix}")
+        remove_button.clicked.connect(lambda _checked=False, _row=row_widget: self._remove_output_electricity_row(_row))
+        form.addRow(remove_button)
+        self._output_electricity_layout.addWidget(row_widget)
+        row = {
+            "widget": row_widget,
+            "id": line_id_widget,
+            "default_line_id": line_id,
+            "amount": amount_widget,
+            "factor": factor_selector,
+            "measured": measured_value,
+            "source": source_reference,
+        }
+        self._output_electricity_rows.append(row)
+        if first:
+            self._fields["exported_electricity_id"] = line_id_widget
+            self._fields["exported_electricity_amount"] = amount_widget
+        for widget in row.values():
+            if isinstance(widget, QWidget):
+                self._wire_dirty_tracking(widget)
+        self._refresh_source_cards()
+        return row
+
+    def _remove_output_electricity_row(self, widget: QWidget) -> None:
+        if len(self._output_electricity_rows) <= 1:
+            return
+        for row in tuple(self._output_electricity_rows):
+            if row.get("widget") is widget:
+                self._output_electricity_rows.remove(row)
+                widget.setParent(None)
+                widget.deleteLater()
+        self._bind_output_electricity_aliases()
+        self._refresh_source_cards()
+
+    def _bind_output_electricity_aliases(self) -> None:
+        if not self._output_electricity_rows:
+            return
+        self._fields["exported_electricity_id"] = self._output_electricity_rows[0]["id"]  # type: ignore[assignment]
+        self._fields["exported_electricity_amount"] = self._output_electricity_rows[0]["amount"]  # type: ignore[assignment]
+
+    def _populate_factor_combo(self, selector: QComboBox, parameter_id: str) -> None:
+        factors = sorted(self.catalog_service.list_parameter_factors(parameter_id), key=lambda item: (-(item.factor_year or 0), item.factor_id))
+        if parameter_id == "electricity_emission_factor_national":
+            self._electricity_factor_records = {item.factor_id: item for item in factors}
+        for item in factors:
+            selector.addItem(f"{item.normalized_value} {item.normalized_unit} · {item.factor_id}", item.factor_id)
 
     def _build_heat_section(self, parent_layout: QVBoxLayout) -> None:
         label = QLabel("购入热力/动力（I02）", self)
@@ -2023,9 +2473,11 @@ class CarbonMaterialAccountingPage(BasePage):
             "heat_pressure",
             "heat_temperature",
         ):
-            edit = create_typed_input(row, get_field_spec(key), f"{key}Input")
+            default_value = "purchased-heat-1" if key == "heat_id" else None
+            edit = create_typed_input(row, get_field_spec(key), f"{key}Input", default_value)
             self._fields[key] = edit
             form.addRow(get_field_spec(key).label, edit)
+        self._fields["heat_id"].setPlaceholderText("可选：填写热力来源名称或凭证编号")
         self._heat_steam_kind = create_typed_input(row, get_field_spec("heat_steam_kind"), "heatSteamKindSelector")
         self._heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
         self._heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
@@ -2068,7 +2520,37 @@ class CarbonMaterialAccountingPage(BasePage):
         form.addRow("专业详情", self.heat_factor_professional_details)
         self._register_professional_details(self.heat_factor_professional_details)
         self._heat_factor_advanced_panel = advanced_panel
-        parent_layout.addWidget(row)
+        self.heat_measured_factor = QLineEdit(row)
+        self.heat_measured_factor.setObjectName("heatMeasuredFactorInput")
+        self.heat_measured_factor.setPlaceholderText("可选：本条热力来源实测因子（tCO₂/GJ）")
+        self.heat_factor_source_reference = QLineEdit(row)
+        self.heat_factor_source_reference.setObjectName("heatFactorSourceReferenceInput")
+        self.heat_factor_source_reference.setPlaceholderText("填写实测来源编号")
+        form.addRow("本来源实测因子", self.heat_measured_factor)
+        form.addRow("实测来源编号", self.heat_factor_source_reference)
+        self.heat_rows_host = QWidget(self)
+        self.heat_rows_layout = QVBoxLayout(self.heat_rows_host)
+        self.heat_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.heat_rows_layout.addWidget(row)
+        parent_layout.addWidget(self.heat_rows_host)
+        self._heat_rows["heat"].append({
+            "widget": row,
+            "id": self._fields["heat_id"],
+            "default_line_id": "heat-1",
+            "amount": self._fields["heat_amount"],
+            "enthalpy": self._fields["heat_enthalpy"],
+            "pressure": self._fields["heat_pressure"],
+            "temperature": self._fields["heat_temperature"],
+            "steam": self._heat_steam_kind,
+            "factor": self.heat_factor_selector,
+            "reason": self.heat_factor_selection_reason,
+            "measured": self.heat_measured_factor,
+            "source": self.heat_factor_source_reference,
+        })
+        add_button = QPushButton("新增购入热力来源", self)
+        add_button.setObjectName("addPurchasedHeatButton")
+        add_button.clicked.connect(lambda: self._add_heat_row("heat"))
+        parent_layout.addWidget(add_button)
         self._populate_heat_factor_selector()
 
     def _build_output_heat_section(self, parent_layout: QVBoxLayout) -> None:
@@ -2085,9 +2567,11 @@ class CarbonMaterialAccountingPage(BasePage):
             "exported_heat_temperature": "exportedHeatTemperatureInput",
         }
         for key in exported_heat_object_names:
-            edit = create_typed_input(row, get_field_spec(key), exported_heat_object_names[key])
+            default_value = "exported-heat-1" if key == "exported_heat_id" else None
+            edit = create_typed_input(row, get_field_spec(key), exported_heat_object_names[key], default_value)
             self._fields[key] = edit
             form.addRow(get_field_spec(key).label, edit)
+        self._fields["exported_heat_id"].setPlaceholderText("可选：填写热力来源名称或凭证编号")
         self._exported_heat_steam_kind = create_typed_input(
             row,
             get_field_spec("exported_heat_steam_kind"),
@@ -2096,10 +2580,156 @@ class CarbonMaterialAccountingPage(BasePage):
         self._exported_heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
         self._exported_heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
         form.addRow(get_field_spec("exported_heat_steam_kind").label, self._exported_heat_steam_kind)
-        hint = QLabel("I04 与 I02 共用上方热力参数摘要；输出热力同样必须标记排放源为“涉及”。", row)
+        self.exported_heat_factor_selector = QComboBox(row)
+        self.exported_heat_factor_selector.setObjectName("exportedHeatFactorSelector")
+        self._populate_heat_combo(self.exported_heat_factor_selector)
+        self.exported_heat_factor_reason = QLineEdit(row)
+        self.exported_heat_factor_reason.setObjectName("exportedHeatFactorReasonInput")
+        self.exported_heat_factor_reason.setPlaceholderText("选择非推荐参数时填写理由")
+        self.exported_heat_measured_factor = QLineEdit(row)
+        self.exported_heat_measured_factor.setObjectName("exportedHeatMeasuredFactorInput")
+        self.exported_heat_measured_factor.setPlaceholderText("可选：本条热力来源实测因子（tCO₂/GJ）")
+        self.exported_heat_factor_source_reference = QLineEdit(row)
+        self.exported_heat_factor_source_reference.setObjectName("exportedHeatFactorSourceReferenceInput")
+        self.exported_heat_factor_source_reference.setPlaceholderText("填写实测来源编号")
+        form.addRow("适用热力因子", self.exported_heat_factor_selector)
+        form.addRow("参数选择理由", self.exported_heat_factor_reason)
+        form.addRow("本来源实测因子", self.exported_heat_measured_factor)
+        form.addRow("实测来源编号", self.exported_heat_factor_source_reference)
+        hint = QLabel("每条输出热力来源独立保留焓值、排放因子及来源；结果逐条计算后汇总。", row)
         hint.setWordWrap(True)
         form.addRow("参数路径", hint)
-        parent_layout.addWidget(row)
+        self.exported_heat_rows_host = QWidget(self)
+        self.exported_heat_rows_layout = QVBoxLayout(self.exported_heat_rows_host)
+        self.exported_heat_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.exported_heat_rows_layout.addWidget(row)
+        parent_layout.addWidget(self.exported_heat_rows_host)
+        self._heat_rows["exported_heat"].append({
+            "widget": row,
+            "id": self._fields["exported_heat_id"],
+            "default_line_id": "exported-heat-1",
+            "amount": self._fields["exported_heat_amount"],
+            "enthalpy": self._fields["exported_heat_enthalpy"],
+            "pressure": self._fields["exported_heat_pressure"],
+            "temperature": self._fields["exported_heat_temperature"],
+            "steam": self._exported_heat_steam_kind,
+            "factor": self.exported_heat_factor_selector,
+            "reason": self.exported_heat_factor_reason,
+            "measured": self.exported_heat_measured_factor,
+            "source": self.exported_heat_factor_source_reference,
+        })
+        add_button = QPushButton("新增输出热力来源", self)
+        add_button.setObjectName("addExportedHeatButton")
+        add_button.clicked.connect(lambda: self._add_heat_row("exported_heat"))
+        parent_layout.addWidget(add_button)
+
+    def _populate_heat_combo(self, selector: QComboBox) -> None:
+        selector.clear()
+        for factor_id, record in self._heat_factor_records.items():
+            category = self.catalog_service.value_category(record)
+            category_label = self.catalog_service.value_category_label(category)
+            selector.addItem(f"{category_label}：{record.normalized_value} {record.normalized_unit}", factor_id)
+        if not selector.count():
+            selector.addItem("暂无可用的标准热力参数", None)
+            selector.setEnabled(False)
+
+    def _add_heat_row(self, prefix: str, *, line_id: str | None = None) -> dict[str, object]:
+        rows = self._heat_rows[prefix]
+        line_prefix = prefix.replace("_", "-")
+        existing_ids = {_value(row["id"]) or str(row["default_line_id"]) for row in rows}
+        if line_id is None:
+            while True:
+                self._heat_row_serials[prefix] += 1
+                line_id = f"{line_prefix}-{self._heat_row_serials[prefix]}"
+                if line_id not in existing_ids:
+                    break
+        else:
+            serial = line_id.rsplit("-", 1)
+            if len(serial) == 2 and serial[0] == line_prefix and serial[1].isdigit():
+                self._heat_row_serials[prefix] = max(self._heat_row_serials[prefix], int(serial[1]))
+        host = self.heat_rows_layout if prefix == "heat" else self.exported_heat_rows_layout
+        container = QWidget(self)
+        container.setObjectName(f"{prefix}Line_{line_id}")
+        form = QFormLayout(container)
+        names = {
+            "heat": ("heat_id", "heat_amount", "heat_enthalpy", "heat_pressure", "heat_temperature", "heat_steam_kind"),
+            "exported_heat": ("exported_heat_id", "exported_heat_amount", "exported_heat_enthalpy", "exported_heat_pressure", "exported_heat_temperature", "exported_heat_steam_kind"),
+        }[prefix]
+        line_id_widget = create_typed_input(
+            container,
+            get_field_spec(names[0]),
+            f"{prefix}LineId_{line_id}",
+            "可选：填写热力来源名称或凭证编号",
+        )
+        amount = create_typed_input(container, get_field_spec(names[1]), f"{prefix}Amount_{line_id}")
+        enthalpy = create_typed_input(container, get_field_spec(names[2]), f"{prefix}Enthalpy_{line_id}")
+        pressure = create_typed_input(container, get_field_spec(names[3]), f"{prefix}Pressure_{line_id}")
+        temperature = create_typed_input(container, get_field_spec(names[4]), f"{prefix}Temperature_{line_id}")
+        steam = QComboBox(container)
+        steam.setObjectName(f"{prefix}SteamKind_{line_id}")
+        steam.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
+        steam.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
+        for label, widget in (("来源标识", line_id_widget), ("热力总量", amount), ("焓值", enthalpy), ("压力", pressure), ("温度", temperature), ("蒸汽类型", steam)):
+            form.addRow(label, widget)
+        selector = QComboBox(container)
+        selector.setObjectName(f"{prefix}FactorSelector_{line_id}")
+        self._populate_heat_combo(selector)
+        reason = QLineEdit(container)
+        reason.setObjectName(f"{prefix}FactorReason_{line_id}")
+        measured = QLineEdit(container)
+        measured.setObjectName(f"{prefix}MeasuredFactor_{line_id}")
+        measured.setPlaceholderText("可选：本条来源实测因子（tCO₂/GJ）")
+        source = QLineEdit(container)
+        source.setObjectName(f"{prefix}FactorSource_{line_id}")
+        source.setPlaceholderText("填写实测来源编号")
+        form.addRow("适用热力因子", selector)
+        form.addRow("参数选择理由", reason)
+        form.addRow("本来源实测因子", measured)
+        form.addRow("实测来源编号", source)
+        remove = QPushButton("删除本条来源", container)
+        remove.setObjectName(f"remove_{prefix}_{line_id}")
+        remove.clicked.connect(lambda _checked=False, _prefix=prefix, _widget=container: self._remove_heat_row(_prefix, _widget))
+        form.addRow(remove)
+        host.addWidget(container)
+        row = {
+            "widget": container,
+            "id": line_id_widget,
+            "default_line_id": line_id,
+            "amount": amount,
+            "enthalpy": enthalpy,
+            "pressure": pressure,
+            "temperature": temperature,
+            "steam": steam,
+            "factor": selector,
+            "reason": reason,
+            "measured": measured,
+            "source": source,
+        }
+        rows.append(row)
+        for widget in row.values():
+            if isinstance(widget, QWidget):
+                self._wire_dirty_tracking(widget)
+        self._refresh_source_cards()
+        return row
+
+    def _remove_heat_row(self, prefix: str, widget: QWidget) -> None:
+        rows = self._heat_rows[prefix]
+        if len(rows) <= 1:
+            return
+        for row in tuple(rows):
+            if row.get("widget") is widget:
+                rows.remove(row)
+                widget.setParent(None)
+                widget.deleteLater()
+        self._bind_heat_aliases(prefix)
+        self._refresh_source_cards()
+
+    def _bind_heat_aliases(self, prefix: str) -> None:
+        if not self._heat_rows[prefix]:
+            return
+        field_names = ("heat_id", "heat_amount", "heat_enthalpy", "heat_pressure", "heat_temperature") if prefix == "heat" else ("exported_heat_id", "exported_heat_amount", "exported_heat_enthalpy", "exported_heat_pressure", "exported_heat_temperature")
+        for key, value in zip(field_names, ("id", "amount", "enthalpy", "pressure", "temperature")):
+            self._fields[key] = self._heat_rows[prefix][0][value]  # type: ignore[assignment]
 
     def _populate_heat_factor_selector(self) -> None:
         records = sorted(
@@ -2107,28 +2737,20 @@ class CarbonMaterialAccountingPage(BasePage):
             key=lambda item: (-(item.factor_year or 0), item.factor_id),
         )
         self._heat_factor_records = {item.factor_id: item for item in records}
-        self.heat_factor_selector.clear()
-        for record in records:
-            category = self.catalog_service.value_category(record)
-            category_label = self.catalog_service.value_category_label(category)
-            self.heat_factor_selector.addItem(
-                f"{category_label}：{record.normalized_value} {record.normalized_unit}",
-                record.factor_id,
-            )
-        if not records:
-            self.heat_factor_selector.addItem("暂无可用的标准热力参数", None)
-            self.heat_factor_selector.setEnabled(False)
+        self._populate_heat_combo(self.heat_factor_selector)
         self._refresh_heat_factor_details()
 
-    def _heat_resolution_context(self, *, confirmed_factor_id: str | None = None, confirmation_reason: str | None = None) -> ParameterResolutionContext:
+    def _heat_resolution_context(self, *, energy_direction: str = "purchased_heat", confirmed_factor_id: str | None = None, confirmation_reason: str | None = None) -> ParameterResolutionContext:
         return ParameterResolutionContext(
             parameter_id="heat_emission_factor_default",
             standard_id=self.standard_id,
             accounting_period=self._period(),
             parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
             subject_id="purchased_heat",
+            emission_source_type=energy_direction,
             confirmed_factor_id=confirmed_factor_id,
             confirmation_reason=confirmation_reason,
+            extra_context=(("energy_direction", energy_direction),),
         )
 
     def _refresh_heat_factor_details(self) -> None:
@@ -2232,10 +2854,31 @@ class CarbonMaterialAccountingPage(BasePage):
                 return source_id
 
         dynamic_field_owners: dict[str, str] = {}
+        process_owners = {
+            "calcination": "CAR-SRC-CALCINATION-001",
+            "baking": "CAR-SRC-BAKING-001",
+            "graphitization": "CAR-SRC-GRAPHITIZATION-001",
+            "fume": "CAR-SRC-FUME-INCINERATION-001",
+            "fgd": "CAR-SRC-FGD-001",
+        }
+        for prefix, source_id in process_owners.items():
+            for row in self._process_rows.get(prefix, ()):
+                instance_id = str(row.get("instance_id", ""))
+                if instance_id and instance_id in field_id:
+                    return source_id
         for row in self._electricity_rows:
             detail_id = row.detail_id.text().strip()
             if detail_id:
                 dynamic_field_owners[detail_id] = "CAR-SRC-PURCHASED-ELECTRICITY-001"
+        for row in self._output_electricity_rows:
+            line_id = _value(row.get("id"))
+            if line_id:
+                dynamic_field_owners[line_id] = "CAR-SRC-EXPORTED-ELECTRICITY-001"
+        for prefix, source_id in (("heat", "CAR-SRC-PURCHASED-HEAT-001"), ("exported_heat", "CAR-SRC-EXPORTED-HEAT-001")):
+            for row in self._heat_rows[prefix]:
+                line_id = _value(row.get("id"))
+                if line_id:
+                    dynamic_field_owners[line_id] = source_id
         for field_key, source_id, default_id in (
             ("heat_id", "CAR-SRC-PURCHASED-HEAT-001", "heat-1"),
             ("exported_electricity_id", "CAR-SRC-EXPORTED-ELECTRICITY-001", "exported-electricity-1"),
@@ -2290,33 +2933,72 @@ class CarbonMaterialAccountingPage(BasePage):
         return not widget.hasAcceptableInput()
 
     def _process_card_profile(self, prefix: str, fields: tuple[str, ...]) -> tuple[bool, bool, bool]:
-        keys = tuple(f"{prefix}.{field}" for field in fields)
-        present = any(self._field_has_value(key) for key in keys)
-        complete = present and all(self._field_has_value(key) for key in keys)
-        invalid = any(self._field_has_error(key) for key in keys)
-        controls = self._material_controls.get(prefix)
-        if present and controls is not None:
-            basis_keys = ("mass_basis", "composition_basis", "normalized_basis")
-            component_keys = ("fixed_carbon_component_kind", "volatile_matter_component_kind")
-            basis_defaults = {
-                "mass_basis": MaterialBasis.RECEIVED,
-                "composition_basis": MaterialBasis.RECEIVED,
-                "normalized_basis": MaterialBasis.RECEIVED,
-            }
-            component_defaults = {
-                "fixed_carbon_component_kind": MaterialComponentKind.FIXED_CARBON,
-                "volatile_matter_component_kind": MaterialComponentKind.VOLATILE_MATTER,
-            }
-            complete = complete and all(
-                (
-                    self._material_basis_value(controls, key, basis_defaults[key])
-                    if key in basis_defaults
-                    else self._material_component_value(controls, key, component_defaults[key])
-                )
-                is not None
-                for key in basis_keys + component_keys
+        active = 0
+        all_complete = True
+        any_invalid = False
+        for row in self._process_rows.get(prefix, ()):
+            row_fields = row.get("fields", {})
+            if prefix == "fgd":
+                components = row.get("components", [])
+                assert isinstance(components, list)
+                active_components = [
+                    component for component in components
+                    if any(self._input_has_value(component.get(field)) for field in ("cal", "i", "ef1", "tr"))
+                ]
+                if not active_components:
+                    continue
+                active += 1
+                for component in active_components:
+                    amount = component.get("cal")
+                    factor = component.get("ef1")
+                    selector = component.get("carbonate_type")
+                    source_ref = component.get("factor_source_reference")
+                    type_or_factor = (
+                        isinstance(selector, QComboBox) and isinstance(selector.currentData(), str)
+                    ) or (self._input_has_value(factor) and self._input_has_value(source_ref))
+                    fields_complete = self._input_has_value(amount) and type_or_factor
+                    fields_invalid = any(
+                        isinstance(component.get(key), QLineEdit)
+                        and component[key].text().strip()
+                        and not component[key].hasAcceptableInput()
+                        for key in ("cal", "i", "ef1", "tr")
+                    )
+                    all_complete = all_complete and fields_complete
+                    any_invalid = any_invalid or fields_invalid
+                continue
+            assert isinstance(row_fields, dict)
+            controls_key = str(row.get("controls_key", prefix))
+            present_fields = [self._input_has_value(row_fields.get(field)) for field in fields]
+            if not any(present_fields):
+                continue
+            active += 1
+            row_complete = all(present_fields)
+            row_invalid = any(
+                isinstance(row_fields.get(field), QLineEdit)
+                and row_fields[field].text().strip()
+                and not row_fields[field].hasAcceptableInput()
+                for field in fields
             )
-        return present, complete, invalid
+            controls = self._material_controls.get(controls_key)
+            if controls is not None:
+                basis_keys = ("mass_basis", "composition_basis", "normalized_basis")
+                component_keys = ("fixed_carbon_component_kind", "volatile_matter_component_kind")
+                basis_defaults = {key: MaterialBasis.RECEIVED for key in basis_keys}
+                component_defaults = {
+                    "fixed_carbon_component_kind": MaterialComponentKind.FIXED_CARBON,
+                    "volatile_matter_component_kind": MaterialComponentKind.VOLATILE_MATTER,
+                }
+                row_complete = row_complete and all(
+                    (
+                        self._material_basis_value(controls, key, basis_defaults[key])
+                        if key in basis_defaults
+                        else self._material_component_value(controls, key, component_defaults[key])
+                    ) is not None
+                    for key in basis_keys + component_keys
+                )
+            all_complete = all_complete and row_complete
+            any_invalid = any_invalid or row_invalid
+        return active > 0, active > 0 and all_complete, any_invalid
 
     def _derive_source_card_state(self, source_id: str) -> tuple[SourceCardPresentationState, str]:
         status = _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus)
@@ -2385,20 +3067,43 @@ class CarbonMaterialAccountingPage(BasePage):
             )
             summary = f"{len(active_rows)} 条电力明细" if active_rows else "尚未录入电力明细"
         elif source_id == "CAR-SRC-PURCHASED-HEAT-001":
-            present = self._field_has_value("heat_amount")
-            complete = present and bool(self.heat_factor_selector.currentData())
-            invalid = self._field_has_error("heat_amount")
-            summary = "已录入热力活动数据" if present else "尚未录入热力活动数据"
+            active_rows = [row for row in self._heat_rows["heat"] if self._input_has_value(row.get("amount"))]
+            present = bool(active_rows)
+            complete = present and all(
+                (row["factor"].currentData() is not None or (self._input_has_value(row.get("measured")) and self._input_has_value(row.get("source"))))
+                and (self._input_has_value(row.get("enthalpy")) or self._input_has_value(row.get("pressure")))
+                for row in active_rows
+            )
+            invalid = any(
+                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+                for row in active_rows
+            )
+            summary = f"{len(active_rows)} 条热力来源" if present else "尚未录入热力活动数据"
         elif source_id == "CAR-SRC-EXPORTED-ELECTRICITY-001":
-            present = self._field_has_value("exported_electricity_amount")
-            complete = present
-            invalid = self._field_has_error("exported_electricity_amount")
-            summary = "已录入输出电力" if present else "尚未录入输出电力"
+            active_rows = [row for row in self._output_electricity_rows if self._input_has_value(row.get("amount"))]
+            present = bool(active_rows)
+            complete = present and all(
+                not self._input_has_value(row.get("measured")) or self._input_has_value(row.get("source"))
+                for row in active_rows
+            )
+            invalid = any(
+                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+                for row in active_rows
+            )
+            summary = f"{len(active_rows)} 条输出电力来源" if present else "尚未录入输出电力"
         elif source_id == "CAR-SRC-EXPORTED-HEAT-001":
-            present = self._field_has_value("exported_heat_amount")
-            complete = present and self._field_has_value("exported_heat_enthalpy")
-            invalid = self._field_has_error("exported_heat_amount") or self._field_has_error("exported_heat_enthalpy")
-            summary = "已录入输出热力" if present else "尚未录入输出热力"
+            active_rows = [row for row in self._heat_rows["exported_heat"] if self._input_has_value(row.get("amount"))]
+            present = bool(active_rows)
+            complete = present and all(
+                (row["factor"].currentData() is not None or (self._input_has_value(row.get("measured")) and self._input_has_value(row.get("source"))))
+                and (self._input_has_value(row.get("enthalpy")) or self._input_has_value(row.get("pressure")))
+                for row in active_rows
+            )
+            invalid = any(
+                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+                for row in active_rows
+            )
+            summary = f"{len(active_rows)} 条输出热力来源" if present else "尚未录入输出热力"
 
         # A card may only report completed after a real existing validation run
         # has stopped reporting a source-scoped error.  This deliberately
@@ -2549,7 +3254,65 @@ class CarbonMaterialAccountingPage(BasePage):
             ))
         return tuple(fuels)
 
-    def _process(self, prefix: str, kind):
+    def _process(self, prefix: str, kind, row: dict[str, object] | None = None):
+        row = row or (self._process_rows[prefix][0] if self._process_rows[prefix] else None)
+        if row is None:
+            return None
+        instance_id = str(row["instance_id"])
+        if prefix == "fgd":
+            components: list[CarbonateComponent] = []
+            for component in row.get("components", []):
+                assert isinstance(component, dict)
+                values = {
+                    field: _ui_value(f"fgd.{field}", component[field])
+                    for field in ("cal", "i", "ef1", "tr")
+                }
+                if all(value is None for value in values.values()):
+                    continue
+                selector = component["carbonate_type"]
+                source_ref = _value(component["factor_source_reference"])
+                selected_parameter_id = selector.currentData()  # type: ignore[union-attr]
+                carbonate_type = selector.currentText() if selected_parameter_id else None  # type: ignore[union-attr]
+                ef_text = values["ef1"]
+                if ef_text is not None:
+                    factor_parameter_id = selected_parameter_id or "fgd_carbonate_emission_factor_measured"
+                    factor_value = ParameterValue(
+                        factor_parameter_id,
+                        ef_text,
+                        "tCO2/t",
+                        ParameterSourceKind.MEASURED,
+                        "USER-FGD-SOURCE" if source_ref else None,
+                        "user-input",
+                        f"企业检测/技术资料编号：{source_ref}" if source_ref else None,
+                        f"企业提供可追溯因子；资料编号：{source_ref}" if source_ref else "企业提供的实测因子。",
+                    )
+                elif isinstance(selected_parameter_id, str):
+                    factor = self._canonical_default_factor(selected_parameter_id, value_type=ValueType.STANDARD_SPECIFIED)
+                    factor_value = self._parameter_value_from_factor(factor, "按选择的碳酸盐种类采用GB/T 32151.34—2024附录C.2对应值。") if factor is not None else None
+                else:
+                    factor_value = None
+
+                def fgd_ratio(field: str, parameter_id: str) -> ParameterValue | None:
+                    raw = values[field]
+                    if raw is None:
+                        factor = self._canonical_default_factor(parameter_id)
+                        return self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。") if factor is not None else None
+                    return ParameterValue(
+                        parameter_id, Decimal(str(raw)), "ratio", ParameterSourceKind.MEASURED,
+                        "USER-FGD-SOURCE" if source_ref else None, "user-input",
+                        f"企业检测/技术资料编号：{source_ref}" if source_ref else None,
+                        f"企业提供实测值；资料编号：{source_ref}" if source_ref else "企业提供的参数值。",
+                    )
+
+                components.append(CarbonateComponent(
+                    values["cal"],
+                    fgd_ratio("i", "CAR-PAR-P04B-I"),
+                    factor_value,
+                    fgd_ratio("tr", "CAR-PAR-P04B-TR"),
+                    carbonate_type,
+                ))
+            return kind(components=tuple(components), instance_id=instance_id) if components else None
+
         field_names = {
             "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),
             "baking": ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar"),
@@ -2557,58 +3320,11 @@ class CarbonMaterialAccountingPage(BasePage):
             "fume": ("q", "qvar", "hm", "fch", "fox", "duration"),
             "fgd": ("cal", "i", "ef1", "tr"),
         }[prefix]
-        values = {
-            field: _ui_value(f"{prefix}.{field}", self._fields[f"{prefix}.{field}"])
-            for field in field_names
-        }
+        widgets = row.get("fields", {})
+        assert isinstance(widgets, dict)
+        values = {field: _ui_value(f"{prefix}.{field}", widgets[field]) for field in field_names}
         if all(value is None for value in values.values()):
             return None
-        if prefix == "fgd":
-            source_reference = _value(self._fields["fgd.factor_source_reference"])
-            selected_parameter_id = self._carbonate_type_selector.currentData()
-            carbonate_type = self._carbonate_type_selector.currentText() if selected_parameter_id else None
-            ef_text = values["ef1"]
-            if ef_text is not None:
-                factor_parameter_id = selected_parameter_id or "fgd_carbonate_emission_factor_measured"
-                factor_value = ParameterValue(
-                    factor_parameter_id,
-                    ef_text,
-                    "tCO2/t",
-                    ParameterSourceKind.MEASURED,
-                    "USER-FGD-SOURCE" if source_reference else None,
-                    "user-input",
-                    f"企业检测/技术资料编号：{source_reference}" if source_reference else None,
-                    f"企业提供可追溯因子；资料编号：{source_reference}" if source_reference else "企业提供的实测因子。",
-                )
-            elif isinstance(selected_parameter_id, str):
-                factor = self._canonical_default_factor(selected_parameter_id, value_type=ValueType.STANDARD_SPECIFIED)
-                factor_value = self._parameter_value_from_factor(factor, f"按选择的碳酸盐种类采用GB/T 32151.34—2024附录C.2对应值。") if factor is not None else None
-            else:
-                factor_value = None
-
-            def fgd_ratio(field: str, parameter_id: str) -> ParameterValue | None:
-                raw = values[field]
-                if raw is None:
-                    factor = self._canonical_default_factor(parameter_id)
-                    return self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。") if factor is not None else None
-                return ParameterValue(
-                    parameter_id,
-                    Decimal(str(raw)),
-                    "ratio",
-                    ParameterSourceKind.MEASURED,
-                    "USER-FGD-SOURCE" if source_reference else None,
-                    "user-input",
-                    f"企业检测/技术资料编号：{source_reference}" if source_reference else None,
-                    f"企业提供实测值；资料编号：{source_reference}" if source_reference else "企业提供的参数值。",
-                )
-
-            return kind(
-                cal=values["cal"],
-                i=fgd_ratio("i", "CAR-PAR-P04B-I"),
-                ef1=factor_value,
-                tr=fgd_ratio("tr", "CAR-PAR-P04B-TR"),
-                carbonate_type=carbonate_type,
-            )
 
         if prefix in _PROCESS_DEFAULT_PARAMETERS:
             default_parameter_id = _PROCESS_DEFAULT_PARAMETERS[prefix][0]
@@ -2618,9 +3334,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。")
                 if factor is not None else None
             )
-        controls = self._material_controls.get(prefix)
+        controls_key = row.get("controls_key", prefix)
+        controls = self._material_controls.get(str(controls_key))
         if controls is None:
-            return kind(**values)
+            return kind(**values, instance_id=instance_id)
         evidence_reference = _value(controls["evidence_reference"])
         mass_basis = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
         composition_basis = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
@@ -2635,8 +3352,18 @@ class CarbonMaterialAccountingPage(BasePage):
             "volatile_matter_component_kind",
             MaterialComponentKind.VOLATILE_MATTER,
         )
+        flags = row.get("flags", {})
+        assert isinstance(flags, dict)
+        optional_flags: dict[str, bool] = {}
+        if prefix in {"calcination", "baking"}:
+            flag = flags.get("carbon_output_included_in_input")
+            optional_flags["carbon_output_included_in_input"] = flag.isChecked() if isinstance(flag, QCheckBox) else False
+        elif prefix == "graphitization":
+            flag = flags.get("furnace_loss_included")
+            optional_flags["furnace_loss_included"] = flag.isChecked() if isinstance(flag, QCheckBox) else False
         return kind(
             **values,
+            instance_id=instance_id,
             mass_basis=_enum(mass_basis, MaterialBasis),
             composition_basis=_enum(composition_basis, MaterialBasis),
             normalized_basis=_enum(normalized_basis, MaterialBasis),
@@ -2644,16 +3371,25 @@ class CarbonMaterialAccountingPage(BasePage):
             volatile_matter_component_kind=_enum(volatile_kind, MaterialComponentKind),
             moisture_evidence=controls["moisture_evidence"].isChecked() and evidence_reference is not None,
             conversion_evidence=controls["conversion_evidence"].isChecked() and evidence_reference is not None,
+            **optional_flags,
         )
 
-    def _electricity(self, enterprise_id: str, period: AccountingPeriod) -> tuple[ElectricityConsumptionDetail, ...]:
+    def _process_instances(self, prefix: str, kind) -> tuple[object, ...]:
+        return tuple(
+            item
+            for row in self._process_rows[prefix]
+            if (item := self._process(prefix, kind, row)) is not None
+        )
+
+    def _electricity(self, enterprise_id: str, period: AccountingPeriod, *, render: bool = True) -> tuple[ElectricityConsumptionDetail, ...]:
         details: list[ElectricityConsumptionDetail] = []
         for row in self._electricity_rows:
             detail = row.build(enterprise_id, period)
             if detail is not None:
                 details.append(detail)
         result = tuple(details)
-        self._render_electricity_parameter_states(result)
+        if render:
+            self._render_electricity_parameter_states(result)
         return result
 
     def _refresh_electricity_rows(self) -> None:
@@ -2766,15 +3502,15 @@ class CarbonMaterialAccountingPage(BasePage):
                 f"专业说明：校验代码 {display_code}；{reason}",
             )
 
-    def _selected_heat_parameter_value(self) -> ParameterValue:
-        factor_id = self.heat_factor_selector.currentData()
+    def _selected_heat_parameter_value_for(self, selector: QComboBox, reason_widget: QWidget, *, energy_direction: str) -> ParameterValue | None:
+        factor_id = selector.currentData()
         if not isinstance(factor_id, str) or factor_id not in self._heat_factor_records:
-            raise DomainValidationError("热力输入缺少可用的标准热力参数 [GEN-PAR-NO-APPLICABLE-VALUE]")
+            return None
         if self._parameter_resolver is None:
             raise DomainValidationError("热力输入暂时无法取得标准参数 [CAR-VAL-PARAMETER-RESOLVER-MISSING]")
 
-        base_resolution = self._parameter_resolver.resolve(self._heat_resolution_context())
-        selected_reason = self.heat_factor_selection_reason.text().strip()
+        base_resolution = self._parameter_resolver.resolve(self._heat_resolution_context(energy_direction=energy_direction))
+        selected_reason = _value(reason_widget) or ""
         if base_resolution.recommended is not None and base_resolution.recommended.factor_id == factor_id and not base_resolution.blocked:
             resolution = base_resolution
         elif not selected_reason:
@@ -2782,6 +3518,7 @@ class CarbonMaterialAccountingPage(BasePage):
         else:
             resolution = self._parameter_resolver.resolve(
                 self._heat_resolution_context(
+                    energy_direction=energy_direction,
                     confirmed_factor_id=factor_id,
                     confirmation_reason=selected_reason,
                 )
@@ -2805,48 +3542,72 @@ class CarbonMaterialAccountingPage(BasePage):
             factor_year=factor.factor_year,
         )
 
-    def _heat(self, prefix: str, factor: ParameterValue | None) -> tuple[HeatInput, ...]:
-        amount = _value(self._fields[f"{prefix}_amount"])
-        if amount is None:
-            return ()
-        if factor is None:
-            raise DomainValidationError(f"{prefix} 已填写热力总量但没有选择排放因子 [GEN-VAL-REQUIRED-MISSING]")
-        steam_kind = _enum(
-            (self._heat_steam_kind if prefix == "heat" else self._exported_heat_steam_kind).currentData(),
-            SteamKind,
-        )
-        return (
-            HeatInput(
-                _value(self._fields[f"{prefix}_id"]) or f"{prefix}-1",
+    def _heat(self, prefix: str) -> tuple[HeatInput, ...]:
+        result: list[HeatInput] = []
+        direction = "purchased_heat" if prefix == "heat" else "exported_heat"
+        for row in self._heat_rows[prefix]:
+            amount = _value(row["amount"])
+            if amount is None:
+                continue
+            measured = _value(row["measured"])
+            source_reference = _value(row["source"])
+            if measured is not None:
+                if not source_reference:
+                    raise DomainValidationError("热力来源实测因子需要填写可追溯来源编号 [GEN-VAL-FACTOR-SOURCE]")
+                factor = ParameterValue(
+                    "heat_emission_factor_measured", measured, "tCO2/GJ", ParameterSourceKind.MEASURED,
+                    "USER-HEAT-SOURCE", "user-input", f"企业实测/检测资料编号：{source_reference}",
+                    f"{direction}逐来源实测热力因子；来源编号：{source_reference}。",
+                )
+            else:
+                factor = self._selected_heat_parameter_value_for(
+                    row["factor"], row["reason"], energy_direction=direction,  # type: ignore[arg-type]
+                )
+            result.append(HeatInput(
+                _value(row["id"]) or str(row["default_line_id"]),
                 amount,
-                _value(self._fields[f"{prefix}_enthalpy"]),
+                _value(row["enthalpy"]),
                 factor,
-                steam_kind=steam_kind,
-                pressure_mpa=_value(self._fields[f"{prefix}_pressure"]),
-                temperature_c=_value(self._fields[f"{prefix}_temperature"]),
-            ),
-        )
+                steam_kind=_enum(row["steam"].currentData(), SteamKind),  # type: ignore[union-attr]
+                pressure_mpa=_value(row["pressure"]),
+                temperature_c=_value(row["temperature"]),
+            ))
+        return tuple(result)
 
     def _exported_electricity(self) -> tuple[ElectricityOutputLine, ...]:
-        amount = _value(self._fields["exported_electricity_amount"])
-        if amount is None:
-            return ()
-        return (
-            ElectricityOutputLine(
-                _value(self._fields["exported_electricity_id"]) or "exported-electricity-1",
-                amount,
-            ),
-        )
+        result: list[ElectricityOutputLine] = []
+        for row in self._output_electricity_rows:
+            amount = _value(row["amount"])
+            if amount is None:
+                continue
+            selected_factor_id = row["factor"].currentData()  # type: ignore[union-attr]
+            measured = _value(row["measured"])
+            source_reference = _value(row["source"])
+            factor_value: ParameterValue | None = None
+            if measured is not None:
+                if not source_reference:
+                    raise DomainValidationError("输出电力实测排放因子需要填写可追溯来源编号 [GEN-VAL-FACTOR-SOURCE]")
+                factor_value = ParameterValue(
+                    "electricity_emission_factor_measured", measured, "tCO2/MWh",
+                    ParameterSourceKind.MEASURED, "USER-EXPORTED-ELECTRICITY-SOURCE", "user-input",
+                    f"企业实测/检测资料编号：{source_reference}", f"逐来源实测排放因子；来源编号：{source_reference}。",
+                )
+            elif isinstance(selected_factor_id, str):
+                factor = self._electricity_factor_records.get(selected_factor_id)
+                factor_value = self._parameter_value_from_factor(factor, "输出电力来源采用已核验目录因子。") if factor is not None else None
+            result.append(ElectricityOutputLine(
+                _value(row["id"]) or str(row["default_line_id"]), amount, factor_value,
+            ))
+        return tuple(result)
 
-    def _input(self) -> CarbonMaterialInput:
-        self._calculation_index += 1
+    def _input(self, *, increment: bool = True, render_electricity: bool = True) -> CarbonMaterialInput:
+        if increment:
+            self._calculation_index += 1
         period = self._period()
         enterprise_name = self.enterprise_name.text().strip()
         enterprise_id = "enterprise.current"
-        has_heat = _value(self._fields["heat_amount"]) is not None or _value(self._fields["exported_heat_amount"]) is not None
-        heat_factor = self._selected_heat_parameter_value() if has_heat else None
         return CarbonMaterialInput(
-            input_id=f"input.{self._calculation_index}",
+            input_id=f"input.{self._calculation_index}" if increment else "fingerprint",
             enterprise_id=enterprise_id,
             enterprise_name=enterprise_name,
             period=period,
@@ -2856,33 +3617,22 @@ class CarbonMaterialAccountingPage(BasePage):
             transport_present=self.transport_present.isChecked(),
             source_states=self._source_states(),
             fuel_inputs=self._fuel() if self._source_is_enabled("CAR-SRC-FUEL-001") else (),
-            calcination=self._process("calcination", CalcinationInput) if self._source_is_enabled("CAR-SRC-CALCINATION-001") else None,
-            baking=self._process("baking", BakingInput) if self._source_is_enabled("CAR-SRC-BAKING-001") else None,
-            graphitization=self._process("graphitization", GraphitizationInput) if self._source_is_enabled("CAR-SRC-GRAPHITIZATION-001") else None,
-            fume_incineration=self._process("fume", FumeIncinerationInput) if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") else None,
-            fgd=self._process("fgd", FGDInput) if self._source_is_enabled("CAR-SRC-FGD-001") else None,
-            electricity_details=self._electricity(enterprise_id, period) if self._source_is_enabled("CAR-SRC-PURCHASED-ELECTRICITY-001") else (),
+            calcinations=self._process_instances("calcination", CalcinationInput) if self._source_is_enabled("CAR-SRC-CALCINATION-001") else (),
+            bakings=self._process_instances("baking", BakingInput) if self._source_is_enabled("CAR-SRC-BAKING-001") else (),
+            graphitizations=self._process_instances("graphitization", GraphitizationInput) if self._source_is_enabled("CAR-SRC-GRAPHITIZATION-001") else (),
+            fume_incinerations=self._process_instances("fume", FumeIncinerationInput) if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") else (),
+            fgd_units=self._process_instances("fgd", FGDInput) if self._source_is_enabled("CAR-SRC-FGD-001") else (),
+            electricity_details=self._electricity(enterprise_id, period, render=render_electricity) if self._source_is_enabled("CAR-SRC-PURCHASED-ELECTRICITY-001") else (),
             exported_electricity=self._exported_electricity() if self._source_is_enabled("CAR-SRC-EXPORTED-ELECTRICITY-001") else (),
-            purchased_heat=self._heat("heat", heat_factor) if self._source_is_enabled("CAR-SRC-PURCHASED-HEAT-001") else (),
-            exported_heat=self._heat("exported_heat", heat_factor) if self._source_is_enabled("CAR-SRC-EXPORTED-HEAT-001") else (),
+            purchased_heat=self._heat("heat") if self._source_is_enabled("CAR-SRC-PURCHASED-HEAT-001") else (),
+            exported_heat=self._heat("exported_heat") if self._source_is_enabled("CAR-SRC-EXPORTED-HEAT-001") else (),
         )
 
     def _install_dirty_tracking(self) -> None:
         for widget in self.findChildren(QWidget):
             if widget.objectName() == "showProfessionalDetailsCheckBox":
                 continue
-            if isinstance(widget, QLineEdit):
-                widget.textChanged.connect(self._mark_input_dirty)
-                widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
-            elif isinstance(widget, QComboBox):
-                widget.currentIndexChanged.connect(self._mark_input_dirty)
-                widget.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
-            elif isinstance(widget, QSpinBox):
-                widget.valueChanged.connect(self._mark_input_dirty)
-                widget.valueChanged.connect(lambda *_args: self._refresh_source_cards())
-            elif isinstance(widget, QCheckBox):
-                widget.toggled.connect(self._mark_input_dirty)
-                widget.toggled.connect(lambda *_args: self._refresh_source_cards())
+            self._wire_dirty_tracking(widget)
 
     def _mark_input_dirty(self, *_args: object) -> None:
         if getattr(self, "_restoring_workspace", False):
@@ -2918,11 +3668,49 @@ class CarbonMaterialAccountingPage(BasePage):
         # Remove stale secondary entries so the next form starts with one row.
         for row in tuple(self._fuel_rows[1:]):
             self._remove_fuel_row(row)
+        for prefix, rows in self._process_rows.items():
+            while len(rows) > 1:
+                self._remove_process_row(prefix, str(rows[-1]["instance_id"]))
+            for row in rows:
+                flags = row.get("flags", {})
+                if isinstance(flags, dict):
+                    for flag in flags.values():
+                        if isinstance(flag, QCheckBox):
+                            flag.setChecked(False)
+            if prefix == "fgd" and rows:
+                components = rows[0].get("components", [])
+                if isinstance(components, list):
+                    while len(components) > 1:
+                        self._remove_fgd_component(rows[0], str(components[-1]["component_id"]))
+                    if not components:
+                        self._add_fgd_component(rows[0])
+        while len(self._output_electricity_rows) > 1:
+            widget = self._output_electricity_rows[-1]["widget"]
+            if isinstance(widget, QWidget):
+                self._remove_output_electricity_row(widget)
+        for prefix, rows in self._heat_rows.items():
+            while len(rows) > 1:
+                widget = rows[-1]["widget"]
+                if isinstance(widget, QWidget):
+                    self._remove_heat_row(prefix, widget)
         for widget in self._fields.values():
             if isinstance(widget, QLineEdit):
                 widget.clear()
             elif isinstance(widget, QComboBox):
                 widget.setCurrentIndex(0)
+        for row in self._output_electricity_rows:
+            row["id"].setText("exported-electricity-1")  # type: ignore[union-attr]
+            row["factor"].setCurrentIndex(0)  # type: ignore[union-attr]
+            row["measured"].clear()  # type: ignore[union-attr]
+            row["source"].clear()  # type: ignore[union-attr]
+        for prefix, rows in self._heat_rows.items():
+            default_id = "heat-1" if prefix == "heat" else "exported-heat-1"
+            for row in rows:
+                row["id"].setText(default_id)  # type: ignore[union-attr]
+                row["factor"].setCurrentIndex(0)  # type: ignore[union-attr]
+                row["reason"].clear()  # type: ignore[union-attr]
+                row["measured"].clear()  # type: ignore[union-attr]
+                row["source"].clear()  # type: ignore[union-attr]
         for controls in self._material_controls.values():
             for key in ("mass_basis", "composition_basis", "normalized_basis", "fixed_carbon_component_kind", "volatile_matter_component_kind"):
                 controls[key].setCurrentIndex(0)  # type: ignore[union-attr]
@@ -3010,12 +3798,48 @@ class CarbonMaterialAccountingPage(BasePage):
             return fixed_messages[code]
         return cls._sanitize_business_message(str(getattr(problem, "message", "当前数据需要检查。")))
 
+    def _process_instance_message_prefix(self, problem: object) -> tuple[str, str | None]:
+        field_id = str(getattr(problem, "field_id", "") or "")
+        code = str(getattr(problem, "code", ""))
+        process_labels = {
+            "calcination": "煅烧过程",
+            "baking": "焙烧/炭化过程",
+            "graphitization": "石墨化过程",
+            "fume": "烟气焚烧过程",
+            "fgd": "烟气脱硫设施",
+        }
+        field_aliases = {
+            "fume": {"Q": "q", "QVAR": "qvar", "HM": "hm", "FCH": "fch", "FOX": "fox", "T": "duration"},
+            "fgd": {"CAL": "cal", "I": "i", "EF1": "ef1", "TR": "tr"},
+        }
+        for prefix, rows in self._process_rows.items():
+            for index, row in enumerate(rows, start=1):
+                instance_id = str(row.get("instance_id", ""))
+                if not instance_id or instance_id not in field_id:
+                    continue
+                context = f"{process_labels[prefix]} {index}："
+                missing_label = None
+                if code == "GEN-VAL-REQUIRED-MISSING":
+                    field_name = field_id.rsplit("-", 1)[-1]
+                    field_name = field_aliases.get(prefix, {}).get(field_name, field_name.lower())
+                    try:
+                        missing_label = get_field_spec(f"{prefix}.{field_name}").label
+                    except KeyError:
+                        if prefix == "fgd":
+                            missing_label = "碳酸盐组分"
+                return context, missing_label
+        return "", None
+
     def _add_validation_problem(self, problem: object, technical_lines: list[str]) -> None:
         level = str(getattr(getattr(problem, "level", None), "value", "ERROR"))
         code = str(getattr(problem, "code", "未提供代码"))
         raw_message = str(getattr(problem, "message", "当前数据需要检查。"))
+        context, missing_label = self._process_instance_message_prefix(problem)
+        business_message = self._business_problem_message(problem)
+        if missing_label:
+            business_message = f"请补充{missing_label}。"
         item = QListWidgetItem(
-            f"{self._problem_level_label(problem)}：{self._business_problem_message(problem)}"
+            f"{self._problem_level_label(problem)}：{context}{business_message}"
         )
         item.setData(
             Qt.ItemDataRole.UserRole,
@@ -3200,7 +4024,7 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         if outcome.record is not None:
             state = self._capture_form_state()
-            fingerprint = self._fingerprint_state(state)
+            fingerprint = self._fingerprint_business_input(outcome.input)
             active = self._unit()
             result_snapshot = {
                 "total": str(outcome.result.total_amount),

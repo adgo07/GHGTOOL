@@ -318,6 +318,135 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(len({row.detail_id.text() for row in self.page._electricity_rows}), 3)
 
+    def test_multi_process_and_energy_lines_keep_identity_after_project_reopen(self) -> None:
+        self.page.project_name.setText("多实例项目")
+        self.page.enterprise_name.setText("多实例企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        first, = self.page._process_rows["calcination"]
+        first["fields"]["gc"].setText("100")
+        second = self.page._add_process_row("calcination")
+        second["fields"]["gc"].setText("200")
+        third = self.page._add_process_row("calcination")
+        third["fields"]["gc"].setText("300")
+        first_id = str(first["instance_id"])
+        third_id = str(third["instance_id"])
+        self.page._remove_process_row("calcination", str(second["instance_id"]))
+
+        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        self.page._fields["heat_id"].setText("heat-source-a")
+        self.page._fields["heat_amount"].setText("10")
+        self.page.heat_measured_factor.setText("0.11")
+        self.page.heat_factor_source_reference.setText("热力实测-A")
+        second_heat = self.page._add_heat_row("heat", line_id="heat-source-b")
+        second_heat["amount"].setText("20")
+        second_heat["measured"].setText("0.20")
+        second_heat["source"].setText("热力实测-B")
+
+        self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        self.page._output_electricity_rows[0]["id"].setText("power-source-a")
+        self.page._output_electricity_rows[0]["amount"].setText("5")
+        self.page._output_electricity_rows[0]["measured"].setText("0.50")
+        self.page._output_electricity_rows[0]["source"].setText("电力实测-A")
+        second_power = self.page._add_output_electricity_row(line_id="power-source-b")
+        second_power["amount"].setText("8")
+        second_power["measured"].setText("0.25")
+        second_power["source"].setText("电力实测-B")
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+        saved_workspace = self.project_service.get(project_id)
+        self.assertIsNotNone(saved_workspace)
+        assert saved_workspace is not None
+        saved_state = saved_workspace.units[0].form_state
+        self.assertEqual(saved_state.get("heat_line_ids", {}).get("heat"), ["heat-source-a", "heat-source-b"])
+        self.assertEqual(saved_state.get("heatAmount_heat-source-b"), "20")
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        restored_processes = self.page._process_rows["calcination"]
+        self.assertEqual([str(row["instance_id"]) for row in restored_processes], [first_id, third_id])
+        self.assertEqual([row["fields"]["gc"].text() for row in restored_processes], ["100", "300"])
+        domain_input = self.page._input()
+        self.assertEqual([item.instance_id for item in domain_input.calcinations], [first_id, third_id])
+        self.assertEqual([str(item.gc.value) for item in domain_input.calcinations], ["100", "300"])
+        self.assertEqual(
+            [item.line_id for item in domain_input.purchased_heat], ["heat-source-a", "heat-source-b"],
+            f"rows={[(row['id'].text(), row['amount'].text()) for row in self.page._heat_rows['heat']]}",
+        )
+        self.assertEqual([str(item.factor.value) for item in domain_input.purchased_heat], ["0.11", "0.20"])
+        self.assertEqual([item.line_id for item in domain_input.exported_electricity], ["power-source-a", "power-source-b"])
+        self.assertEqual([str(item.factor.value) for item in domain_input.exported_electricity], ["0.50", "0.25"])
+        self.assertEqual(self.page._add_process_row("calcination")["instance_id"], "calcination-4")
+
+    def test_legacy_singleton_project_and_v1_fingerprint_migrate_without_stale_result(self) -> None:
+        self.page.project_name.setText("旧版单过程项目")
+        self.page.enterprise_name.setText("旧版单过程企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        for field, value in {
+            "gc": "100", "wfc": "0.008", "cc": "70", "ucc": "5", "du": "1",
+            "wfc_c": "0.002", "wvar": "0.10", "wvar_c": "0.02",
+        }.items():
+            self.page._fields[f"calcination.{field}"].setText(value)
+        self.page._run_calculation()
+        self.assertEqual(len(self.records.list_all()), 1)
+        historical_record = self.records.list_all()[0]
+        historical_result = self.page._unit().result_snapshot
+        self.assertIsNotNone(historical_result)
+
+        workspace = self.project_service.get(self.page._workspace.project_id)
+        self.assertIsNotNone(workspace)
+        assert workspace is not None
+        unit = workspace.units[0]
+        legacy_state = dict(unit.form_state)
+        for key in (
+            "business_fingerprint_version", "process_instances",
+            "exported_electricity_line_ids", "heat_line_ids",
+            "calcination_carbonOutputIncludedInInput", "baking_carbonOutputIncludedInInput",
+            "graphitization_furnaceLossIncluded", "exportedElectricityFactorSelector",
+            "exportedElectricityMeasuredFactor", "exportedElectricityFactorSource",
+            "exportedHeatFactorSelector", "exportedHeatFactorReasonInput",
+            "exportedHeatMeasuredFactorInput", "exportedHeatFactorSourceReferenceInput",
+        ):
+            legacy_state.pop(key, None)
+        legacy_fingerprint = self.page._fingerprint_state(legacy_state)
+        legacy_unit = replace(unit, form_state=legacy_state, input_fingerprint=legacy_fingerprint)
+        self.project_service.save(replace(workspace, units=(legacy_unit,)))
+        project_id = workspace.project_id
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        restored_input = self.page._input()
+        self.assertEqual(len(restored_input.calcinations), 1)
+        self.assertEqual(str(restored_input.calcinations[0].gc.value), "100")
+        self.assertNotEqual(self.page._unit().input_fingerprint, legacy_fingerprint)
+        self.assertEqual(self.page._unit().result_snapshot, historical_result)
+        self.assertIn("上次成功结果", self.page.unit_result_summary.text())
+        self.assertFalse(self.page.result_card.isHidden())
+        self.assertEqual(self.records.list_all(), (historical_record,))
+
     def test_equal_fuel_values_with_enterprise_source_remain_measured_and_stable(self) -> None:
         self.page.project_name.setText("实测参数来源项目")
         row = self.page._fuel_rows[0]

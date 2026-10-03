@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-02（GHG-GOV-R1）
+最后更新：2026-10-03（GHG-RS01-B2）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,9 +29,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已完成：RS01-A-R1及RS01-B1实施；B1工作结果等待latest-head CI与独立重新验收。
-- 当前工作包：`GHG-RS01-B1 — Calculation Safety & Reference Data Closure`；执行基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- **RS01-B2 — Multi-entry Business Input Closure：NOT STARTED**。不得将B1单条输入实现扩展为多过程/多能源来源输入；需B1独立验收并由用户另行启动。
+- 已完成并合并：RS01-A-R1及RS01-B1。
+- 当前工作包：`GHG-RS01-B2 — Multi-entry Business Input Closure`；实现与本地验证已完成，PR #24等待独立重新验收；latest-head CI以PR checks为准。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- RS01-B2仅完成同一核算单元的多过程/多能源来源逐项输入、逐项计算与标准汇总；RS02/RS03、Golden Freeze和第二标准未启动。
 - 后续RS01仍须遵守：
 
 ```text
@@ -179,9 +179,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RS01-B1；该包只处理单条业务输入的计算安全、标准参考数据、参数接通和目录真实性：
+本文件当前对应工作包 GHG-RS01-B2 — Multi-entry Business Input Closure：
 
-- 已完成GAP-002/003/005/006/007/010以及对应B1测试与证据同步；
-- GAP-001/004/011、多行UI及其测试覆盖属于RS01-B2，本轮不得实施；
-- 不修改SQLite schema/迁移、platform-lock、中央baseline或已批准标准解释；
-- B1交付后等待latest-head CI与独立验收；RS01-B2保持NOT STARTED。
+- B1已关闭GAP-002/003/005/006/007/010；B2已关闭GAP-001/004/008/011；GAP-009继续作为不阻止实施的provenance debt；
+- Domain/Calculator按行计算既有多实例输入；UI/Application支持过程、烟气治理组分、输出电力及购入/输出热力多行；项目保存/重开维持身份；
+- 不修改SQLite schema/迁移、platform-lock、中央baseline或已批准标准解释；不启动RS02/RS03、Golden Freeze或第二标准；
+- 本包交付后等待latest-head CI与独立验收。

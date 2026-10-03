@@ -213,6 +213,17 @@ def _coerce_input(value: object, default_unit: str) -> InputValue | None:
     return InputValue(value, default_unit)  # type: ignore[arg-type]
 
 
+def _validate_instance_id(value: str) -> None:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > 128
+        or not value.isascii()
+        or not all(char.isalnum() or char in "_.:-" for char in value)
+    ):
+        raise DomainValidationError("instance_id must be a stable ASCII token")
+
+
 def _coerce_parameter(
     value: object,
     parameter_id: str,
@@ -311,8 +322,10 @@ class CalcinationInput:
     carbon_output_included_in_input: bool = False
     fixed_carbon_component_kind: MaterialComponentKind | None = None
     volatile_matter_component_kind: MaterialComponentKind | None = None
+    instance_id: str = "calcination-1"
 
     def __post_init__(self) -> None:
+        _validate_instance_id(self.instance_id)
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -356,8 +369,10 @@ class BakingInput:
     carbon_output_included_in_input: bool = False
     fixed_carbon_component_kind: MaterialComponentKind | None = None
     volatile_matter_component_kind: MaterialComponentKind | None = None
+    instance_id: str = "baking-1"
 
     def __post_init__(self) -> None:
+        _validate_instance_id(self.instance_id)
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -401,8 +416,10 @@ class GraphitizationInput:
     furnace_loss_included: bool = False
     fixed_carbon_component_kind: MaterialComponentKind | None = None
     volatile_matter_component_kind: MaterialComponentKind | None = None
+    instance_id: str = "graphitization-1"
 
     def __post_init__(self) -> None:
+        _validate_instance_id(self.instance_id)
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -434,8 +451,10 @@ class FumeIncinerationInput:
     fch: object | None = None
     fox: object | None = None
     duration: object | None = None
+    instance_id: str = "fume-1"
 
     def __post_init__(self) -> None:
+        _validate_instance_id(self.instance_id)
         object.__setattr__(self, "q", _coerce_input(self.q, "Nm3/h"))
         object.__setattr__(self, "qvar", _coerce_input(self.qvar, "mg/Nm3"))
         object.__setattr__(self, "hm", _coerce_input(self.hm, "GJ/t"))
@@ -471,8 +490,10 @@ class FGDInput:
     ef1: object | None = None
     tr: object | None = None
     carbonate_type: str | None = None
+    instance_id: str = "fgd-1"
 
     def __post_init__(self) -> None:
+        _validate_instance_id(self.instance_id)
         components = tuple(self.components)
         if any(not isinstance(item, CarbonateComponent) for item in components):
             raise DomainValidationError("components must contain CarbonateComponent values")
@@ -545,6 +566,11 @@ class CarbonMaterialInput:
     exported_heat: tuple[HeatInput, ...] = ()
     other_activity_present: bool = False
     transport_present: bool = False
+    calcinations: tuple[CalcinationInput, ...] = ()
+    bakings: tuple[BakingInput, ...] = ()
+    graphitizations: tuple[GraphitizationInput, ...] = ()
+    fume_incinerations: tuple[FumeIncinerationInput, ...] = ()
+    fgd_units: tuple[FGDInput, ...] = ()
 
     def __post_init__(self) -> None:
         for field in ("input_id", "enterprise_id", "enterprise_name"):
@@ -564,6 +590,29 @@ class CarbonMaterialInput:
         object.__setattr__(self, "source_states", states)
         for name in ("fuel_inputs", "electricity_details", "exported_electricity", "purchased_heat", "exported_heat"):
             object.__setattr__(self, name, tuple(getattr(self, name)))
+        for plural_name, legacy_name, expected_type, stable_name in (
+            ("calcinations", "calcination", CalcinationInput, "calcination"),
+            ("bakings", "baking", BakingInput, "baking"),
+            ("graphitizations", "graphitization", GraphitizationInput, "graphitization"),
+            ("fume_incinerations", "fume_incineration", FumeIncinerationInput, "fume"),
+            ("fgd_units", "fgd", FGDInput, "fgd"),
+        ):
+            items = tuple(getattr(self, plural_name))
+            legacy_item = getattr(self, legacy_name)
+            if legacy_item is not None:
+                if not isinstance(legacy_item, expected_type):
+                    raise DomainValidationError(f"{legacy_name} must be a {expected_type.__name__}")
+                if items and legacy_item not in items:
+                    raise DomainValidationError(f"supply {plural_name} or {legacy_name}, not conflicting values")
+                if not items:
+                    items = (legacy_item,)
+            if any(not isinstance(item, expected_type) for item in items):
+                raise DomainValidationError(f"{plural_name} must contain {expected_type.__name__} values")
+            instance_ids = tuple(item.instance_id for item in items)
+            if len(set(instance_ids)) != len(instance_ids):
+                raise DomainValidationError(f"{plural_name} instance IDs must be unique")
+            object.__setattr__(self, plural_name, items)
+            object.__setattr__(self, legacy_name, items[0] if items else None)
         if len({item.fuel_id for item in self.fuel_inputs}) != len(self.fuel_inputs):
             raise DomainValidationError("fuel IDs must be unique")
         if len({item.detail_id for item in self.electricity_details}) != len(self.electricity_details):
@@ -1097,7 +1146,7 @@ class CarbonMaterialCalculator:
             FuelPath.HEAT: fuel_heat_emission(activity, carbon, fox),
         }[item.path]
 
-    def _heat_factor(self, line_id: str, explicit: ParameterValue | None, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
+    def _heat_factor(self, line_id: str, explicit: ParameterValue | None, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str) -> Decimal | None:
         if explicit is not None:
             return self._parameter(explicit, "tCO2/GJ", f"CAR-FLD-HEAT-{line_id}-EF3", snapshots, problems, snapshot_at)
         if self.parameter_resolver is None:
@@ -1110,6 +1159,8 @@ class CarbonMaterialCalculator:
                 standard_id=STANDARD_ID,
                 parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
                 subject_id="purchased_heat",
+                emission_source_type=energy_direction,
+                extra_context=(("energy_direction", energy_direction),),
             ),
             snapshots,
             problems,
@@ -1174,112 +1225,120 @@ class CarbonMaterialCalculator:
             if input_value.fuel_inputs:
                 traces.append(CalculationTrace("CAR-F01", "CAR-FML-FUEL-001", SOURCE_FUEL, (("fuel_total", fuel_total, "tCO2"),), "EFu = sum(EFu(f))", fuel_total))
 
-        def process_value(source_id: str, payload: object | None, fn, formula_id: str, line_id: str, default_codes: tuple[str, ...] = ()) -> Decimal:
-            status = self._source_check(input_value, source_id, payload is not None, problems)
-            if status is not EmissionSourceStatus.INVOLVED or payload is None:
+        def process_values(source_id: str, payloads: tuple[object, ...], fn, formula_id: str, line_id: str) -> Decimal:
+            status = self._source_check(input_value, source_id, bool(payloads), problems)
+            if status is not EmissionSourceStatus.INVOLVED:
                 return Decimal("0")
-            self._basis(payload, source_id, problems)
-            values: dict[str, Decimal] = {}
+            total = Decimal("0")
             field_defs = {
                 CalcinationInput: (("gc", "t"), ("wfc", "ratio"), ("cc", "t"), ("ucc", "t"), ("du", "t"), ("wfc_c", "ratio"), ("wvar", "ratio"), ("wvar_c", "ratio")),
                 BakingInput: (("bpm", "t"), ("bpmfc", "ratio"), ("bg", "t"), ("bgfc", "ratio"), ("bwt", "tC"), ("bp", "t"), ("bpfc", "ratio"), ("bpmvar", "ratio"), ("bgvar", "ratio")),
                 GraphitizationInput: (("gpm", "t"), ("gpmfc", "ratio"), ("gta", "t"), ("gtafc", "ratio"), ("gwt", "tC"), ("gp", "t"), ("gpfc", "ratio"), ("gpmvar", "ratio")),
             }
-            for attr, unit in field_defs[type(payload)]:
-                raw = getattr(payload, attr)
-                if unit == "ratio":
-                    value = self._ratio(raw, f"{line_id}-{attr}", problems)
+            for payload in payloads:
+                instance_id = payload.instance_id
+                field_line_prefix = f"{line_id}-{instance_id}"
+                instance_line_id = line_id if len(payloads) == 1 else f"{line_id}.{instance_id}"
+                problem_count = len(problems)
+                self._basis(payload, f"{source_id}.{instance_id}", problems)
+                values: dict[str, Decimal] = {}
+                for attr, unit in field_defs[type(payload)]:
+                    raw = getattr(payload, attr)
+                    field_id = f"{field_line_prefix}-{attr}"
+                    if unit == "ratio":
+                        value = self._ratio(raw, field_id, problems)
+                    else:
+                        value = self._quantity(raw, unit, field_id, problems)
+                    if value is not None:
+                        values[attr] = value
+                if isinstance(payload, CalcinationInput):
+                    k1 = self._required_parameter(payload, "k1", "CAR-PAR-K1", f"{field_line_prefix}-k1", snapshots, problems, snapshot_at)
+                    if k1 is not None: values["k1"] = k1
+                elif isinstance(payload, BakingInput):
+                    k2 = self._required_parameter(payload, "k2", "CAR-PAR-K2", f"{field_line_prefix}-k2", snapshots, problems, snapshot_at)
+                    if k2 is not None: values["k2"] = k2
                 else:
-                    value = self._quantity(raw, unit, f"{line_id}-{attr}", problems)
-                if value is not None:
-                    values[attr] = value
-            if isinstance(payload, CalcinationInput):
-                k1 = self._required_parameter(payload, "k1", "CAR-PAR-K1", "CAR-FLD-P01-K1", snapshots, problems, snapshot_at)
-                if k1 is not None: values["k1"] = k1
-            elif isinstance(payload, BakingInput):
-                k2 = self._required_parameter(payload, "k2", "CAR-PAR-K2", "CAR-FLD-P02-K2", snapshots, problems, snapshot_at)
-                if k2 is not None: values["k2"] = k2
-            else:
-                k3 = self._required_parameter(payload, "k3", "CAR-PAR-K3", "CAR-FLD-P03-K3", snapshots, problems, snapshot_at)
-                if k3 is not None: values["k3"] = k3
-            if len(values) < len(field_defs[type(payload)]) + 1:
-                return Decimal("0")
-            amount = fn(**values)
-            if amount < 0:
-                problems.append(_problem("CAR-VAL-MATERIAL-BALANCE-NEGATIVE", IssueLevel.ERROR, f"{source_id} 物料平衡结果为负。", source_id))
-            if getattr(payload, "carbon_output_included_in_input", False):
-                problems.append(_problem("CAR-VAL-CARBON-OUTPUT-DUPLICATE", IssueLevel.ERROR, f"{source_id} 的碳输出已在输入/产量中重复使用。", source_id))
-            lines.append(CalculationLine(line_id, source_id, CO2_ID, amount, "tCO2"))
-            traces.append(CalculationTrace(line_id, formula_id, source_id, tuple((key, value, "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入", amount))
-            return amount
+                    k3 = self._required_parameter(payload, "k3", "CAR-PAR-K3", f"{field_line_prefix}-k3", snapshots, problems, snapshot_at)
+                    if k3 is not None: values["k3"] = k3
+                if len(values) < len(field_defs[type(payload)]) + 1 or any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
+                    continue
+                amount = fn(**values)
+                if amount < 0:
+                    problems.append(_problem("CAR-VAL-MATERIAL-BALANCE-NEGATIVE", IssueLevel.ERROR, f"{source_id} 物料平衡结果为负。", f"{source_id}.{instance_id}"))
+                if getattr(payload, "carbon_output_included_in_input", False):
+                    problems.append(_problem("CAR-VAL-CARBON-OUTPUT-DUPLICATE", IssueLevel.ERROR, f"{source_id} 的碳输出已在输入/产量中重复使用。", f"{source_id}.{instance_id}"))
+                lines.append(CalculationLine(instance_line_id, source_id, CO2_ID, amount, "tCO2"))
+                traces.append(CalculationTrace(instance_line_id, formula_id, source_id, tuple((key, value, "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入；实例 {instance_id}", amount))
+                total += amount
+            return total
 
-        calc_total = process_value(SOURCE_CALCINATION, input_value.calcination, calcination_emission, "CAR-FML-CALCINATION-001", "CAR-FLD-P01-RESULT")
-        bake_total = process_value(SOURCE_BAKING, input_value.baking, baking_emission, "CAR-FML-BAKING-001", "CAR-FLD-P02-RESULT")
-        if input_value.graphitization is not None and input_value.graphitization.furnace_loss_included:
-            problems.append(_problem("CAR-VAL-GRAPHITIZATION-FURNACE-LOSS", IssueLevel.ERROR, "石墨化炉本身炭质材料氧化烧损不得计入石墨化排放。", SOURCE_GRAPHITIZATION))
-        graph_total = process_value(SOURCE_GRAPHITIZATION, input_value.graphitization, graphitization_emission, "CAR-FML-GRAPHITIZATION-001", "CAR-FLD-P03-RESULT")
+        calc_total = process_values(SOURCE_CALCINATION, input_value.calcinations, calcination_emission, "CAR-FML-CALCINATION-001", "CAR-FLD-P01-RESULT")
+        bake_total = process_values(SOURCE_BAKING, input_value.bakings, baking_emission, "CAR-FML-BAKING-001", "CAR-FLD-P02-RESULT")
+        for item in input_value.graphitizations:
+            if item.furnace_loss_included:
+                problems.append(_problem("CAR-VAL-GRAPHITIZATION-FURNACE-LOSS", IssueLevel.ERROR, "石墨化炉本身炭质材料氧化烧损不得计入石墨化排放。", f"{SOURCE_GRAPHITIZATION}.{item.instance_id}"))
+        graph_total = process_values(SOURCE_GRAPHITIZATION, input_value.graphitizations, graphitization_emission, "CAR-FML-GRAPHITIZATION-001", "CAR-FLD-P03-RESULT")
 
-        fume_status = self._source_check(input_value, SOURCE_FUME, input_value.fume_incineration is not None, problems)
+        fume_status = self._source_check(input_value, SOURCE_FUME, bool(input_value.fume_incinerations), problems)
         fume_total = Decimal("0")
-        if fume_status is EmissionSourceStatus.INVOLVED and input_value.fume_incineration is not None:
-            item = input_value.fume_incineration
-            q = self._quantity(item.q, "Nm3/h", "CAR-FLD-P04A-Q", problems)
-            qvar = self._quantity(item.qvar, "mg/Nm3", "CAR-FLD-P04A-QVAR", problems)
-            hm = self._quantity(item.hm, "GJ/t", "CAR-FLD-P04A-HM", problems)
-            fch = self._parameter(item.fch, "tC/GJ", "CAR-FLD-P04A-FCH", snapshots, problems, snapshot_at)
-            fox = self._ratio(item.fox, "CAR-FLD-P04A-FOX", problems)
-            duration = self._quantity(item.duration, "d", "CAR-FLD-P04A-T", problems)
-            if None not in (q, qvar, hm, fch, fox, duration):
-                fume_total = fume_incineration_emission(q, qvar, hm, fch, fox, duration)
-                lines.append(CalculationLine("CAR-FLD-P04A-RESULT", SOURCE_FUME, CO2_ID, fume_total, "tCO2"))
-                traces.append(CalculationTrace("CAR-P04A", "CAR-FML-FUME-INCINERATION-001", SOURCE_FUME, (), "ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹", fume_total))
+        if fume_status is EmissionSourceStatus.INVOLVED:
+            for item in input_value.fume_incinerations:
+                prefix = f"CAR-FLD-P04A-{item.instance_id}"
+                problem_count = len(problems)
+                q = self._quantity(item.q, "Nm3/h", f"{prefix}-Q", problems)
+                qvar = self._quantity(item.qvar, "mg/Nm3", f"{prefix}-QVAR", problems)
+                hm = self._quantity(item.hm, "GJ/t", f"{prefix}-HM", problems)
+                fch = self._parameter(item.fch, "tC/GJ", f"{prefix}-FCH", snapshots, problems, snapshot_at)
+                fox = self._ratio(item.fox, f"{prefix}-FOX", problems)
+                duration = self._quantity(item.duration, "d", f"{prefix}-T", problems)
+                if None in (q, qvar, hm, fch, fox, duration) or any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
+                    continue
+                amount = fume_incineration_emission(q, qvar, hm, fch, fox, duration)
+                line_id = "CAR-FLD-P04A-RESULT" if len(input_value.fume_incinerations) == 1 else f"CAR-FLD-P04A-RESULT.{item.instance_id}"
+                lines.append(CalculationLine(line_id, SOURCE_FUME, CO2_ID, amount, "tCO2"))
+                traces.append(CalculationTrace(line_id, "CAR-FML-FUME-INCINERATION-001", SOURCE_FUME, (), f"ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹；实例 {item.instance_id}", amount))
+                fume_total += amount
 
-        fgd_status = self._source_check(input_value, SOURCE_FGD, input_value.fgd is not None, problems)
+        fgd_status = self._source_check(input_value, SOURCE_FGD, bool(input_value.fgd_units), problems)
         fgd_total = Decimal("0")
-        if fgd_status is EmissionSourceStatus.INVOLVED and input_value.fgd is not None:
-            components = input_value.fgd.components
-            if not components:
-                problems.append(
-                    _problem(
-                        "GEN-VAL-REQUIRED-MISSING",
-                        IssueLevel.ERROR,
-                        "脱硫净化缺少至少一条碳酸盐组分。",
-                        SOURCE_FGD,
-                    )
-                )
-            fractions = Decimal("0")
-            validated: list[CarbonateComponent] = []
-            for index, component in enumerate(components):
-                amount = self._quantity(component.amount, "t", f"CAR-FLD-P04B-CAL-{index}", problems)
-                fraction_field = f"CAR-FLD-P04B-I-{index}"
-                if isinstance(component.carbonate_fraction, ParameterValue):
-                    fraction = self._parameter(component.carbonate_fraction, "ratio", fraction_field, snapshots, problems, snapshot_at)
-                else:
-                    fraction = self._ratio(component.carbonate_fraction, fraction_field, problems)
-                if isinstance(component.emission_factor, ParameterValue):
-                    factor = self._parameter(component.emission_factor, "tCO2/t", f"CAR-FLD-P04B-EF1-{index}", snapshots, problems, snapshot_at)
-                else:
-                    factor = None
-                    problems.append(_problem(
-                        "CAR-VAL-CARBONATE-FACTOR-MISSING",
-                        IssueLevel.ERROR,
-                        "请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。",
-                        f"CAR-FLD-P04B-EF1-{index}",
-                    ))
-                conversion_field = f"CAR-FLD-P04B-TR-{index}"
-                if isinstance(component.conversion_rate, ParameterValue):
-                    conversion = self._parameter(component.conversion_rate, "ratio", conversion_field, snapshots, problems, snapshot_at)
-                else:
-                    conversion = self._ratio(component.conversion_rate, conversion_field, problems)
-                if None not in (amount, fraction, factor, conversion):
-                    validated.append(CarbonateComponent(amount, fraction, factor, conversion))
-                    fractions += fraction
-            if fractions > Decimal("1"):
-                problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "多种碳酸盐组分含量合计不得超过100%。", SOURCE_FGD))
-            if validated:
-                fgd_total = fgd_emission(validated)
-                lines.append(CalculationLine("CAR-FLD-P04B-RESULT", SOURCE_FGD, CO2_ID, fgd_total, "tCO2"))
-                traces.append(CalculationTrace("CAR-P04B", "CAR-FML-FGD-001", SOURCE_FGD, (), "ED = sum(CAL×I×EF1×TR)", fgd_total))
+        if fgd_status is EmissionSourceStatus.INVOLVED:
+            for unit in input_value.fgd_units:
+                if not unit.components:
+                    problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, "脱硫净化缺少至少一条碳酸盐组分。", f"{SOURCE_FGD}.{unit.instance_id}"))
+                    continue
+                problem_count = len(problems)
+                fractions = Decimal("0")
+                validated: list[CarbonateComponent] = []
+                for index, component in enumerate(unit.components):
+                    component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{index}"
+                    amount = self._quantity(component.amount, "t", f"{component_prefix}-CAL", problems)
+                    fraction_field = f"{component_prefix}-I"
+                    if isinstance(component.carbonate_fraction, ParameterValue):
+                        fraction = self._parameter(component.carbonate_fraction, "ratio", fraction_field, snapshots, problems, snapshot_at)
+                    else:
+                        fraction = self._ratio(component.carbonate_fraction, fraction_field, problems)
+                    if isinstance(component.emission_factor, ParameterValue):
+                        factor = self._parameter(component.emission_factor, "tCO2/t", f"{component_prefix}-EF1", snapshots, problems, snapshot_at)
+                    else:
+                        factor = None
+                        problems.append(_problem("CAR-VAL-CARBONATE-FACTOR-MISSING", IssueLevel.ERROR, "请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。", f"{component_prefix}-EF1"))
+                    conversion_field = f"{component_prefix}-TR"
+                    if isinstance(component.conversion_rate, ParameterValue):
+                        conversion = self._parameter(component.conversion_rate, "ratio", conversion_field, snapshots, problems, snapshot_at)
+                    else:
+                        conversion = self._ratio(component.conversion_rate, conversion_field, problems)
+                    if None not in (amount, fraction, factor, conversion):
+                        validated.append(CarbonateComponent(amount, fraction, factor, conversion, component.carbonate_type))
+                        fractions += fraction
+                if fractions > Decimal("1"):
+                    problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "同一脱硫设施的多种碳酸盐组分含量合计不得超过100%。", f"{SOURCE_FGD}.{unit.instance_id}"))
+                if any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
+                    continue
+                amount = fgd_emission(validated)
+                line_id = "CAR-FLD-P04B-RESULT" if len(input_value.fgd_units) == 1 else f"CAR-FLD-P04B-RESULT.{unit.instance_id}"
+                lines.append(CalculationLine(line_id, SOURCE_FGD, CO2_ID, amount, "tCO2"))
+                traces.append(CalculationTrace(line_id, "CAR-FML-FGD-001", SOURCE_FGD, (), f"ED = sum(CAL×I×EF1×TR)；设施 {unit.instance_id} 内独立汇总", amount))
+                fgd_total += amount
 
         gas_total = fume_total + fgd_total
         if fume_status is EmissionSourceStatus.INVOLVED or fgd_status is EmissionSourceStatus.INVOLVED:
@@ -1373,7 +1432,7 @@ class CarbonMaterialCalculator:
             for line in input_value.purchased_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line.line_id, line.factor, snapshots, problems, snapshot_at)
+                factor = self._heat_factor(line.line_id, line.factor, snapshots, problems, snapshot_at, energy_direction="purchased_heat")
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy, factor)
                     purchased_heat_total += amount
@@ -1386,29 +1445,30 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line.line_id, line.factor, snapshots, problems, snapshot_at)
+                factor = self._heat_factor(line.line_id, line.factor, snapshots, problems, snapshot_at, energy_direction="exported_heat")
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy, factor)
                     exported_heat_total += amount
                     lines.append(CalculationLine(f"CAR-FLD-HEAT-EXPORTED-RESULT.{line.line_id}", SOURCE_EXPORTED_HEAT, CO2_ID, amount, "tCO2"))
                     traces.append(CalculationTrace(line.line_id, "CAR-FML-EXPORTED-HEAT-001", SOURCE_EXPORTED_HEAT, (), "ESd = BSd × HM × EF3 / 10⁶", amount))
 
-        direct_total = direct_emission(fuel_total, calc_total, bake_total, graph_total, gas_total)
-        indirect_total = indirect_emission(purchased_power_total, purchased_heat_total, exported_power_total, exported_heat_total)
-        grand_total = total_emission(direct_total, indirect_total)
-        lines.extend((
-            CalculationLine("CAR-FLD-DIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, direct_total, "tCO2"),
-            CalculationLine("CAR-FLD-INDIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, indirect_total, "tCO2"),
-            CalculationLine("CAR-FLD-TOTAL-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, grand_total, "tCO2"),
-        ))
-        traces.extend((
-            CalculationTrace("CAR-DIRECT", "CAR-FML-DIRECT-001", "CAR-RULE-TOTAL-001", (), "ES = EFu + EC + EB + EG + EP", direct_total),
-            CalculationTrace("CAR-INDIRECT", "CAR-FML-INDIRECT-001", "CAR-RULE-TOTAL-001", (), "EI = EGe + EGd - ESe - ESd", indirect_total),
-            CalculationTrace("CAR-TOTAL", "CAR-FML-TOTAL-001", "CAR-RULE-TOTAL-001", (), "ET = ES + EI", grand_total),
-        ))
-        calculation_result = CalculationResult("result." + input_value.input_id, STANDARD_ID, ALGORITHM_VERSION, tuple(lines), grand_total, "tCO2", snapshot_at, tuple(problems))
+        calculation_result: CalculationResult | None = None
         record: AccountingRecord | None = None
         if not contains_errors(problems):
+            direct_total = direct_emission(fuel_total, calc_total, bake_total, graph_total, gas_total)
+            indirect_total = indirect_emission(purchased_power_total, purchased_heat_total, exported_power_total, exported_heat_total)
+            grand_total = total_emission(direct_total, indirect_total)
+            lines.extend((
+                CalculationLine("CAR-FLD-DIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, direct_total, "tCO2"),
+                CalculationLine("CAR-FLD-INDIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, indirect_total, "tCO2"),
+                CalculationLine("CAR-FLD-TOTAL-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, grand_total, "tCO2"),
+            ))
+            traces.extend((
+                CalculationTrace("CAR-DIRECT", "CAR-FML-DIRECT-001", "CAR-RULE-TOTAL-001", (), "ES = EFu + EC + EB + EG + EP", direct_total),
+                CalculationTrace("CAR-INDIRECT", "CAR-FML-INDIRECT-001", "CAR-RULE-TOTAL-001", (), "EI = EGe + EGd - ESe - ESd", indirect_total),
+                CalculationTrace("CAR-TOTAL", "CAR-FML-TOTAL-001", "CAR-RULE-TOTAL-001", (), "ET = ES + EI", grand_total),
+            ))
+            calculation_result = CalculationResult("result." + input_value.input_id, STANDARD_ID, ALGORITHM_VERSION, tuple(lines), grand_total, "tCO2", snapshot_at, tuple(problems))
             generic_input = AccountingInput(
                 input_id=input_value.input_id,
                 standard_id=STANDARD_ID,

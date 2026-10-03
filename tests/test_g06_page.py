@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -222,6 +224,361 @@ class G06PageTests(unittest.TestCase):
             "electricity-detail-3",
         })
 
+    def test_process_instances_keep_identity_and_ui_domain_results_match(self) -> None:
+        self.page.enterprise_name.setText("多工序UI企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-CALCINATION-001")
+        values = {
+            "gc": "100", "wfc": "0.008", "cc": "70", "ucc": "5", "du": "1",
+            "wfc_c": "0.002", "wvar": "0.10", "wvar_c": "0.02",
+        }
+        first = self.page._process_rows["calcination"][0]
+        for key, value in values.items():
+            first["fields"][key].setText(value)
+        self.page._add_process_row("calcination")
+        second = self.page._process_rows["calcination"][1]
+        second_values = {**values, "gc": "240", "wfc": "0.015", "cc": "110", "ucc": "2"}
+        for key, value in second_values.items():
+            second["fields"][key].setText(value)
+        input_value = self.page._input()
+        self.assertEqual(len(input_value.calcinations), 2)
+        first_id, second_id = (item.instance_id for item in input_value.calcinations)
+        direct = self.page.calculator.calculate(input_value)
+        self.assertTrue(direct.successful, direct.problems)
+        self.assertEqual(
+            {line.line_id for line in direct.result.lines if line.emission_source_id == "CAR-SRC-CALCINATION-001"},
+            {f"CAR-FLD-P01-RESULT.{first_id}", f"CAR-FLD-P01-RESULT.{second_id}"},
+        )
+        reordered = replace(input_value, calcinations=tuple(reversed(input_value.calcinations)))
+        reversed_result = self.page.calculator.calculate(reordered)
+        self.assertEqual(direct.result.total_amount, reversed_result.result.total_amount)
+        self.assertEqual(
+            self.page._fingerprint_business_input(input_value),
+            self.page._fingerprint_business_input(reordered),
+        )
+        before_delete = [str(row["instance_id"]) for row in self.page._process_rows["calcination"]]
+        third = self.page._add_process_row("calcination")
+        third_id = str(third["instance_id"])
+        self.page._remove_process_row("calcination", second_id)
+        self.assertEqual([str(row["instance_id"]) for row in self.page._process_rows["calcination"]], [before_delete[0], third_id])
+        self.assertEqual(self.page._process_rows["calcination"][1]["title"].text(), "煅烧 2")
+        self.assertNotIn(third_id, "\n".join(label.text() for label in self.page.findChildren(QLabel)))
+        saved_state = self.page._capture_form_state()
+        self.page._restore_form_state(saved_state)
+        self.assertEqual(
+            [str(row["instance_id"]) for row in self.page._process_rows["calcination"]],
+            [before_delete[0], third_id],
+        )
+
+    def test_process_validation_names_the_invalid_instance_in_business_language(self) -> None:
+        self.page.enterprise_name.setText("实例错误定位企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-GRAPHITIZATION-001")
+        rows = self.page._process_rows["graphitization"]
+        for index in range(2):
+            row = rows[0] if index == 0 else self.page._add_process_row("graphitization")
+            for field in ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar"):
+                row["fields"][field].setText("0")
+        invalid_row = self.page._add_process_row("graphitization")
+        invalid_row["fields"]["gpm"].setText("1")
+        instance_id = str(invalid_row["instance_id"])
+
+        self.page._run_calculation()
+
+        messages = [
+            self.page.validation_list.item(index).text()
+            for index in range(self.page.validation_list.count())
+        ]
+        self.assertTrue(any("石墨化过程 3：请补充" in message and "固定碳" in message for message in messages), messages)
+        self.assertTrue(self.page.result_card.isHidden())
+        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertNotIn(instance_id, "\n".join(messages))
+
+    def test_new_accounting_reset_removes_secondary_business_rows(self) -> None:
+        for prefix in ("calcination", "baking", "graphitization", "fume", "fgd"):
+            self.page._add_process_row(prefix)
+        self.page._add_fgd_component(self.page._process_rows["fgd"][0])
+        self.page._add_heat_row("heat")
+        self.page._add_heat_row("exported_heat")
+        self.page._add_output_electricity_row(line_id="exported-electricity-second")
+        for prefix, rows in self.page._process_rows.items():
+            for row in rows[1:]:
+                fields = row.get("fields", {})
+                if fields:
+                    next(iter(fields.values())).setText("123")
+        self.page._heat_rows["heat"][1]["amount"].setText("123")
+        self.page._heat_rows["exported_heat"][1]["amount"].setText("456")
+        self.page._output_electricity_rows[1]["amount"].setText("789")
+
+        self.page._reset_for_new_accounting()
+
+        self.assertTrue(all(len(rows) == 1 for rows in self.page._process_rows.values()))
+        self.assertEqual(len(self.page._process_rows["fgd"][0]["components"]), 1)
+        self.assertEqual(len(self.page._heat_rows["heat"]), 1)
+        self.assertEqual(len(self.page._heat_rows["exported_heat"]), 1)
+        self.assertEqual(len(self.page._output_electricity_rows), 1)
+        self.assertEqual(self.page._fields["heat_id"].text(), "heat-1")
+        self.assertEqual(self.page._fields["exported_heat_id"].text(), "exported-heat-1")
+        self.assertEqual(self.page._output_electricity_rows[0]["id"].text(), "exported-electricity-1")
+        self.assertEqual(self.page._heat_rows["heat"][0]["amount"].text(), "")
+        self.assertEqual(self.page._heat_rows["exported_heat"][0]["amount"].text(), "")
+        self.assertEqual(self.page._output_electricity_rows[0]["amount"].text(), "")
+        self.assertFalse(any(
+            row.get("flags", {}).get("carbon_output_included_in_input", None).isChecked()
+            for prefix in ("calcination", "baking")
+            for row in self.page._process_rows[prefix]
+        ))
+
+    def test_energy_line_ids_survive_middle_deletion_and_form_state_restore(self) -> None:
+        self.page._heat_rows["heat"][0]["amount"].setText("10")
+        second_heat = self.page._add_heat_row("heat")
+        second_heat["amount"].setText("20")
+        third_heat = self.page._add_heat_row("heat")
+        third_heat["amount"].setText("30")
+        for row in self.page._heat_rows["heat"]:
+            row["measured"].setText("0.11")
+            row["source"].setText("多来源身份测试报告")
+        self.page._remove_heat_row("heat", second_heat["widget"])
+
+        self.page._output_electricity_rows[0]["amount"].setText("1")
+        second_power = self.page._add_output_electricity_row()
+        second_power["amount"].setText("2")
+        third_power = self.page._add_output_electricity_row()
+        third_power["amount"].setText("3")
+        self.page._remove_output_electricity_row(second_power["widget"])
+
+        state = self.page._capture_form_state()
+        self.assertEqual(state["heat_line_ids"]["heat"], ["heat-1", "heat-3"])
+        self.assertEqual(state["exported_electricity_line_ids"], ["exported-electricity-1", "exported-electricity-3"])
+        self.assertEqual([line.line_id for line in self.page._heat("heat")], ["heat-1", "heat-3"])
+        self.assertEqual([line.line_id for line in self.page._exported_electricity()], ["exported-electricity-1", "exported-electricity-3"])
+
+        self.page._restore_form_state(state)
+        self.assertEqual([line.line_id for line in self.page._heat("heat")], ["heat-1", "heat-3"])
+        self.assertEqual([line.line_id for line in self.page._exported_electricity()], ["exported-electricity-1", "exported-electricity-3"])
+        next_heat = self.page._add_heat_row("heat")
+        next_power = self.page._add_output_electricity_row()
+        self.assertEqual(next_heat["default_line_id"], "heat-4")
+        self.assertEqual(next_power["default_line_id"], "exported-electricity-4")
+
+        fresh_window = create_main_window(
+            AppConfig(catalog_database=self.catalog_path),
+            catalog_service=self.catalog_service,
+            record_repository=InMemoryRecordRepository(),
+        )
+        fresh_window.show()
+        try:
+            self.application.processEvents()
+            fresh_shell = fresh_window.centralWidget()
+            self.assertIsInstance(fresh_shell, AppShell)
+            assert isinstance(fresh_shell, AppShell)
+            fresh_page = fresh_shell.pages[AppRoute.NEW_ACCOUNTING]
+            self.assertIsInstance(fresh_page, CarbonMaterialAccountingPage)
+            assert isinstance(fresh_page, CarbonMaterialAccountingPage)
+            fresh_page._restore_form_state(state)
+            self.assertEqual([row["default_line_id"] for row in fresh_page._heat_rows["heat"]], ["heat-1", "heat-3"])
+            self.assertEqual([row["default_line_id"] for row in fresh_page._output_electricity_rows], ["exported-electricity-1", "exported-electricity-3"])
+            self.assertEqual(fresh_page._add_heat_row("heat")["default_line_id"], "heat-4")
+            self.assertEqual(fresh_page._add_output_electricity_row()["default_line_id"], "exported-electricity-4")
+        finally:
+            fresh_window.close()
+
+    def test_fgd_ui_keeps_multiple_components_scoped_to_each_unit(self) -> None:
+        self.page.enterprise_name.setText("多脱硫设施UI企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-FGD-001")
+        first_unit = self.page._process_rows["fgd"][0]
+        first_component, = first_unit["components"]
+        first_component["cal"].setText("10")
+        first_component["i"].setText("0.4")
+        first_component["factor_source_reference"].setText("检测报告-1")
+        first_component["carbonate_type"].setCurrentIndex(first_component["carbonate_type"].findData("car-par-c2-caco3"))
+        second_component = self.page._add_fgd_component(first_unit)
+        second_component["cal"].setText("2")
+        second_component["i"].setText("0.4")
+        second_component["factor_source_reference"].setText("检测报告-2")
+        second_component["carbonate_type"].setCurrentIndex(second_component["carbonate_type"].findData("car-par-c2-mgco3"))
+        self.page._add_process_row("fgd")
+        second_unit = self.page._process_rows["fgd"][1]
+        second_unit["components"][0]["cal"].setText("5")
+        second_unit["components"][0]["carbonate_type"].setCurrentIndex(
+            second_unit["components"][0]["carbonate_type"].findData("car-par-c2-na2co3")
+        )
+        input_value = self.page._input()
+        self.assertEqual([len(unit.components) for unit in input_value.fgd_units], [2, 1])
+        reordered_fgd = replace(
+            input_value,
+            fgd=None,
+            fgd_units=tuple(
+                replace(unit, components=tuple(reversed(unit.components)))
+                for unit in reversed(input_value.fgd_units)
+            ),
+        )
+        self.assertEqual(
+            self.page._fingerprint_business_input(input_value),
+            self.page._fingerprint_business_input(reordered_fgd),
+        )
+        outcome = self.page.calculator.calculate(input_value)
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertTrue(any(line.line_id.endswith(input_value.fgd_units[0].instance_id) for line in outcome.result.lines))
+        self.assertTrue(any(line.line_id.endswith(input_value.fgd_units[1].instance_id) for line in outcome.result.lines))
+
+    def test_ui_builds_multiple_instances_for_every_process_source(self) -> None:
+        self.page.enterprise_name.setText("全过程多实例企业")
+        self.page.boundary_confirmed.setChecked(True)
+        source_ids = {
+            "calcination": "CAR-SRC-CALCINATION-001",
+            "baking": "CAR-SRC-BAKING-001",
+            "graphitization": "CAR-SRC-GRAPHITIZATION-001",
+            "fume": "CAR-SRC-FUME-INCINERATION-001",
+            "fgd": "CAR-SRC-FGD-001",
+        }
+        values_by_prefix = {
+            "calcination": {
+                "gc": "100", "wfc": "0.01", "cc": "30", "ucc": "4", "du": "1",
+                "wfc_c": "0.002", "wvar": "0.10", "wvar_c": "0.02",
+            },
+            "baking": {
+                "bpm": "10", "bpmfc": "0.5", "bg": "100", "bgfc": "0.7", "bwt": "0.05",
+                "bp": "95", "bpfc": "0.6", "bpmvar": "10", "bgvar": "2",
+            },
+            "graphitization": {
+                "gpm": "10", "gpmfc": "0.5", "gta": "100", "gtafc": "0.7", "gwt": "0.05",
+                "gp": "95", "gpfc": "0.6", "gpmvar": "10",
+            },
+            "fume": {"q": "1000", "qvar": "10", "hm": "30", "fch": "0.02", "fox": "0.98", "duration": "1"},
+        }
+        for prefix, source_id in source_ids.items():
+            self._set_source_involved(source_id)
+            first = self.page._process_rows[prefix][0]
+            if prefix == "fgd":
+                component = first["components"][0]
+                component["cal"].setText("10")
+                component["i"].setText("45")
+                component["factor_source_reference"].setText("脱硫剂检测报告-A")
+                component["carbonate_type"].setCurrentIndex(component["carbonate_type"].findData("car-par-c2-caco3"))
+                self.page._add_fgd_component(first)
+                component = first["components"][1]
+                component["cal"].setText("2")
+                component["i"].setText("45")
+                component["factor_source_reference"].setText("脱硫剂检测报告-A")
+                component["carbonate_type"].setCurrentIndex(component["carbonate_type"].findData("car-par-c2-mgco3"))
+                second = self.page._add_process_row(prefix)
+                second_component = second["components"][0]
+                second_component["cal"].setText("5")
+                second_component["i"].setText("90")
+                second_component["factor_source_reference"].setText("脱硫剂检测报告-B")
+                second_component["carbonate_type"].setCurrentIndex(
+                    second_component["carbonate_type"].findData("car-par-c2-na2co3")
+                )
+                continue
+            for key, value in values_by_prefix[prefix].items():
+                first["fields"][key].setText(value)
+            second = self.page._add_process_row(prefix)
+            for key, value in values_by_prefix[prefix].items():
+                second["fields"][key].setText(value)
+            if prefix == "baking":
+                for key, value in {
+                    "bpm": "25", "bpmfc": "1.2", "bg": "150", "bgfc": "1", "bwt": "0.02",
+                    "bp": "110", "bpfc": "0.9", "bpmvar": "8", "bgvar": "3",
+                }.items():
+                    second["fields"][key].setText(value)
+            elif prefix == "graphitization":
+                for key, value in {
+                    "gpm": "20", "gpmfc": "1.2", "gta": "140", "gtafc": "1", "gwt": "0.02",
+                    "gp": "115", "gpfc": "0.8", "gpmvar": "8",
+                }.items():
+                    second["fields"][key].setText(value)
+            else:
+                first_field = next(iter(values_by_prefix[prefix]))
+                second["fields"][first_field].setText(str(Decimal(values_by_prefix[prefix][first_field]) * 2))
+
+        domain_input = self.page._input()
+        process_tuples = {
+            "calcination": domain_input.calcinations,
+            "baking": domain_input.bakings,
+            "graphitization": domain_input.graphitizations,
+            "fume": domain_input.fume_incinerations,
+            "fgd": domain_input.fgd_units,
+        }
+        self.assertTrue(all(len(items) == 2 for items in process_tuples.values()))
+        for prefix, items in process_tuples.items():
+            self.assertEqual(len({item.instance_id for item in items}), 2, prefix)
+            self.assertNotIn(items[0].instance_id, "\n".join(label.text() for label in self.page.findChildren(QLabel)))
+        self.assertEqual(str(domain_input.calcinations[0].gc.value), "100")
+        self.assertEqual(str(domain_input.calcinations[1].gc.value), "200")
+        self.assertEqual(str(domain_input.bakings[0].bpm.value), "10")
+        self.assertEqual(str(domain_input.bakings[1].bpm.value), "25")
+        self.assertEqual(str(domain_input.graphitizations[0].gpm.value), "10")
+        self.assertEqual(str(domain_input.graphitizations[1].gpm.value), "20")
+        self.assertEqual(str(domain_input.fume_incinerations[0].q.value), "1000")
+        self.assertEqual(str(domain_input.fume_incinerations[1].q.value), "2000")
+        self.assertEqual(domain_input.fgd_units[0].components[0].emission_factor.parameter_id, "car-par-c2-caco3")
+        self.assertEqual(domain_input.fgd_units[0].components[1].emission_factor.parameter_id, "car-par-c2-mgco3")
+        self.assertEqual(domain_input.fgd_units[1].components[0].emission_factor.parameter_id, "car-par-c2-na2co3")
+        for source_id in source_ids.values():
+            self.assertTrue(any(state.source_id == source_id and state.status is EmissionSourceStatus.INVOLVED for state in domain_input.source_states))
+
+        outcome = self.page.calculator.calculate(domain_input)
+        self.assertTrue(outcome.successful, outcome.problems)
+        expected_sources = {
+            "calcination": "CAR-SRC-CALCINATION-001",
+            "baking": "CAR-SRC-BAKING-001",
+            "graphitization": "CAR-SRC-GRAPHITIZATION-001",
+            "fume_incineration": "CAR-SRC-FUME-INCINERATION-001",
+            "fgd": "CAR-SRC-FGD-001",
+        }
+        for name, items in process_tuples.items():
+            source_id = expected_sources["fume_incineration" if name == "fume" else name]
+            rows = [line for line in outcome.result.lines if line.emission_source_id == source_id]
+            self.assertEqual(len(rows), 2, name)
+            self.assertEqual({line.line_id.rsplit(".", 1)[-1] for line in rows}, {item.instance_id for item in items})
+
+    def test_heat_and_exported_power_rows_keep_factors_and_sources_independently(self) -> None:
+        self.page.enterprise_name.setText("多能源来源UI企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-PURCHASED-HEAT-001")
+        self._set_source_involved("CAR-SRC-EXPORTED-HEAT-001")
+        self._set_source_involved("CAR-SRC-EXPORTED-ELECTRICITY-001")
+        self.page._fields["heat_amount"].setText("100")
+        self.page._fields["heat_enthalpy"].setText("2800")
+        self.page.heat_measured_factor.setText("0.11")
+        self.page.heat_factor_source_reference.setText("购热报告-A")
+        self.page._fields["exported_heat_amount"].setText("25")
+        self.page._fields["exported_heat_enthalpy"].setText("2700")
+        self.page.exported_heat_measured_factor.setText("0.12")
+        self.page.exported_heat_factor_source_reference.setText("售热报告-A")
+        self.page._add_heat_row("heat")
+        second_heat = self.page._heat_rows["heat"][1]
+        second_heat["amount"].setText("200")
+        second_heat["enthalpy"].setText("3000")
+        second_heat["measured"].setText("0.20")
+        second_heat["source"].setText("购热报告-B")
+        self.page._add_heat_row("exported_heat")
+        second_output_heat = self.page._heat_rows["exported_heat"][1]
+        second_output_heat["amount"].setText("75")
+        second_output_heat["enthalpy"].setText("2900")
+        second_output_heat["measured"].setText("0.16")
+        second_output_heat["source"].setText("售热报告-B")
+        self.page._output_electricity_rows[0]["amount"].setText("10")
+        self.page._output_electricity_rows[0]["measured"].setText("0.50")
+        self.page._output_electricity_rows[0]["source"].setText("电力报告-A")
+        self.page._add_output_electricity_row(line_id="exported-electricity-b")
+        second_power = self.page._output_electricity_rows[1]
+        second_power["amount"].setText("4")
+        second_power["measured"].setText("0.25")
+        second_power["source"].setText("电力报告-B")
+
+        input_value = self.page._input()
+        self.assertEqual([line.factor.value for line in input_value.purchased_heat], [Decimal("0.11"), Decimal("0.20")])
+        self.assertEqual([line.factor.value for line in input_value.exported_heat], [Decimal("0.12"), Decimal("0.16")])
+        self.assertEqual([line.factor.value for line in input_value.exported_electricity], [Decimal("0.50"), Decimal("0.25")])
+        self.assertIn("purchased_heat", input_value.purchased_heat[0].factor.selection_reason)
+        self.assertIn("exported_heat", input_value.exported_heat[0].factor.selection_reason)
+        outcome = self.page.calculator.calculate(input_value)
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertEqual(sum(1 for line in outcome.result.lines if line.emission_source_id == "CAR-SRC-EXPORTED-ELECTRICITY-001"), 2)
+
     def _set_source_involved(self, source_id: str) -> None:
         combo = self.page.findChild(QComboBox, f"sourceStatus_{source_id}")
         self.assertIsNotNone(combo)
@@ -307,7 +664,8 @@ class G06PageTests(unittest.TestCase):
             outcome = self.page.calculator.calculate(self.page._input())
             self.assertTrue(any(
                 problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-                and problem.field_id == f"{source_id}.fixed-carbon"
+                and problem.field_id.startswith(f"{source_id}.")
+                and problem.field_id.endswith(".fixed-carbon")
                 for problem in outcome.problems
             ))
 
@@ -320,7 +678,8 @@ class G06PageTests(unittest.TestCase):
             outcome = self.page.calculator.calculate(self.page._input())
             self.assertTrue(any(
                 problem.code == "CAR-VAL-MATERIAL-COMPONENT-KIND"
-                and problem.field_id == f"{source_id}.volatile-matter"
+                and problem.field_id.startswith(f"{source_id}.")
+                and problem.field_id.endswith(".volatile-matter")
                 for problem in outcome.problems
             ))
 
