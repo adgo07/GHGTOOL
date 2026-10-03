@@ -2,7 +2,7 @@
 
 日期：2026-10-03
 
-状态：实现及本地验证完成；等待新PR latest-head GitHub Actions与独立重新验收。
+状态：实现及本地验证完成；PR #24 已创建。初始实现head的Merge-ref Full Tests通过，PR-head Standalone Audit仍在运行；本次报告更新会形成新的PR head，最终以新head对应CI为准。之后等待独立重新验收。
 
 范围：同一核算单元下多过程/多能源来源逐项输入、逐项计算和标准汇总；RS02/RS03/Golden Freeze/第二标准不在本工作包内。
 
@@ -11,7 +11,7 @@
 - 仓库：`https://github.com/adgo07/GHGTOOL.git`；origin已核验。
 - Base / `origin/main`：`24537ba766579db17ef5012151b5cd788724afe9`，已包含PR #23合并结果。
 - 分支：`codex/ghg-rs01-b2-multi-entry-closure`，从已同步的最新`origin/main`创建。
-- 新PR：本报告编辑时待推送和创建；最终PR号与精确latest head见交付回执。为避免自引用，报告不复制包含本报告的提交SHA。
+- PR：[#24 — GHG-RS01-B2: Multi-entry Business Input Closure](https://github.com/adgo07/GHGTOOL/pull/24)，base `main`，从本包实现提交 `3c826c48870771b222e80245e964d7e77e55784c` 创建；PR当前head及最终exact-head CI以交付回执为准。报告不复制包含本报告的提交SHA，避免自引用。
 - `platform-lock.json` SHA-256：`4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D`；locked Central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`未变。
 - 按locked SHA读取Architecture V2.1 FROZEN、Numeric Contract v1 FROZEN和Numeric Profiles v1 FROZEN；读取当前ACTIVE/Evolving UI Guidelines。保持Domain不依赖UI/数据库、既有Decimal Profile/输入快照规则、中文用户提示和内部细节渐进展示。
 - 本任务沿用本仓既有Project/Workspace及不可变Record语义；中央Workspace相关DRAFT未作为Frozen Contract采用。本任务不涉及中央公共Contract，不改`platform-lock.json`、`PLATFORM_BASELINE.md`或中央内容。
@@ -49,8 +49,8 @@
 - 多行Domain独立计算/求和、UI全部过程来源组装、脱硫多设施/组分、不同热力/电力因子、删除中间行后身份恢复、Project保存重开和旧单例Project/v1 fingerprint兼容均有专门测试。
 - 历史Record测试保持通过；四数据库隔离构建与Canonical重建测试在全量回归内通过；UI缩放/无横向滚动验收测试在全量回归内通过。
 - `git diff --check`通过；Matrix逐行复核结果为26行、OK 21、GAP 0、later-stage 5、N/A独立状态0。
-- GitHub Actions：新PR创建后核对Windows / Python 3.12 Merge-ref Full Tests与PR-head Standalone Audit。最终要求两项均为success，且workflow `head_sha`精确等于新PR latest head；结果以交付回执为准。
+- GitHub Actions：初始PR head `3c826c48870771b222e80245e964d7e77e55784c` 的run #130（run ID `37090829842`）中，Windows / Python 3.12 / Merge-ref Full Tests已success，PR-head Standalone Audit检查时仍queued。报告/状态文档的本次PR更新会产生新的head；必须再确认最新head的两项作业均为success，最终结果以交付回执为准。
 
 ## 6. 后续状态
 
-RS01-B2实现及本地验证已完成，等待新PR latest-head CI及独立重新验收。RS01-B2后续独立验收前，不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。
+RS01-B2实现及本地验证已完成，PR #24等待最终latest-head CI及独立重新验收。RS01-B2后续独立验收前，不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。

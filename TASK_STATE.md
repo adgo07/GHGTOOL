@@ -12,7 +12,7 @@
 - 相关标准问题：台账已有4条历史RESOLVED解释；本任务未改变其执行口径，也未新增标准问题。
 - 预计仅更新业务实现、回归测试和B2要求的治理文档；不改SQLite schema/迁移、platform-lock或PLATFORM_BASELINE；不启动RS02/RS03、Golden Freeze或第二标准。
 
-**B2实现和本地验证完成；等待新PR latest-head GitHub Actions成功及独立重新验收。RS01-B2不代表正式SUPPORTED。**
+**B2实现和本地验证完成；PR #24 已创建。初始实现head的Merge-ref Full Tests已通过，PR-head Standalone Audit正在运行；当前治理文档同步后将验证最终latest-head GitHub Actions，再等待独立重新验收。RS01-B2不代表正式SUPPORTED。**
 
 ## 已交付范围
 
@@ -33,6 +33,6 @@
 - Dependencies：`python -m pip check`通过，No broken requirements found。
 - `test_historical_snapshot_stays_stable_after_catalog_parameter_change`、旧Project单例/v1 fingerprint、以及多过程/能源来源保存重开专项回归已通过。
 - `git diff --check`通过；Matrix逐行主状态计数为26行：OK 21、GAP 0、later-stage 5（RS02 3、RS03 1、RS04 1）、独立N/A 0。
-- GitHub Actions exact latest-head结果待PR创建后核验；最终只以新PR当前head SHA对应的Windows CI为证。
+- GitHub Actions：PR #24 初始实现head `3c826c48870771b222e80245e964d7e77e55784c` 对应run #130（run ID `37090829842`）；Merge-ref Full Tests已success，PR-head Standalone Audit仍queued。该head不是最终验证目标，因为本次治理文档同步会更新PR head；最终只以更新后PR最新head SHA对应的两项Windows作业为证。
 
-下一步：完成全量回归和Matrix计数复核，提交并推送B2分支、创建新PR、等待latest-head CI与独立重新验收。不要合并，不要启动RS02。
+下一步：提交并推送本次PR跟踪文档更新；等待更新后最新PR head的两项Windows CI成功，再等待独立重新验收。不要合并，不要启动RS02/RS03。
