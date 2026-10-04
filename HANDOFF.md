@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-03（GHG-RS01-B2）
+最后更新：2026-10-04（GHG-RS02-A）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,15 +30,15 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS01-B2 — Multi-entry Business Input Closure`；实现与本地验证已完成，PR #24等待独立重新验收；latest-head CI以PR checks为准。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- RS01-B2仅完成同一核算单元的多过程/多能源来源逐项输入、逐项计算与标准汇总；RS02/RS03、Golden Freeze和第二标准未启动。
-- 后续RS01仍须遵守：
+- 当前工作包：`GHG-RS02-A — Record Evidence & Reporting Data Closure`；实现与本地可执行验证已完成，等待本包PR的latest-head CI及独立验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- RS01已完成并合入main；RS02-A补齐新Record证据/报告数据快照及年度周期资格；RS02-B结果解释页面、RS03、Golden Freeze和第二标准均未启动。
+- 本工作包仍须遵守：
 
 ```text
 1. 用户明确启动对应工作包（一个阶段只建立一个 Goal）；
 2. 重新读取 AGENTS.md、REFERENCE_STANDARD_ROADMAP.md、TASK_STATE.md；
 3. 使用仓库内当前可追溯、已冻结的 GB/T 32151.34—2024 Standard Mapping；
-4. 确认 platform-lock.json 的 locked SHA 未变（RS01期间不得升级baseline）。
+4. 确认 platform-lock.json 的 locked SHA 未变（未经独立治理批准不得升级baseline）。
 ```
 
 - 一个阶段未完成、未形成报告或存在 BLOCKED 时，不得进入下一阶段。
@@ -179,9 +179,10 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RS01-B2 — Multi-entry Business Input Closure：
+本文件当前对应工作包 GHG-RS02-A — Record Evidence & Reporting Data Closure：
 
-- B1已关闭GAP-002/003/005/006/007/010；B2已关闭GAP-001/004/008/011；GAP-009继续作为不阻止实施的provenance debt；
-- Domain/Calculator按行计算既有多实例输入；UI/Application支持过程、烟气治理组分、输出电力及购入/输出热力多行；项目保存/重开维持身份；
-- 不修改SQLite schema/迁移、platform-lock、中央baseline或已批准标准解释；不启动RS02/RS03、Golden Freeze或第二标准；
+- 在records.sqlite采用只增列迁移持久化新Record的结构化Trace、Provenance、报告/证据与周期资格快照；不回填或重算旧Record；
+- 月度/自定义周期可照常计算并保存Record，但单独记年度报告资格ERROR；年度周期不触发该资格问题；
+- 完整普通用户结果解释页归RS02-B；RS02-B、RS03、Golden Freeze/正式支持、Windows Release及第二标准均未启动；
+- 不修改platform-lock、中央baseline或已批准标准解释；GAP-009继续作为非阻塞provenance debt；
 - 本包交付后等待latest-head CI与独立验收。

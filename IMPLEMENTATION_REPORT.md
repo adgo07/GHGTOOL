@@ -1,56 +1,47 @@
-# GHG-RS01-B2 — Multi-entry Business Input Closure
+# GHG-RS02-A — Record Evidence & Reporting Data Closure
 
-日期：2026-10-03
+状态：实施和本地可执行验证完成；等待本工作包 PR 最新提交的 Windows CI 及独立验收。RS02-B 未启动。本报告不写入自身所在提交的 Head SHA，最终验收对象由 PR 最新 Head 与 Actions 绑定。
 
-状态：RS01-B2实现与本地验证完成；PR #24 保持 open，等待独立重新验收。latest-head Windows CI以PR当前checks为准；本报告不把PR head或工作流结果写入同一个会触发CI的提交。
+## 1. 基线与平台预检查
 
-范围：同一核算单元下多过程/多能源来源逐项输入、逐项计算和标准汇总；RS02/RS03/Golden Freeze/第二标准不在本工作包内。
+- 仓库：adgo07/GHGTOOL；origin 为 https://github.com/adgo07/GHGTOOL.git。
+- Base / origin/main：8724a39cb7139aa9ae5eeeee9db7455e8be5a939，包含 PR #24 合并结果。
+- 分支：codex/ghg-rs02-a-record-evidence-closure，从当时同步的最新 origin/main 创建；初始工作区干净。
+- platform-lock.json SHA-256：4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D；locked Central SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20 未改变。
+- 按 locked SHA 对照 Architecture V2.1、Numeric Contract v1、Numeric Profiles v1 Frozen 要求。Workspace/Attempt/Record/Result v1 为 DRAFT / NOT YET RELEASED；仅作为兼容参考。本地快照不宣称为中央 Contract。本任务不涉及中央公共 Contract，不改 baseline。
+- 标准问题台账：沿用 4 条历史 RESOLVED 决策，不改变任何标准解释；未新增 Standard Issue；GAP-009 provenance debt 保持开放且非阻塞。
 
-## 1. 基线与治理预检查
+## 2. 实际变更与范围
 
-- 仓库：`https://github.com/adgo07/GHGTOOL.git`；origin已核验。
-- Base / `origin/main`：`24537ba766579db17ef5012151b5cd788724afe9`，已包含PR #23合并结果。
-- 分支：`codex/ghg-rs01-b2-multi-entry-closure`，从已同步的最新`origin/main`创建。
-- PR：[#24 — GHG-RS01-B2: Multi-entry Business Input Closure](https://github.com/adgo07/GHGTOOL/pull/24)，base `main`，从本包实现提交 `3c826c48870771b222e80245e964d7e77e55784c` 创建；PR当前head及最终exact-head CI以交付回执为准。报告不复制包含本报告的提交SHA，避免自引用。
-- `platform-lock.json` SHA-256：`4D5741A1127F3A957A0DAA5C36ED38C66622CBF089DA554A5E9AC80D3CD5E23D`；locked Central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`未变。
-- 按locked SHA读取Architecture V2.1 FROZEN、Numeric Contract v1 FROZEN和Numeric Profiles v1 FROZEN；读取当前ACTIVE/Evolving UI Guidelines。保持Domain不依赖UI/数据库、既有Decimal Profile/输入快照规则、中文用户提示和内部细节渐进展示。
-- 本任务沿用本仓既有Project/Workspace及不可变Record语义；中央Workspace相关DRAFT未作为Frozen Contract采用。本任务不涉及中央公共Contract，不改`platform-lock.json`、`PLATFORM_BASELINE.md`或中央内容。
-- `STANDARD_ISSUES_REGISTER.md`已有4条历史RESOLVED问题；未改变既有执行解释，未新增标准问题。
+- 在修改业务实现之前创建 GB_T_32151_34_2024_RS02_COVERAGE.md。逐项核对第6章、第7.1—7.6、附录B.1—B.9、必要附录D/E；正式标准 PDF 仍在仓库外。
+- Coverage Audit 共27项：EXISTING 12、DERIVED 1、SOFTWARE_DATA 11、ENTERPRISE_OFFLINE 1、RS02-B 1、LATER_STAGE 1。11项 SOFTWARE_DATA 均在本包建立本地结构化落点；企业制度、人员责任、设备维护仍按线下管理归类。
+- 新增 migrations/records/003_rs02_record_evidence.sql，仅给 records 表增加四个 JSON 快照字段；无旧行 UPDATE、backfill 或破坏性 Project migration。
+- 输入与证据：扩展标准单元输入，结构化保存可选报告主体/边界/产品工艺/排放源说明；可复用活动数据与实测因子证据块通过引用关联输入和新 Record。标准默认值使用已有标准来源，不要求企业重复登记。
+- Trace：新 Record 写入本地 trace schema v1，含来源/过程 instance identity、公式步骤、输入变量、参数引用和使用快照、标准条款/Mapping位置、Rule、逐项结果/小计、ES/EI/ET 与 calculation lines。
+- Provenance：保存标准及版本、Mapping 版本、算法版本、有效规则集快照/身份、当次 Catalog/reference-data 稳定身份、Numeric Contract/Profile 的本地来源信息；没有新增中央公共字段或 Frozen Contract。
+- 历史核验：新增 record-only 汇总验证器，读取已保存的 CalculationResult lines 和 Trace 汇总值，核对分项小计与 ES/EI/ET；不运行当前 Calculator，不查询 Catalog。
+- 年度报告资格：实现 CAR-VAL-ANNUAL-REPORT-PERIOD 的独立 report qualification。MONTHLY/CUSTOM 仍可计算并新增正式 Record，同时持久化 eligibility=false 与资格 ERROR；ANNUAL 不产生该资格 ERROR。资格校验不进入 Calculator fatal errors。
+- 历史详情：仅从 Record 快照渲染；缺 Trace 明示“该记录生成时未保存完整计算过程快照。”，其他缺项显示“历史记录未保存该信息。”。不从当前 Catalog 填补旧 Record。普通视图不展示内部证据 ID。
+- Project 兼容沿用既有 form_state，无 Project migration；保留原输入。soft delete/audit 既有机制不改。完整结果页与 B.1—B.9 UI、报告导出留给 RS02-B 或后续路线。
 
-## 2. 实际变更
+## 3. 测试、数据契约与治理同步
 
-- `packages/standards/carbon_material.py`：给五类过程实例及脱硫设施保留稳定身份；`CarbonMaterialInput`接受多实例tuple并兼容既有单例构造入口；Calculator逐实例验证/计算并汇总，错误定位到实例，任一致命错误不写成功Record。热力参数依购入/输出方向独立解析。
-- `packages/ui/carbon_material_page.py`：新增/删除煅烧、焙烧、石墨化、烟气焚烧和脱硫设施实例；脱硫设施内可逐项添加碳酸盐组分；购入/输出热力与输出电力可逐来源输入和保留适用因子、实测值、来源及结果。输入身份写入既有form state，不更改SQLite schema或Project迁移。
-- 多过程和能源行删除、表单恢复及Project保存/重开均保留稳定身份；fingerprint对身份顺序规范化，行排序不造成业务结果变化。旧单例Project及legacy v1 fingerprint可兼容读取；不重算或改写历史正式Record。
-- 错误提示保留普通中文并标明对应过程序号和需补字段。首条过程ID与旧单例稳定ID契约一致，新增行使用不复用的序列ID；行ID不出现在普通用户标签。
-- 回归变更：`tests/test_g06_carbon_material.py`、`tests/test_g06_page.py`、`tests/test_accounting_projects_ui.py`、`tests/test_uir01_field_semantics.py`。未修改Canonical参考数据或公式。
+- 新增/强化测试覆盖：Trace/Provenance/报告数据持久化与重开；实例身份；记录仅使用自身快照进行算术核验；Catalog/reference identity 保存；月度/自定义资格与年度对照；fatal error 不生成 Record；旧 Record 缺少 Trace 的兼容路径；Project form-state 保存恢复；历史展示禁查 Catalog。
+- 修正影响到的 UI / Record / Project / Domain 测试纳入 PR-head Windows CI；未修改 Canonical 数据、计算公式、Numeric Contract、Catalog schema、项目生命周期或多行结构。
+- 完整结果页和报告解释呈现归 RS02-B；RS02-B NOT STARTED。未启动 Excel、Golden Freeze、Formal Support、Release 或第二标准。
+- CORE_CHECK Matrix 为26行：OK 23、GAP 0、later-stage 3（RS02-B 1、RS03 1、RS04 1）、独立 N/A 0；审计行状态依据实现证据更新。GAPS 未修改，GAP-009 继续 non-blocking provenance debt。
+- Roadmap、HANDOFF、TASK_STATE、IMPLEMENTATION_REPORT 与 CORE_CHECK / RS02_COVERAGE 已同步 RS02-A completed / awaiting acceptance。整体标准仍 PARTIAL，不宣称 SUPPORTED。
 
-## 3. 计算与兼容边界
+## 4. 本地验证结果
 
-- 复用已有Domain/Calculator公式，不合并不同过程，不将来源平均；每个煅烧、焙烧、石墨化、烟气焚烧、脱硫设施/组分和能源行分别算出结果，再按标准汇总。
-- 多输出电力逐行使用自己的适用因子，形成逐行结果与总抵扣值。购入/输出热力分开取值；实测因子优先，无实测值时才采用适用的0.11缺省。热力焓继续使用版本化C.4/C.5 Calculator及既有R6批准的压力键解释。
-- 不重写公式、Canonical schema、reference-table架构、GUI整体设计或fingerprint多行模型；不启动Excel、RS02/RS03、Golden Freeze或第二标准。
-- Project仅扩展既有form state承载实例/行身份；无破坏性数据库迁移。历史Record的输入、参数和结果仍只读快照，按`test_historical_snapshot_stays_stable_after_catalog_parameter_change`验证不漂移。
+- 定向命令：python -m unittest tests.test_rs02_record_evidence tests.test_g06_carbon_material -v；28/28 通过。
+- 全量命令：python -m unittest discover -s tests -t . -v；在当前 bundled Python 3.12 环境运行到 135 项，11 个依赖 PySide6 的测试模块因 ModuleNotFoundError: No module named PySide6 在导入时失败。故本机全量回归未通过/未完成，不把它记为实现失败或通过；要求由 Windows/Python 3.12 CI 覆盖。
+- Canonical：python scripts/validate_canonical.py 通过，9 standards、12 sources、98 parameters、98 factors。
+- Compile：对 apps/packages/scripts/tests 下 83 个 Python 文件执行 compile(source, filename, exec) 内存语法编译，全部通过。compileall 无法写入环境受限的 __pycache__，因此不宣称 compileall 已通过。
+- Dependencies：python -m pip check 通过，No broken requirements found。
+- 新增 SQLite 记录迁移由定向持久化测试实测：创建新 Record、关闭/重开存储并比较 trace/provenance/reporting/qualification 快照通过；没有执行独立的空数据库重建专项。
+- git diff --check 在提交前执行；最终 PR-head CI 结果以 GitHub Actions 绑定的 exact head 为准。
 
-## 4. 缺口与Matrix
+## 5. 完成与停止边界
 
-- B2关闭：GAP-001（购入/输出多热源与逐行因子）、GAP-004（多过程和多来源输入/逐项求和）、GAP-008（剩余B2测试覆盖）、GAP-011（多输出电力来源及逐行因子/结果/汇总）。
-- B1已关闭：GAP-002/003/005/006/007/010。共11条登记Gap；10条关闭，唯一开放项GAP-009为非阻塞历史附件provenance debt。类型总量：IMPLEMENTATION_GAP 8、TEST_GAP 1、EVIDENCE_GAP 2、STANDARD_ISSUE 0、CENTRAL_CONTRACT_GAP 0。
-- `CORE_CHECK.md`的Standard Completeness Matrix共26行：主状态OK 21、GAP 0、later-stage 5（RS02 3、RS03 1、RS04 1）、独立N/A状态0。closed Gap保留为完成证据；未将报告/Excel/Golden/正式支持等later-stage能力计作当前完成。
-- `REFERENCE_STANDARD_ROADMAP.md`、`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、CORE_CHECK和GAPS已同步B2实施状态。整体参考标准仍为PARTIAL，不宣称正式SUPPORTED。
-
-## 5. 测试与验收
-
-- 定向核心/UI/Workspace/Record测试：80/80通过。
-- 全量命令：`python -m unittest discover -s tests -t . -v`；234/234通过，0失败、0错误、0跳过。较B1基线223项增加11项回归。
-- Canonical：`python scripts/validate_canonical.py`通过，9 standards、12 sources、98 parameters、98 factors。
-- 编译：`python -m compileall -q apps packages scripts tests`通过。
-- 依赖：`python -m pip check`通过，No broken requirements found。
-- 多行Domain独立计算/求和、UI全部过程来源组装、脱硫多设施/组分、不同热力/电力因子、删除中间行后身份恢复、Project保存重开和旧单例Project/v1 fingerprint兼容均有专门测试。
-- 历史Record测试保持通过；四数据库隔离构建与Canonical重建测试在全量回归内通过；UI缩放/无横向滚动验收测试在全量回归内通过。
-- `git diff --check`通过；Matrix逐行复核结果为26行、OK 21、GAP 0、later-stage 5、N/A独立状态0。
-- GitHub Actions历史核验：初始head `3c826c48870771b222e80245e964d7e77e55784c` 的run #130（ID `37090829842`）Merge-ref Full Tests通过；后续head `be48dc9be90ba7f811e239a44e5ac1ed42060915` 的run #131（ID `37091010125`）两项Windows作业均success。每次新提交都会触发新检查；PR #24当前head的exact-head结果以GitHub PR checks及交付回执为准。
-
-## 6. 后续状态
-
-RS01-B2实现及本地验证已完成；PR #24保持open，等待独立重新验收。提交后须确认PR当前head的两项Windows作业均success；检查结果由PR checks提供，不为记录检查SHA而追加提交。独立验收前不合并PR、不启动RS02/RS03、不冻结Golden、不扩展第二标准。
+GHG-RS02-A 实施完成，等待独立重新验收。本包不合并 PR；RS02-B NOT STARTED；GB/T 32151.34—2024 标准状态 NOT SUPPORTED。

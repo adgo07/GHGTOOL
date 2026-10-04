@@ -372,6 +372,22 @@ class G07UiTests(unittest.TestCase):
         self.assertNotIn("原始输入快照字段：", detail)
         self.assertTrue(self.records_page.detail_text.isReadOnly())
 
+    def test_legacy_record_explicitly_reports_missing_trace_without_catalog_lookup(self) -> None:
+        legacy = _record("record.ui.legacy-trace")
+        self.repository.create(legacy)
+        self.records_page.search_input.setText(legacy.record_id)
+        self.application.processEvents()
+        with patch(
+            "packages.persistence.catalog_repository.SQLiteCatalogRepository",
+            side_effect=AssertionError("historical record rendering must not look up the current catalog"),
+        ):
+            self.records_page.refresh_records()
+            self.application.processEvents()
+        detail = self.records_page.detail_text.toPlainText()
+        self.assertIn("该记录生成时未保存完整计算过程快照。", detail)
+        self.assertIn("历史记录未保存该信息。", detail)
+        self.assertTrue(self.records_page.detail_text.isReadOnly())
+
     def test_historical_snapshot_stays_stable_after_catalog_parameter_change(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             catalog_path = build_catalog_database(

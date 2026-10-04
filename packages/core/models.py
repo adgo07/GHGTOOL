@@ -435,6 +435,7 @@ class ParameterSnapshot:
     source_location: str | None = None
     factor_year: int | None = None
     detail_id: str | None = None
+    evidence_ref_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _require_enum(self.selection_method, ParameterSelectionMethod, "selection_method")
@@ -461,6 +462,10 @@ class ParameterSnapshot:
             raise DomainValidationError("factor_year must be a positive integer")
         if self.detail_id is not None:
             _require_id(self.detail_id, "detail_id")
+        evidence_ids = _normalize_tuple(self.evidence_ref_ids, "evidence_ref_ids")
+        for evidence_id in evidence_ids:
+            _require_id(evidence_id, "evidence_ref_id")
+        object.__setattr__(self, "evidence_ref_ids", evidence_ids)
 
 
 class RecordStatus(str, Enum):

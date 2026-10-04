@@ -391,6 +391,41 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual([str(item.factor.value) for item in domain_input.exported_electricity], ["0.50", "0.25"])
         self.assertEqual(self.page._add_process_row("calcination")["instance_id"], "calcination-4")
 
+    def test_report_data_and_reusable_evidence_restore_from_project_form_state(self) -> None:
+        self.page.project_name.setText("报告资料恢复项目")
+        self.page.enterprise_name.setText("报告资料企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page.report_data_toggle.setChecked(True)
+        self.page.reporting_fields["industry"].setText("炭素材料制造")
+        self.page.reporting_fields["social_credit_code"].setText("913300000000000000")
+        self.page.activity_evidence_fields["source_reference"].setText("燃料台账第2页")
+        self.page.activity_evidence_fields["monitoring_method"].setText("连续计量")
+        self.page.activity_evidence_sources[F01].setChecked(True)
+        self.page.factor_evidence_fields["source_reference"].setText("燃料检测报告第4页")
+        self.page.factor_evidence_fields["testing_method"].setText("实验室检测")
+        self.page.factor_evidence_sources[F01].setChecked(True)
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        self.assertTrue(self.page.report_data_toggle.isChecked())
+        self.assertEqual(self.page.reporting_fields["social_credit_code"].text(), "913300000000000000")
+        self.assertEqual(self.page.activity_evidence_fields["source_reference"].text(), "燃料台账第2页")
+        self.assertTrue(self.page.activity_evidence_sources[F01].isChecked())
+        input_value = self.page._input()
+        self.assertEqual(input_value.reporting_data.industry, "炭素材料制造")
+        self.assertEqual(input_value.reporting_data.activity_evidence[0].source_reference, "燃料台账第2页")
+        self.assertEqual(input_value.reporting_data.measured_factor_evidence[0].testing_method, "实验室检测")
+        self.assertEqual(input_value.reporting_data.activity_evidence[0].source_ids, (F01,))
+
     def test_legacy_singleton_project_and_v1_fingerprint_migrate_without_stale_result(self) -> None:
         self.page.project_name.setText("旧版单过程项目")
         self.page.enterprise_name.setText("旧版单过程企业")

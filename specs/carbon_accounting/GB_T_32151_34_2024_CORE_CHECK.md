@@ -1,6 +1,6 @@
 # GB/T 32151.34—2024 Core Function Check
 
-工作包：GHG-RS01-B2 — Multi-entry Business Input Closure；日期：2026-10-03。范围为同一核算单元内多过程/多能源来源的逐项输入、逐项计算和标准汇总；不启动RS02、RS03、Golden Freeze或第二标准。
+RS01核心核对及RS02-A记录证据收口；更新：2026-10-04。RS01-B2已并入main；本次补充新Record的Trace/Provenance/报告数据快照与周期资格证据，不重做完整结果页、不启动RS02-B、RS03、Golden Freeze或第二标准。
 
 ## 1. 专业依据与执行基线
 
@@ -67,18 +67,28 @@
 | C.3电力/热力因子 | §9.4 | 电力目录/热力0.11及实测值 | 能源来源/适用因子 | Rule/Parameter门禁 | 电热helper逐行 | 来源快照 | 多来源UI/Record | test_heat_and_exported_power_rows_keep_factors_and_sources_independently/test_g05_rules | OK；GAP-001/004/011 CLOSED |
 | C.4/C.5蒸汽焓 | §9.5/9.6；决策003 | 来源/页码/R6键/锚点 | 温度/压力/焓 | 表状态边界 | steam_enthalpy | 焓/Trace | UI/Record | test_g06_carbon_material | OK；GAP-006 CLOSED |
 | D电力因子规则 | §9/12 | 电力目录/Rule | 方式/属性/证明 | 非化石证据门禁 | 适用Factor | 来源/快照 | UI/Record | test_g05_rules/test_g06_page | OK |
-| 6数据质量管理 | §12/15 | 参数来源快照 | 现有证据字段 | 审计链完善RS02 | N/A — 管理要求无独立公式 | RS02 | RS02审计呈现 | GAP-008 | RS02 |
-| 7、B报告内容/表B.1～B.9 | §13 | 已有参数快照 | 核算输入字段 | 基础门禁 | N/A — 报告无新增计算式 | RS02 | 非全套导出 | GAP-008 | RS02 |
-| 7.3年度报告期间与总量单位 | §13 | 年度报告期/ tCO2 | 核算年度 | 年度报告期间Rule | N/A — 报告要求，无独立公式 | 年度ET / tCO2 | RS02正式报告呈现 | test_g07_records | RS02 |
+| 6数据质量管理 | §12/15 | 报告/证据快照 | 可复用活动/实测证据 | 证据与报告资格独立校验 | N/A — 管理要求无独立公式 | 质量说明/Trace | 新Record报告快照；说明呈现RS02-B | test_rs02_record_evidence | OK；RS02-B补普通用户解释 |
+| 7、B报告内容/表B.1～B.9 | §13 | 报告/参数快照 | 可选主体与报告说明 | 年度资格独立校验 | N/A — 报告无新增计算式 | ES/EI/ET、逐项Trace与证据快照 | Record已持久化；完整结果页RS02-B | test_rs02_record_evidence/test_g07_records | RS02-B |
+| 7.3年度报告期间与总量单位 | §13；CAR-VAL-ANNUAL-REPORT-PERIOD | 已存期间 | 年度资格快照 | 月度/自定义报告资格ERROR，不阻断核算 | N/A — 报告资格，无独立公式 | 年度ET/tCO2、资格状态 | Record资格快照 | test_rs02_record_evidence | OK；报告说明页RS02-B |
 | B.8/B.9数据表Excel适配 | §13/15 | 同一Canonical输入 | RS03 | RS03 | N/A — 复用同一Calculator | RS03 | RS03 | RS03 | RS03 |
 | 标准完整支持与正式验收 | §16 | 版本化来源 | 完整企业案例Candidate | RS04 | 现有Calculator | RS04 | RS04 Golden Candidate | RS04 | RS04 |
 
-Matrix共26行：OK 21；GAP 0；N/A独立状态0；later-stage 5（RS02 3、RS03 1、RS04 1）。列内N/A均附原因。RS01-B1已关闭002/003/005/006/007/010；RS01-B2已关闭001/004/008/011。GAP-009保留为不阻塞实施的provenance debt。
+Matrix共26行：OK 23；GAP 0；N/A独立状态0；later-stage 3（RS02-B 1、RS03 1、RS04 1）。列内N/A均附原因。RS01-B1已关闭002/003/005/006/007/010；RS01-B2已关闭001/004/008/011；RS02-A补齐第6章及报告数据快照和年度资格。GAP-009保留为不阻塞实施的provenance debt。
 
-## 3. 总体判断
+## 3. RS02-A 记录证据与报告数据收口
+
+- Coverage Audit 共27项：EXISTING 12、DERIVED 1、SOFTWARE_DATA 11、ENTERPRISE_OFFLINE 1、RS02-B 1、LATER_STAGE 1。11项 SOFTWARE_DATA 均已建立本地结构化落点；第6章制度/人员/设备治理不扩成企业管理系统。
+- records.sqlite 通过只增列的 003_rs02_record_evidence.sql 保存新Record的 trace、provenance、reporting/evidence 与 qualification JSON；迁移没有回填或更新历史行。
+- 新Record trace schema v1 固化逐项来源与稳定实例ID、输入变量、参数引用/快照、公式步骤、条款/Mapping定位、分项/小计及 ES/EI/ET。Provenance 固化标准、冻结Mapping、算法、规则集身份、参考数据身份及Numeric Profile来源。
+- 活动数据与企业实测因子证据块可复用并通过引用固定到新Record；标准默认值不要求重复登记来源。可选报告主体及核算边界/产品工艺/排放源说明与Project既有表单状态一起保存。
+- 月度/自定义周期继续成功计算并保存Record，独立保存 CAR-VAL-ANNUAL-REPORT-PERIOD 报告资格错误；年度周期不触发该资格错误。报告资格不进入Calculator致命错误集合。
+- 旧Record不补算、不覆写、不查当前Catalog；缺失Trace明确显示“该记录生成时未保存完整计算过程快照。”。历史算术核对仅使用已保存的Trace与CalculationResult，不调用当前Calculator或Catalog。
+- 仅建立报告/证据数据落点和只读记录快照；RS02-B完整结果解释页与B.1～B.9呈现仍未启动。本地本次验证及Windows exact-head CI见 IMPLEMENTATION_REPORT.md 与PR检查。
+
+## 4. 总体判断
 
 - RS01-B1与B2实现了标准核心输入、逐项计算、来源快照和聚合；B2的多过程/多能源输入及对应GAP-001/004/008/011回归证据已补齐。
 - C.4/C.5完整表和查表/插值仍由版本化Domain Calculator执行；R6批准的压力键解释可追溯，原文异常仍保留，不称官方勘误。
 - GAP-009仍记录历史批准附件provenance debt；冻结Mapping、G06 Git历史和正式验收记录证明当前执行口径，不阻止实施且不要求重新确认既有解释。
 - 历史正式Record只读展示既有输入、参数与结果快照，不按当前Catalog或Calculator重算；B2项目兼容和历史快照回归通过。
-- 正式年度报告与完整结果解释归RS02；Excel归RS03；Golden Freeze、正式SUPPORTED及Release Gate归RS04/RS05。RS01-B2之后仍需独立验收；本表不宣称标准已SUPPORTED。
+- 年度报告资格与必要证据已在RS02-A形成持久化落点；完整结果解释页归RS02-B，Excel归RS03，Golden Freeze、正式SUPPORTED及Release Gate归RS04/RS05。本表不宣称标准已SUPPORTED。
