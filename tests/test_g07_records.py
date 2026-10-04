@@ -290,7 +290,7 @@ class G07UiTests(unittest.TestCase):
         self.assertEqual(self.records_page.record_list.count(), 1)
         self.assertTrue(self.records_page.detail_text.isReadOnly())
         self.assertIn("record.ui.two", self.records_page.detail_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.records_page.detail_text.toPlainText())
+        self.assertIn("G07 测试选择理由", self.records_page.parameter_text.toPlainText())
         self.assertIsNotNone(self.home_page.findChild(QLabel, "bodyText"))
 
     def test_leaving_uncomputed_page_preserves_every_input_without_confirmation(self) -> None:
@@ -354,7 +354,7 @@ class G07UiTests(unittest.TestCase):
         self.records_page.search_input.setText("record.ui.snapshot")
         self.application.processEvents()
         detail = self.records_page.detail_text.toPlainText()
-        self.assertIn("标准编号（稳定ID）：gbt_32151_34_2024", detail)
+        self.assertIn("标准编号（稳定 ID）：gbt_32151_34_2024", detail)
         self.assertIn("标准版本：2024", detail)
         self.assertIn("【活动数据】", detail)
         self.assertIn("【排放源】", detail)

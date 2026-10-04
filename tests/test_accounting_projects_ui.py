@@ -559,6 +559,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         fuel.activity.setText("10")
         fuel.carbon.setText("0.2")
         fuel.oxidation.setText("98")
+        fuel.source_reference.setText("报告资料变化测试燃料实测报告")
         self.page.reporting_fields["industry"].setText("首次填写行业")
         self.page._run_calculation()
         first_record = self.records.list_all()[0]
