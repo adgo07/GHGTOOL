@@ -396,7 +396,7 @@ class SQLiteRecordRepository:
         value = _load_json(row["effective_rule_set_json"], "effective_rule_set_json")
         return value if isinstance(value, dict) else {"value": value}
 
-    def _get_snapshot(self, record_id: str, column: str) -> dict[str, Any] | None:
+    def _get_snapshot(self, record_id: str, column: str) -> object | None:
         allowed = {
             "trace_snapshot_json", "provenance_snapshot_json", "reporting_snapshot_json",
             "report_qualification_json",
@@ -414,21 +414,55 @@ class SQLiteRecordRepository:
         if row is None:
             return None
         value = _load_json(row[column], column)
-        if not isinstance(value, dict) or not value:
-            return None
-        return value
+        return {} if value is None else value
 
-    def get_trace_snapshot(self, record_id: str) -> dict[str, Any] | None:
+    def get_trace_snapshot(self, record_id: str) -> object | None:
         return self._get_snapshot(record_id, "trace_snapshot_json")
 
-    def get_provenance_snapshot(self, record_id: str) -> dict[str, Any] | None:
+    def get_provenance_snapshot(self, record_id: str) -> object | None:
         return self._get_snapshot(record_id, "provenance_snapshot_json")
 
-    def get_reporting_snapshot(self, record_id: str) -> dict[str, Any] | None:
+    def get_reporting_snapshot(self, record_id: str) -> object | None:
         return self._get_snapshot(record_id, "reporting_snapshot_json")
 
-    def get_report_qualification(self, record_id: str) -> dict[str, Any] | None:
+    def get_report_qualification(self, record_id: str) -> object | None:
         return self._get_snapshot(record_id, "report_qualification_json")
+
+    def get_snapshot_schema_version(self, record_id: str) -> int:
+        """Return 1 when this record contains post-RS02-A detail snapshots."""
+
+        connection = self._connection()
+        try:
+            row = connection.execute(
+                "SELECT input_snapshot_json, raw_input_snapshot_json, trace_snapshot_json, "
+                "provenance_snapshot_json, reporting_snapshot_json, report_qualification_json "
+                "FROM accounting_records WHERE record_id = ? AND deleted_at IS NULL",
+                (record_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return 0
+        raw_input = row["raw_input_snapshot_json"]
+        if raw_input not in (None, "", "{}"):
+            try:
+                raw_value = _load_json(raw_input, "raw_input_snapshot_json")
+                input_value = _load_json(row["input_snapshot_json"], "input_snapshot_json")
+            except RecordRepositoryError:
+                return 1
+            if raw_value not in (None, {}) and raw_value != input_value:
+                return 1
+        for column in (
+            "trace_snapshot_json", "provenance_snapshot_json", "reporting_snapshot_json",
+            "report_qualification_json",
+        ):
+            try:
+                value = _load_json(row[column], column)
+            except RecordRepositoryError:
+                return 1
+            if value not in (None, {}):
+                return 1
+        return 0
 
     def delete(self, record_id: str, *, actor: str, reason: str) -> bool:
         if not isinstance(actor, str) or not actor.strip():

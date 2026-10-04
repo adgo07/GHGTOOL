@@ -1,12 +1,12 @@
-# 当前 UI 状态盘点
+# UI 状态盘点与闭环更新
 
 任务：`Qingzhou Desktop UI Guidelines v0.1` 配套 UI Audit  
 Execution base：`main@29f8718064e6038afd2407f7eb0566b6c31132a8`  
 Reference Standard：`GB/T 32151.34—2024 温室气体排放核算与报告要求 第34部分：炭素材料生产企业`  
-状态：**AUDIT ONLY / 只盘点，不修改 UI**
+状态：初始盘点为 **AUDIT ONLY**；RS02-B 对登记项的闭环状态见第 7.2 节。
 文件定位：**专项 UI 盘点证据**，不是当前整体产品路线
 
-> 本文件只记录当前默认分支真实 UI 状态。不得由本 Audit 自动修改 Calculator、数据库、Excel、正式 UI、Mapping、其他行业标准或 Frozen Contract。
+> 第 1–6 节记录初始 UI Audit 的观察基线；不得把历史观察误作当前实现状态。RS02-B 的有限整改及证据只更新在第 7.2 节，不扩展其他路线。
 >
 > 本文件**不是** Roadmap。产品级路线以 `REFERENCE_STANDARD_ROADMAP.md` 为唯一权威；本文件登记的问题按该 Roadmap 第 9 节归入对应阶段，不再派生独立的 UIR05～UIRxx 平行路线。
 
@@ -22,7 +22,7 @@ Reference Standard：`GB/T 32151.34—2024 温室气体排放核算与报告要�
 - `packages/ui/carbon_material_page.py`
 - 当前 field specs / typed input / source card 展示链。
 
-本轮没有修改任何 `.py`、QSS 或数据库。源码能够确认信息架构和可见文案，但真实 Windows 高 DPI、字体截断和多分辨率视觉表现仍应在后续 UI Design/Acceptance 用运行态验证。
+初始 Audit 未修改 `.py`、QSS 或数据库。源码能够确认信息架构和可见文案；RS02-B 对结果/Record视图的改动由第 7.2 节记录。高 DPI、字体截断和多分辨率视觉表现仍需 Windows 运行态验证。
 
 ## 2. A — 技术栈
 
@@ -211,6 +211,16 @@ AppShell：`packages/ui/shell.py::AppShell`，采用固定左侧导航 + `QStack
 
 本文件只保有登记与归属，不派生 UIR05～UIRxx 平行路线，也不授权自动重构。
 
+### 7.2 RS02-B 闭环状态
+
+| 登记项 | 状态 | RS02-B处理与证据 |
+|---|---|---|
+| `GHG-UI-001` | 已闭环（源码/回归） | 成功核算后自动滚动到结果卡片，用户无需从长输入页底部寻找结果；以 `tests/test_uir04_finalization.py` 与 exact-head Windows UI CI 验证。 |
+| `GHG-UI-002` | 已闭环（结果和Record普通层） | 普通结果摘要、首页和Record列表/详情使用中文业务名称；稳定ID、Rule、Trace保留在默认折叠的专业信息中。 |
+| `GHG-UI-005` | 已闭环（结果和Record普通层） | 普通摘要以直接排放、净间接排放、含间接排放总量表达，不要求用户理解ES/EI/ET；标准符号保留在专业详情。 |
+
+RS02-B 状态复核只覆盖上述结果/Record普通层，不代表全软件所有模块均无内部字段，也不关闭 GHG-UI-003/004。对应 UI 与记录测试：`tests/test_uir04_finalization.py`、`tests/test_g06_page.py`、`tests/test_rs02_record_evidence.py`、`tests/test_accounting_projects_ui.py`；本机缺少 PySide6，Windows exact-head CI负责真实 Qt 运行态回归。
+
 ## 8. 正向设计记录
 
 以下现有做法值得保留并在其他仓后续设计中参考：
@@ -241,8 +251,8 @@ GB/T 32151.34—2024 温室气体排放核算与报告要求 第34部分：炭�
 完成一次业务所需主要页面数：
 1 个主要长页面（通过排放源卡片、纵向滚动和渐进展开完成）
 
-当前普通 UI 是否暴露内部字段：
-YES
+RS02-B结果/Record普通层是否暴露内部字段：
+NO（专业详情默认折叠）
 
 当前是否存在明显过度拆页：
 NO
@@ -258,12 +268,12 @@ PARTIAL
 
 P0 数量：
 0
-P1 数量：
-1
-P2 数量：
-3
-P3 数量：
-1
+当前未关闭P1数量：
+0
+当前未关闭P2数量：
+2（GHG-UI-003、GHG-UI-004）
+当前未关闭P3数量：
+0
 ```
 
 本盘点完成后停止；不得由本文件自动进入 UI 重构阶段。
