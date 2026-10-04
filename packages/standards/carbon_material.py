@@ -7,11 +7,13 @@ record boundary used by G06.  Qt and SQLite adapters live outside this module.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Mapping, Sequence
+import hashlib
+import json
+from typing import Callable, Mapping, Sequence
 from uuid import uuid4
 
 from packages.core.decimal_policy import DecimalPolicy
@@ -156,6 +158,7 @@ class InputValue:
     source_type: ActivityDataSource = ActivityDataSource.MANUAL
     source_level: ActivitySourceLevel = ActivitySourceLevel.PRIMARY
     source_reference: str | None = None
+    evidence_ref_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         policy = DecimalPolicy()
@@ -168,6 +171,10 @@ class InputValue:
             raise DomainValidationError("source_level must be an ActivitySourceLevel")
         if self.source_reference is not None and not self.source_reference.strip():
             raise DomainValidationError("source_reference cannot be blank")
+        evidence_ids = tuple(self.evidence_ref_ids)
+        if any(not isinstance(item, str) or not item.strip() for item in evidence_ids):
+            raise DomainValidationError("evidence_ref_ids must contain nonblank identifiers")
+        object.__setattr__(self, "evidence_ref_ids", evidence_ids)
         object.__setattr__(self, "unit", self.unit.strip())
 
 
@@ -183,6 +190,7 @@ class ParameterValue:
     selection_reason: str = "按 GB/T 32151.34-2024 映射采用。"
     factor_id: str | None = None
     factor_year: int | None = None
+    evidence_ref_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.parameter_id, str) or not self.parameter_id.strip():
@@ -200,7 +208,129 @@ class ParameterValue:
             raise DomainValidationError("selection_reason is required")
         if self.factor_year is not None and self.factor_year < 1:
             raise DomainValidationError("factor_year must be positive")
+        evidence_ids = tuple(self.evidence_ref_ids)
+        if any(not isinstance(item, str) or not item.strip() for item in evidence_ids):
+            raise DomainValidationError("evidence_ref_ids must contain nonblank identifiers")
+        object.__setattr__(self, "evidence_ref_ids", evidence_ids)
         object.__setattr__(self, "unit", self.unit.strip())
+
+
+@dataclass(frozen=True, slots=True)
+class ActivityDataEvidence:
+    """Reusable, standard-specific evidence for activity-data provenance."""
+
+    evidence_id: str
+    applies_to: str
+    source_ids: tuple[str, ...] = ()
+    source_reference: str | None = None
+    monitoring_location: str | None = None
+    monitoring_method: str | None = None
+    instrument: str | None = None
+    accuracy: str | None = None
+    recording_frequency: str | None = None
+    acquisition_time: str | None = None
+    note: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_instance_id(self.evidence_id)
+        if not self.applies_to.strip():
+            raise DomainValidationError("activity evidence scope is required")
+        source_ids = tuple(self.source_ids)
+        for source_id in source_ids:
+            _validate_instance_id(source_id)
+        if len(source_ids) != len(set(source_ids)):
+            raise DomainValidationError("activity evidence source IDs must be unique")
+        object.__setattr__(self, "source_ids", source_ids)
+
+
+@dataclass(frozen=True, slots=True)
+class MeasuredFactorEvidence:
+    """Reusable sampling/testing evidence for measured or user-defined factors."""
+
+    evidence_id: str
+    applies_to: str
+    source_ids: tuple[str, ...] = ()
+    source_reference: str | None = None
+    sampling_method: str | None = None
+    sampling_frequency: str | None = None
+    testing_method: str | None = None
+    testing_frequency: str | None = None
+    referenced_standard: str | None = None
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_instance_id(self.evidence_id)
+        if not self.applies_to.strip():
+            raise DomainValidationError("measured factor evidence scope is required")
+        source_ids = tuple(self.source_ids)
+        for source_id in source_ids:
+            _validate_instance_id(source_id)
+        if len(source_ids) != len(set(source_ids)):
+            raise DomainValidationError("measured factor evidence source IDs must be unique")
+        object.__setattr__(self, "source_ids", source_ids)
+
+
+@dataclass(frozen=True, slots=True)
+class CarbonReportingData:
+    """Optional report-oriented information fixed in each new record snapshot."""
+
+    organization_nature: str | None = None
+    industry: str | None = None
+    social_credit_code: str | None = None
+    legal_representative: str | None = None
+    preparer_name: str | None = None
+    preparer_contact: str | None = None
+    boundary_description: str | None = None
+    products_and_process: str | None = None
+    emission_source_identification: str | None = None
+    other_report_information: str | None = None
+    activity_evidence: tuple[ActivityDataEvidence, ...] = ()
+    measured_factor_evidence: tuple[MeasuredFactorEvidence, ...] = ()
+
+    def __post_init__(self) -> None:
+        for name in (
+            "organization_nature", "industry", "social_credit_code", "legal_representative",
+            "preparer_name", "preparer_contact", "boundary_description", "products_and_process",
+            "emission_source_identification", "other_report_information",
+        ):
+            value = getattr(self, name)
+            if value is not None and not isinstance(value, str):
+                raise DomainValidationError(f"{name} must be text")
+        activity = tuple(self.activity_evidence)
+        factors = tuple(self.measured_factor_evidence)
+        if any(not isinstance(item, ActivityDataEvidence) for item in activity):
+            raise DomainValidationError("activity_evidence must contain ActivityDataEvidence values")
+        if any(not isinstance(item, MeasuredFactorEvidence) for item in factors):
+            raise DomainValidationError("measured_factor_evidence must contain MeasuredFactorEvidence values")
+        ids = tuple(item.evidence_id for item in (*activity, *factors))
+        if len(ids) != len(set(ids)):
+            raise DomainValidationError("evidence IDs must be unique within reporting data")
+        object.__setattr__(self, "activity_evidence", activity)
+        object.__setattr__(self, "measured_factor_evidence", factors)
+
+
+def _attach_evidence_references(value: object, activity_ids: tuple[str, ...], factor_ids: tuple[str, ...]) -> object:
+    """Copy shared evidence references into source values without changing values."""
+    if isinstance(value, InputValue) and activity_ids:
+        return replace(value, evidence_ref_ids=tuple(dict.fromkeys((*value.evidence_ref_ids, *activity_ids))))
+    if isinstance(value, ParameterValue) and value.source_kind in {
+        ParameterSourceKind.MEASURED, ParameterSourceKind.USER_DEFINED,
+    } and factor_ids:
+        return replace(value, evidence_ref_ids=tuple(dict.fromkeys((*value.evidence_ref_ids, *factor_ids))))
+    if isinstance(value, tuple):
+        return tuple(_attach_evidence_references(item, activity_ids, factor_ids) for item in value)
+    if isinstance(value, list):
+        return [_attach_evidence_references(item, activity_ids, factor_ids) for item in value]
+    if isinstance(value, dict):
+        return {key: _attach_evidence_references(item, activity_ids, factor_ids) for key, item in value.items()}
+    if is_dataclass(value) and not isinstance(value, type):
+        updates = {
+            item.name: _attach_evidence_references(getattr(value, item.name), activity_ids, factor_ids)
+            for item in dataclass_fields(value)
+        }
+        if any(updates[item.name] is not getattr(value, item.name) for item in dataclass_fields(value)):
+            return replace(value, **updates)
+    return value
 
 
 def _coerce_input(value: object, default_unit: str) -> InputValue | None:
@@ -209,7 +339,7 @@ def _coerce_input(value: object, default_unit: str) -> InputValue | None:
     if isinstance(value, InputValue):
         return value
     if isinstance(value, ParameterValue):
-        return InputValue(value.value, value.unit)
+        return InputValue(value.value, value.unit, evidence_ref_ids=value.evidence_ref_ids)
     return InputValue(value, default_unit)  # type: ignore[arg-type]
 
 
@@ -245,6 +375,7 @@ def _coerce_parameter(
             source_version=MAPPING_VERSION,
             source_location=source_location,
             selection_reason="采用企业输入的实测/活动数据参数。",
+            evidence_ref_ids=value.evidence_ref_ids,
         )
     return ParameterValue(parameter_id, value, default_unit, source_location=source_location)  # type: ignore[arg-type]
 
@@ -571,6 +702,7 @@ class CarbonMaterialInput:
     graphitizations: tuple[GraphitizationInput, ...] = ()
     fume_incinerations: tuple[FumeIncinerationInput, ...] = ()
     fgd_units: tuple[FGDInput, ...] = ()
+    reporting_data: CarbonReportingData = CarbonReportingData()
 
     def __post_init__(self) -> None:
         for field in ("input_id", "enterprise_id", "enterprise_name"):
@@ -579,6 +711,8 @@ class CarbonMaterialInput:
                 raise DomainValidationError(f"{field} is required")
         if not isinstance(self.period, AccountingPeriod):
             raise DomainValidationError("period must be an AccountingPeriod")
+        if not isinstance(self.reporting_data, CarbonReportingData):
+            raise DomainValidationError("reporting_data must be CarbonReportingData")
         if not isinstance(self.boundary_confirmed, bool):
             raise DomainValidationError("boundary_confirmed must be bool")
         object.__setattr__(self, "boundary_component_ids", tuple(self.boundary_component_ids))
@@ -619,6 +753,43 @@ class CarbonMaterialInput:
             raise DomainValidationError("electricity detail IDs must be unique")
         if len({item.line_id for item in (*self.exported_electricity, *self.purchased_heat, *self.exported_heat)}) != len((*self.exported_electricity, *self.purchased_heat, *self.exported_heat)):
             raise DomainValidationError("energy line IDs must be unique")
+        input_sources = {
+            "fuel_inputs": SOURCE_FUEL,
+            "calcinations": SOURCE_CALCINATION,
+            "bakings": SOURCE_BAKING,
+            "graphitizations": SOURCE_GRAPHITIZATION,
+            "fume_incinerations": SOURCE_FUME,
+            "fgd_units": SOURCE_FGD,
+            "electricity_details": SOURCE_PURCHASED_ELECTRICITY,
+            "exported_electricity": SOURCE_EXPORTED_ELECTRICITY,
+            "purchased_heat": SOURCE_PURCHASED_HEAT,
+            "exported_heat": SOURCE_EXPORTED_HEAT,
+        }
+        for name, source_id in input_sources.items():
+            activity_ids = tuple(
+                item.evidence_id for item in self.reporting_data.activity_evidence
+                if source_id in item.source_ids and any((item.source_reference, item.monitoring_location,
+                    item.monitoring_method, item.instrument, item.accuracy, item.recording_frequency,
+                    item.acquisition_time, item.note))
+            )
+            factor_ids = tuple(
+                item.evidence_id for item in self.reporting_data.measured_factor_evidence
+                if source_id in item.source_ids and any((item.source_reference, item.sampling_method,
+                    item.sampling_frequency, item.testing_method, item.testing_frequency,
+                    item.referenced_standard, item.reason))
+            )
+            object.__setattr__(
+                self,
+                name,
+                _attach_evidence_references(getattr(self, name), activity_ids, factor_ids),
+            )
+        for plural_name, legacy_name in (
+            ("calcinations", "calcination"), ("bakings", "baking"),
+            ("graphitizations", "graphitization"), ("fume_incinerations", "fume_incineration"),
+            ("fgd_units", "fgd"),
+        ):
+            items = getattr(self, plural_name)
+            object.__setattr__(self, legacy_name, items[0] if items else None)
 
     def status_for(self, source_id: str, payload_present: bool) -> EmissionSourceStatus:
         explicit = next((item.status for item in self.source_states if item.source_id == source_id), None)
@@ -636,6 +807,19 @@ class CalculationTrace:
     substitution: str
     amount: Decimal
     unit: str = "tCO2"
+    instance_id: str | None = None
+    standard_location: str | None = None
+    mapping_location: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ReportQualification:
+    rule_id: str
+    eligible: bool
+    level: str
+    code: str | None
+    message: str
+    scope: str = "annual_period_only"
 
 
 @dataclass(frozen=True, slots=True)
@@ -647,6 +831,7 @@ class CarbonMaterialCalculationOutcome:
     traces: tuple[CalculationTrace, ...]
     algorithm_version: str = ALGORITHM_VERSION
     record: AccountingRecord | None = None
+    report_qualification: ReportQualification | None = None
 
     @property
     def blocked(self) -> bool:
@@ -664,12 +849,57 @@ class InMemoryRecordRepository(RecordRepository):
         self._records: dict[str, AccountingRecord] = {}
         self._deleted: set[str] = set()
         self._audit: list[dict[str, object]] = []
+        self._details: dict[str, dict[str, object]] = {}
 
     def create(self, record: AccountingRecord) -> None:
         if record.record_id in self._records:
             raise DomainValidationError(f"record already exists: {record.record_id}")
         self._records[record.record_id] = record
         self._audit.append({"record_id": record.record_id, "action": "CREATE", "actor": "system"})
+
+    def create_with_details(
+        self,
+        record: AccountingRecord,
+        *,
+        raw_input: object | None = None,
+        effective_rule_set: Sequence[str] = (),
+        trace_snapshot: object | None = None,
+        provenance_snapshot: object | None = None,
+        reporting_snapshot: object | None = None,
+        report_qualification: object | None = None,
+    ) -> None:
+        self.create(record)
+        self._details[record.record_id] = {
+            "raw_input": _snapshot_value(raw_input if raw_input is not None else record.input_snapshot),
+            "effective_rule_set": {"rule_ids": tuple(sorted(set(effective_rule_set)))},
+            "trace_snapshot": _snapshot_value(trace_snapshot) if trace_snapshot else None,
+            "provenance_snapshot": _snapshot_value(provenance_snapshot) if provenance_snapshot else None,
+            "reporting_snapshot": _snapshot_value(reporting_snapshot) if reporting_snapshot else None,
+            "report_qualification": _snapshot_value(report_qualification) if report_qualification else None,
+        }
+
+    def _detail(self, record_id: str, key: str) -> dict[str, object] | None:
+        details = self._details.get(record_id)
+        value = details.get(key) if details else None
+        return value if isinstance(value, dict) else None
+
+    def get_raw_input_snapshot(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "raw_input")
+
+    def get_effective_rule_set(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "effective_rule_set")
+
+    def get_trace_snapshot(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "trace_snapshot")
+
+    def get_provenance_snapshot(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "provenance_snapshot")
+
+    def get_reporting_snapshot(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "reporting_snapshot")
+
+    def get_report_qualification(self, record_id: str) -> dict[str, object] | None:
+        return self._detail(record_id, "report_qualification")
 
     def get(self, record_id: str) -> AccountingRecord | None:
         if record_id in self._deleted:
@@ -696,6 +926,110 @@ class InMemoryRecordRepository(RecordRepository):
 
 def _d(value: str | Decimal | int) -> Decimal:
     return DecimalPolicy().parse(value)
+
+
+def _trace_variable(name: str, value: object) -> tuple[str, Decimal, str] | None:
+    if isinstance(value, (InputValue, ParameterValue)):
+        return name, value.value, value.unit
+    if isinstance(value, (Decimal, int, str)) and not isinstance(value, bool):
+        try:
+            return name, DecimalPolicy().parse(value), ""
+        except ValueError:
+            return None
+    return None
+
+
+def _snapshot_value(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, (Decimal, date, datetime)):
+        return str(value) if isinstance(value, Decimal) else value.isoformat()
+    if is_dataclass(value) and not isinstance(value, type):
+        return {item.name: _snapshot_value(getattr(value, item.name)) for item in dataclass_fields(value)}
+    if isinstance(value, dict):
+        return {str(key): _snapshot_value(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_snapshot_value(item) for item in value]
+    return value
+
+
+_TRACE_LOCATIONS = {
+    "CAR-FML-FUEL-001": ("第5.2.1条；附录C.1；附录B.2", "SM01-2026-09-13-R6 §7.2、§8、§9.2、§13.1"),
+    "CAR-FML-CALCINATION-001": ("第5.2.2条；附录B.3", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-BAKING-001": ("第5.2.3条；附录B.4", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-GRAPHITIZATION-001": ("第5.2.4条；附录B.5", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-FUME-INCINERATION-001": ("第5.2.5.1条；附录B.6", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-FGD-001": ("第5.2.5.2条；附录C.2；附录B.7", "SM01-2026-09-13-R6 §7.2、§8、§9.3、§13.1"),
+    "CAR-FML-GAS-CONTROL-TOTAL-001": ("第5.2.5.3条", "SM01-2026-09-13-R6 §7.2、§11"),
+    "CAR-FML-PURCHASED-ELECTRICITY-001": ("第5.2.6.1条；附录B.8", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-EXPORTED-ELECTRICITY-001": ("第5.2.6.1条；附录B.8", "SM01-2026-09-13-R6 §7.2、§8、§13.1"),
+    "CAR-FML-PURCHASED-HEAT-001": ("第5.2.6.2条；附录C.4/C.5；附录B.9", "SM01-2026-09-13-R6 §7.2、§8、§9.4–§9.6、§13.1"),
+    "CAR-FML-EXPORTED-HEAT-001": ("第5.2.6.2条；附录C.4/C.5；附录B.9", "SM01-2026-09-13-R6 §7.2、§8、§9.4–§9.6、§13.1"),
+    "CAR-FML-DIRECT-001": ("第5.2.7.1条；附录B.1", "SM01-2026-09-13-R6 §7.2、§11、§13.1"),
+    "CAR-FML-INDIRECT-001": ("第5.2.7.2条；附录B.1", "SM01-2026-09-13-R6 §7.2、§11、§13.1"),
+    "CAR-FML-TOTAL-001": ("第5.2.7.3条；附录B.1", "SM01-2026-09-13-R6 §7.2、§11、§13.1"),
+}
+
+
+def verify_record_aggregation(trace_snapshot: Mapping[str, object], calculation_snapshot: Mapping[str, object]) -> tuple[str, ...]:
+    """Check saved arithmetic closure using only persisted Record values."""
+    if trace_snapshot.get("trace_schema_version") != 1:
+        return ("unsupported or missing trace schema version",)
+    source = trace_snapshot.get("source_subtotals")
+    aggregate = trace_snapshot.get("aggregations")
+    if not isinstance(source, Mapping) or not isinstance(aggregate, Mapping):
+        return ("saved source subtotals or aggregates are missing",)
+    policy = DecimalPolicy()
+    try:
+        lines = calculation_snapshot.get("lines")
+        if not isinstance(lines, list):
+            return ("saved calculation lines are missing",)
+        by_source: dict[str, Decimal] = {}
+        for item in lines:
+            if not isinstance(item, Mapping):
+                continue
+            source_id = str(item.get("emission_source_id", ""))
+            by_source[source_id] = policy.add(by_source.get(source_id, Decimal("0")), str(item.get("amount")))
+        line_subtotals = {
+            "fuel": by_source.get(SOURCE_FUEL, Decimal("0")),
+            "calcination": by_source.get(SOURCE_CALCINATION, Decimal("0")),
+            "baking": by_source.get(SOURCE_BAKING, Decimal("0")),
+            "graphitization": by_source.get(SOURCE_GRAPHITIZATION, Decimal("0")),
+            "gas_control": policy.add(by_source.get(SOURCE_FUME, Decimal("0")), by_source.get(SOURCE_FGD, Decimal("0"))),
+            "purchased_electricity": by_source.get(SOURCE_PURCHASED_ELECTRICITY, Decimal("0")),
+            "purchased_heat": by_source.get(SOURCE_PURCHASED_HEAT, Decimal("0")),
+            "exported_electricity": by_source.get(SOURCE_EXPORTED_ELECTRICITY, Decimal("0")),
+            "exported_heat": by_source.get(SOURCE_EXPORTED_HEAT, Decimal("0")),
+        }
+        for key, amount in line_subtotals.items():
+            if Decimal(str(source.get(key))) != amount:
+                return (f"saved source subtotal {key} differs from persisted calculation lines",)
+        es = Decimal("0")
+        for key in ("fuel", "calcination", "baking", "graphitization", "gas_control"):
+            es = policy.add(es, str(source[key]))
+        ei = policy.subtract(
+            policy.add(str(source["purchased_electricity"]), str(source["purchased_heat"])),
+            policy.add(str(source["exported_electricity"]), str(source["exported_heat"])),
+        )
+        et = policy.add(es, ei)
+        expected = {"ES": es, "EI": ei, "ET": et}
+        for name, amount in expected.items():
+            if Decimal(str(aggregate.get(name))) != amount:
+                return (f"saved trace aggregate {name} does not close",)
+        by_id = {str(item.get("line_id")): Decimal(str(item.get("amount"))) for item in lines if isinstance(item, Mapping)}
+        stored = {
+            "ES": by_id.get("CAR-FLD-DIRECT-RESULT"),
+            "EI": by_id.get("CAR-FLD-INDIRECT-RESULT"),
+            "ET": by_id.get("CAR-FLD-TOTAL-RESULT"),
+        }
+        for name, amount in expected.items():
+            if stored[name] != amount:
+                return (f"saved calculation result {name} differs from persisted aggregation",)
+        if Decimal(str(calculation_snapshot.get("total_amount"))) != et:
+            return ("saved calculation total differs from persisted ET",)
+    except (KeyError, ValueError, ArithmeticError) as exc:
+        return (f"saved trace contains invalid arithmetic values: {exc}",)
+    return ()
 
 
 def _mul(*values: str | Decimal | int) -> Decimal:
@@ -947,13 +1281,155 @@ class CarbonMaterialCalculator:
         standard_version: str = STANDARD_VERSION,
         policy: DecimalPolicy | None = None,
         unit_service: UnitService | None = None,
+        reference_data_identity_provider: Callable[[], Mapping[str, object]] | None = None,
     ) -> None:
         self.policy = policy or DecimalPolicy()
         self.units = unit_service or UnitService(self.policy)
         self.parameter_resolver = parameter_resolver
         self.record_repository = record_repository or InMemoryRecordRepository()
         self.standard_version = standard_version
+        self.reference_data_identity_provider = reference_data_identity_provider
         self._effective_rule_ids: set[str] = set()
+
+    @staticmethod
+    def _report_qualification(period: AccountingPeriod) -> ReportQualification:
+        if period.period_type is PeriodType.ANNUAL:
+            return ReportQualification(
+                "CAR-VAL-ANNUAL-REPORT-PERIOD", True, "INFO", None,
+                "核算期间为完整年度，可进入年度标准报告资格检查。",
+            )
+        return ReportQualification(
+            "CAR-VAL-ANNUAL-REPORT-PERIOD", False, "ERROR",
+            "CAR-VAL-ANNUAL-REPORT-PERIOD",
+            "月度或自定义期间可以核算和保存记录，但不符合标准年度报告周期。",
+        )
+
+    def _effective_rule_snapshot(self) -> dict[str, object]:
+        configured = getattr(self.parameter_resolver, "rule_definitions", ()) if self.parameter_resolver else ()
+        selected = tuple(rule for rule in configured if rule.rule_id in self._effective_rule_ids)
+        body = {
+            "rule_ids": tuple(sorted(self._effective_rule_ids)),
+            "rules": _snapshot_value(selected),
+        }
+        stable = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return body | {"snapshot_identity": hashlib.sha256(stable.encode("utf-8")).hexdigest()}
+
+    def _reference_data_snapshot(self, parameter_snapshots: Sequence[ParameterSnapshot]) -> dict[str, object]:
+        if self.reference_data_identity_provider is None:
+            resolved = _snapshot_value(tuple(parameter_snapshots))
+            serialized = json.dumps(resolved, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            return {
+                "status": "CAPTURED" if parameter_snapshots else "NO_REFERENCED_PARAMETERS",
+                "identity_scope": "resolved_record_parameter_snapshots",
+                "content_sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+            }
+        try:
+            return {"status": "CAPTURED", **dict(self.reference_data_identity_provider())}
+        except Exception as exc:  # a missing optional catalog must not hide calculator outcomes
+            resolved = _snapshot_value(tuple(parameter_snapshots))
+            serialized = json.dumps(resolved, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            return {
+                "status": "FALLBACK_TO_RESOLVED_PARAMETERS",
+                "identity_scope": "resolved_record_parameter_snapshots",
+                "content_sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+                "reason": type(exc).__name__,
+            }
+
+    def _provenance_snapshot(
+        self,
+        record: AccountingRecord,
+        rule_snapshot: dict[str, object],
+        parameter_snapshots: Sequence[ParameterSnapshot],
+    ) -> dict[str, object]:
+        return {
+            "provenance_schema_version": 1,
+            "standard": {"standard_id": record.standard_id, "version": record.standard_version},
+            "mapping": {"version": MAPPING_VERSION, "status": "FROZEN"},
+            "calculator": {"algorithm_version": record.algorithm_version},
+            "effective_rule_set": rule_snapshot,
+            "reference_data": self._reference_data_snapshot(parameter_snapshots),
+            "numeric_provenance": {
+                "contract": "Qingzhou Numeric Contract v1 (project compatibility/adoption)",
+                "profile_id": "GHGTOOL_CARBON_DECIMAL40_CURRENT",
+                "precision": self.policy.precision,
+                "rounding": self.policy.rounding,
+                "display_places": self.policy.display_places,
+                "formal_comparison": "full-value exact comparison",
+                "business_epsilon": None,
+            },
+        }
+
+    def _trace_snapshot(
+        self,
+        record: AccountingRecord,
+        traces: Sequence[CalculationTrace],
+        parameter_snapshots: Sequence[ParameterSnapshot],
+        source_subtotals: Mapping[str, Decimal],
+    ) -> dict[str, object]:
+        steps: list[dict[str, object]] = []
+        configured_rules = getattr(self.parameter_resolver, "rule_definitions", ()) if self.parameter_resolver else ()
+        rule_definitions = {rule.rule_id: rule for rule in configured_rules}
+        for trace in traces:
+            standard_location, mapping_location = _TRACE_LOCATIONS.get(
+                trace.formula_id, (trace.standard_location or "", trace.mapping_location or "")
+            )
+            instance_id = trace.instance_id
+            related_parameters = [
+                item for item in parameter_snapshots
+                if item.detail_id is not None
+                and (instance_id is None or instance_id in item.detail_id or item.detail_id == trace.trace_id)
+            ]
+            rule_ids = [trace.source_id] if trace.source_id.startswith("CAR-RULE-") else sorted(self._effective_rule_ids)
+            rule_references = [
+                {
+                    "rule_id": rule_id,
+                    "source_location": (
+                        rule_definitions[rule_id].source_location
+                        if rule_id in rule_definitions
+                        else standard_location
+                    ),
+                    "mapping_location": mapping_location,
+                }
+                for rule_id in rule_ids
+            ]
+            steps.append({
+                "trace_id": trace.trace_id,
+                "process_instance_id": instance_id,
+                "formula_id": trace.formula_id,
+                "emission_source_id": trace.source_id,
+                "input_variables": [
+                    {"name": name, "value": str(value), "unit": unit}
+                    for name, value, unit in trace.variables
+                ],
+                "parameter_references": _snapshot_value(tuple(related_parameters)),
+                "rule_references": rule_references,
+                "intermediate_result": str(trace.amount),
+                "unit": trace.unit,
+                "calculation_step": trace.substitution,
+                "standard_location": trace.standard_location or standard_location,
+                "mapping_location": trace.mapping_location or mapping_location,
+            })
+        direct = Decimal("0")
+        for key in ("fuel", "calcination", "baking", "graphitization", "gas_control"):
+            direct = self.policy.add(direct, source_subtotals[key])
+        indirect = self.policy.subtract(
+            self.policy.add(source_subtotals["purchased_electricity"], source_subtotals["purchased_heat"]),
+            self.policy.add(source_subtotals["exported_electricity"], source_subtotals["exported_heat"]),
+        )
+        total = self.policy.add(direct, indirect)
+        return {
+            "trace_schema_version": 1,
+            "standard_id": record.standard_id,
+            "standard_version": record.standard_version,
+            "mapping_version": MAPPING_VERSION,
+            "calculated_at": record.created_at.isoformat(),
+            "formula_steps": steps,
+            "parameter_snapshots": _snapshot_value(tuple(parameter_snapshots)),
+            "effective_rule_ids": sorted(self._effective_rule_ids),
+            "source_subtotals": {key: str(value) for key, value in source_subtotals.items()},
+            "aggregations": {"ES": str(direct), "EI": str(indirect), "ET": str(total)},
+            "calculation_lines": _snapshot_value(record.calculation_result.lines),
+        }
 
     def _quantity(self, value: InputValue | None, expected_unit: str, field_id: str, problems: list[ValidationProblem], *, nonnegative: bool = True) -> Decimal | None:
         if value is None:
@@ -1032,6 +1508,8 @@ class CarbonMaterialCalculator:
                     factor_version=value.source_version,
                     source_location=value.source_location,
                     factor_year=value.factor_year,
+                    detail_id=field_id,
+                    evidence_ref_ids=value.evidence_ref_ids,
                 )
             )
             if value.source_kind is ParameterSourceKind.USER_DEFINED:
@@ -1202,6 +1680,7 @@ class CarbonMaterialCalculator:
         if snapshot_at.tzinfo is None:
             raise DomainValidationError("calculated_at must be timezone-aware")
         problems: list[ValidationProblem] = []
+        report_qualification = self._report_qualification(input_value.period)
         snapshots: list[ParameterSnapshot] = []
         traces: list[CalculationTrace] = []
         lines: list[CalculationLine] = []
@@ -1222,6 +1701,17 @@ class CarbonMaterialCalculator:
                 if amount is not None:
                     fuel_total += amount
                     lines.append(CalculationLine(f"{SOURCE_FUEL}.{fuel.fuel_id}", SOURCE_FUEL, CO2_ID, amount, "tCO2"))
+                    fuel_variables = tuple(
+                        item for name, value in (
+                            ("activity", fuel.activity), ("lower_heating_value", fuel.lower_heating_value),
+                            ("carbon_content", fuel.carbon_content), ("oxidation_rate", fuel.oxidation_rate),
+                        ) if (item := _trace_variable(name, value)) is not None
+                    )
+                    traces.append(CalculationTrace(
+                        fuel.fuel_id, "CAR-FML-FUEL-001", SOURCE_FUEL, fuel_variables,
+                        f"EFu = 单条燃料活动量和参数的排放结果；燃料 {fuel.fuel_id}", amount,
+                        instance_id=fuel.fuel_id,
+                    ))
             if input_value.fuel_inputs:
                 traces.append(CalculationTrace("CAR-F01", "CAR-FML-FUEL-001", SOURCE_FUEL, (("fuel_total", fuel_total, "tCO2"),), "EFu = sum(EFu(f))", fuel_total))
 
@@ -1268,7 +1758,7 @@ class CarbonMaterialCalculator:
                 if getattr(payload, "carbon_output_included_in_input", False):
                     problems.append(_problem("CAR-VAL-CARBON-OUTPUT-DUPLICATE", IssueLevel.ERROR, f"{source_id} 的碳输出已在输入/产量中重复使用。", f"{source_id}.{instance_id}"))
                 lines.append(CalculationLine(instance_line_id, source_id, CO2_ID, amount, "tCO2"))
-                traces.append(CalculationTrace(instance_line_id, formula_id, source_id, tuple((key, value, "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入；实例 {instance_id}", amount))
+                traces.append(CalculationTrace(instance_line_id, formula_id, source_id, tuple((key, value, "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入；实例 {instance_id}", amount, instance_id=instance_id))
                 total += amount
             return total
 
@@ -1296,7 +1786,11 @@ class CarbonMaterialCalculator:
                 amount = fume_incineration_emission(q, qvar, hm, fch, fox, duration)
                 line_id = "CAR-FLD-P04A-RESULT" if len(input_value.fume_incinerations) == 1 else f"CAR-FLD-P04A-RESULT.{item.instance_id}"
                 lines.append(CalculationLine(line_id, SOURCE_FUME, CO2_ID, amount, "tCO2"))
-                traces.append(CalculationTrace(line_id, "CAR-FML-FUME-INCINERATION-001", SOURCE_FUME, (), f"ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹；实例 {item.instance_id}", amount))
+                fume_variables = tuple(
+                    item_value for name, value in (("Q", q), ("QVar", qvar), ("HM", hm), ("FCh", fch), ("FOx", fox), ("T", duration))
+                    if (item_value := _trace_variable(name, value)) is not None
+                )
+                traces.append(CalculationTrace(line_id, "CAR-FML-FUME-INCINERATION-001", SOURCE_FUME, fume_variables, f"ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹；实例 {item.instance_id}", amount, instance_id=item.instance_id))
                 fume_total += amount
 
         fgd_status = self._source_check(input_value, SOURCE_FGD, bool(input_value.fgd_units), problems)
@@ -1337,13 +1831,22 @@ class CarbonMaterialCalculator:
                 amount = fgd_emission(validated)
                 line_id = "CAR-FLD-P04B-RESULT" if len(input_value.fgd_units) == 1 else f"CAR-FLD-P04B-RESULT.{unit.instance_id}"
                 lines.append(CalculationLine(line_id, SOURCE_FGD, CO2_ID, amount, "tCO2"))
-                traces.append(CalculationTrace(line_id, "CAR-FML-FGD-001", SOURCE_FGD, (), f"ED = sum(CAL×I×EF1×TR)；设施 {unit.instance_id} 内独立汇总", amount))
+                component_variables = tuple(
+                    item_value
+                    for index, component in enumerate(validated, 1)
+                    for name, value in (
+                        (f"CAL[{index}]", component.amount), (f"I[{index}]", component.carbonate_fraction),
+                        (f"EF1[{index}]", component.emission_factor), (f"TR[{index}]", component.conversion_rate),
+                    )
+                    if (item_value := _trace_variable(name, value)) is not None
+                )
+                traces.append(CalculationTrace(line_id, "CAR-FML-FGD-001", SOURCE_FGD, component_variables, f"ED = sum(CAL×I×EF1×TR)；设施 {unit.instance_id} 内独立汇总", amount, instance_id=unit.instance_id))
                 fgd_total += amount
 
         gas_total = fume_total + fgd_total
         if fume_status is EmissionSourceStatus.INVOLVED or fgd_status is EmissionSourceStatus.INVOLVED:
             lines.append(CalculationLine("CAR-FLD-GAS-CONTROL-RESULT", "CAR-SRC-GAS-CONTROL-001", CO2_ID, gas_total, "tCO2"))
-            traces.append(CalculationTrace("CAR-P04", "CAR-FML-GAS-CONTROL-TOTAL-001", "CAR-SRC-GAS-CONTROL-001", (), "EP = sum(ER) + sum(ED)", gas_total))
+            traces.append(CalculationTrace("CAR-P04", "CAR-FML-GAS-CONTROL-TOTAL-001", "CAR-SRC-GAS-CONTROL-001", (("ER subtotal", fume_total, "tCO2"), ("ED subtotal", fgd_total, "tCO2")), "EP = sum(ER) + sum(ED)", gas_total))
 
         linked_fossil_details = {
             fuel.electricity_detail_id
@@ -1407,7 +1910,7 @@ class CarbonMaterialCalculator:
                     amount = purchased_electricity_emission(quantity, resolution.result.recommended.factor.value)
                     purchased_power_total += amount
                     lines.append(CalculationLine(f"CAR-FLD-PWR-PURCHASED-RESULT.{detail.detail_id}", SOURCE_PURCHASED_ELECTRICITY, CO2_ID, amount, "tCO2"))
-                    traces.append(CalculationTrace(detail.detail_id, "CAR-FML-PURCHASED-ELECTRICITY-001", SOURCE_PURCHASED_ELECTRICITY, (("QGe", quantity, "MWh"), ("EF2", resolution.result.recommended.factor.value, resolution.result.recommended.factor.unit)), "EGe = QGe × EF2", amount))
+                    traces.append(CalculationTrace(detail.detail_id, "CAR-FML-PURCHASED-ELECTRICITY-001", SOURCE_PURCHASED_ELECTRICITY, (("QGe", quantity, "MWh"), ("EF2", resolution.result.recommended.factor.value, resolution.result.recommended.factor.unit)), "EGe = QGe × EF2", amount, instance_id=detail.detail_id))
 
         exported_power_status = self._source_check(input_value, SOURCE_EXPORTED_ELECTRICITY, bool(input_value.exported_electricity), problems)
         exported_power_total = Decimal("0")
@@ -1423,7 +1926,7 @@ class CarbonMaterialCalculator:
                     amount = purchased_electricity_emission(quantity, factor_value)
                     exported_power_total += amount
                     lines.append(CalculationLine(f"CAR-FLD-POWER-EXPORTED-RESULT.{line.line_id}", SOURCE_EXPORTED_ELECTRICITY, CO2_ID, amount, "tCO2"))
-                    traces.append(CalculationTrace(line.line_id, "CAR-FML-EXPORTED-ELECTRICITY-001", SOURCE_EXPORTED_ELECTRICITY, (), "ESe = QSe × EF2", amount))
+                    traces.append(CalculationTrace(line.line_id, "CAR-FML-EXPORTED-ELECTRICITY-001", SOURCE_EXPORTED_ELECTRICITY, (("QSe", quantity, "MWh"), ("EF2", factor_value, "tCO2/MWh")), "ESe = QSe × EF2", amount, instance_id=line.line_id))
 
         heat_payload = bool(input_value.purchased_heat)
         heat_status = self._source_check(input_value, SOURCE_PURCHASED_HEAT, heat_payload, problems)
@@ -1437,7 +1940,7 @@ class CarbonMaterialCalculator:
                     amount = purchased_heat_emission(quantity, enthalpy, factor)
                     purchased_heat_total += amount
                     lines.append(CalculationLine(f"CAR-FLD-HEAT-PURCHASED-RESULT.{line.line_id}", SOURCE_PURCHASED_HEAT, CO2_ID, amount, "tCO2"))
-                    traces.append(CalculationTrace(line.line_id, "CAR-FML-PURCHASED-HEAT-001", SOURCE_PURCHASED_HEAT, (), "EGd = BGd × HM × EF3 / 10⁶", amount))
+                    traces.append(CalculationTrace(line.line_id, "CAR-FML-PURCHASED-HEAT-001", SOURCE_PURCHASED_HEAT, (("BGd", quantity, "kg"), ("HM", enthalpy, "kJ/kg"), ("EF3", factor, "tCO2/GJ")), "EGd = BGd × HM × EF3 / 10⁶", amount, instance_id=line.line_id))
 
         exported_heat_status = self._source_check(input_value, SOURCE_EXPORTED_HEAT, bool(input_value.exported_heat), problems)
         exported_heat_total = Decimal("0")
@@ -1450,7 +1953,7 @@ class CarbonMaterialCalculator:
                     amount = purchased_heat_emission(quantity, enthalpy, factor)
                     exported_heat_total += amount
                     lines.append(CalculationLine(f"CAR-FLD-HEAT-EXPORTED-RESULT.{line.line_id}", SOURCE_EXPORTED_HEAT, CO2_ID, amount, "tCO2"))
-                    traces.append(CalculationTrace(line.line_id, "CAR-FML-EXPORTED-HEAT-001", SOURCE_EXPORTED_HEAT, (), "ESd = BSd × HM × EF3 / 10⁶", amount))
+                    traces.append(CalculationTrace(line.line_id, "CAR-FML-EXPORTED-HEAT-001", SOURCE_EXPORTED_HEAT, (("BSd", quantity, "kg"), ("HM", enthalpy, "kJ/kg"), ("EF3", factor, "tCO2/GJ")), "ESd = BSd × HM × EF3 / 10⁶", amount, instance_id=line.line_id))
 
         calculation_result: CalculationResult | None = None
         record: AccountingRecord | None = None
@@ -1464,11 +1967,21 @@ class CarbonMaterialCalculator:
                 CalculationLine("CAR-FLD-TOTAL-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, grand_total, "tCO2"),
             ))
             traces.extend((
-                CalculationTrace("CAR-DIRECT", "CAR-FML-DIRECT-001", "CAR-RULE-TOTAL-001", (), "ES = EFu + EC + EB + EG + EP", direct_total),
-                CalculationTrace("CAR-INDIRECT", "CAR-FML-INDIRECT-001", "CAR-RULE-TOTAL-001", (), "EI = EGe + EGd - ESe - ESd", indirect_total),
-                CalculationTrace("CAR-TOTAL", "CAR-FML-TOTAL-001", "CAR-RULE-TOTAL-001", (), "ET = ES + EI", grand_total),
+                CalculationTrace("CAR-DIRECT", "CAR-FML-DIRECT-001", "CAR-RULE-TOTAL-001", (("EFu", fuel_total, "tCO2"), ("EC", calc_total, "tCO2"), ("EB", bake_total, "tCO2"), ("EG", graph_total, "tCO2"), ("EP", gas_total, "tCO2")), "ES = EFu + EC + EB + EG + EP", direct_total),
+                CalculationTrace("CAR-INDIRECT", "CAR-FML-INDIRECT-001", "CAR-RULE-TOTAL-001", (("EGe", purchased_power_total, "tCO2"), ("EGd", purchased_heat_total, "tCO2"), ("ESe", exported_power_total, "tCO2"), ("ESd", exported_heat_total, "tCO2")), "EI = EGe + EGd - ESe - ESd", indirect_total),
+                CalculationTrace("CAR-TOTAL", "CAR-FML-TOTAL-001", "CAR-RULE-TOTAL-001", (("ES", direct_total, "tCO2"), ("EI", indirect_total, "tCO2")), "ET = ES + EI", grand_total),
             ))
             calculation_result = CalculationResult("result." + input_value.input_id, STANDARD_ID, ALGORITHM_VERSION, tuple(lines), grand_total, "tCO2", snapshot_at, tuple(problems))
+            factor_evidence_ids = tuple(item.evidence_id for item in input_value.reporting_data.measured_factor_evidence)
+            snapshots = [
+                replace(
+                    item,
+                    evidence_ref_ids=tuple(dict.fromkeys((*item.evidence_ref_ids, *factor_evidence_ids))),
+                )
+                if item.selection_method in {ParameterSelectionMethod.ENTERPRISE_MEASURED, ParameterSelectionMethod.MANUAL_OVERRIDE}
+                else item
+                for item in snapshots
+            ]
             generic_input = AccountingInput(
                 input_id=input_value.input_id,
                 standard_id=STANDARD_ID,
@@ -1492,16 +2005,34 @@ class CarbonMaterialCalculator:
             )
             create_with_details = getattr(self.record_repository, "create_with_details", None)
             if callable(create_with_details):
+                rule_snapshot = self._effective_rule_snapshot()
+                source_subtotals = {
+                    "fuel": fuel_total,
+                    "calcination": calc_total,
+                    "baking": bake_total,
+                    "graphitization": graph_total,
+                    "gas_control": gas_total,
+                    "purchased_electricity": purchased_power_total,
+                    "purchased_heat": purchased_heat_total,
+                    "exported_electricity": exported_power_total,
+                    "exported_heat": exported_heat_total,
+                }
+                trace_snapshot = self._trace_snapshot(record, traces, snapshots, source_subtotals)
+                provenance_snapshot = self._provenance_snapshot(record, rule_snapshot, snapshots)
                 create_with_details(
                     record,
                     raw_input=input_value,
                     effective_rule_set=tuple(sorted(self._effective_rule_ids)),
+                    trace_snapshot=trace_snapshot,
+                    provenance_snapshot=provenance_snapshot,
+                    reporting_snapshot=_snapshot_value(input_value.reporting_data),
+                    report_qualification=_snapshot_value(report_qualification),
                 )
             else:
                 self.record_repository.create(record)
-        return CarbonMaterialCalculationOutcome(input_value, calculation_result, tuple(problems), tuple(snapshots), tuple(traces), ALGORITHM_VERSION, record)
+        return CarbonMaterialCalculationOutcome(input_value, calculation_result, tuple(problems), tuple(snapshots), tuple(traces), ALGORITHM_VERSION, record, report_qualification)
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
 ]

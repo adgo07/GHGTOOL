@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-02（GHG-RS01-B1）
+最后更新：2026-10-04（GHG-RS02-A；等待独立验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -97,7 +97,7 @@ RS01内部工作包（不是新产品阶段）：
 - **RS01-A**：专业依据入仓、核心功能审计、Standard Completeness Matrix及Gap Register；不修改业务实现。R1已将准确冻结SM01-R6原样纳入 `specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md`，Matrix位于同目录CORE_CHECK，缺口见GAPS。
 - **RS01-B**：按已验收Gap修复标准核心业务能力并增加对应测试；B1/B2是其内部工作包，不是新产品阶段。
 - **RS01-B1 — Calculation Safety & Reference Data Closure**：单条业务输入下消除非法ParameterValue和未确认碳酸盐造成的错误结果，接通标准参考数据并使参数来源可追溯。已合并到main。
-- **RS01-B2 — Multi-entry Business Input Closure**：同一核算单元支持多过程/多能源来源逐项录入、逐项计算和按标准汇总。实现与本地验证完成；PR #24保持open，等待独立重新验收，latest-head CI状态以PR checks为准。
+- **RS01-B2 — Multi-entry Business Input Closure**：同一核算单元支持多过程/多能源来源逐项录入、逐项计算和按标准汇总。已合并到main；最新合并提交为 `8724a39cb7139aa9ae5eeeee9db7455e8be5a939`。
 - B1关闭GAP-002/003/005/006/007/010；B2关闭GAP-001/004/008/011。GAP-009为不阻止实施的provenance debt。
 - 历史4条已确认标准问题正式登记为RESOLVED，均为项目执行口径，非官方勘误；本轮无新增未解决Standard Issue Gap。GAP-009仅剩历史批准附件provenance debt，不阻止B，也不要求重新确认既有R6解释；未来变更解释前须加强证据或重新确认。
 
@@ -155,6 +155,11 @@ RS01内部工作包（不是新产品阶段）：
 ### GHG-RS02 — 生命周期 / Record / 结果解释 / Trace 最终闭环
 
 一句话目标：让正式结果**可追溯、可复现、可解释**，并且历史不漂移。
+
+RS02内部工作包（不是新产品阶段）：
+
+- **RS02-A — Record Evidence & Reporting Data Closure**：为新Record固定结构化Trace、Provenance、报告/证据数据及报告周期资格；实现与本地验证已完成，等待latest-head CI及独立验收。
+- **RS02-B — Result Explanation & Presentation Closure**：面向普通用户的完整结果依据解释与B.1～B.9展示；**NOT STARTED**。
 
 本阶段**不是**重新开发 Record。重点收口：
 
@@ -332,21 +337,21 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 校验 | `DONE` | Domain ParameterValue门禁及多实例错误定位/整体阻断均有回归；GAP-003/008已关闭 |
 | Calculator | `DONE` | 核心单组公式一致；燃料质量/体积换热、C.4/C.5查表与插值由版本化Calculator执行。此DONE只指已审计计算路径，不等于多过程UI覆盖或标准完整支持 |
 | 分项排放 | `DONE` | 包含各排放源/分项结果与 trace |
-| 总排放 | `DONE` | 多实例直接排放与多来源间接排放按标准逐项汇总并写入不可编辑记录；正式报告呈现仍归RS02 |
-| 结果解释 | `PARTIAL` | 已能展示结果、输入/规则/参数快照与追踪信息；“计算依据 + 标准依据/来源 + 面向用户解释”需在 RS01 / RS02 集中收口 |
-| 正式记录 | `DONE` | 成功计算自动新增不可编辑记录；标准版本/规则/输入/参数/结果快照落库；致命失败不生成记录 |
-| 历史记录 | `DONE` | 列表/详情/只读快照、审计与删除治理已通过 G07 |
+| 总排放 | `DONE` | 多实例直接排放与多来源间接排放按标准逐项汇总并写入不可编辑记录；完整正式报告呈现仍归RS02-B |
+| 结果解释 | `PARTIAL` | RS02-A已保存结构化Trace、Provenance、报告数据及年度报告资格；完整结果依据说明页归RS02-B |
+| 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
+| 历史记录 | `PARTIAL` | 既有Record只读且不重算、不按当前Catalog补历史信息；缺Trace明示缺失；完整普通用户解释页待RS02-B |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
 | Excel | `NOT STARTED` | 当前仅禁用入口与占位说明；正式实现属于 RS03 |
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01-B2实现已完成，PR #24等待独立重新验收；latest-head CI以PR checks为准。结果解释/正式年度报告呈现待RS02，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01-B2已并入main（`8724a39cb7139aa9ae5eeeee9db7455e8be5a939`）。RS02-A实现与本地可执行验证完成，等待PR latest-head Windows CI及独立验收；RS02-B NOT STARTED。完整结果解释页待RS02-B，Excel待RS03，Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum。
 
 ## 8. 当前阶段与下一步
 
-- 当前阶段：**GHG-RS01-B2 — Multi-entry Business Input Closure**；实现与本地验证完成，PR #24等待独立重新验收；latest-head CI结果由PR checks提供。
-- RS01-B1 — Calculation Safety & Reference Data Closure：已完成并合并；B2仍属RS01内部工作包。RS02/RS03尚未启动。
+- 当前阶段：**GHG-RS02-A — Record Evidence & Reporting Data Closure**；实现与本地验证完成，等待PR latest-head CI及独立验收。
+- RS01-B1 — Calculation Safety & Reference Data Closure：已完成并合并；RS01-B2已合并。RS02-A是RS02内部首个工作包；RS02-B — Result Explanation & Presentation Closure：NOT STARTED。RS03及后续阶段尚未启动。
 - 第二标准不得早于 **RS05**。
 
 ## 9. 相关治理登记项的归属
@@ -363,8 +368,8 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次RS01-B2由用户明确启动；RS02～RS06+未获本轮启动；
-- 本次B2按范围接通多实例Domain/Calculator与逐行UI/Application输入，并增加兼容及回归；未改SQLite schema/迁移、已批准标准解释或中央Contract；
+- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次RS02-A由用户明确启动；RS02-B/RS03～RS06+未获本轮启动；
+- 本次RS02-A按范围增加不可变Record的Trace/Provenance/报告证据快照与独立年度报告资格；未启动RS02-B结果页、RS03、Golden Freeze、Release或第二标准；
 - 不修改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或任何中央 Contract；
 - 不把 `DRAFT` / `NOT FROZEN` 描述成 `FROZEN`；
 - 不建立第二套产品路线。

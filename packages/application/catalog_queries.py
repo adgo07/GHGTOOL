@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import asdict, is_dataclass
 from datetime import date
+from decimal import Decimal
+from enum import Enum
+import hashlib
+import json
 from pathlib import Path
 
 from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, SourceType, ValueType
@@ -144,6 +149,40 @@ class CatalogQueryService:
         """Expose the read-only repository to application adapters."""
 
         return self._repository
+
+    def reference_data_identity(self) -> dict[str, object]:
+        """Capture a stable identity for the reference data used by a new Record."""
+        datasets: dict[str, object] = {}
+        for name in ("list_standards", "list_sources", "list_subjects", "list_parameters", "list_factors"):
+            reader = getattr(self._repository, name, None)
+            if callable(reader):
+                datasets[name.removeprefix("list_")] = tuple(reader())
+
+        def encode(value: object) -> object:
+            if isinstance(value, Enum):
+                return value.value
+            if isinstance(value, (date,)):
+                return value.isoformat()
+            if isinstance(value, Decimal):
+                return str(value)
+            if is_dataclass(value) and not isinstance(value, type):
+                return {key: encode(item) for key, item in asdict(value).items()}
+            if isinstance(value, dict):
+                return {str(key): encode(item) for key, item in value.items()}
+            if isinstance(value, (tuple, list)):
+                return [encode(item) for item in value]
+            return value
+
+        serialized = json.dumps(encode(datasets), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        manifest_reader = getattr(self._repository, "manifest", None)
+        manifest = manifest_reader() if callable(manifest_reader) else None
+        return {
+            "identity_schema_version": 1,
+            "catalog_id": getattr(manifest, "catalog_id", None),
+            "data_version": getattr(manifest, "data_version", None),
+            "content_sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+            "record_counts": {key: len(value) for key, value in datasets.items()},
+        }
 
     def standard_version(self, standard_id: str) -> str | None:
         """Return the controlled catalog version for a stable standard ID."""

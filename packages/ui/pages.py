@@ -112,6 +112,32 @@ _SNAPSHOT_LABELS = {
     "i": "碳酸盐含量",
     "ef1": "排放因子",
     "tr": "转化率",
+    "reporting_data": "报告信息与数据来源",
+    "organization_nature": "单位性质",
+    "industry": "所属行业",
+    "social_credit_code": "统一社会信用代码",
+    "legal_representative": "法定代表人",
+    "preparer_name": "填报负责人",
+    "preparer_contact": "负责人联系方式",
+    "boundary_description": "核算边界说明",
+    "products_and_process": "主要产品/工艺流程",
+    "emission_source_identification": "排放源识别说明",
+    "other_report_information": "其他报告说明",
+    "activity_evidence": "活动数据来源证据",
+    "measured_factor_evidence": "实测因子证据",
+    "applies_to": "适用范围",
+    "monitoring_location": "监测地点",
+    "monitoring_method": "获取/监测方法",
+    "instrument": "仪器/计量设备",
+    "accuracy": "设备精度",
+    "recording_frequency": "记录频次",
+    "acquisition_time": "数据取得时间",
+    "sampling_method": "取样方法",
+    "sampling_frequency": "取样频次",
+    "testing_method": "检测方法",
+    "testing_frequency": "检测频次",
+    "referenced_standard": "依据标准",
+    "reason": "采用理由/说明",
 }
 
 _SNAPSHOT_VALUE_LABELS = {
@@ -172,6 +198,7 @@ _SNAPSHOT_ELECTRICITY_KEYS = ("electricity_details",)
 _SNAPSHOT_PROOF_KEYS = frozenset(
     {"proof", "proof_type", "proof_status", "proof_reference", "evidence", "evidence_reference"}
 )
+_SNAPSHOT_INTERNAL_EVIDENCE_KEYS = frozenset({"evidence_id", "source_ids", "evidence_ref_ids"})
 
 
 def _snapshot_label(key: object) -> str:
@@ -215,7 +242,7 @@ def _snapshot_lines(
     value: Any,
     *,
     indent: str = "",
-    excluded_keys: frozenset[str] = frozenset(),
+    excluded_keys: frozenset[str] = _SNAPSHOT_INTERNAL_EVIDENCE_KEYS,
 ) -> list[str]:
     if isinstance(value, dict):
         if "value" in value and "unit" in value:
@@ -267,7 +294,7 @@ def _format_business_snapshot(raw_snapshot: object) -> str:
             if detail_proof:
                 proof[f"第{index}条电力明细证明"] = detail_proof
 
-    consumed = set(activity) | set(sources) | set(electricity) | set(proof)
+    consumed = set(activity) | set(sources) | set(electricity) | set(proof) | {"reporting_data"}
     other = {key: value for key, value in raw_snapshot.items() if key not in consumed}
     sections = (
         ("活动数据", activity),
@@ -283,6 +310,14 @@ def _format_business_snapshot(raw_snapshot: object) -> str:
         else:
             lines.extend(_snapshot_lines(section, indent="  "))
     return "\n".join(lines)
+
+
+def _format_reporting_snapshot(reporting_snapshot: object) -> str:
+    if not isinstance(reporting_snapshot, dict) or not reporting_snapshot:
+        return "历史记录未保存该信息。"
+    return "\n".join(
+        _snapshot_lines(reporting_snapshot, excluded_keys=_SNAPSHOT_INTERNAL_EVIDENCE_KEYS)
+    )
 
 
 class BasePage(QWidget):
@@ -573,9 +608,45 @@ class RecordLibraryPage(BasePage):
         warning_text = "\n".join(f"- {item.code}：{item.message}" for item in warnings) or "- 无"
         raw_snapshot = getattr(self.record_repository, "get_raw_input_snapshot", lambda _record_id: None)(record.record_id)
         rule_snapshot = getattr(self.record_repository, "get_effective_rule_set", lambda _record_id: None)(record.record_id)
+        trace_snapshot = getattr(self.record_repository, "get_trace_snapshot", lambda _record_id: None)(record.record_id)
+        provenance_snapshot = getattr(self.record_repository, "get_provenance_snapshot", lambda _record_id: None)(record.record_id)
+        reporting_snapshot = getattr(self.record_repository, "get_reporting_snapshot", lambda _record_id: None)(record.record_id)
+        report_qualification = getattr(self.record_repository, "get_report_qualification", lambda _record_id: None)(record.record_id)
         raw_snapshot_text = _format_business_snapshot(raw_snapshot)
         standard_version = record.standard_version or "未记录"
         rule_ids = ", ".join(str(item) for item in (rule_snapshot or {}).get("rule_ids", ())) or "未记录额外规则 ID"
+        if isinstance(trace_snapshot, dict):
+            aggregations = trace_snapshot.get("aggregations", {})
+            steps = trace_snapshot.get("formula_steps", ())
+            trace_text = (
+                f"已保存版本 {trace_snapshot.get('trace_schema_version', '未知')} 的计算过程快照，"
+                f"含 {len(steps) if isinstance(steps, (tuple, list)) else 0} 个计算步骤。\n"
+                f"ES：{aggregations.get('ES', '历史记录未保存该信息')}；"
+                f"EI：{aggregations.get('EI', '历史记录未保存该信息')}；"
+                f"ET：{aggregations.get('ET', '历史记录未保存该信息')} tCO₂"
+                if isinstance(aggregations, dict)
+                else "该记录生成时未保存完整计算过程快照。"
+            )
+        else:
+            trace_text = "该记录生成时未保存完整计算过程快照。"
+        if isinstance(provenance_snapshot, dict):
+            numeric = provenance_snapshot.get("numeric_provenance", {})
+            reference = provenance_snapshot.get("reference_data", {})
+            provenance_text = (
+                f"标准版本：{(provenance_snapshot.get('standard') or {}).get('version', '历史记录未保存该信息')}；"
+                f"映射版本：{(provenance_snapshot.get('mapping') or {}).get('version', '历史记录未保存该信息')}；"
+                f"算法版本：{(provenance_snapshot.get('calculator') or {}).get('algorithm_version', '历史记录未保存该信息')}；"
+                f"数值配置：{numeric.get('profile_id', '历史记录未保存该信息')}，"
+                f"精度 {numeric.get('precision', '—')}；参考数据摘要：{reference.get('content_sha256', '历史记录未保存该信息')}"
+            ) if all(isinstance(item, dict) for item in (numeric, reference)) else "历史记录未保存完整来源版本信息。"
+        else:
+            provenance_text = "历史记录未保存该信息。"
+        reporting_text = _format_reporting_snapshot(reporting_snapshot)
+        qualification_text = (
+            str(report_qualification.get("message", "历史记录未保存该信息。"))
+            if isinstance(report_qualification, dict)
+            else "历史记录未保存该信息。"
+        )
         self.detail_text.setPlainText(
             f"记录编号：{record.record_id}\n"
             f"创建时间：{record.created_at.isoformat()}\n"
@@ -591,6 +662,10 @@ class RecordLibraryPage(BasePage):
             f"\n实际输入快照（只读）：\n{raw_snapshot_text}\n"
             f"\n结果分项：\n{result_lines}\n"
             f"\n参数来源快照：\n{snapshots}\n"
+            f"\n结构化计算过程快照：\n{trace_text}\n"
+            f"\n来源版本快照：\n{provenance_text}\n"
+            f"\n报告信息与证据快照：\n{reporting_text}\n"
+            f"\n年度报告周期资格：\n{qualification_text}\n"
             f"\n警告：\n{warning_text}\n"
             "\n本详情只读；历史记录不会被重新计算或覆盖。"
         )

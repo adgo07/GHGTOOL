@@ -519,6 +519,17 @@ class ParameterResolver:
         self._relations = tuple(relations)
         self._rule_resolver = rule_resolver or EffectiveRuleResolver()
 
+    @property
+    def repository(self) -> ParameterRepository:
+        """Expose the immutable input catalog for provenance hashing."""
+        return self._repository
+
+    @property
+    def rule_definitions(self) -> tuple[RuleDefinition, ...]:
+        """Return the configured rule definitions without resolving a new context."""
+        by_id = {rule.rule_id: rule for rule in (*self._common_rules, *self._industry_rules)}
+        return tuple(by_id[key] for key in sorted(by_id))
+
     @classmethod
     def with_default_g05_rules(cls, repository: ParameterRepository) -> "ParameterResolver":
         common, industry = default_g05_rules()

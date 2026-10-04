@@ -65,6 +65,8 @@ from packages.standards.carbon_material import (
     CarbonMaterialCalculator,
     CarbonMaterialInput,
     CarbonateComponent,
+    ActivityDataEvidence,
+    CarbonReportingData,
     EmissionSourceState,
     EmissionSourceStatus,
     FGDInput,
@@ -78,6 +80,7 @@ from packages.standards.carbon_material import (
     InMemoryRecordRepository,
     MaterialBasis,
     MaterialComponentKind,
+    MeasuredFactorEvidence,
     ParameterSourceKind,
     ParameterValue,
     SteamKind,
@@ -98,6 +101,18 @@ _PROCESS_DEFAULT_PARAMETERS = {
     "baking": ("CAR-PAR-K2", "第5.2.3条"),
     "graphitization": ("CAR-PAR-K3", "第5.2.4条"),
 }
+_REPORT_SOURCE_OPTIONS = (
+    ("燃料", "CAR-SRC-FUEL-001"),
+    ("煅烧", "CAR-SRC-CALCINATION-001"),
+    ("焙烧/炭化", "CAR-SRC-BAKING-001"),
+    ("石墨化", "CAR-SRC-GRAPHITIZATION-001"),
+    ("烟气焚烧", "CAR-SRC-FUME-INCINERATION-001"),
+    ("烟气脱硫", "CAR-SRC-FGD-001"),
+    ("购入电力", "CAR-SRC-PURCHASED-ELECTRICITY-001"),
+    ("输出电力", "CAR-SRC-EXPORTED-ELECTRICITY-001"),
+    ("购入热力", "CAR-SRC-PURCHASED-HEAT-001"),
+    ("输出热力", "CAR-SRC-EXPORTED-HEAT-001"),
+)
 _FUEL_C1_SUBJECT_IDS = {
     FuelType.ANTHRACITE: "anthracite",
     FuelType.BITUMINOUS_COAL: "bituminous_coal",
@@ -465,7 +480,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 parameter_resolver=resolver,
                 record_repository=record_repository,
                 standard_version=catalog_version or STANDARD_VERSION,
+                reference_data_identity_provider=self.catalog_service.reference_data_identity,
             )
+        else:
+            calculator.reference_data_identity_provider = self.catalog_service.reference_data_identity
         self.calculator = calculator
         self.standard_id = standard_id
         self._calculation_index = 0
@@ -620,6 +638,89 @@ class CarbonMaterialAccountingPage(BasePage):
         self.transport_present.setObjectName("upstreamDownstreamTransportCheckBox")
         boundary_layout.addWidget(self.transport_present)
         identity_layout.addWidget(boundary)
+
+        self.report_data_toggle = QCheckBox("补充报告信息与数据来源（可选，不影响普通周期计算）", identity)
+        self.report_data_toggle.setObjectName("reportDataDetailsToggle")
+        identity_layout.addWidget(self.report_data_toggle)
+        self.report_data_details = QWidget(identity)
+        self.report_data_details.setObjectName("reportDataDetails")
+        report_layout = QVBoxLayout(self.report_data_details)
+        report_layout.setContentsMargins(0, 0, 0, 0)
+        report_form = QFormLayout()
+        self.reporting_fields: dict[str, QLineEdit] = {}
+        for key, label in (
+            ("organization_nature", "单位性质"),
+            ("industry", "所属行业"),
+            ("social_credit_code", "统一社会信用代码"),
+            ("legal_representative", "法定代表人"),
+            ("preparer_name", "填报负责人"),
+            ("preparer_contact", "负责人联系方式"),
+            ("boundary_description", "核算边界说明"),
+            ("products_and_process", "主要产品/工艺流程"),
+            ("emission_source_identification", "排放源识别说明"),
+            ("other_report_information", "其他报告说明"),
+        ):
+            edit = QLineEdit(self.report_data_details)
+            edit.setObjectName(f"report_{key}")
+            edit.setPlaceholderText("可留空；作为本次输入和新记录的报告资料快照")
+            self.reporting_fields[key] = edit
+            report_form.addRow(label, edit)
+        report_layout.addWidget(QLabel("年度报告主体与说明", self.report_data_details))
+        report_layout.addLayout(report_form)
+
+        self.activity_evidence_fields: dict[str, QLineEdit] = {}
+        activity_form = QFormLayout()
+        for key, label in (
+            ("applies_to", "适用范围说明"), ("source_reference", "来源/凭证定位"),
+            ("monitoring_location", "监测地点"), ("monitoring_method", "获取/监测方法"),
+            ("instrument", "仪器/计量设备"), ("accuracy", "设备精度"),
+            ("recording_frequency", "记录频次"), ("acquisition_time", "数据取得时间"),
+            ("note", "补充说明"),
+        ):
+            edit = QLineEdit(self.report_data_details)
+            edit.setObjectName(f"activity_evidence_{key}")
+            edit.setPlaceholderText("可选")
+            self.activity_evidence_fields[key] = edit
+            activity_form.addRow(label, edit)
+        report_layout.addWidget(QLabel("可复用活动数据证据", self.report_data_details))
+        report_layout.addLayout(activity_form)
+        activity_scope_grid = QGridLayout()
+        self.activity_evidence_sources: dict[str, QCheckBox] = {}
+        for index, (label, source_id) in enumerate(_REPORT_SOURCE_OPTIONS):
+            check = QCheckBox(label, self.report_data_details)
+            check.setObjectName(f"activityEvidenceSource{index}")
+            self.activity_evidence_sources[source_id] = check
+            activity_scope_grid.addWidget(check, index // 5, index % 5)
+        report_layout.addWidget(QLabel("证据适用的排放源", self.report_data_details))
+        report_layout.addLayout(activity_scope_grid)
+
+        self.factor_evidence_fields: dict[str, QLineEdit] = {}
+        factor_form = QFormLayout()
+        for key, label in (
+            ("applies_to", "适用范围说明"), ("source_reference", "来源/检测报告定位"),
+            ("sampling_method", "取样方法"), ("sampling_frequency", "取样频次"),
+            ("testing_method", "检测方法"), ("testing_frequency", "检测频次"),
+            ("referenced_standard", "依据标准"), ("reason", "采用理由/说明"),
+        ):
+            edit = QLineEdit(self.report_data_details)
+            edit.setObjectName(f"factor_evidence_{key}")
+            edit.setPlaceholderText("可选；标准缺省值无需重复填写")
+            self.factor_evidence_fields[key] = edit
+            factor_form.addRow(label, edit)
+        report_layout.addWidget(QLabel("可复用实测因子证据", self.report_data_details))
+        report_layout.addLayout(factor_form)
+        factor_scope_grid = QGridLayout()
+        self.factor_evidence_sources: dict[str, QCheckBox] = {}
+        for index, (label, source_id) in enumerate(_REPORT_SOURCE_OPTIONS):
+            check = QCheckBox(label, self.report_data_details)
+            check.setObjectName(f"factorEvidenceSource{index}")
+            self.factor_evidence_sources[source_id] = check
+            factor_scope_grid.addWidget(check, index // 5, index % 5)
+        report_layout.addWidget(QLabel("实测因子证据适用的排放源", self.report_data_details))
+        report_layout.addLayout(factor_scope_grid)
+        self.report_data_details.setVisible(False)
+        self.report_data_toggle.toggled.connect(self.report_data_details.setVisible)
+        identity_layout.addWidget(self.report_data_details)
         self.body_layout.addWidget(identity)
 
         self._build_project_unit_controls()
@@ -3626,6 +3727,51 @@ class CarbonMaterialAccountingPage(BasePage):
             exported_electricity=self._exported_electricity() if self._source_is_enabled("CAR-SRC-EXPORTED-ELECTRICITY-001") else (),
             purchased_heat=self._heat("heat") if self._source_is_enabled("CAR-SRC-PURCHASED-HEAT-001") else (),
             exported_heat=self._heat("exported_heat") if self._source_is_enabled("CAR-SRC-EXPORTED-HEAT-001") else (),
+            reporting_data=self._reporting_data(),
+        )
+
+    def _reporting_data(self) -> CarbonReportingData:
+        report_values = {
+            key: _value(edit)
+            for key, edit in self.reporting_fields.items()
+        }
+        activity_values = {key: _value(edit) for key, edit in self.activity_evidence_fields.items()}
+        factor_values = {key: _value(edit) for key, edit in self.factor_evidence_fields.items()}
+        activity_has_evidence = any(value for key, value in activity_values.items() if key != "applies_to")
+        factor_has_evidence = any(value for key, value in factor_values.items() if key != "applies_to")
+        activity: tuple[ActivityDataEvidence, ...] = ()
+        if activity_has_evidence:
+            activity = (ActivityDataEvidence(
+                evidence_id="evidence.activity.shared",
+                applies_to=activity_values.get("applies_to") or "本记录所选排放源活动数据",
+                source_ids=tuple(source_id for source_id, check in self.activity_evidence_sources.items() if check.isChecked()),
+                source_reference=activity_values.get("source_reference"),
+                monitoring_location=activity_values.get("monitoring_location"),
+                monitoring_method=activity_values.get("monitoring_method"),
+                instrument=activity_values.get("instrument"),
+                accuracy=activity_values.get("accuracy"),
+                recording_frequency=activity_values.get("recording_frequency"),
+                acquisition_time=activity_values.get("acquisition_time"),
+                note=activity_values.get("note"),
+            ),)
+        measured: tuple[MeasuredFactorEvidence, ...] = ()
+        if factor_has_evidence:
+            measured = (MeasuredFactorEvidence(
+                evidence_id="evidence.factor.shared",
+                applies_to=factor_values.get("applies_to") or "本记录所选排放源的实测/用户指定因子",
+                source_ids=tuple(source_id for source_id, check in self.factor_evidence_sources.items() if check.isChecked()),
+                source_reference=factor_values.get("source_reference"),
+                sampling_method=factor_values.get("sampling_method"),
+                sampling_frequency=factor_values.get("sampling_frequency"),
+                testing_method=factor_values.get("testing_method"),
+                testing_frequency=factor_values.get("testing_frequency"),
+                referenced_standard=factor_values.get("referenced_standard"),
+                reason=factor_values.get("reason"),
+            ),)
+        return CarbonReportingData(
+            **report_values,
+            activity_evidence=activity,
+            measured_factor_evidence=measured,
         )
 
     def _install_dirty_tracking(self) -> None:
@@ -3698,6 +3844,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 widget.clear()
             elif isinstance(widget, QComboBox):
                 widget.setCurrentIndex(0)
+        for edit in (*self.reporting_fields.values(), *self.activity_evidence_fields.values(), *self.factor_evidence_fields.values()):
+            edit.clear()
+        self.report_data_toggle.setChecked(False)
+        for check in (*self.activity_evidence_sources.values(), *self.factor_evidence_sources.values()):
+            check.setChecked(False)
         for row in self._output_electricity_rows:
             row["id"].setText("exported-electricity-1")  # type: ignore[union-attr]
             row["factor"].setCurrentIndex(0)  # type: ignore[union-attr]
@@ -3993,7 +4144,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_breakdown.setText(
             f"直接排放 ES：{_display_amount(by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
             f"间接排放 EI：{_display_amount(by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
-            f"记录：{'已生成不可编辑核算记录' if outcome.record is not None else '未生成记录'}"
+            f"记录：{'已生成不可编辑核算记录' if outcome.record is not None else '未生成记录'}\n"
+            f"年度报告周期资格：{outcome.report_qualification.message if outcome.report_qualification else '历史信息未保存'}"
         )
         line_details = []
         for line in outcome.result.lines:

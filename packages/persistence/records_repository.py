@@ -177,6 +177,7 @@ def _parameter_snapshot(payload: dict[str, Any]) -> ParameterSnapshot:
         source_location=payload.get("source_location"),
         factor_year=payload.get("factor_year"),
         detail_id=payload.get("detail_id"),
+        evidence_ref_ids=tuple(str(item) for item in payload.get("evidence_ref_ids", [])),
     )
 
 
@@ -251,6 +252,10 @@ class SQLiteRecordRepository:
         *,
         raw_input: object | None = None,
         effective_rule_set: Sequence[str] = (),
+        trace_snapshot: object | None = None,
+        provenance_snapshot: object | None = None,
+        reporting_snapshot: object | None = None,
+        report_qualification: object | None = None,
     ) -> None:
         payload = _record_payload(record)
         raw_snapshot = _encode(raw_input if raw_input is not None else record.input_snapshot)
@@ -266,8 +271,9 @@ class SQLiteRecordRepository:
                 "INSERT INTO accounting_records ("
                 "record_id, status, created_at, standard_id, standard_version, algorithm_version, "
                 "input_snapshot_json, calculation_snapshot_json, parameter_snapshot_json, warnings_json, "
-                "raw_input_snapshot_json, effective_rule_set_json"
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "raw_input_snapshot_json, effective_rule_set_json, trace_snapshot_json, "
+                "provenance_snapshot_json, reporting_snapshot_json, report_qualification_json"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     record.record_id,
                     record.status.value,
@@ -281,6 +287,10 @@ class SQLiteRecordRepository:
                     _json(warnings),
                     _json(raw_snapshot),
                     _json(rule_snapshot),
+                    _json(trace_snapshot or {}),
+                    _json(provenance_snapshot or {}),
+                    _json(reporting_snapshot or {}),
+                    _json(report_qualification or {}),
                 ),
             )
             connection.execute(
@@ -385,6 +395,40 @@ class SQLiteRecordRepository:
             return None
         value = _load_json(row["effective_rule_set_json"], "effective_rule_set_json")
         return value if isinstance(value, dict) else {"value": value}
+
+    def _get_snapshot(self, record_id: str, column: str) -> dict[str, Any] | None:
+        allowed = {
+            "trace_snapshot_json", "provenance_snapshot_json", "reporting_snapshot_json",
+            "report_qualification_json",
+        }
+        if column not in allowed:
+            raise ValueError("unsupported record snapshot")
+        connection = self._connection()
+        try:
+            row = connection.execute(
+                f"SELECT {column} FROM accounting_records WHERE record_id = ? AND deleted_at IS NULL",
+                (record_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        value = _load_json(row[column], column)
+        if not isinstance(value, dict) or not value:
+            return None
+        return value
+
+    def get_trace_snapshot(self, record_id: str) -> dict[str, Any] | None:
+        return self._get_snapshot(record_id, "trace_snapshot_json")
+
+    def get_provenance_snapshot(self, record_id: str) -> dict[str, Any] | None:
+        return self._get_snapshot(record_id, "provenance_snapshot_json")
+
+    def get_reporting_snapshot(self, record_id: str) -> dict[str, Any] | None:
+        return self._get_snapshot(record_id, "reporting_snapshot_json")
+
+    def get_report_qualification(self, record_id: str) -> dict[str, Any] | None:
+        return self._get_snapshot(record_id, "report_qualification_json")
 
     def delete(self, record_id: str, *, actor: str, reason: str) -> bool:
         if not isinstance(actor, str) or not actor.strip():
