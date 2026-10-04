@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-04（GHG-RS02-B；等待 exact-head CI 与独立最终验收）
+最后更新：2026-10-04（GHG-RS02-B；exact-head Windows CI 已通过，等待独立最终验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -158,8 +158,8 @@ RS01内部工作包（不是新产品阶段）：
 
 RS02内部工作包（不是新产品阶段）：
 
-- **RS02-A — Record Evidence & Reporting Data Closure**：为新Record固定结构化Trace、Provenance、报告/证据数据及报告周期资格；实现与本地验证已完成，等待latest-head CI及独立验收。
-- **RS02-B — Result Explanation & Presentation Closure**：面向普通用户的完整结果依据解释与B.1～B.9展示；**NOT STARTED**。
+- **RS02-A — Record Evidence & Reporting Data Closure**：为新Record固定结构化Trace、Provenance、报告/证据数据及报告周期资格；已实现并合并于PR #25。
+- **RS02-B — Result Explanation & Presentation Closure**：面向普通用户的结果依据解释与B.1～B.9展示；实现完成，PR #26最新head的Windows/Python 3.12两项CI均通过，等待独立最终验收；不代表标准已SUPPORTED。
 
 本阶段**不是**重新开发 Record。重点收口：
 
@@ -346,12 +346,12 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01与RS02-A已完成并合入main；RS02-B结果解释与Record体验实现完成，正等待本PR latest-head Windows CI及独立最终验收。RS03 Excel未启动；Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01与RS02-A已完成并合入main；RS02-B结果解释与Record体验实现完成，PR #26最新head的Windows CI已通过，等待独立最终验收。RS03 Excel未启动；Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-RS02-B — Result Explanation & Record Experience Closure**；实现与本地可执行验证完成，等待本PR exact-head Windows CI及独立最终验收。
-- RS01与RS02-A已完成并合入main；本工作包完成后RS02可进入最终门禁。RS03、Golden Freeze、Release Gate及第二标准尚未启动。
+- 当前工作包：**GHG-RS02-B — Result Explanation & Record Experience Closure**；实现、本地可执行验证和PR #26 latest-head Windows CI完成，等待独立最终验收。
+- RS01与RS02-A已完成并合入main；RS02-B独立验收完成后RS02可进入最终门禁。RS03、Golden Freeze、Release Gate及第二标准尚未启动。
 - 第二标准不得早于 **RS05**。
 
 ## 9. 相关治理登记项的归属

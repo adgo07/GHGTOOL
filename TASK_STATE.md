@@ -19,7 +19,7 @@
 - 新建核算结果可按精确 record_id 打开对应Record；工作区关联明确标记为可变关系，不作为不可变Record快照。
 - 计算新鲜度与报告新鲜度分开。仅报告资料变化时保留已算结果并提示重新生成正式Record以固化报告变更；计算输入改变仍使结果过期。
 - 历史Record只读，展示自身快照，不查询当前Catalog/Calculator；无数据、空数据、旧版缺失与损坏有明确区别。没有新增破坏性Project migration或Record schema migration；既有软删除/审计不变。
-- 同步 Roadmap、HANDOFF、CORE_CHECK Matrix、RS02 Coverage 和 GHG-UI-001/002/005 状态；RS02-B已实现，PR exact-head CI与独立最终验收待完成。
+- 同步 Roadmap、HANDOFF、CORE_CHECK Matrix、RS02 Coverage 和 GHG-UI-001/002/005 状态；RS02-B已实现，PR #26 latest-head Windows/Python 3.12 两项CI通过，PR仍开放等待独立最终验收。
 
 ## 本地验证
 
@@ -30,7 +30,7 @@
 - 依赖：python -m pip check 通过，No broken requirements found。
 - 数据库：上述定向测试含四库创建/逻辑重建、迁移幂等和Record快照重开验证；数据库与历史快照测试通过。
 - GUI：本机无PySide6，Qt运行态/UI接受测试未执行。
-- git diff --check：已在提交前执行；PR exact-head Windows Merge-ref Full Tests 与 PR-head Standalone Audit结果待新PR创建后核验。
+- git diff --check：提交前通过。PR #26 latest-head Windows Merge-ref Full Tests（245项）与 PR-head Standalone Audit 均通过；当前检查状态见[PR Checks](https://github.com/adgo07/GHGTOOL/pull/26/checks)。
 
-状态：实现与可执行本地检查完成，等待新PR latest-head CI及独立最终验收；不合并PR。
+状态：实现、本地可执行检查与PR latest-head CI完成，等待独立最终验收；PR保持开放，不合并。
 RS03：NOT STARTED。

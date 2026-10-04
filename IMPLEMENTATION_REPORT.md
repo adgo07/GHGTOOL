@@ -1,6 +1,6 @@
 # GHG-RS02-B — Result Explanation & Record Experience Closure
 
-状态：实现与本机可执行检查完成；等待新PR latest-head Windows CI及独立最终验收。RS03未启动；标准状态 NOT SUPPORTED。本报告不写入自身所在提交的Head SHA，最终验收以PR latest head与其Actions为准。
+状态：实现与本机可执行检查完成；PR #26 latest-head Windows CI已通过，等待独立最终验收。RS03未启动；标准状态 NOT SUPPORTED。本报告不写入自身所在提交的Head SHA，最终检查状态见[PR Checks](https://github.com/adgo07/GHGTOOL/pull/26/checks)。
 
 ## 1. 基线与平台预检查
 
@@ -42,10 +42,10 @@
 - Canonical：python scripts/validate_canonical.py 通过，9 standards、12 sources、98 parameters、98 factors。
 - Compile/dependency：python -m compileall -q packages tests通过；python -m pip check通过，无损坏依赖。
 - 数据库：定向持久化测试通过四库创建、Catalog逻辑重建、迁移幂等与Record快照重开；未增加迁移。
-- GUI：本机缺PySide6，不能执行Qt UI acceptance；对应UI与Project兼容测试已加入PR，等待Windows latest-head CI。
+- GUI：本机缺PySide6，不能执行Qt UI acceptance；Windows latest-head CI已运行全量测试及UI acceptance并通过。
 - git diff --check提交前通过。
-- GitHub CI：新PR创建前尚无本分支latest-head run；创建、推送后只接受与最终head SHA精确绑定的Windows/Python 3.12 Merge-ref Full Tests和PR-head Standalone Audit。CI结果与run链接在交付回执中记录，不追加自引用CI提交。
+- GitHub CI：PR #26 latest-head 的 Windows/Python 3.12 Merge-ref Full Tests（245项）与 PR-head Standalone Audit 均通过；精确head与run链接见PR Checks。后续若推送新提交，必须重新核对新latest-head的两项结果。本报告不把自身提交SHA写回正文，避免自引用提交。
 
 ## 5. 阶段状态与停止边界
 
-GHG-RS02-B实现已完成，当前等待最终PR head CI与独立最终验收。RS02可进入最终门禁；RS03 NOT STARTED；不合并PR；GB/T 32151.34—2024仍为NOT SUPPORTED。
+GHG-RS02-B实现与latest-head CI已完成，当前等待独立最终验收。RS02在独立验收通过后可进入最终门禁；RS03 NOT STARTED；PR不合并；GB/T 32151.34—2024仍为NOT SUPPORTED。

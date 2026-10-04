@@ -30,7 +30,7 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS02-B — Result Explanation & Record Experience Closure`；实现及本地可执行检查已完成，等待本PR exact-head Windows CI及独立最终验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- 当前工作包：`GHG-RS02-B — Result Explanation & Record Experience Closure`；实现、本地可执行检查和PR #26 latest-head Windows CI均已完成，等待独立最终验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
 - RS01及RS02-A已完成并合入main；本包以Record自身快照完成结果解释、B.1—B.9只读呈现和新鲜度分离。RS03、Golden Freeze、Release Gate和第二标准均未启动；标准仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -179,10 +179,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RS02-A — Record Evidence & Reporting Data Closure：
+本文件当前对应工作包 GHG-RS02-B — Result Explanation & Record Experience Closure：
 
-- 在records.sqlite采用只增列迁移持久化新Record的结构化Trace、Provenance、报告/证据与周期资格快照；不回填或重算旧Record；
-- 月度/自定义周期可照常计算并保存Record，但单独记年度报告资格ERROR；年度周期不触发该资格问题；
-- 完整普通用户结果解释页归RS02-B；RS02-B、RS03、Golden Freeze/正式支持、Windows Release及第二标准均未启动；
-- 不修改platform-lock、中央baseline或已批准标准解释；GAP-009继续作为非阻塞provenance debt；
-- 本包交付后等待latest-head CI与独立验收。
+- 结果页以中文解释直接、净间接和含间接排放；Record详情依据自身快照只读展示B.1—B.9、证据、参数、质量信息与专业Trace；
+- 历史Record不按当前Catalog或Calculator重算；计算新鲜度与报告资料新鲜度分开；月度/自定义报告资格不阻断核算；
+- PR #26 latest-head Windows/Python 3.12 Merge-ref Full Tests 与 PR-head Standalone Audit 均通过；PR保持开放，等待独立最终验收；
+- 不改计算公式、中央baseline或Frozen Contract；RS03、Golden Freeze、正式SUPPORTED、Windows Release Gate及第二标准未启动；GAP-009仍为非阻塞provenance debt。
