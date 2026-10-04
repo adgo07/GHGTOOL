@@ -531,14 +531,14 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(persisted.units[0].record_ids, (self.records.list_all()[0].record_id,))
 
         fuel.activity.setText("12")
-        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        self.assertIn("上一计算结果已过期", self.page.unit_result_summary.text())
         with (
             patch("packages.ui.carbon_material_page.QInputDialog.getItem", return_value=("生产工序", True)),
             patch("packages.ui.carbon_material_page.QInputDialog.getText", return_value=("过期状态切换单元", True)),
         ):
             self.page._add_accounting_unit()
         self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
-        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        self.assertIn("上一计算结果已过期", self.page.unit_result_summary.text())
         self.assertTrue(self.page._save_project())
 
         self.page.close()
@@ -547,8 +547,41 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page = self._new_page()
         self.page._open_selected_project()
         self.page.unit_selector.setCurrentIndex(self.page.unit_selector.findData(first_unit_id))
-        self.assertIn("上一结果已过期", self.page.unit_result_summary.text())
+        self.assertIn("上一计算结果已过期", self.page.unit_result_summary.text())
         self.assertTrue(self.page.result_card.isHidden())
+
+    def test_report_only_change_keeps_calculation_result_and_new_record_freezes_updated_details(self) -> None:
+        self.page.project_name.setText("报告资料变化项目")
+        self.page.enterprise_name.setText("报告资料变化企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._enable_fuel()
+        fuel = self.page._fuel_rows[0]
+        fuel.activity.setText("10")
+        fuel.carbon.setText("0.2")
+        fuel.oxidation.setText("98")
+        self.page.reporting_fields["industry"].setText("首次填写行业")
+        self.page._run_calculation()
+        first_record = self.records.list_all()[0]
+        first_result = self.page._unit().result_snapshot
+        first_total = first_record.calculation_result.total_amount
+        first_reporting = self.records.get_reporting_snapshot(first_record.record_id)
+        self.assertEqual(first_reporting["industry"], "首次填写行业")
+
+        self.page.reporting_fields["industry"].setText("更新后的行业信息")
+        self.assertFalse(self.page._calculation_result_is_stale(self.page._unit()))
+        self.assertFalse(self.page.result_card.isHidden())
+        self.assertIn("报告资料已修改", self.page.unit_result_summary.text())
+        self.assertIn("报告资料已修改", self.page.report_changes_status.text())
+        self.assertEqual(self.page._unit().result_snapshot["total"], first_result["total"])
+        self.assertEqual(self.records.list_all(), (first_record,))
+
+        self.assertTrue(self.page._save_project())
+        self.page._run_calculation()
+        records = self.records.list_all()
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0].calculation_result.total_amount, first_total)
+        self.assertEqual(self.records.get_reporting_snapshot(first_record.record_id)["industry"], "首次填写行业")
+        self.assertEqual(self.records.get_reporting_snapshot(records[1].record_id)["industry"], "更新后的行业信息")
 
     def test_record_link_save_does_not_persist_other_units_unfinished_input(self) -> None:
         self.page.project_name.setText("关联最小保存项目")
@@ -724,7 +757,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(len(self.page._fuel_rows), 2)
         self.assertEqual([row.activity.text() for row in self.page._fuel_rows], ["10", "4"])
         self.assertEqual(self.page._unit().result_snapshot, first_result)
-        self.assertEqual(self.page.result_total.text(), f"总排放量 ET：{first_result['total_display']}")
+        self.assertEqual(self.page.result_total.text(), f"温室气体排放总量：{first_result['total_display']}")
         self.assertEqual(len(self.records.list_all()), 2)
 
         second_index = self.page.unit_selector.findData(second_unit_id)

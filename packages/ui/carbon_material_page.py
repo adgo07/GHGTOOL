@@ -6,7 +6,7 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import date, datetime, timezone
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
@@ -16,7 +16,7 @@ import json
 import re
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, QSignalBlocker, Qt, Signal
+from PySide6.QtCore import QDate, QSignalBlocker, QTimer, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -455,6 +455,7 @@ class CarbonMaterialAccountingPage(BasePage):
     """Long, scrollable G06 work sheet for the only implemented industry standard."""
 
     record_created = Signal(str)
+    record_requested = Signal(str)
 
     def __init__(
         self,
@@ -487,6 +488,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.calculator = calculator
         self.standard_id = standard_id
         self._calculation_index = 0
+        self._latest_record_id: str | None = None
         self._electricity_rows: list[_ElectricityRow] = []
         self._electricity_row_serial = 0
         self._fuel_rows: list[_FuelRow] = []
@@ -768,6 +770,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_status = QLabel("状态：尚未计算", result_card)
         self.result_status.setObjectName("calculationStatus")
         result_layout.addWidget(self.result_status)
+        self.report_qualification_status = QLabel("年度报告资格：尚未计算", result_card)
+        self.report_qualification_status.setObjectName("reportQualificationStatus")
+        result_layout.addWidget(self.report_qualification_status)
+        self.report_changes_status = QLabel("", result_card)
+        self.report_changes_status.setObjectName("reportChangesStatus")
+        result_layout.addWidget(self.report_changes_status)
         self.result_breakdown = QLabel("", result_card)
         self.result_breakdown.setObjectName("calculationBreakdown")
         self.result_breakdown.setWordWrap(True)
@@ -784,8 +792,13 @@ class CarbonMaterialAccountingPage(BasePage):
         self.view_process_button = QPushButton("查看计算过程", result_card)
         self.view_process_button.setObjectName("viewProcessButton")
         self.view_process_button.clicked.connect(self._toggle_process_details)
+        self.view_record_button = QPushButton("查看正式核算记录", result_card)
+        self.view_record_button.setObjectName("viewAccountingRecordButton")
+        self.view_record_button.setEnabled(False)
+        self.view_record_button.clicked.connect(self._open_latest_record)
         result_actions.addWidget(self.view_breakdown_button)
         result_actions.addWidget(self.view_process_button)
+        result_actions.addWidget(self.view_record_button)
         result_actions.addStretch(1)
         result_layout.addLayout(result_actions)
         result_card.setVisible(False)
@@ -1404,9 +1417,15 @@ class CarbonMaterialAccountingPage(BasePage):
         if unit.result_snapshot is None:
             self.unit_result_summary.setText(f"{unit.name}：尚无成功计算结果。")
             return
+        is_calculation_stale = self._calculation_result_is_stale(unit)
         current_fingerprint = self._current_business_fingerprint() if hasattr(self, "enterprise_name") else None
-        is_stale = not unit.input_fingerprint or current_fingerprint is None or current_fingerprint != unit.input_fingerprint
-        state = "输入已变更，上一结果已过期" if is_stale else "上次成功结果"
+        report_changed = current_fingerprint is None or current_fingerprint != unit.input_fingerprint
+        if is_calculation_stale:
+            state = "计算输入已变更，上一计算结果已过期"
+        elif report_changed:
+            state = "报告信息已修改，需重新生成正式记录才能固化这些变化"
+        else:
+            state = "上次成功结果"
         self.unit_result_summary.setText(
             f"{unit.name}：{state} {unit.result_snapshot.get('total_display', '—')}。重新计算会新增记录，不覆盖历史记录。"
         )
@@ -1417,7 +1436,7 @@ class CarbonMaterialAccountingPage(BasePage):
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     @classmethod
-    def _fingerprint_business_input(cls, input_value: CarbonMaterialInput) -> str:
+    def _fingerprint_business_input(cls, input_value: object, *, scope: str = "all") -> str:
         tuple_sort_keys = {
             "source_states": "source_id",
             "fuel_inputs": "fuel_id",
@@ -1432,9 +1451,28 @@ class CarbonMaterialAccountingPage(BasePage):
             "fgd_units": "instance_id",
         }
         legacy_process_aliases = {"calcination", "baking", "graphitization", "fume_incineration", "fgd"}
+        presentation_metadata = {
+            "source_reference", "source_location", "selection_reason", "evidence_ref_ids",
+        }
 
-        def normalize(value: object, field_name: str | None = None) -> object:
+        def normalize(
+            value: object,
+            field_name: str | None = None,
+            *,
+            root: bool = False,
+            numeric_value: bool = False,
+            report_payload: bool = False,
+        ) -> object:
             if value is None or isinstance(value, (str, bool, int)):
+                if numeric_value and isinstance(value, str):
+                    try:
+                        decimal = Decimal(value)
+                        rendered = format(decimal, "f")
+                        if "." in rendered:
+                            rendered = rendered.rstrip("0").rstrip(".")
+                        return "0" if rendered in {"-0", ""} else rendered
+                    except InvalidOperation:
+                        return value
                 return value
             if isinstance(value, Decimal):
                 if not value.is_finite():
@@ -1451,14 +1489,50 @@ class CarbonMaterialAccountingPage(BasePage):
                 return value.isoformat()
             if is_dataclass(value):
                 result: dict[str, object] = {}
+                wrapper_fields = {item.name for item in dataclass_fields(value)}
+                is_value_wrapper = "value" in wrapper_fields and bool(wrapper_fields & {"unit", "source_kind"})
                 for data_field in dataclass_fields(value):
-                    if value is input_value and data_field.name == "input_id":
+                    if root and data_field.name == "input_id":
                         continue
-                    if value is input_value and data_field.name in legacy_process_aliases:
+                    if root and data_field.name in legacy_process_aliases:
                         continue
-                    result[data_field.name] = normalize(getattr(value, data_field.name), data_field.name)
+                    if root and scope == "calculation" and data_field.name == "reporting_data":
+                        continue
+                    if root and scope == "reporting" and data_field.name != "reporting_data":
+                        continue
+                    if scope == "calculation" and data_field.name in presentation_metadata:
+                        continue
+                    if scope == "reporting" and not root and not report_payload and data_field.name not in presentation_metadata:
+                        continue
+                    result[data_field.name] = normalize(
+                        getattr(value, data_field.name), data_field.name,
+                        numeric_value=is_value_wrapper and data_field.name == "value",
+                        report_payload=report_payload or (root and data_field.name == "reporting_data"),
+                    )
                 return result
-            if isinstance(value, tuple):
+            if isinstance(value, Mapping):
+                result = {}
+                is_value_wrapper = "value" in value and bool({"unit", "source_kind"} & set(value))
+                for key, item in value.items():
+                    key_text = str(key)
+                    if root and key_text == "input_id":
+                        continue
+                    if root and key_text in legacy_process_aliases:
+                        continue
+                    if root and scope == "calculation" and key_text == "reporting_data":
+                        continue
+                    if root and scope == "reporting" and key_text != "reporting_data":
+                        continue
+                    if scope == "calculation" and key_text in presentation_metadata:
+                        continue
+                    if scope == "reporting" and not root and not report_payload and key_text not in presentation_metadata:
+                        continue
+                    result[key_text] = normalize(
+                        item, key_text, numeric_value=is_value_wrapper and key_text == "value",
+                        report_payload=report_payload or (root and key_text == "reporting_data"),
+                    )
+                return result
+            if isinstance(value, (tuple, list)):
                 normalized_values = [normalize(item) for item in value]
                 sort_key = tuple_sort_keys.get(field_name or "")
                 if sort_key:
@@ -1470,7 +1544,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 return normalized_values
             raise TypeError(f"unsupported business fingerprint value: {type(value).__name__}")
 
-        payload = json.dumps(normalize(input_value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        payload = json.dumps(normalize(input_value, root=True), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def _current_business_fingerprint(self) -> str | None:
@@ -1478,6 +1552,41 @@ class CarbonMaterialAccountingPage(BasePage):
             return self._fingerprint_business_input(self._input(increment=False, render_electricity=False))
         except (DomainValidationError, InvalidOperation, TypeError, ValueError):
             return None
+
+    def _current_calculation_fingerprint(self) -> str | None:
+        try:
+            return self._fingerprint_business_input(
+                self._input(increment=False, render_electricity=False), scope="calculation",
+            )
+        except (DomainValidationError, InvalidOperation, TypeError, ValueError):
+            return None
+
+    def _saved_calculation_fingerprint(self, unit) -> str | None:
+        result = unit.result_snapshot or {}
+        saved = result.get("calculation_fingerprint")
+        if isinstance(saved, str) and saved:
+            return saved
+        record_id = result.get("record_id")
+        if not isinstance(record_id, str) or not record_id:
+            record_id = unit.record_ids[-1] if unit.record_ids else None
+        getter = getattr(getattr(self.calculator, "record_repository", None), "get_raw_input_snapshot", None)
+        if not record_id or not callable(getter):
+            return None
+        try:
+            raw_snapshot = getter(record_id)
+            if isinstance(raw_snapshot, Mapping):
+                return self._fingerprint_business_input(raw_snapshot, scope="calculation")
+        except Exception:
+            return None
+        return None
+
+    def _calculation_result_is_stale(self, unit) -> bool:
+        current = self._current_calculation_fingerprint()
+        saved = self._saved_calculation_fingerprint(unit)
+        if current is not None and saved is not None:
+            return current != saved
+        full = self._current_business_fingerprint()
+        return not unit.input_fingerprint or full is None or full != unit.input_fingerprint
 
     def _restore_unit_result(self) -> None:
         result = self._unit().result_snapshot
@@ -1487,17 +1596,21 @@ class CarbonMaterialAccountingPage(BasePage):
             self._calculation_has_result = False
             self._refresh_unit_result_summary()
             return
-        current_fingerprint = self._current_business_fingerprint()
-        if not self._unit().input_fingerprint or current_fingerprint is None or current_fingerprint != self._unit().input_fingerprint:
+        unit = self._unit()
+        if self._calculation_result_is_stale(unit):
             self.result_card.setVisible(False)
             self.process_card.setVisible(False)
             self._calculation_has_result = False
             self._refresh_unit_result_summary()
             return
         self.result_card.setVisible(True)
-        self.result_total.setText(f"总排放量 ET：{result.get('total_display', '—')}")
-        self.result_status.setText(f"状态：{result.get('status_label', '已完成')}")
+        self.result_total.setText(f"温室气体排放总量：{result.get('total_display', '—')}")
+        self.result_status.setText(f"核算状态：{result.get('status_label', '已完成')}")
         self.result_breakdown.setText(str(result.get("breakdown", "")))
+        self.report_qualification_status.setText(
+            "年度报告资格：" + str(result.get("report_qualification", "历史记录未保存该信息。"))
+        )
+        self.report_changes_status.setText("")
         self.result_line_details.setText(str(result.get("line_details", "")))
         self.trace_professional_details.setText(str(result.get("trace_details", "")))
         self.parameter_snapshot_summary.setText(
@@ -1505,6 +1618,10 @@ class CarbonMaterialAccountingPage(BasePage):
         )
         self.result_line_details.setVisible(bool(result.get("show_breakdown", False)))
         self._calculation_has_result = True
+        self._latest_record_id = result.get("record_id") or (unit.record_ids[-1] if unit.record_ids else None)
+        self.view_record_button.setEnabled(bool(self._latest_record_id))
+        if self._current_business_fingerprint() != unit.input_fingerprint:
+            self.report_changes_status.setText("报告资料已修改，需重新计算生成正式记录才能固化这些变化。")
         self._refresh_unit_result_summary()
 
     def _confirm_save_discard_cancel(self, action: str) -> bool:
@@ -1544,6 +1661,11 @@ class CarbonMaterialAccountingPage(BasePage):
         visible = not self.result_line_details.isVisible()
         self.result_line_details.setVisible(visible)
         self.view_breakdown_button.setText("收起分项结果" if visible else "查看分项结果")
+
+    def _open_latest_record(self) -> None:
+        record_id = self._latest_record_id
+        if record_id:
+            self.record_requested.emit(record_id)
 
     def _toggle_process_details(self) -> None:
         visible = not self.process_card.isVisible()
@@ -2457,7 +2579,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._mark_input_dirty()
 
     def _build_output_electricity_section(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel("输出电力（I03；从间接排放中抵扣）", self)
+        label = QLabel("输出电力（从间接排放中抵扣）", self)
         label.setObjectName("exportedElectricitySectionTitle")
         parent_layout.addWidget(label)
         self._output_electricity_host = QWidget(self)
@@ -2562,7 +2684,7 @@ class CarbonMaterialAccountingPage(BasePage):
             selector.addItem(f"{item.normalized_value} {item.normalized_unit} · {item.factor_id}", item.factor_id)
 
     def _build_heat_section(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel("购入热力/动力（I02）", self)
+        label = QLabel("购入热力/动力", self)
         label.setObjectName("heatSectionTitle")
         parent_layout.addWidget(label)
         row = QWidget(self)
@@ -2655,7 +2777,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._populate_heat_factor_selector()
 
     def _build_output_heat_section(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel("输出热力/动力（I04；从间接排放中抵扣）", self)
+        label = QLabel("输出热力/动力（从间接排放中抵扣）", self)
         label.setObjectName("exportedHeatSectionTitle")
         parent_layout.addWidget(label)
         row = QWidget(self)
@@ -3786,13 +3908,19 @@ class CarbonMaterialAccountingPage(BasePage):
         self._input_dirty = True
         self._project_dirty = True
         self._validation_count_override = None
-        self._calculation_has_result = False
-        if hasattr(self, "result_card"):
+        unit = self._unit()
+        calculation_stale = unit.result_snapshot is None or self._calculation_result_is_stale(unit)
+        self._calculation_has_result = not calculation_stale
+        if hasattr(self, "result_card") and calculation_stale:
             self.result_card.setVisible(False)
             self.process_card.setVisible(False)
             self.result_line_details.setVisible(False)
             self.view_breakdown_button.setText("查看分项结果")
             self.view_process_button.setText("查看计算过程")
+        elif hasattr(self, "result_card"):
+            self.report_changes_status.setText("报告资料已修改，需重新计算生成正式记录才能固化这些变化。")
+        if calculation_stale and hasattr(self, "report_changes_status"):
+            self.report_changes_status.clear()
         self._refresh_unit_result_summary()
         self._refresh_live_feedback()
 
@@ -3882,8 +4010,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.quality_card.setVisible(False)
         self.process_card.setVisible(False)
         self.result_card.setVisible(False)
+        self._latest_record_id = None
+        self.view_record_button.setEnabled(False)
         self.result_total.setText("未计算")
-        self.result_status.setText("状态：尚未计算")
+        self.result_status.setText("核算状态：尚未计算")
+        self.report_qualification_status.setText("年度报告资格：尚未计算")
+        self.report_changes_status.clear()
         self.result_breakdown.clear()
         self.result_line_details.clear()
         self.result_line_details.setVisible(False)
@@ -4086,7 +4218,7 @@ class CarbonMaterialAccountingPage(BasePage):
             technical_lines.append("ERROR：企业名称为必填项 [GEN-VAL-REQUIRED-MISSING]")
             self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
-            self.result_status.setText("状态：存在需要处理的问题")
+            self.result_status.setText("核算状态：存在需要处理的问题")
             self.quality_card.setVisible(True)
             self._validation_count_override = (1, 0)
             self._refresh_live_feedback()
@@ -4099,7 +4231,7 @@ class CarbonMaterialAccountingPage(BasePage):
             technical_lines.append(f"ERROR：{raw_message}")
             self.validation_professional_details.setText("\n".join(technical_lines))
             self.result_total.setText("存在输入错误")
-            self.result_status.setText("状态：存在需要处理的问题")
+            self.result_status.setText("核算状态：存在需要处理的问题")
             self.quality_card.setVisible(True)
             self._validation_count_override = (1, 0)
             self._refresh_live_feedback()
@@ -4123,14 +4255,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self._validation_count_override = (error_count, reminder_count)
         if outcome.result is None or outcome.blocked:
             self.result_total.setText("存在错误，未形成成功结果")
-            self.result_status.setText("状态：存在需要处理的问题")
+            self.result_status.setText("核算状态：存在需要处理的问题")
             self.quality_card.setVisible(True)
             self._refresh_live_feedback()
             return
         self._calculation_has_result = True
         self.result_card.setVisible(True)
         self.result_total.setText(
-            f"总排放量 ET：{_display_amount(outcome.result.total_amount, outcome.result.total_unit)}"
+            f"温室气体排放总量：{_display_amount(outcome.result.total_amount, outcome.result.total_unit)}"
         )
         by_id = {line.line_id: line.amount for line in outcome.result.lines}
         status_label = (
@@ -4140,12 +4272,22 @@ class CarbonMaterialAccountingPage(BasePage):
             if outcome.record is not None
             else "已计算但存在需要处理的问题"
         )
-        self.result_status.setText(f"状态：{status_label}")
+        self.result_status.setText(f"核算状态：{status_label}")
+        qualification = outcome.report_qualification
+        qualification_text = (
+            ("符合年度报告周期要求。" if qualification.eligible else "不符合年度报告周期要求。")
+            + qualification.message
+            if qualification is not None else "历史信息未保存。"
+        )
+        self.report_qualification_status.setText(
+            "年度报告资格：" + qualification_text
+        )
+        self.report_changes_status.clear()
         self.result_breakdown.setText(
-            f"直接排放 ES：{_display_amount(by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
-            f"间接排放 EI：{_display_amount(by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
+            f"直接排放量：{_display_amount(by_id.get('CAR-FLD-DIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
+            f"购入/输出能源对应的净间接排放量：{_display_amount(by_id.get('CAR-FLD-INDIRECT-RESULT', Decimal('0')), outcome.result.total_unit)}；"
             f"记录：{'已生成不可编辑核算记录' if outcome.record is not None else '未生成记录'}\n"
-            f"年度报告周期资格：{outcome.report_qualification.message if outcome.report_qualification else '历史信息未保存'}"
+            "需要查看标准报告资料时，可打开正式核算记录。"
         )
         line_details = []
         for line in outcome.result.lines:
@@ -4163,6 +4305,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self.parameter_snapshot_summary.setText(f"已形成 {len(outcome.parameter_snapshots)} 条参数快照（只读）。")
         if outcome.record is not None:
             self._input_dirty = False
+            self._latest_record_id = outcome.record.record_id
+            self.view_record_button.setEnabled(True)
             self.record_created.emit(outcome.record.record_id)
         trace_lines = [
             f"{trace.formula_id}：{trace.substitution} = {_display_amount(trace.amount, 'tCO2')}"
@@ -4177,6 +4321,8 @@ class CarbonMaterialAccountingPage(BasePage):
         if outcome.record is not None:
             state = self._capture_form_state()
             fingerprint = self._fingerprint_business_input(outcome.input)
+            calculation_fingerprint = self._fingerprint_business_input(outcome.input, scope="calculation")
+            reporting_fingerprint = self._fingerprint_business_input(outcome.input, scope="reporting")
             active = self._unit()
             result_snapshot = {
                 "total": str(outcome.result.total_amount),
@@ -4187,6 +4333,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 "trace_details": self.trace_professional_details.text(),
                 "parameter_snapshot_summary": self.parameter_snapshot_summary.text(),
                 "record_id": outcome.record.record_id,
+                "report_qualification": qualification_text,
+                "calculation_fingerprint": calculation_fingerprint,
+                "reporting_fingerprint": reporting_fingerprint,
             }
             updated_unit = replace(
                 active,
@@ -4199,6 +4348,7 @@ class CarbonMaterialAccountingPage(BasePage):
             units[self._active_unit_index] = updated_unit
             self._workspace = replace(self._workspace, units=tuple(units))
             self._project_dirty = True
+            self._refresh_unit_result_summary()
             if self.project_service is not None:
                 try:
                     association_workspace = self._workspace_for_record_link(updated_unit)
@@ -4227,6 +4377,7 @@ class CarbonMaterialAccountingPage(BasePage):
             else:
                 self.project_save_status.setText("核算记录已生成；当前项目未配置持久化服务。")
             self._refresh_unit_result_summary()
+        QTimer.singleShot(0, lambda: self._scroll_to_widget(self.result_card))
         self._refresh_live_feedback()
 
 

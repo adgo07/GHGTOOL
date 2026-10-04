@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-04（GHG-RS02-A）
+最后更新：2026-10-04（GHG-RS02-B）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,8 +30,8 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS02-A — Record Evidence & Reporting Data Closure`；实现与本地可执行验证已完成，等待本包PR的latest-head CI及独立验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- RS01已完成并合入main；RS02-A补齐新Record证据/报告数据快照及年度周期资格；RS02-B结果解释页面、RS03、Golden Freeze和第二标准均未启动。
+- 当前工作包：`GHG-RS02-B — Result Explanation & Record Experience Closure`；实现及本地可执行检查已完成，等待本PR exact-head Windows CI及独立最终验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- RS01及RS02-A已完成并合入main；本包以Record自身快照完成结果解释、B.1—B.9只读呈现和新鲜度分离。RS03、Golden Freeze、Release Gate和第二标准均未启动；标准仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
 ```text

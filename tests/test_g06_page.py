@@ -803,7 +803,7 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self.page.calculate_button.click()
         self.application.processEvents()
-        self.assertIn("总排放量 ET：", self.page.result_total.text())
+        self.assertIn("温室气体排放总量：", self.page.result_total.text())
         self.assertIn("已形成 0 条参数快照", self.page.parameter_snapshot_summary.text())
         calculator_repository = self.page.calculator.record_repository
         self.assertEqual(len(calculator_repository.list_all()), 1)

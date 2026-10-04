@@ -850,6 +850,7 @@ class InMemoryRecordRepository(RecordRepository):
         self._deleted: set[str] = set()
         self._audit: list[dict[str, object]] = []
         self._details: dict[str, dict[str, object]] = {}
+        self._detail_schema_records: set[str] = set()
 
     def create(self, record: AccountingRecord) -> None:
         if record.record_id in self._records:
@@ -877,6 +878,10 @@ class InMemoryRecordRepository(RecordRepository):
             "reporting_snapshot": _snapshot_value(reporting_snapshot) if reporting_snapshot else None,
             "report_qualification": _snapshot_value(report_qualification) if report_qualification else None,
         }
+        if any(value is not None for value in (
+            raw_input, trace_snapshot, provenance_snapshot, reporting_snapshot, report_qualification,
+        )):
+            self._detail_schema_records.add(record.record_id)
 
     def _detail(self, record_id: str, key: str) -> dict[str, object] | None:
         details = self._details.get(record_id)
@@ -900,6 +905,9 @@ class InMemoryRecordRepository(RecordRepository):
 
     def get_report_qualification(self, record_id: str) -> dict[str, object] | None:
         return self._detail(record_id, "report_qualification")
+
+    def get_snapshot_schema_version(self, record_id: str) -> int:
+        return int(record_id in self._detail_schema_records)
 
     def get(self, record_id: str) -> AccountingRecord | None:
         if record_id in self._deleted:
@@ -1376,8 +1384,7 @@ class CarbonMaterialCalculator:
             instance_id = trace.instance_id
             related_parameters = [
                 item for item in parameter_snapshots
-                if item.detail_id is not None
-                and (instance_id is None or instance_id in item.detail_id or item.detail_id == trace.trace_id)
+                if self._parameter_belongs_to_trace(item.detail_id, trace.formula_id, trace.trace_id, instance_id)
             ]
             rule_ids = [trace.source_id] if trace.source_id.startswith("CAR-RULE-") else sorted(self._effective_rule_ids)
             rule_references = [
@@ -1430,6 +1437,37 @@ class CarbonMaterialCalculator:
             "aggregations": {"ES": str(direct), "EI": str(indirect), "ET": str(total)},
             "calculation_lines": _snapshot_value(record.calculation_result.lines),
         }
+
+    @staticmethod
+    def _parameter_belongs_to_trace(
+        detail_id: str | None,
+        formula_id: str,
+        trace_id: str,
+        instance_id: str | None,
+    ) -> bool:
+        """Associate snapshots by their full detail identity, never a substring."""
+
+        if not detail_id:
+            return False
+        if detail_id == trace_id:
+            return True
+        if instance_id is None:
+            return False
+        exact_prefixes = {
+            "CAR-FML-FUEL-001": (f"CAR-FLD-F01-{instance_id}-",),
+            "CAR-FML-CALCINATION-001": (f"CAR-FLD-P01-RESULT-{instance_id}-",),
+            "CAR-FML-BAKING-001": (f"CAR-FLD-P02-RESULT-{instance_id}-",),
+            "CAR-FML-GRAPHITIZATION-001": (f"CAR-FLD-P03-RESULT-{instance_id}-",),
+            "CAR-FML-FUME-INCINERATION-001": (f"CAR-FLD-P04A-{instance_id}-",),
+            "CAR-FML-FGD-001": (f"CAR-FLD-P04B-{instance_id}-",),
+            "CAR-FML-EXPORTED-ELECTRICITY-001": (f"CAR-FLD-POWER-EXPORTED-EF.{instance_id}",),
+            "CAR-FML-PURCHASED-HEAT-001": (f"CAR-FLD-HEAT-{instance_id}-",),
+            "CAR-FML-EXPORTED-HEAT-001": (f"CAR-FLD-HEAT-{instance_id}-",),
+        }.get(formula_id, ())
+        if formula_id == "CAR-FML-EXPORTED-ELECTRICITY-001":
+            prefix = exact_prefixes[0]
+            return detail_id == prefix or detail_id.startswith(prefix + "-")
+        return any(detail_id.startswith(prefix) for prefix in exact_prefixes)
 
     def _quantity(self, value: InputValue | None, expected_unit: str, field_id: str, problems: list[ValidationProblem], *, nonnegative: bool = True) -> Decimal | None:
         if value is None:

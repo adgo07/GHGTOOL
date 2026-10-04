@@ -9,12 +9,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QMessageBox,
     QTextEdit,
+    QTabWidget,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -24,6 +26,19 @@ from PySide6.QtWidgets import (
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import AccountingRecord, RecordStatus
 from packages.core.repositories import RecordRepository
+from .record_experience import (
+    SnapshotState,
+    build_activity_evidence_view,
+    build_home_record_label,
+    build_parameter_view,
+    build_professional_view,
+    build_quality_view,
+    build_record_list_label,
+    build_report_view,
+    evidence_names_for,
+    snapshot_state,
+    summary_with_trace,
+)
 
 from .design_tokens import WIDE_PAGE_MARGIN
 from .view_models import AppRoute, ShellViewModel
@@ -427,7 +442,7 @@ class HomePage(BasePage):
         recent_standards.setObjectName("recentStandardsCard")
         if view_model.recent_standards:
             for standard in view_model.recent_standards[:5]:
-                row = QLabel(f"{standard.standard_id}\n{standard.title}", recent_standards)
+                row = QLabel(str(standard.title or "标准名称未记录"), recent_standards)
                 row.setObjectName("bodyText")
                 row.setWordWrap(True)
                 standards_layout.addWidget(row)
@@ -466,13 +481,7 @@ class HomePage(BasePage):
             self.recent_layout.addStretch(1)
             return
         for record in records:
-            period = f"{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}"
-            row = QLabel(
-                f"{record.input_snapshot.enterprise_name or '未填写企业'} · {period} · "
-                f"{record.standard_id} · {record.calculation_result.total_amount} "
-                f"{record.calculation_result.total_unit} · {record.status.value}",
-                self.recent_work,
-            )
+            row = QLabel(build_home_record_label(record), self.recent_work)
             row.setObjectName("bodyText")
             row.setWordWrap(True)
             self.recent_layout.addWidget(row)
@@ -502,26 +511,32 @@ class PlaceholderPage(BasePage):
 
 
 class RecordLibraryPage(BasePage):
-    """Read-only record ledger with searchable, auditable deletion."""
+    """Snapshot-backed business views over immutable calculation records."""
 
-    def __init__(self, record_repository: RecordRepository | None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        record_repository: RecordRepository | None,
+        parent: QWidget | None = None,
+        project_service=None,
+    ) -> None:
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
+        self.project_service = project_service
         self._records: tuple[AccountingRecord, ...] = ()
-        self.add_header("核算记录", "查看成功核算的不可编辑历史记录；删除只做软删除并保留审计证据。")
+        self.add_header("核算记录", "按业务信息查看已保存的核算结果和标准报告数据；历史记录只读。")
 
         filter_card, filter_layout = _card("检索与筛选", self)
         filter_row = QHBoxLayout()
         self.search_input = QLineEdit(filter_card)
         self.search_input.setObjectName("recordSearchInput")
-        self.search_input.setPlaceholderText("搜索企业名称、记录编号或标准编号")
+        self.search_input.setPlaceholderText("搜索企业名称、期间或记录编号")
         self.search_input.textChanged.connect(self.refresh_records)
         filter_row.addWidget(self.search_input, 1)
         self.status_filter = QComboBox(filter_card)
         self.status_filter.setObjectName("recordStatusFilter")
         self.status_filter.addItem("全部状态", "ALL")
         self.status_filter.addItem("已完成", RecordStatus.COMPLETED.value)
-        self.status_filter.addItem("含警告", RecordStatus.COMPLETED_WITH_WARNINGS.value)
+        self.status_filter.addItem("含提醒", RecordStatus.COMPLETED_WITH_WARNINGS.value)
         self.status_filter.currentIndexChanged.connect(self.refresh_records)
         filter_row.addWidget(self.status_filter)
         filter_layout.addLayout(filter_row)
@@ -536,11 +551,27 @@ class RecordLibraryPage(BasePage):
         self.record_list.currentRowChanged.connect(self._show_selected_record)
         content_layout.addWidget(self.record_list, 1)
 
-        detail_card, detail_layout = _card("只读详情", content)
-        self.detail_text = QTextEdit(detail_card)
-        self.detail_text.setObjectName("recordDetailView")
-        self.detail_text.setReadOnly(True)
-        detail_layout.addWidget(self.detail_text)
+        detail_card, detail_layout = _card("核算记录详情（只读）", content)
+        self.detail_tabs = QTabWidget(detail_card)
+        self.summary_text = self._readonly_text("recordSummaryView", self.detail_tabs)
+        self.report_text = self._readonly_text("recordReportView", self.detail_tabs)
+        self.activity_text = self._readonly_text("recordActivityEvidenceView", self.detail_tabs)
+        self.parameter_text = self._readonly_text("recordParameterView", self.detail_tabs)
+        self.quality_text = self._readonly_text("recordQualityView", self.detail_tabs)
+        self.detail_tabs.addTab(self.summary_text, "基本信息与结果")
+        self.detail_tabs.addTab(self.report_text, "标准报告数据")
+        self.detail_tabs.addTab(self.activity_text, "活动数据与证据")
+        self.detail_tabs.addTab(self.parameter_text, "参数与因子")
+        self.detail_tabs.addTab(self.quality_text, "数据质量与提醒")
+        detail_layout.addWidget(self.detail_tabs, 1)
+
+        self.professional_group = QGroupBox("专业信息（展开查看）", detail_card)
+        self.professional_group.setCheckable(True)
+        self.professional_group.setChecked(False)
+        professional_layout = QVBoxLayout(self.professional_group)
+        self.detail_text = self._readonly_text("recordDetailView", self.professional_group)
+        professional_layout.addWidget(self.detail_text)
+        detail_layout.addWidget(self.professional_group)
         self.delete_button = QPushButton("删除记录", detail_card)
         self.delete_button.setObjectName("deleteRecordButton")
         self.delete_button.clicked.connect(self._delete_selected)
@@ -549,7 +580,39 @@ class RecordLibraryPage(BasePage):
         self.body_layout.addWidget(content, 1)
         self.refresh_records()
 
-    def refresh_records(self, *_args: object) -> None:
+    @staticmethod
+    def _readonly_text(object_name: str, parent: QWidget) -> QTextEdit:
+        text = QTextEdit(parent)
+        text.setObjectName(object_name)
+        text.setReadOnly(True)
+        return text
+
+    def _read_snapshot(self, method_name: str, record_id: str) -> tuple[object, bool]:
+        getter = getattr(self.record_repository, method_name, None)
+        if not callable(getter):
+            return None, False
+        try:
+            return getter(record_id), False
+        except Exception:
+            return None, True
+
+    def _workspace_association(self, record_id: str) -> str:
+        if self.project_service is None:
+            return "当前无工作区关联"
+        try:
+            for workspace in self.project_service.list_all():
+                for unit in workspace.units:
+                    if record_id in unit.record_ids:
+                        return f"{workspace.name} / {unit.name}"
+        except Exception:
+            return "当前工作区关系暂不可用"
+        return "当前无工作区关联"
+
+    def refresh_records(self, *_args: object, select_record_id: str | None = None) -> None:
+        selected_before = select_record_id or (
+            self.record_list.currentItem().data(Qt.ItemDataRole.UserRole)
+            if self.record_list.currentItem() is not None else None
+        )
         all_records = tuple(self.record_repository.list_all()) if self.record_repository is not None else ()
         query = self.search_input.text().strip().casefold()
         status = self.status_filter.currentData()
@@ -562,113 +625,122 @@ class RecordLibraryPage(BasePage):
                 or query in record.record_id.casefold()
                 or query in record.standard_id.casefold()
                 or query in (record.input_snapshot.enterprise_name or "").casefold()
+                or query in str(record.input_snapshot.period.start).casefold()
+                or query in str(record.input_snapshot.period.end).casefold()
             )
         )
         self.record_list.clear()
-        for record in self._records:
-            period = f"{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}"
-            self.record_list.addItem(
-                f"{record.input_snapshot.enterprise_name or '未填写企业'} · {period} · "
-                f"{record.calculation_result.total_amount} {record.calculation_result.total_unit} · "
-                f"{record.status.value}"
-            )
-            self.record_list.item(self.record_list.count() - 1).setData(
-                Qt.ItemDataRole.UserRole, record.record_id
-            )
+        selected_row = -1
+        for index, record in enumerate(self._records):
+            self.record_list.addItem(build_record_list_label(record))
+            self.record_list.item(index).setData(Qt.ItemDataRole.UserRole, record.record_id)
+            if record.record_id == selected_before:
+                selected_row = index
         self.delete_button.setEnabled(bool(self._records))
         if self._records:
-            self.record_list.setCurrentRow(0)
+            self.record_list.setCurrentRow(selected_row if selected_row >= 0 else 0)
         else:
-            self.detail_text.setPlainText("暂无符合条件的核算记录。")
+            self._clear_details("暂无符合条件的核算记录。")
+
+    def open_record(self, record_id: str) -> bool:
+        self.search_input.blockSignals(True)
+        self.search_input.clear()
+        self.search_input.blockSignals(False)
+        self.status_filter.blockSignals(True)
+        self.status_filter.setCurrentIndex(0)
+        self.status_filter.blockSignals(False)
+        self.refresh_records(select_record_id=record_id)
+        return self.record_list.currentItem() is not None and self.record_list.currentItem().data(Qt.ItemDataRole.UserRole) == record_id
+
+    def _clear_details(self, message: str) -> None:
+        for widget in (self.summary_text, self.report_text, self.activity_text, self.parameter_text, self.quality_text, self.detail_text):
+            widget.setPlainText(message)
 
     def _show_selected_record(self, row: int) -> None:
         if row < 0 or row >= len(self._records):
-            self.detail_text.clear()
+            self._clear_details("请选择一条核算记录。")
             return
         record = self._records[row]
-        warnings = tuple(
-            problem
-            for problem in (*record.problems, *record.calculation_result.problems)
-            if problem.level.value == "WARNING"
-        )
-        snapshots = "\n".join(
-            f"- {item.parameter_id}：{item.value_used} {item.unit_used}；"
-            f"因子 {item.factor_id or '无'}；来源 {item.source_id or '无'}；"
-            f"理由 {item.selection_reason}"
-            for item in record.parameter_snapshots
-        ) or "- 无参数快照"
-        source_judgments = "\n".join(
-            f"- {item.source_id}：{'涉及' if item.included else '不涉及'}"
-            for item in record.input_snapshot.emission_sources
-        ) or "- 未记录排放源判断"
-        result_lines = "\n".join(
-            f"- {item.line_id}：{item.amount} {item.unit}"
-            for item in record.calculation_result.lines
-        ) or "- 无结果分项"
-        warning_text = "\n".join(f"- {item.code}：{item.message}" for item in warnings) or "- 无"
-        raw_snapshot = getattr(self.record_repository, "get_raw_input_snapshot", lambda _record_id: None)(record.record_id)
-        rule_snapshot = getattr(self.record_repository, "get_effective_rule_set", lambda _record_id: None)(record.record_id)
-        trace_snapshot = getattr(self.record_repository, "get_trace_snapshot", lambda _record_id: None)(record.record_id)
-        provenance_snapshot = getattr(self.record_repository, "get_provenance_snapshot", lambda _record_id: None)(record.record_id)
-        reporting_snapshot = getattr(self.record_repository, "get_reporting_snapshot", lambda _record_id: None)(record.record_id)
-        report_qualification = getattr(self.record_repository, "get_report_qualification", lambda _record_id: None)(record.record_id)
-        raw_snapshot_text = _format_business_snapshot(raw_snapshot)
-        standard_version = record.standard_version or "未记录"
-        rule_ids = ", ".join(str(item) for item in (rule_snapshot or {}).get("rule_ids", ())) or "未记录额外规则 ID"
-        if isinstance(trace_snapshot, dict):
-            aggregations = trace_snapshot.get("aggregations", {})
-            steps = trace_snapshot.get("formula_steps", ())
-            trace_text = (
-                f"已保存版本 {trace_snapshot.get('trace_schema_version', '未知')} 的计算过程快照，"
-                f"含 {len(steps) if isinstance(steps, (tuple, list)) else 0} 个计算步骤。\n"
-                f"ES：{aggregations.get('ES', '历史记录未保存该信息')}；"
-                f"EI：{aggregations.get('EI', '历史记录未保存该信息')}；"
-                f"ET：{aggregations.get('ET', '历史记录未保存该信息')} tCO₂"
-                if isinstance(aggregations, dict)
-                else "该记录生成时未保存完整计算过程快照。"
-            )
+        getters = {
+            "raw": "get_raw_input_snapshot",
+            "rules": "get_effective_rule_set",
+            "trace": "get_trace_snapshot",
+            "provenance": "get_provenance_snapshot",
+            "reporting": "get_reporting_snapshot",
+            "qualification": "get_report_qualification",
+        }
+        values: dict[str, object] = {}
+        errors: dict[str, bool] = {}
+        for key, method in getters.items():
+            values[key], errors[key] = self._read_snapshot(method, record.record_id)
+        schema_getter = getattr(self.record_repository, "get_snapshot_schema_version", None)
+        try:
+            schema_available = bool(schema_getter(record.record_id)) if callable(schema_getter) else False
+        except Exception:
+            schema_available = False
+        states = {
+            key: snapshot_state(values[key], schema_available, read_error=errors[key])
+            for key in ("raw", "trace", "provenance", "reporting", "qualification")
+        }
+        if not schema_available and not errors["raw"]:
+            states["raw"] = SnapshotState.LEGACY
+        report_state = states["raw"]
+        qualification_state = states["qualification"]
+        trace = values["trace"] if states["trace"] is SnapshotState.PRESENT else None
+        reporting = values["reporting"] if states["reporting"] is SnapshotState.PRESENT else None
+        raw = values["raw"] if states["raw"] is SnapshotState.PRESENT else None
+        self.summary_text.setPlainText(summary_with_trace(
+            record, values["qualification"], qualification_state, trace,
+            association=self._workspace_association(record.record_id),
+        ))
+        if states["raw"] is SnapshotState.LEGACY:
+            report_text = "该历史记录生成时尚未保存完整业务输入；可查看以下已固化的核算汇总。\n\n" + build_report_view(record, None, trace, reporting)
+        elif states["raw"] is SnapshotState.CORRUPT:
+            report_text = "无法读取该历史记录的业务输入快照。\n\n" + build_report_view(record, None, trace, reporting)
         else:
-            trace_text = "该记录生成时未保存完整计算过程快照。"
-        if isinstance(provenance_snapshot, dict):
-            numeric = provenance_snapshot.get("numeric_provenance", {})
-            reference = provenance_snapshot.get("reference_data", {})
-            provenance_text = (
-                f"标准版本：{(provenance_snapshot.get('standard') or {}).get('version', '历史记录未保存该信息')}；"
-                f"映射版本：{(provenance_snapshot.get('mapping') or {}).get('version', '历史记录未保存该信息')}；"
-                f"算法版本：{(provenance_snapshot.get('calculator') or {}).get('algorithm_version', '历史记录未保存该信息')}；"
-                f"数值配置：{numeric.get('profile_id', '历史记录未保存该信息')}，"
-                f"精度 {numeric.get('precision', '—')}；参考数据摘要：{reference.get('content_sha256', '历史记录未保存该信息')}"
-            ) if all(isinstance(item, dict) for item in (numeric, reference)) else "历史记录未保存完整来源版本信息。"
-        else:
-            provenance_text = "历史记录未保存该信息。"
-        reporting_text = _format_reporting_snapshot(reporting_snapshot)
-        qualification_text = (
-            str(report_qualification.get("message", "历史记录未保存该信息。"))
-            if isinstance(report_qualification, dict)
-            else "历史记录未保存该信息。"
+            report_text = build_report_view(record, raw, trace, reporting)
+        self.report_text.setPlainText(report_text)
+        self.activity_text.setPlainText(build_activity_evidence_view(raw, reporting, states["reporting"]))
+        parameter_state = (
+            SnapshotState.PRESENT if record.parameter_snapshots else
+            SnapshotState.EMPTY if schema_available else SnapshotState.LEGACY
         )
-        self.detail_text.setPlainText(
-            f"记录编号：{record.record_id}\n"
-            f"创建时间：{record.created_at.isoformat()}\n"
-            f"企业名称：{record.input_snapshot.enterprise_name or '未填写企业'}\n"
-            f"核算期间：{record.input_snapshot.period.start} 至 {record.input_snapshot.period.end}\n"
-            f"标准编号（稳定ID）：{record.standard_id}\n"
-            f"标准版本：{standard_version}\n"
-            f"算法版本：{record.algorithm_version}\n"
-            f"状态：{record.status.value}\n"
-            f"总排放量：{record.calculation_result.total_amount} {record.calculation_result.total_unit}\n"
-            f"\n排放源判断：\n{source_judgments}\n"
-            f"\n有效规则集：\n- {rule_ids}\n"
-            f"\n实际输入快照（只读）：\n{raw_snapshot_text}\n"
-            f"\n结果分项：\n{result_lines}\n"
-            f"\n参数来源快照：\n{snapshots}\n"
-            f"\n结构化计算过程快照：\n{trace_text}\n"
-            f"\n来源版本快照：\n{provenance_text}\n"
-            f"\n报告信息与证据快照：\n{reporting_text}\n"
-            f"\n年度报告周期资格：\n{qualification_text}\n"
-            f"\n警告：\n{warning_text}\n"
-            "\n本详情只读；历史记录不会被重新计算或覆盖。"
+        self.parameter_text.setPlainText(build_parameter_view(
+            record, evidence_names_for(reporting), parameter_state,
+        ))
+        self.quality_text.setPlainText(build_quality_view(
+            record, values["qualification"], qualification_state,
+        ))
+        try:
+            audit = self.record_repository.list_audit(record.record_id) if self.record_repository is not None else ()
+        except Exception:
+            audit = ("无法读取历史审计日志。",)
+        rule_value = values["rules"]
+        professional = build_professional_view(
+            record,
+            raw=values["raw"],
+            rules=rule_value,
+            trace=values["trace"],
+            provenance=values["provenance"],
+            reporting=values["reporting"],
+            qualification=values["qualification"],
+            states={
+                "实际输入快照": states["raw"], "Trace 快照": states["trace"],
+                "Provenance 快照": states["provenance"], "报告信息快照": states["reporting"],
+                "年度报告资格快照": states["qualification"],
+            },
+            audit=audit,
         )
+        if states["trace"] is SnapshotState.LEGACY:
+            professional += "\n\n该记录生成时未保存完整计算过程快照。"
+        professional += (
+            f"\n\n标准编号（稳定 ID）：{record.standard_id}"
+            f"\n标准版本：{record.standard_version or '未记录'}"
+            f"\n实际输入快照（业务视图）：\n{_format_business_snapshot(values['raw'])}"
+            f"\n报告信息与证据快照：\n{_format_reporting_snapshot(values['reporting'])}"
+        )
+        self.detail_text.setPlainText(professional)
+
     def _delete_selected(self) -> None:
         row = self.record_list.currentRow()
         if row < 0 or row >= len(self._records) or self.record_repository is None:
@@ -677,7 +749,7 @@ class RecordLibraryPage(BasePage):
         answer = QMessageBox.question(
             self,
             "确认删除核算记录",
-            f"将删除记录 {record.record_id}。该操作不会物理删除审计证据，是否继续？",
+            f"将删除 {record.input_snapshot.enterprise_name or '未填写企业'} 的 {record.input_snapshot.period.start} 至 {record.input_snapshot.period.end} 核算记录。审计信息会保留，是否继续？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -765,7 +837,7 @@ def create_page(
             catalog_service or CatalogQueryService.empty(), navigate, parent
         )
     if route is AppRoute.RECORDS:
-        return RecordLibraryPage(record_repository, parent)
+        return RecordLibraryPage(record_repository, parent, project_service=project_service)
     if route is AppRoute.NEW_ACCOUNTING:
         from .carbon_material_page import CarbonMaterialAccountingPage
 

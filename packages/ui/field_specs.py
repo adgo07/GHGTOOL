@@ -61,16 +61,16 @@ class FieldSpec:
 
 
 SOURCE_LABELS = {
-    "CAR-SRC-FUEL-001": "化石燃料燃烧（F01）",
-    "CAR-SRC-CALCINATION-001": "原料煅烧（P01）",
-    "CAR-SRC-BAKING-001": "炭素制品焙烧/炭化（P02）",
-    "CAR-SRC-GRAPHITIZATION-001": "炭素制品石墨化（P03）",
-    "CAR-SRC-FUME-INCINERATION-001": "烟气焚烧治理（P04A）",
-    "CAR-SRC-FGD-001": "烟气脱硫净化（P04B）",
-    "CAR-SRC-PURCHASED-ELECTRICITY-001": "购入电力（I01）",
-    "CAR-SRC-PURCHASED-HEAT-001": "购入热力/动力（I02）",
-    "CAR-SRC-EXPORTED-ELECTRICITY-001": "输出电力（I03）",
-    "CAR-SRC-EXPORTED-HEAT-001": "输出热力/动力（I04）",
+    "CAR-SRC-FUEL-001": "化石燃料燃烧",
+    "CAR-SRC-CALCINATION-001": "原料煅烧",
+    "CAR-SRC-BAKING-001": "炭素制品焙烧/炭化",
+    "CAR-SRC-GRAPHITIZATION-001": "炭素制品石墨化",
+    "CAR-SRC-FUME-INCINERATION-001": "烟气焚烧治理",
+    "CAR-SRC-FGD-001": "烟气脱硫净化",
+    "CAR-SRC-PURCHASED-ELECTRICITY-001": "购入电力",
+    "CAR-SRC-PURCHASED-HEAT-001": "购入热力/动力",
+    "CAR-SRC-EXPORTED-ELECTRICITY-001": "输出电力",
+    "CAR-SRC-EXPORTED-HEAT-001": "输出热力/动力",
 }
 
 

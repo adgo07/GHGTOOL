@@ -135,6 +135,9 @@ class AppShell(QWidget):
             record_created = getattr(page, "record_created", None)
             if record_created is not None:
                 record_created.connect(self._refresh_record_views)
+            record_requested = getattr(page, "record_requested", None)
+            if record_requested is not None:
+                record_requested.connect(self._request_record_view)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
@@ -176,6 +179,14 @@ class AppShell(QWidget):
             refresh = getattr(page, "refresh_records", None)
             if callable(refresh):
                 refresh()
+
+    def _request_record_view(self, record_id: str) -> None:
+        self._refresh_record_views(record_id)
+        page = self._pages.get(AppRoute.RECORDS)
+        open_record = getattr(page, "open_record", None)
+        if callable(open_record):
+            open_record(record_id)
+        self.navigate(AppRoute.RECORDS)
 
     def _request_standard_accounting(self, standard_id: str) -> None:
         """Keep the selected catalog version while routing to the future input page."""
