@@ -571,7 +571,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.reporting_fields["industry"].setText("更新后的行业信息")
         self.assertFalse(self.page._calculation_result_is_stale(self.page._unit()))
         self.assertFalse(self.page.result_card.isHidden())
-        self.assertIn("报告资料已修改", self.page.unit_result_summary.text())
+        self.assertIn("报告信息已修改", self.page.unit_result_summary.text())
         self.assertIn("报告资料已修改", self.page.report_changes_status.text())
         self.assertEqual(self.page._unit().result_snapshot["total"], first_result["total"])
         self.assertEqual(self.records.list_all(), (first_record,))
