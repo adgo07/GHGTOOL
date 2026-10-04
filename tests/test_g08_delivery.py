@@ -104,7 +104,7 @@ class G08DeliveryTests(unittest.TestCase):
             try:
                 self.assertEqual(
                     connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0],
-                    2,
+                    3,
                 )
                 self.assertEqual(
                     dict(connection.execute("SELECT key, value FROM database_metadata"))["app_version"],
