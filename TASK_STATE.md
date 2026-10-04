@@ -1,36 +1,37 @@
 # TASK_STATE
 
-状态：CURRENT STATE；更新：2026-10-04。
+状态：GHG-RS03-A 实施完成，等待 latest-head CI 与独立重新验收。更新：2026-10-04。
 
 ## 当前工作包与基线
 
-- 仓库：adgo07/GHGTOOL；origin 已核实为 https://github.com/adgo07/GHGTOOL.git。
-- 工作包：GHG-RS02-B — Result Explanation & Record Experience Closure。
-- Base / 执行开始时最新 origin/main：781d40163495af68ea1c110a8dda8896861d70c6，含已合并的 RS02-A / PR #25。分支 codex/ghg-rs02-b-result-explanation 从该 main 创建；开始时工作区干净。
-- 平台锁定：platform-lock.json SHA-256 为 BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0；中央锁定 SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20 未升级。
-- Contract 预检查：Architecture V2.1、Numeric Contract v1、Numeric Profiles v1 为 locked Frozen；Workspace/Attempt/Record/Result v1 仍为 DRAFT / NOT YET RELEASED。本任务不涉及中央公共 Contract，不修改平台 baseline。
-- 标准问题：沿用4条历史 RESOLVED 执行口径；本任务未改变标准解释、未新增标准问题；GAP-009仍是非阻塞 provenance debt。标准状态仍为 NOT SUPPORTED。
+- 仓库：adgo07/GHGTOOL；origin 已核实为 `https://github.com/adgo07/GHGTOOL.git`。
+- 工作包：GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础。
+- Base：最新 `origin/main` `058d176a8a461b758db1a1d62395b032889d9b2a`；PR #26 合并结果已在该 main 中。
+- 新分支：`codex/ghg-rs03-a-excel-ingress`，从该 Base 创建；任务工作树创建时干净。
+- platform-lock.json SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定 SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 未升级。
+- Contract 预检查：Architecture V2.1、Numeric Contract v1、Numeric Profiles v1 按锁定版本为 Frozen；Excel / openpyxl Decimal 词法互操作语义仍为中央 OPEN。本包使用本地入口策略，不升级 baseline / platform-lock，也不定义中央 Contract。
+- 标准治理：沿用既有冻结 Mapping 与项目口径；未改变标准解释、计算公式或标准适用范围；无新增 Standard Issue。标准仍为 `NOT SUPPORTED`。
 
-## 已完成实现
+## 已完成范围
 
-- 核算结果摘要展示直接排放、净间接排放及包含间接排放的总量；成功核算后自动定位结果卡片。年度报告资格独立展示，不把月度/自定义周期资格不符标为核算失败。
-- Record详情按只读分层呈现基本信息、核算结果、标准报告数据、活动数据/来源、参数/因子、质量提示和专业信息。B.1—B.9展示业务值和依据；专业Trace及稳定ID默认折叠。
-- 多实例结果按稳定过程/来源身份分组；Trace / Parameter Snapshot 按精确实例前缀关联，避免相似标识互串。历史算术与分组小计只核对当前Record内已存快照。
-- 新建核算结果可按精确 record_id 打开对应Record；工作区关联明确标记为可变关系，不作为不可变Record快照。
-- 计算新鲜度与报告新鲜度分开。仅报告资料变化时保留已算结果并提示重新生成正式Record以固化报告变更；计算输入改变仍使结果过期。
-- 历史Record只读，展示自身快照，不查询当前Catalog/Calculator；无数据、空数据、旧版缺失与损坏有明确区别。没有新增破坏性Project migration或Record schema migration；既有软删除/审计不变。
-- 同步 Roadmap、HANDOFF、CORE_CHECK Matrix、RS02 Coverage 和 GHG-UI-001/002/005 状态；RS02-B已实现，PR #26 latest-head Windows/Python 3.12 两项CI通过，PR仍开放等待独立最终验收。
+- 添加 `packages/excel/gbt32151_34_v1.py` 纯 Python 适配器和运行时模板；模板对应 GB/T 32151.34—2024，一个工作簿可登记多个独立全厂/工序/其他核算单元，不保存模板资产。
+- 按已保存 OOXML 数值文本直接解析 Decimal；仅接受有限数值单元格，拒绝文本数字、公式、日期、非有限数、超过15位有效数字；保留工作表/单元格、类型、值表示、保存数值词法和 Decimal 入口证据。数值格式不改变比例语义。
+- 单元级独立校验与部分成功预览；每个有效核算单元构造既有 `CarbonMaterialInput` 并交由既有 `CarbonMaterialCalculator`，展示直接、净间接与总排放。不同单元不互相汇总；不写 Project / Workspace / Record。
+- 增加 `openpyxl` 运行依赖；首页和导航的 Excel 入口已从禁用占位改为运行时模板及导入预览入口。没有修改业务公式、Canonical 数据、数据库迁移、标准 Mapping、平台锁或 Frozen Contract。
+- 新增 `specs/carbon_accounting/GHGTOOL_EXCEL_INGRESS_V1.md` 与 `GB_T_32151_34_2024_EXCEL_SCHEMA_V1.md`；Roadmap、HANDOFF、UI Audit同步至 RS03-A；RS03-B NOT STARTED。
 
 ## 本地验证
 
-- 定向命令：tests.test_rs02_record_evidence、tests.test_g06_carbon_material、tests.test_g02_persistence、tests.test_g05_multi_electricity；45/45通过。
-- 全量命令：python -m unittest discover -s tests -t . -v；共发现139项，其中128项通过，11个PySide6 UI测试模块因本机缺少PySide6而在导入时ERROR。故本机全量回归未完成；Windows/Python 3.12 exact-head CI负责Qt UI及全量回归。
-- Canonical：python scripts/validate_canonical.py 通过，9 standards、12 sources、98 parameters、98 factors。
-- Python语法：python -m compileall -q packages tests 通过。
-- 依赖：python -m pip check 通过，No broken requirements found。
-- 数据库：上述定向测试含四库创建/逻辑重建、迁移幂等和Record快照重开验证；数据库与历史快照测试通过。
-- GUI：本机无PySide6，Qt运行态/UI接受测试未执行。
-- git diff --check：提交前通过。PR #26 latest-head Windows Merge-ref Full Tests（245项）与 PR-head Standalone Audit 均通过；当前检查状态见[PR Checks](https://github.com/adgo07/GHGTOOL/pull/26/checks)。
+- RS03-A / Shell 定向：`python -m unittest tests.test_excel_rs03_a tests.test_g03_shell -v`；24/24 通过。
+- 全量回归：`python -m unittest discover -s tests -t . -v`；261/261 通过（Python 3.12，Windows，offscreen Qt）。
+- Canonical：`python scripts/validate_canonical.py` 通过；9 standards、12 sources、98 parameters、98 factors。
+- 编译：`python -m compileall -q apps packages resources scripts tests` 通过。
+- 依赖：`python -m pip check` 通过；No broken requirements found。
+- 数据库：`scripts/initialize_databases.py --output-dir build/databases/rs03-a-check` 成功生成隔离的 catalog/user/records/projects 四库。
+- UI acceptance：`scripts/uir04_manual_gui_acceptance.py` 场景A—E均PASS；`scripts/uir04_scale_acceptance.py --scale 1.25` 与 `--scale 1.5` 均PASS。
+- Windows standalone：本地构建成功；`scripts/inspect_release.py` PASS（287 files），`scripts/verify_release_archive.py` PASS（288 visible files），`scripts/smoke_standalone.py` PASS（2次隔离启动）。
+- `git diff --check` 通过。运行库为 Python 3.12 venv，加上本机 bundled dependency path 提供 openpyxl 3.1.5；PySide6 / PyInstaller 使用项目 venv。
 
-状态：实现、本地可执行检查与PR latest-head CI完成，等待独立最终验收；PR保持开放，不合并。
-RS03：NOT STARTED。
+## 停止边界
+
+PR 与 latest-head Windows CI 结果完成后，等待独立验收；不合并 PR，不进入 RS03-B，不做 Project / Record 持久化、正式 Excel 导出或 Golden Freeze。GB/T 32151.34—2024 继续 `NOT SUPPORTED`。

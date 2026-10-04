@@ -53,14 +53,14 @@ class G03ShellTest(unittest.TestCase):
                 "首页",
                 "标准库",
                 "新建核算",
-                "Excel 导入（暂未开放）",
+                "Excel 模板与导入预览",
                 "核算记录",
                 "参数与因子库",
                 "设置",
             ],
         )
         self.assertTrue(shell.navigation_buttons[AppRoute.HOME].isChecked())
-        self.assertTrue(shell.navigation_buttons[AppRoute.EXCEL_IMPORT].property("reserved"))
+        self.assertFalse(shell.navigation_buttons[AppRoute.EXCEL_IMPORT].property("reserved"))
         settings_y = shell.navigation_buttons[AppRoute.SETTINGS].mapTo(sidebar, QPoint(0, 0)).y()
         factors_y = shell.navigation_buttons[AppRoute.FACTORS].mapTo(sidebar, QPoint(0, 0)).y()
         self.assertGreater(settings_y, factors_y)
@@ -73,7 +73,10 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentStandardsCard"))
         self.assertEqual(home.findChild(QLabel, "emptyStateTitle").text(), "尚无核算记录")
-        self.assertEqual(home.findChild(QLabel, "emptyStateDescription").text().splitlines()[0], "可以通过“新建核算”手工开始。")
+        self.assertEqual(
+            home.findChild(QLabel, "emptyStateDescription").text(),
+            "可以通过“新建核算”手工开始，也可以使用 Excel 模板和导入预览。",
+        )
         self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "暂无核算记录 · 暂无企业 · 暂无待处理事项")
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
@@ -93,7 +96,7 @@ class G03ShellTest(unittest.TestCase):
             [(button.objectName(), button.text()) for button in buttons],
             [
                 ("primaryButton", "＋ 新建核算"),
-                ("reservedButton", "Excel 导入（暂未开放）"),
+                ("excelImportButton", "Excel 模板与导入预览"),
                 ("secondaryButton", "查看标准库"),
             ],
         )
@@ -126,25 +129,23 @@ class G03ShellTest(unittest.TestCase):
         home.findChild(QPushButton, "secondaryButton").click()
         self.assertEqual(shell.current_route, AppRoute.STANDARDS)
         shell.navigate(AppRoute.HOME)
-        home.findChild(QPushButton, "reservedButton").click()
+        home.findChild(QPushButton, "excelImportButton").click()
         self.assertEqual(shell.current_route, AppRoute.EXCEL_IMPORT)
 
-    def test_excel_placeholder_has_no_enabled_import_control(self) -> None:
+    def test_excel_page_exposes_runtime_template_and_preview_controls(self) -> None:
         shell = self.shell
         shell.navigate(AppRoute.EXCEL_IMPORT)
         page = shell.pages[AppRoute.EXCEL_IMPORT]
-        self.assertIn("功能预留，当前版本暂未开放", page.findChild(QLabel, "cardTitle").text())
-        controls = page.findChild(QWidget, "disabledImportControls")
+        self.assertIn("运行时生成", page.findChild(QLabel, "cardTitle").text())
+        controls = page.findChild(QWidget, "excelImportPreviewControls")
         self.assertIsNotNone(controls)
         assert controls is not None
-        self.assertFalse(controls.isEnabled())
-        for widget in (
-            *page.findChildren(QLineEdit),
-            *page.findChildren(QComboBox),
-            *page.findChildren(QPushButton),
-        ):
-            self.assertFalse(widget.isEnabled(), widget.objectName())
-            self.assertEqual(widget.focusPolicy(), Qt.FocusPolicy.NoFocus)
+        self.assertTrue(controls.isEnabled())
+        self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
+        self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
+        self.assertTrue(page.findChild(QPushButton, "importButton").isEnabled())
+        self.assertTrue(page.findChild(QLineEdit, "excelWorkbookPath").isReadOnly())
+        self.assertEqual(page.standard_input.currentText(), "GB/T 32151.34—2024")
 
     def test_logo_and_main_content_resize_rules(self) -> None:
         shell = self.shell

@@ -221,6 +221,12 @@ AppShell：`packages/ui/shell.py::AppShell`，采用固定左侧导航 + `QStack
 
 RS02-B 状态复核只覆盖上述结果/Record普通层，不代表全软件所有模块均无内部字段，也不关闭 GHG-UI-003/004。对应 UI 与记录测试：`tests/test_uir04_finalization.py`、`tests/test_g06_page.py`、`tests/test_rs02_record_evidence.py`、`tests/test_accounting_projects_ui.py`；本机缺少 PySide6，Windows exact-head CI负责真实 Qt 运行态回归。
 
+### 7.3 RS03-A Excel 入口状态
+
+RS03-A 已将原来的禁用占位入口改为可操作的“Excel 模板与导入预览”：导航和首页入口均可到达同一页面；用户可运行时生成 GB/T 32151.34—2024 模板、选择工作簿并按独立核算单元查看输入校验和计算预览。预览显示直接排放、净间接排放和总排放；错误和提醒可带工作表 / 单元格位置。它不保存 Project 或正式 Record。
+
+`GHG-UI-003` 因此为 **RS03-A 部分收敛**：入口不再宣称暂未开放，但模板填报与导入操作同时保留首页和导航入口，是否需要合并入口层级留待 RS03-B 完整用户流程复核。本节不代表 Excel 正式导入/导出完成。代码与回归证据：`packages/ui/pages.py::ExcelImportPage`、`tests/test_g03_shell.py`、`tests/test_excel_rs03_a.py`；最终 Qt / Windows 运行态以 RS03-A PR exact-head CI 为准。
+
 ## 8. 正向设计记录
 
 以下现有做法值得保留并在其他仓后续设计中参考：

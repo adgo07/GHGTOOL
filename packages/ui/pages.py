@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import re
 from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -417,10 +419,8 @@ class HomePage(BasePage):
         start_layout.addWidget(primary_button)
 
         excel_button = QPushButton(view_model.excel_action_label, start_panel)
-        excel_button.setObjectName("reservedButton")
-        excel_button.setProperty("reserved", True)
-        excel_button.setCursor(Qt.CursorShape.ArrowCursor)
-        excel_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        excel_button.setObjectName("excelImportButton")
+        excel_button.setCursor(Qt.CursorShape.PointingHandCursor)
         excel_button.clicked.connect(lambda: navigate(AppRoute.EXCEL_IMPORT))
         start_layout.addWidget(excel_button)
 
@@ -472,7 +472,7 @@ class HomePage(BasePage):
             empty_title.setObjectName("emptyStateTitle")
             self.recent_layout.addWidget(empty_title)
             empty_description = QLabel(
-                "可以通过“新建核算”手工开始。\nExcel 导入功能将在后续版本开放。",
+                "可以通过“新建核算”手工开始，也可以使用 Excel 模板和导入预览。",
                 self.recent_work,
             )
             empty_description.setObjectName("emptyStateDescription")
@@ -761,30 +761,31 @@ class RecordLibraryPage(BasePage):
         self.refresh_records()
 
 class ExcelImportPage(BasePage):
-    """Non-interactive Excel placeholder; no file or import action is wired."""
+    """RS03-A runtime template and non-persistent import preview surface."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, catalog_service: CatalogQueryService | None = None) -> None:
         super().__init__(AppRoute.EXCEL_IMPORT, parent)
-        self.add_header("Excel 导入", "通过标准化模板快速导入核算数据")
+        self.add_header("Excel 导入", "生成标准模板并预览独立核算单元")
+        self.catalog_service = catalog_service
 
-        card, layout = _card("功能预留，当前版本暂未开放。", self)
+        card, layout = _card("当前支持运行时生成 GB/T 32151.34—2024 模板和导入校验预览。", self)
         controls = QWidget(card)
-        controls.setObjectName("disabledImportControls")
+        controls.setObjectName("excelImportPreviewControls")
         controls_layout = QVBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
         controls_layout.setSpacing(12)
 
         file_input = QLineEdit(controls)
-        file_input.setObjectName("reservedInput")
-        file_input.setPlaceholderText("文件选择将在后续版本开放")
-        file_input.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        file_input.setObjectName("excelWorkbookPath")
+        file_input.setPlaceholderText("选择 .xlsx 工作簿")
+        file_input.setReadOnly(True)
         controls_layout.addWidget(file_input)
         self.file_input = file_input
 
         standard_input = QComboBox(controls)
-        standard_input.setObjectName("reservedInput")
-        standard_input.addItem("标准选择将在后续版本开放")
-        standard_input.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        standard_input.setObjectName("excelStandardSelection")
+        standard_input.addItem("GB/T 32151.34—2024")
+        standard_input.setEnabled(False)
         controls_layout.addWidget(standard_input)
         self.standard_input = standard_input
 
@@ -792,23 +793,100 @@ class ExcelImportPage(BasePage):
         button_row.setSpacing(12)
         for object_name, label in (
             ("selectFileButton", "选择文件"),
-            ("templateButton", "模板下载"),
-            ("nextButton", "下一步"),
-            ("importButton", "导入"),
+            ("templateButton", "生成模板"),
+            ("importButton", "校验并预览"),
         ):
             button = QPushButton(label, controls)
-            button.setObjectName("reservedControl")
+            button.setObjectName(object_name)
             button.setProperty("controlName", object_name)
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.setCursor(Qt.CursorShape.ArrowCursor)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             button_row.addWidget(button)
             setattr(self, object_name, button)
         controls_layout.addLayout(button_row)
-        controls.setEnabled(False)
+        self.selectFileButton.clicked.connect(self._select_workbook)
+        self.templateButton.clicked.connect(self._generate_template)
+        self.importButton.clicked.connect(self._preview_workbook)
         layout.addWidget(controls)
+        note = QLabel("预览不会保存项目或生成正式核算记录；每个有效单元由现有核算器独立计算。", card)
+        note.setWordWrap(True)
+        layout.addWidget(note)
         layout.addStretch(1)
         self.body_layout.addWidget(card)
         self.body_layout.addStretch(1)
+
+    def _select_workbook(self) -> None:
+        path, _selected = QFileDialog.getOpenFileName(self, "选择核算工作簿", "", "Excel 工作簿 (*.xlsx)")
+        if path:
+            self.file_input.setText(path)
+
+    def _generate_template(self) -> None:
+        path, _selected = QFileDialog.getSaveFileName(
+            self, "生成 GB/T 32151.34—2024 模板", "GB_T_32151_34_2024.xlsx", "Excel 工作簿 (*.xlsx)"
+        )
+        if not path:
+            return
+        try:
+            from packages.excel.gbt32151_34_v1 import write_template
+
+            written = write_template(path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "模板生成失败", self._business_facing_excel_message(str(exc)))
+            return
+        QMessageBox.information(self, "模板已生成", f"模板已保存到：\n{written}")
+
+    def _preview_workbook(self) -> None:
+        path = self.file_input.text().strip()
+        if not path:
+            QMessageBox.information(self, "请选择文件", "请先选择 .xlsx 核算工作簿。")
+            return
+        try:
+            from packages.application.carbon_accounting import create_g06_parameter_resolver
+            from packages.excel.gbt32151_34_v1 import ExcelWorkbookImporter
+
+            resolver = (
+                create_g06_parameter_resolver(self.catalog_service.repository)
+                if self.catalog_service is not None else None
+            )
+            preview = ExcelWorkbookImporter(resolver).import_preview(path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "无法读取工作簿", self._business_facing_excel_message(str(exc)))
+            return
+        lines = []
+        for unit in preview.units:
+            label = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}[unit.unit_type.value]
+            lines.append(f"{unit.name}（{label}）")
+            if unit.can_calculate and unit.result is not None:
+                traces = {trace.trace_id: trace for trace in unit.calculation.traces}
+                direct = traces.get("CAR-DIRECT")
+                indirect = traces.get("CAR-INDIRECT")
+                if direct is not None:
+                    lines.append(f"  直接排放：{direct.amount} {direct.unit}")
+                if indirect is not None:
+                    lines.append(f"  净间接排放：{indirect.amount} {indirect.unit}")
+                lines.append(f"  排放总量：{unit.result.total_amount} {unit.result.total_unit}")
+            else:
+                lines.append("  无法计算")
+                lines.extend(self._format_excel_issue(item, "· ") for item in unit.errors)
+            lines.extend(self._format_excel_issue(item, "提醒：") for item in unit.warnings)
+        lines.extend(self._format_excel_issue(item, "提醒：") for item in preview.warnings)
+        if not preview.units:
+            lines.append("工作簿中没有已启用的核算单元。")
+        lines.append("\n此预览不会保存项目或生成正式核算记录。")
+        QMessageBox.information(self, "核算单元预览", "\n".join(lines))
+
+    @staticmethod
+    def _format_excel_issue(issue, prefix: str) -> str:
+        location = f"{issue.location}：" if issue.location else ""
+        message = ExcelImportPage._business_facing_excel_message(issue.message)
+        return f"{prefix}{location}{message}"
+
+    @staticmethod
+    def _business_facing_excel_message(message: str) -> str:
+        from packages.excel.gbt32151_34_v1 import SOURCE_LABELS
+
+        for source_id, label in SOURCE_LABELS.items():
+            message = message.replace(source_id, label)
+        return re.sub(r"\bCAR-[A-Z0-9-]+\b", "相关输入", message)
 
 
 def create_page(
@@ -825,7 +903,7 @@ def create_page(
     if route is AppRoute.HOME:
         return HomePage(view_model, navigate, parent, record_repository=record_repository)
     if route is AppRoute.EXCEL_IMPORT:
-        return ExcelImportPage(parent)
+        return ExcelImportPage(parent, catalog_service=catalog_service)
     if route is AppRoute.STANDARDS:
         from .catalog_pages import StandardLibraryPage
 
