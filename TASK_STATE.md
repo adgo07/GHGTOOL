@@ -1,6 +1,6 @@
 # TASK_STATE
 
-状态：GHG-RS03-A 实施完成，等待 latest-head CI 与独立重新验收。更新：2026-10-04。
+状态：GHG-RS03-A 实施与本地验证完成；PR #27 保持开放，latest-head CI 状态以 PR Checks 为准；等待独立重新验收。更新：2026-10-04。
 
 ## 当前工作包与基线
 
@@ -34,4 +34,4 @@
 
 ## 停止边界
 
-PR 与 latest-head Windows CI 结果完成后，等待独立验收；不合并 PR，不进入 RS03-B，不做 Project / Record 持久化、正式 Excel 导出或 Golden Freeze。GB/T 32151.34—2024 继续 `NOT SUPPORTED`。
+PR Checks 页面持续显示当前 head 的 Windows CI；每次推送均须以最新 head 两项 Windows/Python 3.12 workflow success 为验收证据。PR 保持开放等待独立验收；不合并PR，不进入RS03-B，不做Project / Record持久化、正式Excel导出或Golden Freeze。GB/T 32151.34—2024继续 `NOT SUPPORTED`。

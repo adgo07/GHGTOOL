@@ -1,6 +1,6 @@
 # GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础
 
-状态：本地实施与本地验证完成；PR 最新 head 的 Windows/Python 3.12 CI 是合并前停止门槛。报告不记录自身所在提交 SHA，确切 PR latest head / CI run 以 GitHub PR Checks 与完成回复为准。
+状态：本地实施与本地验证完成；PR #27 保持开放等待独立重新验收。Windows/Python 3.12 exact-head CI 按最新 head 在 [PR Checks](https://github.com/adgo07/GHGTOOL/pull/27/checks) 跟踪；报告不记录自身所在提交 SHA，完成回复将给出最后通过的 run 与 `head_sha`。
 
 ## 1. 基线与平台预检查
 
@@ -51,6 +51,6 @@
 
 ## 6. 阶段边界与CI门禁
 
-实现和本地验证完成后，创建新的RS03-A PR；不得复用此前PR，不得合并。必须等候该PR **最新 head_sha** 的 Windows / Python 3.12 `Merge-ref Full Tests` 与 `PR-head Standalone Audit` 两项 Actions 均成功，且 standalone provenance 指向精确PR head，才报告完成。GitHub执行状态只以PR当前Checks及完成回复记录，不将此前head结果当作新head证据。
+RS03-A使用新建的 PR #27，不复用此前PR且不合并。每个当前最新 `head_sha` 都必须有 Windows / Python 3.12 `Merge-ref Full Tests` 与 `PR-head Standalone Audit` 两项 Actions success，且 standalone provenance 指向精确PR head，才可停止并报告完成。GitHub执行状态只以PR当前Checks及完成回复记录，不将此前head结果当作新head证据。
 
 PR保持开放等待独立验收。RS03-B `NOT STARTED`；本阶段不做正式Project / Record持久化、Excel导出、Golden Freeze、第二标准或 `SUPPORTED` 宣告。
