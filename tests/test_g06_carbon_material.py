@@ -47,6 +47,7 @@ from packages.standards.carbon_material import (
     FuelType,
     FumeIncinerationInput,
     GraphitizationInput,
+    HeatFactorMode,
     HeatInput,
     InMemoryRecordRepository,
     InputValue,
@@ -748,12 +749,20 @@ class G06CalculatorTests(unittest.TestCase):
             for problem in unknown_fgd.problems
         ))
 
-        default_heat = CarbonMaterialCalculator().calculate(
+        default_heat_store = InMemoryRecordRepository()
+        default_heat = CarbonMaterialCalculator(record_repository=default_heat_store).calculate(
             _input(purchased_heat=(HeatInput("default.heat", "1000", "2800"),)),
             calculated_at=SNAPSHOT_AT,
         )
-        self.assertTrue(default_heat.successful, default_heat.problems)
-        self.assertTrue(any(problem.code == "CAR-VAL-HEAT-FACTOR-DEFAULT" for problem in default_heat.problems))
+        self.assertTrue(default_heat.blocked)
+        self.assertTrue(any(
+            problem.code == "CAR-VAL-HEAT-FACTOR-DEFAULT"
+            and problem.level is IssueLevel.ERROR
+            and "标准参数目录" in problem.message
+            for problem in default_heat.problems
+        ))
+        self.assertIsNone(default_heat.record)
+        self.assertEqual(default_heat_store.list_all(), ())
 
     def test_domain_parameter_gate_blocks_invalid_values_from_every_source_without_records(self) -> None:
         for source_kind in ParameterSourceKind:
@@ -815,6 +824,52 @@ class G06CalculatorTests(unittest.TestCase):
         )
         self.assertTrue(zero.successful, zero.problems)
         self.assertEqual(zero.result.total_amount, Decimal("0"))
+
+    def test_canonical_heat_default_resolves_for_purchased_and_exported_heat(self) -> None:
+        heat_parameter = Parameter(
+            "heat_emission_factor_default",
+            "purchased_heat",
+            ParameterType.HEAT_EMISSION_FACTOR,
+            "热力缺省排放因子",
+            "tCO₂/GJ",
+            "2025",
+        )
+        heat_factor = Factor(
+            factor_id="heat_default_2025",
+            parameter_id="heat_emission_factor_default",
+            subject_id="purchased_heat",
+            parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
+            value="0.11",
+            unit="tCO₂/GJ",
+            version="2025",
+            value_type=ValueType.STANDARD_DEFAULT,
+            review_status=ReviewStatus.VERIFIED,
+            source_id="SRC-32150-2025",
+            source_location="GB/T 32150—2025 第7.5.6～7.5.7条",
+            applicable_standard_ids=("gbt_32150_2025", STANDARD_ID),
+            factor_year=2025,
+            valid_from=date(2025, 1, 1),
+        )
+        resolver = ParameterResolver.with_default_g05_rules(
+            MemoryParameterRepository((*_parameters(), heat_parameter), (*_factors(), heat_factor))
+        )
+        outcome = CarbonMaterialCalculator(parameter_resolver=resolver).calculate(
+            _input(
+                purchased_heat=(HeatInput("purchased-1", "1", unit="t", manual_enthalpy=False, pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT),),
+                exported_heat=(HeatInput("exported-1", "0.5", unit="t", manual_enthalpy=False, pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT),),
+            ),
+            calculated_at=SNAPSHOT_AT,
+        )
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertEqual(
+            {snapshot.detail_id for snapshot in outcome.parameter_snapshots if snapshot.parameter_id == "heat_emission_factor_default"},
+            {"purchased-1", "exported-1"},
+        )
+        for formula_id in ("CAR-FML-PURCHASED-HEAT-001", "CAR-FML-EXPORTED-HEAT-001"):
+            trace = next(item for item in outcome.traces if item.formula_id == formula_id)
+            self.assertEqual(dict(trace.provenance)["heat_factor_source"], "标准缺省值")
+            variables = {name: value for name, value, _unit in trace.variables}
+            self.assertEqual(variables["EF3"], Decimal("0.11"))
 
     def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
         fuels = (
@@ -889,6 +944,7 @@ class G06CalculatorTests(unittest.TestCase):
                 HeatInput(
                     "superheated.heat",
                     "1000",
+                    factor=_explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ"),
                     steam_kind=SteamKind.SUPERHEATED,
                     pressure_mpa="1.0",
                     temperature_c="300",

@@ -18,6 +18,7 @@ import re
 from uuid import uuid4
 
 from PySide6.QtCore import QDate, QSignalBlocker, QTimer, Qt, Signal
+from PySide6.QtGui import QDoubleValidator, QLocale
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -76,7 +77,9 @@ from packages.standards.carbon_material import (
     FuelType,
     FumeIncinerationInput,
     GraphitizationInput,
+    HeatFactorMode,
     HeatInput,
+    InputValue,
     ElectricityOutputLine,
     InMemoryRecordRepository,
     MaterialBasis,
@@ -85,6 +88,14 @@ from packages.standards.carbon_material import (
     ParameterSourceKind,
     ParameterValue,
     SteamKind,
+    saturated_steam_enthalpy,
+    superheated_steam_enthalpy,
+)
+from packages.standards.carbon_material_normalization import (
+    MaterialDataSource,
+    MaterialInputLine,
+    MaterialRole,
+    normalize_material_inputs,
 )
 from packages.core.models import AccountingPeriod, RecordStatus, ReviewStatus, ValueType
 from packages.core.parameter_resolution import ParameterResolutionContext
@@ -104,6 +115,31 @@ _PROCESS_DEFAULT_PARAMETERS = {
     "calcination": ("CAR-PAR-K1", "第5.2.2条"),
     "baking": ("CAR-PAR-K2", "第5.2.3条"),
     "graphitization": ("CAR-PAR-K3", "第5.2.4条"),
+}
+_PROCESS_MATERIAL_ROLES: dict[str, tuple[tuple[str, MaterialRole], ...]] = {
+    "calcination": (
+        ("原料", MaterialRole.CALCINATION_FEED),
+        ("煅后料", MaterialRole.CALCINED_PRODUCT),
+        ("欠烧煅料", MaterialRole.UNDERBURN_RECOVERED),
+        ("碳粉尘", MaterialRole.CARBON_DUST),
+    ),
+    "baking": (
+        ("填充料", MaterialRole.BAKING_FILLER),
+        ("待焙烧/炭化品", MaterialRole.GREEN_BAKING_PRODUCT),
+        ("焙烧/炭化产品", MaterialRole.BAKED_PRODUCT),
+        ("粉尘/碎屑/副产品", MaterialRole.BAKING_BYPRODUCT),
+    ),
+    "graphitization": (
+        ("保温料/电阻料", MaterialRole.GRAPHITIZATION_PACKING),
+        ("待石墨化品", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT),
+        ("石墨化产品", MaterialRole.GRAPHITIZED_PRODUCT),
+        ("粉尘/碎屑/残块/副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+    ),
+}
+_PROCESS_MATERIAL_DEFAULT_ROLE = {
+    "calcination": MaterialRole.CALCINATION_FEED,
+    "baking": MaterialRole.GREEN_BAKING_PRODUCT,
+    "graphitization": MaterialRole.GREEN_GRAPHITIZATION_PRODUCT,
 }
 _REPORT_SOURCE_OPTIONS = (
     ("燃料", "CAR-SRC-FUEL-001"),
@@ -575,6 +611,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._fields: dict[str, QLineEdit] = {}
         self._material_controls: dict[str, dict[str, QWidget]] = {}
         self._heat_factor_records = {}
+        self._legacy_heat_controls: dict[str, QWidget] = {}
         self._professional_detail_widgets: list[QWidget] = []
         # Presentation-only feedback from the existing G05/Domain paths.
         # These caches never become part of CarbonMaterialInput or persistence.
@@ -1116,6 +1153,11 @@ class CarbonMaterialAccountingPage(BasePage):
                         for component in row.get("components", [])
                         if isinstance(component, dict) and component.get("component_id")
                     ],
+                    "material_ids": [
+                        str(material["line_id"])
+                        for material in row.get("materials", [])
+                        if isinstance(material, dict) and material.get("line_id")
+                    ],
                 }
                 for row in rows
             ]
@@ -1129,7 +1171,12 @@ class CarbonMaterialAccountingPage(BasePage):
             prefix: [str(_value(row["id"]) or row["default_line_id"]) for row in rows]
             for prefix, rows in self._heat_rows.items()
         }
+        values["heat_legacy_factor_overrides"] = {
+            prefix: [bool(row.get("legacy_factor_override")) for row in rows]
+            for prefix, rows in self._heat_rows.items()
+        }
         values["business_fingerprint_version"] = 2
+        values["steam_input_version"] = 2
         return values
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
@@ -1273,7 +1320,15 @@ class CarbonMaterialAccountingPage(BasePage):
                 component_ids = saved.get("component_ids", [])
                 if not isinstance(component_ids, list) or any(not isinstance(value, str) for value in component_ids):
                     component_ids = []
-                self._add_process_row(prefix, instance_id=instance_id, component_ids=tuple(component_ids))
+                material_ids = saved.get("material_ids", [])
+                if not isinstance(material_ids, list) or any(not isinstance(value, str) for value in material_ids):
+                    material_ids = []
+                self._add_process_row(
+                    prefix,
+                    instance_id=instance_id,
+                    component_ids=tuple(component_ids),
+                    material_ids=tuple(material_ids),
+                )
             self._bind_process_aliases(prefix)
 
         stored_output_ids = state.get("exported_electricity_line_ids", default_state.get("exported_electricity_line_ids", []))
@@ -1312,6 +1367,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 if line_id:
                     row["default_line_id"] = line_id
             self._bind_heat_aliases(prefix)
+        legacy_steam_state = not isinstance(state.get("steam_input_version"), int) or state.get("steam_input_version", 0) < 2
         by_name: dict[str, QWidget] = {}
         for widget in self.findChildren(QWidget):
             if widget.objectName():
@@ -1337,6 +1393,24 @@ class CarbonMaterialAccountingPage(BasePage):
         # A blank unit must not inherit controls from the previously active unit.
         apply_values(default_state)
         apply_values(state)
+        if legacy_steam_state:
+            self._convert_legacy_steam_amounts_to_tonnes()
+            for prefix, rows in self._heat_rows.items():
+                for row in rows:
+                    enthalpy = row.get("enthalpy")
+                    mode = row.get("enthalpy_mode")
+                    if isinstance(enthalpy, QLineEdit) and enthalpy.text().strip() and isinstance(mode, QComboBox):
+                        mode.setCurrentIndex(mode.findData("MANUAL"))
+                    self._set_legacy_heat_factor_mode(row)
+        else:
+            legacy_overrides = state.get("heat_legacy_factor_overrides", {})
+            if isinstance(legacy_overrides, dict):
+                for prefix, rows in self._heat_rows.items():
+                    values = legacy_overrides.get(prefix, [])
+                    if isinstance(values, list):
+                        for row, value in zip(rows, values):
+                            row["legacy_factor_override"] = value is True
+        self._refresh_all_heat_enthalpy_previews()
         self.boundary_confirmed.setChecked(True)
         self.scope_exclusion_notice.setVisible(
             self.other_activity_present.isChecked() or self.transport_present.isChecked()
@@ -2133,7 +2207,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self._wire_dirty_tracking(widget)
         return widget
 
-    def _add_process_row(self, prefix: str, *, instance_id: str | None = None, component_ids: tuple[str, ...] | None = None) -> dict[str, object]:
+    def _add_process_row(
+        self,
+        prefix: str,
+        *,
+        instance_id: str | None = None,
+        component_ids: tuple[str, ...] | None = None,
+        material_ids: tuple[str, ...] | None = None,
+    ) -> dict[str, object]:
         if prefix not in self._process_rows_layout:
             return {}
         rows = self._process_rows[prefix]
@@ -2168,12 +2249,14 @@ class CarbonMaterialAccountingPage(BasePage):
         toolbar.addWidget(remove_button)
         host_layout.addLayout(toolbar)
         row: dict[str, object] = {
+            "prefix": prefix,
             "instance_id": instance_id,
             "widget": host,
             "title": title_label,
             "display_title": display_title,
             "fields": {},
             "components": [],
+            "materials": [],
         }
         if prefix == "fgd":
             component_host = QWidget(host)
@@ -2211,11 +2294,50 @@ class CarbonMaterialAccountingPage(BasePage):
                     form.addRow(spec.label, edit)
                 group_layout.addWidget(form_row)
                 host_layout.addWidget(group)
+                if prefix in _PROCESS_MATERIAL_ROLES:
+                    # Kept hidden under their historical object names so old
+                    # Workspace form_state_json values remain readable.
+                    group.hide()
             row["fields"] = widgets
             if prefix in _PROCESS_DEFAULT_PARAMETERS:
                 controls_key = f"{prefix}@{instance_id}"
                 self._build_material_controls(host_layout, prefix, instance_id=instance_id, controls_key=controls_key, first=first)
                 row["controls_key"] = controls_key
+            if prefix in _PROCESS_MATERIAL_ROLES:
+                material_host = QWidget(host)
+                material_layout = QVBoxLayout(material_host)
+                material_layout.setContentsMargins(0, 0, 0, 0)
+                material_header = QHBoxLayout()
+                for label, stretch in (
+                    ("物料类别", 2), ("物料名称", 2), ("数量（t）", 1),
+                    ("固定碳含量（%）", 1), ("数据来源", 1),
+                    ("挥发分（%）", 1), ("数据来源", 1), ("", 0),
+                ):
+                    caption = QLabel(label, material_host)
+                    caption.setWordWrap(True)
+                    caption.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    material_header.addWidget(caption, stretch if stretch else 0)
+                material_layout.addLayout(material_header)
+                material_rows_host = QWidget(material_host)
+                material_rows_layout = QVBoxLayout(material_rows_host)
+                material_rows_layout.setContentsMargins(0, 0, 0, 0)
+                material_layout.addWidget(material_rows_host)
+                summary = QLabel("软件汇总值：等待录入物料。", material_host)
+                summary.setObjectName(f"{prefix}_{instance_id}_materialSummary")
+                summary.setWordWrap(True)
+                material_layout.addWidget(summary)
+                add_material = QPushButton("新增物料", material_host)
+                add_material.setObjectName(f"add_{prefix}_material_{instance_id}")
+                add_material.clicked.connect(lambda _checked=False, _row=row: self._add_material_line(_row))
+                material_layout.addWidget(add_material)
+                host_layout.addWidget(material_host)
+                row["materials_host"] = material_host
+                row["materials_layout"] = material_rows_layout
+                row["material_summary"] = summary
+                for material_id in material_ids or ():
+                    self._add_material_line(row, line_id=material_id)
+                if not row["materials"]:
+                    self._add_material_line(row)
             flags: dict[str, QCheckBox] = {}
             if prefix in {"calcination", "baking"}:
                 checkbox = QCheckBox("产品中的碳已计入本过程输入/产量（重复计入会阻断计算）", host)
@@ -2235,6 +2357,196 @@ class CarbonMaterialAccountingPage(BasePage):
         self._bind_process_aliases(prefix)
         self._refresh_source_cards()
         return row
+
+    def _add_material_line(self, process_row: dict[str, object], *, line_id: str | None = None) -> dict[str, object]:
+        prefix = str(process_row.get("prefix", ""))
+        if not prefix:
+            return {}
+        material_rows = process_row.get("materials")
+        layout = process_row.get("materials_layout")
+        parent = process_row.get("materials_host")
+        if not isinstance(material_rows, list) or not isinstance(layout, QVBoxLayout) or not isinstance(parent, QWidget):
+            return {}
+        used_ids = {str(item.get("line_id", "")) for item in material_rows if isinstance(item, dict)}
+        line_id = line_id or uuid4().hex
+        while line_id in used_ids:
+            line_id = uuid4().hex
+
+        container = QWidget(parent)
+        container.setObjectName(f"{prefix}_material_{line_id}")
+        row_layout = QHBoxLayout(container)
+        row_layout.setContentsMargins(0, 2, 0, 2)
+        row_layout.setSpacing(6)
+        role = QComboBox(container)
+        role.setObjectName(f"{prefix}_materialRole_{line_id}")
+        for label, value in _PROCESS_MATERIAL_ROLES[prefix]:
+            role.addItem(label, value)
+        default_role = _PROCESS_MATERIAL_DEFAULT_ROLE[prefix]
+        role.setCurrentIndex(max(0, role.findData(default_role)))
+        name = QLineEdit(container)
+        name.setObjectName(f"{prefix}_materialName_{line_id}")
+        name.setPlaceholderText("如：煅烧石油焦")
+        mass = QLineEdit(container)
+        mass.setObjectName(f"{prefix}_materialMass_{line_id}")
+        mass.setPlaceholderText("数量")
+        carbon = QLineEdit(container)
+        carbon.setObjectName(f"{prefix}_materialFixedCarbon_{line_id}")
+        carbon.setPlaceholderText("固定碳")
+        carbon_source = QComboBox(container)
+        carbon_source.setObjectName(f"{prefix}_materialFixedCarbonSource_{line_id}")
+        self._populate_material_source_combo(carbon_source)
+        volatile = QLineEdit(container)
+        volatile.setObjectName(f"{prefix}_materialVolatile_{line_id}")
+        volatile.setPlaceholderText("挥发分")
+        volatile_source = QComboBox(container)
+        volatile_source.setObjectName(f"{prefix}_materialVolatileSource_{line_id}")
+        self._populate_material_source_combo(volatile_source)
+        for widget, label in (
+            (role, "物料类别"), (name, "物料名称"), (mass, "物料数量（t）"),
+            (carbon, "固定碳含量（%）"), (carbon_source, "固定碳数据来源"),
+            (volatile, "挥发分（%）"), (volatile_source, "挥发分数据来源"),
+        ):
+            widget.setProperty("businessFieldLabel", label)
+        remove = QPushButton("删除", container)
+        remove.setObjectName(f"remove_{prefix}_material_{line_id}")
+        remove.clicked.connect(lambda _checked=False, _row=process_row, _id=line_id: self._remove_material_line(_row, _id))
+        for widget, stretch in (
+            (role, 2), (name, 2), (mass, 1), (carbon, 1),
+            (carbon_source, 1), (volatile, 1), (volatile_source, 1), (remove, 0),
+        ):
+            row_layout.addWidget(widget, stretch)
+            self._wire_dirty_tracking(widget)
+        for widget in (name, mass, carbon, volatile):
+            widget.textChanged.connect(lambda *_args, _row=process_row: self._refresh_material_summary(_row))
+        for widget in (role, carbon_source, volatile_source):
+            widget.currentIndexChanged.connect(lambda *_args, _row=process_row: self._refresh_material_summary(_row))
+        material = {
+            "line_id": line_id,
+            "widget": container,
+            "role": role,
+            "name": name,
+            "mass": mass,
+            "fixed_carbon": carbon,
+            "fixed_carbon_source": carbon_source,
+            "volatile_matter": volatile,
+            "volatile_matter_source": volatile_source,
+        }
+        layout.addWidget(container)
+        material_rows.append(material)
+        for edit in (mass, carbon, volatile):
+            edit.setValidator(QDoubleValidator(-1.0e15, 1.0e15, 12, edit))
+            validator = edit.validator()
+            if isinstance(validator, QDoubleValidator):
+                validator.setLocale(QLocale.c())
+        self._refresh_material_summary(process_row)
+        self._refresh_source_cards()
+        return material
+
+    @staticmethod
+    def _populate_material_source_combo(combo: QComboBox) -> None:
+        # Current Canonical data has no standard defaults for process material
+        # composition. The measured path is therefore the truthful default.
+        combo.addItem("实测值", MaterialDataSource.MEASURED)
+        combo.addItem("化学计算", MaterialDataSource.CHEMICAL_CALCULATION)
+        combo.setCurrentIndex(0)
+
+    def _remove_material_line(self, process_row: dict[str, object], line_id: str) -> None:
+        materials = process_row.get("materials")
+        if not isinstance(materials, list):
+            return
+        for material in tuple(materials):
+            if not isinstance(material, dict) or material.get("line_id") != line_id:
+                continue
+            widget = material.get("widget")
+            if isinstance(widget, QWidget):
+                widget.setParent(None)
+                widget.deleteLater()
+            materials.remove(material)
+        self._refresh_material_summary(process_row)
+        self._refresh_source_cards()
+
+    def _material_inputs(self, process_row: dict[str, object]) -> tuple[MaterialInputLine, ...]:
+        result: list[MaterialInputLine] = []
+        material_rows = process_row.get("materials", [])
+        if not isinstance(material_rows, list):
+            return ()
+        for row in material_rows:
+            if not isinstance(row, dict):
+                continue
+            role = row.get("role")
+            fixed_source = row.get("fixed_carbon_source")
+            volatile_source = row.get("volatile_matter_source")
+            if not isinstance(role, QComboBox) or not isinstance(fixed_source, QComboBox) or not isinstance(volatile_source, QComboBox):
+                continue
+            result.append(MaterialInputLine(
+                line_id=str(row.get("line_id", "")),
+                role=role.currentData(),
+                name=_value(row.get("name")) or "",
+                mass_t=_value(row.get("mass")),
+                fixed_carbon_percent=_value(row.get("fixed_carbon")),
+                fixed_carbon_source=fixed_source.currentData(),
+                volatile_matter_percent=_value(row.get("volatile_matter")),
+                volatile_matter_source=volatile_source.currentData(),
+            ))
+        return tuple(result)
+
+    def _refresh_material_summary(self, process_row: dict[str, object]) -> None:
+        summary = process_row.get("material_summary")
+        if not isinstance(summary, QLabel):
+            return
+        prefix = str(process_row.get("prefix", ""))
+        if not prefix:
+            return
+        materials = self._material_inputs(process_row)
+        active = tuple(
+            line for line in materials
+            if any(value is not None and str(value).strip() for value in (
+                line.name, line.mass_t, line.fixed_carbon_percent, line.volatile_matter_percent,
+            ))
+        )
+        if not active:
+            row_fields = process_row.get("fields", {})
+            legacy = []
+            if isinstance(row_fields, dict):
+                for key, widget in row_fields.items():
+                    if isinstance(widget, QLineEdit) and widget.text().strip():
+                        try:
+                            label = get_field_spec(f"{prefix}.{key}").label
+                        except KeyError:
+                            label = str(key)
+                        legacy.append(f"{label}：{widget.text().strip()}")
+            if legacy:
+                summary.setText("旧项目汇总值（继续使用）：" + "；".join(legacy) + "。新增物料明细后将按明细自动汇总。")
+            else:
+                summary.setText("软件汇总值：等待录入物料。")
+            return
+        normalized = normalize_material_inputs(prefix, active, policy=self.calculator.policy)
+        if normalized.problems:
+            summary.setText("软件汇总值：请补齐或修正物料数量和成分数值。")
+            return
+        values = dict(normalized.values)
+        policy = self.calculator.policy
+        format_value = lambda value: format(value, "f").rstrip("0").rstrip(".") if "." in format(value, "f") else format(value, "f")
+        if prefix == "calcination":
+            text = (
+                f"原料 {format_value(values['gc'])} t · 固定碳 {format_value(policy.multiply(values['wfc'], Decimal('100')))}% · 挥发分 {format_value(policy.multiply(values['wvar'], Decimal('100')))}%；"
+                f"输出 {format_value(policy.add(policy.add(values['cc'], values['ucc']), values['du']))} t · 固定碳 {format_value(policy.multiply(values['wfc_c'], Decimal('100')))}% · 挥发分 {format_value(policy.multiply(values['wvar_c'], Decimal('100')))}%"
+            )
+        elif prefix == "baking":
+            text = (
+                f"填充料 {format_value(values['bpm'])} t（固定碳 {format_value(policy.multiply(values['bpmfc'], Decimal('100')))}%、挥发分 {format_value(policy.multiply(values['bpmvar'], Decimal('100')))}%）；"
+                f"待焙烧/炭化品 {format_value(values['bg'])} t（固定碳 {format_value(policy.multiply(values['bgfc'], Decimal('100')))}%、挥发分 {format_value(policy.multiply(values['bgvar'], Decimal('100')))}%）；"
+                f"产品 {format_value(values['bp'])} t（固定碳 {format_value(policy.multiply(values['bpfc'], Decimal('100')))}%）；"
+                f"粉尘/副产品碳 {format_value(values['bwt'])} tC"
+            )
+        else:
+            text = (
+                f"保温/电阻料 {format_value(values['gpm'])} t（固定碳 {format_value(policy.multiply(values['gpmfc'], Decimal('100')))}%、挥发分 {format_value(policy.multiply(values['gpmvar'], Decimal('100')))}%）；"
+                f"待石墨化品 {format_value(values['gta'])} t（固定碳 {format_value(policy.multiply(values['gtafc'], Decimal('100')))}%）；"
+                f"产品 {format_value(values['gp'])} t（固定碳 {format_value(policy.multiply(values['gpfc'], Decimal('100')))}%）；"
+                f"粉尘/副产品碳 {format_value(values['gwt'])} tC"
+            )
+        summary.setText("软件汇总值：" + text)
 
     def _add_fgd_component(self, unit: dict[str, object], *, component_id: str | None = None) -> dict[str, object]:
         component_id = component_id or uuid4().hex
@@ -2819,167 +3131,77 @@ class CarbonMaterialAccountingPage(BasePage):
             selector.addItem(f"{item.normalized_value} {item.normalized_unit} · {item.factor_id}", item.factor_id)
 
     def _build_heat_section(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel("购入热力/动力", self)
-        label.setObjectName("heatSectionTitle")
-        parent_layout.addWidget(label)
-        row = QWidget(self)
-        form = QFormLayout(row)
-        for key in (
-            "heat_id",
-            "heat_amount",
-            "heat_enthalpy",
-            "heat_pressure",
-            "heat_temperature",
-        ):
-            default_value = "purchased-heat-1" if key == "heat_id" else None
-            edit = create_typed_input(row, get_field_spec(key), f"{key}Input", default_value)
-            self._fields[key] = edit
-            form.addRow(get_field_spec(key).label, edit)
-        self._fields["heat_id"].setPlaceholderText("可选：填写热力来源名称或凭证编号")
-        self._heat_steam_kind = create_typed_input(row, get_field_spec("heat_steam_kind"), "heatSteamKindSelector")
-        self._heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
-        self._heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
-        form.addRow(get_field_spec("heat_steam_kind").label, self._heat_steam_kind)
-        self.heat_factor_selector = QComboBox(row)
-        self.heat_factor_selector.setObjectName("heatFactorSelector")
-        self.heat_factor_selector.setProperty("fieldSpecKey", "heat_factor")
-        self.heat_factor_selector.setToolTip(get_field_spec("heat_factor").help_text)
-        self.heat_factor_selector.currentIndexChanged.connect(self._refresh_heat_factor_details)
-        self.heat_factor_metadata = create_read_only_parameter(row, get_field_spec("heat_factor"), "heatFactorMetadata")
-        self.heat_factor_metadata.setText("推荐热力因子：尚未加载")
-        form.addRow("热力参数摘要（只读）", self.heat_factor_metadata)
-        self.parameter_selection_status = QLabel("采用依据：按核算期间自动确定标准默认值。", row)
-        self.parameter_selection_status.setObjectName("parameterSelectionStatus")
-        self.parameter_selection_status.setWordWrap(True)
-        form.addRow("采用依据", self.parameter_selection_status)
-        self.heat_factor_edit_button = QPushButton("更改参数", row)
-        self.heat_factor_edit_button.setObjectName("heatFactorEditButton")
-        self.heat_factor_edit_button.clicked.connect(self._toggle_heat_parameter_advanced)
-        form.addRow("", self.heat_factor_edit_button)
-
-        self.heat_factor_professional_details = QLabel("", row)
-        self.heat_factor_professional_details.setObjectName("heatFactorProfessionalDetails")
-        self.heat_factor_professional_details.setWordWrap(True)
-
-        advanced_panel = QWidget(row)
-        advanced_panel.setObjectName("heatFactorAdvancedPanel")
-        advanced_form = QFormLayout(advanced_panel)
-        advanced_form.addRow("高级参数选择", QLabel("需要更改自动推荐值时，请选择其他适用值并填写理由。", advanced_panel))
-        advanced_form.addRow("选择其他适用值", self.heat_factor_selector)
-        self.heat_factor_selection_reason = create_typed_input(
-            advanced_panel,
-            get_field_spec("heat_factor_selection_reason"),
-            "heatFactorSelectionReasonInput",
-            "选择其他适用值时填写理由",
-        )
-        advanced_form.addRow("参数选择理由", self.heat_factor_selection_reason)
-        advanced_panel.setVisible(False)
-        form.addRow("", advanced_panel)
-        form.addRow("专业详情", self.heat_factor_professional_details)
-        self._register_professional_details(self.heat_factor_professional_details)
-        self._heat_factor_advanced_panel = advanced_panel
-        self.heat_measured_factor = QLineEdit(row)
-        self.heat_measured_factor.setObjectName("heatMeasuredFactorInput")
-        self.heat_measured_factor.setPlaceholderText("可选：本条热力来源实测因子（tCO₂/GJ）")
-        self.heat_factor_source_reference = QLineEdit(row)
-        self.heat_factor_source_reference.setObjectName("heatFactorSourceReferenceInput")
-        self.heat_factor_source_reference.setPlaceholderText("填写实测来源编号")
-        form.addRow("本来源实测因子", self.heat_measured_factor)
-        form.addRow("实测来源编号", self.heat_factor_source_reference)
+        parent_layout.addWidget(QLabel("购入热力/动力", self))
         self.heat_rows_host = QWidget(self)
         self.heat_rows_layout = QVBoxLayout(self.heat_rows_host)
         self.heat_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.heat_rows_layout.addWidget(row)
+        row = self._create_heat_row("heat", first=True, line_id="heat-1")
+        self.heat_rows_layout.addWidget(row["widget"])
         parent_layout.addWidget(self.heat_rows_host)
-        self._heat_rows["heat"].append({
-            "widget": row,
-            "id": self._fields["heat_id"],
-            "default_line_id": "heat-1",
-            "amount": self._fields["heat_amount"],
-            "enthalpy": self._fields["heat_enthalpy"],
-            "pressure": self._fields["heat_pressure"],
-            "temperature": self._fields["heat_temperature"],
-            "steam": self._heat_steam_kind,
-            "factor": self.heat_factor_selector,
-            "reason": self.heat_factor_selection_reason,
-            "measured": self.heat_measured_factor,
-            "source": self.heat_factor_source_reference,
-        })
+        self._heat_rows["heat"].append(row)
+        self._bind_heat_aliases("heat")
+        self._heat_steam_kind = row["steam"]
+        self.heat_measured_factor = row["measured"]
+        self.heat_factor_source_reference = row["source"]
         add_button = QPushButton("新增购入热力来源", self)
         add_button.setObjectName("addPurchasedHeatButton")
         add_button.clicked.connect(lambda: self._add_heat_row("heat"))
         parent_layout.addWidget(add_button)
+        self._build_legacy_heat_parameter_controls("heat", row["widget"])
+        row["factor"] = self.heat_factor_selector
+        row["reason"] = self.heat_factor_selection_reason
         self._populate_heat_factor_selector()
 
     def _build_output_heat_section(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel("输出热力/动力（从间接排放中抵扣）", self)
-        label.setObjectName("exportedHeatSectionTitle")
-        parent_layout.addWidget(label)
-        row = QWidget(self)
-        form = QFormLayout(row)
-        exported_heat_object_names = {
-            "exported_heat_id": "exportedHeatLineIdInput",
-            "exported_heat_amount": "exportedHeatAmountInput",
-            "exported_heat_enthalpy": "exportedHeatEnthalpyInput",
-            "exported_heat_pressure": "exportedHeatPressureInput",
-            "exported_heat_temperature": "exportedHeatTemperatureInput",
-        }
-        for key in exported_heat_object_names:
-            default_value = "exported-heat-1" if key == "exported_heat_id" else None
-            edit = create_typed_input(row, get_field_spec(key), exported_heat_object_names[key], default_value)
-            self._fields[key] = edit
-            form.addRow(get_field_spec(key).label, edit)
-        self._fields["exported_heat_id"].setPlaceholderText("可选：填写热力来源名称或凭证编号")
-        self._exported_heat_steam_kind = create_typed_input(
-            row,
-            get_field_spec("exported_heat_steam_kind"),
-            "exportedHeatSteamKindSelector",
-        )
-        self._exported_heat_steam_kind.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
-        self._exported_heat_steam_kind.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
-        form.addRow(get_field_spec("exported_heat_steam_kind").label, self._exported_heat_steam_kind)
-        self.exported_heat_factor_selector = QComboBox(row)
-        self.exported_heat_factor_selector.setObjectName("exportedHeatFactorSelector")
-        self._populate_heat_combo(self.exported_heat_factor_selector)
-        self.exported_heat_factor_reason = QLineEdit(row)
-        self.exported_heat_factor_reason.setObjectName("exportedHeatFactorReasonInput")
-        self.exported_heat_factor_reason.setPlaceholderText("选择非推荐参数时填写理由")
-        self.exported_heat_measured_factor = QLineEdit(row)
-        self.exported_heat_measured_factor.setObjectName("exportedHeatMeasuredFactorInput")
-        self.exported_heat_measured_factor.setPlaceholderText("可选：本条热力来源实测因子（tCO₂/GJ）")
-        self.exported_heat_factor_source_reference = QLineEdit(row)
-        self.exported_heat_factor_source_reference.setObjectName("exportedHeatFactorSourceReferenceInput")
-        self.exported_heat_factor_source_reference.setPlaceholderText("填写实测来源编号")
-        form.addRow("适用热力因子", self.exported_heat_factor_selector)
-        form.addRow("参数选择理由", self.exported_heat_factor_reason)
-        form.addRow("本来源实测因子", self.exported_heat_measured_factor)
-        form.addRow("实测来源编号", self.exported_heat_factor_source_reference)
-        hint = QLabel("每条输出热力来源独立保留焓值、排放因子及来源；结果逐条计算后汇总。", row)
-        hint.setWordWrap(True)
-        form.addRow("参数路径", hint)
+        parent_layout.addWidget(QLabel("输出热力/动力（从间接排放中抵扣）", self))
         self.exported_heat_rows_host = QWidget(self)
         self.exported_heat_rows_layout = QVBoxLayout(self.exported_heat_rows_host)
         self.exported_heat_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.exported_heat_rows_layout.addWidget(row)
+        row = self._create_heat_row("exported_heat", first=True, line_id="exported-heat-1")
+        self.exported_heat_rows_layout.addWidget(row["widget"])
         parent_layout.addWidget(self.exported_heat_rows_host)
-        self._heat_rows["exported_heat"].append({
-            "widget": row,
-            "id": self._fields["exported_heat_id"],
-            "default_line_id": "exported-heat-1",
-            "amount": self._fields["exported_heat_amount"],
-            "enthalpy": self._fields["exported_heat_enthalpy"],
-            "pressure": self._fields["exported_heat_pressure"],
-            "temperature": self._fields["exported_heat_temperature"],
-            "steam": self._exported_heat_steam_kind,
-            "factor": self.exported_heat_factor_selector,
-            "reason": self.exported_heat_factor_reason,
-            "measured": self.exported_heat_measured_factor,
-            "source": self.exported_heat_factor_source_reference,
-        })
+        self._heat_rows["exported_heat"].append(row)
+        self._bind_heat_aliases("exported_heat")
+        self._exported_heat_steam_kind = row["steam"]
+        self.exported_heat_measured_factor = row["measured"]
+        self.exported_heat_factor_source_reference = row["source"]
+        self._build_legacy_heat_parameter_controls("exported_heat", row["widget"])
+        row["factor"] = self.exported_heat_factor_selector
+        row["reason"] = self.exported_heat_factor_reason
         add_button = QPushButton("新增输出热力来源", self)
         add_button.setObjectName("addExportedHeatButton")
         add_button.clicked.connect(lambda: self._add_heat_row("exported_heat"))
         parent_layout.addWidget(add_button)
+        self._populate_heat_factor_selector()
+
+    def _build_legacy_heat_parameter_controls(self, prefix: str, parent: QWidget) -> None:
+        """Keep legacy factor controls hidden so saved Project state still restores."""
+        compatibility = QWidget(parent)
+        compatibility.setObjectName(f"{prefix}LegacyParameterControls")
+        compatibility_layout = QVBoxLayout(compatibility)
+        if prefix == "heat":
+            self.heat_factor_selector = QComboBox(compatibility)
+            self.heat_factor_selector.setObjectName("heatFactorSelector")
+            self.heat_factor_selector.setProperty("fieldSpecKey", "heat_factor")
+            self.heat_factor_selector.currentIndexChanged.connect(self._refresh_heat_factor_details)
+            self.heat_factor_metadata = create_read_only_parameter(compatibility, get_field_spec("heat_factor"), "heatFactorMetadata")
+            self.parameter_selection_status = QLabel("", compatibility)
+            self.parameter_selection_status.setObjectName("parameterSelectionStatus")
+            self.heat_factor_professional_details = QLabel("", compatibility)
+            self.heat_factor_professional_details.setObjectName("heatFactorProfessionalDetails")
+            self.heat_factor_selection_reason = QLineEdit(compatibility)
+            self.heat_factor_selection_reason.setObjectName("heatFactorSelectionReasonInput")
+            self.heat_factor_advanced_panel = compatibility
+            self.heat_factor_edit_button = QPushButton("", compatibility)
+        else:
+            self.exported_heat_factor_selector = QComboBox(compatibility)
+            self.exported_heat_factor_selector.setObjectName("exportedHeatFactorSelector")
+            self.exported_heat_factor_reason = QLineEdit(compatibility)
+            self.exported_heat_factor_reason.setObjectName("exportedHeatFactorReasonInput")
+        for widget in compatibility.findChildren(QWidget):
+            self._wire_dirty_tracking(widget)
+        compatibility.hide()
+        self._legacy_heat_controls[prefix] = compatibility
 
     def _populate_heat_combo(self, selector: QComboBox) -> None:
         selector.clear()
@@ -2990,6 +3212,252 @@ class CarbonMaterialAccountingPage(BasePage):
         if not selector.count():
             selector.addItem("暂无可用的标准热力参数", None)
             selector.setEnabled(False)
+
+    def _create_heat_row(self, prefix: str, *, first: bool, line_id: str) -> dict[str, object]:
+        line_prefix = prefix.replace("_", "-")
+        container = QWidget(self)
+        container.setObjectName(f"{prefix}Line_{line_id}")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 6, 0, 6)
+        form = QFormLayout()
+        layout.addLayout(form)
+        names = {
+            "heat": ("heat_id", "heat_amount", "heat_enthalpy", "heat_pressure", "heat_temperature", "heat_steam_kind"),
+            "exported_heat": ("exported_heat_id", "exported_heat_amount", "exported_heat_enthalpy", "exported_heat_pressure", "exported_heat_temperature", "exported_heat_steam_kind"),
+        }[prefix]
+        keys = names
+        if first:
+            object_names = {
+                "heat": ("heat_idInput", "heat_amountInput", "heat_enthalpyInput", "heat_pressureInput", "heat_temperatureInput", "heatSteamKindSelector"),
+                "exported_heat": ("exportedHeatLineIdInput", "exportedHeatAmountInput", "exportedHeatEnthalpyInput", "exportedHeatPressureInput", "exportedHeatTemperatureInput", "exportedHeatSteamKindSelector"),
+            }[prefix]
+        else:
+            object_names = (
+                f"{prefix}LineId_{line_id}", f"{prefix}Amount_{line_id}",
+                f"{prefix}Enthalpy_{line_id}", f"{prefix}Pressure_{line_id}",
+                f"{prefix}Temperature_{line_id}", f"{prefix}SteamKind_{line_id}",
+            )
+        visible_name = "购入热力来源1" if prefix == "heat" and first else "输出热力来源1" if first else ""
+        source_name = create_typed_input(container, get_field_spec(keys[0]), object_names[0], visible_name)
+        source_name.setPlaceholderText("可选：填写来源名称或用途")
+        amount = create_typed_input(container, get_field_spec(keys[1]), object_names[1])
+        amount.setPlaceholderText("例如：12.5")
+        pressure = create_typed_input(container, get_field_spec(keys[3]), object_names[3])
+        pressure.setPlaceholderText("例如：1.4")
+        temperature = create_typed_input(container, get_field_spec(keys[4]), object_names[4])
+        temperature.setPlaceholderText("例如：250")
+        enthalpy = create_typed_input(container, get_field_spec(keys[2]), object_names[2])
+        enthalpy.setPlaceholderText("例如：2810")
+        steam = QComboBox(container)
+        steam.setObjectName(object_names[5])
+        steam.addItem("饱和蒸汽", SteamKind.SATURATED)
+        steam.addItem("过热蒸汽", SteamKind.SUPERHEATED)
+        enthalpy_mode = QComboBox(container)
+        enthalpy_mode.setObjectName(f"{prefix}EnthalpyMode_{line_id}" if not first else ("heatEnthalpyModeSelector" if prefix == "heat" else "exportedHeatEnthalpyModeSelector"))
+        enthalpy_mode.addItem("自动计算", "AUTO")
+        enthalpy_mode.addItem("手动填写焓值", "MANUAL")
+        factor_mode = QComboBox(container)
+        factor_mode.setObjectName(f"{prefix}FactorMode_{line_id}" if not first else ("heatFactorModeSelector" if prefix == "heat" else "exportedHeatFactorModeSelector"))
+        default_factor = self._canonical_default_factor("heat_emission_factor_default")
+        factor_value = getattr(default_factor, "value", None)
+        factor_display = self.calculator.policy.format_for_display(factor_value, 2) if factor_value is not None else "暂无"
+        factor_mode.addItem(f"标准缺省值（{factor_display} tCO₂/GJ）", HeatFactorMode.STANDARD_DEFAULT)
+        factor_mode.addItem("使用实测值", HeatFactorMode.MEASURED)
+        measured = QLineEdit(container)
+        measured_name = (
+            "heatMeasuredFactorInput" if prefix == "heat" and first else
+            "exportedHeatMeasuredFactorInput" if prefix == "exported_heat" and first else
+            f"{prefix}MeasuredFactor_{line_id}"
+        )
+        if prefix == "heat" and not first:
+            measured_name = f"heatMeasuredFactor_{line_id}"
+        measured.setObjectName(measured_name)
+        measured.setPlaceholderText("例如：0.11")
+        factor_source = QLineEdit(container)
+        factor_source_name = (
+            "heatFactorSourceReferenceInput" if prefix == "heat" and first else
+            "exportedHeatFactorSourceReferenceInput" if prefix == "exported_heat" and first else
+            f"{prefix}FactorSource_{line_id}"
+        )
+        if prefix == "heat" and not first:
+            factor_source_name = f"heatFactorSource_{line_id}"
+        factor_source.setObjectName(factor_source_name)
+        factor_source.setPlaceholderText("可选：简短来源说明")
+        preview = QLabel("自动计算焓值：请填写蒸汽压力（绝压）。", container)
+        preview.setObjectName(f"{prefix}EnthalpyPreview_{line_id}")
+        preview.setWordWrap(True)
+        form.addRow("来源名称（可选）", source_name)
+        form.addRow("蒸汽类型", steam)
+        form.addRow("蒸汽量（t）", amount)
+        form.addRow("蒸汽压力（MPa，绝压）", pressure)
+        form.addRow("蒸汽温度（℃）", temperature)
+        form.addRow("焓值方式", enthalpy_mode)
+        enthalpy_label = QLabel("手动填写焓值（kJ/kg）", container)
+        form.addRow(enthalpy_label, enthalpy)
+        form.addRow("自动参考值", preview)
+        form.addRow("热力排放因子", factor_mode)
+        form.addRow("实测排放因子（tCO₂/GJ）", measured)
+        form.addRow("实测来源说明（可选）", factor_source)
+        enthalpy.hide()
+        enthalpy_label.hide()
+        temperature_label = form.labelForField(temperature)
+        if temperature_label is not None:
+            temperature_label.hide()
+        temperature.hide()
+        measured_label = form.labelForField(measured)
+        source_label = form.labelForField(factor_source)
+        measured.hide()
+        factor_source.hide()
+        if measured_label is not None:
+            measured_label.hide()
+        if source_label is not None:
+            source_label.hide()
+
+        row: dict[str, object] = {
+            "widget": container,
+            "id": source_name,
+            "default_line_id": line_id,
+            "amount": amount,
+            "enthalpy": enthalpy,
+            "enthalpy_label": enthalpy_label,
+            "pressure": pressure,
+            "temperature": temperature,
+            "temperature_label": temperature_label,
+            "steam": steam,
+            "enthalpy_mode": enthalpy_mode,
+            "preview": preview,
+            "factor_mode": factor_mode,
+            "measured": measured,
+            "measured_label": measured_label,
+            "source": factor_source,
+            "source_label": source_label,
+            "factor": None,
+            "reason": None,
+            "legacy_factor_override": False,
+        }
+        if not first:
+            compatibility = QWidget(container)
+            compatibility_layout = QFormLayout(compatibility)
+            selector = QComboBox(compatibility)
+            selector.setObjectName(
+                f"heatFactorSelector_{line_id}" if prefix == "heat"
+                else f"exported_heatFactorSelector_{line_id}"
+            )
+            reason = QLineEdit(compatibility)
+            reason.setObjectName(
+                f"heatFactorReason_{line_id}" if prefix == "heat"
+                else f"exported_heatFactorReason_{line_id}"
+            )
+            compatibility_layout.addRow(selector)
+            compatibility_layout.addRow(reason)
+            compatibility.hide()
+            row["factor"] = selector
+            row["reason"] = reason
+        if not first:
+            remove = QPushButton("删除本条来源", container)
+            remove.setObjectName(f"remove_{prefix}_{line_id}")
+            remove.clicked.connect(lambda _checked=False, _prefix=prefix, _widget=container: self._remove_heat_row(_prefix, _widget))
+            layout.addWidget(remove)
+        for widget in (source_name, amount, pressure, temperature, enthalpy, steam, enthalpy_mode, factor_mode, measured, factor_source):
+            self._wire_dirty_tracking(widget)
+        for widget in (pressure, temperature, steam, enthalpy_mode, factor_mode):
+            if isinstance(widget, QLineEdit):
+                widget.textChanged.connect(lambda *_args, _row=row: self._refresh_heat_row_presentation(_row))
+            elif isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_heat_row_presentation(_row))
+        factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: _row.__setitem__("legacy_factor_override", False))
+        self._refresh_heat_row_presentation(row)
+        return row
+
+    def _refresh_heat_row_presentation(self, row: dict[str, object]) -> None:
+        mode = row.get("enthalpy_mode")
+        manual = isinstance(mode, QComboBox) and mode.currentData() == "MANUAL"
+        enthalpy = row.get("enthalpy")
+        enthalpy_label = row.get("enthalpy_label")
+        if isinstance(enthalpy_label, QWidget):
+            enthalpy_label.setVisible(manual)
+        if isinstance(enthalpy, QWidget):
+            enthalpy.setVisible(manual)
+        steam = row.get("steam")
+        superheated = isinstance(steam, QComboBox) and steam.currentData() is SteamKind.SUPERHEATED
+        temperature = row.get("temperature")
+        temperature_label = row.get("temperature_label")
+        if isinstance(temperature, QWidget):
+            temperature.setVisible(superheated)
+        if isinstance(temperature_label, QWidget):
+            temperature_label.setVisible(superheated)
+        factor_mode = row.get("factor_mode")
+        measured_mode = isinstance(factor_mode, QComboBox) and factor_mode.currentData() is HeatFactorMode.MEASURED
+        for key in ("measured", "measured_label", "source", "source_label"):
+            part = row.get(key)
+            if isinstance(part, QWidget):
+                part.setVisible(measured_mode)
+        self._refresh_heat_row_preview(row)
+
+    def _refresh_heat_row_preview(self, row: dict[str, object]) -> None:
+        preview = row.get("preview")
+        pressure_widget = row.get("pressure")
+        temperature_widget = row.get("temperature")
+        steam_widget = row.get("steam")
+        mode_widget = row.get("enthalpy_mode")
+        if not isinstance(preview, QLabel) or not isinstance(pressure_widget, QLineEdit) or not isinstance(steam_widget, QComboBox):
+            return
+        pressure_text = pressure_widget.text().strip()
+        kind = steam_widget.currentData()
+        temperature_text = temperature_widget.text().strip() if isinstance(temperature_widget, QLineEdit) else ""
+        try:
+            if not pressure_text or (kind is SteamKind.SUPERHEATED and not temperature_text):
+                missing = "蒸汽压力（绝压）" if not pressure_text else "过热蒸汽温度"
+                preview.setText(f"自动计算焓值：请填写{missing}。")
+                return
+            policy = self.calculator.policy
+            pressure = policy.parse(pressure_text)
+            if kind is SteamKind.SUPERHEATED:
+                reference = superheated_steam_enthalpy(pressure, policy.parse(temperature_text), policy=policy)[0]
+                table_name = "附录 C.5"
+            else:
+                reference = saturated_steam_enthalpy(pressure, policy=policy)[0]
+                table_name = "附录 C.4"
+        except (ValueError, InvalidOperation, DomainValidationError):
+            preview.setText("自动计算焓值：当前压力或温度超出标准表范围，或格式无效。")
+            return
+        formatted = policy.format_for_display(reference, 1)
+        manual = isinstance(mode_widget, QComboBox) and mode_widget.currentData() == "MANUAL"
+        if manual:
+            preview.setText(f"按{table_name}计算的参考焓值：{formatted} kJ/kg；本次将采用手动填写值。")
+        else:
+            preview.setText(f"自动计算焓值：{formatted} kJ/kg（{table_name}）。")
+
+    def _refresh_all_heat_enthalpy_previews(self) -> None:
+        for rows in self._heat_rows.values():
+            for row in rows:
+                self._refresh_heat_row_presentation(row)
+
+    def _convert_legacy_steam_amounts_to_tonnes(self) -> None:
+        policy = self.calculator.policy
+        for rows in self._heat_rows.values():
+            for row in rows:
+                amount = row.get("amount")
+                if not isinstance(amount, QLineEdit) or not amount.text().strip():
+                    continue
+                try:
+                    tonnes = policy.divide(policy.parse(amount.text().strip()), Decimal("1000"))
+                except (InvalidOperation, ValueError, DomainValidationError):
+                    continue
+                amount.setText(format(tonnes, "f"))
+
+    def _set_legacy_heat_factor_mode(self, row: dict[str, object]) -> None:
+        mode = row.get("factor_mode")
+        measured = row.get("measured")
+        selector = row.get("factor")
+        if isinstance(mode, QComboBox):
+            selected_mode = HeatFactorMode.MEASURED if _value(measured) is not None else HeatFactorMode.STANDARD_DEFAULT
+            mode.setCurrentIndex(max(0, mode.findData(selected_mode)))
+        selected_factor = selector.currentData() if isinstance(selector, QComboBox) else None
+        default_factor = self._canonical_default_factor("heat_emission_factor_default")
+        default_id = getattr(default_factor, "factor_id", None)
+        row["legacy_factor_override"] = isinstance(selected_factor, str) and selected_factor != default_id
+        self._refresh_heat_row_presentation(row)
 
     def _add_heat_row(self, prefix: str, *, line_id: str | None = None) -> dict[str, object]:
         rows = self._heat_rows[prefix]
@@ -3006,67 +3474,13 @@ class CarbonMaterialAccountingPage(BasePage):
             if len(serial) == 2 and serial[0] == line_prefix and serial[1].isdigit():
                 self._heat_row_serials[prefix] = max(self._heat_row_serials[prefix], int(serial[1]))
         host = self.heat_rows_layout if prefix == "heat" else self.exported_heat_rows_layout
-        container = QWidget(self)
-        container.setObjectName(f"{prefix}Line_{line_id}")
-        form = QFormLayout(container)
-        names = {
-            "heat": ("heat_id", "heat_amount", "heat_enthalpy", "heat_pressure", "heat_temperature", "heat_steam_kind"),
-            "exported_heat": ("exported_heat_id", "exported_heat_amount", "exported_heat_enthalpy", "exported_heat_pressure", "exported_heat_temperature", "exported_heat_steam_kind"),
-        }[prefix]
-        line_id_widget = create_typed_input(
-            container,
-            get_field_spec(names[0]),
-            f"{prefix}LineId_{line_id}",
-            "可选：填写热力来源名称或凭证编号",
-        )
-        amount = create_typed_input(container, get_field_spec(names[1]), f"{prefix}Amount_{line_id}")
-        enthalpy = create_typed_input(container, get_field_spec(names[2]), f"{prefix}Enthalpy_{line_id}")
-        pressure = create_typed_input(container, get_field_spec(names[3]), f"{prefix}Pressure_{line_id}")
-        temperature = create_typed_input(container, get_field_spec(names[4]), f"{prefix}Temperature_{line_id}")
-        steam = QComboBox(container)
-        steam.setObjectName(f"{prefix}SteamKind_{line_id}")
-        steam.addItem("饱和蒸汽（附录C.4）", SteamKind.SATURATED)
-        steam.addItem("过热蒸汽（附录C.5）", SteamKind.SUPERHEATED)
-        for label, widget in (("来源标识", line_id_widget), ("热力总量", amount), ("焓值", enthalpy), ("压力", pressure), ("温度", temperature), ("蒸汽类型", steam)):
-            form.addRow(label, widget)
-        selector = QComboBox(container)
-        selector.setObjectName(f"{prefix}FactorSelector_{line_id}")
-        self._populate_heat_combo(selector)
-        reason = QLineEdit(container)
-        reason.setObjectName(f"{prefix}FactorReason_{line_id}")
-        measured = QLineEdit(container)
-        measured.setObjectName(f"{prefix}MeasuredFactor_{line_id}")
-        measured.setPlaceholderText("可选：本条来源实测因子（tCO₂/GJ）")
-        source = QLineEdit(container)
-        source.setObjectName(f"{prefix}FactorSource_{line_id}")
-        source.setPlaceholderText("填写实测来源编号")
-        form.addRow("适用热力因子", selector)
-        form.addRow("参数选择理由", reason)
-        form.addRow("本来源实测因子", measured)
-        form.addRow("实测来源编号", source)
-        remove = QPushButton("删除本条来源", container)
-        remove.setObjectName(f"remove_{prefix}_{line_id}")
-        remove.clicked.connect(lambda _checked=False, _prefix=prefix, _widget=container: self._remove_heat_row(_prefix, _widget))
-        form.addRow(remove)
+        row = self._create_heat_row(prefix, first=False, line_id=line_id)
+        container = row["widget"]
+        selector = row.get("factor")
+        if isinstance(selector, QComboBox):
+            self._populate_heat_combo(selector)
         host.addWidget(container)
-        row = {
-            "widget": container,
-            "id": line_id_widget,
-            "default_line_id": line_id,
-            "amount": amount,
-            "enthalpy": enthalpy,
-            "pressure": pressure,
-            "temperature": temperature,
-            "steam": steam,
-            "factor": selector,
-            "reason": reason,
-            "measured": measured,
-            "source": source,
-        }
         rows.append(row)
-        for widget in row.values():
-            if isinstance(widget, QWidget):
-                self._wire_dirty_tracking(widget)
         self._refresh_source_cards()
         return row
 
@@ -3095,7 +3509,15 @@ class CarbonMaterialAccountingPage(BasePage):
             key=lambda item: (-(item.factor_year or 0), item.factor_id),
         )
         self._heat_factor_records = {item.factor_id: item for item in records}
-        self._populate_heat_combo(self.heat_factor_selector)
+        for rows in self._heat_rows.values():
+            for row in rows:
+                selector = row.get("factor")
+                if isinstance(selector, QComboBox):
+                    self._populate_heat_combo(selector)
+        if hasattr(self, "heat_factor_selector") and not self._heat_rows["heat"]:
+            self._populate_heat_combo(self.heat_factor_selector)
+        if hasattr(self, "exported_heat_factor_selector") and not self._heat_rows["exported_heat"]:
+            self._populate_heat_combo(self.exported_heat_factor_selector)
         self._refresh_heat_factor_details()
 
     def _heat_resolution_context(self, *, energy_direction: str = "purchased_heat", confirmed_factor_id: str | None = None, confirmation_reason: str | None = None) -> ParameterResolutionContext:
@@ -3325,6 +3747,19 @@ class CarbonMaterialAccountingPage(BasePage):
                     any_invalid = any_invalid or fields_invalid
                 continue
             assert isinstance(row_fields, dict)
+            material_rows = self._material_inputs(row) if prefix in _PROCESS_MATERIAL_ROLES else ()
+            material_active = any(
+                any(value is not None and str(value).strip() for value in (
+                    line.name, line.mass_t, line.fixed_carbon_percent, line.volatile_matter_percent,
+                ))
+                for line in material_rows
+            )
+            if material_active:
+                normalized = normalize_material_inputs(prefix, material_rows, policy=self.calculator.policy)
+                active += 1
+                all_complete = all_complete and not normalized.problems
+                any_invalid = any_invalid or bool(normalized.problems)
+                continue
             controls_key = str(row.get("controls_key", prefix))
             present_fields = [self._input_has_value(row_fields.get(field)) for field in fields]
             if not any(present_fields):
@@ -3427,11 +3862,7 @@ class CarbonMaterialAccountingPage(BasePage):
         elif source_id == "CAR-SRC-PURCHASED-HEAT-001":
             active_rows = [row for row in self._heat_rows["heat"] if self._input_has_value(row.get("amount"))]
             present = bool(active_rows)
-            complete = present and all(
-                (row["factor"].currentData() is not None or (self._input_has_value(row.get("measured")) and self._input_has_value(row.get("source"))))
-                and (self._input_has_value(row.get("enthalpy")) or self._input_has_value(row.get("pressure")))
-                for row in active_rows
-            )
+            complete = present and all(self._heat_row_profile_complete(row) for row in active_rows)
             invalid = any(
                 isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
                 for row in active_rows
@@ -3452,11 +3883,7 @@ class CarbonMaterialAccountingPage(BasePage):
         elif source_id == "CAR-SRC-EXPORTED-HEAT-001":
             active_rows = [row for row in self._heat_rows["exported_heat"] if self._input_has_value(row.get("amount"))]
             present = bool(active_rows)
-            complete = present and all(
-                (row["factor"].currentData() is not None or (self._input_has_value(row.get("measured")) and self._input_has_value(row.get("source"))))
-                and (self._input_has_value(row.get("enthalpy")) or self._input_has_value(row.get("pressure")))
-                for row in active_rows
-            )
+            complete = present and all(self._heat_row_profile_complete(row) for row in active_rows)
             invalid = any(
                 isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
                 for row in active_rows
@@ -3473,6 +3900,21 @@ class CarbonMaterialAccountingPage(BasePage):
         if complete:
             return SourceCardPresentationState.COMPLETED, f"{summary} · 已完成"
         return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
+
+    @staticmethod
+    def _heat_row_profile_complete(row: dict[str, object]) -> bool:
+        enthalpy_mode = row.get("enthalpy_mode")
+        manual = isinstance(enthalpy_mode, QComboBox) and enthalpy_mode.currentData() == "MANUAL"
+        steam = row.get("steam")
+        is_saturated = isinstance(steam, QComboBox) and steam.currentData() is SteamKind.SATURATED
+        enthalpy_ready = (
+            bool(_value(row.get("enthalpy"))) if manual
+            else bool(_value(row.get("pressure"))) and (is_saturated or bool(_value(row.get("temperature"))))
+        )
+        factor_mode = row.get("factor_mode")
+        measured = isinstance(factor_mode, QComboBox) and factor_mode.currentData() is HeatFactorMode.MEASURED
+        factor_ready = bool(_value(row.get("measured"))) if measured else True
+        return enthalpy_ready and factor_ready
 
     def _refresh_source_cards(self, *_args: object) -> None:
         if not self._source_cards or not hasattr(self, "heat_factor_selector"):
@@ -3672,8 +4114,19 @@ class CarbonMaterialAccountingPage(BasePage):
             )
         controls_key = row.get("controls_key", prefix)
         controls = self._material_controls.get(str(controls_key))
+        material_lines = self._material_inputs(row) if prefix in _PROCESS_MATERIAL_ROLES else ()
+        has_material_input = any(
+            any(value is not None and str(value).strip() for value in (
+                line.name, line.mass_t, line.fixed_carbon_percent, line.volatile_matter_percent,
+            ))
+            for line in material_lines
+        )
         if controls is None:
-            return kind(**values, instance_id=instance_id)
+            return kind(
+                **values,
+                instance_id=instance_id,
+                **({"material_rows": material_lines} if has_material_input else {}),
+            )
         evidence_reference = _value(controls["evidence_reference"])
         mass_basis = self._material_basis_value(controls, "mass_basis", MaterialBasis.RECEIVED)
         composition_basis = self._material_basis_value(controls, "composition_basis", MaterialBasis.RECEIVED)
@@ -3700,6 +4153,7 @@ class CarbonMaterialAccountingPage(BasePage):
         return kind(
             **values,
             instance_id=instance_id,
+            material_rows=material_lines if has_material_input else None,
             mass_basis=_enum(mass_basis, MaterialBasis),
             composition_basis=_enum(composition_basis, MaterialBasis),
             normalized_basis=_enum(normalized_basis, MaterialBasis),
@@ -3901,27 +4355,44 @@ class CarbonMaterialAccountingPage(BasePage):
         for row in self._heat_rows[prefix]:
             amount = _value(row["amount"])
             measured = _value(row["measured"])
-            source_reference = _value(row["source"])
-            if measured is not None:
+            source_note = _value(row["source"])
+            factor_mode_widget = row.get("factor_mode")
+            factor_mode = (
+                factor_mode_widget.currentData()
+                if isinstance(factor_mode_widget, QComboBox)
+                else HeatFactorMode.STANDARD_DEFAULT
+            )
+            if factor_mode is HeatFactorMode.MEASURED and measured is not None:
                 factor = ParameterValue(
                     "heat_emission_factor_measured", measured, "tCO2/GJ", ParameterSourceKind.MEASURED,
-                    "USER-HEAT-SOURCE" if source_reference else None,
-                    "user-input" if source_reference else None,
-                    f"企业实测/检测资料编号：{source_reference}" if source_reference else None,
-                    f"{direction}逐来源实测热力因子；来源编号：{source_reference or '未提供'}。",
+                    "USER-HEAT-SOURCE" if source_note else None,
+                    "user-input",
+                    f"实测热力因子来源说明：{source_note}" if source_note else None,
+                    f"{direction}逐来源实测热力因子。",
                 )
             else:
-                factor = self._selected_heat_parameter_value_for(
-                    row["factor"], row["reason"], energy_direction=direction,  # type: ignore[arg-type]
-                )
+                factor = None
+                if row.get("legacy_factor_override"):
+                    selector, reason = row.get("factor"), row.get("reason")
+                    if isinstance(selector, QComboBox) and isinstance(reason, QWidget):
+                        factor = self._selected_heat_parameter_value_for(
+                            selector, reason, energy_direction=direction,
+                        )
+            enthalpy_mode_widget = row.get("enthalpy_mode")
+            manual_enthalpy = isinstance(enthalpy_mode_widget, QComboBox) and enthalpy_mode_widget.currentData() == "MANUAL"
             result.append(HeatInput(
                 _value(row["id"]) or str(row["default_line_id"]),
                 amount,
-                _value(row["enthalpy"]),
+                _value(row["enthalpy"]) if manual_enthalpy else None,
                 factor,
+                unit="t",
                 steam_kind=_enum(row["steam"].currentData(), SteamKind),  # type: ignore[union-attr]
                 pressure_mpa=_value(row["pressure"]),
                 temperature_c=_value(row["temperature"]),
+                manual_enthalpy=manual_enthalpy,
+                factor_mode=_enum(factor_mode, HeatFactorMode),
+                factor_source_note=source_note,
+                steam_amount_t=InputValue(amount, "t") if amount is not None else None,
             ))
         return tuple(result)
 
@@ -4324,6 +4795,9 @@ class CarbonMaterialAccountingPage(BasePage):
         if not target_name:
             return None
         widget = self.findChild(QWidget, target_name)
+        business_label = widget.property("businessFieldLabel") if widget is not None else None
+        if isinstance(business_label, str):
+            return business_label
         key = widget.property("fieldSpecKey") if widget is not None else None
         if isinstance(key, str):
             try:
@@ -4362,6 +4836,29 @@ class CarbonMaterialAccountingPage(BasePage):
             for row in self._process_rows[prefix]:
                 instance_id = str(row.get("instance_id", ""))
                 if instance_id and instance_id in field_id:
+                    materials = row.get("materials", [])
+                    if isinstance(materials, list):
+                        for material in materials:
+                            if not isinstance(material, dict):
+                                continue
+                            material_id = str(material.get("line_id", ""))
+                            if not material_id or material_id not in field_id:
+                                continue
+                            suffix = field_id.rsplit(material_id, 1)[-1].lower()
+                            key = next((name for marker, name in (
+                                (".fixed_carbon", "fixed_carbon"),
+                                (".volatile_matter", "volatile_matter"),
+                                (".mass", "mass"),
+                                (".name", "name"),
+                                (".role", "role"),
+                            ) if marker in suffix), None)
+                            widget = material.get(key) if key else None
+                            if isinstance(widget, QWidget):
+                                return widget.objectName()
+                    if "material-" in field_id:
+                        add_button = self.findChild(QWidget, f"add_{prefix}_material_{instance_id}")
+                        if add_button is not None:
+                            return add_button.objectName()
                     for key, widget in row.get("fields", {}).items():
                         aliases = process_aliases[prefix]
                         if (upper.endswith(str(key).upper()) or any(
@@ -4417,7 +4914,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 line_id = _value(row.get("id")) or str(row.get("default_line_id", ""))
                 if line_id and line_id in field_id:
                     if upper.endswith("EF3"):
-                        widget = row.get("measured") if _value(row.get("measured")) is not None else row.get("factor")
+                        mode = row.get("factor_mode")
+                        widget = row.get("measured") if isinstance(mode, QComboBox) and mode.currentData() is HeatFactorMode.MEASURED else mode
                         if isinstance(widget, QWidget):
                             return widget.objectName()
                     for suffix, key in (("AMOUNT", "amount"), ("HM", "enthalpy"), ("PRESSURE", "pressure"), ("TEMPERATURE", "temperature")):
@@ -4540,6 +5038,32 @@ class CarbonMaterialAccountingPage(BasePage):
                 continue
             source_label = SOURCE_LABELS.get(line.emission_source_id, "其他排放源")
             line_details.append(f"{source_label}：{_display_amount(line.amount, line.unit)}")
+        for trace in outcome.traces:
+            if trace.formula_id not in {"CAR-FML-PURCHASED-HEAT-001", "CAR-FML-EXPORTED-HEAT-001"}:
+                continue
+            provenance = dict(trace.provenance)
+            used = provenance.get("enthalpy_used_kj_per_kg")
+            if used is None:
+                continue
+            source_label = "购入热力" if trace.formula_id == "CAR-FML-PURCHASED-HEAT-001" else "输出热力"
+            used_display = self.calculator.policy.format_for_display(used, 1)
+            table = provenance.get("table", "C.4/C.5")
+            source = provenance.get("enthalpy_source", "标准表自动确定")
+            if source == "用户手动填写":
+                description = f"来源：用户手动填写；本次按您填写的 {used_display} kJ/kg 计算。"
+                reference = provenance.get("automatic_reference_enthalpy_kj_per_kg")
+                if reference is not None:
+                    description += f"按当前蒸汽状态依据附录 {table} 计算的参考值为 {self.calculator.policy.format_for_display(reference, 1)} kJ/kg。"
+            else:
+                description = f"来源：根据 GB/T 32151.34—2024 附录 {table} 自动确定。"
+            line_details.append(f"{source_label}蒸汽焓值：{used_display} kJ/kg；{description}")
+            warnings = [
+                problem.message for problem in outcome.problems
+                if problem.code == "CAR-VAL-STEAM-MANUAL-DEVIATION"
+                and isinstance(problem.field_id, str)
+                and trace.trace_id in problem.field_id
+            ]
+            line_details.extend(f"提醒：{message}" for message in warnings)
         self.result_line_details.setText(
             "分项结果：\n" + "\n".join(line_details) if line_details else "分项结果：本次没有单独排放源明细。"
         )
