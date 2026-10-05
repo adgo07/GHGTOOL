@@ -21,7 +21,7 @@
 - 空白和显式0保持不同语义；既有Project可继续打开/保存；历史Record不重算、不漂移，Record生命周期未改。
 - 未修改正式排放公式、Numeric Contract、Excel、PR #27、UAT01-B/RS03-B、Golden、Release或第二标准。
 
-改动文件涉及标准Domain与Presentation、Catalog只读显示、缩放验收脚本、对应UI/Project/Catalog测试，以及Roadmap、TASK_STATE、HANDOFF和本报告。
+改动文件涉及标准Domain与Presentation、Catalog只读显示、缩放验收脚本、对应UI/Project/Catalog测试，以及Roadmap、TASK_STATE、HANDOFF和本报告。另将`uir04_manual_gui_acceptance.py`同步到分组树形校验面板和企业名称可选的新交互，避免人工GUI验收脚本继续使用旧列表API和旧必填预期。
 
 ## 3. 兼容与历史稳定性
 
@@ -38,6 +38,7 @@
 - 编译与依赖：`python -m compileall -q apps packages scripts tests`通过；`python -m pip check`通过。
 - 数据库：`python scripts/initialize_databases.py --output-dir <temporary-directory>`通过，隔离创建catalog、user、records、projects四库。
 - GUI/缩放：`python scripts/uir04_scale_acceptance.py --scale 1.0`、`1.25`、`1.5`均通过；覆盖多个动态区域添加/删除行及布局尺寸检查。
+- 人工GUI验收：`python scripts/uir04_manual_gui_acceptance.py`通过，5个场景覆盖燃料与购电成功、煅烧计算、基准不一致集中阻断、有效非化石电力证明、企业名称留空成功；此次同步修正了树形面板读取方式及空企业名验收预期。
 - Windows standalone：独立版构建、release目录审计、ZIP往返审计通过；`python scripts/smoke_standalone.py <artifact> --starts 2`两次隔离启动通过。
 - `git diff --check`通过。PR提交后须核对Windows / Python 3.12 Merge-ref Full Tests与PR-head Standalone Audit的head_sha均为最新PR head；准确run和head不写入本报告以避免自引用提交，最终结论见PR Checks与交付报告。
 
