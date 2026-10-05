@@ -33,6 +33,7 @@ from packages.standards.carbon_material import (
     ParameterSourceKind,
 )
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
+from tests.ui_tree_helpers import tree_texts
 
 
 F01 = "CAR-SRC-FUEL-001"
@@ -115,10 +116,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIsNone(restored.components[0].emission_factor)
 
         self.page._run_calculation()
-        validation_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertIn("请选择脱硫剂中的碳酸盐种类，或提供可追溯的排放因子。", validation_text)
         self.assertTrue(self.page.result_card.isHidden())
         self.assertEqual(self.records.list_all(), ())
@@ -140,40 +138,42 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIs(custom.period_type, PeriodType.CUSTOM)
         self.assertEqual((custom.start.isoformat(), custom.end.isoformat()), ("2026-03-14", "2026-08-22"))
 
-    def test_natural_gas_heat_path_uses_verified_canonical_defaults(self) -> None:
+    def test_natural_gas_defaults_to_volume_and_displays_units_in_labels(self) -> None:
         row = self.page._fuel_rows[0]
         row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
-        row.path.setCurrentIndex(row.path.findData(FuelPath.HEAT))
         row.activity.setText("10")
 
-        self.assertEqual(row.activity.placeholderText(), "活动量（GJ）")
-        self.assertEqual(row.carbon.placeholderText(), "单位含碳量（tC/GJ）")
-        self.assertEqual(row.carbon.text(), "0.0153")
+        self.assertIs(FuelPath(row.path.currentData()), FuelPath.VOLUME)
+        self.assertIn("活动量（10⁴ Nm³）", row.activity_label.text())
+        self.assertIn("低位发热量（GJ/10⁴ Nm³）", row.lhv_label.text())
+        self.assertIn("单位热值含碳量（tC/GJ）", row.carbon_label.text())
+        self.assertEqual(row.activity.placeholderText(), "")
         self.assertEqual(row.oxidation.text(), "99.00")
-        self.assertIn("标准默认", row.parameter_summary.text())
+        self.assertIn("标准缺省参数", row.parameter_summary.text())
         fuel = self.page._fuel()[0]
         self.assertEqual(fuel.carbon_content.parameter_id, "natural_gas_carbon_content")
-        self.assertEqual(str(fuel.carbon_content.value), "0.0153")
+        self.assertEqual(str(fuel.carbon_content.value), row.carbon.text())
         self.assertEqual(str(fuel.oxidation_rate.value), "0.99")
 
-    def test_source_check_shows_preview_or_missing_input_without_creating_a_record(self) -> None:
+    def test_single_calculation_action_shows_domain_problem_then_creates_record(self) -> None:
         self.page.enterprise_name.setText("燃料预览企业")
         self.page.boundary_confirmed.setChecked(True)
         self._enable_fuel()
         card = self.page._source_cards[F01]
-        self.page._check_data()
-        self.assertIn("需要补充", card.check_result_label.text())
+        self.page.calculate_button.click()
+        self.application.processEvents()
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
+        self.assertIn("活动量", validation_text)
+        self.assertTrue(self.page.result_card.isHidden())
         self.assertEqual(self.records.list_all(), ())
 
         fuel = self.page._fuel_rows[0]
         fuel.activity.setText("10")
-        fuel.carbon.setText("0.2")
-        fuel.oxidation.setText("98")
-        fuel.source_reference.setText("燃料实测报告-预览")
-        self.page._check_data()
-        self.assertIn("本排放源排放量（预览）", card.check_result_label.text())
-        self.assertIn("tCO₂", card.check_result_label.text())
-        self.assertEqual(self.records.list_all(), ())
+        self.page.calculate_button.click()
+        self.application.processEvents()
+        self.assertFalse(self.page.result_card.isHidden())
+        self.assertFalse(card.check_result_label.text())
+        self.assertEqual(len(self.records.list_all()), 1)
 
     def test_unit_can_be_renamed_and_only_nonfinal_unit_can_be_deleted(self) -> None:
         with (
@@ -482,18 +482,40 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertFalse(self.page.result_card.isHidden())
         self.assertEqual(self.records.list_all(), (historical_record,))
 
-    def test_equal_fuel_values_with_enterprise_source_remain_measured_and_stable(self) -> None:
+    def test_project_can_be_saved_and_reopened_without_enterprise_name(self) -> None:
+        self.page.project_name.setText("无企业名称项目")
+        self.page.enterprise_name.clear()
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+        saved = self.project_service.get(project_id)
+        self.assertIsNotNone(saved)
+        assert saved is not None
+        self.assertEqual(saved.units[0].form_state.get("enterpriseNameInput"), "")
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        self.page.saved_projects.setCurrentIndex(self.page.saved_projects.findData(project_id))
+        self.page._open_selected_project()
+        self.assertEqual(self.page.enterprise_name.text(), "")
+
+    def test_measured_fuel_values_use_explicit_source_selection_and_remain_stable(self) -> None:
         self.page.project_name.setText("实测参数来源项目")
         row = self.page._fuel_rows[0]
         row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
-        row.path.setCurrentIndex(row.path.findData(FuelPath.HEAT))
+        row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
+        row.lower_heating_value.setText("389.31")
         row.activity.setText("10")
+        row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         row.source_reference.setText("企业检测报告-EQUAL-01")
         before_row_key = row.row_key
         before = self.page._fuel()[0]
         self.assertIs(before.carbon_content.source_kind, ParameterSourceKind.MEASURED)
         self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIn("企业实测", row.parameter_summary.text())
+        self.assertIn("实测值", row.parameter_summary.text())
         self.assertEqual(self.page._capture_form_state()["fuel_rows"][0]["parameter_source"], "MEASURED")
         self.assertTrue(self.page._save_project())
 
@@ -658,29 +680,27 @@ class AccountingProjectUiTests(unittest.TestCase):
 
         first = self.page._fuel_rows[0]
         first.fuel_type.setCurrentIndex(first.fuel_type.findData(FuelType.DIESEL))
-        first.path.setCurrentIndex(first.path.findData(FuelPath.VOLUME))
+        first.path.setCurrentIndex(first.path.findData(FuelPath.MASS))
         first.activity.setText("10")
-        first.carbon.setText("0.2")
-        first.oxidation.setText("98")
-        first.source_reference.setText("柴油检测报告-01")
 
         self.page.add_fuel_button.click()
         middle = self.page._fuel_rows[1]
         middle.fuel_type.setCurrentIndex(middle.fuel_type.findData(FuelType.COAL))
         middle.path.setCurrentIndex(middle.path.findData(FuelPath.MASS))
+        middle.custom_name.setText("其他煤种")
         middle.activity.setText("3")
+        middle.lower_heating_value.setText("20")
         middle.carbon.setText("0.7")
         middle.oxidation.setText("95")
         middle.source_reference.setText("煤质检测报告-02")
+        for combo in (middle.lhv_source, middle.carbon_source, middle.oxidation_source):
+            combo.setCurrentIndex(combo.findData("MEASURED"))
 
         self.page.add_fuel_button.click()
         last = self.page._fuel_rows[2]
         last.fuel_type.setCurrentIndex(last.fuel_type.findData(FuelType.COKE_OVEN_GAS))
-        last.path.setCurrentIndex(last.path.findData(FuelPath.HEAT))
+        last.path.setCurrentIndex(last.path.findData(FuelPath.VOLUME))
         last.activity.setText("4")
-        last.carbon.setText("0.03")
-        last.oxidation.setText("97")
-        last.source_reference.setText("焦炉煤气检测报告-03")
         middle.remove_button.click()
         self.assertEqual(len(self.page._fuel_rows), 2)
         self.assertEqual([row.activity.text() for row in self.page._fuel_rows], ["10", "4"])
@@ -707,19 +727,20 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.period_year.setValue(2026)
         self.page.period_type.setCurrentIndex(13)
         self.page.period_start.setDate(QDate(2026, 3, 14))
+        self.assertEqual(
+            [combo.currentData() for combo in (self.page._fuel_rows[0].lhv_source, self.page._fuel_rows[0].carbon_source, self.page._fuel_rows[0].oxidation_source)],
+            ["STANDARD_DEFAULT", "STANDARD_DEFAULT", "STANDARD_DEFAULT"],
+        )
         self.page.period_end.setDate(QDate(2026, 8, 22))
         self._enable_fuel()
         second_fuel = self.page._fuel_rows[0]
         second_fuel.fuel_type.setCurrentIndex(second_fuel.fuel_type.findData(FuelType.DIESEL))
-        second_fuel.path.setCurrentIndex(second_fuel.path.findData(FuelPath.VOLUME))
+        second_fuel.path.setCurrentIndex(second_fuel.path.findData(FuelPath.MASS))
         second_fuel.activity.setText("1")
-        second_fuel.carbon.setText("0.3")
-        second_fuel.oxidation.setText("90")
-        second_fuel.source_reference.setText("石墨化工序燃料检测报告")
         self.page._run_calculation()
         self.assertFalse(
             self.page.result_card.isHidden(),
-            [self.page.validation_list.item(i).text() for i in range(self.page.validation_list.count())],
+            tree_texts(self.page.validation_list),
         )
         self.assertEqual(len(self.records.list_all()), 2)
         second_unit_id = self.page._unit().unit_id

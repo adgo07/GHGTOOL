@@ -12,7 +12,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTableWidget
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -442,6 +442,34 @@ class G04CatalogTests(unittest.TestCase):
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_factor_id)
+
+    def test_appendix_c_table_view_reads_canonical_and_calculator_reference_data(self) -> None:
+        self.shell.navigate(AppRoute.FACTORS)
+        self.application.processEvents()
+        page = self.shell.pages[AppRoute.FACTORS]
+        table = page.findChild(QTableWidget, "appendixCReadOnlyTable")
+        self.assertIsNotNone(table)
+        assert table is not None
+        self.assertEqual(set(page.appendix_c_buttons), {"C.1", "C.2", "C.3", "C.4", "C.5"})
+
+        for appendix_id in ("C.1", "C.2", "C.3", "C.4", "C.5"):
+            with self.subTest(appendix=appendix_id):
+                page.appendix_c_buttons[appendix_id].click()
+                self.application.processEvents()
+                self.assertGreater(table.rowCount(), 0)
+                self.assertGreaterEqual(table.columnCount(), 2)
+                self.assertEqual(table.editTriggers(), QAbstractItemView.EditTrigger.NoEditTriggers)
+                self.assertIn(appendix_id, page.appendix_table_title.text())
+                self.assertIn("GB/T 32151.34—2024", page.appendix_table_note.text())
+                if appendix_id in {"C.1", "C.2", "C.3"}:
+                    self.assertIn("Canonical", page.appendix_table_note.text())
+                else:
+                    self.assertIn("版本化 Calculator", page.appendix_table_note.text())
+        page.appendix_c_buttons["C.4"].click()
+        self.assertIn("1.70", page.appendix_table_note.text())
+        self.assertIn("1.80", page.appendix_table_note.text())
+        page.appendix_c_buttons["C.5"].click()
+        self.assertIn("UAT01-B", page.appendix_table_note.text())
 
     def test_multi_version_values_have_explicit_categories_in_service_and_page(self) -> None:
         service = CatalogQueryService(

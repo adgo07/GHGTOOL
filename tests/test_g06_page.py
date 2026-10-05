@@ -38,6 +38,7 @@ from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.carbon_material_page import _C2_CARBONATES, _FUEL_C1_ACTIVITY_PATH, _FUEL_C1_SUBJECT_IDS
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import tree_texts
 
 
 class G06PageTests(unittest.TestCase):
@@ -128,6 +129,42 @@ class G06PageTests(unittest.TestCase):
         self.assertIsNone(self.page._fuel_default_factors(row))
         row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
         self.assertIsNone(self.page._fuel_default_factors(row))
+
+    def test_custom_fuel_requires_named_measured_parameters_and_source(self) -> None:
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-FUEL-001")
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
+        row.custom_name.setText("工艺回收混合燃料")
+        row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.activity.setText("1")
+        self.page._run_calculation()
+        missing = "\n".join(tree_texts(self.page.validation_list))
+        self.assertIn("单位含碳量", missing)
+        self.assertIn("碳氧化率", missing)
+        self.assertTrue(self.page.result_card.isHidden())
+        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+
+        row.carbon.setText("0.02")
+        row.oxidation.setText("98")
+        row.source_reference.setText("燃料检测报告-UAT-01")
+        for combo in (row.carbon_source, row.oxidation_source):
+            combo.setCurrentIndex(combo.findData("MEASURED"))
+        self.page._run_calculation()
+        self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
+        self.assertEqual(self.page._fuel()[0].fuel_label, "工艺回收混合燃料")
+        saved = self.page.calculator.record_repository.list_all()
+        self.assertEqual(len(saved), 1)
+
+    def test_blank_fuel_activity_is_distinct_from_explicit_zero(self) -> None:
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.DIESEL))
+        row.activity.clear()
+        blank = self.page._fuel()[0].activity
+        self.assertIsNone(blank)
+        row.activity.setText("0")
+        zero = self.page._fuel()[0].activity
+        self.assertEqual(zero.value, Decimal("0"))
 
     def test_fgd_ui_uses_each_c2_carbonate_factor_and_blocks_unknown_legacy_input(self) -> None:
         self.page.enterprise_name.setText("碳酸盐UI企业")
@@ -285,14 +322,35 @@ class G06PageTests(unittest.TestCase):
 
         self.page._run_calculation()
 
-        messages = [
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        ]
-        self.assertTrue(any("石墨化过程 3：请补充" in message and "固定碳" in message for message in messages), messages)
+        messages = tree_texts(self.page.validation_list)
+        self.assertIn("石墨化过程 3", messages)
+        self.assertTrue(any("固定碳" in message and "必填信息不完整" in message for message in messages), messages)
         self.assertTrue(self.page.result_card.isHidden())
         self.assertEqual(self.page.calculator.record_repository.list_all(), ())
         self.assertNotIn(instance_id, "\n".join(messages))
+
+    def test_one_calculation_collects_issues_from_multiple_source_cards(self) -> None:
+        self.page.enterprise_name.setText("多排放源错误汇总企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-CALCINATION-001")
+        self._set_source_involved("CAR-SRC-GRAPHITIZATION-001")
+        self.page._fields["calcination.gc"].setText("10")
+        self.page._fields["graphitization.gpm"].setText("1")
+
+        self.page.calculate_button.click()
+        self.application.processEvents()
+
+        messages = tree_texts(self.page.validation_list)
+        joined = "\n".join(messages)
+        self.assertTrue(any(text.startswith("必须修正（") for text in messages), messages)
+        self.assertIn("煅烧过程 1", messages)
+        self.assertIn("石墨化过程 1", messages)
+        self.assertIn("煅烧", joined)
+        self.assertIn("石墨化", joined)
+        self.assertGreater(sum("必填信息不完整" in text for text in messages), 2)
+        self.assertNotIn("CAR-VAL-", joined)
+        self.assertTrue(self.page.result_card.isHidden())
+        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
 
     def test_new_accounting_reset_removes_secondary_business_rows(self) -> None:
         for prefix in ("calcination", "baking", "graphitization", "fume", "fgd"):
@@ -616,18 +674,8 @@ class G06PageTests(unittest.TestCase):
             self.assertNotIn("审核状态", row.parameter_source.text())
             self.assertTrue(row.parameter_reason.text().strip())
             self.assertFalse(row.professional_details.isVisible())
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        for row, factor_id in zip(self.page._electricity_rows, expected_factor_ids):
-            self.assertIn(factor_id, row.professional_details.text())
-            self.assertIn("审核状态", row.professional_details.text())
-            for object_name in (
-                row.parameter_status.objectName(),
-                row.parameter_factor.objectName(),
-                row.parameter_source.objectName(),
-                row.parameter_reason.objectName(),
-            ):
-                self.assertIsNotNone(self.page.findChild(QLabel, object_name))
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
+        self.assertTrue(all(not row.professional_details.isVisible() for row in self.page._electricity_rows))
 
     def test_page_declares_other_activity_and_transport_and_blocks(self) -> None:
         self.page.enterprise_name.setText("范围阻断企业")
@@ -724,21 +772,14 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(value.exported_heat[0].amount.value, 100)
         self.assertIsNotNone(value.exported_heat[0].factor)
 
-    def test_empty_enterprise_name_is_required_and_does_not_create_record(self) -> None:
-        self.page.boundary_confirmed.setChecked(True)
+    def test_empty_enterprise_name_is_optional_and_successfully_creates_record(self) -> None:
         self.page.calculate_button.click()
         self.application.processEvents()
-        validation_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
-        self.assertIn("企业名称为必填项", validation_text)
-        self.assertNotIn("GEN-VAL-", validation_text)
-        self.assertNotIn("未填写企业", validation_text)
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("GEN-VAL-REQUIRED-MISSING", self.page.validation_professional_details.text())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertFalse(self.page.result_card.isHidden())
+        records = self.page.calculator.record_repository.list_all()
+        self.assertEqual(len(records), 1)
+        self.assertIsNone(records[0].input_snapshot.enterprise_name)
+        self.assertEqual(self.page.validation_list.topLevelItemCount(), 0)
 
     def test_heat_parameter_selector_displays_source_review_and_selection_reason(self) -> None:
         self.page.enterprise_name.setText("热力参数选择企业")
@@ -755,10 +796,7 @@ class G06PageTests(unittest.TestCase):
         self.assertNotIn("来源", metadata.text())
         self.assertTrue(reason.text().strip())
         self.assertFalse(self.page.heat_factor_professional_details.isVisible())
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("heat_default_2025", self.page.heat_factor_professional_details.text())
-        self.assertIn("来源", self.page.heat_factor_professional_details.text())
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
         self.page._fields["heat_amount"].setText("1000")
         self.page._fields["heat_enthalpy"].setText("2800")
         self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(1)
@@ -811,15 +849,9 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(False)
         self.page.calculate_button.click()
         self.application.processEvents()
-        validation_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertIn("核算边界尚未确认", validation_text)
         self.assertNotIn("CAR-VAL-", validation_text)
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("CAR-VAL-BOUNDARY-UNCONFIRMED", self.page.validation_professional_details.text())
         self.assertEqual(len(calculator_repository.list_all()), 1)
 
 

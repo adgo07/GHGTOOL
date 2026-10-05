@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-04（GHG-RS02-B；exact-head Windows CI 已通过，等待独立最终验收）
+最后更新：2026-10-05（GHG-UAT01-A；实现与本地验收完成，等待独立最终验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -159,7 +159,7 @@ RS01内部工作包（不是新产品阶段）：
 RS02内部工作包（不是新产品阶段）：
 
 - **RS02-A — Record Evidence & Reporting Data Closure**：为新Record固定结构化Trace、Provenance、报告/证据数据及报告周期资格；已实现并合并于PR #25。
-- **RS02-B — Result Explanation & Presentation Closure**：面向普通用户的结果依据解释与B.1～B.9展示；实现完成，PR #26最新head的Windows/Python 3.12两项CI均通过，等待独立最终验收；不代表标准已SUPPORTED。
+- **RS02-B — Result Explanation & Presentation Closure**：面向普通用户的结果依据解释与B.1～B.9展示；已由PR #26合并进入main；不代表标准已SUPPORTED。
 
 本阶段**不是**重新开发 Record。重点收口：
 
@@ -182,6 +182,8 @@ RS02内部工作包（不是新产品阶段）：
 ### GHG-RS03 — Excel 正式闭环
 
 一句话目标：让 Excel 成为**同一个业务内核的 Import / Export Adapter**，而不是第二套算法。
+
+当前RS03-A用户UAT因普通核算录入问题暂时由UAT01阻塞；PR #27保持OPEN / UNMERGED，本工作包不修改该PR。RS03-B未启动。
 
 Excel 设计、实现、GUI↔Excel Conformance 属于**同一产品阶段内部工作包**，不拆成独立产品阶段。
 
@@ -339,6 +341,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 分项排放 | `DONE` | 包含各排放源/分项结果与 trace |
 | 总排放 | `DONE` | 多实例直接排放与多来源间接排放按标准逐项汇总并写入不可编辑记录；Record详情展示直接、净间接及含间接排放总量 |
 | 结果解释 | `DONE` | Record详情以已保存快照呈现标准报告数据、逐项结果和来源依据；专业Trace/ID折叠展示，不等同于报告导出或标准SUPPORTED |
+| 普通核算录入与错误反馈 | `PARTIAL` | UAT01-A已完成实现与本地验收，等待独立验收；不改变正式公式或Record生命周期 |
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
@@ -346,12 +349,13 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01与RS02-A已完成并合入main；RS02-B结果解释与Record体验实现完成，PR #26最新head的Windows CI已通过，等待独立最终验收。RS03 Excel未启动；Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02及RS02-B已合并进入main。UAT01-A为当前小范围普通核算体验返修包，已实现并完成本地验证，等待独立验收；UAT01-B未启动。RS03-A用户UAT暂被UAT01阻塞，PR #27保持OPEN / UNMERGED；RS03-B未启动。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-RS02-B — Result Explanation & Record Experience Closure**；实现、本地可执行验证和PR #26 latest-head Windows CI完成，等待独立最终验收。
-- RS01与RS02-A已完成并合入main；RS02-B独立验收完成后RS02可进入最终门禁。RS03、Golden Freeze、Release Gate及第二标准尚未启动。
+- 当前返修包：**GHG-UAT01-A — 普通核算录入与错误反馈体验修复**；从最新main `058d176a8a461b758db1a1d62395b032889d9b2a` 派生的独立分支实施，不修改PR #27；实现和本地可执行验证完成，等待本包PR latest-head CI及独立验收。
+- UAT01-A状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；UAT01-B：`NOT STARTED`；RS03-A USER UAT：`BLOCKED BY UAT01`；PR #27：`OPEN / UNMERGED`。
+- RS01与RS02已合并进入main；RS03-B、Golden Freeze、Release Gate及第二标准尚未启动。标准仍为 `NOT SUPPORTED`。
 - 第二标准不得早于 **RS05**。
 
 ## 9. 相关治理登记项的归属
@@ -368,8 +372,9 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次RS02-B由用户明确启动；RS03～RS06+未获本轮启动；
-- 本次RS02-B仅完成结果解释与Record体验收口；不修改核算公式，不导出报告，不冻结Golden，不启动RS03或第二标准；
+- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次UAT01-A由用户明确启动；UAT01-B、RS03-B及RS04～RS06+未获本轮启动；
+- 本次UAT01-A仅修复普通手工核算输入、错误反馈、动态布局、燃料参数展示及C表只读浏览体验；不修改公式，不改Record生命周期，不实施Excel或蒸汽自动计算；
+- 不修改PR #27；保持PR #27 OPEN / UNMERGED；RS03-A用户UAT继续标记为BLOCKED BY UAT01；
 - 不修改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或任何中央 Contract；
 - 不把 `DRAFT` / `NOT FROZEN` 描述成 `FROZEN`；
 - 不建立第二套产品路线。

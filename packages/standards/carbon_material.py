@@ -390,6 +390,7 @@ class FuelInput:
     lower_heating_value: object | None = None
     electricity_detail_id: str | None = None
     fuel_type: FuelType | None = None
+    fuel_label: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.fuel_id, str) or not self.fuel_id.strip():
@@ -398,6 +399,10 @@ class FuelInput:
             raise DomainValidationError("path must be a FuelPath")
         if self.fuel_type is not None and not isinstance(self.fuel_type, FuelType):
             raise DomainValidationError("fuel_type must be a FuelType")
+        if self.fuel_label is not None and (
+            not isinstance(self.fuel_label, str) or not self.fuel_label.strip()
+        ):
+            raise DomainValidationError("fuel_label must be a non-blank string when supplied")
         activity_unit = {
             FuelPath.VOLUME: "ten_thousand_Nm3",
             FuelPath.MASS: "t",
@@ -680,7 +685,7 @@ class HeatInput:
 class CarbonMaterialInput:
     input_id: str
     enterprise_id: str
-    enterprise_name: str
+    enterprise_name: str | None
     period: AccountingPeriod
     boundary_confirmed: bool = False
     boundary_component_ids: tuple[str, ...] = ()
@@ -705,10 +710,14 @@ class CarbonMaterialInput:
     reporting_data: CarbonReportingData = CarbonReportingData()
 
     def __post_init__(self) -> None:
-        for field in ("input_id", "enterprise_id", "enterprise_name"):
+        for field in ("input_id", "enterprise_id"):
             value = getattr(self, field)
             if not isinstance(value, str) or not value.strip():
                 raise DomainValidationError(f"{field} is required")
+        if self.enterprise_name is not None and (
+            not isinstance(self.enterprise_name, str) or not self.enterprise_name.strip()
+        ):
+            raise DomainValidationError("enterprise_name must be a non-blank string when supplied")
         if not isinstance(self.period, AccountingPeriod):
             raise DomainValidationError("period must be an AccountingPeriod")
         if not isinstance(self.reporting_data, CarbonReportingData):
@@ -1262,6 +1271,20 @@ def saturated_steam_enthalpy(pressure_mpa: object) -> tuple[Decimal, bool, tuple
     raise ValueError("steam pressure is outside the C.4 table")
 
 
+def steam_reference_table_rows(table_id: str) -> tuple[tuple[Decimal, ...], ...]:
+    """Return read-only projections of the Calculator's versioned C.4/C.5 tables."""
+
+    if table_id == "C.4":
+        return tuple((pressure, enthalpy) for pressure, enthalpy in _SATURATED_STEAM)
+    if table_id == "C.5":
+        return tuple(
+            (temperature, pressure, enthalpy)
+            for temperature, enthalpies in _SUPERHEATED_STEAM
+            for pressure, enthalpy in zip(_SUPERHEATED_PRESSURES, enthalpies)
+        )
+    raise ValueError("table_id must be C.4 or C.5")
+
+
 def _problem(code: str, level: IssueLevel, message: str, field_id: str | None = None, details: tuple[tuple[str, str], ...] = ()) -> ValidationProblem:
     return ValidationProblem(code, level, message, field_id, details)
 
@@ -1732,6 +1755,13 @@ class CarbonMaterialCalculator:
         if fuel_status is EmissionSourceStatus.INVOLVED:
             seen_paths: dict[str, FuelPath] = {}
             for fuel in input_value.fuel_inputs:
+                if fuel.fuel_type in {FuelType.COAL, FuelType.OTHER} and not fuel.fuel_label:
+                    problems.append(_problem(
+                        "GEN-VAL-REQUIRED-MISSING",
+                        IssueLevel.ERROR,
+                        "请填写燃料名称或具体煤种。",
+                        f"CAR-FLD-F01-{fuel.fuel_id}-FUEL-NAME",
+                    ))
                 if fuel.fuel_id in seen_paths:
                     problems.append(_problem("CAR-VAL-FUEL-PATH-DUPLICATE", IssueLevel.ERROR, f"燃料 {fuel.fuel_id} 按多个路径重复计入。", fuel.fuel_id))
                 seen_paths[fuel.fuel_id] = fuel.path
@@ -2072,5 +2102,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
 ]

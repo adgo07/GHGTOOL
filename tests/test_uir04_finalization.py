@@ -32,6 +32,7 @@ from packages.standards.carbon_material import (
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import tree_items, tree_texts
 
 
 I01 = "CAR-SRC-PURCHASED-ELECTRICITY-001"
@@ -107,12 +108,15 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.assertFalse(self.page.quality_card.isVisible())
         self.assertTrue(self.page.findChild(QWidget, "calculationStatusBar").isVisible())
         self.assertTrue(self.page.calculate_button.isVisible())
-        self.assertTrue(self.page.check_button.isVisible())
+        self.assertIsNotNone(self.page.findChild(QWidget, "calculateAccountingButton"))
+        self.assertIsNone(self.page.findChild(QWidget, "checkAccountingButton"))
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
         self.assertIn("已确认排放源：0", self.page.confirmed_source_count.text())
-        self.assertIn("错误：2", self.page.error_count.text())
+        self.assertIn("错误：0", self.page.error_count.text())
+        self.assertIn("点击“计算排放量”", self.page.calculation_status_hint.text())
 
-    def test_basic_feedback_updates_without_calculation(self) -> None:
-        self.page.enterprise_name.setText("实时检查企业")
+    def test_error_count_comes_from_domain_validation_not_widget_heuristics(self) -> None:
+        self.page.enterprise_name.setText("延后校验企业")
         self.page.boundary_confirmed.setChecked(True)
         self.application.processEvents()
         self.assertIn("错误：0", self.page.error_count.text())
@@ -120,14 +124,17 @@ class UIR04FinalizationTests(unittest.TestCase):
         self._involve(P01)
         self.application.processEvents()
         self.assertIn("已确认排放源：1", self.page.confirmed_source_count.text())
-        self.assertIn("错误：1", self.page.error_count.text())
+        self.assertIn("错误：0", self.page.error_count.text())
         self.page._fields["calcination.gc"].setText("10")
         self.application.processEvents()
         self.assertIs(
             self.page._source_cards[P01].presentation_state,
             SourceCardPresentationState.NEEDS_ATTENTION,
         )
-        self.assertIn("错误：1", self.page.error_count.text())
+        self.assertIn("错误：0", self.page.error_count.text())
+        self.page._run_calculation()
+        self.application.processEvents()
+        self.assertGreater(int(self.page.error_count.text().split("：", 1)[1]), 0)
 
     def test_business_error_is_clickable_and_expands_own_source_card(self) -> None:
         self._involve(I02)
@@ -138,31 +145,29 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page._run_calculation()
         self.application.processEvents()
 
-        items = [
-            self.page.validation_list.item(index)
-            for index in range(self.page.validation_list.count())
-        ]
+        items = tree_items(self.page.validation_list)
         target = next(
-            (item for item in items if item.data(Qt.ItemDataRole.UserRole) == I02),
+            (item for item in items if item.data(0, Qt.ItemDataRole.UserRole + 1) == I02
+             and item.data(0, Qt.ItemDataRole.UserRole) is not None),
             None,
         )
         self.assertIsNotNone(target)
         assert target is not None
-        self.assertIn("蒸汽状态资料不完整", target.text())
-        self.assertNotIn("CAR-VAL-", target.text())
+        self.assertIn("蒸汽状态资料不完整", target.text(0))
+        self.assertNotIn("CAR-VAL-", target.text(0))
         self.page._source_cards[I02].set_expanded(False)
         self.page.validation_list.setCurrentItem(target)
-        self.page.validation_list.itemClicked.emit(target)
+        self.page.validation_list.itemClicked.emit(target, 0)
         self.application.processEvents()
         self.assertTrue(self.page._source_cards[I02].is_expanded)
 
-    def test_success_shows_business_result_and_details_on_demand(self) -> None:
+    def test_success_shows_business_result_without_ordinary_trace_controls(self) -> None:
         self.page.enterprise_name.setText("结果展示企业")
         self.page.boundary_confirmed.setChecked(True)
         self.page._run_calculation()
         self.application.processEvents()
 
-        self.assertTrue(self.page.result_card.isVisible())
+        self.assertFalse(self.page.result_card.isHidden())
         self.assertFalse(self.page.process_card.isVisible())
         self.assertFalse(self.page.quality_card.isVisible())
         self.assertIn("温室气体排放总量：", self.page.result_total.text())
@@ -176,19 +181,19 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.view_breakdown_button.click()
         self.assertTrue(self.page.result_line_details.isVisible())
         self.assertNotIn("CAR-FLD-", self.page.result_line_details.text())
-        self.page.view_process_button.click()
-        self.assertTrue(self.page.process_card.isVisible())
-        self.assertIn("计算过程已完成", self.page.trace_output.text())
+        self.assertIsNone(self.page.findChild(QWidget, "viewCalculationProcessButton"))
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
+        self.assertTrue(self.page.process_card.isHidden())
 
-    def test_fatal_error_keeps_result_hidden_and_creates_no_record(self) -> None:
-        self.page.boundary_confirmed.setChecked(True)
+    def test_empty_enterprise_name_is_optional_and_creates_a_record(self) -> None:
         self.page.calculate_button.click()
         self.application.processEvents()
-        self.assertFalse(self.page.result_card.isVisible())
-        self.assertTrue(self.page.quality_card.isVisible())
-        self.assertIn("企业名称为必填项", self.page.validation_list.item(0).text())
-        self.assertNotIn("GEN-VAL-", self.page.validation_list.item(0).text())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertFalse(self.page.result_card.isHidden())
+        self.assertFalse(self.page.quality_card.isVisible())
+        records = self.page.calculator.record_repository.list_all()
+        self.assertEqual(len(records), 1)
+        self.assertIsNone(records[0].input_snapshot.enterprise_name)
+        self.assertEqual(tree_texts(self.page.validation_list), [])
 
     def test_domain_error_keeps_result_hidden_even_when_result_object_exists(self) -> None:
         self.page.enterprise_name.setText("阻断结果企业")
@@ -287,7 +292,7 @@ class UIR04FinalizationTests(unittest.TestCase):
             )
 
     def test_common_windows_scale_factors_keep_controls_visible(self) -> None:
-        for scale in ("1.25", "1.5"):
+        for scale in ("1.0", "1.25", "1.5"):
             environment = os.environ.copy()
             environment.update(
                 {

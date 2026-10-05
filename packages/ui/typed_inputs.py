@@ -36,6 +36,7 @@ class NumericLineEdit(QLineEdit):
         super().__init__(parent)
         self.spec = spec
         self._blocked_negative_sequence = False
+        self._domain_owns_range_validation = False
         self.setProperty("fieldDataType", spec.data_type.value)
         self.setProperty("fieldUnit", spec.unit)
         self.setValidator(_StrictNumericValidator(self))
@@ -63,31 +64,37 @@ class NumericLineEdit(QLineEdit):
             numeric_value = Decimal(text)
             trailing_decimal = False
         else:
-            if any(character not in "0123456789." for character in text):
+            sign = text.startswith(("-", "+"))
+            digits = text[1:] if sign else text
+            if any(character not in "0123456789." for character in digits):
                 return QValidator.State.Invalid
-            if text.count(".") > 1:
+            if digits.count(".") > 1:
                 return QValidator.State.Invalid
-            trailing_decimal = text.endswith(".")
-            normalized = text[:-1] if trailing_decimal else text
+            trailing_decimal = digits.endswith(".")
+            normalized = digits[:-1] if trailing_decimal else digits
             if not normalized:
                 if self._bound(self.spec.min) not in (None, Decimal("0")):
-                    return QValidator.State.Invalid
+                    if not self._domain_owns_range_validation:
+                        return QValidator.State.Invalid
                 return QValidator.State.Intermediate
             if normalized == ".":
                 normalized = "0."
             elif normalized.startswith("."):
                 normalized = "0" + normalized
+            if sign and text.startswith("-"):
+                normalized = "-" + normalized
             try:
                 numeric_value = Decimal(normalized)
             except InvalidOperation:
                 return QValidator.State.Invalid
 
-        minimum = self._bound(self.spec.min)
-        maximum = self._bound(self.spec.max)
-        if minimum is not None and numeric_value < minimum:
-            return QValidator.State.Invalid
-        if maximum is not None and numeric_value > maximum:
-            return QValidator.State.Invalid
+        if not self._domain_owns_range_validation:
+            minimum = self._bound(self.spec.min)
+            maximum = self._bound(self.spec.max)
+            if minimum is not None and numeric_value < minimum:
+                return QValidator.State.Invalid
+            if maximum is not None and numeric_value > maximum:
+                return QValidator.State.Invalid
         if trailing_decimal:
             return QValidator.State.Intermediate
         return QValidator.State.Acceptable
@@ -126,7 +133,7 @@ class NumericLineEdit(QLineEdit):
                 return
             self._blocked_negative_sequence = False
 
-        if insertion in {"-", "−"}:
+        if insertion in {"-", "−"} and not self._domain_owns_range_validation:
             # Do not let a rejected minus sign turn the following ``-1`` key
             # sequence into the apparently valid value ``1``.
             self._blocked_negative_sequence = True
@@ -147,6 +154,11 @@ class NumericLineEdit(QLineEdit):
             return
         self._blocked_negative_sequence = False
         super().insertFromMimeData(source)
+
+    def defer_range_validation_to_domain(self, enabled: bool = True) -> None:
+        """Let the authoritative Domain report business-range errors on submit."""
+
+        self._domain_owns_range_validation = enabled
 
     def setText(self, text: str) -> None:  # noqa: N802 - Qt API name
         """Keep programmatic updates subject to the same UI restrictions."""
