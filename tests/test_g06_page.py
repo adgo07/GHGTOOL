@@ -807,6 +807,7 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(self.page.validation_list.topLevelItemCount(), 0)
 
     def test_heat_defaults_to_canonical_factor_and_automatic_steam_enthalpy(self) -> None:
+        self.page.period_year.setValue(2026)
         row = self.page._heat_rows["heat"][0]
         factor_mode = row["factor_mode"]
         enthalpy_mode = row["enthalpy_mode"]

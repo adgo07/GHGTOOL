@@ -3193,6 +3193,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self.heat_factor_selection_reason = QLineEdit(compatibility)
             self.heat_factor_selection_reason.setObjectName("heatFactorSelectionReasonInput")
             self.heat_factor_advanced_panel = compatibility
+            self._heat_factor_advanced_panel = compatibility
             self.heat_factor_edit_button = QPushButton("", compatibility)
         else:
             self.exported_heat_factor_selector = QComboBox(compatibility)
@@ -3380,7 +3381,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if isinstance(enthalpy, QWidget):
             enthalpy.setVisible(manual)
         steam = row.get("steam")
-        superheated = isinstance(steam, QComboBox) and steam.currentData() is SteamKind.SUPERHEATED
+        try:
+            steam_kind = _enum(steam.currentData(), SteamKind) if isinstance(steam, QComboBox) else None
+        except ValueError:
+            steam_kind = None
+        superheated = steam_kind is SteamKind.SUPERHEATED
         temperature = row.get("temperature")
         temperature_label = row.get("temperature_label")
         if isinstance(temperature, QWidget):
@@ -3388,7 +3393,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if isinstance(temperature_label, QWidget):
             temperature_label.setVisible(superheated)
         factor_mode = row.get("factor_mode")
-        measured_mode = isinstance(factor_mode, QComboBox) and factor_mode.currentData() is HeatFactorMode.MEASURED
+        try:
+            selected_factor_mode = _enum(factor_mode.currentData(), HeatFactorMode) if isinstance(factor_mode, QComboBox) else None
+        except ValueError:
+            selected_factor_mode = None
+        measured_mode = selected_factor_mode is HeatFactorMode.MEASURED
         for key in ("measured", "measured_label", "source", "source_label"):
             part = row.get(key)
             if isinstance(part, QWidget):
@@ -3404,7 +3413,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if not isinstance(preview, QLabel) or not isinstance(pressure_widget, QLineEdit) or not isinstance(steam_widget, QComboBox):
             return
         pressure_text = pressure_widget.text().strip()
-        kind = steam_widget.currentData()
+        try:
+            kind = _enum(steam_widget.currentData(), SteamKind)
+        except ValueError:
+            preview.setText("自动计算焓值：请选择蒸汽类型。")
+            return
         temperature_text = temperature_widget.text().strip() if isinstance(temperature_widget, QLineEdit) else ""
         try:
             if not pressure_text or (kind is SteamKind.SUPERHEATED and not temperature_text):
@@ -3537,6 +3550,7 @@ class CarbonMaterialAccountingPage(BasePage):
     def _refresh_heat_factor_details(self) -> None:
         if not hasattr(self, "heat_factor_selector"):
             return
+        self._refresh_heat_factor_default_labels()
         factor_id = self.heat_factor_selector.currentData()
         if factor_id is None or factor_id not in self._heat_factor_records:
             self.heat_factor_metadata.setText("推荐热力因子：暂无可用的标准参数；填写热力数据时会明确提示。")
@@ -3572,6 +3586,20 @@ class CarbonMaterialAccountingPage(BasePage):
                 status = "采用依据：当前选择不是自动推荐值；请在高级参数选择中填写理由。"
             if hasattr(self, "parameter_selection_status"):
                 self.parameter_selection_status.setText(status)
+
+    def _refresh_heat_factor_default_labels(self) -> None:
+        factor = self._canonical_default_factor("heat_emission_factor_default")
+        value = getattr(factor, "value", None)
+        display = self.calculator.policy.format_for_display(value, 2) if value is not None else "暂无适用值"
+        label = f"标准缺省值（{display} tCO₂/GJ）"
+        for rows in self._heat_rows.values():
+            for row in rows:
+                selector = row.get("factor_mode")
+                if not isinstance(selector, QComboBox):
+                    continue
+                index = selector.findData(HeatFactorMode.STANDARD_DEFAULT)
+                if index >= 0:
+                    selector.setItemText(index, label)
 
     def _toggle_heat_parameter_advanced(self) -> None:
         visible = not self._heat_factor_advanced_panel.isVisible()
@@ -3907,13 +3935,21 @@ class CarbonMaterialAccountingPage(BasePage):
         enthalpy_mode = row.get("enthalpy_mode")
         manual = isinstance(enthalpy_mode, QComboBox) and enthalpy_mode.currentData() == "MANUAL"
         steam = row.get("steam")
-        is_saturated = isinstance(steam, QComboBox) and steam.currentData() is SteamKind.SATURATED
+        try:
+            steam_kind = _enum(steam.currentData(), SteamKind) if isinstance(steam, QComboBox) else None
+        except ValueError:
+            steam_kind = None
+        is_saturated = steam_kind is SteamKind.SATURATED
         enthalpy_ready = (
             bool(_value(row.get("enthalpy"))) if manual
             else bool(_value(row.get("pressure"))) and (is_saturated or bool(_value(row.get("temperature"))))
         )
         factor_mode = row.get("factor_mode")
-        measured = isinstance(factor_mode, QComboBox) and factor_mode.currentData() is HeatFactorMode.MEASURED
+        try:
+            selected_factor_mode = _enum(factor_mode.currentData(), HeatFactorMode) if isinstance(factor_mode, QComboBox) else None
+        except ValueError:
+            selected_factor_mode = None
+        measured = selected_factor_mode is HeatFactorMode.MEASURED
         factor_ready = bool(_value(row.get("measured"))) if measured else True
         return enthalpy_ready and factor_ready
 
@@ -4122,6 +4158,12 @@ class CarbonMaterialAccountingPage(BasePage):
             ))
             for line in material_lines
         )
+        if has_material_input:
+            normalized = normalize_material_inputs(prefix, material_lines, policy=self.calculator.policy)
+            for name, value in normalized.values:
+                unit = get_field_spec(f"{prefix}.{name}").domain_unit
+                if unit:
+                    values[name] = InputValue(value, unit)
         if controls is None:
             return kind(
                 **values,
@@ -4359,7 +4401,7 @@ class CarbonMaterialAccountingPage(BasePage):
             source_note = _value(row["source"])
             factor_mode_widget = row.get("factor_mode")
             factor_mode = (
-                factor_mode_widget.currentData()
+                _enum(factor_mode_widget.currentData(), HeatFactorMode)
                 if isinstance(factor_mode_widget, QComboBox)
                 else HeatFactorMode.STANDARD_DEFAULT
             )
@@ -4667,9 +4709,14 @@ class CarbonMaterialAccountingPage(BasePage):
         business_message = _INTERNAL_VARIABLE_RE.sub("参数规则", business_message)
         return business_message
 
-    @classmethod
-    def _business_problem_message(cls, problem: object) -> str:
+    def _business_problem_message(self, problem: object) -> str:
         code = str(getattr(problem, "code", ""))
+        if code == "CAR-VAL-HEAT-FACTOR-DEFAULT":
+            factor = self._canonical_default_factor("heat_emission_factor_default")
+            if factor is not None:
+                value = self.calculator.policy.format_for_display(factor.value, 2)
+                return f"当前无法读取热力参数服务；标准缺省值 {value} tCO₂/GJ 暂不可供本次计算使用，请检查参数服务后重试。"
+            return "当前无法取得适用的热力标准缺省值，请检查核算期间和标准参数目录，或提供有依据的实测因子。"
         fixed_messages = {
             "CAR-VAL-MATERIAL-BASIS-CONVERSION": "材料数据的口径或换算资料不完整，当前不能直接计算。请补充数据来源、换算依据和报告/台账编号或来源说明。",
             "CAR-VAL-MATERIAL-BASIS-CONSISTENCY": "质量数据和成分含量的数据口径不一致，当前不能直接计算。请统一两项口径并提供换算依据。",
@@ -4694,7 +4741,7 @@ class CarbonMaterialAccountingPage(BasePage):
         }
         if code in fixed_messages:
             return fixed_messages[code]
-        return cls._sanitize_business_message(str(getattr(problem, "message", "当前数据需要检查。")))
+        return self._sanitize_business_message(str(getattr(problem, "message", "当前数据需要检查。")))
 
     def _process_instance_message_prefix(self, problem: object) -> tuple[str, str | None]:
         field_id = str(getattr(problem, "field_id", "") or "")
@@ -4916,7 +4963,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 if line_id and line_id in field_id:
                     if upper.endswith("EF3"):
                         mode = row.get("factor_mode")
-                        widget = row.get("measured") if isinstance(mode, QComboBox) and mode.currentData() is HeatFactorMode.MEASURED else mode
+                        try:
+                            selected_mode = _enum(mode.currentData(), HeatFactorMode) if isinstance(mode, QComboBox) else None
+                        except ValueError:
+                            selected_mode = None
+                        widget = row.get("measured") if selected_mode is HeatFactorMode.MEASURED else mode
                         if isinstance(widget, QWidget):
                             return widget.objectName()
                     for suffix, key in (("AMOUNT", "amount"), ("HM", "enthalpy"), ("PRESSURE", "pressure"), ("TEMPERATURE", "temperature")):

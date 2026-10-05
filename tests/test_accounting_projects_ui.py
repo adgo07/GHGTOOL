@@ -399,6 +399,9 @@ class AccountingProjectUiTests(unittest.TestCase):
     def test_material_rows_keep_values_after_project_reopen(self) -> None:
         self.page.project_name.setText("多物料项目")
         self.page.enterprise_name.setText("多物料企业")
+        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
         process_row = self.page._process_rows["calcination"][0]
         feed, = process_row["materials"]
         feed["name"].setText("原料甲")

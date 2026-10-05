@@ -351,6 +351,9 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.assertIn("需要处理", card.summary_label.text())
         self.assertNotIn("已完成", card.summary_label.text())
 
+        self.page._heat_rows["heat"][0]["enthalpy_mode"].setCurrentIndex(
+            self.page._heat_rows["heat"][0]["enthalpy_mode"].findData("MANUAL")
+        )
         self.page._fields["heat_enthalpy"].setText("2800")
         self.page._run_calculation()
         self.application.processEvents()
