@@ -2481,13 +2481,13 @@ class CarbonMaterialAccountingPage(BasePage):
                 continue
             result.append(MaterialInputLine(
                 line_id=str(row.get("line_id", "")),
-                role=role.currentData(),
+                role=_enum(role.currentData(), MaterialRole),
                 name=_value(row.get("name")) or "",
                 mass_t=_value(row.get("mass")),
                 fixed_carbon_percent=_value(row.get("fixed_carbon")),
-                fixed_carbon_source=fixed_source.currentData(),
+                fixed_carbon_source=_enum(fixed_source.currentData(), MaterialDataSource),
                 volatile_matter_percent=_value(row.get("volatile_matter")),
-                volatile_matter_source=volatile_source.currentData(),
+                volatile_matter_source=_enum(volatile_source.currentData(), MaterialDataSource),
             ))
         return tuple(result)
 
