@@ -27,6 +27,7 @@ from packages.standards.carbon_material import EmissionSourceStatus, InMemoryRec
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import tree_texts
 
 
 SOURCE_IDS = (
@@ -321,15 +322,11 @@ class UIR02SourceCardTests(unittest.TestCase):
         card = self._card(source_id)
         self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
         self.assertIn("需要处理", card.summary_label.text())
-        validation_text = "\n".join(
-            self.page.validation_list.item(i).text()
-            for i in range(self.page.validation_list.count())
-        )
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertIn("不能直接计算", validation_text)
         self.assertNotIn("CAR-VAL-", validation_text)
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("CAR-VAL-MATERIAL-BASIS-CONVERSION", self.page.validation_professional_details.text())
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
+        self.assertIsNone(self.page.findChild(QWidget, "calculationValidationProfessionalDetails"))
 
     def test_heat_domain_error_maps_to_i02_and_recovers_after_recheck(self) -> None:
         source_id = "CAR-SRC-PURCHASED-HEAT-001"
@@ -347,28 +344,18 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.application.processEvents()
 
         card = self._card(source_id)
-        validation_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertIn("蒸汽状态资料不完整", validation_text)
         self.assertNotIn("CAR-VAL-", validation_text)
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("CAR-VAL-STEAM-STATE", self.page.validation_professional_details.text())
         self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
         self.assertIn("需要处理", card.summary_label.text())
         self.assertNotIn("已完成", card.summary_label.text())
 
         self.page._fields["heat_enthalpy"].setText("2800")
-        self.page.show_professional_details.setChecked(False)
         self.page._run_calculation()
         self.application.processEvents()
 
-        validation_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
+        validation_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertNotIn("CAR-VAL-STEAM-STATE", validation_text)
         self.assertNotIn("CAR-VAL-", validation_text)
         self.assertIs(card.presentation_state, SourceCardPresentationState.COMPLETED)

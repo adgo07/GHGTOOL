@@ -26,6 +26,8 @@ from PySide6.QtWidgets import (
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import ParameterType, ReviewStatus
+from packages.core.models import ValueType
+from packages.standards.carbon_material import ALGORITHM_VERSION, STANDARD_ID, steam_reference_table_rows
 from packages.standards.catalog import (
     CatalogStatus,
     ParameterFactorResult,
@@ -435,6 +437,46 @@ class ParameterFactorLibraryPage(BasePage):
 
     def _build_page(self) -> None:
         self.add_header("参数与排放因子库", "查看核算参数、缺省值及排放因子")
+        appendix_card, appendix_layout = _card("GB/T 32151.34—2024 附录 C 参数表", self)
+        appendix_hint = QLabel("选择表名查看只读参数；C.1～C.3 来自正式目录，C.4/C.5 直接读取版本化计算器表。", appendix_card)
+        appendix_hint.setWordWrap(True)
+        appendix_layout.addWidget(appendix_hint)
+        appendix_buttons = QHBoxLayout()
+        self.appendix_c_buttons: dict[str, QPushButton] = {}
+        for table_id, title in (
+            ("C.1", "C.1 化石燃料参数"),
+            ("C.2", "C.2 碳酸盐因子"),
+            ("C.3", "C.3 其他缺省参数"),
+            ("C.4", "C.4 饱和蒸汽焓"),
+            ("C.5", "C.5 过热蒸汽焓"),
+        ):
+            button = QPushButton(title, appendix_card)
+            button.setObjectName(f"appendix{table_id.replace('.', '')}Button")
+            button.setCheckable(True)
+            button.clicked.connect(lambda _checked=False, _table=table_id: self._show_appendix_table(_table))
+            self.appendix_c_buttons[table_id] = button
+            appendix_buttons.addWidget(button)
+        appendix_buttons.addStretch(1)
+        appendix_layout.addLayout(appendix_buttons)
+        self.appendix_table_title = QLabel("", appendix_card)
+        self.appendix_table_title.setObjectName("appendixCSelectedTableTitle")
+        appendix_layout.addWidget(self.appendix_table_title)
+        self.appendix_table_note = QLabel("", appendix_card)
+        self.appendix_table_note.setObjectName("appendixCSelectedTableSource")
+        self.appendix_table_note.setWordWrap(True)
+        appendix_layout.addWidget(self.appendix_table_note)
+        self.appendix_table = QTableWidget(appendix_card)
+        self.appendix_table.setObjectName("appendixCReadOnlyTable")
+        self.appendix_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.appendix_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.appendix_table.verticalHeader().setVisible(False)
+        self.appendix_table.horizontalHeader().setStretchLastSection(True)
+        self.appendix_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.appendix_table.setWordWrap(True)
+        appendix_layout.addWidget(self.appendix_table)
+        self.body_layout.addWidget(appendix_card)
+        self._show_appendix_table("C.1")
+
         filters, filters_layout = _card("全局搜索和筛选", self)
         search = QLineEdit(filters)
         search.setObjectName("parameterSearch")
@@ -527,6 +569,93 @@ class ParameterFactorLibraryPage(BasePage):
         ):
             combo.currentIndexChanged.connect(self._refresh)
         self.factor_table.itemSelectionChanged.connect(self._show_selected_detail)
+
+    def _show_appendix_table(self, table_id: str) -> None:
+        for key, button in self.appendix_c_buttons.items():
+            button.setChecked(key == table_id)
+        if table_id in {"C.4", "C.5"}:
+            headers, rows, note = self._steam_appendix_table(table_id)
+        else:
+            headers, rows, note = self._canonical_appendix_table(table_id)
+        self.appendix_table.clear()
+        self.appendix_table.setColumnCount(len(headers))
+        self.appendix_table.setHorizontalHeaderLabels(headers)
+        self.appendix_table.setRowCount(len(rows))
+        for row_number, values in enumerate(rows):
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.appendix_table.setItem(row_number, column, item)
+        self.appendix_table.resizeRowsToContents()
+        self.appendix_table_title.setText(f"{table_id} · {len(rows)} 行")
+        self.appendix_table_note.setText(note)
+
+    def _canonical_appendix_table(self, table_id: str):
+        appendix_code = table_id.replace(".", ".")
+        all_parameters = tuple(self._service.repository.list_parameters())
+        if table_id == "C.3":
+            # C.3 electricity and heat values use canonical entries whose
+            # provenance correctly points to their originating publications.
+            appendix_parameter_ids = {
+                "electricity_emission_factor_national",
+                "heat_emission_factor_default",
+            }
+            parameters = tuple(
+                parameter for parameter in all_parameters
+                if parameter.parameter_id in appendix_parameter_ids
+                and STANDARD_ID in parameter.applicable_standard_ids
+            )
+        else:
+            parameters = tuple(
+                parameter for parameter in all_parameters
+                if f"表{appendix_code}" in parameter.source_location
+                and STANDARD_ID in parameter.applicable_standard_ids
+            )
+        subjects = {item.subject_id: item.name for item in self._service.repository.list_subjects()}
+        factors_by_parameter: dict[str, list[object]] = {}
+        for factor in self._service.repository.list_factors():
+            if factor.review_status is ReviewStatus.VERIFIED and STANDARD_ID in factor.applicable_standard_ids:
+                factors_by_parameter.setdefault(factor.parameter_id, []).append(factor)
+        rows: list[tuple[str, ...]] = []
+        for parameter in sorted(parameters, key=lambda item: (item.subject_id, item.parameter_id)):
+            factors = sorted(factors_by_parameter.get(parameter.parameter_id, ()), key=lambda item: (item.factor_year or 0, item.factor_id))
+            for factor in factors:
+                if table_id == "C.1" and factor.value_type not in {ValueType.STANDARD_DEFAULT, ValueType.STANDARD_SPECIFIED}:
+                    continue
+                rows.append((
+                    subjects.get(parameter.subject_id, parameter.name),
+                    parameter.name,
+                    format(factor.value, "f"),
+                    factor.unit,
+                    f"{factor.source_location} · {factor.factor_year}年",
+                ))
+        note = "来源：GB/T 32151.34—2024 附录 C 表 " + table_id + "；数值和来源定位直接读取 Canonical 参数/因子目录。"
+        if table_id == "C.3":
+            note += " 电力显示当前正式目录已收录的官方因子；热力缺省参数沿用 GB/T 32150—2025 共用规则，具体来源见表内定位。"
+        headers = ("对象", "参数", "数值", "单位", "标准来源与定位")
+        return headers, tuple(rows), note
+
+    @staticmethod
+    def _steam_appendix_table(table_id: str):
+        values = steam_reference_table_rows(table_id)
+        if table_id == "C.4":
+            rows = tuple((format(pressure, "f"), format(enthalpy, "f")) for pressure, enthalpy in values)
+            return (
+                ("压力（MPa）", "饱和蒸汽焓（kJ/kg）"), rows,
+                f"来源：GB/T 32151.34—2024 附录 C.4，Mapping §9.5；版本化 Calculator {ALGORITHM_VERSION} 只读数据。原文异常事实继续保留，执行口径按冻结 Mapping 采用 1.70 / 1.80 MPa 解释；非官方勘误。",
+            )
+        temperatures = tuple(sorted({row[0] for row in values}))
+        pressures = tuple(sorted({row[1] for row in values}))
+        lookup = {(temperature, pressure): enthalpy for temperature, pressure, enthalpy in values}
+        headers = ("温度（℃）", *(f"{pressure:g} MPa" for pressure in pressures))
+        rows = tuple(
+            (format(temperature, "f"), *(format(lookup[(temperature, pressure)], "f") for pressure in pressures))
+            for temperature in temperatures
+        )
+        return (
+            headers, rows,
+            f"来源：GB/T 32151.34—2024 附录 C.5，Mapping §9.6；版本化 Calculator {ALGORITHM_VERSION} 只读数据。蒸汽焓自动计算留待后续 UAT01-B。",
+        )
 
     def _refresh(self) -> None:
         view_mode = _enum_data(self.view_mode_filter.currentData(), ParameterViewMode)

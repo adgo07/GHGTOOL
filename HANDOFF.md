@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-04（GHG-RS02-B）
+最后更新：2026-10-05（GHG-UAT01-A）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,8 +30,9 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS02-B — Result Explanation & Record Experience Closure`；实现、本地可执行检查和PR #26 latest-head Windows CI均已完成，等待独立最终验收。基线、变更和验证见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- RS01及RS02-A已完成并合入main；本包以Record自身快照完成结果解释、B.1—B.9只读呈现和新鲜度分离。RS03、Golden Freeze、Release Gate和第二标准均未启动；标准仍为 `NOT SUPPORTED`。
+- 当前返修包：`GHG-UAT01-A — 普通核算录入与错误反馈体验修复`；基于最新main创建独立分支，不修改PR #27。实现与本地验收完成，等待本包PR latest-head Windows CI及独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- UAT01-A：`IMPLEMENTED / AWAITING ACCEPTANCE`；UAT01-B：`NOT STARTED`。RS03-A USER UAT：`BLOCKED BY UAT01`；PR #27：`OPEN / UNMERGED`，本包不触及该PR。
+- RS01与RS02已完成并合入main；RS03-B、Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
 ```text
@@ -179,9 +180,10 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RS02-B — Result Explanation & Record Experience Closure：
+本文件当前对应返修包 GHG-UAT01-A — 普通核算录入与错误反馈体验修复：
 
-- 结果页以中文解释直接、净间接和含间接排放；Record详情依据自身快照只读展示B.1—B.9、证据、参数、质量信息与专业Trace；
-- 历史Record不按当前Catalog或Calculator重算；计算新鲜度与报告资料新鲜度分开；月度/自定义报告资格不阻断核算；
-- PR #26 latest-head Windows/Python 3.12 Merge-ref Full Tests 与 PR-head Standalone Audit 均通过；PR保持开放，等待独立最终验收；
-- 不改计算公式、中央baseline或Frozen Contract；RS03、Golden Freeze、正式SUPPORTED、Windows Release Gate及第二标准未启动；GAP-009仍为非阻塞provenance debt。
+- 普通手工核算采用单一“计算排放量”动作；Domain一次返回问题，问题面板按必须修正/提醒、排放源、实例和字段组织；致命错误不生成结果或Record；
+- 简化核算边界和专业控件展示；企业名称可选；燃料输入明确计量单位、参数来源及C.1缺省值；标准库C.1～C.5以只读方式浏览；
+- 动态新增/删除行使用自然布局，并完成1.0 / 1.25 / 1.5缩放验收；历史Project可继续读取；历史Record快照不重算、不漂移；
+- 不改公式、Numeric Contract、中央baseline、Frozen Contract或Record生命周期；不处理Excel、蒸汽自动计算、UAT01-B或RS03-B；
+- UAT01-A `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `BLOCKED BY UAT01`；PR #27 `OPEN / UNMERGED`且保持只读；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

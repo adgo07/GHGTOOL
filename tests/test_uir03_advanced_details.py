@@ -26,6 +26,7 @@ from packages.standards.carbon_material import (
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import tree_texts
 
 
 CALCINATION_SOURCE = "CAR-SRC-CALCINATION-001"
@@ -108,7 +109,7 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             "volatile_matter_component_kind",
         ):
             self.assertFalse(controls[key].isVisible())
-        self.assertFalse(self.page.show_professional_details.isChecked())
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
 
         visible_widgets = [
             *self.page.findChildren(QLabel),
@@ -142,12 +143,11 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             self.assertIn("默认排放参数：0.35（比例）· 标准默认", summary.text())
             self.assertNotIn(parameter_id, summary.text())
 
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
         for _, prefix, parameter_id in process_sources:
             details = self.page._material_controls[prefix]["professional_details"]
             self.assertIn("标准默认参数：0.35（比例）", details.text())
             self.assertIn(f"参数 ID：{parameter_id}", details.text())
+            self.assertFalse(details.isVisible())
 
     def test_basis_mismatch_expands_and_explains_required_action(self) -> None:
         self._set_involved(CALCINATION_SOURCE)
@@ -198,22 +198,20 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.assertFalse(controls["fixed_carbon_component_kind"].isVisible())
         self.assertFalse(controls["volatile_matter_component_kind"].isVisible())
 
-    def test_professional_details_toggle_reveals_audit_information_only(self) -> None:
+    def test_ordinary_page_has_no_professional_details_toggle_or_visible_internal_ids(self) -> None:
         self._set_involved(CALCINATION_SOURCE)
         self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
         controls = self.page._material_controls["calcination"]
         self.assertFalse(controls["professional_details"].isVisible())
         self.assertFalse(self.page.heat_factor_professional_details.isVisible())
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertTrue(controls["professional_details"].isVisible())
-        self.assertIn("标准默认参数：0.35（比例）", controls["professional_details"].text())
-        self.assertIn("参数 ID：CAR-PAR-K1", controls["professional_details"].text())
-        self.assertIn("标准条款", controls["professional_details"].text())
-        self.assertTrue(self.page.heat_factor_professional_details.isVisible())
-        self.assertIn("因子 ID", self.page.heat_factor_professional_details.text())
-        self.assertNotIn("resolver", controls["professional_details"].text())
-        self.assertNotIn("candidate", self.page.heat_factor_professional_details.text())
+        self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
+        visible_text = "\n".join(
+            widget.text()
+            for widget in self.page.findChildren(QLabel)
+            if widget.isVisible()
+        )
+        self.assertNotIn("CAR-PAR-K1", visible_text)
+        self.assertNotIn("因子 ID", visible_text)
 
     def test_power_and_heat_use_business_summary_with_optional_advanced_selection(self) -> None:
         self._set_involved(ELECTRICITY_SOURCE)
@@ -276,31 +274,22 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             [snapshot_signature(snapshot) for snapshot in explicit_outcome.parameter_snapshots],
         )
 
-    def test_validation_errors_are_business_facing_until_professional_details_open(self) -> None:
+    def test_validation_errors_are_business_facing_without_technical_detail_panel(self) -> None:
         self._fill_calcination()
         self._set_basis("DRY", "DRY")
         self.page._run_calculation()
         self.application.processEvents()
 
-        ordinary_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
+        ordinary_text = "\n".join(tree_texts(self.page.validation_list))
         self.assertIn("不能直接计算", ordinary_text)
         self.assertIn("换算依据", ordinary_text)
         self.assertNotIn("证据", ordinary_text)
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)
-        self.assertFalse(self.page.validation_professional_details.isVisible())
+        self.assertIsNone(self.page.findChild(QWidget, "calculationValidationProfessionalDetails"))
 
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        professional_text = self.page.validation_professional_details.text()
-        self.assertIn("CAR-VAL-MATERIAL-BASIS-CONVERSION", professional_text)
-        self.assertIn("证据", professional_text)
-
-    def test_parameter_service_error_is_business_facing_until_professional_details_open(self) -> None:
+    def test_parameter_service_error_is_business_facing_without_technical_detail_panel(self) -> None:
         self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
         self.page.enterprise_name.setText("参数服务异常企业")
         self.page.boundary_confirmed.setChecked(True)
@@ -308,21 +297,24 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.page._fields["heat_amount"].setText("1000")
         self.page.calculator.parameter_resolver = None
         self.page._parameter_resolver = None
+        self.page._heat_factor_records.clear()
+        self.page.heat_factor_selector.clear()
         self.page._run_calculation()
         self.application.processEvents()
 
-        ordinary_text = "\n".join(
-            self.page.validation_list.item(index).text()
-            for index in range(self.page.validation_list.count())
-        )
-        self.assertIn("暂时无法取得标准参数", ordinary_text)
+        ordinary_text = "\n".join(tree_texts(self.page.validation_list))
+        self.assertIn("蒸汽状态资料不完整", ordinary_text)
+        self.assertIn("标准缺省值 0.11", ordinary_text)
+        roots = [
+            self.page.validation_list.topLevelItem(index).text(0).split("（", 1)[0]
+            for index in range(self.page.validation_list.topLevelItemCount())
+        ]
+        self.assertEqual(roots, ["必须修正", "提醒"])
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)
 
-        self.page.show_professional_details.setChecked(True)
-        self.application.processEvents()
-        self.assertIn("CAR-VAL-PARAMETER-RESOLVER-MISSING", self.page.validation_professional_details.text())
+        self.assertIsNone(self.page.findChild(QWidget, "calculationValidationProfessionalDetails"))
 
 
 if __name__ == "__main__":

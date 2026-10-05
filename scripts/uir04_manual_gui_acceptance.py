@@ -81,6 +81,22 @@ def _involve(page, source_id: str) -> None:
     combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
 
 
+def _validation_text(page) -> str:
+    """Collect all user-facing validation labels from the grouped tree."""
+
+    labels: list[str] = []
+
+    def visit(parent) -> None:
+        count = page.validation_list.topLevelItemCount() if parent is None else parent.childCount()
+        for index in range(count):
+            item = page.validation_list.topLevelItem(index) if parent is None else parent.child(index)
+            labels.append(item.text(0))
+            visit(item)
+
+    visit(None)
+    return "\n".join(labels)
+
+
 def _scenario_a(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
     window, page, repository = _open_page(application, catalog_service, catalog_path)
     try:
@@ -100,10 +116,7 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
         page._run_calculation()
         assert page.result_card.isVisible(), {
-            "validation": [
-                page.validation_list.item(index).text()
-                for index in range(page.validation_list.count())
-            ],
+            "validation": _validation_text(page),
             "professional_details": page.validation_professional_details.text(),
         }
         assert len(repository.list_all()) == 1
@@ -163,10 +176,7 @@ def _scenario_c(application: QApplication, catalog_service: CatalogQueryService,
             controls["composition_basis"].findData(MaterialBasis.RECEIVED)
         )
         page._run_calculation()
-        text = "\n".join(
-            page.validation_list.item(index).text()
-            for index in range(page.validation_list.count())
-        )
+        text = _validation_text(page)
         assert "不能直接计算" in text
         assert not page.result_card.isVisible()
         assert len(repository.list_all()) == 0
@@ -203,16 +213,23 @@ def _scenario_d(application: QApplication, catalog_service: CatalogQueryService,
 def _scenario_e(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
     window, page, repository = _open_page(application, catalog_service, catalog_path)
     try:
-        page.calculate_button.click()
-        application.processEvents()
-        text = "\n".join(
-            page.validation_list.item(index).text()
-            for index in range(page.validation_list.count())
-        )
-        assert "企业名称为必填项" in text
-        assert not page.result_card.isVisible()
-        assert len(repository.list_all()) == 0
-        return f"场景E PASS：缺少企业名称被阻断；错误计数={page.error_count.text()}；提示={text}"
+        page.period_year.setValue(2026)
+        page.boundary_confirmed.setChecked(True)
+        _involve(page, F01)
+        fuel = page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
+        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.HEAT))
+        fuel.activity.setText("10")
+        _involve(page, I01)
+        row = page._electricity_rows[0]
+        row.detail_id.setText("grid-ordinary-empty-enterprise")
+        row.amount.setText("20")
+        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
+        row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
+        page._run_calculation()
+        assert page.result_card.isVisible(), _validation_text(page)
+        assert len(repository.list_all()) == 1
+        return f"场景E PASS：企业名称留空仍可完成核算；记录数={len(repository.list_all())}；状态={page.result_status.text()}"
     finally:
         _close_page(application, window)
 
