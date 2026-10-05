@@ -18,7 +18,8 @@ import re
 from uuid import uuid4
 
 from PySide6.QtCore import QDate, QSignalBlocker, QTimer, Qt, Signal
-from PySide6.QtGui import QDoubleValidator, QLocale
+from PySide6.QtCore import QLocale
+from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
