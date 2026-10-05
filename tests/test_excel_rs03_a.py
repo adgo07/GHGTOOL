@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import fields, is_dataclass, replace
 from datetime import date
 from decimal import Decimal
+from enum import Enum
 from io import BytesIO
 import os
 from pathlib import Path
@@ -20,6 +22,12 @@ from PySide6.QtWidgets import QApplication
 
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.application.catalog_queries import CatalogQueryService
+from packages.core.models import (
+    ElectricityAcquisitionMode,
+    ElectricityAttribute,
+    ElectricityProofStatus,
+    ElectricityProofType,
+)
 from packages.excel.gbt32151_34_v1 import (
     BODY_ROWS,
     CARBONATE_LABELS,
@@ -52,7 +60,13 @@ from packages.standards.carbon_material import (
     FuelPath,
     FuelType,
     InMemoryRecordRepository,
+    SOURCE_CALCINATION,
+    SOURCE_EXPORTED_ELECTRICITY,
+    SOURCE_EXPORTED_HEAT,
     SOURCE_FUEL,
+    SOURCE_PURCHASED_ELECTRICITY,
+    SOURCE_PURCHASED_HEAT,
+    SteamKind,
     saturated_steam_enthalpy,
     superheated_steam_enthalpy,
 )
@@ -87,6 +101,128 @@ def section_bounds(sheet, marker: str, headers: tuple[str, ...]) -> tuple[int, i
     first = header_row + 1
     last = min(later) - 1 if later else sheet.max_row
     return header_row, first, max(first - 1, last)
+
+
+def _source_reference(source_location: str | None) -> str | None:
+    if source_location is None:
+        return None
+    if "：" in source_location:
+        return source_location.rsplit("：", 1)[-1]
+    return source_location
+
+
+def _business_semantics(value):
+    """Normalize generated identity while retaining business values and provenance."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (tuple, list)):
+        return tuple(_business_semantics(item) for item in value)
+    if isinstance(value, dict):
+        return tuple(sorted((key, _business_semantics(item)) for key, item in value.items()))
+    if not is_dataclass(value) or isinstance(value, type):
+        return value
+
+    kind = type(value).__name__
+    if kind == "InputValue":
+        # UI and Excel use different activity-source enums for manual cells, but
+        # their saved numeric value, unit, and any user source reference remain
+        # the business semantics to compare here.
+        return (value.value, value.unit, value.source_reference, _business_semantics(value.source_level))
+    if kind == "ParameterValue":
+        source_kind = _business_semantics(value.source_kind)
+        measured = source_kind in {"MEASURED", "USER_DEFINED", "PROJECT_SPECIFIED"}
+        return (
+            value.parameter_id,
+            value.value,
+            value.unit,
+            source_kind,
+            None if measured else value.source_id,
+            value.source_version,
+            _source_reference(value.source_location) if measured else value.source_location,
+            value.factor_id,
+            value.factor_year,
+        )
+    if kind == "ParameterSnapshot":
+        selection_method = _business_semantics(value.selection_method)
+        measured = selection_method in {"ENTERPRISE_MEASURED", "MANUAL_OVERRIDE"}
+        return (
+            value.parameter_id,
+            value.value_used,
+            value.unit_used,
+            None if measured else value.source_id,
+            value.source_version,
+            selection_method,
+            value.standard_id,
+            value.factor_version,
+            _source_reference(value.source_location) if measured else value.source_location,
+            value.factor_id,
+            value.factor_year,
+        )
+
+    ignored = {
+        "input_id", "enterprise_id", "boundary_component_ids", "reporting_data",
+        "fuel_id", "electricity_detail_id", "detail_id", "line_id", "instance_id",
+        "evidence_ref_ids", "evidence_id", "snapshot_id", "result_id", "record_id",
+        "calculated_at", "selection_reason",
+    }
+    normalized = []
+    for field in fields(value):
+        if field.name in ignored:
+            continue
+        field_value = getattr(value, field.name)
+        if field.name == "source_states":
+            projected = tuple(sorted((_business_semantics(item) for item in field_value), key=repr))
+        elif field.name in {"parameter_snapshots", "traces"}:
+            projected = tuple(sorted((_business_semantics(item) for item in field_value), key=repr))
+        else:
+            projected = _business_semantics(field_value)
+        normalized.append((field.name, projected))
+    return tuple(normalized)
+
+
+def _calculation_semantics(outcome):
+    result = outcome.result
+    result_semantics = None
+    es_ei_et = None
+    if result is not None:
+        lines = tuple(sorted(
+            (
+                (
+                    line.emission_source_id,
+                    line.greenhouse_gas_id,
+                    line.amount,
+                    line.unit,
+                )
+                for line in result.lines
+            ),
+            key=repr,
+        ))
+        result_semantics = (
+            result.standard_id,
+            result.algorithm_version,
+            lines,
+            result.total_amount,
+            result.total_unit,
+            tuple(sorted((problem.code, problem.level.value, problem.message) for problem in result.problems)),
+        )
+        by_id = {line.line_id: line.amount for line in result.lines}
+        es_ei_et = (
+            by_id["CAR-FLD-DIRECT-RESULT"],
+            by_id["CAR-FLD-INDIRECT-RESULT"],
+            by_id["CAR-FLD-TOTAL-RESULT"],
+        )
+    problems = tuple(sorted((problem.code, problem.level.value, problem.message) for problem in outcome.problems))
+    snapshots = tuple(sorted((_business_semantics(item) for item in outcome.parameter_snapshots), key=repr))
+    return {
+        "successful": outcome.successful,
+        "blocked": outcome.blocked,
+        "problems": problems,
+        "parameter_snapshots": snapshots,
+        "result": result_semantics,
+        "ES_EI_ET": es_ei_et,
+    }
 
 
 class ExcelRS03ATests(unittest.TestCase):
@@ -470,9 +606,65 @@ class ExcelRS03ATests(unittest.TestCase):
 
     def test_gui_and_excel_semantic_parity_without_aligning_generated_ids(self) -> None:
         workbook = self.new_book()
-        self.add_unit(workbook, "企业A")
-        self.add_fuel(workbook, "企业A", Decimal("1.25"), fuel=FuelType.DIESEL, path="质量")
-        _preview, excel = self.import_unit(workbook)
+        self.set_project(workbook, "示例企业")
+        self.add_unit(workbook, "全厂")
+        fuel_row = self.add_fuel(
+            workbook,
+            "全厂",
+            Decimal("1.25"),
+            fuel=FuelType.NATURAL_GAS,
+            path="体积",
+            activity_kind=None,
+            activity_ref=None,
+        )
+        for category, name, mass, fixed, volatile in (
+            ("待煅烧原料", "原料一", 6, Decimal("0.7"), Decimal("0.1")),
+            ("待煅烧原料", "原料二", 4, Decimal("0.9"), Decimal("0.2")),
+            ("煅后料", "煅后焦", 8, Decimal("0.9"), Decimal("0.05")),
+            ("欠烧煅料", "欠烧料", 1, Decimal("0.5"), None),
+            ("炭粉尘", "粉尘", 1, Decimal("0.2"), None),
+        ):
+            self._add_material(workbook, "全厂", "B.3 煅烧", "煅烧一", category, name, mass, fixed, volatile)
+
+        self.append_section(workbook, "B.8 电力", {
+            ELECTRICITY_HEADERS[0]: "全厂",
+            ELECTRICITY_HEADERS[1]: "购入",
+            ELECTRICITY_HEADERS[2]: 100,
+            ELECTRICITY_HEADERS[8]: "购入",
+            ELECTRICITY_HEADERS[9]: "常规",
+            ELECTRICITY_HEADERS[10]: "无",
+            ELECTRICITY_HEADERS[11]: "未提供",
+        })
+        power_rows = ((2, Decimal("0.50"), "输出电力报告-A"), (3, Decimal("0.40"), "输出电力报告-B"))
+        for amount, factor, reference in power_rows:
+            self.append_section(workbook, "B.8 电力", {
+                ELECTRICITY_HEADERS[0]: "全厂",
+                ELECTRICITY_HEADERS[1]: "输出",
+                ELECTRICITY_HEADERS[2]: amount,
+                ELECTRICITY_HEADERS[3]: factor,
+                ELECTRICITY_HEADERS[6]: "实测值",
+                ELECTRICITY_HEADERS[7]: reference,
+            })
+        heat_rows = (
+            ("购入", 1000, Decimal("0.11"), "购入热力报告-A"),
+            ("购入", 500, Decimal("0.10"), "购入热力报告-B"),
+            ("输出", 250, Decimal("0.12"), "输出热力报告-A"),
+        )
+        for direction, amount, factor, reference in heat_rows:
+            self.append_section(workbook, "B.9 热力", {
+                HEAT_HEADERS[0]: "全厂",
+                HEAT_HEADERS[1]: direction,
+                HEAT_HEADERS[2]: amount,
+                HEAT_HEADERS[3]: "饱和蒸汽",
+                HEAT_HEADERS[4]: 2675,
+                HEAT_HEADERS[7]: factor,
+                HEAT_HEADERS[10]: "实测值",
+                HEAT_HEADERS[11]: reference,
+            })
+
+        book_path = self.save_book(workbook)
+        preview = ExcelWorkbookImporter(self.resolver).import_preview(book_path)
+        excel = preview.units[0]
         self.assertTrue(excel.can_calculate)
 
         page = CarbonMaterialAccountingPage(
@@ -480,51 +672,141 @@ class ExcelRS03ATests(unittest.TestCase):
             record_repository=InMemoryRecordRepository(),
         )
         page.enterprise_name.setText("示例企业")
+        page.period_year.setValue(2025)
         page.boundary_confirmed.setChecked(True)
+        active_sources = {
+            SOURCE_FUEL,
+            SOURCE_CALCINATION,
+            SOURCE_PURCHASED_ELECTRICITY,
+            SOURCE_EXPORTED_ELECTRICITY,
+            SOURCE_PURCHASED_HEAT,
+            SOURCE_EXPORTED_HEAT,
+        }
         for source_id, combo in page._source_statuses.items():
-            status = EmissionSourceStatus.INVOLVED if source_id == SOURCE_FUEL else EmissionSourceStatus.NOT_INVOLVED
+            status = EmissionSourceStatus.INVOLVED if source_id in active_sources else EmissionSourceStatus.NOT_INVOLVED
             combo.setCurrentIndex(combo.findData(status))
-        row = page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.DIESEL))
-        row.activity.setText("1.25")
+
+        fuel = page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
+        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.VOLUME))
+        page._refresh_fuel_defaults()
+        fuel.activity.setText("1.25")
+
+        process = page._process_rows["calcination"][0]
+        for field, value in {
+            "gc": "10",
+            "wfc": "78",
+            "cc": "8",
+            "ucc": "1",
+            "du": "1",
+            "wfc_c": "79",
+            "wvar": "14",
+            "wvar_c": "5",
+        }.items():
+            process["fields"][field].setText(value)
+
+        purchased_power = page._electricity_rows[0]
+        purchased_power.amount.setText("100")
+        purchased_power.acquisition.setCurrentIndex(
+            purchased_power.acquisition.findData(ElectricityAcquisitionMode.PURCHASED)
+        )
+        purchased_power.attribute.setCurrentIndex(
+            purchased_power.attribute.findData(ElectricityAttribute.ORDINARY)
+        )
+        purchased_power.proof_type.setCurrentIndex(
+            purchased_power.proof_type.findData(ElectricityProofType.NONE)
+        )
+        purchased_power.proof_status.setCurrentIndex(
+            purchased_power.proof_status.findData(ElectricityProofStatus.NOT_PROVIDED)
+        )
+        for index, (amount, factor, reference) in enumerate(power_rows):
+            row = page._output_electricity_rows[0] if index == 0 else page._add_output_electricity_row()
+            row["amount"].setText(str(amount))
+            row["measured"].setText(str(factor))
+            row["source"].setText(reference)
+        for prefix, entries in (("heat", heat_rows[:2]), ("exported_heat", heat_rows[2:])):
+            for index, (_direction, amount, factor, reference) in enumerate(entries):
+                row = page._heat_rows[prefix][0] if index == 0 else page._add_heat_row(prefix)
+                row["amount"].setText(str(amount))
+                row["enthalpy"].setText("2675")
+                row["steam"].setCurrentIndex(row["steam"].findData(SteamKind.SATURATED))
+                row["measured"].setText(str(factor))
+                row["source"].setText(reference)
+
         gui_input = page._input(increment=False, render_electricity=False)
-        page.close()
-        gui_fuel = gui_input.fuel_inputs[0]
-        excel_fuel = excel.input_value.fuel_inputs[0]
-        self.assertEqual((gui_fuel.fuel_type, gui_fuel.path), (excel_fuel.fuel_type, excel_fuel.path))
-        self.assertEqual(gui_fuel.activity.value, excel_fuel.activity.value)
-        self.assertEqual(gui_fuel.carbon_content.value, excel_fuel.carbon_content.value)
-        self.assertEqual(gui_fuel.carbon_content.source_kind, excel_fuel.carbon_content.source_kind)
-        gui_result = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(gui_input)
-        excel_result = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(excel.input_value)
-        self.assertTrue(gui_result.successful)
-        self.assertTrue(excel_result.successful)
-        self.assertEqual(gui_result.result.total_amount, excel_result.result.total_amount)
+        gui_records = InMemoryRecordRepository()
+        gui_result = CarbonMaterialCalculator(
+            parameter_resolver=self.resolver,
+            record_repository=gui_records,
+        ).calculate(gui_input)
+        self.assertTrue(gui_result.successful, gui_result.problems)
+        self.assertEqual(_business_semantics(gui_input), _business_semantics(excel.input_value))
+        self.assertEqual(
+            _calculation_semantics(gui_result),
+            _calculation_semantics(excel.calculation),
+        )
+        self.assertEqual(gui_records.list_all()[0].status.value, "COMPLETED")
+        self.assertIsNone(excel.calculation.record)
+        self.assertTrue(excel.can_calculate)
+        self.assertEqual(excel.errors, ())
+        self.assertEqual(excel.warnings, ())
+        self.assertEqual(preview.warnings, ())
+        self.assertEqual(len(gui_input.calcinations), 1)
+        calcination = gui_input.calcinations[0]
+        excel_calcination = excel.input_value.calcinations[0]
+        self.assertEqual(
+            tuple(getattr(calcination, field).value for field in ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c")),
+            tuple(getattr(excel_calcination, field).value for field in ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c")),
+        )
+        self.assertEqual(tuple(getattr(excel_calcination, field).value for field in ("gc", "wfc", "wfc_c", "wvar", "wvar_c")),
+                         (Decimal("10"), Decimal("0.78"), Decimal("0.79"), Decimal("0.14"), Decimal("0.05")))
+        self.assertEqual(len(gui_input.exported_electricity), 2)
+        self.assertEqual(len(excel.input_value.exported_electricity), 2)
+        self.assertEqual(len(gui_input.purchased_heat), 2)
+        self.assertEqual(len(excel.input_value.purchased_heat), 2)
+        self.assertGreater(len(preview.numeric_evidence), 0)
+        self.assertEqual(
+            {item.source_reference for item in excel.input_value.reporting_data.measured_factor_evidence},
+            {"输出电力报告-A", "输出电力报告-B", "购入热力报告-A", "购入热力报告-B", "输出热力报告-A"},
+        )
 
-        bad_workbook = self.new_book()
-        self.add_unit(bad_workbook, "企业A")
-        self.add_fuel(bad_workbook, "企业A", Decimal("-1"), fuel=FuelType.DIESEL, path="质量")
-        _preview, bad_excel = self.import_unit(bad_workbook)
+        bad_workbook = load_workbook(book_path)
+        bad_workbook["燃料与能源"].cell(fuel_row, FUEL_HEADERS.index(FUEL_HEADERS[3]) + 1).value = Decimal("-1")
+        bad_path = Path(self.temp_root.name) / "parity-negative.xlsx"
+        bad_workbook.save(bad_path)
+        bad_workbook.close()
+        bad_preview = ExcelWorkbookImporter(self.resolver).import_preview(bad_path)
+        bad_excel = bad_preview.units[0]
         self.assertFalse(bad_excel.can_calculate)
-        self.assertTrue(any(item.code == "CAR-VAL-NONNEGATIVE" for item in bad_excel.errors))
+        self.assertIsNotNone(bad_excel.calculation)
+        assert bad_excel.calculation is not None
+        self.assertFalse(bad_excel.calculation.successful)
+        self.assertIsNone(bad_excel.calculation.result)
+        self.assertTrue(any(item.code == "CAR-VAL-NONNEGATIVE" for item in bad_excel.calculation.problems))
 
-        bad_page = CarbonMaterialAccountingPage(
-            catalog_service=self.catalog_service,
-            record_repository=InMemoryRecordRepository(),
+        # Change exactly one Domain activity value in the GUI-generated payload.
+        # Its generated identities remain untouched; this is solely the negative
+        # case used to prove that the same illegal business value is blocked.
+        bad_gui_input = replace(
+            gui_input,
+            fuel_inputs=(replace(gui_input.fuel_inputs[0], activity=Decimal("-1")),),
         )
-        bad_page.enterprise_name.setText("示例企业")
-        bad_page.boundary_confirmed.setChecked(True)
-        for source_id, combo in bad_page._source_statuses.items():
-            status = EmissionSourceStatus.INVOLVED if source_id == SOURCE_FUEL else EmissionSourceStatus.NOT_INVOLVED
-            combo.setCurrentIndex(combo.findData(status))
-        bad_row = bad_page._fuel_rows[0]
-        bad_row.fuel_type.setCurrentIndex(bad_row.fuel_type.findData(FuelType.DIESEL))
-        bad_row.activity.setText("-1")
-        gui_bad = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(
-            bad_page._input(increment=False, render_electricity=False)
-        )
-        bad_page.close()
+        bad_gui_records = InMemoryRecordRepository()
+        gui_bad = CarbonMaterialCalculator(
+            parameter_resolver=self.resolver,
+            record_repository=bad_gui_records,
+        ).calculate(bad_gui_input)
+        page.close()
+        self.assertNotEqual(_business_semantics(gui_input), _business_semantics(bad_gui_input))
+        self.assertEqual(_business_semantics(bad_gui_input), _business_semantics(bad_excel.input_value))
         self.assertFalse(gui_bad.successful)
+        self.assertIsNone(gui_bad.result)
+        self.assertTrue(any(item.code == "CAR-VAL-NONNEGATIVE" for item in gui_bad.problems))
+        self.assertEqual(bad_gui_records.list_all(), ())
+        self.assertEqual(
+            tuple((problem.code, problem.level.value) for problem in gui_bad.problems),
+            tuple((problem.code, problem.level.value) for problem in bad_excel.calculation.problems),
+        )
 
     def test_preview_shows_business_breakdown_and_never_persists_record(self) -> None:
         workbook = self.new_book()
@@ -618,3 +900,4 @@ class ExcelRS03ATests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
