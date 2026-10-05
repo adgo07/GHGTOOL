@@ -19,6 +19,7 @@ from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     EmissionSourceStatus,
+    HeatFactorMode,
     InMemoryRecordRepository,
     MaterialBasis,
     MaterialComponentKind,
@@ -213,7 +214,7 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.assertNotIn("CAR-PAR-K1", visible_text)
         self.assertNotIn("因子 ID", visible_text)
 
-    def test_power_and_heat_use_business_summary_with_optional_advanced_selection(self) -> None:
+    def test_power_and_heat_use_business_summary_with_simple_measured_factor_selection(self) -> None:
         self._set_involved(ELECTRICITY_SOURCE)
         row = self.page._electricity_rows[0]
         row.amount.setText("10")
@@ -227,10 +228,15 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
         self.assertIn("推荐热力因子", self.page.heat_factor_metadata.text())
         self.assertNotIn("heat_default_2025", self.page.heat_factor_metadata.text())
-        self.assertFalse(self.page._heat_factor_advanced_panel.isVisible())
-        self.page.heat_factor_edit_button.click()
+        heat_row = self.page._heat_rows["heat"][0]
+        factor_mode = heat_row["factor_mode"]
+        self.assertEqual(factor_mode.currentData(), HeatFactorMode.STANDARD_DEFAULT)
+        self.assertFalse(heat_row["measured"].isVisible())
+        self.assertFalse(heat_row["source"].isVisible())
+        factor_mode.setCurrentIndex(factor_mode.findData(HeatFactorMode.MEASURED))
         self.application.processEvents()
-        self.assertTrue(self.page._heat_factor_advanced_panel.isVisible())
+        self.assertTrue(heat_row["measured"].isVisible())
+        self.assertTrue(heat_row["source"].isVisible())
 
     def test_default_and_explicit_received_input_have_equal_domain_and_result(self) -> None:
         self._fill_calcination()
@@ -309,7 +315,9 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             self.page.validation_list.topLevelItem(index).text(0).split("（", 1)[0]
             for index in range(self.page.validation_list.topLevelItemCount())
         ]
-        self.assertEqual(roots, ["必须修正", "提醒"])
+        # Both unavailable required calculation inputs are Domain errors;
+        # no reminder bucket should be invented for this blocked calculation.
+        self.assertEqual(roots, ["必须修正"])
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)
