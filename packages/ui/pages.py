@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from decimal import Decimal
 import re
 from typing import Any
 
@@ -37,6 +38,7 @@ from .record_experience import (
     build_quality_view,
     build_record_list_label,
     build_report_view,
+    format_amount,
     evidence_names_for,
     snapshot_state,
     summary_with_trace,
@@ -859,11 +861,40 @@ class ExcelImportPage(BasePage):
                 traces = {trace.trace_id: trace for trace in unit.calculation.traces}
                 direct = traces.get("CAR-DIRECT")
                 indirect = traces.get("CAR-INDIRECT")
+                from packages.core.decimal_policy import DecimalPolicy
+                from packages.excel.gbt32151_34_v1 import (
+                    SOURCE_BAKING,
+                    SOURCE_CALCINATION,
+                    SOURCE_EXPORTED_ELECTRICITY,
+                    SOURCE_EXPORTED_HEAT,
+                    SOURCE_FGD,
+                    SOURCE_FUME,
+                    SOURCE_FUEL,
+                    SOURCE_GRAPHITIZATION,
+                    SOURCE_PURCHASED_ELECTRICITY,
+                    SOURCE_PURCHASED_HEAT,
+                )
+
+                source_groups = (
+                    ("化石燃料", (SOURCE_FUEL,)),
+                    ("生产过程", (SOURCE_CALCINATION, SOURCE_BAKING, SOURCE_GRAPHITIZATION)),
+                    ("烟气治理", (SOURCE_FUME, SOURCE_FGD)),
+                    ("购入电力", (SOURCE_PURCHASED_ELECTRICITY,)),
+                    ("购入热力", (SOURCE_PURCHASED_HEAT,)),
+                    ("输出电力抵扣", (SOURCE_EXPORTED_ELECTRICITY,)),
+                    ("输出热力抵扣", (SOURCE_EXPORTED_HEAT,)),
+                )
+                policy = DecimalPolicy()
+                for source_label, source_ids in source_groups:
+                    amount = Decimal(0)
+                    for source_id in source_ids:
+                        amount = policy.add(amount, unit.source_breakdown.get(source_id, Decimal(0)))
+                    lines.append(f"  {source_label}：{format_amount(amount, 'tCO₂')}")
                 if direct is not None:
-                    lines.append(f"  直接排放：{direct.amount} {direct.unit}")
+                    lines.append(f"  直接排放：{format_amount(direct.amount, direct.unit)}")
                 if indirect is not None:
-                    lines.append(f"  净间接排放：{indirect.amount} {indirect.unit}")
-                lines.append(f"  排放总量：{unit.result.total_amount} {unit.result.total_unit}")
+                    lines.append(f"  净间接排放：{format_amount(indirect.amount, indirect.unit)}")
+                lines.append(f"  排放总量：{format_amount(unit.result.total_amount, unit.result.total_unit)}")
             else:
                 lines.append("  无法计算")
                 lines.extend(self._format_excel_issue(item, "· ") for item in unit.errors)

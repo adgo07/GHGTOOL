@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-04（GHG-RS03-A）
+最后更新：2026-10-05（GHG-RS03-A-R1）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,7 +30,7 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础`；实施运行时模板、可审计数值入口及独立核算单元校验/计算预览。当前基线、PR与验证见 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md`。
+- 当前工作包：`GHG-RS03-A-R1 — Excel 模板简化与用户验收候选版`；四个可见页签、按标准区域录入、单元级校验和分项预览已实施，等待 latest-head CI、独立技术验收与用户模板 UAT。当前基线、PR与验证见 `TASK_STATE.md` 和 `IMPLEMENTATION_REPORT.md`。
 - RS01、RS02-A/B已完成并合入main。RS03-A不保存Project或正式Record、不导出正式报告、不冻结Golden；RS03-B、Golden Freeze、Release Gate和第二标准未启动。GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -99,7 +99,7 @@ Module ID：`qz.carbon_accounting`
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：RS03-A提供运行时 GB/T 32151.34—2024 模板、严格数值入口、多个独立核算单元的校验和同一 Calculator 计算预览；不持久化Project或正式Record。Excel数值词法入口依据 `specs/carbon_accounting/GHGTOOL_EXCEL_INGRESS_V1.md`，仍是本地策略，不冻结中央 OPEN 语义。
+- **当前状态**：RS03-A-R1提供四个可见页签的运行时 GB/T 32151.34—2024 模板、严格数值入口、标准分区明细、多核算单元隔离和分项 Calculator 预览；不持久化 Project 或正式 Record。独立技术验收和用户模板 UAT 待完成。Excel 数值词法入口依据 `specs/carbon_accounting/GHGTOOL_EXCEL_INGRESS_V1.md`，仍是本地策略，不冻结中央 OPEN 语义。
 - **最终定位**（中央 Product Delivery Policy）：Excel 是 Import / Export Adapter，必须与 GUI 进入同一 Canonical Input → 同一 Application → 同一 Domain / Calculator → 同一 Result。
 - 正式导入/导出及Project / Record闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 RS03-B；当前 `NOT STARTED`。
 
@@ -179,10 +179,10 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础：
+本文件当前对应工作包 GHG-RS03-A-R1 — Excel 模板简化与用户验收候选版：
 
-- 从最新 `origin/main` 新建RS03-A分支，继续使用冻结Mapping与现有Calculator；标准仍为 `NOT SUPPORTED`；
+- 在既有 PR #27 与 RS03-A 分支上收敛模板，不另建PR；继续使用冻结 Mapping 与现有 Calculator；标准仍为 `NOT SUPPORTED`；
 - 工作簿数值按保存的OOXML数值文本转Decimal并保留单元格入口证据；中央通用Excel Decimal ingress语义仍为OPEN；
 - 多核算单元彼此独立校验和预览。RS03-A不写Project / Record，不实现正式Excel导出或B阶段持久化；
-- 完成后同步Roadmap、TASK_STATE、IMPLEMENTATION_REPORT及Excel入口/Schema文档，等待PR latest-head Windows/Python 3.12 CI，再停止等待独立验收；
+- 更新Roadmap、TASK_STATE、IMPLEMENTATION_REPORT及Excel入口/Schema文档；推送后等待PR latest-head Windows/Python 3.12 CI，再停止等待独立验收和用户模板 UAT；
 - RS03-B NOT STARTED；不改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或中央 Frozen Contract。

@@ -1,13 +1,13 @@
-"""Runtime template and auditable XLSX ingress for GB/T 32151.34—2024.
+"""Runtime Excel template and auditable ingress for GB/T 32151.34—2024.
 
-This is an Infrastructure/Excel adapter. It produces standard-specific domain
-inputs and delegates all business validation and arithmetic to the existing
-Domain Calculator. It does not import Qt or persist Projects/Records.
+The adapter reads the workbook's saved OOXML numeric lexemes into Decimal,
+normalizes standard table rows into the existing Domain input, and delegates
+all validation and emission arithmetic to CarbonMaterialCalculator.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
@@ -20,11 +20,14 @@ from zipfile import BadZipFile, ZipFile
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.workbook.defined_name import DefinedName
 
 from packages.application.project_workspaces import AccountingUnitType
-from packages.core.errors import DomainValidationError, IssueLevel
+from packages.core.decimal_policy import DecimalPolicy
+from packages.core.errors import DomainValidationError
 from packages.core.models import (
+    ActivityDataSource,
     AccountingPeriod,
     ElectricityAcquisitionMode,
     ElectricityAttribute,
@@ -34,10 +37,7 @@ from packages.core.models import (
     ReviewStatus,
     ValueType,
 )
-from packages.core.parameter_resolution import (
-    ElectricityConsumptionDetail,
-    ParameterResolver,
-)
+from packages.core.parameter_resolution import ElectricityConsumptionDetail, ParameterResolver
 from packages.standards.carbon_material import (
     STANDARD_ID,
     STANDARD_VERSION,
@@ -59,6 +59,7 @@ from packages.standards.carbon_material import (
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
+    InputValue,
     MaterialBasis,
     MaterialComponentKind,
     MeasuredFactorEvidence,
@@ -77,74 +78,21 @@ from packages.standards.carbon_material import (
     SOURCE_PURCHASED_ELECTRICITY,
     SOURCE_PURCHASED_HEAT,
 )
+from packages.standards.carbon_material_normalization import (
+    MaterialAmount,
+    carbon_mass,
+    total_mass,
+    weighted_fraction,
+)
 
 
 TEMPLATE_ID = "GHGTOOL_GBT_32151_34_2024"
 TEMPLATE_VERSION = "1.0.0"
 INGRESS_POLICY_ID = "GHGTOOL_EXCEL_INGRESS_V1"
 METADATA_SHEET = "__metadata__"
-
-SHEETS: Mapping[str, tuple[str, ...]] = {
-    "说明": ("用途", "填写说明"),
-    "核算单元": (
-        "核算单元名称", "类型", "是否启用", "企业名称", "核算期间类型", "开始日期", "结束日期",
-        "边界已确认", "边界说明", "其他行业活动", "上下游运输",
-    ),
-    "排放源": ("核算单元", "排放源", "状态"),
-    "报告信息": (
-        "核算单元", "单位性质", "所属行业", "统一社会信用代码", "法定代表人", "填报负责人",
-        "负责人联系方式", "核算边界说明", "主要产品/工艺流程", "排放源识别说明", "其他报告说明",
-    ),
-    "化石燃料": (
-        "核算单元", "燃料种类", "计量路径", "活动量", "单位热值含碳量", "碳氧化率",
-        "低位发热量", "参数来源编号", "活动数据证据", "参数证据",
-    ),
-    "煅烧": (
-        "核算单元", "实例名称", "GC 投入量（t）", "WFC 固定碳比例", "CC 煅后焦用量（t）",
-        "UCC 外购煅后焦用量（t）", "DU 粉尘用量（t）", "WFC_C 煅后焦固定碳比例",
-        "WVAR 挥发分比例", "WVAR_C 煅后焦挥发分比例", "K1", "质量基准", "成分基准",
-        "折算基准", "固定碳成分性质", "水分修正证据", "基准换算证据", "碳输出计入投入",
-        "活动数据证据", "参数证据",
-    ),
-    "焙烧炭化": (
-        "核算单元", "实例名称", "BPM 生坯用量（t）", "BPMFC 生坯固定碳比例", "BG 焦粉用量（t）",
-        "BGFC 焦粉固定碳比例", "BWT 焦油沥青用量（tC）", "BP 石油焦用量（t）",
-        "BPFC 石油焦固定碳比例", "BPMVAR 生坯挥发分比例", "BGVAR 焦粉挥发分比例", "K2",
-        "质量基准", "成分基准", "折算基准", "固定碳成分性质", "水分修正证据", "基准换算证据",
-        "碳输出计入投入", "活动数据证据", "参数证据",
-    ),
-    "石墨化": (
-        "核算单元", "实例名称", "GPM 生坯用量（t）", "GPMFC 生坯固定碳比例", "GTA 焦油沥青用量（t）",
-        "GTAFC 焦油沥青固定碳比例", "GWT 焦油用量（tC）", "GP 石油焦用量（t）",
-        "GPFC 石油焦固定碳比例", "GPMVAR 生坯挥发分比例", "K3", "质量基准", "成分基准",
-        "折算基准", "固定碳成分性质", "水分修正证据", "基准换算证据", "炉损计入",
-        "活动数据证据", "参数证据",
-    ),
-    "烟气焚烧": (
-        "核算单元", "实例名称", "Q 烟气流量（Nm³/h）", "QVAR 烟气含碳量（mg/Nm³）",
-        "HM 低位发热量（GJ/t）", "FCH 单位热值含碳量（tC/GJ）", "FOX 碳氧化率",
-        "运行时间（d）", "参数来源编号", "活动数据证据", "参数证据",
-    ),
-    "烟气脱硫": (
-        "核算单元", "设施名称", "碳酸盐种类", "碳酸盐用量（t）", "碳酸盐含量比例",
-        "排放因子（tCO₂/t）", "转化率", "参数来源编号", "活动数据证据", "参数证据",
-    ),
-    "电力": (
-        "核算单元", "方向", "电量（MWh）", "取得方式", "电力属性", "证明类型", "证明状态",
-        "排放因子（tCO₂/MWh）", "参数来源编号", "活动数据证据", "参数证据",
-    ),
-    "热力": (
-        "核算单元", "方向", "热力数量（kg）", "蒸汽类型", "焓值（kJ/kg）", "压力（MPa）",
-        "温度（℃）", "排放因子（tCO₂/GJ）", "参数来源编号", "活动数据证据", "参数证据",
-    ),
-    "证据来源": (
-        "核算单元", "证据名称", "证据类别", "适用范围", "关联排放源", "来源编号", "监测地点",
-        "监测/取样方法", "仪器", "精度", "记录/取样频次", "取得/检测时间", "引用标准", "说明",
-    ),
-    METADATA_SHEET: ("key", "value"),
-}
-
-REQUIRED_SHEETS = frozenset(SHEETS)
+VISIBLE_SHEETS = ("填写说明", "核算单元", "燃料与能源", "过程排放")
+REQUIRED_SHEETS = frozenset((*VISIBLE_SHEETS, METADATA_SHEET))
+BODY_ROWS = 15
 
 SOURCE_LABELS: Mapping[str, str] = {
     SOURCE_FUEL: "化石燃料",
@@ -159,13 +107,13 @@ SOURCE_LABELS: Mapping[str, str] = {
     SOURCE_EXPORTED_HEAT: "输出热力",
 }
 SOURCE_IDS = tuple(SOURCE_LABELS)
-LABEL_TO_SOURCE = {label: source_id for source_id, label in SOURCE_LABELS.items()}
 
 UNIT_TYPE_LABELS = {
     "全厂": AccountingUnitType.WHOLE_SITE,
     "工序": AccountingUnitType.PROCESS,
     "其他": AccountingUnitType.OTHER,
 }
+PERIOD_LABELS = {"年度": PeriodType.ANNUAL, "月度": PeriodType.MONTHLY, "自定义": PeriodType.CUSTOM}
 FUEL_TYPE_LABELS: Mapping[str, FuelType] = {
     "无烟煤": FuelType.ANTHRACITE,
     "烟煤": FuelType.BITUMINOUS_COAL,
@@ -192,8 +140,8 @@ FUEL_TYPE_LABELS: Mapping[str, FuelType] = {
     "焦炉煤气": FuelType.COKE_OVEN_GAS,
     "炼厂干气": FuelType.REFINERY_DRY_GAS,
     "其他煤气": FuelType.OTHER_GAS,
-    "煤（需选择具体煤种）": FuelType.COAL,
-    "其他燃料（无统一标准缺省值）": FuelType.OTHER,
+    "煤（请提供适用参数）": FuelType.COAL,
+    "其他燃料（请提供适用参数）": FuelType.OTHER,
 }
 FUEL_LABEL_BY_TYPE = {value: key for key, value in FUEL_TYPE_LABELS.items()}
 FUEL_C1_SUBJECT_IDS = {
@@ -202,25 +150,93 @@ FUEL_C1_SUBJECT_IDS = {
     if fuel_type not in {FuelType.COAL, FuelType.OTHER}
 }
 FUEL_PATH_LABELS = {"体积": FuelPath.VOLUME, "质量": FuelPath.MASS, "热量": FuelPath.HEAT}
-PERIOD_LABELS = {"年度": PeriodType.ANNUAL, "月度": PeriodType.MONTHLY, "自定义": PeriodType.CUSTOM}
-YES_NO = {"是": True, "否": False}
-SOURCE_STATE_LABELS = {
-    "涉及": EmissionSourceStatus.INVOLVED,
-    "不涉及": EmissionSourceStatus.NOT_INVOLVED,
-    "待确认": EmissionSourceStatus.UNCONFIRMED,
-}
 CARBONATE_LABELS = {
-    "CaCO₃": "car-par-c2-caco3", "MgCO₃": "car-par-c2-mgco3", "Na₂CO₃": "car-par-c2-na2co3",
-    "NaHCO₃": "car-par-c2-nahco3", "FeCO₃": "car-par-c2-feco3", "MnCO₃": "car-par-c2-mnco3",
-    "BaCO₃": "car-par-c2-baco3", "Li₂CO₃": "car-par-c2-li2co3", "K₂CO₃": "car-par-c2-k2co3",
-    "SrCO₃": "car-par-c2-srco3", "CaMg(CO₃)₂": "car-par-c2-camgco3-2",
+    "CaCO₃": "car-par-c2-caco3",
+    "MgCO₃": "car-par-c2-mgco3",
+    "Na₂CO₃": "car-par-c2-na2co3",
+    "NaHCO₃": "car-par-c2-nahco3",
+    "FeCO₃": "car-par-c2-feco3",
+    "MnCO₃": "car-par-c2-mnco3",
+    "BaCO₃": "car-par-c2-baco3",
+    "Li₂CO₃": "car-par-c2-li2co3",
+    "K₂CO₃": "car-par-c2-k2co3",
+    "SrCO₃": "car-par-c2-srco3",
+    "CaMg(CO₃)₂": "car-par-c2-camgco3-2",
 }
-CARBONATE_LABEL_BY_PARAMETER = {value: key for key, value in CARBONATE_LABELS.items()}
 
-PROCESS_SHEETS: Mapping[str, tuple[type, tuple[str, ...], tuple[str, ...], str]] = {
-    "煅烧": (CalcinationInput, ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c", "k1"), ("GC 投入量（t）", "WFC 固定碳比例", "CC 煅后焦用量（t）", "UCC 外购煅后焦用量（t）", "DU 粉尘用量（t）", "WFC_C 煅后焦固定碳比例", "WVAR 挥发分比例", "WVAR_C 煅后焦挥发分比例", "K1"), SOURCE_CALCINATION),
-    "焙烧炭化": (BakingInput, ("bpm", "bpmfc", "bg", "bgfc", "bwt", "bp", "bpfc", "bpmvar", "bgvar", "k2"), ("BPM 生坯用量（t）", "BPMFC 生坯固定碳比例", "BG 焦粉用量（t）", "BGFC 焦粉固定碳比例", "BWT 焦油沥青用量（tC）", "BP 石油焦用量（t）", "BPFC 石油焦固定碳比例", "BPMVAR 生坯挥发分比例", "BGVAR 焦粉挥发分比例", "K2"), SOURCE_BAKING),
-    "石墨化": (GraphitizationInput, ("gpm", "gpmfc", "gta", "gtafc", "gwt", "gp", "gpfc", "gpmvar", "k3"), ("GPM 生坯用量（t）", "GPMFC 生坯固定碳比例", "GTA 焦油沥青用量（t）", "GTAFC 焦油沥青固定碳比例", "GWT 焦油用量（tC）", "GP 石油焦用量（t）", "GPFC 石油焦固定碳比例", "GPMVAR 生坯挥发分比例", "K3"), SOURCE_GRAPHITIZATION),
+
+UNIT_HEADERS = ("核算单元名称（必填）", "类型（必填）", "是否启用（必填）", "核算边界说明（选填）")
+FUEL_HEADERS = (
+    "核算单元（必填）", "燃料种类（必填）", "计量路径（必填）", "活动量（必填）",
+    "低位发热量（自动；实测时填写）", "单位热值含碳量（自动；实测时填写）", "碳氧化率（自动；实测时填写）",
+    "活动数据来源（选填）", "活动来源说明/编号（选填）", "参数来源类型（实测/计算/指定时填写）", "参数来源说明/编号（实测/计算/指定时填写）",
+)
+ELECTRICITY_HEADERS = (
+    "核算单元（必填）", "方向（必填）", "电量（MWh，必填）", "输出电力因子（软件自动；实测时填写）",
+    "活动数据来源（选填）", "活动来源说明/编号（选填）", "参数来源类型（实测/计算/指定时填写）", "参数来源说明/编号（实测/计算/指定时填写）",
+    "取得方式（普通购入留空）", "电力属性（普通购入留空）", "证明类型（需要时填写）", "证明状态（需要时填写）",
+)
+HEAT_HEADERS = (
+    "核算单元（必填）", "方向（必填）", "热力数量（kg，必填）", "蒸汽类型（必填）",
+    "焓值（kJ/kg；可留空查表）", "压力（MPa；查表时填写）", "温度（℃；过热蒸汽查表时填写）",
+    "排放因子（软件自动；实测时填写）", "活动数据来源（选填）", "活动来源说明/编号（选填）",
+    "参数来源类型（实测/计算/指定时填写）", "参数来源说明/编号（实测/计算/指定时填写）",
+)
+MATERIAL_HEADERS = (
+    "核算单元（必填）", "过程实例（必填）", "物料类别（必填）", "物料名称（必填）", "活动量（t，必填）",
+    "固定碳比例（按收到基）", "挥发分比例（按收到基；适用时填写）", "数据来源（必填）", "来源说明/编号（选填）",
+)
+FUME_HEADERS = (
+    "核算单元（必填）", "实例名称（必填）", "烟气流量（Nm³/h，必填）", "焦油含量（mg/Nm³，必填）",
+    "低位发热量（GJ/t，必填）", "单位热值含碳量（tC/GJ，必填）", "碳氧化率（必填）", "运行时间（d，必填）",
+    "活动数据来源（必填）", "活动来源说明/编号（选填）", "参数来源类型（实测/计算/指定时填写）", "参数来源说明/编号（参数必填）",
+)
+FGD_HEADERS = (
+    "核算单元（必填）", "设施/批次（必填）", "碳酸盐种类（必填）", "脱硫剂消耗量（t，必填）",
+    "组分含量（默认90%；覆盖时填写）", "C.2排放因子（自动；覆盖时填写）", "转化率（默认100%；覆盖时填写）",
+    "数据来源（选填）", "参数来源类型（实测/计算/指定时填写）", "来源说明/编号（覆盖时填写）",
+)
+
+SECTION_HEADERS: Mapping[str, tuple[str, ...]] = {
+    "核算单元清单": UNIT_HEADERS,
+    "B.2 化石燃料": FUEL_HEADERS,
+    "B.8 电力": ELECTRICITY_HEADERS,
+    "B.9 热力": HEAT_HEADERS,
+    "B.3 煅烧": MATERIAL_HEADERS,
+    "B.4 焙烧/炭化": MATERIAL_HEADERS,
+    "B.5 石墨化": MATERIAL_HEADERS,
+    "B.6 烟气焚烧": FUME_HEADERS,
+    "B.7 烟气脱硫": FGD_HEADERS,
+}
+
+SECTION_DESCRIPTIONS = {
+    "核算单元清单": "每行一个范围；停用单元的数据会提示并忽略。",
+    "B.2 化石燃料": "填写燃料和活动量。C.1 标准参数请留空；有实测参数时展开右侧来源栏并填写依据。",
+    "B.8 电力": "不同来源逐行填写。购入电力因子按来源属性和期间自动选取；输出因子可留空按标准取值。自定义输出因子需展开右侧来源栏。",
+    "B.9 热力": "不同来源逐行填写。右侧折叠栏可录入焓值或压力/温度并选择实测因子；焓值留空时按现有蒸汽表查值，标准热力因子留空自动采用。",
+    "B.3 煅烧": "按物料逐行填写收到基质量、固定碳和适用的挥发分；软件按质量加权，不需在表格内计算。",
+    "B.4 焙烧/炭化": "按填充料、待焙烧品、输出物料逐行填写；粉尘/副产品碳量由软件汇总。",
+    "B.5 石墨化": "按保温/电阻料、待石墨化品和输出物料逐行填写；粉尘/副产品碳量由软件汇总。",
+    "B.6 烟气焚烧": "填写标准计算所需的监测值。单位热值含碳量为企业参数，需填写可追溯的来源编号。",
+    "B.7 烟气脱硫": "每种碳酸盐组分逐行填写。必须选择种类；C.2 因子自动匹配，不能把未知组分当作 CaCO₃。",
+}
+
+PROCESS_SPECS = {
+    "B.3 煅烧": {
+        "source": SOURCE_CALCINATION,
+        "categories": {"待煅烧原料": "raw", "煅后料": "calcined", "欠烧煅料": "underburned", "炭粉尘": "dust"},
+        "required": {"raw", "calcined"},
+    },
+    "B.4 焙烧/炭化": {
+        "source": SOURCE_BAKING,
+        "categories": {"填充料": "filler", "待焙烧/炭化品": "green", "粉尘/碎屑/副产品": "byproducts", "焙烧/炭化品": "product"},
+        "required": {"green", "product"},
+    },
+    "B.5 石墨化": {
+        "source": SOURCE_GRAPHITIZATION,
+        "categories": {"保温料/电阻料": "packing", "待石墨化品": "green", "粉尘/碎屑/残块/副产品": "byproducts", "石墨化产品": "product"},
+        "required": {"green", "product"},
+    },
 }
 
 
@@ -274,6 +290,18 @@ class UnitCalculationPreview:
     def result(self):
         return self.calculation.result if self.can_calculate and self.calculation else None
 
+    @property
+    def source_breakdown(self) -> Mapping[str, Decimal]:
+        if not self.can_calculate or self.calculation is None or self.calculation.result is None:
+            return {}
+        totals = {source_id: Decimal(0) for source_id in SOURCE_IDS}
+        policy = DecimalPolicy()
+        for line in self.calculation.result.lines:
+            source_id = getattr(line, "emission_source_id", None)
+            if source_id in totals:
+                totals[source_id] = policy.add(totals[source_id], line.amount)
+        return totals
+
 
 @dataclass(frozen=True, slots=True)
 class WorkbookImportPreview:
@@ -283,140 +311,291 @@ class WorkbookImportPreview:
     numeric_evidence: tuple[NumericCellEvidence, ...]
 
 
-def _dv_list(sheet, formula: str, *, cells: str) -> None:
+@dataclass(slots=True)
+class _UnitContext:
+    name: str
+    unit_id: str
+    unit_type: AccountingUnitType
+    enterprise_id: str
+    enterprise_name: str
+    period: AccountingPeriod | None
+    boundary_confirmed: bool
+    boundary_description: str | None
+    source_states: dict[str, EmissionSourceStatus] = field(default_factory=dict)
+    errors: list[ImportMessage] = field(default_factory=list)
+    warnings: list[ImportMessage] = field(default_factory=list)
+    payloads: dict[str, list[object]] = field(default_factory=dict)
+    activity_evidence: list[ActivityDataEvidence] = field(default_factory=list)
+    factor_evidence: list[MeasuredFactorEvidence] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class _MaterialRow:
+    category: str
+    name: str
+    mass: Decimal
+    fixed_carbon: Decimal | None
+    volatile_matter: Decimal | None
+    evidence_ids: tuple[str, ...]
+
+    def amount(self) -> MaterialAmount:
+        return MaterialAmount(self.mass, self.fixed_carbon, self.volatile_matter)
+
+
+def _table_name(prefix: str) -> str:
+    return prefix.replace(".", "").replace("/", "").replace(" ", "")
+
+
+def _set_list_validation(sheet, values: str, cells: str) -> None:
+    formula = values if values.startswith("=") else f'"{values}"'
     validation = DataValidation(type="list", formula1=formula, allow_blank=True)
-    validation.errorTitle = "请选择列表中的业务选项"
-    validation.error = "请使用下拉选项；导入时仍会重新校验。"
+    validation.errorTitle = "请选择列表中的选项"
+    validation.error = "请使用下拉选项；导入时会再次校验。"
     sheet.add_data_validation(validation)
     validation.add(cells)
 
 
-def _prepare_sheet(sheet, headers: Sequence[str]) -> None:
-    sheet.append(headers)
-    sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = f"A1:{sheet.cell(1, len(headers)).coordinate}1"
+def _set_numeric_validation(sheet, column: int, start: int, end: int, *, ratio: bool = False) -> None:
+    if ratio:
+        validation = DataValidation(type="decimal", operator="between", formula1="0", formula2="1", allow_blank=True)
+        validation.errorTitle = "比例范围为 0 到 1"
+        validation.error = "请输入 0 到 1 之间的实际比例值。"
+    else:
+        validation = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="0", allow_blank=True)
+        validation.errorTitle = "数值不能为负"
+        validation.error = "请输入非负数值；导入时会再次校验。"
+    sheet.add_data_validation(validation)
+    from openpyxl.utils import get_column_letter
+    letter = get_column_letter(column)
+    validation.add(f"{letter}{start}:{letter}{end}")
+
+
+def _style_title(sheet, title: str, columns: int) -> None:
+    sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=columns)
+    cell = sheet.cell(1, 1, title)
+    cell.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
+    cell.fill = PatternFill("solid", fgColor="176B64")
+    cell.alignment = Alignment(vertical="center")
     sheet.row_dimensions[1].height = 34
-    for cell in sheet[1]:
+    sheet.sheet_view.showGridLines = False
+
+
+def _write_section(
+    sheet,
+    marker: str,
+    description: str,
+    headers: Sequence[str],
+    row: int,
+    table_name: str,
+    *,
+    required_columns: set[int],
+    automatic_columns: set[int] | None = None,
+) -> tuple[int, int, int]:
+    width = len(headers)
+    sheet.merge_cells(start_row=row, start_column=1, end_row=row, end_column=width)
+    title = sheet.cell(row, 1, marker)
+    title.font = Font(name="Microsoft YaHei", bold=True, color="FFFFFF", size=12)
+    title.fill = PatternFill("solid", fgColor="176B64")
+    title.alignment = Alignment(vertical="center")
+    sheet.row_dimensions[row].height = 24
+    sheet.merge_cells(start_row=row + 1, start_column=1, end_row=row + 1, end_column=width)
+    note = sheet.cell(row + 1, 1, description)
+    note.font = Font(name="Microsoft YaHei", size=9, color="404040")
+    note.fill = PatternFill("solid", fgColor="F2F2F2")
+    note.alignment = Alignment(wrap_text=True, vertical="center")
+    sheet.row_dimensions[row + 1].height = 30
+    header_row = row + 2
+    for column, header in enumerate(headers, start=1):
+        cell = sheet.cell(header_row, column, header)
+        if column in required_columns:
+            color = "176B64"
+        elif column in (automatic_columns or set()):
+            color = "7F7F7F"
+        else:
+            color = "4472C4"
         cell.font = Font(name="Microsoft YaHei", bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="176B64")
+        cell.fill = PatternFill("solid", fgColor=color)
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    for index, header in enumerate(headers, start=1):
-        sheet.column_dimensions[sheet.cell(1, index).column_letter].width = min(max(len(header) * 2.2, 16), 34)
+        sheet.column_dimensions[cell.column_letter].width = min(max(len(header) * 1.55, 14), 34)
+    sheet.row_dimensions[header_row].height = 44
+    first_data = header_row + 1
+    last_data = first_data + BODY_ROWS - 1
+    for data_row in range(first_data, last_data + 1):
+        for column in range(1, width + 1):
+            cell = sheet.cell(data_row, column)
+            cell.fill = PatternFill("solid", fgColor="FFF2CC" if column in required_columns else "E7E6E6" if column in (automatic_columns or set()) else "DDEBF7")
+            cell.alignment = Alignment(vertical="center", wrap_text=(column in required_columns))
+    sheet.freeze_panes = f"A{first_data}"
+    ref = f"A{header_row}:{sheet.cell(last_data, width).coordinate}"
+    table = Table(displayName=table_name, ref=ref)
+    table.tableStyleInfo = TableStyleInfo(name="TableStyleMedium2", showFirstColumn=False, showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+    sheet.add_table(table)
+    return header_row, first_data, last_data
+
+
+def _metadata_sheet(workbook: Workbook) -> None:
+    sheet = workbook.create_sheet(METADATA_SHEET)
+    sheet.append(("key", "value"))
+    for key, value in (
+        ("template_id", TEMPLATE_ID),
+        ("template_version", TEMPLATE_VERSION),
+        ("standard_id", STANDARD_ID),
+        ("standard_version", STANDARD_VERSION),
+        ("ingress_policy_id", INGRESS_POLICY_ID),
+    ):
+        sheet.append((key, value))
+    sheet.sheet_state = "hidden"
 
 
 def create_template_bytes() -> bytes:
-    """Generate the current `.xlsx` template in memory at runtime."""
+    """Build the four-sheet user template in memory at runtime."""
 
     workbook = Workbook()
     workbook.remove(workbook.active)
-    for name, headers in SHEETS.items():
-        sheet = workbook.create_sheet(name)
-        _prepare_sheet(sheet, headers)
 
-    workbook["说明"].append(("模板用途", "GB/T 32151.34—2024 一个标准一套模板；可登记多个独立核算单元。"))
-    workbook["说明"].append(("核算单元", "填写全厂、工序或其他；每个单元单独校验和预览，不跨单元汇总。"))
-    workbook["说明"].append(("排放源状态", "每个启用单元必须为十类排放源逐项选择“涉及 / 不涉及 / 待确认”。"))
-    workbook["说明"].append(("数值输入", "数值必须录入 Excel 数值单元格，最多 15 位有效数字；比例按实际 0～1 数值录入。"))
-    workbook["说明"].append(("公式与文本", "正式数值不接受公式、文本数字或推测性清洗；请粘贴为数值。"))
-    workbook["说明"].append(("参数来源", "标准参数可留空由现有 Canonical 参数解析；企业实测/指定值须登记可追溯来源。"))
-    workbook["说明"].append(("多余数据", "未启用/不涉及/无法关联单元的数据会忽略并给出警告；有效单元可继续预览。"))
-    workbook["说明"].append(("Evidence", "在“证据来源”登记一次，再在业务明细的证据引用列填写证据名称。"))
-    workbook["说明"].append(("边界", "预览不保存项目或正式核算记录；RS03-B 再实现正式导入闭环。"))
+    notes = workbook.create_sheet("填写说明")
+    _style_title(notes, "GB/T 32151.34—2024 炭素材料生产企业核算模板", 2)
+    notes.column_dimensions["A"].width = 23
+    notes.column_dimensions["B"].width = 88
+    guidance = (
+        ("适用范围", "本模板用于 GB/T 32151.34—2024 核算数据快速录入。"),
+        ("多个范围", "同一工作簿可以填写全厂、工序和其他多个核算单元；每个单元分别校验和预览，不跨单元汇总。"),
+        ("数值填写", "请填 Excel 数值单元格，最多 15 位有效数字；不接受文本数字、公式或日期作为业务数值。"),
+        ("用户验收步骤", "①填写企业、期间、边界和至少一个启用核算单元；②按业务区域逐行填写燃料、物料或能源数据，标准自动值留空；③在软件的 Excel 入口选择本文件并查看预览；④尝试留空碳酸盐种类或填错一个单元，确认收到可操作提示且其他有效单元仍可预览。"),
+        ("高级输入", "右侧折叠列可用列标题上方的“+”展开；燃料实测参数、能源来源和蒸汽状态的可选输入列折叠显示。"),
+        ("填写颜色", "浅黄色为主要输入，浅蓝色为选填或高级输入，灰色为软件自动采用或无需填写；颜色不是唯一判断依据，请看列名。"),
+        ("下拉选项", "请使用下拉框，不要改写下拉选项文字。"),
+        ("工作表名称", "请勿修改四个可见工作表名称，也不要删除隐藏的模板信息页。"),
+        ("标准缺省值", "列名注明自动采用标准值的参数请留空；确有实测或指定值时再展开来源栏填写。"),
+        ("分项数据", "多物料、多燃料、多电力或热力来源请逐行填写；不要在 Excel 单元格中编写计算公式。"),
+        ("错误隔离", "一个核算单元出错不会阻止其他有效单元显示预览结果。"),
+        ("旧工作簿", "旧 Excel 中包含公式的计算表不能直接作为正式导入模板；请将原始活动数据填入本模板。"),
+        ("预览范围", "导入预览不会保存项目或生成正式核算记录；正式导入闭环属于后续工作。"),
+    )
+    for row, pair in enumerate(guidance, start=3):
+        notes.cell(row, 1, pair[0]).font = Font(name="Microsoft YaHei", bold=True, color="176B64")
+        notes.cell(row, 2, pair[1]).font = Font(name="Microsoft YaHei", size=10)
+        notes.cell(row, 2).alignment = Alignment(wrap_text=True, vertical="center")
+        notes.row_dimensions[row].height = 30
+        notes.cell(row, 1).fill = PatternFill("solid", fgColor="E2F0D9")
+        notes.cell(row, 2).fill = PatternFill("solid", fgColor="F8F9FA")
+    notes.freeze_panes = "A3"
 
-    workbook["__metadata__"].append(("template_id", TEMPLATE_ID))
-    workbook["__metadata__"].append(("template_version", TEMPLATE_VERSION))
-    workbook["__metadata__"].append(("standard_id", STANDARD_ID))
-    workbook["__metadata__"].append(("standard_version", STANDARD_VERSION))
-    workbook["__metadata__"].append(("ingress_policy_id", INGRESS_POLICY_ID))
-    workbook["__metadata__"].sheet_state = "hidden"
+    units = workbook.create_sheet("核算单元")
+    _style_title(units, "项目与核算单元", len(UNIT_HEADERS))
+    unit_inputs = (
+        ("企业名称", ""),
+        ("核算期间类型", "年度"),
+        ("开始日期", date(2025, 1, 1)),
+        ("结束日期", date(2025, 12, 31)),
+        ("已核对核算边界", "否"),
+        ("公共边界说明", ""),
+    )
+    for row, (label, value) in enumerate(unit_inputs, start=3):
+        units.cell(row, 1, label).font = Font(name="Microsoft YaHei", bold=True)
+        units.cell(row, 1).fill = PatternFill("solid", fgColor="F2F2F2")
+        units.cell(row, 2, value).fill = PatternFill("solid", fgColor="FFF2CC" if row != 8 else "DDEBF7")
+        units.cell(row, 2).alignment = Alignment(vertical="center", wrap_text=True)
+        units.row_dimensions[row].height = 24
+    units.column_dimensions["A"].width = 25
+    units.column_dimensions["B"].width = 35
+    units.column_dimensions["C"].width = 16
+    units.column_dimensions["D"].width = 50
+    units["B5"].number_format = "yyyy-mm-dd"
+    units["B6"].number_format = "yyyy-mm-dd"
+    units.merge_cells("B8:D8")
+    units.merge_cells("A9:D9")
+    units["A9"] = "企业名称和期间为项目公共信息；以下每行登记一个核算范围。"
+    units["A9"].fill = PatternFill("solid", fgColor="F2F2F2")
+    units["A9"].alignment = Alignment(wrap_text=True)
+    unit_header, unit_first, unit_last = _write_section(
+        units, "核算单元清单", SECTION_DESCRIPTIONS["核算单元清单"], UNIT_HEADERS, 10, "AccountingUnits",
+        required_columns={1, 2, 3},
+    )
+    _set_list_validation(units, "全厂,工序,其他", f"B{unit_first}:B500")
+    _set_list_validation(units, "是,否", f"C{unit_first}:C500")
+    _set_list_validation(units, "年度,月度,自定义", "B4")
+    _set_list_validation(units, "是,否", "B7")
+    workbook.defined_names.add(DefinedName("UnitNames", attr_text=f"'核算单元'!$A${unit_first}:$A$500"))
 
-    workbook.defined_names.add(DefinedName("UnitNames", attr_text="'核算单元'!$A$2:$A$500"))
-    for sheet_name in ("排放源", "报告信息", "化石燃料", "煅烧", "焙烧炭化", "石墨化", "烟气焚烧", "烟气脱硫", "电力", "热力", "证据来源"):
-        sheet = workbook[sheet_name]
-        _dv_list(sheet, "=UnitNames", cells=f"A2:A500")
-    _dv_list(workbook["核算单元"], '"全厂,工序,其他"', cells="B2:B500")
-    _dv_list(workbook["核算单元"], '"是,否"', cells="C2:C500")
-    _dv_list(workbook["核算单元"], '"年度,月度,自定义"', cells="E2:E500")
-    _dv_list(workbook["核算单元"], '"是,否"', cells="H2:H500")
-    _dv_list(workbook["核算单元"], '"是,否"', cells="J2:K500")
-    _dv_list(workbook["排放源"], '"化石燃料,煅烧,焙烧/炭化,石墨化,烟气焚烧,烟气脱硫,购入电力,输出电力,购入热力,输出热力"', cells="B2:B500")
-    _dv_list(workbook["排放源"], '"涉及,不涉及,待确认"', cells="C2:C500")
-    _dv_list(workbook["化石燃料"], '"' + ",".join(FUEL_TYPE_LABELS) + '"', cells="B2:B500")
-    _dv_list(workbook["化石燃料"], '"体积,质量,热量"', cells="C2:C500")
-    for name in PROCESS_SHEETS:
-        process_sheet = workbook[name]
-        _dv_list(process_sheet, '"收到基,干燥基,其他已记录基准"', cells="L2:M500" if name != "石墨化" else "L2:M500")
-        _dv_list(process_sheet, '"收到基,其他已记录基准"', cells="N2:N500")
-        _dv_list(process_sheet, '"固定碳,总碳,未知"', cells="O2:O500")
-        _dv_list(process_sheet, '"是,否"', cells=("R2:R500" if name == "石墨化" else "R2:R500"))
-    _dv_list(workbook["烟气焚烧"], '"是,否"', cells="G2:G500")
-    _dv_list(workbook["烟气脱硫"], '"' + ",".join(CARBONATE_LABELS) + '"', cells="C2:C500")
-    _dv_list(workbook["电力"], '"购入,输出"', cells="B2:B500")
-    _dv_list(workbook["电力"], '"购入,自发自用"', cells="D2:D500")
-    _dv_list(workbook["电力"], '"常规,非化石,化石"', cells="E2:E500")
-    _dv_list(workbook["电力"], '"无,合同和结算,GEC,月度原始记录"', cells="F2:F500")
-    _dv_list(workbook["电力"], '"未提供,有效,无效"', cells="G2:G500")
-    _dv_list(workbook["热力"], '"购入,输出"', cells="B2:B500")
-    _dv_list(workbook["热力"], '"饱和蒸汽,过热蒸汽"', cells="D2:D500")
-    _dv_list(workbook["证据来源"], '"活动数据,参数因子"', cells="C2:C500")
+    energy = workbook.create_sheet("燃料与能源")
+    _style_title(energy, "燃料与能源", max(map(len, (FUEL_HEADERS, ELECTRICITY_HEADERS, HEAT_HEADERS))))
+    section_rows: dict[str, tuple[int, int, int]] = {}
+    row = 3
+    for marker, headers, name, required, automatic in (
+        ("B.2 化石燃料", FUEL_HEADERS, "FuelRows", {1, 2, 3, 4}, {5, 6, 7}),
+        ("B.8 电力", ELECTRICITY_HEADERS, "ElectricityRows", {1, 2, 3}, {4}),
+        ("B.9 热力", HEAT_HEADERS, "HeatRows", {1, 2, 3, 4}, {8}),
+    ):
+        section_rows[marker] = _write_section(energy, marker, SECTION_DESCRIPTIONS[marker], headers, row, name, required_columns=required, automatic_columns=automatic)
+        row = section_rows[marker][2] + 2
+    for marker, (header_row, first, last) in section_rows.items():
+        _set_list_validation(energy, "=UnitNames", f"A{first}:A{max(last, 200)}")
+    fuel_first, fuel_last = section_rows["B.2 化石燃料"][1:]
+    _set_list_validation(energy, ",".join(FUEL_TYPE_LABELS), f"B{fuel_first}:B{fuel_last}")
+    _set_list_validation(energy, "体积,质量,热量", f"C{fuel_first}:C{fuel_last}")
+    _set_list_validation(energy, "计量/仪表记录,生产/能源台账,结算记录,检测报告,用户指定", f"H{fuel_first}:H{fuel_last}")
+    _set_list_validation(energy, "实测值,化学计算,用户指定", f"J{fuel_first}:J{fuel_last}")
+    for col in (4, 5, 6, 7):
+        _set_numeric_validation(energy, col, fuel_first, fuel_last, ratio=(col == 7))
+    elec_first, elec_last = section_rows["B.8 电力"][1:]
+    for options, col in (("购入,输出", 2), ("购入,自发自用", 9), ("常规,非化石,化石", 10), ("无,合同和结算,GEC,月度原始记录", 11), ("未提供,有效,无效", 12), ("计量/仪表记录,生产/能源台账,结算记录,检测报告,用户指定", 5), ("实测值,化学计算,用户指定", 7)):
+        _set_list_validation(energy, options, f"{chr(64+col)}{elec_first}:{chr(64+col)}{elec_last}")
+    _set_numeric_validation(energy, 3, elec_first, elec_last)
+    _set_numeric_validation(energy, 4, elec_first, elec_last)
+    heat_first, heat_last = section_rows["B.9 热力"][1:]
+    for options, col in (("购入,输出", 2), ("饱和蒸汽,过热蒸汽", 4), ("计量/仪表记录,生产/能源台账,结算记录,检测报告,用户指定", 9), ("实测值,化学计算,用户指定", 11)):
+        _set_list_validation(energy, options, f"{chr(64+col)}{heat_first}:{chr(64+col)}{heat_last}")
+    for col in (3, 5, 6, 7, 8):
+        _set_numeric_validation(energy, col, heat_first, heat_last)
+    energy.column_dimensions.group("E", "L", outline_level=1, hidden=True)
+    energy.sheet_properties.outlinePr.summaryRight = True
 
-    ratio_columns = {
-        "化石燃料": ("F",), "煅烧": ("D", "H", "I", "J"), "焙烧炭化": ("D", "F", "I", "J", "K"),
-        "石墨化": ("D", "F", "I", "J"), "烟气焚烧": ("G",), "烟气脱硫": ("E", "G"),
+    process = workbook.create_sheet("过程排放")
+    _style_title(process, "过程排放与烟气治理", max(len(MATERIAL_HEADERS), len(FUME_HEADERS), len(FGD_HEADERS)))
+    process_rows: dict[str, tuple[int, int, int]] = {}
+    row = 3
+    for marker, headers, table_name, required, automatic in (
+        ("B.3 煅烧", MATERIAL_HEADERS, "CalcinationMaterials", {1, 2, 3, 4, 5}, set()),
+        ("B.4 焙烧/炭化", MATERIAL_HEADERS, "BakingMaterials", {1, 2, 3, 4, 5}, set()),
+        ("B.5 石墨化", MATERIAL_HEADERS, "GraphitizationMaterials", {1, 2, 3, 4, 5}, set()),
+        ("B.6 烟气焚烧", FUME_HEADERS, "FumeRows", {1, 2, 3, 4, 5, 6, 7, 8, 9, 12}, set()),
+        ("B.7 烟气脱硫", FGD_HEADERS, "FGDRows", {1, 2, 3, 4}, {6}),
+    ):
+        process_rows[marker] = _write_section(process, marker, SECTION_DESCRIPTIONS[marker], headers, row, table_name, required_columns=required, automatic_columns=automatic)
+        row = process_rows[marker][2] + 2
+    for marker, (header_row, first, last) in process_rows.items():
+        _set_list_validation(process, "=UnitNames", f"A{first}:A{max(last, 200)}")
+    material_categories = {
+        "B.3 煅烧": "待煅烧原料,煅后料,欠烧煅料,炭粉尘",
+        "B.4 焙烧/炭化": "填充料,待焙烧/炭化品,粉尘/碎屑/副产品,焙烧/炭化品",
+        "B.5 石墨化": "保温料/电阻料,待石墨化品,粉尘/碎屑/残块/副产品,石墨化产品",
     }
-    for sheet_name, columns in ratio_columns.items():
-        sheet = workbook[sheet_name]
-        for column in columns:
-            validation = DataValidation(type="decimal", operator="between", formula1="0", formula2="1", allow_blank=True)
-            validation.errorTitle = "比例范围为 0～1"
-            validation.error = "请录入 0 到 1 之间的实际比例数值。"
-            sheet.add_data_validation(validation)
-            validation.add(f"{column}2:{column}500")
-            for row in range(2, 501):
-                sheet[f"{column}{row}"].number_format = "0.00%"
-
-    for sheet in workbook.worksheets:
-        if sheet.title != METADATA_SHEET:
-            sheet.sheet_view.showGridLines = False
-            if sheet.title != "说明":
-                for row in sheet.iter_rows(min_row=2, max_row=200, max_col=sheet.max_column):
-                    for cell in row:
-                        cell.fill = PatternFill("solid", fgColor="FFF2CC")
-                        cell.alignment = Alignment(vertical="center")
-    numeric_columns = {
-        "化石燃料": ("D", "E", "F", "G"),
-        "煅烧": ("C", "D", "E", "F", "G", "H", "I", "J", "K"),
-        "焙烧炭化": ("C", "D", "E", "F", "G", "H", "I", "J", "K", "L"),
-        "石墨化": ("C", "D", "E", "F", "G", "H", "I", "J", "K"),
-        "烟气焚烧": ("C", "D", "E", "F", "G", "H"),
-        "烟气脱硫": ("D", "E", "F", "G"),
-        "电力": ("C", "H"),
-        "热力": ("C", "E", "F", "G", "H"),
-    }
-    ratio_cells = {
-        "化石燃料": {"F"}, "煅烧": {"D", "H", "I", "J", "K"},
-        "焙烧炭化": {"D", "F", "I", "J", "K", "L"},
-        "石墨化": {"D", "F", "I", "J", "K"}, "烟气焚烧": {"G"},
-        "烟气脱硫": {"E", "G"},
-    }
-    for sheet_name, columns in numeric_columns.items():
-        for column in columns:
-            if column in ratio_cells.get(sheet_name, set()):
-                continue
-            validation = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="0", allow_blank=True)
-            validation.errorTitle = "数值不能为负"
-            validation.error = "请录入非负数值；导入时仍会重新校验。"
-            workbook[sheet_name].add_data_validation(validation)
-            validation.add(f"{column}2:{column}500")
+    for marker, values in material_categories.items():
+        first, last = process_rows[marker][1:]
+        _set_list_validation(process, values, f"C{first}:C{last}")
+        _set_list_validation(process, "实测值,化学计算,用户指定", f"H{first}:H{last}")
+        for col in (5, 6, 7):
+            _set_numeric_validation(process, col, first, last, ratio=col in (6, 7))
+    fume_first, fume_last = process_rows["B.6 烟气焚烧"][1:]
+    for options, col in (("计量/仪表记录,生产/能源台账,检测报告,用户指定", 9), ("实测值,化学计算,用户指定", 11)):
+        _set_list_validation(process, options, f"{chr(64+col)}{fume_first}:{chr(64+col)}{fume_last}")
+    for col in range(3, 9):
+        _set_numeric_validation(process, col, fume_first, fume_last, ratio=col == 7)
+    fgd_first, fgd_last = process_rows["B.7 烟气脱硫"][1:]
+    _set_list_validation(process, ",".join(CARBONATE_LABELS), f"C{fgd_first}:C{fgd_last}")
+    _set_list_validation(process, "实测值,化学计算,用户指定", f"I{fgd_first}:I{fgd_last}")
+    for col in (4, 5, 6, 7):
+        _set_numeric_validation(process, col, fgd_first, fgd_last, ratio=col in (5, 7))
+    _metadata_sheet(workbook)
     import io
     stream = io.BytesIO()
     workbook.save(stream)
+    workbook.close()
     return stream.getvalue()
 
 
 def write_template(destination: str | Path) -> Path:
-    """Write a freshly generated template to the user-selected destination."""
-
     path = Path(destination)
     if path.suffix.lower() != ".xlsx":
         raise ValueError("模板文件扩展名必须为 .xlsx")
@@ -426,12 +605,6 @@ def write_template(destination: str | Path) -> Path:
 
 
 def significant_digit_count(value: Decimal) -> int:
-    """Count coefficient digits, excluding sign/decimal/exponent and leading zeroes.
-
-    Trailing zeroes present in the serialized XLSX numeric token count as
-    significant. Zero itself counts as one digit.
-    """
-
     if not value.is_finite():
         raise ValueError("numeric value must be finite")
     digits = list(value.as_tuple().digits)
@@ -448,62 +621,29 @@ _NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 def _worksheet_xml_paths(archive: ZipFile) -> dict[str, str]:
     workbook_root = ElementTree.fromstring(archive.read("xl/workbook.xml"))
     rels_root = ElementTree.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
-    rel_targets = {
-        node.attrib["Id"]: node.attrib["Target"]
-        for node in rels_root.findall(f"{{{_NS_PKG_REL}}}Relationship")
-    }
+    rel_targets = {node.attrib["Id"]: node.attrib["Target"] for node in rels_root.findall(f"{{{_NS_PKG_REL}}}Relationship")}
     paths: dict[str, str] = {}
     for node in workbook_root.findall(f"{{{_NS_MAIN}}}sheets/{{{_NS_MAIN}}}sheet"):
-        sheet_name = node.attrib["name"]
+        name = node.attrib["name"]
         target = rel_targets[node.attrib[f"{{{_NS_REL}}}id"]]
-        if target.startswith("/"):
-            path = target.lstrip("/")
-        elif target.startswith("xl/"):
-            path = target
-        else:
-            path = f"xl/{target}"
-        paths[sheet_name] = path
+        paths[name] = target.lstrip("/") if target.startswith("/") else target if target.startswith("xl/") else f"xl/{target}"
     return paths
 
 
 def _serialized_numeric_values(source: bytes) -> dict[tuple[str, str], str]:
-    """Read numeric `<v>` text from the actual stored worksheet XML."""
-
     values: dict[tuple[str, str], str] = {}
     import io
     with ZipFile(io.BytesIO(source)) as archive:
         for sheet_name, member in _worksheet_xml_paths(archive).items():
             root = ElementTree.fromstring(archive.read(member))
             for cell in root.findall(f".//{{{_NS_MAIN}}}c"):
-                ref = cell.attrib.get("r")
-                if not ref or cell.attrib.get("t") not in (None, "n"):
+                reference = cell.attrib.get("r")
+                if not reference or cell.attrib.get("t") not in (None, "n"):
                     continue
-                value_node = cell.find(f"{{{_NS_MAIN}}}v")
-                if value_node is not None and value_node.text is not None:
-                    values[(sheet_name, ref)] = value_node.text
+                value = cell.find(f"{{{_NS_MAIN}}}v")
+                if value is not None and value.text is not None:
+                    values[(sheet_name, reference)] = value.text
     return values
-
-
-@dataclass(slots=True)
-class _UnitContext:
-    name: str
-    unit_id: str
-    unit_type: AccountingUnitType
-    enterprise_id: str
-    enterprise_name: str
-    period: AccountingPeriod | None
-    boundary_confirmed: bool
-    boundary_components: tuple[str, ...]
-    other_activity: bool
-    transport: bool
-    source_states: dict[str, EmissionSourceStatus] = field(default_factory=dict)
-    errors: list[ImportMessage] = field(default_factory=list)
-    warnings: list[ImportMessage] = field(default_factory=list)
-    payloads: dict[str, list[object]] = field(default_factory=dict)
-    report_values: dict[str, str | None] = field(default_factory=dict)
-    activity_evidence: list[ActivityDataEvidence] = field(default_factory=list)
-    factor_evidence: list[MeasuredFactorEvidence] = field(default_factory=list)
-    evidence_names: dict[str, str] = field(default_factory=dict)
 
 
 class _CellReader:
@@ -511,171 +651,302 @@ class _CellReader:
         self.numeric_xml = numeric_xml
         self.evidence: list[NumericCellEvidence] = []
 
-    @staticmethod
-    def location(sheet: str, row: int, column: int) -> str:
-        from openpyxl.utils import get_column_letter
-        return f"{sheet}!{get_column_letter(column)}{row}"
-
     def error(self, ctx: _UnitContext, code: str, message: str, location: str) -> None:
         ctx.errors.append(ImportMessage(code, message, location))
 
-    def number(
-        self,
-        ctx: _UnitContext,
-        sheet: str,
-        row: int,
-        cell,
-        *,
-        required: bool = False,
-    ) -> Decimal | None:
+    def number(self, ctx: _UnitContext, sheet: str, row: int, cell, *, required: bool = False) -> Decimal | None:
         location = f"{sheet}!{cell.coordinate}"
-        value = cell.value
         if cell.data_type == "f":
-            self.error(ctx, "EXCEL-FORMULA-REJECTED", "正式核算输入不接受公式单元格，请复制并粘贴为数值后重新导入。", location)
+            self.error(ctx, "EXCEL-FORMULA-REJECTED", "数值不接受 Excel 公式；请将来源数据粘贴为数值。", location)
             return None
         serialized = self.numeric_xml.get((sheet, cell.coordinate))
-        if value is None and serialized is None:
+        if cell.value is None and serialized is None:
             if required:
-                self.error(ctx, "EXCEL-NUMBER-REQUIRED", "此数值为必填项。", location)
+                self.error(ctx, "EXCEL-NUMBER-REQUIRED", "请填写此数值。没有发生该项时请填 0，不要留空。", location)
             return None
-        if cell.data_type != "n" or isinstance(value, (bool, date, datetime)):
+        if cell.data_type != "n" or isinstance(cell.value, (bool, date, datetime)):
             self.error(ctx, "EXCEL-NUMBER-CELL-REQUIRED", "此字段必须是 Excel 数值单元格；文本数字、公式和日期均不接受。", location)
             return None
         if serialized is None:
-            self.error(ctx, "EXCEL-NUMERIC-SERIALIZATION-MISSING", "无法取得工作簿保存的数值单元格证据。", location)
+            self.error(ctx, "EXCEL-NUMERIC-SERIALIZATION-MISSING", "无法读取此数值在工作簿中的保存内容。", location)
             return None
         try:
-            normalized = Decimal(serialized)
+            value = Decimal(serialized)
         except InvalidOperation:
-            self.error(ctx, "EXCEL-NUMBER-INVALID", "此数值单元格不是有效的十进制数。", location)
+            self.error(ctx, "EXCEL-NUMBER-INVALID", "此数值不是有效的十进制数。", location)
             return None
-        if not normalized.is_finite():
-            self.evidence.append(NumericCellEvidence(
-                sheet, cell.coordinate, cell.data_type, repr(value), serialized, normalized,
-            ))
-            self.error(ctx, "EXCEL-NUMBER-NONFINITE", "NaN 和 Infinity 不能作为正式核算数值。", location)
+        self.evidence.append(NumericCellEvidence(sheet, cell.coordinate, cell.data_type, repr(cell.value), serialized, value))
+        if not value.is_finite():
+            self.error(ctx, "EXCEL-NUMBER-NONFINITE", "NaN 和 Infinity 不能作为核算输入。", location)
             return None
-        self.evidence.append(NumericCellEvidence(
-            sheet=sheet,
-            cell=cell.coordinate,
-            raw_cell_type=cell.data_type,
-            workbook_value_repr=repr(value),
-            serialized_numeric_text=serialized,
-            normalized_decimal=normalized,
-        ))
-        digits = significant_digit_count(normalized)
+        digits = significant_digit_count(value)
         if digits > 15:
-            self.error(ctx, "EXCEL-NUMBER-SIGNIFICANT-DIGITS", f"此数值有 {digits} 位有效数字，Excel 导入最多接受 15 位；不会自动舍入或截断。", location)
+            self.error(ctx, "EXCEL-NUMBER-SIGNIFICANT-DIGITS", f"此数值有 {digits} 位有效数字；Excel 入口最多接受 15 位。", location)
             return None
-        return normalized
+        return value
 
-    def text(
-        self,
-        ctx: _UnitContext,
-        sheet: str,
-        cell,
-        *,
-        required: bool = False,
-    ) -> str | None:
+    def text(self, ctx: _UnitContext, sheet: str, cell, *, required: bool = False) -> str | None:
         location = f"{sheet}!{cell.coordinate}"
-        value = cell.value
         if cell.data_type == "f":
-            self.error(ctx, "EXCEL-FORMULA-REJECTED", "正式核算输入不接受公式单元格，请复制并粘贴为数值后重新导入。", location)
+            self.error(ctx, "EXCEL-FORMULA-REJECTED", "此字段不接受公式，请填写固定文字或数值。", location)
             return None
-        if value is None:
+        if cell.value is None:
             if required:
-                self.error(ctx, "EXCEL-TEXT-REQUIRED", "此字段为必填项。", location)
+                self.error(ctx, "EXCEL-TEXT-REQUIRED", "请填写此字段。", location)
             return None
-        if not isinstance(value, str):
+        if not isinstance(cell.value, str):
             self.error(ctx, "EXCEL-TEXT-CELL-REQUIRED", "此字段必须以文字填写。", location)
             return None
-        value = value.strip()
-        if not value and required:
-            self.error(ctx, "EXCEL-TEXT-REQUIRED", "此字段为必填项。", location)
+        value = cell.value.strip()
+        if required and not value:
+            self.error(ctx, "EXCEL-TEXT-REQUIRED", "请填写此字段。", location)
         return value or None
 
 
-def _read_headers(workbook, sheet_name: str) -> tuple[object, ...]:
-    sheet = workbook[sheet_name]
-    return tuple(cell.value for cell in sheet[1])
+def _stable_token(prefix: str, *parts: object) -> str:
+    payload = "|".join(str(part) for part in parts)
+    return f"{prefix}-{hashlib.sha256(payload.encode('utf-8')).hexdigest()[:20]}"
 
 
-def _cell_for(sheet, row: int, header: str):
-    for column, cell in enumerate(sheet[row], start=1):
-        if column > sheet.max_column:
-            break
-        if sheet.cell(1, column).value == header:
-            return cell
-    raise WorkbookFatalError(f"工作表“{sheet.title}”缺少列“{header}”")
+def _table_area(sheet, marker: str, headers: Sequence[str]) -> tuple[int, int, int]:
+    markers = [row for row in range(1, sheet.max_row + 1) if sheet.cell(row, 1).value == marker]
+    if len(markers) != 1:
+        raise WorkbookFatalError(f"工作表“{sheet.title}”中“{marker}”区域缺失或重复。")
+    marker_row = markers[0]
+    header_row = marker_row + 2
+    actual = tuple(sheet.cell(header_row, column).value for column in range(1, len(headers) + 1))
+    if actual != tuple(headers):
+        raise WorkbookFatalError(f"工作表“{sheet.title}”中“{marker}”表头与当前模板不匹配。")
+    later_markers = [
+        row for row in range(header_row + 1, sheet.max_row + 1)
+        if isinstance(sheet.cell(row, 1).value, str) and sheet.cell(row, 1).value in SECTION_HEADERS
+    ]
+    first_data = header_row + 1
+    last_data = (min(later_markers) - 1) if later_markers else sheet.max_row
+    return header_row, first_data, max(first_data - 1, last_data)
 
 
-def _row_blank(sheet, row: int) -> bool:
-    return not any(cell.value is not None for cell in sheet[row])
+def _cell(sheet, row: int, header_row: int, headers: Sequence[str], header: str):
+    try:
+        column = headers.index(header) + 1
+    except ValueError as exc:
+        raise WorkbookFatalError(f"工作表“{sheet.title}”缺少列“{header}”。") from exc
+    return sheet.cell(row, column)
 
 
-def _rows(sheet) -> Iterable[int]:
-    for row in range(2, sheet.max_row + 1):
-        if not _row_blank(sheet, row):
+def _location(sheet, row: int, header_row: int, headers: Sequence[str], header: str) -> str:
+    return f"{sheet.title}!{_cell(sheet, row, header_row, headers, header).coordinate}"
+
+
+def _has_payload(sheet, row: int, headers: Sequence[str]) -> bool:
+    return any(sheet.cell(row, column).value is not None for column in range(2, len(headers) + 1))
+
+
+def _iter_payload_rows(sheet, area: tuple[int, int, int], headers: Sequence[str]) -> Iterable[int]:
+    _header_row, first, last = area
+    for row in range(first, last + 1):
+        if _has_payload(sheet, row, headers):
             yield row
 
 
-def _location(sheet: str, row: int, header: str, workbook) -> str:
-    return f"{sheet}!{_cell_for(workbook[sheet], row, header).coordinate}"
+def _metadata(workbook) -> dict[str, str]:
+    sheet = workbook[METADATA_SHEET]
+    values: dict[str, str] = {}
+    for row in range(2, sheet.max_row + 1):
+        key, value = sheet.cell(row, 1).value, sheet.cell(row, 2).value
+        if isinstance(key, str) and isinstance(value, str):
+            values[key] = value
+    return values
 
 
-def _date_value(reader: _CellReader, ctx: _UnitContext, sheet, row: int, header: str) -> date | None:
-    cell = _cell_for(sheet, row, header)
-    if cell.data_type == "f":
-        reader.error(ctx, "EXCEL-FORMULA-REJECTED", "正式核算输入不接受公式单元格，请复制并粘贴为数值后重新导入。", f"{sheet.title}!{cell.coordinate}")
+def _date_cell(reader: _CellReader, ctx: _UnitContext, sheet, row: int, header: str) -> date | None:
+    cell_value = sheet.cell(row, 2)
+    label = sheet.cell(row, 1).value
+    if label != header:
+        raise WorkbookFatalError(f"核算单元页缺少项目字段“{header}”。")
+    if cell_value.data_type == "f":
+        reader.error(ctx, "EXCEL-FORMULA-REJECTED", "日期不接受公式。", f"{sheet.title}!{cell_value.coordinate}")
         return None
-    value = cell.value
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    if isinstance(value, str):
+    if isinstance(cell_value.value, datetime):
+        return cell_value.value.date()
+    if isinstance(cell_value.value, date):
+        return cell_value.value
+    if isinstance(cell_value.value, str):
         try:
-            return date.fromisoformat(value.strip())
+            return date.fromisoformat(cell_value.value.strip())
         except ValueError:
             pass
-    reader.error(ctx, "EXCEL-DATE-INVALID", "日期请使用 Excel 日期单元格或 YYYY-MM-DD。", f"{sheet.title}!{cell.coordinate}")
+    reader.error(ctx, "EXCEL-DATE-INVALID", "日期请填写 Excel 日期或 YYYY-MM-DD。", f"{sheet.title}!{cell_value.coordinate}")
     return None
 
 
-def _enum_value(
+def _project_value(reader: _CellReader, ctx: _UnitContext, sheet, label: str, *, required: bool = False) -> str | None:
+    for row in range(3, 9):
+        if sheet.cell(row, 1).value == label:
+            return reader.text(ctx, sheet.title, sheet.cell(row, 2), required=required)
+    raise WorkbookFatalError(f"核算单元页缺少项目字段“{label}”。")
+
+
+def _read_unit_contexts(workbook, digest: str, reader: _CellReader, warnings: list[ImportMessage]) -> tuple[dict[str, _UnitContext], set[str]]:
+    sheet = workbook["核算单元"]
+    project_probe = _UnitContext("项目", "project", AccountingUnitType.WHOLE_SITE, "enterprise.invalid", "", None, False, None)
+    enterprise = _project_value(reader, project_probe, sheet, "企业名称", required=True) or ""
+    period_label = _project_value(reader, project_probe, sheet, "核算期间类型", required=True)
+    boundary_label = _project_value(reader, project_probe, sheet, "已核对核算边界", required=True)
+    boundary_description = _project_value(reader, project_probe, sheet, "公共边界说明")
+    start = _date_cell(reader, project_probe, sheet, 5, "开始日期")
+    end = _date_cell(reader, project_probe, sheet, 6, "结束日期")
+    period = None
+    period_type = PERIOD_LABELS.get(period_label or "")
+    if period_type is None:
+        reader.error(project_probe, "EXCEL-PERIOD-TYPE-INVALID", "请选择年度、月度或自定义期间。", "核算单元!B4")
+    elif start is not None and end is not None:
+        try:
+            period = AccountingPeriod(period_type, start, end)
+        except DomainValidationError as exc:
+            reader.error(project_probe, "EXCEL-PERIOD-INVALID", f"核算期间无效：{exc}", "核算单元!B5:B6")
+    elif not project_probe.errors:
+        reader.error(project_probe, "EXCEL-PERIOD-REQUIRED", "请填写开始日期和结束日期。", "核算单元!B5:B6")
+    boundary_confirmed = boundary_label == "是"
+    if boundary_label not in {"是", "否"}:
+        reader.error(project_probe, "EXCEL-BOUNDARY-REQUIRED", "请选择是否已核对核算边界。", "核算单元!B7")
+    enterprise_id = _stable_token("enterprise", enterprise)
+    contexts: dict[str, _UnitContext] = {}
+    disabled: set[str] = set()
+    unit_area = _table_area(sheet, "核算单元清单", UNIT_HEADERS)
+    header_row, first, last = unit_area
+    for row in range(first, last + 1):
+        if not _has_payload(sheet, row, UNIT_HEADERS):
+            continue
+        name = reader.text(project_probe, sheet.title, _cell(sheet, row, header_row, UNIT_HEADERS, UNIT_HEADERS[0]), required=True)
+        type_label = reader.text(project_probe, sheet.title, _cell(sheet, row, header_row, UNIT_HEADERS, UNIT_HEADERS[1]), required=True)
+        enabled_label = reader.text(project_probe, sheet.title, _cell(sheet, row, header_row, UNIT_HEADERS, UNIT_HEADERS[2]), required=True)
+        unit_boundary = reader.text(project_probe, sheet.title, _cell(sheet, row, header_row, UNIT_HEADERS, UNIT_HEADERS[3]))
+        if not name:
+            warnings.append(ImportMessage("EXCEL-UNIT-NAME-MISSING", "核算单元名称缺失，此行不能关联业务数据。", f"核算单元!A{row}"))
+            continue
+        unit_type = UNIT_TYPE_LABELS.get(type_label or "")
+        if unit_type is None:
+            unit_type = AccountingUnitType.OTHER
+        enabled = enabled_label == "是"
+        if enabled_label not in {"是", "否"}:
+            enabled = True
+        if not enabled:
+            disabled.add(name)
+            continue
+        unit_id = _stable_token("unit", enterprise_id, name)
+        ctx = _UnitContext(name, unit_id, unit_type, enterprise_id, enterprise, period, boundary_confirmed, unit_boundary or boundary_description)
+        ctx.errors.extend(project_probe.errors)
+        if type_label not in UNIT_TYPE_LABELS:
+            ctx.errors.append(ImportMessage("EXCEL-UNIT-TYPE-INVALID", "请选择全厂、工序或其他。", f"核算单元!B{row}"))
+        if enabled_label not in {"是", "否"}:
+            ctx.errors.append(ImportMessage("EXCEL-UNIT-ENABLED-INVALID", "请选择是否启用此核算单元。", f"核算单元!C{row}"))
+        if not boundary_confirmed:
+            ctx.errors.append(ImportMessage("EXCEL-BOUNDARY-UNCONFIRMED", "请先确认企业核算边界后再预览。", "核算单元!B7"))
+        if name in contexts:
+            contexts[name].errors.append(ImportMessage("EXCEL-UNIT-DUPLICATE", f"核算单元“{name}”重复，无法可靠关联数据。", f"核算单元!A{row}"))
+            ctx.errors.append(ImportMessage("EXCEL-UNIT-DUPLICATE", f"核算单元“{name}”重复，无法可靠关联数据。", f"核算单元!A{row}"))
+            continue
+        contexts[name] = ctx
+    if not contexts and not disabled:
+        warnings.append(ImportMessage("EXCEL-UNIT-NONE", "请至少填写一个已启用的核算单元。", "核算单元"))
+    return contexts, disabled
+
+
+def _context_for_row(
     reader: _CellReader,
-    ctx: _UnitContext,
     sheet,
     row: int,
-    header: str,
-    mapping: Mapping[str, object],
+    header_row: int,
+    headers: Sequence[str],
+    contexts: Mapping[str, _UnitContext],
+    disabled: set[str],
+    warnings: list[ImportMessage],
+) -> _UnitContext | None:
+    cell_value = _cell(sheet, row, header_row, headers, headers[0])
+    if not isinstance(cell_value.value, str) or not cell_value.value.strip():
+        warnings.append(ImportMessage("EXCEL-ROW-UNASSOCIATED", "数据行没有核算单元，已忽略。", f"{sheet.title}!{cell_value.coordinate}"))
+        return None
+    name = cell_value.value.strip()
+    if name in disabled:
+        warnings.append(ImportMessage("EXCEL-DISABLED-UNIT-DATA-IGNORED", f"“{name}”未启用，此行数据已忽略。", f"{sheet.title}!{cell_value.coordinate}"))
+        return None
+    ctx = contexts.get(name)
+    if ctx is None:
+        warnings.append(ImportMessage("EXCEL-UNKNOWN-UNIT-DATA-IGNORED", f"无法关联到已启用核算单元“{name}”，此行数据已忽略。", f"{sheet.title}!{cell_value.coordinate}"))
+    return ctx
+
+
+def _mark(ctx: _UnitContext, source_id: str) -> None:
+    ctx.source_states[source_id] = EmissionSourceStatus.INVOLVED
+
+
+def _activity_source(label: str | None) -> ActivityDataSource:
+    return {
+        "计量/仪表记录": ActivityDataSource.METER,
+        "生产/能源台账": ActivityDataSource.PRODUCTION_LEDGER,
+        "结算记录": ActivityDataSource.ENERGY_BILL,
+        "检测报告": ActivityDataSource.TEST_REPORT,
+        "实测值": ActivityDataSource.TEST_REPORT,
+        "化学计算": ActivityDataSource.OTHER,
+        "用户指定": ActivityDataSource.MANUAL,
+    }.get(label or "", ActivityDataSource.MANUAL)
+
+
+PARAMETER_SOURCE_KINDS = {
+    "实测值": ParameterSourceKind.MEASURED,
+    "化学计算": ParameterSourceKind.CALCULATED,
+    "用户指定": ParameterSourceKind.USER_DEFINED,
+}
+
+
+def _parse_optional_text(reader: _CellReader, ctx: _UnitContext, sheet, row: int, header_row: int, headers: Sequence[str], header: str) -> str | None:
+    return reader.text(ctx, sheet.title, _cell(sheet, row, header_row, headers, header))
+
+
+def _parse_number(reader: _CellReader, ctx: _UnitContext, sheet, row: int, header_row: int, headers: Sequence[str], header: str, *, required: bool = False) -> Decimal | None:
+    return reader.number(ctx, sheet.title, row, _cell(sheet, row, header_row, headers, header), required=required)
+
+
+def _evidence_for_row(
+    ctx: _UnitContext,
+    source_id: str,
+    sheet,
+    row: int,
+    kind: str | None,
+    reference: str | None,
     *,
-    required: bool = False,
-):
-    cell = _cell_for(sheet, row, header)
-    value = reader.text(ctx, sheet.title, cell, required=required)
+    parameter: bool = False,
+) -> tuple[str, ...]:
+    if not kind and not reference:
+        return ()
+    evidence_id = _stable_token("excel-parameter" if parameter else "excel-activity", ctx.unit_id, sheet.title, row, reference or "")
+    applies_to = f"{SOURCE_LABELS[source_id]}工作表输入"
+    note = f"表格数据来源：{kind or '未注明'}；单元格位置：{sheet.title} 第 {row} 行。"
+    if parameter:
+        ctx.factor_evidence.append(MeasuredFactorEvidence(
+            evidence_id=evidence_id,
+            applies_to=applies_to,
+            source_ids=(source_id,),
+            source_reference=reference,
+            referenced_standard=STANDARD_ID,
+            reason=note,
+        ))
+    else:
+        ctx.activity_evidence.append(ActivityDataEvidence(
+            evidence_id=evidence_id,
+            applies_to=applies_to,
+            source_ids=(source_id,),
+            source_reference=reference,
+            note=note,
+        ))
+    return (evidence_id,)
+
+
+def _activity(value: Decimal | None, unit: str, source_type: ActivityDataSource, reference: str | None, evidence_ids: tuple[str, ...] = ()) -> InputValue | None:
     if value is None:
         return None
-    result = mapping.get(value)
-    if result is None:
-        reader.error(ctx, "EXCEL-OPTION-INVALID", f"“{header}”的值不在模板选项中。", f"{sheet.title}!{cell.coordinate}")
-    return result
-
-
-def _split_refs(value: str | None) -> tuple[str, ...]:
-    if not value:
-        return ()
-    return tuple(dict.fromkeys(item.strip() for item in re.split(r"[;,，；、\n]", value) if item.strip()))
-
-
-def _parse_metadata(workbook) -> dict[str, str]:
-    sheet = workbook[METADATA_SHEET]
-    metadata: dict[str, str] = {}
-    for row in _rows(sheet):
-        key, value = sheet.cell(row, 1).value, sheet.cell(row, 2).value
-        if isinstance(key, str) and isinstance(value, str):
-            metadata[key] = value
-    return metadata
+    return InputValue(value, unit, source_type=source_type, source_reference=reference, evidence_ref_ids=evidence_ids)
 
 
 def _factor_for(resolver: ParameterResolver | None, parameter_id: str, period: AccountingPeriod | None):
@@ -691,21 +962,19 @@ def _factor_for(resolver: ParameterResolver | None, parameter_id: str, period: A
         and STANDARD_ID in factor.applicable_standard_ids
         and factor.review_status is ReviewStatus.VERIFIED
         and factor.value_type in {ValueType.STANDARD_DEFAULT, ValueType.STANDARD_SPECIFIED}
-        and not (
-            period is not None and (
-                (factor.valid_from is not None and factor.valid_from > period.end)
-                or (factor.valid_to is not None and factor.valid_to < period.start)
-                or (period.period_type is PeriodType.CUSTOM and (
-                    (factor.valid_from is not None and period.start < factor.valid_from)
-                    or (factor.valid_to is not None and period.end > factor.valid_to)
-                ))
-            )
-        )
+        and not (period is not None and (
+            (factor.valid_from is not None and factor.valid_from > period.end)
+            or (factor.valid_to is not None and factor.valid_to < period.start)
+            or (period.period_type is PeriodType.CUSTOM and (
+                (factor.valid_from is not None and period.start < factor.valid_from)
+                or (factor.valid_to is not None and period.end > factor.valid_to)
+            ))
+        ))
     ]
     return sorted(matches, key=lambda factor: factor.factor_id)[0] if matches else None
 
 
-_PARAMETER_SOURCE_KINDS = {
+_PARAMETER_SOURCE_KINDS_FROM_VALUE = {
     ValueType.STANDARD_DEFAULT: ParameterSourceKind.STANDARD_DEFAULT,
     ValueType.STANDARD_SPECIFIED: ParameterSourceKind.STANDARD_SPECIFIED,
     ValueType.GOVERNMENT_PUBLISHED: ParameterSourceKind.OFFICIAL_PUBLISHED,
@@ -724,7 +993,7 @@ def _parameter_from_factor(factor, reason: str) -> ParameterValue | None:
         parameter_id=factor.parameter_id,
         value=factor.value,
         unit=factor.unit,
-        source_kind=_PARAMETER_SOURCE_KINDS[factor.value_type],
+        source_kind=_PARAMETER_SOURCE_KINDS_FROM_VALUE[factor.value_type],
         source_id=factor.source_id,
         source_version=str(factor.version),
         source_location=factor.source_location,
@@ -739,6 +1008,7 @@ def _make_parameter(
     *,
     parameter_id: str,
     unit: str,
+    source_kind_label: str | None,
     source_reference: str | None,
     evidence_ids: tuple[str, ...],
     default: ParameterValue | None,
@@ -747,584 +1017,373 @@ def _make_parameter(
 ) -> ParameterValue | None:
     if value is None:
         return default
-    if default is not None and value == default.value and not source_reference:
+    if default is not None and value == default.value and not source_kind_label and not source_reference:
         return default
-    if not source_reference:
-        ctx.errors.append(ImportMessage("EXCEL-PARAMETER-SOURCE-REQUIRED", "企业实测或自定义参数必须填写可追溯的参数来源编号。", location))
-        return ParameterValue(parameter_id, value, unit, ParameterSourceKind.USER_DEFINED, None, None, None, "用户提供的参数值。", evidence_ref_ids=evidence_ids)
+    kind = PARAMETER_SOURCE_KINDS.get(source_kind_label or "")
+    if kind is None or not source_reference:
+        ctx.errors.append(ImportMessage("EXCEL-PARAMETER-SOURCE-REQUIRED", "自定义参数需同时选择来源类型并填写来源说明/编号。", location))
+        kind = kind or ParameterSourceKind.USER_DEFINED
     return ParameterValue(
-        parameter_id,
-        value,
-        unit,
-        ParameterSourceKind.MEASURED,
-        f"USER-EXCEL-{hashlib.sha256(source_reference.encode('utf-8')).hexdigest()[:12]}",
-        "user-input",
-        f"企业实测/技术资料编号：{source_reference}",
-        f"用户提供并引用来源编号：{source_reference}。",
+        parameter_id=parameter_id,
+        value=value,
+        unit=unit,
+        source_kind=kind,
+        source_id=f"USER-EXCEL-{hashlib.sha256((source_reference or '').encode('utf-8')).hexdigest()[:12]}",
+        source_version="user-input",
+        source_location=f"来源说明/编号：{source_reference or '未提供'}",
+        selection_reason=f"工作簿中按“{source_kind_label or '未注明'}”提供；来源：{source_reference or '未提供'}。",
         evidence_ref_ids=evidence_ids,
     )
 
 
-def _stable_token(prefix: str, *parts: object) -> str:
-    payload = "|".join(str(part) for part in parts)
-    return f"{prefix}-{hashlib.sha256(payload.encode('utf-8')).hexdigest()[:20]}"
-
-
-def _collect_evidence(
-    workbook,
-    contexts: Mapping[str, _UnitContext],
-    reader: _CellReader,
-    global_warnings: list[ImportMessage],
-) -> None:
-    sheet = workbook["证据来源"]
-    fields = {
-        "单位性质": "organization_nature", "所属行业": "industry", "统一社会信用代码": "social_credit_code",
-        "法定代表人": "legal_representative", "填报负责人": "preparer_name", "负责人联系方式": "preparer_contact",
-        "核算边界说明": "boundary_description", "主要产品/工艺流程": "products_and_process",
-        "排放源识别说明": "emission_source_identification", "其他报告说明": "other_report_information",
-    }
-    for row in _rows(sheet):
-        raw_name = sheet.cell(row, 1).value
-        if not isinstance(raw_name, str) or not raw_name.strip():
-            if any(cell.value is not None for cell in sheet[row][1:]):
-                global_warnings.append(ImportMessage("EXCEL-ORPHAN-EVIDENCE", "证据行未填写核算单元，已忽略。", f"证据来源!A{row}"))
-            continue
-        name = raw_name.strip()
-        ctx = contexts.get(name)
-        if ctx is None:
-            global_warnings.append(ImportMessage("EXCEL-ORPHAN-EVIDENCE", f"证据行无法关联到启用核算单元“{name}”，已忽略。", f"证据来源!A{row}"))
-            continue
-        ref_name = reader.text(ctx, sheet.title, _cell_for(sheet, row, "证据名称"), required=True)
-        kind = _enum_value(reader, ctx, sheet, row, "证据类别", {"活动数据": "activity", "参数因子": "factor"}, required=True)
-        if ref_name is None or kind is None:
-            continue
-        evidence_id = _stable_token("ev", ctx.unit_id, row, ref_name)
-        if ref_name in ctx.evidence_names:
-            reader.error(ctx, "EXCEL-EVIDENCE-DUPLICATE", f"证据名称“{ref_name}”在该核算单元内重复。", f"证据来源!B{row}")
-            continue
-        ctx.evidence_names[ref_name] = evidence_id
-        applies_to = reader.text(ctx, sheet.title, _cell_for(sheet, row, "适用范围")) or "本单元所选排放源"
-        source_reference = reader.text(ctx, sheet.title, _cell_for(sheet, row, "来源编号"))
-        source_labels = _split_refs(reader.text(ctx, sheet.title, _cell_for(sheet, row, "关联排放源")))
-        source_ids: list[str] = []
-        for source_label in source_labels:
-            source_id = LABEL_TO_SOURCE.get(source_label)
-            if source_id is None:
-                reader.error(ctx, "EXCEL-EVIDENCE-SOURCE-INVALID", f"证据关联排放源“{source_label}”不在支持列表中。", f"证据来源!E{row}")
-            else:
-                source_ids.append(source_id)
-        monitoring_location = reader.text(ctx, sheet.title, _cell_for(sheet, row, "监测地点"))
-        method = reader.text(ctx, sheet.title, _cell_for(sheet, row, "监测/取样方法"))
-        instrument = reader.text(ctx, sheet.title, _cell_for(sheet, row, "仪器"))
-        accuracy = reader.text(ctx, sheet.title, _cell_for(sheet, row, "精度"))
-        frequency = reader.text(ctx, sheet.title, _cell_for(sheet, row, "记录/取样频次"))
-        acquisition_time = reader.text(ctx, sheet.title, _cell_for(sheet, row, "取得/检测时间"))
-        referenced_standard = reader.text(ctx, sheet.title, _cell_for(sheet, row, "引用标准"))
-        note = reader.text(ctx, sheet.title, _cell_for(sheet, row, "说明"))
-        if kind == "activity":
-            ctx.activity_evidence.append(ActivityDataEvidence(
-                evidence_id=evidence_id,
-                applies_to=applies_to,
-                source_ids=tuple(source_ids),
-                source_reference=source_reference,
-                monitoring_location=monitoring_location,
-                monitoring_method=method,
-                instrument=instrument,
-                accuracy=accuracy,
-                recording_frequency=frequency,
-                acquisition_time=acquisition_time,
-                note=note,
-            ))
-        else:
-            ctx.factor_evidence.append(MeasuredFactorEvidence(
-                evidence_id=evidence_id,
-                applies_to=applies_to,
-                source_ids=tuple(source_ids),
-                source_reference=source_reference,
-                sampling_method=method,
-                sampling_frequency=frequency,
-                testing_method=method,
-                testing_frequency=frequency,
-                referenced_standard=referenced_standard,
-                reason=note,
-            ))
-
-    report_sheet = workbook["报告信息"]
-    for row in _rows(report_sheet):
-        unit_name = reader.text(_ctx_placeholder(), report_sheet.title, _cell_for(report_sheet, row, "核算单元"))
-        if not unit_name:
-            if any(cell.value is not None for cell in report_sheet[row][1:]):
-                global_warnings.append(ImportMessage("EXCEL-ORPHAN-REPORT", "报告信息未填写核算单元，已忽略。", f"报告信息!A{row}"))
-            continue
-        ctx = contexts.get(unit_name)
-        if ctx is None:
-            global_warnings.append(ImportMessage("EXCEL-ORPHAN-REPORT", f"报告信息无法关联到启用核算单元“{unit_name}”，已忽略。", f"报告信息!A{row}"))
-            continue
-        if ctx.report_values:
-            ctx.errors.append(ImportMessage("EXCEL-REPORT-DUPLICATE", "同一核算单元的报告信息只能填写一行。", f"报告信息!A{row}"))
-            continue
-        for header, field_name in fields.items():
-            ctx.report_values[field_name] = reader.text(ctx, report_sheet.title, _cell_for(report_sheet, row, header))
-
-
-def _ctx_placeholder() -> _UnitContext:
-    """Scratch context for a row that can only be reported globally."""
-
-    return _UnitContext("", "", AccountingUnitType.OTHER, "", "", None, False, (), False, False)
-
-
-def _load_unit_contexts(
-    workbook,
-    workbook_sha: str,
-    reader: _CellReader,
-    global_warnings: list[ImportMessage],
-) -> tuple[dict[str, _UnitContext], set[str]]:
-    sheet = workbook["核算单元"]
-    contexts: dict[str, _UnitContext] = {}
-    disabled: set[str] = set()
-    for row in _rows(sheet):
-        if sheet.cell(row, 1).data_type == "f":
-            global_warnings.append(ImportMessage("EXCEL-UNIT-FORMULA", "核算单元名称不接受公式，请直接填写文字。", f"核算单元!A{row}"))
-            continue
-        name_value = sheet.cell(row, 1).value
-        if not isinstance(name_value, str) or not name_value.strip():
-            global_warnings.append(ImportMessage("EXCEL-UNIT-NAME-MISSING", "核算单元行缺少名称，已忽略该行及其无法关联的数据。", f"核算单元!A{row}"))
-            continue
-        name = name_value.strip()
-        if name in contexts or name in disabled:
-            target = contexts.get(name)
-            if target:
-                target.errors.append(ImportMessage("EXCEL-UNIT-DUPLICATE", f"核算单元名称“{name}”重复。", f"核算单元!A{row}"))
-            else:
-                global_warnings.append(ImportMessage("EXCEL-UNIT-DUPLICATE", f"核算单元名称“{name}”重复，重复行已忽略。", f"核算单元!A{row}"))
-            continue
-        scratch = _UnitContext(name, "", AccountingUnitType.OTHER, "", "", None, False, (), False, False)
-        unit_type = _enum_value(reader, scratch, sheet, row, "类型", UNIT_TYPE_LABELS, required=True)
-        enabled = _enum_value(reader, scratch, sheet, row, "是否启用", YES_NO, required=True)
-        if enabled is False:
-            disabled.add(name)
-            continue
-        period_type = _enum_value(reader, scratch, sheet, row, "核算期间类型", PERIOD_LABELS, required=True)
-        start = _date_value(reader, scratch, sheet, row, "开始日期")
-        end = _date_value(reader, scratch, sheet, row, "结束日期")
-        period = None
-        if start is not None and end is not None and period_type is not None:
-            try:
-                period = AccountingPeriod(period_type, start, end)
-            except (DomainValidationError, ValueError) as exc:
-                scratch.errors.append(ImportMessage("EXCEL-PERIOD-INVALID", f"核算期间无效：{exc}", f"核算单元!F{row}:G{row}"))
-        enterprise_name = reader.text(scratch, sheet.title, _cell_for(sheet, row, "企业名称"), required=True)
-        boundary_confirmed = _enum_value(reader, scratch, sheet, row, "边界已确认", YES_NO, required=True)
-        boundary_text = reader.text(scratch, sheet.title, _cell_for(sheet, row, "边界说明"))
-        other_activity = _enum_value(reader, scratch, sheet, row, "其他行业活动", YES_NO)
-        transport = _enum_value(reader, scratch, sheet, row, "上下游运输", YES_NO)
-        row_id = _stable_token("excel-unit", workbook_sha, row, name)
-        components = (_stable_token("boundary", row_id, boundary_text),) if boundary_text else ()
-        ctx = _UnitContext(
-            name=name,
-            unit_id=row_id,
-            unit_type=unit_type if isinstance(unit_type, AccountingUnitType) else AccountingUnitType.OTHER,
-            enterprise_id=_stable_token("enterprise", row_id),
-            enterprise_name=enterprise_name or name,
-            period=period,
-            boundary_confirmed=boundary_confirmed is True,
-            boundary_components=components,
-            other_activity=other_activity is True,
-            transport=transport is True,
-            errors=list(scratch.errors),
-        )
-        contexts[name] = ctx
-    return contexts, disabled
-
-
-def _row_context(
-    reader: _CellReader,
-    sheet,
-    row: int,
-    contexts: Mapping[str, _UnitContext],
-    disabled: set[str],
-    global_warnings: list[ImportMessage],
-) -> _UnitContext | None:
-    raw_unit = sheet.cell(row, 1).value
-    has_payload = any(cell.value is not None for cell in sheet[row][1:])
-    if raw_unit is None or not str(raw_unit).strip():
-        if has_payload:
-            global_warnings.append(ImportMessage("EXCEL-ORPHAN-DATA", f"“{sheet.title}”存在未关联核算单元的数据，已忽略。", f"{sheet.title}!A{row}"))
-        return None
-    unit_name = str(raw_unit).strip()
-    if unit_name in disabled:
-        if has_payload:
-            global_warnings.append(ImportMessage("EXCEL-DISABLED-UNIT-DATA", f"核算单元“{unit_name}”未启用，其“{sheet.title}”数据已忽略。", f"{sheet.title}!A{row}"))
-        return None
-    ctx = contexts.get(unit_name)
-    if ctx is None:
-        if has_payload:
-            global_warnings.append(ImportMessage("EXCEL-UNKNOWN-UNIT-DATA", f"“{sheet.title}”的数据无法关联到启用核算单元“{unit_name}”，已忽略。", f"{sheet.title}!A{row}"))
-        return None
-    return ctx
-
-
-def _row_has_payload(sheet, row: int) -> bool:
-    return any(cell.value is not None for cell in sheet[row][1:])
-
-
-def _unit_wants_source(ctx: _UnitContext, source_id: str, sheet_name: str, row: int, global_warnings: list[ImportMessage], sheet) -> bool:
-    status = ctx.source_states.get(source_id)
-    if status is EmissionSourceStatus.NOT_INVOLVED:
-        if _row_has_payload(sheet, row):
-            ctx.warnings.append(ImportMessage(
-                "EXCEL-SOURCE-DATA-IGNORED",
-                f"{ctx.name}的{SOURCE_LABELS[source_id]}已标记为“不涉及”，检测到该页数据，本次核算已忽略。",
-                f"{sheet_name}!A{row}",
-            ))
-        return False
-    return True
-
-
-def _evidence_ids(ctx: _UnitContext, reader: _CellReader, sheet, row: int, header: str) -> tuple[str, ...]:
-    refs = _split_refs(reader.text(ctx, sheet.title, _cell_for(sheet, row, header)))
-    ids: list[str] = []
-    for ref in refs:
-        evidence_id = ctx.evidence_names.get(ref)
-        if evidence_id is None:
-            cell = _cell_for(sheet, row, header)
-            reader.error(ctx, "EXCEL-EVIDENCE-REFERENCE-UNKNOWN", f"未找到证据名称“{ref}”；请先在“证据来源”登记。", f"{sheet.title}!{cell.coordinate}")
-        else:
-            ids.append(evidence_id)
-    return tuple(ids)
-
-
-def _source_state_rows(workbook, contexts: Mapping[str, _UnitContext], disabled: set[str], reader: _CellReader, warnings: list[ImportMessage]) -> None:
-    sheet = workbook["排放源"]
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None:
-            continue
-        source_id = _enum_value(reader, ctx, sheet, row, "排放源", LABEL_TO_SOURCE, required=True)
-        status = _enum_value(reader, ctx, sheet, row, "状态", SOURCE_STATE_LABELS, required=True)
-        if not isinstance(source_id, str) or not isinstance(status, EmissionSourceStatus):
-            continue
-        if source_id in ctx.source_states:
-            reader.error(ctx, "EXCEL-SOURCE-STATE-DUPLICATE", f"“{SOURCE_LABELS[source_id]}”状态重复填写。", f"排放源!A{row}")
-        else:
-            ctx.source_states[source_id] = status
-
-
 def _parse_fuels(workbook, contexts, disabled, reader, warnings, resolver) -> None:
-    sheet = workbook["化石燃料"]
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None or not _unit_wants_source(ctx, SOURCE_FUEL, sheet.title, row, warnings, sheet):
+    sheet = workbook["燃料与能源"]
+    area = _table_area(sheet, "B.2 化石燃料", FUEL_HEADERS)
+    header_row, _first, _last = area
+    for row in _iter_payload_rows(sheet, area, FUEL_HEADERS):
+        ctx = _context_for_row(reader, sheet, row, header_row, FUEL_HEADERS, contexts, disabled, warnings)
+        if ctx is None:
             continue
-        if not _row_has_payload(sheet, row):
+        _mark(ctx, SOURCE_FUEL)
+        fuel_label = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[1])
+        path_label = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[2])
+        fuel_type = FUEL_TYPE_LABELS.get(fuel_label or "")
+        path = FUEL_PATH_LABELS.get(path_label or "")
+        if fuel_type is None:
+            reader.error(ctx, "EXCEL-FUEL-TYPE-INVALID", "请选择模板中的燃料种类；不要用“煤”代替具体煤种。", _location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[1]))
+        if path is None:
+            reader.error(ctx, "EXCEL-FUEL-PATH-INVALID", "请选择体积、质量或热量计量路径。", _location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[2]))
+        if fuel_type is None or path is None:
             continue
-        fuel_type = _enum_value(reader, ctx, sheet, row, "燃料种类", FUEL_TYPE_LABELS, required=True)
-        path = _enum_value(reader, ctx, sheet, row, "计量路径", FUEL_PATH_LABELS, required=True)
-        if not isinstance(fuel_type, FuelType) or not isinstance(path, FuelPath):
-            continue
-        activity = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "活动量"))
-        carbon_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "单位热值含碳量"))
-        oxidation_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "碳氧化率"))
-        lhv_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "低位发热量"))
-        source_reference = reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号"))
-        activity_evidence_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-        factor_evidence_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
+        activity = _parse_number(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[3], required=True)
+        lhv_value = _parse_number(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[4])
+        carbon_value = _parse_number(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[5])
+        oxidation_value = _parse_number(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[6])
+        activity_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[7])
+        activity_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[8])
+        parameter_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[9])
+        parameter_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[10])
         subject = FUEL_C1_SUBJECT_IDS.get(fuel_type)
-        default_carbon = _parameter_from_factor(
-            _factor_for(resolver, f"{subject}_carbon_content", ctx.period) if subject else None,
-            "采用 GB/T 32151.34—2024 附录 C.1 对应燃料的单位热值含碳量。",
-        )
-        default_oxidation = _parameter_from_factor(
-            _factor_for(resolver, f"{subject}_oxidation_rate", ctx.period) if subject else None,
-            "采用 GB/T 32151.34—2024 附录 C.1 对应燃料的碳氧化率。",
-        )
-        default_lhv = _parameter_from_factor(
-            _factor_for(resolver, f"{subject}_lhv", ctx.period) if subject and path is not FuelPath.HEAT else None,
-            "采用 GB/T 32151.34—2024 附录 C.1 对应燃料的低位发热量。",
-        )
-        if default_lhv is not None:
-            expected_path = FuelPath.VOLUME if default_lhv.unit == "GJ/10⁴Nm³" else FuelPath.MASS if default_lhv.unit == "GJ/t" else None
-            if expected_path is not None and path is not expected_path and path is not FuelPath.HEAT:
-                reader.error(ctx, "EXCEL-FUEL-PATH-MISMATCH", f"所选燃料的附录 C.1 低位发热量单位与“{FUEL_PATH_LABELS and next((k for k,v in FUEL_PATH_LABELS.items() if v is path), path.value)}”路径不一致；请选择“{next(k for k, v in FUEL_PATH_LABELS.items() if v is expected_path)}”或录入有依据的实测参数。", f"化石燃料!{_cell_for(sheet, row, '计量路径').coordinate}")
-        carbon_unit = "tC/GJ" if path is FuelPath.HEAT or default_carbon is not None or default_lhv is not None or lhv_value is not None else {
-            FuelPath.VOLUME: "tC/10^4Nm3", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ",
-        }[path]
+        default_carbon = _parameter_from_factor(_factor_for(resolver, f"{subject}_carbon_content", ctx.period) if subject else None, "采用附录 C.1 对应燃料的单位热值含碳量。")
+        default_oxidation = _parameter_from_factor(_factor_for(resolver, f"{subject}_oxidation_rate", ctx.period) if subject else None, "采用附录 C.1 对应燃料的碳氧化率。")
+        default_lhv = _parameter_from_factor(_factor_for(resolver, f"{subject}_lhv", ctx.period) if subject and path is not FuelPath.HEAT else None, "采用附录 C.1 对应燃料的低位发热量。")
+        if default_lhv is not None and path is not FuelPath.HEAT:
+            expected = FuelPath.VOLUME if default_lhv.unit == "GJ/10⁴Nm³" else FuelPath.MASS if default_lhv.unit == "GJ/t" else None
+            if expected is not None and path is not expected and lhv_value is None:
+                reader.error(ctx, "EXCEL-FUEL-PATH-MISMATCH", "计量路径与附录 C.1 燃料单位不一致；请选择适用路径或填写有依据的实测参数。", _location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[2]))
+        carbon_unit = "tC/GJ" if path is FuelPath.HEAT or lhv_value is not None or default_lhv is not None else "tC/10^4Nm3" if path is FuelPath.VOLUME else "tC/t"
         lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
-        carbon = _make_parameter(
-            carbon_value, parameter_id=f"{subject or 'fuel'}_carbon_content", unit=carbon_unit,
-            source_reference=source_reference, evidence_ids=factor_evidence_ids, default=default_carbon,
-            ctx=ctx, location=_location(sheet.title, row, "单位热值含碳量", workbook),
-        )
-        oxidation = _make_parameter(
-            oxidation_value, parameter_id=f"{subject or 'fuel'}_oxidation_rate", unit="ratio",
-            source_reference=source_reference, evidence_ids=factor_evidence_ids, default=default_oxidation,
-            ctx=ctx, location=_location(sheet.title, row, "碳氧化率", workbook),
-        )
-        lhv = _make_parameter(
-            lhv_value, parameter_id=f"{subject or 'fuel'}_lhv", unit=lhv_unit,
-            source_reference=source_reference, evidence_ids=factor_evidence_ids, default=default_lhv,
-            ctx=ctx, location=_location(sheet.title, row, "低位发热量", workbook),
-        )
-        if activity is None and carbon_value is None and oxidation_value is None and lhv_value is None:
-            # A row with only a chosen type/path is an empty template row.
-            continue
-        if path is FuelPath.HEAT and lhv is not None:
-            reader.error(ctx, "EXCEL-FUEL-LHV-NOT-APPLICABLE", "热量路径的活动量已经是热量，不应填写低位发热量。", _location(sheet.title, row, "低位发热量", workbook))
+        has_parameter_override = any(value is not None for value in (lhv_value, carbon_value, oxidation_value))
+        if not has_parameter_override and (parameter_kind or parameter_ref):
+            reader.error(ctx, "EXCEL-PARAMETER-SOURCE-UNUSED", "填写了参数来源，但没有填写任何自定义参数值。", _location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[9]))
+        factor_ids = _evidence_for_row(ctx, SOURCE_FUEL, sheet, row, parameter_kind, parameter_ref, parameter=True) if has_parameter_override else ()
+        carbon = _make_parameter(carbon_value, parameter_id=f"{subject or 'fuel'}_carbon_content", unit=carbon_unit, source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=default_carbon, ctx=ctx, location=_location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[5]))
+        oxidation = _make_parameter(oxidation_value, parameter_id=f"{subject or 'fuel'}_oxidation_rate", unit="ratio", source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=default_oxidation, ctx=ctx, location=_location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[6]))
+        lhv = _make_parameter(lhv_value, parameter_id=f"{subject or 'fuel'}_lhv", unit=lhv_unit, source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=default_lhv, ctx=ctx, location=_location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[4]))
+        if path is FuelPath.HEAT and lhv_value is not None:
+            reader.error(ctx, "EXCEL-FUEL-LHV-NOT-APPLICABLE", "热量路径活动量已是热量，请勿填写低位发热量。", _location(sheet, row, header_row, FUEL_HEADERS, FUEL_HEADERS[4]))
             lhv = None
-        fuel_id = _stable_token("fuel", ctx.unit_id, row)
+        activity_ids = _evidence_for_row(ctx, SOURCE_FUEL, sheet, row, activity_kind, activity_ref)
+        activity_unit = {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[path]
         ctx.payloads.setdefault("fuel_inputs", []).append(FuelInput(
-            fuel_id=fuel_id,
+            fuel_id=_stable_token("fuel", ctx.unit_id, sheet.title, row),
             fuel_type=fuel_type,
             path=path,
-            activity=None if activity is None else _activity(activity, {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[path], activity_evidence_ids),
+            activity=_activity(activity, activity_unit, _activity_source(activity_kind), activity_ref, activity_ids),
             carbon_content=carbon,
             oxidation_rate=oxidation,
             lower_heating_value=lhv,
         ))
 
 
-def _activity(value: Decimal | None, unit: str, evidence_ids: tuple[str, ...] = ()):
-    from packages.standards.carbon_material import InputValue
-    return None if value is None else InputValue(value, unit, evidence_ref_ids=evidence_ids)
+def _parse_process_materials(workbook, contexts, disabled, reader, warnings, resolver) -> None:
+    sheet = workbook["过程排放"]
+    grouped: dict[tuple[str, str, str], list[_MaterialRow]] = {}
+    areas = {marker: _table_area(sheet, marker, MATERIAL_HEADERS) for marker in PROCESS_SPECS}
+    source_by_stage = {marker: spec["source"] for marker, spec in PROCESS_SPECS.items()}
+    for marker, spec in PROCESS_SPECS.items():
+        area = areas[marker]
+        header_row = area[0]
+        for row in _iter_payload_rows(sheet, area, MATERIAL_HEADERS):
+            ctx = _context_for_row(reader, sheet, row, header_row, MATERIAL_HEADERS, contexts, disabled, warnings)
+            if ctx is None:
+                continue
+            source_id = spec["source"]
+            _mark(ctx, source_id)
+            instance = _parse_optional_text(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[1])
+            category_label = _parse_optional_text(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[2])
+            material_name = _parse_optional_text(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[3])
+            group_name = spec["categories"].get(category_label or "")
+            if not instance:
+                reader.error(ctx, "EXCEL-PROCESS-NAME-REQUIRED", "请填写过程实例名称。", _location(sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[1]))
+            if not group_name:
+                reader.error(ctx, "EXCEL-MATERIAL-CATEGORY-INVALID", "请选择本区域对应的物料类别。", _location(sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[2]))
+            if not material_name:
+                reader.error(ctx, "EXCEL-MATERIAL-NAME-REQUIRED", "请填写物料名称。", _location(sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[3]))
+            mass = _parse_number(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[4], required=True)
+            fixed = _parse_number(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[5], required=mass is not None and mass > 0)
+            volatile = _parse_number(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[6], required=mass is not None and mass > 0 and (
+                (marker == "B.3 煅烧" and group_name in {"raw", "calcined"})
+                or (marker == "B.4 焙烧/炭化" and group_name in {"filler", "green"})
+                or (marker == "B.5 石墨化" and group_name == "packing")
+            ))
+            source_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[7])
+            source_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[8])
+            if source_kind not in {"实测值", "化学计算", "用户指定"}:
+                reader.error(ctx, "EXCEL-MATERIAL-SOURCE-REQUIRED", "请选择实测值、化学计算或用户指定。", _location(sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[7]))
+            if source_kind == "用户指定" and not source_ref:
+                reader.error(ctx, "EXCEL-MATERIAL-REFERENCE-REQUIRED", "用户指定数据需要来源说明或编号。", _location(sheet, row, header_row, MATERIAL_HEADERS, MATERIAL_HEADERS[8]))
+            if not instance or not group_name or mass is None:
+                continue
+            evidence_ids = _evidence_for_row(ctx, source_id, sheet, row, source_kind, source_ref)
+            grouped.setdefault((ctx.name, marker, instance), []).append(_MaterialRow(group_name, material_name or "", mass, fixed, volatile, evidence_ids))
+    for (unit_name, marker, instance), lines in grouped.items():
+        ctx = contexts[unit_name]
+        spec = PROCESS_SPECS[marker]
+        by_kind: dict[str, list[_MaterialRow]] = {}
+        for line in lines:
+            by_kind.setdefault(line.category, []).append(line)
+        first_row = areas[marker][1]
+        missing = spec["required"] - set(by_kind)
+        for group in sorted(missing):
+            ctx.errors.append(ImportMessage("EXCEL-MATERIAL-CATEGORY-MISSING", f"过程实例“{instance}”缺少必要物料类别数据。", f"过程排放!A{first_row}"))
+        try:
+            normalized = _normalize_process(marker, by_kind, resolver, ctx.period, _stable_token("process", ctx.unit_id, marker, instance))
+        except (ValueError, DomainValidationError) as exc:
+            ctx.errors.append(ImportMessage("EXCEL-MATERIAL-NORMALIZATION", f"物料数据无法归一化：{exc}", f"过程排放!A{first_row}"))
+            continue
+        key = {
+            SOURCE_CALCINATION: "calcinations",
+            SOURCE_BAKING: "bakings",
+            SOURCE_GRAPHITIZATION: "graphitizations",
+        }[spec["source"]]
+        ctx.payloads.setdefault(key, []).append(normalized)
 
 
-def _enum_labels(enum_type) -> dict[str, object]:
-    return {item.value: item for item in enum_type}
+def _material_amounts(rows: Sequence[_MaterialRow]) -> tuple[MaterialAmount, ...]:
+    return tuple(line.amount() for line in rows)
 
 
-def _source_reference(ctx: _UnitContext, reader: _CellReader, sheet, row: int) -> str | None:
-    return reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号"))
+def _input_value(value: Decimal, unit: str, lines: Iterable[_MaterialRow]) -> InputValue:
+    refs = tuple(dict.fromkeys(evidence for line in lines for evidence in line.evidence_ids))
+    return InputValue(value, unit, source_type=ActivityDataSource.OTHER, evidence_ref_ids=refs)
 
 
-def _process_default(resolver, parameter_id: str, period: AccountingPeriod | None, reason: str) -> ParameterValue | None:
-    return _parameter_from_factor(_factor_for(resolver, parameter_id, period), reason)
+def _normalize_process(marker: str, groups: Mapping[str, list[_MaterialRow]], resolver, period, instance_id: str):
+    def rows(name: str) -> tuple[_MaterialRow, ...]:
+        return tuple(groups.get(name, ()))
 
+    def mass(name: str) -> Decimal:
+        return total_mass(_material_amounts(rows(name)))
 
-def _basis_values(reader: _CellReader, ctx: _UnitContext, sheet, row: int):
-    basis_labels = {
-        "收到基": MaterialBasis.RECEIVED,
-        "干燥基": MaterialBasis.DRY,
-        "其他已记录基准": MaterialBasis.OTHER_DOCUMENTED,
-    }
-    component_labels = {
-        "固定碳": MaterialComponentKind.FIXED_CARBON,
-        "总碳": MaterialComponentKind.TOTAL_CARBON,
-        "挥发分": MaterialComponentKind.VOLATILE_MATTER,
-        "未知": MaterialComponentKind.UNKNOWN,
-    }
-    mass_basis = _enum_value(reader, ctx, sheet, row, "质量基准", basis_labels)
-    composition_basis = _enum_value(reader, ctx, sheet, row, "成分基准", basis_labels)
-    normalized_basis = _enum_value(reader, ctx, sheet, row, "折算基准", basis_labels)
-    component_kind = _enum_value(reader, ctx, sheet, row, "固定碳成分性质", component_labels)
-    return (
-        mass_basis or MaterialBasis.RECEIVED,
-        composition_basis or MaterialBasis.RECEIVED,
-        normalized_basis or MaterialBasis.RECEIVED,
-        component_kind or MaterialComponentKind.FIXED_CARBON,
+    def weighted(name: str, component: str) -> Decimal:
+        values = _material_amounts(rows(name))
+        return weighted_fraction(values, component)
+
+    def weighted_rows(materials: Sequence[_MaterialRow], component: str) -> Decimal:
+        return weighted_fraction(_material_amounts(materials), component)
+
+    def carbon(name: str) -> Decimal:
+        return carbon_mass(_material_amounts(rows(name)))
+
+    def all_refs(*names: str) -> tuple[_MaterialRow, ...]:
+        return tuple(line for name in names for line in rows(name))
+
+    def k_parameter(parameter_id: str, label: str) -> ParameterValue | None:
+        return _parameter_from_factor(_factor_for(resolver, parameter_id, period), f"采用 Canonical 中 GB/T 32151.34—2024 {label}标准一般取值。")
+
+    if marker == "B.3 煅烧":
+        raw = rows("raw")
+        calcined = rows("calcined")
+        outgoing = (*calcined, *rows("underburned"), *rows("dust"))
+        return CalcinationInput(
+            gc=_input_value(mass("raw"), "t", raw),
+            wfc=_input_value(weighted("raw", "fixed_carbon"), "ratio", raw),
+            cc=_input_value(mass("calcined"), "t", calcined),
+            ucc=_input_value(mass("underburned"), "t", rows("underburned")),
+            du=_input_value(mass("dust"), "t", rows("dust")),
+            wfc_c=_input_value(weighted_rows(outgoing, "fixed_carbon"), "ratio", outgoing),
+            wvar=_input_value(weighted("raw", "volatile_matter"), "ratio", raw),
+            wvar_c=_input_value(weighted("calcined", "volatile_matter"), "ratio", calcined),
+            k1=k_parameter("car-par-k1", "K1"),
+            mass_basis=MaterialBasis.RECEIVED,
+            composition_basis=MaterialBasis.RECEIVED,
+            normalized_basis=MaterialBasis.RECEIVED,
+            component_kind=MaterialComponentKind.FIXED_CARBON,
+            instance_id=instance_id,
+        )
+    if marker == "B.4 焙烧/炭化":
+        filler = rows("filler")
+        green = rows("green")
+        byproducts = rows("byproducts")
+        product = rows("product")
+        return BakingInput(
+            bpm=_input_value(mass("filler"), "t", filler),
+            bpmfc=_input_value(weighted("filler", "fixed_carbon"), "ratio", filler),
+            bg=_input_value(mass("green"), "t", green),
+            bgfc=_input_value(weighted("green", "fixed_carbon"), "ratio", green),
+            bwt=_input_value(carbon("byproducts"), "tC", byproducts),
+            bp=_input_value(mass("product"), "t", product),
+            bpfc=_input_value(weighted("product", "fixed_carbon"), "ratio", product),
+            bpmvar=_input_value(weighted("filler", "volatile_matter"), "ratio", filler),
+            bgvar=_input_value(weighted("green", "volatile_matter"), "ratio", green),
+            k2=k_parameter("car-par-k2", "K2"),
+            mass_basis=MaterialBasis.RECEIVED,
+            composition_basis=MaterialBasis.RECEIVED,
+            normalized_basis=MaterialBasis.RECEIVED,
+            component_kind=MaterialComponentKind.FIXED_CARBON,
+            instance_id=instance_id,
+        )
+    packing = rows("packing")
+    green = rows("green")
+    byproducts = rows("byproducts")
+    product = rows("product")
+    return GraphitizationInput(
+        gpm=_input_value(mass("packing"), "t", packing),
+        gpmfc=_input_value(weighted("packing", "fixed_carbon"), "ratio", packing),
+        gta=_input_value(mass("green"), "t", green),
+        gtafc=_input_value(weighted("green", "fixed_carbon"), "ratio", green),
+        gwt=_input_value(carbon("byproducts"), "tC", byproducts),
+        gp=_input_value(mass("product"), "t", product),
+        gpfc=_input_value(weighted("product", "fixed_carbon"), "ratio", product),
+        gpmvar=_input_value(weighted("packing", "volatile_matter"), "ratio", packing),
+        k3=k_parameter("car-par-k3", "K3"),
+        mass_basis=MaterialBasis.RECEIVED,
+        composition_basis=MaterialBasis.RECEIVED,
+        normalized_basis=MaterialBasis.RECEIVED,
+        component_kind=MaterialComponentKind.FIXED_CARBON,
+        instance_id=instance_id,
     )
 
 
-def _parse_processes(workbook, contexts, disabled, reader, warnings, resolver) -> None:
-    basis_columns = ("质量基准", "成分基准", "折算基准", "固定碳成分性质", "水分修正证据", "基准换算证据", "碳输出计入投入")
-    for sheet_name, (input_type, attrs, headers, source_id) in PROCESS_SHEETS.items():
-        sheet = workbook[sheet_name]
-        for row in _rows(sheet):
-            ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-            if ctx is None or not _unit_wants_source(ctx, source_id, sheet_name, row, warnings, sheet):
-                continue
-            if not _row_has_payload(sheet, row):
-                continue
-            numbers = {
-                attr: reader.number(ctx, sheet_name, row, _cell_for(sheet, row, header))
-                for attr, header in zip(attrs, headers, strict=True)
-            }
-            # Do not treat a named-but-empty row as an involved business instance.
-            if all(value is None for key, value in numbers.items() if key != attrs[-1]):
-                continue
-            instance_label = reader.text(ctx, sheet_name, _cell_for(sheet, row, "实例名称"))
-            instance_id = _stable_token("instance", ctx.unit_id, sheet_name, row, instance_label or "")
-            activity_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-            factor_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
-            if "k1" in attrs:
-                k_parameter_id, k_unit, reason = "car-par-k1", "K1", "采用 Canonical 中 GB/T 32151.34—2024 标准一般取值 K1。"
-            elif "k2" in attrs:
-                k_parameter_id, k_unit, reason = "car-par-k2", "K2", "采用 Canonical 中 GB/T 32151.34—2024 标准一般取值 K2。"
-            else:
-                k_parameter_id, k_unit, reason = "car-par-k3", "K3", "采用 Canonical 中 GB/T 32151.34—2024 标准一般取值 K3。"
-            default = _process_default(resolver, k_parameter_id, ctx.period, reason)
-            source_ref = reader.text(ctx, sheet_name, _cell_for(sheet, row, "参数证据"))
-            if source_ref and source_ref in ctx.evidence_names:
-                source_ref = next((
-                    evidence.source_reference for evidence in (*ctx.activity_evidence, *ctx.factor_evidence)
-                    if evidence.evidence_id == ctx.evidence_names[source_ref]
-                ), source_ref)
-            k_value = _make_parameter(
-                numbers[attrs[-1]], parameter_id=k_parameter_id, unit="ratio", source_reference=source_ref,
-                evidence_ids=factor_ids, default=default, ctx=ctx,
-                location=_location(sheet_name, row, headers[-1], workbook),
-            )
-            for key, value in tuple(numbers.items()):
-                if key == attrs[-1]:
-                    continue
-                if value is not None:
-                    unit = "ratio" if "fc" in key or "var" in key else "tC" if key in {"bwt", "gwt"} else "t"
-                    numbers[key] = _activity(value, unit, activity_ids)
-            numbers[attrs[-1]] = k_value
-            mass_basis, composition_basis, normalized_basis, component_kind = _basis_values(reader, ctx, sheet, row)
-            moisture = _enum_value(reader, ctx, sheet, row, "水分修正证据", YES_NO)
-            conversion = _enum_value(reader, ctx, sheet, row, "基准换算证据", YES_NO)
-            flags_header = "炉损计入" if sheet_name == "石墨化" else "碳输出计入投入"
-            flag = _enum_value(reader, ctx, sheet, row, flags_header, YES_NO)
-            if moisture and not activity_ids:
-                ctx.errors.append(ImportMessage("EXCEL-BASIS-EVIDENCE-REQUIRED", "选择水分修正时，请先在“证据来源”登记并引用相应活动数据证据。", f"{sheet_name}!{_cell_for(sheet, row, '水分修正证据').coordinate}"))
-            if conversion and not activity_ids:
-                ctx.errors.append(ImportMessage("EXCEL-BASIS-EVIDENCE-REQUIRED", "选择基准换算时，请先在“证据来源”登记并引用相应活动数据证据。", f"{sheet_name}!{_cell_for(sheet, row, '基准换算证据').coordinate}"))
-            process_arguments = dict(
-                **numbers,
-                mass_basis=mass_basis,
-                composition_basis=composition_basis,
-                normalized_basis=normalized_basis,
-                component_kind=component_kind,
-                moisture_evidence=bool(moisture and activity_ids),
-                conversion_evidence=bool(conversion and activity_ids),
-                instance_id=instance_id,
-            )
-            if sheet_name == "石墨化":
-                process_arguments["furnace_loss_included"] = bool(flag)
-            else:
-                process_arguments["carbon_output_included_in_input"] = bool(flag)
-            payload = input_type(**process_arguments)
-            ctx.payloads.setdefault({SOURCE_CALCINATION: "calcinations", SOURCE_BAKING: "bakings", SOURCE_GRAPHITIZATION: "graphitizations"}[source_id], []).append(payload)
-
-
-def _parse_fume(workbook, contexts, disabled, reader, warnings, resolver) -> None:
-    sheet = workbook["烟气焚烧"]
-    headers = ("Q 烟气流量（Nm³/h）", "QVAR 烟气含碳量（mg/Nm³）", "HM 低位发热量（GJ/t）", "FCH 单位热值含碳量（tC/GJ）", "FOX 碳氧化率", "运行时间（d）")
+def _parse_fume(workbook, contexts, disabled, reader, warnings) -> None:
+    sheet = workbook["过程排放"]
+    area = _table_area(sheet, "B.6 烟气焚烧", FUME_HEADERS)
+    header_row = area[0]
+    labels = ("烟气流量（Nm³/h，必填）", "焦油含量（mg/Nm³，必填）", "低位发热量（GJ/t，必填）", "单位热值含碳量（tC/GJ，必填）", "碳氧化率（必填）", "运行时间（d，必填）")
     attrs = ("q", "qvar", "hm", "fch", "fox", "duration")
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None or not _unit_wants_source(ctx, SOURCE_FUME, sheet.title, row, warnings, sheet) or not _row_has_payload(sheet, row):
+    units = {"q": "Nm3/h", "qvar": "mg/Nm3", "hm": "GJ/t", "fox": "ratio", "duration": "d"}
+    for row in _iter_payload_rows(sheet, area, FUME_HEADERS):
+        ctx = _context_for_row(reader, sheet, row, header_row, FUME_HEADERS, contexts, disabled, warnings)
+        if ctx is None:
             continue
-        values = {attr: reader.number(ctx, sheet.title, row, _cell_for(sheet, row, header)) for attr, header in zip(attrs, headers, strict=True)}
-        if all(value is None for value in values.values()):
-            continue
-        activity_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-        factor_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
-        source_ref = reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号"))
-        fch_value = _make_parameter(
-            values["fch"], parameter_id="CAR-PAR-P04A-FCH", unit="tC/GJ", source_reference=source_ref,
-            evidence_ids=factor_ids, default=None, ctx=ctx,
-            location=_location(sheet.title, row, "FCH 单位热值含碳量（tC/GJ）", workbook),
-        )
-        for key, value in tuple(values.items()):
+        _mark(ctx, SOURCE_FUME)
+        instance = _parse_optional_text(reader, ctx, sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[1])
+        if not instance:
+            reader.error(ctx, "EXCEL-FUME-NAME-REQUIRED", "请填写烟气焚烧实例名称。", _location(sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[1]))
+            instance = f"烟气焚烧{row}"
+        numbers = {attr: _parse_number(reader, ctx, sheet, row, header_row, FUME_HEADERS, label, required=True) for attr, label in zip(attrs, labels, strict=True)}
+        activity_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[8])
+        activity_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[9])
+        parameter_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[10])
+        parameter_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[11])
+        activity_ids = _evidence_for_row(ctx, SOURCE_FUME, sheet, row, activity_kind, activity_ref)
+        factor_ids = _evidence_for_row(ctx, SOURCE_FUME, sheet, row, parameter_kind, parameter_ref, parameter=True)
+        fch_value = _make_parameter(numbers["fch"], parameter_id="CAR-PAR-P04A-FCH", unit="tC/GJ", source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=None, ctx=ctx, location=_location(sheet, row, header_row, FUME_HEADERS, FUME_HEADERS[5]))
+        for key, value in tuple(numbers.items()):
             if key == "fch":
-                values[key] = fch_value
-            elif value is not None:
-                values[key] = _activity(value, "ratio" if key == "fox" else {"q": "Nm3/h", "qvar": "mg/Nm3", "hm": "GJ/t", "duration": "d"}[key], activity_ids)
-        name = reader.text(ctx, sheet.title, _cell_for(sheet, row, "实例名称"))
-        ctx.payloads.setdefault("fume_incinerations", []).append(FumeIncinerationInput(
-            **values, instance_id=_stable_token("fume", ctx.unit_id, row, name or ""),
-        ))
+                numbers[key] = fch_value
+            else:
+                numbers[key] = _activity(value, units[key], _activity_source(activity_kind), activity_ref, activity_ids)
+        ctx.payloads.setdefault("fume_incinerations", []).append(FumeIncinerationInput(**numbers, instance_id=_stable_token("fume", ctx.unit_id, instance)))
 
 
 def _parse_fgd(workbook, contexts, disabled, reader, warnings, resolver) -> None:
-    sheet = workbook["烟气脱硫"]
+    sheet = workbook["过程排放"]
+    area = _table_area(sheet, "B.7 烟气脱硫", FGD_HEADERS)
+    header_row = area[0]
     components: dict[tuple[str, str], list[CarbonateComponent]] = {}
-    row_counts: dict[tuple[str, str], int] = {}
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None or not _unit_wants_source(ctx, SOURCE_FGD, sheet.title, row, warnings, sheet) or not _row_has_payload(sheet, row):
+    for row in _iter_payload_rows(sheet, area, FGD_HEADERS):
+        ctx = _context_for_row(reader, sheet, row, header_row, FGD_HEADERS, contexts, disabled, warnings)
+        if ctx is None:
             continue
-        name = reader.text(ctx, sheet.title, _cell_for(sheet, row, "设施名称")) or f"烟气治理设施{row}"
-        carbonate_label = reader.text(ctx, sheet.title, _cell_for(sheet, row, "碳酸盐种类"))
-        if carbonate_label is not None and carbonate_label not in CARBONATE_LABELS:
-            reader.error(ctx, "EXCEL-CARBONATE-INVALID", "碳酸盐种类不在标准 C.2 列表中。", _location(sheet.title, row, "碳酸盐种类", workbook))
-        amount = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "碳酸盐用量（t）"))
-        fraction_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "碳酸盐含量比例"))
-        factor_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "排放因子（tCO₂/t）"))
-        conversion_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "转化率"))
-        if amount is None and fraction_value is None and factor_value is None and conversion_value is None and carbonate_label is None:
+        _mark(ctx, SOURCE_FGD)
+        facility = _parse_optional_text(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[1])
+        carbonate = _parse_optional_text(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[2])
+        amount = _parse_number(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[3], required=True)
+        fraction_value = _parse_number(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[4])
+        factor_value = _parse_number(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[5])
+        conversion_value = _parse_number(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[6])
+        activity_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[7])
+        parameter_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[8])
+        source_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[9])
+        if not facility:
+            reader.error(ctx, "EXCEL-FGD-FACILITY-REQUIRED", "请填写脱硫设施或批次名称。", _location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[1]))
+        parameter_id = CARBONATE_LABELS.get(carbonate or "")
+        if not parameter_id:
+            reader.error(ctx, "EXCEL-CARBONATE-REQUIRED", "请选择碳酸盐种类；未知种类不能默认按 CaCO₃ 计算。", _location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[2]))
+        if amount is None or not facility or not parameter_id:
             continue
-        activity_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-        factor_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
-        source_ref = reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号"))
-        carbonate_parameter = CARBONATE_LABELS.get(carbonate_label or "")
-        default_fraction = _parameter_from_factor(_factor_for(resolver, "car-par-p04b-i", ctx.period), "采用 GB/T 32151.34—2024 烟气脱硫碳酸盐含量标准缺省值。")
-        default_conversion = _parameter_from_factor(_factor_for(resolver, "car-par-p04b-tr", ctx.period), "采用 GB/T 32151.34—2024 烟气脱硫转化率标准缺省值。")
-        default_factor = _parameter_from_factor(_factor_for(resolver, carbonate_parameter, ctx.period), "按所选碳酸盐种类采用 GB/T 32151.34—2024 附录 C.2 对应因子。") if carbonate_parameter else None
-        fraction = _make_parameter(
-            fraction_value, parameter_id="car-par-p04b-i", unit="ratio", source_reference=source_ref,
-            evidence_ids=factor_ids, default=default_fraction, ctx=ctx,
-            location=_location(sheet.title, row, "碳酸盐含量比例", workbook),
-        )
-        conversion = _make_parameter(
-            conversion_value, parameter_id="car-par-p04b-tr", unit="ratio", source_reference=source_ref,
-            evidence_ids=factor_ids, default=default_conversion, ctx=ctx,
-            location=_location(sheet.title, row, "转化率", workbook),
-        )
-        factor = _make_parameter(
-            factor_value,
-            parameter_id=carbonate_parameter or "fgd_carbonate_emission_factor_measured",
-            unit="tCO2/t", source_reference=source_ref, evidence_ids=factor_ids,
-            default=default_factor, ctx=ctx,
-            location=_location(sheet.title, row, "排放因子（tCO₂/t）", workbook),
-        )
-        key = (ctx.name, name)
-        row_counts[key] = row
-        components.setdefault(key, []).append(CarbonateComponent(
-            amount=_activity(amount, "t", activity_ids),
+        if not any(value is not None for value in (fraction_value, factor_value, conversion_value)) and (parameter_kind or source_ref):
+            reader.error(ctx, "EXCEL-PARAMETER-SOURCE-UNUSED", "填写了参数来源，但没有填写任何自定义参数值。", _location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[8]))
+        factor_ids = _evidence_for_row(ctx, SOURCE_FGD, sheet, row, parameter_kind, source_ref, parameter=True)
+        activity_ids = _evidence_for_row(ctx, SOURCE_FGD, sheet, row, activity_kind, source_ref)
+        default_fraction = _parameter_from_factor(_factor_for(resolver, "car-par-p04b-i", ctx.period), "採用 GB/T 32151.34—2024 脱硫碳酸盐含量标准缺省值。")
+        default_conversion = _parameter_from_factor(_factor_for(resolver, "car-par-p04b-tr", ctx.period), "采用 GB/T 32151.34—2024 脱硫转化率标准缺省值。")
+        default_factor = _parameter_from_factor(_factor_for(resolver, parameter_id, ctx.period), "按所选碳酸盐种类采用附录 C.2 对应因子。")
+        fraction = _make_parameter(fraction_value, parameter_id="car-par-p04b-i", unit="ratio", source_kind_label=parameter_kind, source_reference=source_ref, evidence_ids=factor_ids, default=default_fraction, ctx=ctx, location=_location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[4]))
+        factor = _make_parameter(factor_value, parameter_id=parameter_id, unit="tCO2/t", source_kind_label=parameter_kind, source_reference=source_ref, evidence_ids=factor_ids, default=default_factor, ctx=ctx, location=_location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[5]))
+        conversion = _make_parameter(conversion_value, parameter_id="car-par-p04b-tr", unit="ratio", source_kind_label=parameter_kind, source_reference=source_ref, evidence_ids=factor_ids, default=default_conversion, ctx=ctx, location=_location(sheet, row, header_row, FGD_HEADERS, FGD_HEADERS[6]))
+        components.setdefault((ctx.name, facility), []).append(CarbonateComponent(
+            amount=_activity(amount, "t", _activity_source(activity_kind), source_ref, activity_ids),
             carbonate_fraction=fraction,
             emission_factor=factor,
             conversion_rate=conversion,
-            carbonate_type=carbonate_label,
+            carbonate_type=carbonate,
         ))
-    for (unit_name, facility_name), unit_components in components.items():
-        ctx = contexts[unit_name]
-        instance = _stable_token("fgd", ctx.unit_id, facility_name)
-        ctx.payloads.setdefault("fgd_units", []).append(FGDInput(components=tuple(unit_components), instance_id=instance))
+    for (unit_name, facility), values in components.items():
+        contexts[unit_name].payloads.setdefault("fgd_units", []).append(FGDInput(
+            components=tuple(values),
+            instance_id=_stable_token("fgd", contexts[unit_name].unit_id, facility),
+        ))
 
 
 def _parse_electricity(workbook, contexts, disabled, reader, warnings) -> None:
-    sheet = workbook["电力"]
-    direction_map = {"购入": "purchased", "输出": "exported"}
-    acquisition_map = {"购入": ElectricityAcquisitionMode.PURCHASED, "自发自用": ElectricityAcquisitionMode.SELF_CONSUMED}
-    attribute_map = {"常规": ElectricityAttribute.ORDINARY, "非化石": ElectricityAttribute.NONFOSSIL, "化石": ElectricityAttribute.FOSSIL}
-    proof_type_map = {
-        "无": ElectricityProofType.NONE,
-        "合同和结算": ElectricityProofType.CONTRACT_AND_SETTLEMENT,
-        "GEC": ElectricityProofType.GEC,
-        "月度原始记录": ElectricityProofType.MONTHLY_ORIGINAL_RECORD,
-    }
-    proof_status_map = {"未提供": ElectricityProofStatus.NOT_PROVIDED, "有效": ElectricityProofStatus.VALID, "无效": ElectricityProofStatus.INVALID}
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None or not _row_has_payload(sheet, row):
+    sheet = workbook["燃料与能源"]
+    area = _table_area(sheet, "B.8 电力", ELECTRICITY_HEADERS)
+    header_row = area[0]
+    directions = {"购入": "purchased", "输出": "exported"}
+    acquisitions = {"购入": ElectricityAcquisitionMode.PURCHASED, "自发自用": ElectricityAcquisitionMode.SELF_CONSUMED}
+    attributes = {"常规": ElectricityAttribute.ORDINARY, "非化石": ElectricityAttribute.NONFOSSIL, "化石": ElectricityAttribute.FOSSIL}
+    proofs = {"无": ElectricityProofType.NONE, "合同和结算": ElectricityProofType.CONTRACT_AND_SETTLEMENT, "GEC": ElectricityProofType.GEC, "月度原始记录": ElectricityProofType.MONTHLY_ORIGINAL_RECORD}
+    statuses = {"未提供": ElectricityProofStatus.NOT_PROVIDED, "有效": ElectricityProofStatus.VALID, "无效": ElectricityProofStatus.INVALID}
+    for row in _iter_payload_rows(sheet, area, ELECTRICITY_HEADERS):
+        ctx = _context_for_row(reader, sheet, row, header_row, ELECTRICITY_HEADERS, contexts, disabled, warnings)
+        if ctx is None:
             continue
-        direction = _enum_value(reader, ctx, sheet, row, "方向", direction_map, required=True)
+        direction_label = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[1])
+        direction = directions.get(direction_label or "")
+        if direction is None:
+            _mark(ctx, SOURCE_PURCHASED_ELECTRICITY)
+            _mark(ctx, SOURCE_EXPORTED_ELECTRICITY)
+            reader.error(ctx, "EXCEL-ENERGY-DIRECTION-REQUIRED", "请选择购入或输出。", _location(sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[1]))
+            continue
         source_id = SOURCE_PURCHASED_ELECTRICITY if direction == "purchased" else SOURCE_EXPORTED_ELECTRICITY
-        if direction not in {"purchased", "exported"}:
-            continue
-        if not _unit_wants_source(ctx, source_id, sheet.title, row, warnings, sheet):
-            continue
-        amount = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "电量（MWh）"), required=True)
+        _mark(ctx, source_id)
+        amount = _parse_number(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[2], required=True)
+        factor_value = _parse_number(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[3])
+        activity_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[4])
+        activity_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[5])
+        parameter_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[6])
+        parameter_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[7])
+        activity_ids = _evidence_for_row(ctx, source_id, sheet, row, activity_kind, activity_ref)
         if amount is None:
             continue
-        activity_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-        factor_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
-        factor_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "排放因子（tCO₂/MWh）"))
         if direction == "purchased":
-            acquisition = _enum_value(reader, ctx, sheet, row, "取得方式", acquisition_map, required=True)
-            attribute = _enum_value(reader, ctx, sheet, row, "电力属性", attribute_map, required=True)
-            proof_type = _enum_value(reader, ctx, sheet, row, "证明类型", proof_type_map, required=True)
-            proof_status = _enum_value(reader, ctx, sheet, row, "证明状态", proof_status_map, required=True)
-            if not isinstance(acquisition, ElectricityAcquisitionMode) or not isinstance(attribute, ElectricityAttribute):
+            if factor_value is not None or parameter_kind or parameter_ref:
+                reader.error(ctx, "EXCEL-PURCHASED-ELECTRICITY-FACTOR-AUTO", "购入电力因子由软件按核算期间、属性和证明信息自动匹配；请勿填写输出电力因子栏。", _location(sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[3]))
+            acquisition_label = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[8]) or "购入"
+            attribute_label = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[9]) or "常规"
+            proof_label = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[10]) or "无"
+            status_label = _parse_optional_text(reader, ctx, sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[11]) or "未提供"
+            acquisition, attribute, proof, status = acquisitions.get(acquisition_label), attributes.get(attribute_label), proofs.get(proof_label), statuses.get(status_label)
+            if None in (acquisition, attribute, proof, status):
+                reader.error(ctx, "EXCEL-ELECTRICITY-OPTION-INVALID", "请检查电力取得方式、属性和证明选项。", f"燃料与能源!A{row}")
                 continue
-            if not isinstance(proof_type, ElectricityProofType):
-                proof_type = ElectricityProofType.NONE
-            if not isinstance(proof_status, ElectricityProofStatus):
-                proof_status = ElectricityProofStatus.NOT_PROVIDED
+            if attribute is ElectricityAttribute.NONFOSSIL and proof is ElectricityProofType.NONE:
+                reader.error(ctx, "EXCEL-NONFOSSIL-PROOF-REQUIRED", "非化石电力需提供适用证明类型和有效状态。", _location(sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[10]))
             if ctx.period is None:
-                ctx.errors.append(ImportMessage("EXCEL-PERIOD-REQUIRED", "电力明细需要有效核算期间。", f"电力!A{row}"))
+                ctx.errors.append(ImportMessage("EXCEL-PERIOD-REQUIRED", "购入电力需要有效核算期间。", f"燃料与能源!A{row}"))
                 continue
             ctx.payloads.setdefault("electricity_details", []).append(ElectricityConsumptionDetail(
                 detail_id=_stable_token("electricity", ctx.unit_id, row),
@@ -1335,92 +1394,98 @@ def _parse_electricity(workbook, contexts, disabled, reader, warnings) -> None:
                 electricity_unit="MWh",
                 acquisition_mode=acquisition,
                 attribute=attribute,
-                proof_type=proof_type,
-                proof_status=proof_status,
+                proof_type=proof,
+                proof_status=status,
             ))
         else:
-            factor = _make_parameter(
-                factor_value,
-                parameter_id="electricity_emission_factor_measured",
-                unit="tCO2/MWh",
-                source_reference=reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号")),
-                evidence_ids=factor_ids,
-                default=None,
-                ctx=ctx,
-                location=_location(sheet.title, row, "排放因子（tCO₂/MWh）", workbook),
-            )
+            if factor_value is None and (parameter_kind or parameter_ref):
+                reader.error(ctx, "EXCEL-PARAMETER-SOURCE-UNUSED", "填写了参数来源，但没有填写自定义输出电力因子。", _location(sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[6]))
+            factor_ids = _evidence_for_row(ctx, source_id, sheet, row, parameter_kind, parameter_ref, parameter=True) if factor_value is not None else ()
+            factor = _make_parameter(factor_value, parameter_id="electricity_emission_factor_measured", unit="tCO2/MWh", source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=None, ctx=ctx, location=_location(sheet, row, header_row, ELECTRICITY_HEADERS, ELECTRICITY_HEADERS[3]))
             ctx.payloads.setdefault("exported_electricity", []).append(ElectricityOutputLine(
                 line_id=_stable_token("power-output", ctx.unit_id, row),
-                amount=_activity(amount, "MWh", activity_ids),
+                amount=_activity(amount, "MWh", _activity_source(activity_kind), activity_ref, activity_ids),
                 factor=factor,
                 unit="MWh",
             ))
 
 
 def _parse_heat(workbook, contexts, disabled, reader, warnings) -> None:
-    sheet = workbook["热力"]
+    sheet = workbook["燃料与能源"]
+    area = _table_area(sheet, "B.9 热力", HEAT_HEADERS)
+    header_row = area[0]
     directions = {"购入": "purchased", "输出": "exported"}
     steam_kinds = {"饱和蒸汽": SteamKind.SATURATED, "过热蒸汽": SteamKind.SUPERHEATED}
-    for row in _rows(sheet):
-        ctx = _row_context(reader, sheet, row, contexts, disabled, warnings)
-        if ctx is None or not _row_has_payload(sheet, row):
+    for row in _iter_payload_rows(sheet, area, HEAT_HEADERS):
+        ctx = _context_for_row(reader, sheet, row, header_row, HEAT_HEADERS, contexts, disabled, warnings)
+        if ctx is None:
             continue
-        direction = _enum_value(reader, ctx, sheet, row, "方向", directions, required=True)
+        direction_label = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[1])
+        direction = directions.get(direction_label or "")
+        if direction is None:
+            _mark(ctx, SOURCE_PURCHASED_HEAT)
+            _mark(ctx, SOURCE_EXPORTED_HEAT)
+            reader.error(ctx, "EXCEL-HEAT-DIRECTION-REQUIRED", "请选择购入或输出。", _location(sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[1]))
+            continue
         source_id = SOURCE_PURCHASED_HEAT if direction == "purchased" else SOURCE_EXPORTED_HEAT
-        if direction not in {"purchased", "exported"}:
+        _mark(ctx, source_id)
+        amount = _parse_number(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[2], required=True)
+        steam_label = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[3],)
+        if not steam_label:
+            reader.error(ctx, "EXCEL-STEAM-KIND-REQUIRED", "请选择饱和蒸汽或过热蒸汽。", _location(sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[3]))
+        enthalpy = _parse_number(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[4])
+        pressure = _parse_number(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[5])
+        temperature = _parse_number(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[6])
+        factor_value = _parse_number(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[7])
+        activity_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[8])
+        activity_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[9])
+        parameter_kind = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[10])
+        parameter_ref = _parse_optional_text(reader, ctx, sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[11])
+        steam = steam_kinds.get(steam_label or "")
+        if steam is None:
+            steam = SteamKind.SATURATED
+        if enthalpy is None and pressure is None:
+            reader.error(ctx, "EXCEL-STEAM-STATE-REQUIRED", "请填写焓值，或填写压力和温度以使用现有蒸汽表。", f"燃料与能源!A{row}")
+        if steam is SteamKind.SUPERHEATED and enthalpy is None and temperature is None:
+            reader.error(ctx, "EXCEL-STEAM-TEMPERATURE-REQUIRED", "过热蒸汽查表需要填写温度。", _location(sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[6]))
+        if amount is None:
             continue
-        if not _unit_wants_source(ctx, source_id, sheet.title, row, warnings, sheet):
-            continue
-        amount = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "热力数量（kg）"), required=True)
-        steam_kind = _enum_value(reader, ctx, sheet, row, "蒸汽类型", steam_kinds, required=True)
-        enthalpy = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "焓值（kJ/kg）"))
-        pressure = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "压力（MPa）"))
-        temperature = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "温度（℃）"))
-        factor_value = reader.number(ctx, sheet.title, row, _cell_for(sheet, row, "排放因子（tCO₂/GJ）"))
-        if amount is None or not isinstance(steam_kind, SteamKind):
-            continue
-        activity_ids = _evidence_ids(ctx, reader, sheet, row, "活动数据证据")
-        factor_ids = _evidence_ids(ctx, reader, sheet, row, "参数证据")
-        factor = _make_parameter(
-            factor_value, parameter_id="heat_emission_factor_measured", unit="tCO2/GJ",
-            source_reference=reader.text(ctx, sheet.title, _cell_for(sheet, row, "参数来源编号")),
-            evidence_ids=factor_ids, default=None, ctx=ctx,
-            location=_location(sheet.title, row, "排放因子（tCO₂/GJ）", workbook),
-        )
-        line_id = _stable_token("heat", ctx.unit_id, direction, row)
-        heat = HeatInput(
-            line_id=line_id,
-            amount=_activity(amount, "kg", activity_ids),
-            enthalpy=_activity(enthalpy, "kJ/kg", activity_ids),
+        if factor_value is None and (parameter_kind or parameter_ref):
+            reader.error(ctx, "EXCEL-PARAMETER-SOURCE-UNUSED", "填写了参数来源，但没有填写自定义热力因子。", _location(sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[10]))
+        activity_ids = _evidence_for_row(ctx, source_id, sheet, row, activity_kind, activity_ref)
+        factor_ids = _evidence_for_row(ctx, source_id, sheet, row, parameter_kind, parameter_ref, parameter=True) if factor_value is not None else ()
+        factor = _make_parameter(factor_value, parameter_id="heat_emission_factor_measured", unit="tCO2/GJ", source_kind_label=parameter_kind, source_reference=parameter_ref, evidence_ids=factor_ids, default=None, ctx=ctx, location=_location(sheet, row, header_row, HEAT_HEADERS, HEAT_HEADERS[7]))
+        value = HeatInput(
+            line_id=_stable_token("heat", ctx.unit_id, direction, row),
+            amount=_activity(amount, "kg", _activity_source(activity_kind), activity_ref, activity_ids),
+            enthalpy=_activity(enthalpy, "kJ/kg", _activity_source(activity_kind), activity_ref, activity_ids),
             factor=factor,
             unit="kg",
-            steam_kind=steam_kind,
-            pressure_mpa=_activity(pressure, "MPa", activity_ids),
-            temperature_c=_activity(temperature, "C", activity_ids),
+            steam_kind=steam,
+            pressure_mpa=_activity(pressure, "MPa", _activity_source(activity_kind), activity_ref, activity_ids),
+            temperature_c=_activity(temperature, "C", _activity_source(activity_kind), activity_ref, activity_ids),
         )
-        ctx.payloads.setdefault("purchased_heat" if direction == "purchased" else "exported_heat", []).append(heat)
+        ctx.payloads.setdefault("purchased_heat" if direction == "purchased" else "exported_heat", []).append(value)
 
 
-def _make_carbon_input(ctx: _UnitContext) -> CarbonMaterialInput:
-    missing_sources = [source for source in SOURCE_IDS if source not in ctx.source_states]
-    for source in missing_sources:
-        ctx.errors.append(ImportMessage("EXCEL-SOURCE-STATE-MISSING", f"请为“{SOURCE_LABELS[source]}”明确选择涉及状态。"))
-        ctx.source_states[source] = EmissionSourceStatus.UNCONFIRMED
+def _make_input(ctx: _UnitContext, digest: str) -> CarbonMaterialInput:
+    states = tuple(
+        EmissionSourceState(source_id, ctx.source_states.get(source_id, EmissionSourceStatus.NOT_INVOLVED))
+        for source_id in SOURCE_IDS
+    )
     report = CarbonReportingData(
-        **ctx.report_values,
+        boundary_description=ctx.boundary_description,
         activity_evidence=tuple(ctx.activity_evidence),
         measured_factor_evidence=tuple(ctx.factor_evidence),
     )
     return CarbonMaterialInput(
-        input_id=f"input.{ctx.unit_id}",
+        input_id=_stable_token("input", ctx.unit_id, digest),
         enterprise_id=ctx.enterprise_id,
         enterprise_name=ctx.enterprise_name,
         period=ctx.period,
         boundary_confirmed=ctx.boundary_confirmed,
-        boundary_component_ids=ctx.boundary_components,
-        source_states=tuple(EmissionSourceState(source_id, ctx.source_states[source_id]) for source_id in SOURCE_IDS),
-        other_activity_present=ctx.other_activity,
-        transport_present=ctx.transport,
+        boundary_component_ids=(_stable_token("boundary", ctx.unit_id),),
+        source_states=states,
         fuel_inputs=tuple(ctx.payloads.get("fuel_inputs", ())),
         calcinations=tuple(ctx.payloads.get("calcinations", ())),
         bakings=tuple(ctx.payloads.get("bakings", ())),
@@ -1436,12 +1501,7 @@ def _make_carbon_input(ctx: _UnitContext) -> CarbonMaterialInput:
 
 
 class ExcelWorkbookImporter:
-    """Parse a supported workbook into independent unit previews.
-
-    `parameter_resolver` is the same application resolver used by the desktop
-    Calculator. No Qt, widget names, project persistence, or Record database are
-    referenced by this module.
-    """
+    """Read supported workbooks into independent, non-persistent unit previews."""
 
     def __init__(self, parameter_resolver: ParameterResolver | None = None):
         self.parameter_resolver = parameter_resolver
@@ -1464,12 +1524,16 @@ class ExcelWorkbookImporter:
         try:
             missing = sorted(REQUIRED_SHEETS - set(workbook.sheetnames))
             if missing:
-                raise WorkbookFatalError(f"缺少模板核心工作表：{', '.join(missing)}")
-            for sheet_name, headers in SHEETS.items():
-                actual = _read_headers(workbook, sheet_name)
-                if tuple(actual[:len(headers)]) != tuple(headers):
-                    raise WorkbookFatalError(f"工作表“{sheet_name}”的模板列结构不受支持。")
-            metadata = _parse_metadata(workbook)
+                raise WorkbookFatalError(f"缺少模板工作表：{', '.join(missing)}")
+            for sheet in VISIBLE_SHEETS:
+                if workbook[sheet].sheet_state != "visible":
+                    raise WorkbookFatalError(f"用户工作表“{sheet}”必须可见。")
+            if workbook[METADATA_SHEET].sheet_state == "visible":
+                raise WorkbookFatalError("模板信息页必须保持隐藏。")
+            for marker, headers in SECTION_HEADERS.items():
+                sheet_name = "核算单元" if marker == "核算单元清单" else "燃料与能源" if marker.startswith(("B.2", "B.8", "B.9")) else "过程排放"
+                _table_area(workbook[sheet_name], marker, headers)
+            metadata = _metadata(workbook)
             expected = {
                 "template_id": TEMPLATE_ID,
                 "template_version": TEMPLATE_VERSION,
@@ -1477,78 +1541,51 @@ class ExcelWorkbookImporter:
                 "standard_version": STANDARD_VERSION,
                 "ingress_policy_id": INGRESS_POLICY_ID,
             }
-            for key, expected_value in expected.items():
-                if metadata.get(key) != expected_value:
-                    raise WorkbookFatalError(f"工作簿 {key} 不匹配或版本无法识别。")
+            for key, value in expected.items():
+                if metadata.get(key) != value:
+                    raise WorkbookFatalError(f"模板 {key} 不匹配或版本无法识别。")
 
             warnings: list[ImportMessage] = []
-            extra_sheets = sorted(set(workbook.sheetnames) - REQUIRED_SHEETS)
-            for name in extra_sheets:
-                warnings.append(ImportMessage("EXCEL-UNKNOWN-SHEET", f"发现自定义页签“{name}”，该页签不参与核算。", name))
+            for name in sorted(set(workbook.sheetnames) - REQUIRED_SHEETS):
+                warnings.append(ImportMessage("EXCEL-UNKNOWN-SHEET", f"自定义工作表“{name}”不参与核算，已忽略。", name))
             reader = _CellReader(numeric_xml)
-            contexts, disabled = _load_unit_contexts(workbook, digest, reader, warnings)
-            _collect_evidence(workbook, contexts, reader, warnings)
-            _source_state_rows(workbook, contexts, disabled, reader, warnings)
+            contexts, disabled = _read_unit_contexts(workbook, digest, reader, warnings)
             _parse_fuels(workbook, contexts, disabled, reader, warnings, self.parameter_resolver)
-            _parse_processes(workbook, contexts, disabled, reader, warnings, self.parameter_resolver)
-            _parse_fume(workbook, contexts, disabled, reader, warnings, self.parameter_resolver)
+            _parse_process_materials(workbook, contexts, disabled, reader, warnings, self.parameter_resolver)
+            _parse_fume(workbook, contexts, disabled, reader, warnings)
             _parse_fgd(workbook, contexts, disabled, reader, warnings, self.parameter_resolver)
             _parse_electricity(workbook, contexts, disabled, reader, warnings)
             _parse_heat(workbook, contexts, disabled, reader, warnings)
 
             imported_at = datetime.now(timezone.utc)
-            provenance = WorkbookProvenance(
-                workbook_sha256=digest,
-                template_id=metadata["template_id"],
-                template_version=metadata["template_version"],
-                standard_id=metadata["standard_id"],
-                standard_version=metadata["standard_version"],
-                ingress_policy_id=metadata["ingress_policy_id"],
-                imported_at=imported_at,
-            )
+            provenance = WorkbookProvenance(digest, metadata["template_id"], metadata["template_version"], metadata["standard_id"], metadata["standard_version"], metadata["ingress_policy_id"], imported_at)
             previews: list[UnitCalculationPreview] = []
             for ctx in contexts.values():
-                if ctx.period is None:
-                    ctx.errors.append(ImportMessage("EXCEL-PERIOD-REQUIRED", "请填写有效的核算期间。"))
-                    input_value = None
-                else:
-                    try:
-                        input_value = _make_carbon_input(ctx)
-                    except (DomainValidationError, TypeError, ValueError) as exc:
-                        ctx.errors.append(ImportMessage("EXCEL-DOMAIN-INPUT-INVALID", f"无法构造该核算单元的业务输入：{exc}"))
-                        input_value = None
+                input_value = None
+                try:
+                    input_value = _make_input(ctx, digest)
+                except (DomainValidationError, TypeError, ValueError) as exc:
+                    ctx.errors.append(ImportMessage("EXCEL-DOMAIN-INPUT-INVALID", f"无法构造该核算单元的数据：{exc}"))
                 calculation = None
                 if input_value is not None and not ctx.errors:
-                    calculator = CarbonMaterialCalculator(
-                        parameter_resolver=self.parameter_resolver,
-                        record_repository=InMemoryRecordRepository(),
-                    )
+                    calculator = CarbonMaterialCalculator(parameter_resolver=self.parameter_resolver, record_repository=InMemoryRecordRepository())
                     outcome = calculator.calculate(input_value, calculated_at=imported_at)
-                    calculation = outcome
                     for problem in outcome.problems:
+                        message = ImportMessage(problem.code, problem.message, problem.field_id)
                         if getattr(problem.level, "value", "ERROR") == "ERROR":
-                            ctx.errors.append(ImportMessage(problem.code, problem.message, problem.field_id))
+                            ctx.errors.append(message)
                         else:
-                            ctx.warnings.append(ImportMessage(problem.code, problem.message, problem.field_id))
-                    # The preview never exposes or persists the ephemeral Record.
-                    from dataclasses import replace
+                            ctx.warnings.append(message)
                     calculation = replace(outcome, record=None)
-                previews.append(UnitCalculationPreview(
-                    unit_id=ctx.unit_id,
-                    name=ctx.name,
-                    unit_type=ctx.unit_type,
-                    input_value=input_value,
-                    calculation=calculation,
-                    errors=tuple(ctx.errors),
-                    warnings=tuple(ctx.warnings),
-                ))
+                previews.append(UnitCalculationPreview(ctx.unit_id, ctx.name, ctx.unit_type, input_value, calculation, tuple(ctx.errors), tuple(ctx.warnings)))
             return WorkbookImportPreview(provenance, tuple(previews), tuple(warnings), tuple(reader.evidence))
         finally:
             workbook.close()
 
 
 __all__ = [
-    "TEMPLATE_ID", "TEMPLATE_VERSION", "INGRESS_POLICY_ID", "WorkbookFatalError", "WorkbookProvenance",
-    "NumericCellEvidence", "ImportMessage", "UnitCalculationPreview", "WorkbookImportPreview",
-    "ExcelWorkbookImporter", "create_template_bytes", "write_template", "significant_digit_count",
+    "TEMPLATE_ID", "TEMPLATE_VERSION", "INGRESS_POLICY_ID", "METADATA_SHEET", "VISIBLE_SHEETS", "SECTION_HEADERS",
+    "FUEL_HEADERS", "ELECTRICITY_HEADERS", "HEAT_HEADERS", "MATERIAL_HEADERS", "FUME_HEADERS", "FGD_HEADERS",
+    "WorkbookFatalError", "WorkbookProvenance", "NumericCellEvidence", "ImportMessage", "UnitCalculationPreview",
+    "WorkbookImportPreview", "ExcelWorkbookImporter", "create_template_bytes", "write_template", "significant_digit_count",
 ]

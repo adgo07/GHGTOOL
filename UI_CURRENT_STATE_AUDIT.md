@@ -193,7 +193,7 @@ AppShell：`packages/ui/shell.py::AppShell`，采用固定左侧导航 + `QStack
 |---|---|---|---|---|
 | `GHG-UI-001` | `OVER_DENSE` | P1 | Reference Standard 是超长核算工作页，业务合理但信息量很大，结果位于长输入区之后 | 优化折叠、定位、结果可达性；不强制拆页 |
 | `GHG-UI-002` | `INTERNAL_LEAK` | P2 | 普通提示仍出现 `I02 / I03 / I04` 等内部/规则路径编号 | 普通层改成业务名称，编号保留专业详情 |
-| `GHG-UI-003` | `USER_NOISE` | P2 | Excel 未开放入口同时出现在一级导航和首页行动区 | 后续根据交付阶段决定入口层级；本轮只记录 |
+| `GHG-UI-003` | `USER_NOISE` | P2 | Excel 模板生成和导入预览入口已开放，仍同时出现在一级导航和首页行动区 | 后续可统一入口层级；RS03-A-R1 聚焦模板本身与用户验收，不改变导航结构 |
 | `GHG-UI-004` | `INCONSISTENT` | P2 | `AppRoute` 代码要求固定 7 route 且注释称 frozen order，与 evolving UI guideline 的“不冻结导航”方向不一致 | 后续 UI Design 时解除不必要的展示结构硬冻结，不改业务语义 |
 | `GHG-UI-005` | `LANGUAGE` | P3 | 普通结果仍使用 `ET` 等公式符号，虽专业用户可理解但可读性仍可改善 | 保留标准符号，同时补充更自然中文解释 |
 

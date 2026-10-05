@@ -1,56 +1,46 @@
-# GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础
+# GHG-RS03-A-R1 — Excel 模板简化与用户验收候选版
 
-状态：本地实施与本地验证完成；PR #27 保持开放等待独立重新验收。Windows/Python 3.12 exact-head CI 按最新 head 在 [PR Checks](https://github.com/adgo07/GHGTOOL/pull/27/checks) 跟踪；报告不记录自身所在提交 SHA，完成回复将给出最后通过的 run 与 `head_sha`。
+状态：`RS03-A-R1 IMPLEMENTED`；`TECHNICAL ACCEPTANCE PENDING`；`USER TEMPLATE UAT PENDING`。PR #27 保持开放、不合并。RS03-B `NOT STARTED`；GB/T 32151.34—2024 仍为 `NOT SUPPORTED`。
 
-## 1. 基线与平台预检查
+## 基线与平台预检查
 
-- 仓库：`adgo07/GHGTOOL`；origin 已验证为 `https://github.com/adgo07/GHGTOOL.git`。
-- Base：从最新 `origin/main` `058d176a8a461b758db1a1d62395b032889d9b2a` 新建 `codex/ghg-rs03-a-excel-ingress`；该 main 已含 PR #26 合并结果，分支起始干净。
-- platform-lock.json SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定 SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变。
-- Contract 预检查：Architecture V2.1、Numeric Contract v1 和 Numeric Profiles v1 按锁定版本为 Frozen；Excel / openpyxl Decimal ingress 词法互操作仍为中央 OPEN。本地策略未改变或覆盖中央 Contract，未升级 baseline / platform-lock。
-- Standard Issue：无新增事项；沿用已批准 Mapping、公式和计算口径，本工作包未改变标准解释、计算公式或适用范围。GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
+- Base / `origin/main`：`058d176a8a461b758db1a1d62395b032889d9b2a`。
+- R1 起始 head：`10c13871a4b7d12985b0d9cf8510c5d970b49394`；本轮最终 PR head 及 exact-head CI 以 PR #27 当前最新 head 和完成回复为准。
+- 分支：`codex/ghg-rs03-a-excel-ingress`；PR #27：GHG-RS03-A，未合并。此工作包没有另开 PR。
+- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定 SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 未改变。
+- Architecture V2.1、Numeric Contract v1、Numeric Profiles v1 使用锁定 Frozen 版本。Excel / openpyxl Decimal ingress 仍为中央 OPEN；本任务只沿用本地入口策略，不改变 Frozen Contract 或 baseline。
+- 无新增标准问题；沿用冻结 Mapping、标准公式与现有 Calculator。未修改标准适用范围或正式业务解释。
 
-## 2. 实际改动
+## 实际改动
 
-- 新增 `packages/excel/gbt32151_34_v1.py` 纯 Python Excel adapter 和 `packages/excel/__init__.py`。运行时生成一个标准专用 `.xlsx` 模板；模板包含核算单元、明确排放源状态、报告信息、燃料、过程、烟气治理、电力、热力、共享证据和版本元数据工作表。没有把 `.xlsx` 资产或标准 PDF 放入仓库/安装包。
-- 入口载入保留公式类型，并从工作表 OOXML 读取文件保存的数值词法后直接构造 Decimal，不经二进制浮点计算。只接受有限数值单元格；拒绝文本数字、公式、日期、非有限值及超过15位有效数字。0合法；比例按保存的`0..1`值解释，显示格式不决定含义；入口证据保留表、格、类型、库读值表示、序列化数值文本与Decimal。
-- 同一工作簿支持多个全厂/工序/其他核算单元独立校验和预览。有效单元复用现有 `CarbonMaterialInput` 与 `CarbonMaterialCalculator`；一项失败不阻断其他有效单元，也不跨单元汇总。预览显示直接排放、净间接排放和总排放；不写Project、Workspace或正式Record。
-- 新增运行时依赖 `openpyxl>=3.1.5,<4`。首页与导航Excel入口可操作；错误用中文显示，并保留工作表/单元格定位、隐藏内部校验码与 `CAR-*` ID。
-- 新增 `specs/carbon_accounting/GHGTOOL_EXCEL_INGRESS_V1.md` 与 `GB_T_32151_34_2024_EXCEL_SCHEMA_V1.md`；同步 Roadmap、HANDOFF、TASK_STATE、UI Audit。RS03-B仍为 `NOT STARTED`。
-- 本包未修改 Canonical、数据库迁移、计算器、标准 Mapping、核心业务包、Golden 或平台锁。Canonical仍为9 standards、12 sources、98 parameters、98 factors；计数没有改变。
-- 用户提供的“碳谷 负极材料 计算表(2).xlsx”参考样表在当前仓库/文档执行环境未找到，未假称已读取，也未用于推导字段或标准含义；模板依据冻结标准Mapping、现有Canonical与当前Domain输入构造。
+- 将模板收敛为四个可见页签：`填写说明`、`核算单元`、`燃料与能源`、`过程排放`；保留隐藏 `__metadata__`。移除独立排放源、报告信息和证据登记表。项目企业/期间/公共边界只录一次，核算单元清单按行维护。
+- 燃料与能源页按 B.2、B.8、B.9 分区；过程排放页按 B.3–B.7 分区。物料、电力和热力可按标准行式输入；B.3–B.5 使用新增纯 Python Decimal 加权归一化模块构造现有 Domain 输入，没有加入 Excel 业务公式或第二套 Calculator。
+- 排放源状态根据有效业务数据行派生；错误输入使对应启用单元失败。停用、未知和未关联数据提示并忽略。预览增加燃料、生产过程、烟气治理、购入电力/热力、输出能源抵扣分项，并保留直接、净间接与总排放结果。
+- 标准 C.1/C.2、K1/K2/K3、脱硫缺省继续通过 Canonical resolver 取得。C.2 11 项完整因子、未知碳酸盐阻断、来源追溯、C.4/C.5 查表锚点均有测试；C.4/C.5 仍由既有版本化 Domain Calculator 负责。
+- 新增忽略目录中的 UAT 候选模板 `GB_T_32151_34_2024_Excel模板_UAT.xlsx`，由最终模板生成器生成并自带简明用户步骤；此文件不提交仓库。没有修改 `计算表/`、Canonical 数据、数据库迁移或 `platform-lock.json`。
+- 同步 Excel Schema、入口策略、Roadmap、TASK_STATE、HANDOFF 与 UI audit；RS03-B 保持未启动。
 
-## 3. Excel / Calculator / 兼容性
+## 测试变更与验证
 
-- 模板 ID `GHGTOOL_GBT_32151_34_2024`，模板版本 `1.0.0`，标准 ID/版本来自现有标准目录，入口策略 `GHGTOOL_EXCEL_INGRESS_V1`；导入预览记录工作簿 SHA-256、模板/标准/策略版本与UTC导入时间。
-- 燃料、过程、烟气治理、购入/输出电力和热力均映射既有 Domain 输入类型。过程行与来源明细逐条进入现有单元计算器；没有建立第二套公式。
-- C.4/C.5 仍由既有版本化 `CarbonMaterialCalculator` 查表/插值；入口提供代表性锚点回归，没有新增 reference-table/DSL 架构，也没有更改冻结 Mapping 的C.4修正或标准解释。
-- 标准参数和来源解析复用现有 ParameterResolver / Canonical；未扩大Canonical，不改变历史 Record，也不执行 Project 或 Record 迁移。预览采用内存结果，历史正式 Record 生命周期保持不变。
-- UI 测试确认等价 GUI / Excel 输入使用相同 Calculator、结果和现有输入指纹；错误展示改为业务中文，工作簿单元格位置用于修正输入。
+**数据 / 契约变化：**本包未增改 Canonical 参数或因子，不涉及数据集计数变化。模板机器结构收敛为四个可见页签，Excel Schema 已同步。
 
-## 4. 测试变更分类
+**行为预期变化：**替换了与旧 14 页模板和人工排放源状态绑定的 Excel 测试，改为直接录入新四页模板；验证派生状态、来源行、单元隔离和分项预览。没有改动计算公式以迎合测试。
 
-**数据 / 契约变化：**添加 openpyxl 依赖及模板/入口机器契约；Canonical 数据没有变更，所以没有因数据集扩大而修改任何标准数据计数断言。
+**本地验证（Windows / Python 3.12.14）：**
 
-**行为预期变化：**`tests/test_g03_shell.py` 将 Excel 入口从“暂未开放 / reserved”切换为启用的模板与导入预览，并更新首页文案、路由和控件断言；这是 RS03-A 新能力的预期行为。没有为测试通过而修改 Calculator 结果或公式。
-
-**新验证：**`tests/test_excel_rs03_a.py` 覆盖运行时模板/元数据、数值单元格类型和OOXML词法、公式/文本/日期/非有限值拒绝、有效数字上限、零和比例语义、证据回链、多单元部分成功隔离、燃料 C.1 参数、完整 C.2 项目、C.4/C.5 锚点、GUI输入与Calculator parity、多燃料/过程/FGD/电力/热力明细、无持久化Record以及普通UI结果/错误呈现。
-
-## 5. 本地验证
-
-- 定向 RS03-A / G03 Shell：`python -m unittest tests.test_excel_rs03_a tests.test_g03_shell -v`；24/24通过。
-- 全量回归：`python -m unittest discover -s tests -t . -v`；261/261通过，Windows / Python 3.12 / offscreen Qt。
-- Canonical：`python scripts/validate_canonical.py` 通过（9 standards、12 sources、98 parameters、98 factors）。
+- 定向：`python -m unittest tests.test_excel_rs03_a tests.test_g03_shell -v`，22/22 通过。
+- 全量：`python -m unittest discover -s tests -t . -v`，259/259 通过。
+- Canonical：`python scripts/validate_canonical.py` 通过：9 standards、12 sources、98 parameters、98 factors。
 - 编译：`python -m compileall -q apps packages resources scripts tests` 通过。
-- 依赖：`python -m pip check` 通过；No broken requirements found。
-- 隔离数据库：`scripts/initialize_databases.py --output-dir build/databases/rs03-a-check` 成功生成catalog、user、records、projects四库。
-- UI：`scripts/uir04_manual_gui_acceptance.py` 场景 A—E 均 PASS；`scripts/uir04_scale_acceptance.py --scale 1.25`、`--scale 1.5` 均 PASS。
-- 本地 Windows standalone 构建通过；发布目录审计 PASS（287 files）；ZIP往返审计 PASS（288 visible files）；standalone smoke PASS（2次隔离启动）。
-- `git diff --check` 通过。
-- 本地Python来自项目Python 3.12 venv；openpyxl 3.1.5由workspace bundled dependency path提供，PySide6与PyInstaller使用项目venv。以上均为本地运行结果，不冒充GitHub Actions。
+- 依赖：`python -m pip check` 通过，无损坏依赖。
+- 隔离数据库重建：`scripts/initialize_databases.py --output-dir build/databases/rs03-a-r1-check` 成功生成 catalog/user/records/projects 四库。
+- UI acceptance：`scripts/uir04_manual_gui_acceptance.py` 的 A–E 五项通过；`scripts/uir04_scale_acceptance.py --scale 1.25` 和 `--scale 1.5` 均通过。
+- Standalone：Windows onedir 构建成功；构建脚本内置 release audit 与上传 ZIP 往返审计通过；`scripts/smoke_standalone.py` 两次隔离启动通过。最终提交后会再次构建，以便本地 release provenance 指向提交代码。
+- `git diff --check`：通过。
 
-## 6. 阶段边界与CI门禁
+以上均为本地证据，不代表 GitHub Actions。推送后必须确认 PR #27 最新 head 的 Windows/Python 3.12 `Merge-ref Full Tests` 和 `PR-head Standalone Audit` 均 success，且 CI `head_sha` 等于最终 PR head。CI run 与 head 在最终完成回复中记录，避免把 CI 元数据写入会触发新一轮 CI 的提交。
 
-RS03-A使用新建的 PR #27，不复用此前PR且不合并。每个当前最新 `head_sha` 都必须有 Windows / Python 3.12 `Merge-ref Full Tests` 与 `PR-head Standalone Audit` 两项 Actions success，且 standalone provenance 指向精确PR head，才可停止并报告完成。GitHub执行状态只以PR当前Checks及完成回复记录，不将此前head结果当作新head证据。
+## 停止边界
 
-PR保持开放等待独立验收。RS03-B `NOT STARTED`；本阶段不做正式Project / Record持久化、Excel导出、Golden Freeze、第二标准或 `SUPPORTED` 宣告。
+完成本地实施后停在 `RS03-A-R1 IMPLEMENTED`。等待 exact-head CI、独立技术验收和用户打开候选 Excel 的 UAT；不合并 PR #27，不启动 RS03-B，不冻结 Golden，不宣称标准 `SUPPORTED`。

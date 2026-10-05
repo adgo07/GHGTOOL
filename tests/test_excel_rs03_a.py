@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from io import BytesIO
 import os
@@ -11,6 +10,8 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from zipfile import ZipFile, ZIP_DEFLATED
+from xml.etree import ElementTree
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -19,15 +20,22 @@ from PySide6.QtWidgets import QApplication
 
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.application.catalog_queries import CatalogQueryService
-from packages.core.parameter_resolution import ParameterResolver
 from packages.excel.gbt32151_34_v1 import (
-    FUEL_LABEL_BY_TYPE,
-    FUEL_C1_SUBJECT_IDS,
+    BODY_ROWS,
     CARBONATE_LABELS,
+    ELECTRICITY_HEADERS,
+    FUEL_C1_SUBJECT_IDS,
+    FUEL_HEADERS,
+    FUEL_LABEL_BY_TYPE,
+    HEAT_HEADERS,
+    MATERIAL_HEADERS,
+    SECTION_HEADERS,
     SOURCE_LABELS,
     SOURCE_IDS,
     TEMPLATE_ID,
     TEMPLATE_VERSION,
+    UNIT_HEADERS,
+    VISIBLE_SHEETS,
     ExcelWorkbookImporter,
     WorkbookFatalError,
     _CellReader,
@@ -41,12 +49,44 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     CarbonMaterialCalculator,
     EmissionSourceStatus,
+    FuelPath,
     FuelType,
     InMemoryRecordRepository,
     SOURCE_FUEL,
+    saturated_steam_enthalpy,
+    superheated_steam_enthalpy,
 )
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.pages import ExcelImportPage
+
+
+SHEET_FOR_MARKER = {
+    "核算单元清单": "核算单元",
+    "B.2 化石燃料": "燃料与能源",
+    "B.8 电力": "燃料与能源",
+    "B.9 热力": "燃料与能源",
+    "B.3 煅烧": "过程排放",
+    "B.4 焙烧/炭化": "过程排放",
+    "B.5 石墨化": "过程排放",
+    "B.6 烟气焚烧": "过程排放",
+    "B.7 烟气脱硫": "过程排放",
+}
+
+
+def section_bounds(sheet, marker: str, headers: tuple[str, ...]) -> tuple[int, int, int]:
+    marker_rows = [row for row in range(1, sheet.max_row + 1) if sheet.cell(row, 1).value == marker]
+    if len(marker_rows) != 1:
+        raise AssertionError(f"template section missing or repeated: {marker}")
+    marker_row = marker_rows[0]
+    header_row = marker_row + 2
+    assert tuple(sheet.cell(header_row, col).value for col in range(1, len(headers) + 1)) == headers
+    later = [
+        row for row in range(header_row + 1, sheet.max_row + 1)
+        if sheet.cell(row, 1).value in SECTION_HEADERS
+    ]
+    first = header_row + 1
+    last = min(later) - 1 if later else sheet.max_row
+    return header_row, first, max(first - 1, last)
 
 
 class ExcelRS03ATests(unittest.TestCase):
@@ -68,37 +108,73 @@ class ExcelRS03ATests(unittest.TestCase):
     def new_book(self):
         return load_workbook(BytesIO(create_template_bytes()), data_only=False)
 
-    def add_unit(self, workbook, name: str, unit_type: str = "全厂", *, enabled: str = "是") -> int:
+    @staticmethod
+    def set_project(workbook, enterprise: str = "示例企业", *, boundary: str = "是") -> None:
         sheet = workbook["核算单元"]
-        row = sheet.max_row + 1
-        sheet.append((name, unit_type, enabled, "示例企业", "年度", date(2025, 1, 1), date(2025, 12, 31), "是", "主生产系统", "否", "否"))
-        for source in SOURCE_IDS:
-            state = "涉及" if source == SOURCE_FUEL else "不涉及"
-            workbook["排放源"].append((name, SOURCE_LABELS[source], state))
-        return row
-
-    def add_fuel(self, workbook, unit_name: str, amount, *, fuel: FuelType = FuelType.NATURAL_GAS, path: str = "体积", carbon=None, oxidation=None, lhv=None, source_ref=None, activity_evidence=None, parameter_evidence=None) -> int:
-        sheet = workbook["化石燃料"]
-        row = sheet.max_row + 1
-        sheet.append((unit_name, FUEL_LABEL_BY_TYPE[fuel], path, amount, carbon, oxidation, lhv, source_ref, activity_evidence, parameter_evidence))
-        return row
+        sheet["B3"] = enterprise
+        sheet["B4"] = "年度"
+        sheet["B5"] = date(2025, 1, 1)
+        sheet["B6"] = date(2025, 12, 31)
+        sheet["B7"] = boundary
+        sheet["B8"] = "炭素材料生产边界"
 
     @staticmethod
-    def set_source_status(workbook, unit_name: str, source_id: str, state: str) -> None:
-        sheet = workbook["排放源"]
-        source_label = SOURCE_LABELS[source_id]
-        for row in range(2, sheet.max_row + 1):
-            if sheet.cell(row, 1).value == unit_name and sheet.cell(row, 2).value == source_label:
-                sheet.cell(row, 3).value = state
-                return
-        raise AssertionError(f"source state row missing: {unit_name}/{source_label}")
+    def append_section(workbook, marker: str, values: dict[str, object]) -> int:
+        headers = SECTION_HEADERS[marker]
+        sheet = workbook[SHEET_FOR_MARKER[marker]]
+        header_row, first, last = section_bounds(sheet, marker, headers)
+        row = next(
+            (
+                candidate for candidate in range(first, last + 1)
+                if all(sheet.cell(candidate, col).value is None for col in range(1, len(headers) + 1))
+            ),
+            last + 1,
+        )
+        for header, value in values.items():
+            if header not in headers:
+                raise AssertionError(f"unknown {marker} column: {header}")
+            sheet.cell(row, headers.index(header) + 1).value = value
+        return row
 
-    @staticmethod
-    def append_by_header(workbook, sheet_name: str, values: dict[str, object]) -> int:
-        sheet = workbook[sheet_name]
-        headers = [cell.value for cell in sheet[1]]
-        sheet.append([values.get(header) for header in headers])
-        return sheet.max_row
+    def add_unit(self, workbook, name: str, unit_type: str = "全厂", *, enabled: str = "是", boundary_description: str | None = None) -> int:
+        if workbook["核算单元"]["B3"].value in (None, ""):
+            self.set_project(workbook)
+        return self.append_section(workbook, "核算单元清单", {
+            UNIT_HEADERS[0]: name,
+            UNIT_HEADERS[1]: unit_type,
+            UNIT_HEADERS[2]: enabled,
+            UNIT_HEADERS[3]: boundary_description,
+        })
+
+    def add_fuel(
+        self,
+        workbook,
+        unit_name: str,
+        amount,
+        *,
+        fuel: FuelType = FuelType.NATURAL_GAS,
+        path: str = "体积",
+        carbon=None,
+        oxidation=None,
+        lhv=None,
+        parameter_kind: str | None = None,
+        parameter_ref: str | None = None,
+        activity_kind: str | None = "计量/仪表记录",
+        activity_ref: str | None = "活动数据-1",
+    ) -> int:
+        return self.append_section(workbook, "B.2 化石燃料", {
+            FUEL_HEADERS[0]: unit_name,
+            FUEL_HEADERS[1]: FUEL_LABEL_BY_TYPE[fuel],
+            FUEL_HEADERS[2]: path,
+            FUEL_HEADERS[3]: amount,
+            FUEL_HEADERS[4]: lhv,
+            FUEL_HEADERS[5]: carbon,
+            FUEL_HEADERS[6]: oxidation,
+            FUEL_HEADERS[7]: activity_kind,
+            FUEL_HEADERS[8]: activity_ref,
+            FUEL_HEADERS[9]: parameter_kind,
+            FUEL_HEADERS[10]: parameter_ref,
+        })
 
     def save_book(self, workbook) -> Path:
         path = Path(self.temp_root.name) / f"book-{len(list(Path(self.temp_root.name).glob('book-*.xlsx')))}.xlsx"
@@ -106,368 +182,298 @@ class ExcelRS03ATests(unittest.TestCase):
         workbook.close()
         return path
 
-    def test_template_is_generated_at_runtime_with_one_standard_metadata(self) -> None:
+    def import_unit(self, workbook, *, index: int = 0):
+        path = self.save_book(workbook)
+        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
+        return preview, preview.units[index]
+
+    def test_template_has_four_user_sheets_and_hidden_metadata_only(self) -> None:
         content = create_template_bytes()
         self.assertGreater(len(content), 1000)
         generated = Path(self.temp_root.name) / "runtime.xlsx"
         write_template(generated)
         workbook = load_workbook(generated, data_only=False)
-        self.assertEqual(workbook["__metadata__"]["B2"].value, TEMPLATE_ID)
-        self.assertEqual(workbook["__metadata__"]["B3"].value, TEMPLATE_VERSION)
-        self.assertEqual(workbook["__metadata__"]["B4"].value, "gbt_32151_34_2024")
-        self.assertEqual(workbook["__metadata__"]["B5"].value, "2024")
-        self.assertEqual(workbook["__metadata__"].sheet_state, "hidden")
-        self.assertIn("单位性质", tuple(cell.value for cell in workbook["报告信息"][1]))
-        self.assertIn("关联排放源", tuple(cell.value for cell in workbook["证据来源"][1]))
+        self.assertEqual(tuple(name for name in workbook.sheetnames if workbook[name].sheet_state == "visible"), VISIBLE_SHEETS)
+        self.assertEqual(tuple(name for name in workbook.sheetnames if name not in VISIBLE_SHEETS), ("__metadata__",))
+        metadata = workbook["__metadata__"]
+        self.assertEqual(metadata["B2"].value, TEMPLATE_ID)
+        self.assertEqual(metadata["B3"].value, TEMPLATE_VERSION)
+        self.assertEqual(metadata.sheet_state, "hidden")
+        self.assertNotIn("排放源", workbook.sheetnames)
+        self.assertNotIn("报告信息", workbook.sheetnames)
+        self.assertNotIn("证据来源", workbook.sheetnames)
+        self.assertFalse(any("回收" in str(cell.value) for sheet in workbook for row in sheet.iter_rows() for cell in row))
+        self.assertEqual(len(workbook["燃料与能源"].tables), 3)
+        self.assertEqual(len(workbook["过程排放"].tables), 5)
+        self.assertEqual(len(next(iter(workbook["燃料与能源"].tables.values())).ref.split(":")), 2)
+        self.assertEqual(BODY_ROWS, 15)
+        self.assertTrue(any(item.formula1 == "=UnitNames" for sheet in workbook for item in sheet.data_validations.dataValidation))
+        self.assertFalse(any(cell.data_type == "f" for sheet in workbook for row in sheet.iter_rows() for cell in row))
         workbook.close()
-        self.assertFalse(tuple((Path(__file__).parents[1] / "resources").rglob("*.xlsx")))
 
-    def test_partial_success_multi_unit_source_warning_and_no_record_persistence(self) -> None:
-        workbook = self.new_book()
-        self.add_unit(workbook, "全厂", "全厂")
-        self.add_unit(workbook, "石墨化工序", "工序")
-        self.add_unit(workbook, "无效工序", "其他")
-        self.add_fuel(workbook, "全厂", 1)
-        self.add_fuel(workbook, "石墨化工序", 2)
-        self.add_fuel(workbook, "无效工序", Decimal("1.234567890123456"))
-        workbook["煅烧"].append(("全厂", "误填", None, None, None, None, None, None, None, None, None))
-        workbook.create_sheet("现场说明")["A1"] = "自定义页签内容"
-        path = self.save_book(workbook)
-
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertEqual([unit.unit_type.value for unit in preview.units], ["WHOLE_SITE", "PROCESS", "OTHER"])
-        whole, process, invalid = preview.units
-        self.assertTrue(whole.can_calculate)
-        self.assertTrue(process.can_calculate)
-        self.assertEqual(process.result.total_amount, whole.result.total_amount * Decimal("2"))
-        self.assertFalse(invalid.can_calculate)
-        self.assertIsNone(invalid.result)
-        self.assertTrue(any(item.code == "EXCEL-NUMBER-SIGNIFICANT-DIGITS" for item in invalid.errors))
-        self.assertIsNone(whole.calculation.record)
-        self.assertTrue(any(item.code == "EXCEL-SOURCE-DATA-IGNORED" for item in whole.warnings))
-        self.assertTrue(any(item.code == "EXCEL-UNKNOWN-SHEET" for item in preview.warnings))
-        self.assertEqual(len(preview.provenance.workbook_sha256), 64)
-        self.assertEqual(preview.provenance.ingress_policy_id, "GHGTOOL_EXCEL_INGRESS_V1")
-
-    def test_default_c1_is_selected_from_canonical_and_no_ambiguous_coal_guess(self) -> None:
+    def test_single_unit_fuel_standard_defaults_paths_and_provenance(self) -> None:
         workbook = self.new_book()
         self.add_unit(workbook, "天然气单元")
-        self.add_fuel(workbook, "天然气单元", Decimal("1.5"), fuel=FuelType.NATURAL_GAS, path="体积")
-        self.add_unit(workbook, "未指定煤种")
-        self.add_fuel(workbook, "未指定煤种", Decimal("1"), fuel=FuelType.COAL, path="质量")
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        natural_gas, unknown_coal = preview.units
-        self.assertTrue(natural_gas.can_calculate)
-        fuel = natural_gas.input_value.fuel_inputs[0]
-        self.assertEqual(fuel.carbon_content.source_kind.value, "STANDARD_DEFAULT")
-        self.assertEqual(fuel.lower_heating_value.source_kind.value, "STANDARD_DEFAULT")
-        self.assertEqual(fuel.oxidation_rate.source_kind.value, "STANDARD_DEFAULT")
-        self.assertFalse(unknown_coal.can_calculate)
-        self.assertIsNone(unknown_coal.input_value.fuel_inputs[0].carbon_content)
-        self.assertFalse(any("煤" in issue.message and "默认" in issue.message for issue in unknown_coal.warnings))
+        self.add_fuel(workbook, "天然气单元", Decimal("1.5"), fuel=FuelType.NATURAL_GAS)
+        self.add_fuel(workbook, "天然气单元", Decimal("2"), fuel=FuelType.ANTHRACITE, path="质量")
+        self.add_fuel(workbook, "天然气单元", Decimal("3"), fuel=FuelType.NATURAL_GAS, path="热量")
+        preview, unit = self.import_unit(workbook)
+        self.assertTrue(unit.can_calculate, tuple(issue.message for issue in unit.errors))
+        self.assertEqual(len(unit.input_value.fuel_inputs), 3)
+        fuel_inputs = unit.input_value.fuel_inputs
+        natural_gas_volume = next(item for item in fuel_inputs if item.fuel_type is FuelType.NATURAL_GAS and item.path is FuelPath.VOLUME)
+        natural_gas_heat = next(item for item in fuel_inputs if item.fuel_type is FuelType.NATURAL_GAS and item.path is FuelPath.HEAT)
+        anthracite = next(item for item in fuel_inputs if item.fuel_type is FuelType.ANTHRACITE)
+        self.assertEqual(natural_gas_volume.path, FuelPath.VOLUME)
+        self.assertEqual(anthracite.path, FuelPath.MASS)
+        self.assertEqual(natural_gas_volume.carbon_content.source_kind.value, "STANDARD_DEFAULT")
+        self.assertEqual(natural_gas_volume.carbon_content.unit, "tC/GJ")
+        self.assertIn("C.1", natural_gas_volume.carbon_content.source_location)
+        self.assertEqual(natural_gas_volume.activity.source_type.value, "METER")
+        self.assertIsNone(natural_gas_heat.lower_heating_value)
+        self.assertEqual(natural_gas_heat.carbon_content.unit, "tC/GJ")
+        self.assertEqual(len(unit.input_value.reporting_data.activity_evidence), 3)
+        self.assertIsNone(unit.calculation.record)
+        self.assertEqual(len(preview.provenance.workbook_sha256), 64)
+        self.assertTrue(any(item.sheet == "燃料与能源" and item.raw_cell_type == "n" for item in preview.numeric_evidence))
 
-    def test_all_current_standard_fuel_types_have_c1_default_parameter_sources(self) -> None:
+        measured_book = self.new_book()
+        self.add_unit(measured_book, "实测参数")
+        self.add_fuel(measured_book, "实测参数", 1, lhv=Decimal("400"), carbon=Decimal("0.014"), oxidation=Decimal("0.98"), parameter_kind="实测值", parameter_ref="化验报告-燃料-1")
+        _preview, measured_unit = self.import_unit(measured_book)
+        self.assertTrue(measured_unit.can_calculate, tuple(item.message for item in measured_unit.errors))
+        measured_fuel = measured_unit.input_value.fuel_inputs[0]
+        self.assertEqual(measured_fuel.carbon_content.source_kind.value, "MEASURED")
+        self.assertIn("化验报告-燃料-1", measured_fuel.carbon_content.source_location)
+        self.assertTrue(measured_fuel.carbon_content.evidence_ref_ids)
+
+    def test_c1_resolver_has_verified_parameters_for_every_specific_selectable_fuel(self) -> None:
         for fuel_type, subject in FUEL_C1_SUBJECT_IDS.items():
             with self.subTest(fuel=fuel_type.value):
                 for suffix in ("carbon_content", "oxidation_rate", "lhv"):
                     parameter_id = f"{subject}_{suffix}"
                     factors = self.resolver.repository.list_factors(parameter_id)
-                    self.assertTrue(
-                        any(
-                            factor.review_status.value == "VERIFIED"
-                            and "gbt_32151_34_2024" in factor.applicable_standard_ids
-                            for factor in factors
-                        ),
-                        parameter_id,
-                    )
+                    self.assertTrue(any(
+                        factor.review_status.value == "VERIFIED"
+                        and "gbt_32151_34_2024" in factor.applicable_standard_ids
+                        for factor in factors
+                    ), parameter_id)
 
-    def test_numeric_text_formula_date_blank_zero_and_ratio_semantics(self) -> None:
-        cases = [
-            ("text", "123.45", "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("text_chinese", "一百", "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("text_unit", "1,234 t", "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("text_fullwidth", "１２３", "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("dash", "—", "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("formula", "=1+2", "EXCEL-FORMULA-REJECTED"),
-            ("date", date(2025, 1, 2), "EXCEL-NUMBER-CELL-REQUIRED"),
-            ("too_many_digits", Decimal("1234567890123456"), "EXCEL-NUMBER-SIGNIFICANT-DIGITS"),
-        ]
-        for label, value, expected_code in cases:
-            with self.subTest(label=label):
+    def test_numeric_ingress_rejects_text_formula_date_and_more_than_15_digits_but_accepts_zero(self) -> None:
+        cases = (
+            ("123.45", "EXCEL-NUMBER-CELL-REQUIRED"),
+            ("1,234 t", "EXCEL-NUMBER-CELL-REQUIRED"),
+            ("=1+2", "EXCEL-FORMULA-REJECTED"),
+            (date(2025, 1, 2), "EXCEL-NUMBER-CELL-REQUIRED"),
+            (Decimal("1234567890123456"), "EXCEL-NUMBER-SIGNIFICANT-DIGITS"),
+        )
+        for value, expected in cases:
+            with self.subTest(value=value):
                 workbook = self.new_book()
-                self.add_unit(workbook, "全厂")
-                self.add_fuel(workbook, "全厂", value)
-                path = self.save_book(workbook)
-                unit = ExcelWorkbookImporter(self.resolver).import_preview(path).units[0]
+                self.add_unit(workbook, "坏数据")
+                self.add_fuel(workbook, "坏数据", value)
+                _preview, unit = self.import_unit(workbook)
                 self.assertFalse(unit.can_calculate)
-                self.assertIn(expected_code, {issue.code for issue in unit.errors})
+                self.assertIn(expected, {item.code for item in unit.errors})
 
         workbook = self.new_book()
         self.add_unit(workbook, "零活动量")
-        self.add_fuel(workbook, "零活动量", 0)
-        path = self.save_book(workbook)
-        zero_preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertTrue(zero_preview.units[0].can_calculate)
-        self.assertEqual(zero_preview.units[0].input_value.fuel_inputs[0].activity.value, Decimal("0"))
-        self.assertIn(Decimal("0"), [item.normalized_decimal for item in zero_preview.numeric_evidence])
+        self.add_fuel(workbook, "零活动量", Decimal("0"))
+        preview, unit = self.import_unit(workbook)
+        self.assertTrue(unit.can_calculate, tuple(item.message for item in unit.errors))
+        self.assertEqual(unit.input_value.fuel_inputs[0].activity.value, Decimal(0))
+        self.assertIn(Decimal(0), [item.normalized_decimal for item in preview.numeric_evidence])
+        self.assertEqual(significant_digit_count(Decimal("0.0012300")), 5)
 
+    def test_custom_factor_needs_traceable_source_and_fraction_is_validated_by_calculator(self) -> None:
         workbook = self.new_book()
-        self.add_unit(workbook, "科学计数法")
-        self.add_fuel(workbook, "科学计数法", Decimal("1E-6"))
-        path = self.save_book(workbook)
-        exponent_preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertTrue(exponent_preview.units[0].can_calculate)
-        self.assertEqual(exponent_preview.units[0].input_value.fuel_inputs[0].activity.value, Decimal("0.000001"))
+        self.add_unit(workbook, "缺来源")
+        self.add_fuel(workbook, "缺来源", 1, oxidation=Decimal("0.98"))
+        _preview, unit = self.import_unit(workbook)
+        self.assertFalse(unit.can_calculate)
+        self.assertIn("EXCEL-PARAMETER-SOURCE-REQUIRED", {item.code for item in unit.errors})
 
+        for value in (Decimal("-0.1"), Decimal("1.1")):
+            with self.subTest(ratio=value):
+                workbook = self.new_book()
+                self.add_unit(workbook, "比例错误")
+                self.add_fuel(workbook, "比例错误", 1, oxidation=value, parameter_kind="实测值", parameter_ref="检测报告-氧化率")
+                _preview, unit = self.import_unit(workbook)
+                self.assertFalse(unit.can_calculate)
+                self.assertTrue(any("0 到 1" in item.message for item in unit.errors))
+
+    def test_unit_isolation_derived_source_states_disabled_units_and_unassociated_rows(self) -> None:
         workbook = self.new_book()
-        self.add_unit(workbook, "空活动量")
-        self.add_fuel(workbook, "空活动量", None)
-        path = self.save_book(workbook)
-        blank_preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertFalse(blank_preview.units[0].can_calculate)
-        self.assertTrue(any("缺少输入" in issue.message for issue in blank_preview.units[0].errors))
+        self.add_unit(workbook, "有效单元")
+        self.add_unit(workbook, "错误单元", unit_type="工序")
+        self.add_unit(workbook, "停用单元", unit_type="其他", enabled="否")
+        self.add_fuel(workbook, "有效单元", 1)
+        self.add_fuel(workbook, "错误单元", 1, fuel=FuelType.COAL, path="质量")
+        self.add_fuel(workbook, "停用单元", 1)
+        self.add_fuel(workbook, "不存在的单元", 1)
+        preview = ExcelWorkbookImporter(self.resolver).import_preview(self.save_book(workbook))
+        good, bad = preview.units
+        self.assertTrue(good.can_calculate)
+        self.assertFalse(bad.can_calculate)
+        self.assertTrue(bad.errors)
+        states = {item.source_id: item.status for item in good.input_value.source_states}
+        self.assertEqual(states[SOURCE_FUEL], EmissionSourceStatus.INVOLVED)
+        self.assertTrue(all(states[key] is EmissionSourceStatus.NOT_INVOLVED for key in SOURCE_IDS if key != SOURCE_FUEL))
+        bad_states = {item.source_id: item.status for item in bad.input_value.source_states}
+        self.assertEqual(bad_states[SOURCE_FUEL], EmissionSourceStatus.INVOLVED)
+        self.assertTrue(any(item.code == "EXCEL-DISABLED-UNIT-DATA-IGNORED" for item in preview.warnings))
+        self.assertTrue(any(item.code == "EXCEL-UNKNOWN-UNIT-DATA-IGNORED" for item in preview.warnings))
+        self.assertIsNone(good.calculation.record)
 
-    def test_percent_is_stored_numeric_ratio_not_inferred_from_cell_format(self) -> None:
-        workbook = self.new_book()
-        self.add_unit(workbook, "比例单元")
-        row = self.add_fuel(workbook, "比例单元", 1, oxidation=Decimal("0.98"), source_ref="检测报告-1")
-        workbook["化石燃料"].cell(row, 6).number_format = "0%"
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertTrue(preview.units[0].can_calculate)
-        self.assertEqual(preview.units[0].input_value.fuel_inputs[0].oxidation_rate.value, Decimal("0.98"))
-
-        workbook = self.new_book()
-        self.add_unit(workbook, "误用百分数")
-        self.add_fuel(workbook, "误用百分数", 1, oxidation=98, source_ref="检测报告-2")
-        workbook["化石燃料"].cell(2, 6).number_format = "0%"
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        self.assertFalse(preview.units[0].can_calculate)
-        self.assertTrue(any("0 到 1" in issue.message for issue in preview.units[0].errors))
-
-    def test_multiple_fuel_process_fgd_electricity_and_heat_entries_use_one_calculator(self) -> None:
-        workbook = self.new_book()
-        self.add_unit(workbook, "多明细单元")
-        for source_id in (
-            "CAR-SRC-CALCINATION-001", "CAR-SRC-BAKING-001", "CAR-SRC-GRAPHITIZATION-001",
-            "CAR-SRC-FUME-INCINERATION-001", "CAR-SRC-FGD-001", "CAR-SRC-PURCHASED-ELECTRICITY-001",
-            "CAR-SRC-EXPORTED-ELECTRICITY-001", "CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001",
-        ):
-            self.set_source_status(workbook, "多明细单元", source_id, "涉及")
-        self.add_fuel(workbook, "多明细单元", 1, fuel=FuelType.NATURAL_GAS, path="体积")
-        self.add_fuel(workbook, "多明细单元", 2, fuel=FuelType.ANTHRACITE, path="质量")
-
-        for index in (1, 2):
-            self.append_by_header(workbook, "煅烧", {
-                "核算单元": "多明细单元", "实例名称": f"煅烧{index}", "GC 投入量（t）": 10,
-                "WFC 固定碳比例": Decimal("0.8"), "CC 煅后焦用量（t）": 1,
-                "UCC 外购煅后焦用量（t）": 1, "DU 粉尘用量（t）": 1,
-                "WFC_C 煅后焦固定碳比例": Decimal("0.75"), "WVAR 挥发分比例": Decimal("0.05"),
-                "WVAR_C 煅后焦挥发分比例": Decimal("0.05"),
-            })
-            self.append_by_header(workbook, "焙烧炭化", {
-                "核算单元": "多明细单元", "实例名称": f"焙烧{index}", "BPM 生坯用量（t）": 10,
-                "BPMFC 生坯固定碳比例": Decimal("0.8"), "BG 焦粉用量（t）": 1,
-                "BGFC 焦粉固定碳比例": Decimal("0.8"), "BWT 焦油沥青用量（tC）": 0,
-                "BP 石油焦用量（t）": 1, "BPFC 石油焦固定碳比例": Decimal("0.5"),
-                "BPMVAR 生坯挥发分比例": Decimal("0.05"), "BGVAR 焦粉挥发分比例": Decimal("0.05"),
-            })
-            self.append_by_header(workbook, "石墨化", {
-                "核算单元": "多明细单元", "实例名称": f"石墨化{index}", "GPM 生坯用量（t）": 10,
-                "GPMFC 生坯固定碳比例": Decimal("0.8"), "GTA 焦油沥青用量（t）": 1,
-                "GTAFC 焦油沥青固定碳比例": Decimal("0.8"), "GWT 焦油用量（tC）": 0,
-                "GP 石油焦用量（t）": 1, "GPFC 石油焦固定碳比例": Decimal("0.5"),
-                "GPMVAR 生坯挥发分比例": Decimal("0.05"),
-            })
-        self.append_by_header(workbook, "烟气焚烧", {
-            "核算单元": "多明细单元", "实例名称": "焚烧线一", "Q 烟气流量（Nm³/h）": 1,
-            "QVAR 烟气含碳量（mg/Nm³）": 10, "HM 低位发热量（GJ/t）": 1,
-            "FCH 单位热值含碳量（tC/GJ）": Decimal("0.02"), "FOX 碳氧化率": Decimal("0.9"),
-            "运行时间（d）": 100, "参数来源编号": "焚烧因子检测-1",
+    def _add_material(self, workbook, unit: str, marker: str, instance: str, category: str, name: str, mass, fixed, volatile=None, *, source="实测值", reference="化验报告-1"):
+        return self.append_section(workbook, marker, {
+            MATERIAL_HEADERS[0]: unit,
+            MATERIAL_HEADERS[1]: instance,
+            MATERIAL_HEADERS[2]: category,
+            MATERIAL_HEADERS[3]: name,
+            MATERIAL_HEADERS[4]: mass,
+            MATERIAL_HEADERS[5]: fixed,
+            MATERIAL_HEADERS[6]: volatile,
+            MATERIAL_HEADERS[7]: source,
+            MATERIAL_HEADERS[8]: reference,
         })
-        # Two carbonate components in one facility total 90%; a second facility
-        # uses the official 90%/100% defaults directly.
-        for facility, kind, fraction in (("脱硫设施A", "CaCO₃", Decimal("0.4")), ("脱硫设施A", "MgCO₃", Decimal("0.5")), ("脱硫设施B", "Na₂CO₃", None)):
-            self.append_by_header(workbook, "烟气脱硫", {
-                "核算单元": "多明细单元", "设施名称": facility, "碳酸盐种类": kind,
-                "碳酸盐用量（t）": 1, "碳酸盐含量比例": fraction,
-                "参数来源编号": "脱硫检测-1" if fraction is not None else None,
-            })
-        for direction, amount, factor, source in (("输出", 2, Decimal("0.5"), "输出电力-1"), ("输出", 3, Decimal("0.4"), "输出电力-2")):
-            self.append_by_header(workbook, "电力", {
-                "核算单元": "多明细单元", "方向": direction, "电量（MWh）": amount,
-                "排放因子（tCO₂/MWh）": factor, "参数来源编号": source,
-            })
-        # Purchased electricity is resolved through the same G05 resolver.
-        for amount in (100, 200):
-            self.append_by_header(workbook, "电力", {
-                "核算单元": "多明细单元", "方向": "购入", "电量（MWh）": amount,
-                "取得方式": "购入", "电力属性": "常规", "证明类型": "无", "证明状态": "未提供",
-            })
-        for direction, amount, factor, source in (
-            ("购入", 1000, Decimal("0.11"), "购入热力-1"),
-            ("购入", 2000, Decimal("0.12"), "购入热力-2"),
-            ("输出", 500, Decimal("0.11"), "输出热力-1"),
-        ):
-            self.append_by_header(workbook, "热力", {
-                "核算单元": "多明细单元", "方向": direction, "热力数量（kg）": amount,
-                "蒸汽类型": "饱和蒸汽", "焓值（kJ/kg）": 2675, "排放因子（tCO₂/GJ）": factor,
-                "参数来源编号": source,
-            })
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        unit = preview.units[0]
-        self.assertTrue(unit.can_calculate, tuple(issue.message for issue in unit.errors))
-        self.assertEqual(len(unit.input_value.fuel_inputs), 2)
-        self.assertEqual(len(unit.input_value.calcinations), 2)
-        self.assertEqual(len(unit.input_value.bakings), 2)
-        self.assertEqual(len(unit.input_value.graphitizations), 2)
-        self.assertEqual(len(unit.input_value.fume_incinerations), 1)
-        self.assertEqual(len(unit.input_value.fgd_units), 2)
-        self.assertEqual(len(unit.input_value.fgd_units[0].components), 2)
-        self.assertEqual(len(unit.input_value.electricity_details), 2)
-        self.assertEqual(len(unit.input_value.exported_electricity), 2)
-        self.assertEqual(len(unit.input_value.purchased_heat), 2)
-        self.assertEqual(len(unit.input_value.exported_heat), 1)
-        self.assertIsNotNone(unit.result)
-        self.assertEqual(unit.calculation.algorithm_version, CarbonMaterialCalculator().calculate(unit.input_value).algorithm_version)
-        self.assertIsNone(unit.calculation.record)
 
-    def test_complete_c2_parameter_table_and_c4_c5_calculator_anchors(self) -> None:
+    def test_multi_material_rows_normalize_to_existing_calcination_baking_and_graphitization_inputs(self) -> None:
+        workbook = self.new_book()
+        self.add_unit(workbook, "多物料")
+        self.add_fuel(workbook, "多物料", 0)
+        for category, name, mass, fixed, volatile in (
+            ("待煅烧原料", "原料一", 6, Decimal("0.7"), Decimal("0.1")),
+            ("待煅烧原料", "原料二", 4, Decimal("0.9"), Decimal("0.2")),
+            ("煅后料", "煅后焦", 8, Decimal("0.9"), Decimal("0.05")),
+            ("欠烧煅料", "欠烧料", 1, Decimal("0.5"), None),
+            ("炭粉尘", "粉尘", 1, Decimal("0.2"), None),
+        ):
+            self._add_material(workbook, "多物料", "B.3 煅烧", "煅烧一", category, name, mass, fixed, volatile)
+        for category, name, mass, fixed, volatile in (
+            ("填充料", "填充料", 2, Decimal("0.2"), Decimal("0.3")),
+            ("待焙烧/炭化品", "生坯", 10, Decimal("0.8"), Decimal("0.1")),
+            ("粉尘/碎屑/副产品", "副产品", 1, Decimal("0.1"), None),
+            ("焙烧/炭化品", "焙烧品", 9, Decimal("0.85"), None),
+        ):
+            self._add_material(workbook, "多物料", "B.4 焙烧/炭化", "焙烧一", category, name, mass, fixed, volatile)
+        for category, name, mass, fixed, volatile in (
+            ("保温料/电阻料", "保温料", 2, Decimal("0.2"), Decimal("0.3")),
+            ("待石墨化品", "生料", 10, Decimal("0.8"), None),
+            ("粉尘/碎屑/残块/副产品", "残块", 1, Decimal("0.1"), None),
+            ("石墨化产品", "石墨", 9, Decimal("0.85"), None),
+        ):
+            self._add_material(workbook, "多物料", "B.5 石墨化", "石墨化一", category, name, mass, fixed, volatile)
+        _preview, unit = self.import_unit(workbook)
+        self.assertTrue(unit.can_calculate, tuple(item.message for item in unit.errors))
+        self.assertEqual(len(unit.input_value.calcinations), 1)
+        self.assertEqual(len(unit.input_value.bakings), 1)
+        self.assertEqual(len(unit.input_value.graphitizations), 1)
+        calcination = unit.input_value.calcinations[0]
+        self.assertEqual(calcination.gc.value, Decimal(10))
+        self.assertEqual(calcination.wfc.value, Decimal("0.78"))
+        self.assertEqual(calcination.wfc_c.value, Decimal("0.79"))
+        self.assertEqual(calcination.k1.source_kind.value, "STANDARD_DEFAULT")
+        self.assertIn("第5.2.2条", calcination.k1.source_location)
+        self.assertEqual(len(unit.input_value.reporting_data.activity_evidence), 14)
+
+    def test_complete_c2_factors_and_missing_carbonate_kind_is_blocked(self) -> None:
         workbook = self.new_book()
         self.add_unit(workbook, "C2完整表")
-        self.set_source_status(workbook, "C2完整表", "CAR-SRC-FGD-001", "涉及")
-        self.set_source_status(workbook, "C2完整表", "CAR-SRC-FUEL-001", "不涉及")
         for index, kind in enumerate(CARBONATE_LABELS, 1):
-            self.append_by_header(workbook, "烟气脱硫", {
-                "核算单元": "C2完整表", "设施名称": f"设施{index}", "碳酸盐种类": kind,
-                "碳酸盐用量（t）": 1,
+            self.append_section(workbook, "B.7 烟气脱硫", {
+                "核算单元（必填）": "C2完整表",
+                "设施/批次（必填）": f"设施{index}",
+                "碳酸盐种类（必填）": kind,
+                "脱硫剂消耗量（t，必填）": 1,
             })
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        unit = preview.units[0]
-        self.assertTrue(unit.can_calculate, tuple(issue.message for issue in unit.errors))
-        factors = [component.emission_factor for facility in unit.input_value.fgd_units for component in facility.components]
-        self.assertEqual(len(factors), 11)
-        for factor in factors:
-            self.assertEqual(factor.source_kind.value, "STANDARD_SPECIFIED")
-            self.assertEqual(factor.source_id, "SRC-32151-34-2024")
-            self.assertTrue(factor.source_version)
-            self.assertIn("C.2", factor.source_location)
+        preview, unit = self.import_unit(workbook)
+        self.assertTrue(unit.can_calculate, tuple(item.message for item in unit.errors))
+        components = [component for facility in unit.input_value.fgd_units for component in facility.components]
+        self.assertEqual(len(components), 11)
+        self.assertEqual(len({item.emission_factor.parameter_id for item in components}), 11)
+        for item in components:
+            self.assertEqual(item.emission_factor.source_kind.value, "STANDARD_SPECIFIED")
+            self.assertEqual(item.emission_factor.source_id, "SRC-32151-34-2024")
+            self.assertTrue(item.emission_factor.source_version)
+            self.assertIn("C.2", item.emission_factor.source_location)
+            self.assertEqual(item.carbonate_fraction.value, Decimal("0.90"))
+            self.assertEqual(item.conversion_rate.value, Decimal("1"))
+        for kind, expected in (("CaCO₃", "0.440"), ("MgCO₃", "0.522"), ("Na₂CO₃", "0.415")):
+            factor = next(item.emission_factor for item in components if item.carbonate_type == kind)
+            self.assertEqual(factor.value, Decimal(expected))
+        self.assertTrue(any(item.sheet == "过程排放" for item in preview.numeric_evidence))
 
-        from packages.standards.carbon_material import saturated_steam_enthalpy, superheated_steam_enthalpy
+        workbook = self.new_book()
+        self.add_unit(workbook, "未知碳酸盐")
+        self.append_section(workbook, "B.7 烟气脱硫", {
+            "核算单元（必填）": "未知碳酸盐",
+            "设施/批次（必填）": "脱硫设施一",
+            "脱硫剂消耗量（t，必填）": 1,
+        })
+        _preview, unknown = self.import_unit(workbook)
+        self.assertFalse(unknown.can_calculate)
+        self.assertTrue(any("选择碳酸盐种类" in item.message and "CaCO₃" in item.message for item in unknown.errors))
+        self.assertEqual(unknown.input_value.fgd_units, ())
+
+    def test_multiple_electricity_heat_rows_and_c4_c5_calculator_anchors(self) -> None:
+        workbook = self.new_book()
+        self.add_unit(workbook, "多能源")
+        for direction, amount, factor, reference in (
+            ("输出", 2, Decimal("0.5"), "输出电力-1"),
+            ("输出", 3, Decimal("0.4"), "输出电力-2"),
+            ("购入", 100, None, None),
+            ("购入", 200, None, None),
+        ):
+            values = {
+                ELECTRICITY_HEADERS[0]: "多能源",
+                ELECTRICITY_HEADERS[1]: direction,
+                ELECTRICITY_HEADERS[2]: amount,
+                ELECTRICITY_HEADERS[3]: factor,
+                ELECTRICITY_HEADERS[6]: "实测值" if factor is not None else None,
+                ELECTRICITY_HEADERS[7]: reference,
+                ELECTRICITY_HEADERS[8]: "购入" if direction == "购入" else None,
+                ELECTRICITY_HEADERS[9]: "常规" if direction == "购入" else None,
+                ELECTRICITY_HEADERS[10]: "无" if direction == "购入" else None,
+                ELECTRICITY_HEADERS[11]: "未提供" if direction == "购入" else None,
+            }
+            self.append_section(workbook, "B.8 电力", values)
+        self.append_section(workbook, "B.9 热力", {
+            HEAT_HEADERS[0]: "多能源", HEAT_HEADERS[1]: "购入", HEAT_HEADERS[2]: 1000,
+            HEAT_HEADERS[3]: "饱和蒸汽", HEAT_HEADERS[4]: 2675,
+        })
+        self.append_section(workbook, "B.9 热力", {
+            HEAT_HEADERS[0]: "多能源", HEAT_HEADERS[1]: "输出", HEAT_HEADERS[2]: 500,
+            HEAT_HEADERS[3]: "饱和蒸汽", HEAT_HEADERS[4]: 2675,
+            HEAT_HEADERS[7]: Decimal("0.12"), HEAT_HEADERS[10]: "实测值", HEAT_HEADERS[11]: "热力因子报告-1",
+        })
+        _preview, unit = self.import_unit(workbook)
+        self.assertTrue(unit.can_calculate, tuple(item.message for item in unit.errors))
+        self.assertEqual(len(unit.input_value.exported_electricity), 2)
+        self.assertEqual([item.factor.value for item in unit.input_value.exported_electricity], [Decimal("0.5"), Decimal("0.4")])
+        self.assertEqual(len(unit.input_value.electricity_details), 2)
+        self.assertEqual(len(unit.input_value.purchased_heat), 1)
+        self.assertEqual(len(unit.input_value.exported_heat), 1)
+        self.assertTrue(any(item.parameter_id == "heat_emission_factor_default" for item in unit.calculation.parameter_snapshots))
+        self.assertEqual(unit.input_value.exported_electricity[0].factor.source_kind.value, "MEASURED")
+        self.assertEqual(len(unit.input_value.reporting_data.measured_factor_evidence), 3)
+        self.assertEqual(unit.source_breakdown[next(key for key in SOURCE_IDS if SOURCE_LABELS[key] == "输出电力")], Decimal("2.2"))
         for pressure in (Decimal("1.7"), Decimal("1.8")):
             enthalpy, interpolated, _endpoints = saturated_steam_enthalpy(pressure)
             self.assertIsInstance(enthalpy, Decimal)
             self.assertFalse(interpolated)
         self.assertEqual(saturated_steam_enthalpy("1.70")[0], Decimal("2793.8"))
-        superheated_anchor, superheated_interpolated, superheated_endpoints = superheated_steam_enthalpy("1.5", "325")
+        superheated_anchor, interpolated, endpoints = superheated_steam_enthalpy("1.5", "325")
         self.assertGreater(superheated_anchor, Decimal("3000"))
-        self.assertTrue(superheated_interpolated)
-        self.assertEqual(superheated_endpoints, (Decimal("1"), Decimal("3")))
-        self.assertEqual(superheated_steam_enthalpy("1", "300")[0], Decimal("3051.3"))
+        self.assertTrue(interpolated)
+        self.assertEqual(endpoints, (Decimal("1"), Decimal("3")))
 
-        workbook = self.new_book()
-        self.add_unit(workbook, "蒸汽锚点")
-        self.set_source_status(workbook, "蒸汽锚点", "CAR-SRC-FUEL-001", "不涉及")
-        self.set_source_status(workbook, "蒸汽锚点", "CAR-SRC-PURCHASED-HEAT-001", "涉及")
-        for index, steam, pressure, temperature in (
-            (1, "饱和蒸汽", Decimal("1.75"), None),
-            (2, "过热蒸汽", Decimal("1.5"), Decimal("325")),
-        ):
-            self.append_by_header(workbook, "热力", {
-                "核算单元": "蒸汽锚点", "方向": "购入", "热力数量（kg）": 1000,
-                "蒸汽类型": steam, "压力（MPa）": pressure, "温度（℃）": temperature,
-                "排放因子（tCO₂/GJ）": Decimal("0.11"), "参数来源编号": f"蒸汽因子-{index}",
-            })
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        steam_unit = preview.units[0]
-        self.assertTrue(steam_unit.can_calculate, tuple(issue.message for issue in steam_unit.errors))
-        self.assertEqual(len(steam_unit.input_value.purchased_heat), 2)
-        self.assertTrue(any("线性内插" in warning.message for warning in steam_unit.warnings))
-
-    def test_significant_digit_count_keeps_serialized_trailing_zeroes(self) -> None:
-        self.assertEqual(significant_digit_count(Decimal("0")), 1)
-        self.assertEqual(significant_digit_count(Decimal("0.0012300")), 5)
-        self.assertEqual(significant_digit_count(Decimal("123456789012345")), 15)
-        self.assertEqual(significant_digit_count(Decimal("1.234567890123456")), 16)
-        self.assertEqual(significant_digit_count(Decimal("1E-6")), 1)
-        self.assertEqual(significant_digit_count(Decimal("1.2300E+4")), 5)
-
-    def test_nonfinite_raw_numeric_lexeme_is_rejected_even_if_openpyxl_loads_none(self) -> None:
-        from openpyxl import Workbook
-
-        cell = Workbook().active["A1"]
-        ctx = _UnitContext("单元", "u", self._unit_type(), "e", "企业", None, False, (), False, False)
-        reader = _CellReader({("测试", "A1"): "NaN"})
-        self.assertIsNone(reader.number(ctx, "测试", 1, cell))
-        self.assertEqual(ctx.errors[-1].code, "EXCEL-NUMBER-NONFINITE")
-        self.assertEqual(reader.evidence[0].serialized_numeric_text, "NaN")
-        for nonfinite in ("Infinity", "-Infinity"):
-            context = _UnitContext("单元", "u", self._unit_type(), "e", "企业", None, False, (), False, False)
-            reader = _CellReader({("测试", "A1"): nonfinite})
-            self.assertIsNone(reader.number(context, "测试", 1, cell))
-            self.assertEqual(context.errors[-1].code, "EXCEL-NUMBER-NONFINITE")
-
-    @staticmethod
-    def _unit_type():
-        from packages.application.project_workspaces import AccountingUnitType
-        return AccountingUnitType.WHOLE_SITE
-
-    def test_unknown_metadata_or_missing_core_sheet_is_workbook_fatal(self) -> None:
-        workbook = self.new_book()
-        workbook["__metadata__"]["B2"] = "9.0"
-        path = self.save_book(workbook)
-        with self.assertRaises(WorkbookFatalError):
-            ExcelWorkbookImporter(self.resolver).import_preview(path)
-
-        workbook = self.new_book()
-        workbook.remove(workbook["电力"])
-        path = self.save_book(workbook)
-        with self.assertRaises(WorkbookFatalError):
-            ExcelWorkbookImporter(self.resolver).import_preview(path)
-
-    def test_runtime_template_data_validation_does_not_change_ingress_authority(self) -> None:
-        workbook = load_workbook(BytesIO(create_template_bytes()), data_only=False)
-        self.assertGreater(len(workbook["化石燃料"].data_validations.dataValidation), 0)
-        self.assertEqual(workbook["化石燃料"]["F2"].number_format, "0.00%")
-        workbook.close()
-
-    def test_ui_preview_displays_business_result_breakdown_and_cell_locations(self) -> None:
-        workbook = self.new_book()
-        self.add_unit(workbook, "预览单元")
-        self.add_fuel(workbook, "预览单元", Decimal("1"), fuel=FuelType.DIESEL, path="质量")
-        path = self.save_book(workbook)
-        page = ExcelImportPage(catalog_service=self.catalog_service)
-        page.file_input.setText(str(path))
-        with patch("packages.ui.pages.QMessageBox.information") as information:
-            page._preview_workbook()
-        displayed = information.call_args.args[2]
-        self.assertIn("直接排放：", displayed)
-        self.assertIn("净间接排放：", displayed)
-        self.assertIn("排放总量：", displayed)
-        self.assertNotIn("CAR-", displayed)
-        issue = type("Issue", (), {"location": "化石燃料!D2", "message": "请输入有效数值。"})()
-        self.assertEqual(page._format_excel_issue(issue, "· "), "· 化石燃料!D2：请输入有效数值。")
-        internal_issue = type("Issue", (), {
-            "location": "排放源!C2", "message": "排放源 CAR-SRC-FUEL-001 已标记涉及但缺少输入。"
-        })()
-        display_text = page._format_excel_issue(internal_issue, "· ")
-        self.assertIn("化石燃料", display_text)
-        self.assertNotIn("CAR-", display_text)
-        page.close()
-
-    def test_gui_and_excel_equivalent_canonical_fuel_share_fingerprint_and_calculation(self) -> None:
+    def test_gui_and_excel_semantic_parity_without_aligning_generated_ids(self) -> None:
         workbook = self.new_book()
         self.add_unit(workbook, "企业A")
         self.add_fuel(workbook, "企业A", Decimal("1.25"), fuel=FuelType.DIESEL, path="质量")
-        path = self.save_book(workbook)
-        excel_preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        excel_input = excel_preview.units[0].input_value
-        self.assertTrue(excel_preview.units[0].can_calculate)
+        _preview, excel = self.import_unit(workbook)
+        self.assertTrue(excel.can_calculate)
 
         page = CarbonMaterialAccountingPage(
             catalog_service=self.catalog_service,
@@ -476,79 +482,138 @@ class ExcelRS03ATests(unittest.TestCase):
         page.enterprise_name.setText("示例企业")
         page.boundary_confirmed.setChecked(True)
         for source_id, combo in page._source_statuses.items():
-            target = EmissionSourceStatus.INVOLVED if source_id == SOURCE_FUEL else EmissionSourceStatus.NOT_INVOLVED
-            combo.setCurrentIndex(combo.findData(target))
+            status = EmissionSourceStatus.INVOLVED if source_id == SOURCE_FUEL else EmissionSourceStatus.NOT_INVOLVED
+            combo.setCurrentIndex(combo.findData(status))
         row = page._fuel_rows[0]
         row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.DIESEL))
         row.activity.setText("1.25")
         gui_input = page._input(increment=False, render_electricity=False)
         page.close()
+        gui_fuel = gui_input.fuel_inputs[0]
+        excel_fuel = excel.input_value.fuel_inputs[0]
+        self.assertEqual((gui_fuel.fuel_type, gui_fuel.path), (excel_fuel.fuel_type, excel_fuel.path))
+        self.assertEqual(gui_fuel.activity.value, excel_fuel.activity.value)
+        self.assertEqual(gui_fuel.carbon_content.value, excel_fuel.carbon_content.value)
+        self.assertEqual(gui_fuel.carbon_content.source_kind, excel_fuel.carbon_content.source_kind)
+        gui_result = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(gui_input)
+        excel_result = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(excel.input_value)
+        self.assertTrue(gui_result.successful)
+        self.assertTrue(excel_result.successful)
+        self.assertEqual(gui_result.result.total_amount, excel_result.result.total_amount)
 
-        excel_fuel = excel_input.fuel_inputs[0]
-        gui_fuel = replace(gui_input.fuel_inputs[0], fuel_id=excel_fuel.fuel_id)
-        gui_equivalent = replace(
-            gui_input,
-            enterprise_id=excel_input.enterprise_id,
-            boundary_component_ids=excel_input.boundary_component_ids,
-            fuel_inputs=(gui_fuel,),
-        )
-        # This is the same fingerprint function used by the existing GUI result snapshot.
-        self.assertEqual(
-            CarbonMaterialAccountingPage._fingerprint_business_input(excel_input, scope="calculation"),
-            CarbonMaterialAccountingPage._fingerprint_business_input(gui_equivalent, scope="calculation"),
-        )
-        excel_outcome = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(excel_input)
-        gui_outcome = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(gui_equivalent)
-        self.assertEqual(excel_outcome.result.total_amount, gui_outcome.result.total_amount)
+        bad_workbook = self.new_book()
+        self.add_unit(bad_workbook, "企业A")
+        self.add_fuel(bad_workbook, "企业A", Decimal("-1"), fuel=FuelType.DIESEL, path="质量")
+        _preview, bad_excel = self.import_unit(bad_workbook)
+        self.assertFalse(bad_excel.can_calculate)
+        self.assertTrue(any(item.code == "CAR-VAL-NONNEGATIVE" for item in bad_excel.errors))
 
-        changed_workbook = self.new_book()
-        self.add_unit(changed_workbook, "企业A")
-        self.add_fuel(changed_workbook, "企业A", Decimal("1.26"), fuel=FuelType.DIESEL, path="质量")
-        changed_path = self.save_book(changed_workbook)
-        changed_input = ExcelWorkbookImporter(self.resolver).import_preview(changed_path).units[0].input_value
-        excel_normalized = replace(
-            excel_input,
-            enterprise_id="enterprise.test",
-            boundary_component_ids=("boundary.test",),
-            fuel_inputs=(replace(excel_input.fuel_inputs[0], fuel_id="fuel.test"),),
+        bad_page = CarbonMaterialAccountingPage(
+            catalog_service=self.catalog_service,
+            record_repository=InMemoryRecordRepository(),
         )
-        changed_normalized = replace(
-            changed_input,
-            enterprise_id="enterprise.test",
-            boundary_component_ids=("boundary.test",),
-            fuel_inputs=(replace(changed_input.fuel_inputs[0], fuel_id="fuel.test"),),
+        bad_page.enterprise_name.setText("示例企业")
+        bad_page.boundary_confirmed.setChecked(True)
+        for source_id, combo in bad_page._source_statuses.items():
+            status = EmissionSourceStatus.INVOLVED if source_id == SOURCE_FUEL else EmissionSourceStatus.NOT_INVOLVED
+            combo.setCurrentIndex(combo.findData(status))
+        bad_row = bad_page._fuel_rows[0]
+        bad_row.fuel_type.setCurrentIndex(bad_row.fuel_type.findData(FuelType.DIESEL))
+        bad_row.activity.setText("-1")
+        gui_bad = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(
+            bad_page._input(increment=False, render_electricity=False)
         )
-        self.assertNotEqual(
-            CarbonMaterialAccountingPage._fingerprint_business_input(excel_normalized, scope="calculation"),
-            CarbonMaterialAccountingPage._fingerprint_business_input(changed_normalized, scope="calculation"),
-        )
-        changed_result = CarbonMaterialCalculator(parameter_resolver=self.resolver, record_repository=InMemoryRecordRepository()).calculate(changed_input).result
-        self.assertNotEqual(excel_outcome.result.total_amount, changed_result.total_amount)
+        bad_page.close()
+        self.assertFalse(gui_bad.successful)
 
-    def test_excel_adapter_imports_without_qt_or_widget_dependencies(self) -> None:
+    def test_preview_shows_business_breakdown_and_never_persists_record(self) -> None:
+        workbook = self.new_book()
+        self.add_unit(workbook, "预览单元")
+        self.add_fuel(workbook, "预览单元", 1, fuel=FuelType.DIESEL, path="质量")
+        path = self.save_book(workbook)
+        page = ExcelImportPage(catalog_service=self.catalog_service)
+        page.file_input.setText(str(path))
+        with patch("packages.ui.pages.QMessageBox.information") as information:
+            page._preview_workbook()
+        displayed = information.call_args.args[2]
+        for label in ("化石燃料：", "生产过程：", "烟气治理：", "购入电力：", "购入热力：", "输出电力抵扣：", "输出热力抵扣：", "直接排放：", "净间接排放：", "排放总量："):
+            self.assertIn(label, displayed)
+        self.assertNotIn("CAR-", displayed)
+        self.assertIn("此预览不会保存项目或生成正式核算记录。", displayed)
+        issue = type("Issue", (), {"location": "燃料与能源!D13", "message": "请输入有效数值。"})()
+        self.assertEqual(page._format_excel_issue(issue, "· "), "· 燃料与能源!D13：请输入有效数值。")
+        internal_issue = type("Issue", (), {
+            "location": "燃料与能源!A13", "message": "排放源 CAR-SRC-FUEL-001 已标记涉及但缺少输入。"
+        })()
+        formatted = page._format_excel_issue(internal_issue, "· ")
+        self.assertNotIn("CAR-", formatted)
+        page.close()
+
+    def test_malformed_metadata_or_missing_core_sheet_is_fatal_and_adapter_has_no_qt_dependency(self) -> None:
+        workbook = self.new_book()
+        workbook["__metadata__"]["B2"] = "unexpected"
+        path = self.save_book(workbook)
+        with self.assertRaises(WorkbookFatalError):
+            ExcelWorkbookImporter(self.resolver).import_preview(path)
+
+        workbook = self.new_book()
+        workbook.remove(workbook["过程排放"])
+        path = self.save_book(workbook)
+        with self.assertRaises(WorkbookFatalError):
+            ExcelWorkbookImporter(self.resolver).import_preview(path)
+
         root = str(Path(__file__).parents[1])
         script = "import sys; import packages.excel.gbt32151_34_v1; print('PySide6' in sys.modules)"
-        result = subprocess.run(
-            [sys.executable, "-c", script], cwd=root, capture_output=True, text=True, check=True,
-        )
+        result = subprocess.run([sys.executable, "-c", script], cwd=root, capture_output=True, text=True, check=True)
         self.assertEqual(result.stdout.strip(), "False")
 
-    def test_evidence_is_shared_and_numeric_cell_provenance_is_preserved(self) -> None:
-        workbook = self.new_book()
-        self.add_unit(workbook, "证据单元")
-        workbook["证据来源"].append(("证据单元", "电表月报", "活动数据", "燃料活动量", "化石燃料", "MTR-2025-01", "配电室", "电表抄录", "电表-1", "0.5级", "月", "2025-01", None, "原件归档"))
-        self.add_fuel(workbook, "证据单元", Decimal("1.25"), activity_evidence="电表月报")
-        path = self.save_book(workbook)
-        preview = ExcelWorkbookImporter(self.resolver).import_preview(path)
-        unit = preview.units[0]
-        self.assertTrue(unit.can_calculate)
-        self.assertEqual(len(unit.input_value.reporting_data.activity_evidence), 1)
-        self.assertTrue(unit.input_value.fuel_inputs[0].activity.evidence_ref_ids)
-        evidence = next(item for item in preview.numeric_evidence if item.sheet == "化石燃料")
-        self.assertEqual(evidence.raw_cell_type, "n")
-        self.assertEqual(evidence.normalized_decimal, Decimal("1.25"))
-        self.assertIsNone(unit.calculation.record)
-        self.assertEqual(len(preview.provenance.workbook_sha256), 64)
+    def test_numeric_helpers_and_nonfinite_serialized_lexemes(self) -> None:
+        self.assertEqual(significant_digit_count(Decimal("0")), 1)
+        self.assertEqual(significant_digit_count(Decimal("123456789012345")), 15)
+        self.assertEqual(significant_digit_count(Decimal("1.234567890123456")), 16)
+        self.assertEqual(significant_digit_count(Decimal("1E-6")), 1)
+        from openpyxl import Workbook
+
+        cell = Workbook().active["A1"]
+        ctx = _UnitContext("单元", "u", self._whole_site(), "e", "企业", None, False, None)
+        reader = _CellReader({("测试", "A1"): "NaN"})
+        self.assertIsNone(reader.number(ctx, "测试", 1, cell))
+        self.assertEqual(ctx.errors[-1].code, "EXCEL-NUMBER-NONFINITE")
+        for nonfinite in ("Infinity", "-Infinity"):
+            ctx = _UnitContext("单元", "u", self._whole_site(), "e", "企业", None, False, None)
+            reader = _CellReader({("测试", "A1"): nonfinite})
+            self.assertIsNone(reader.number(ctx, "测试", 1, cell))
+            self.assertEqual(ctx.errors[-1].code, "EXCEL-NUMBER-NONFINITE")
+
+    def test_nonfinite_numeric_lexemes_are_rejected_through_the_real_import_path(self) -> None:
+        ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+        for lexeme in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(lexeme=lexeme):
+                workbook = self.new_book()
+                self.add_unit(workbook, "非有限数")
+                fuel_row = self.add_fuel(workbook, "非有限数", Decimal("1.25"))
+                source_path = self.save_book(workbook)
+                edited_path = Path(self.temp_root.name) / f"nonfinite-{lexeme.replace('-', 'minus')}.xlsx"
+                members: dict[str, bytes] = {}
+                with ZipFile(source_path, "r") as archive:
+                    members = {name: archive.read(name) for name in archive.namelist()}
+                root = ElementTree.fromstring(members["xl/worksheets/sheet3.xml"])
+                cell = root.find(f".//{{{ns}}}c[@r='D{fuel_row}']")
+                self.assertIsNotNone(cell)
+                value_node = cell.find(f"{{{ns}}}v")
+                self.assertIsNotNone(value_node)
+                value_node.text = lexeme
+                members["xl/worksheets/sheet3.xml"] = ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+                with ZipFile(edited_path, "w", ZIP_DEFLATED) as archive:
+                    for name, content in members.items():
+                        archive.writestr(name, content)
+                with self.assertRaises(WorkbookFatalError):
+                    ExcelWorkbookImporter(self.resolver).import_preview(edited_path)
+
+    @staticmethod
+    def _whole_site():
+        from packages.application.project_workspaces import AccountingUnitType
+        return AccountingUnitType.WHOLE_SITE
 
 
 if __name__ == "__main__":

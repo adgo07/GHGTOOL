@@ -187,7 +187,7 @@ Excel 设计、实现、GUI↔Excel Conformance 属于**同一产品阶段内部
 
 内部工作包（不构成新的产品阶段）：
 
-- **RS03-A — Excel 模板、数值入口与多核算单元导入基础**：运行时生成标准模板，建立可审计数值入口和多核算单元独立校验/计算预览；不保存 Project 或正式 Record。
+- **RS03-A — Excel 模板、数值入口与多核算单元导入基础**：运行时生成标准模板，建立可审计数值入口和多核算单元独立校验/计算预览；不保存 Project 或正式 Record。`RS03-A-R1` 已将模板收敛为四个可见页签，按标准业务区域承载多物料/能源行并展示分项预览；技术独立验收与用户模板 UAT 待完成。
 - **RS03-B — 完整 Excel Import/Export / Project / Record 闭环**：在 RS03-A 验收后完成正式导入、导出及 Project / Record 生命周期接通。本工作包当前未启动。
 
 RS03-A 的 Excel 数值词法互操作仍是本地入口策略；中央通用 Excel Decimal ingress 语义仍为 OPEN，不由本阶段冻结或扩展。
@@ -349,7 +349,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
-| Excel | `PARTIAL` | RS03-A提供运行时标准模板、数值校验和独立核算单元预览；正式Project / Record导入闭环与导出仍属RS03-B |
+| Excel | `PARTIAL` | RS03-A-R1提供四个可见页签、标准业务分区、多行入口与单元级分项预览；独立验收和用户模板UAT待完成。正式Project / Record导入闭环与导出仍属RS03-B |
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
@@ -357,7 +357,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-RS03-A — Excel 模板、数值入口与多核算单元导入基础**；RS03-B尚未启动。当前分支/PR和验证状态见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- 当前工作包：**GHG-RS03-A-R1 — Excel 模板简化与用户验收候选版**；技术独立验收与用户模板UAT待完成，RS03-B尚未启动。当前分支/PR和验证状态见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
 - RS01、RS02-A已完成并合入main；RS02-B已合入main。RS03-A不完成正式Project / Record持久化、导出或Golden Freeze；RS03-B、RS04、Release Gate及第二标准尚未启动。
 - 第二标准不得早于 **RS05**。
 
