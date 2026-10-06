@@ -27,11 +27,13 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     EmissionSourceStatus,
     FGDInput,
+    HeatFactorMode,
     FuelPath,
     FuelType,
     InMemoryRecordRepository,
     ParameterSourceKind,
 )
+from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from tests.ui_tree_helpers import tree_texts
 
@@ -340,10 +342,13 @@ class AccountingProjectUiTests(unittest.TestCase):
         )
         self.page._fields["heat_id"].setText("heat-source-a")
         self.page._fields["heat_amount"].setText("10")
+        first_heat = self.page._heat_rows["heat"][0]
+        first_heat["factor_mode"].setCurrentIndex(first_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
         self.page.heat_measured_factor.setText("0.11")
         self.page.heat_factor_source_reference.setText("热力实测-A")
         second_heat = self.page._add_heat_row("heat", line_id="heat-source-b")
         second_heat["amount"].setText("20")
+        second_heat["factor_mode"].setCurrentIndex(second_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
         second_heat["measured"].setText("0.20")
         second_heat["source"].setText("热力实测-B")
 
@@ -390,6 +395,52 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual([item.line_id for item in domain_input.exported_electricity], ["power-source-a", "power-source-b"])
         self.assertEqual([str(item.factor.value) for item in domain_input.exported_electricity], ["0.50", "0.25"])
         self.assertEqual(self.page._add_process_row("calcination")["instance_id"], "calcination-4")
+
+    def test_material_rows_keep_values_after_project_reopen(self) -> None:
+        self.page.project_name.setText("多物料项目")
+        self.page.enterprise_name.setText("多物料企业")
+        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        process_row = self.page._process_rows["calcination"][0]
+        feed, = process_row["materials"]
+        feed["name"].setText("原料甲")
+        feed["mass"].setText("120")
+        feed["fixed_carbon"].setText("82")
+        feed["volatile_matter"].setText("8")
+        product = self.page._add_material_line(process_row)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料甲")
+        product["mass"].setText("100")
+        product["fixed_carbon"].setText("95")
+        product["volatile_matter"].setText("2")
+        feed_id = feed["line_id"]
+        product_id = product["line_id"]
+
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+        saved = self.project_service.get(project_id)
+        self.assertIsNotNone(saved)
+        assert saved is not None
+        saved_processes = saved.units[0].form_state["process_instances"]
+        self.assertEqual(saved_processes["calcination"][0]["material_ids"], [feed_id, product_id])
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        restored = self.page._process_rows["calcination"][0]["materials"]
+        self.assertEqual([row["line_id"] for row in restored], [feed_id, product_id])
+        self.assertEqual(restored[0]["name"].text(), "原料甲")
+        self.assertEqual(restored[0]["mass"].text(), "120")
+        self.assertEqual(restored[1]["name"].text(), "煅后料甲")
+        normalized = self.page._input().calcinations[0]
+        self.assertEqual([line.line_id for line in normalized.material_rows], [feed_id, product_id])
 
     def test_report_data_and_reusable_evidence_restore_from_project_form_state(self) -> None:
         self.page.project_name.setText("报告资料恢复项目")

@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-05（GHG-UAT01-A）
+最后更新：2026-10-06（GHG-UAT01-B）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,9 +30,9 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前返修包：`GHG-UAT01-A — 普通核算录入与错误反馈体验修复`；基于最新main创建独立分支，不修改PR #27。实现与本地验收完成，等待本包PR latest-head Windows CI及独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- UAT01-A：`IMPLEMENTED / AWAITING ACCEPTANCE`；UAT01-B：`NOT STARTED`。RS03-A USER UAT：`BLOCKED BY UAT01`；PR #27：`OPEN / UNMERGED`，本包不触及该PR。
-- RS01与RS02已完成并合入main；RS03-B、Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- 当前返修包：`GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环`；基于开工时最新main `d11d21a79cc89d291ebe4cc2cc5162a75018b1af` 的独立分支实施，不从PR #27派生且不修改PR #27。实现及可执行本地验证完成，等待独立PR latest-head Windows CI和独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
+- UAT01-A已由PR #28合并；UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且保持只读；RS03-B：`NOT STARTED`。
+- RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
 ```text
@@ -180,10 +180,11 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应返修包 GHG-UAT01-A — 普通核算录入与错误反馈体验修复：
+本文件当前对应工作包 GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环：
 
-- 普通手工核算采用单一“计算排放量”动作；Domain一次返回问题，问题面板按必须修正/提醒、排放源、实例和字段组织；致命错误不生成结果或Record；
-- 简化核算边界和专业控件展示；企业名称可选；燃料输入明确计量单位、参数来源及C.1缺省值；标准库C.1～C.5以只读方式浏览；
-- 动态新增/删除行使用自然布局，并完成1.0 / 1.25 / 1.5缩放验收；历史Project可继续读取；历史Record快照不重算、不漂移；
-- 不改公式、Numeric Contract、中央baseline、Frozen Contract或Record生命周期；不处理Excel、蒸汽自动计算、UAT01-B或RS03-B；
-- UAT01-A `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `BLOCKED BY UAT01`；PR #27 `OPEN / UNMERGED`且保持只读；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- 煅烧、焙烧/炭化和石墨化在单个过程实例中支持多条真实物料；共享纯 Python 标准化器完成质量汇总、质量加权成分及副产品碳质量汇总，再输入既有公式，GUI不另算一套业务公式；
+- 过程物料采用固定碳/挥发分及各自数据来源；当前 Canonical 无相应标准缺省值，默认实测，允许化学计算，空白表示未提供、显式0保留为零；核心必需物料缺失时阻断；
+- 购入/输出蒸汽以吨录入、绝压 MPa 录入；自动模式使用版本化 Calculator 的 C.4/C.5 表值与现有插值，手动焓值优先用于计算，明显差异仅提醒；结果 Trace 标示焓值来源、自动参考值和插值定位；
+- 热力因子标准缺省值由 Canonical resolver 提供 0.11；实测覆盖可以使用，缺少简短来源说明只提醒。旧 Project 仍可读取，旧蒸汽质量单位与手工焓值按向后兼容逻辑恢复；历史Record不可变、不重算；
+- 未修改标准公式、C.4/C.5 标准表数值、Canonical数据、数据库迁移、Numeric Contract、platform-lock 或 Record生命周期；不做Excel导入/导出、RS03-B、Golden Freeze或Release；
+- UAT01-B `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且保持只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

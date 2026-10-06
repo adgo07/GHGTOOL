@@ -26,6 +26,7 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     STANDARD_ID,
     FGDInput,
+    HeatFactorMode,
     FuelPath,
     FuelType,
     MaterialBasis,
@@ -33,9 +34,12 @@ from packages.standards.carbon_material import (
     EmissionSourceStatus,
     InMemoryRecordRepository,
     ParameterSourceKind,
+    SteamKind,
 )
+from packages.standards.carbon_material_normalization import MaterialDataSource, MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.carbon_material_page import _C2_CARBONATES, _FUEL_C1_ACTIVITY_PATH, _FUEL_C1_SUBJECT_IDS
+from packages.ui.field_specs import get_field_spec
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
 from tests.ui_tree_helpers import tree_texts
@@ -600,22 +604,38 @@ class G06PageTests(unittest.TestCase):
         self._set_source_involved("CAR-SRC-EXPORTED-ELECTRICITY-001")
         self.page._fields["heat_amount"].setText("100")
         self.page._fields["heat_enthalpy"].setText("2800")
+        self.page._heat_rows["heat"][0]["enthalpy_mode"].setCurrentIndex(
+            self.page._heat_rows["heat"][0]["enthalpy_mode"].findData("MANUAL")
+        )
+        self.page._heat_rows["heat"][0]["factor_mode"].setCurrentIndex(
+            self.page._heat_rows["heat"][0]["factor_mode"].findData(HeatFactorMode.MEASURED)
+        )
         self.page.heat_measured_factor.setText("0.11")
         self.page.heat_factor_source_reference.setText("购热报告-A")
         self.page._fields["exported_heat_amount"].setText("25")
         self.page._fields["exported_heat_enthalpy"].setText("2700")
+        self.page._heat_rows["exported_heat"][0]["enthalpy_mode"].setCurrentIndex(
+            self.page._heat_rows["exported_heat"][0]["enthalpy_mode"].findData("MANUAL")
+        )
+        self.page._heat_rows["exported_heat"][0]["factor_mode"].setCurrentIndex(
+            self.page._heat_rows["exported_heat"][0]["factor_mode"].findData(HeatFactorMode.MEASURED)
+        )
         self.page.exported_heat_measured_factor.setText("0.12")
         self.page.exported_heat_factor_source_reference.setText("售热报告-A")
         self.page._add_heat_row("heat")
         second_heat = self.page._heat_rows["heat"][1]
         second_heat["amount"].setText("200")
         second_heat["enthalpy"].setText("3000")
+        second_heat["enthalpy_mode"].setCurrentIndex(second_heat["enthalpy_mode"].findData("MANUAL"))
+        second_heat["factor_mode"].setCurrentIndex(second_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
         second_heat["measured"].setText("0.20")
         second_heat["source"].setText("购热报告-B")
         self.page._add_heat_row("exported_heat")
         second_output_heat = self.page._heat_rows["exported_heat"][1]
         second_output_heat["amount"].setText("75")
         second_output_heat["enthalpy"].setText("2900")
+        second_output_heat["enthalpy_mode"].setCurrentIndex(second_output_heat["enthalpy_mode"].findData("MANUAL"))
+        second_output_heat["factor_mode"].setCurrentIndex(second_output_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
         second_output_heat["measured"].setText("0.16")
         second_output_heat["source"].setText("售热报告-B")
         self.page._output_electricity_rows[0]["amount"].setText("10")
@@ -765,12 +785,17 @@ class G06PageTests(unittest.TestCase):
         self.page._fields["exported_electricity_amount"].setText("2")
         self.page._fields["exported_heat_amount"].setText("100")
         self.page._fields["exported_heat_enthalpy"].setText("2800")
+        heat_row = self.page._heat_rows["exported_heat"][0]
+        heat_row["enthalpy_mode"].setCurrentIndex(heat_row["enthalpy_mode"].findData("MANUAL"))
         value = self.page._input()
         self.assertEqual(len(value.exported_electricity), 1)
         self.assertEqual(value.exported_electricity[0].amount.value, 2)
         self.assertEqual(len(value.exported_heat), 1)
         self.assertEqual(value.exported_heat[0].amount.value, 100)
-        self.assertIsNotNone(value.exported_heat[0].factor)
+        self.assertEqual(value.exported_heat[0].amount.unit, "t")
+        self.assertEqual(value.exported_heat[0].steam_amount_t.value, Decimal("100"))
+        self.assertTrue(value.exported_heat[0].manual_enthalpy)
+        self.assertEqual(value.exported_heat[0].factor_mode, HeatFactorMode.STANDARD_DEFAULT)
 
     def test_empty_enterprise_name_is_optional_and_successfully_creates_record(self) -> None:
         self.page.calculate_button.click()
@@ -781,31 +806,133 @@ class G06PageTests(unittest.TestCase):
         self.assertIsNone(records[0].input_snapshot.enterprise_name)
         self.assertEqual(self.page.validation_list.topLevelItemCount(), 0)
 
-    def test_heat_parameter_selector_displays_source_review_and_selection_reason(self) -> None:
-        self.page.enterprise_name.setText("热力参数选择企业")
+    def test_heat_defaults_to_canonical_factor_and_automatic_steam_enthalpy(self) -> None:
         self.page.period_year.setValue(2026)
-        self.application.processEvents()
-        selector = self.page.findChild(QComboBox, "heatFactorSelector")
-        metadata = self.page.findChild(QLabel, "heatFactorMetadata")
-        reason = self.page.findChild(QLineEdit, "heatFactorSelectionReasonInput")
-        self.assertIsNotNone(selector)
-        self.assertGreater(selector.count(), 0)
-        self.assertIn("heat_default_2025", [selector.itemData(index) for index in range(selector.count())])
-        self.assertIn("推荐热力因子", metadata.text())
-        self.assertNotIn("heat_default_2025", metadata.text())
-        self.assertNotIn("来源", metadata.text())
-        self.assertTrue(reason.text().strip())
-        self.assertFalse(self.page.heat_factor_professional_details.isVisible())
+        row = self.page._heat_rows["heat"][0]
+        factor_mode = row["factor_mode"]
+        enthalpy_mode = row["enthalpy_mode"]
+        self.assertEqual(row["amount"].property("fieldUnit"), "t")
+        self.assertEqual(row["amount"].spec.domain_unit, "kg")
+        self.assertEqual(get_field_spec("heat_pressure").label, "蒸汽压力（MPa，绝压）")
+        self.assertEqual(factor_mode.currentData(), HeatFactorMode.STANDARD_DEFAULT)
+        self.assertIn("0.11", factor_mode.currentText())
+        self.assertEqual(enthalpy_mode.currentData(), "AUTO")
+        self.assertFalse(self.page.heat_factor_selector.isVisible())
+        self.assertFalse(self.page.heat_factor_metadata.isVisible())
         self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
-        self.page._fields["heat_amount"].setText("1000")
-        self.page._fields["heat_enthalpy"].setText("2800")
-        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(1)
+
+        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        self.page._source_statuses["CAR-SRC-EXPORTED-HEAT-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-EXPORTED-HEAT-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        row["amount"].setText("1")
+        row["pressure"].setText("0.1")
+        output_row = self.page._heat_rows["exported_heat"][0]
+        output_row["amount"].setText("0.5")
+        output_row["pressure"].setText("0.1")
         value = self.page._input()
-        selected = value.purchased_heat[0].factor
-        self.assertIsNotNone(selected)
-        self.assertEqual(selected.factor_id, selector.currentData())
-        self.assertTrue(selected.source_id)
-        self.assertTrue(selected.selection_reason.strip())
+        heat_input = value.purchased_heat[0]
+        self.assertEqual(heat_input.amount.value, Decimal("1"))
+        self.assertEqual(heat_input.amount.unit, "t")
+        self.assertEqual(heat_input.steam_amount_t.value, Decimal("1"))
+        self.assertFalse(heat_input.manual_enthalpy)
+        self.assertEqual(heat_input.steam_kind, SteamKind.SATURATED)
+        outcome = self.page.calculator.calculate(value)
+        self.assertTrue(outcome.successful, outcome.problems)
+        trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-PURCHASED-HEAT-001")
+        provenance = dict(trace.provenance)
+        self.assertEqual(provenance["enthalpy_source"], "标准表自动确定")
+        self.assertEqual(provenance["table"], "C.4")
+        self.assertEqual(provenance["heat_factor_source"], "标准缺省值")
+        factor_snapshot = next(
+            item for item in outcome.parameter_snapshots
+            if item.parameter_id == "heat_emission_factor_default"
+        )
+        self.assertEqual(factor_snapshot.factor_id, "heat_default_2025")
+        self.assertEqual(factor_snapshot.value_used, Decimal("0.11"))
+        output_heat = value.exported_heat[0]
+        self.assertEqual(output_heat.amount.value, Decimal("0.5"))
+        self.assertEqual(output_heat.factor_mode, HeatFactorMode.STANDARD_DEFAULT)
+        output_trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-EXPORTED-HEAT-001")
+        self.assertEqual(dict(output_trace.provenance)["heat_factor_source"], "标准缺省值")
+        self.assertEqual(dict(output_trace.provenance)["enthalpy_source"], "标准表自动确定")
+
+    def test_process_material_rows_flow_through_shared_normalization(self) -> None:
+        from packages.standards.carbon_material_normalization import normalize_material_inputs
+
+        self.page.enterprise_name.setText("多物料输入企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self._set_source_involved("CAR-SRC-CALCINATION-001")
+        process_row = self.page._process_rows["calcination"][0]
+        feed, = process_row["materials"]
+        feed["name"].setText("原料甲")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("80")
+        feed["volatile_matter"].setText("10")
+        self.assertEqual(feed["fixed_carbon_source"].currentData(), MaterialDataSource.MEASURED)
+        self.assertEqual(feed["volatile_matter_source"].currentData(), MaterialDataSource.MEASURED)
+
+        second_feed = self.page._add_material_line(process_row)
+        second_feed["name"].setText("原料乙")
+        second_feed["mass"].setText("50")
+        second_feed["fixed_carbon"].setText("60")
+        second_feed["volatile_matter"].setText("20")
+        product = self.page._add_material_line(process_row)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("120")
+        product["fixed_carbon"].setText("90")
+        product["volatile_matter"].setText("2")
+
+        domain_input = self.page._input()
+        payload = domain_input.calcinations[0]
+        normalized = normalize_material_inputs("calcination", payload.material_rows, policy=self.page.calculator.policy)
+        self.assertFalse(normalized.problems, normalized.problems)
+        self.assertEqual(payload.gc.value, normalized.value("gc"))
+        self.assertEqual(payload.wfc.value, normalized.value("wfc"))
+        self.assertEqual(payload.cc.value, normalized.value("cc"))
+        self.assertIn("原料 150 t", process_row["material_summary"].text())
+        outcome = self.page.calculator.calculate(domain_input)
+        self.assertTrue(outcome.successful, outcome.problems)
+        trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-CALCINATION-001")
+        provenance = set(trace.provenance)
+        self.assertIn((f"material.{feed['line_id']}.name", "原料甲"), provenance)
+        self.assertIn((f"material.{second_feed['line_id']}.name", "原料乙"), provenance)
+        self.assertIn((f"material.{product['line_id']}.name", "煅后料"), provenance)
+
+    def test_manual_steam_result_explains_used_and_reference_enthalpy(self) -> None:
+        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        row = self.page._heat_rows["heat"][0]
+        row["amount"].setText("1")
+        row["pressure"].setText("0.1")
+        row["enthalpy"].setText("2810")
+        row["enthalpy_mode"].setCurrentIndex(row["enthalpy_mode"].findData("MANUAL"))
+
+        self.page._run_calculation()
+
+        self.assertFalse(self.page.result_card.isHidden())
+        explanation = self.page.result_line_details.text()
+        self.assertIn("用户手动填写", explanation)
+        self.assertIn("2810.0 kJ/kg", explanation)
+        self.assertIn("参考值为 2675.7 kJ/kg", explanation)
+        self.assertIn("本次采用您填写的 2810", explanation)
+
+    def test_legacy_project_steam_kg_and_manual_enthalpy_restore_without_loss(self) -> None:
+        legacy_state = self.page._capture_form_state()
+        legacy_state.pop("steam_input_version", None)
+        legacy_state["heat_amountInput"] = "1250"
+        legacy_state["heat_enthalpyInput"] = "2780"
+        legacy_state["heatFactorModeSelector"] = 0
+        self.page._restore_form_state(legacy_state)
+        row = self.page._heat_rows["heat"][0]
+        self.assertEqual(row["amount"].text(), "1.25")
+        self.assertEqual(row["enthalpy"].text(), "2780")
+        self.assertEqual(row["enthalpy_mode"].currentData(), "MANUAL")
+        self.assertEqual(row["factor_mode"].currentData(), HeatFactorMode.STANDARD_DEFAULT)
 
     def test_material_basis_without_conversion_evidence_is_blocked(self) -> None:
         self.page.enterprise_name.setText("基准证明企业")
