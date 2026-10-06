@@ -875,6 +875,7 @@ class G06CalculatorTests(unittest.TestCase):
             self.assertEqual(variables["EF3"], Decimal("0.11"))
 
     def test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods(self) -> None:
+        from packages.application.catalog_queries import CatalogQueryService
         from packages.application.carbon_accounting import create_g06_parameter_resolver
         from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 
@@ -883,20 +884,37 @@ class G06CalculatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
             catalog_path = Path(directory) / "catalog.sqlite"
             build_catalog_database(output_path=catalog_path)
-            resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
+            repository = SQLiteCatalogRepository(catalog_path)
+            catalog = CatalogQueryService(repository)
+            resolver = create_g06_parameter_resolver(repository)
+            implementation_date = catalog.standard_implementation_date(STANDARD_ID)
+            self.assertEqual(implementation_date, date(2025, 3, 1))
             cases = (
-                (AccountingPeriod(PeriodType.ANNUAL, date(2025, 1, 1), date(2025, 12, 31)),
-                 "heat_default_gbt32151_34_c3"),
-                (AccountingPeriod(PeriodType.ANNUAL, date(2026, 1, 1), date(2026, 12, 31)),
-                 "heat_default_2025"),
-                (AccountingPeriod(PeriodType.CUSTOM, date(2025, 5, 1), date(2025, 5, 31)),
-                 "heat_default_gbt32151_34_c3"),
-                (AccountingPeriod(PeriodType.CUSTOM, date(2026, 8, 1), date(2026, 8, 31)),
-                 "heat_default_2025"),
+                (
+                    "entirely_before",
+                    AccountingPeriod(PeriodType.ANNUAL, date(2024, 1, 1), date(2024, 12, 31)),
+                    "heat_default_gbt32151_34_c3",
+                    "BEFORE",
+                ),
+                (
+                    "crosses",
+                    AccountingPeriod(PeriodType.CUSTOM, date(2025, 2, 1), date(2025, 3, 31)),
+                    "heat_default_gbt32151_34_c3",
+                    "CROSSES",
+                ),
+                (
+                    "after",
+                    AccountingPeriod(PeriodType.ANNUAL, date(2026, 1, 1), date(2026, 12, 31)),
+                    "heat_default_2025",
+                    None,
+                ),
             )
-            for period, expected_factor_id in cases:
-                with self.subTest(period=period, expected=expected_factor_id):
-                    outcome = CarbonMaterialCalculator(parameter_resolver=resolver).calculate(
+            for case_name, period, expected_factor_id, expected_relation in cases:
+                with self.subTest(case=case_name, period=period, expected=expected_factor_id):
+                    outcome = CarbonMaterialCalculator(
+                        parameter_resolver=resolver,
+                        standard_implementation_date=implementation_date,
+                    ).calculate(
                         _input(
                             period=period,
                             purchased_heat=(HeatInput(
@@ -916,10 +934,37 @@ class G06CalculatorTests(unittest.TestCase):
                         for snapshot in outcome.parameter_snapshots
                         if snapshot.parameter_id == "heat_emission_factor_default"
                     }
-                    self.assertEqual(heat_snapshots, {
-                        "purchased-heat": expected_factor_id,
-                        "exported-heat": expected_factor_id,
-                    })
+                    self.assertEqual(
+                        heat_snapshots,
+                        {"purchased-heat": expected_factor_id, "exported-heat": expected_factor_id},
+                    )
+                    warnings = [
+                        problem
+                        for problem in outcome.problems
+                        if problem.code == "CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD"
+                    ]
+                    if expected_relation is None:
+                        self.assertEqual(warnings, [])
+                    else:
+                        self.assertEqual(len(warnings), 1)
+                        self.assertEqual(warnings[0].level, IssueLevel.WARNING)
+                        self.assertEqual(dict(warnings[0].details)["period_relation"], expected_relation)
+                        self.assertIsNotNone(outcome.record)
+                        self.assertIsNotNone(outcome.result)
+                        assert outcome.record is not None
+                        assert outcome.result is not None
+                        self.assertIn(warnings[0], outcome.result.problems)
+                        self.assertIn(warnings[0], outcome.record.problems)
+                        self.assertEqual(outcome.record.status.value, "COMPLETED_WITH_WARNINGS")
+                    self.assertIsNotNone(outcome.record)
+                    assert outcome.record is not None
+                    if expected_relation is None:
+                        self.assertEqual(
+                            outcome.record.status.value,
+                            "COMPLETED_WITH_WARNINGS"
+                            if any(problem.level is IssueLevel.WARNING for problem in outcome.record.problems)
+                            else "COMPLETED",
+                        )
 
     def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
         fuels = (

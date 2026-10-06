@@ -235,6 +235,19 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(len(self.catalog["reference_data_bindings"]), 100)
         self.assertNotIn("weight", json.dumps(self.catalog["reference_data_bindings"]).lower())
 
+    def test_standard_implementation_date_is_not_c3_factor_validity(self) -> None:
+        standard = next(item for item in self.catalog["standards"] if item["standard_id"] == "gbt_32151_34_2024")
+        c3_factor = next(item for item in self.catalog["factors"] if item["factor_id"] == "heat_default_gbt32151_34_c3")
+        c3_binding = next(item for item in self.catalog["reference_data_bindings"] if item["factor_id"] == c3_factor["factor_id"])
+        electricity = next(item for item in self.catalog["factors"] if item["factor_id"] == "electricity_national_average_2023")
+
+        self.assertEqual(standard["implementation_date"], "2025-03-01")
+        self.assertEqual(c3_factor["normalized_value"], "0.11")
+        self.assertIsNone(c3_factor["valid_from"])
+        self.assertIsNone(c3_binding["valid_from"])
+        self.assertEqual(c3_factor["applicable_standard_ids"], [standard["standard_id"]])
+        self.assertIsNotNone(electricity["valid_from"])
+
     def test_different_source_value_is_a_separate_immutable_asset_version(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         source = copy.deepcopy(next(item for item in catalog["sources"] if item["source_id"] == "SRC-32151-34-2024"))

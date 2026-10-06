@@ -37,7 +37,7 @@
 
 ## 4. 当前问题
 
-当前登记数量：**4**，均 **RESOLVED**；OPEN 0 / PROVISIONAL 0。本轮仅正式登记既有项目决定，不新增未解决Standard Issue Gap、不修改Calculator、不重新讨论解释。中央Numeric/Unit/Quantity议题不混入本台账。
+当前登记数量：**5**，均 **RESOLVED**；OPEN 0 / PROVISIONAL 0。前四项为既有项目决定；第五项记录 2026-10-06 用户对标准实施日期与因子自身有效期的产品裁定。中央Numeric/Unit/Quantity议题不混入本台账。
 
 共同证据：GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》原始PDF，43页，文件名及SHA256见[CORE_CHECK §1](specs/carbon_accounting/GB_T_32151_34_2024_CORE_CHECK.md)；[冻结SM01-2026-09-13-R6 Mapping §17/17.1](specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md)。Mapping原样入仓SHA256=`01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`。G06最终PASS历史 `5b8d35db65375907ccef18d426fba9ec4319aa64:TASK_STATE.md`、验收对象 `c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`佐证采用口径。独立原始批准附件缺失按GAP-009保留为provenance debt；本轮用户明确沿用这些历史决定。
 
@@ -98,3 +98,17 @@
 | 业务影响 | 煅烧/焙烧/石墨化输入门禁和结果；R1不改变既有口径 |
 | 关联Rule/Calculator/测试 | CAR-RULE-MATERIAL-BASIS-001；carbon_material.py物料基准校验及三个过程helper；test_g06_carbon_material.test_material_basis_and_duplicate_output_validation；Mapping TV-CAR-BASE-001～005；Golden N/A — RS04未冻结 |
 | 支持证据/状态/日期 | 共同证据及Mapping §8/12/17.1；RESOLVED；日期见共同日期口径 |
+
+### GHG-STD-32151-34-005 — 标准实施日期与热力缺省因子有效期
+
+| 字段 | 记录 |
+|---|---|
+| 标准版本及定位 | GB/T 32151.34—2024；封面实施日期，PDF1；附录C.3热力缺省值，PDF27/印刷19 |
+| 标准原文事实 | 封面写实施日期2025-03-01；C.3给出热力缺省值0.11 tCO₂/GJ，未在该值处另行规定因子自身从2025-03-01起生效。原文事实不等于标准官方认可溯及适用。 |
+| 类型/问题 | IMPLEMENTATION；软件将标准实施日期写入C.3因子及其绑定的`valid_from`，使用户选择该标准核算较早期间时解析不到该缺省值。 |
+| 当前技术判断 | 标准实施日期与因子自身期间有效性是不同概念。`accounting_period`仍须参与真正具有期间适用性的因子解析，例如年度官方电力因子。 |
+| 软件当前决定 | 按2026-10-06用户裁定：用户明确选择本标准时，核算期间完全早于或跨越实施日期，给出非阻断提醒并继续按所选标准核算；C.3因子及绑定不再用标准实施日期作为`valid_from`。实施日后无需该提醒。不改正式公式、Resolver Selection Policy或既有历史Record。 |
+| 确认程度 | 项目所有者批准的软件产品口径，不是发布机构对标准追溯适用性的官方解释。 |
+| 业务影响 | 新计算的热力参数候选资格、核算状态及新Record告警；历史Record不重算、不迁移。 |
+| 关联Rule/Calculator/测试 | Canonical `heat_default_gbt32151_34_c3`及对应binding；所选标准期间提醒；G06前/跨/后实施日三类回归。 |
+| 支持证据/状态/日期 | 原始PDF SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；用户2026-10-06明确裁定；RESOLVED；2026-10-06。 |

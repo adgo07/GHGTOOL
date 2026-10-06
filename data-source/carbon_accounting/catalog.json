@@ -4386,11 +4386,11 @@
       "source_id": "SRC-32151-34-2024",
       "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
       "factor_year": 2024,
-      "valid_from": "2025-03-01",
+      "valid_from": null,
       "valid_to": null,
       "value_type": "STANDARD_DEFAULT",
       "review_status": "VERIFIED",
-      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源及适用起始日期。",
+      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源。标准实施日期不作为该因子自身有效期起点。",
       "applicable_standard_ids": [
         "gbt_32151_34_2024"
       ]
@@ -7260,10 +7260,10 @@
       "factor_id": "heat_default_gbt32151_34_c3",
       "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
       "factor_year": 2024,
-      "valid_from": "2025-03-01",
+      "valid_from": null,
       "valid_to": null,
       "review_status": "VERIFIED",
-      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源及适用起始日期。",
+      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源。标准实施日期不作为该因子自身有效期起点。",
       "applicable_standard_ids": [
         "gbt_32151_34_2024"
       ]

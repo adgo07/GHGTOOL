@@ -199,6 +199,15 @@ class CatalogQueryService:
         )
         return standard.version if standard is not None else None
 
+    def standard_implementation_date(self, standard_id: str) -> date | None:
+        """Return the verified implementation date for a standard in the catalog."""
+
+        standard = next(
+            (item for item in self._repository.list_standards() if item.standard_id == standard_id),
+            None,
+        )
+        return standard.implementation_date if standard is not None else None
+
     def list_parameter_factors(self, parameter_id: str) -> tuple[FactorCatalogRecord, ...]:
         """Return immutable factor candidates for a G06 parameter selector."""
 
