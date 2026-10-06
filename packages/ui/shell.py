@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QSize, Qt
+from PySide6.QtCore import QEvent, QTimer, QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -76,6 +76,15 @@ class CurrentPageStack(QStackedWidget):
             return super().minimumSizeHint()
         return current.minimumSizeHint()
 
+    def event(self, event: QEvent) -> bool:  # type: ignore[override]
+        handled = super().event(event)
+        if event.type() == QEvent.Type.LayoutRequest:
+            central_widget = getattr(self.window(), "centralWidget", None)
+            shell = central_widget() if callable(central_widget) else None
+            if isinstance(shell, AppShell):
+                shell.update_content_geometry()
+        return handled
+
 
 class AppShell(QWidget):
     """Fixed-sidebar shell with route-driven page presentation."""
@@ -105,6 +114,7 @@ class AppShell(QWidget):
         self._navigation_buttons: dict[AppRoute, QPushButton] = {}
         self._icon_names: dict[AppRoute, str] = {}
         self._pages: dict[AppRoute, QWidget] = {}
+        self._content_geometry_refresh_pending = False
         self.router = PageRouter((item.route for item in view_model.navigation), self)
         self.router.route_changed.connect(self._show_route)
 
@@ -356,19 +366,34 @@ class AppShell(QWidget):
     def update_content_geometry(self) -> None:
         if not hasattr(self, "page_stack"):
             return
+        self._apply_content_geometry()
+        if self._content_geometry_refresh_pending:
+            return
+        self._content_geometry_refresh_pending = True
+        QTimer.singleShot(0, self, self._settle_content_geometry)
+
+    def _settle_content_geometry(self) -> None:
+        """Recheck after Qt has propagated nested layout size-hint changes."""
+
+        self._content_geometry_refresh_pending = False
+        self._apply_content_geometry()
+
+    def _apply_content_geometry(self) -> None:
+        if not hasattr(self, "page_stack"):
+            return
         available_width = max(0, self.main_scroll_area.viewport().width())
         content_width = min(MAIN_CONTENT_MAX_WIDTH, available_width)
         self.page_stack.setFixedWidth(content_width)
-        available_height = max(0, self.main_scroll_area.viewport().height())
-        self.page_stack.setMinimumHeight(available_height)
-        self.page_stack.adjustSize()
-        content_height = max(available_height, self.page_stack.sizeHint().height())
-        self.scroll_host.setFixedHeight(content_height)
         page_margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
         for page in self._pages.values():
             setter = getattr(page, "set_page_margin", None)
             if setter is not None:
                 setter(page_margin)
+        available_height = max(0, self.main_scroll_area.viewport().height())
+        self.page_stack.setMinimumHeight(available_height)
+        self.page_stack.adjustSize()
+        content_height = max(available_height, self.page_stack.sizeHint().height())
+        self.scroll_host.setFixedHeight(content_height)
 
     def resizeEvent(self, event) -> None:  # type: ignore[no-untyped-def]
         super().resizeEvent(event)

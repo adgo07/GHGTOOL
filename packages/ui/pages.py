@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
-    QGroupBox,
+    QDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -565,13 +565,17 @@ class RecordLibraryPage(BasePage):
         self.detail_tabs.addTab(self.quality_text, "数据质量与提醒")
         detail_layout.addWidget(self.detail_tabs, 1)
 
-        self.professional_group = QGroupBox("专业信息（展开查看）", detail_card)
-        self.professional_group.setCheckable(True)
-        self.professional_group.setChecked(False)
-        professional_layout = QVBoxLayout(self.professional_group)
-        self.detail_text = self._readonly_text("recordDetailView", self.professional_group)
-        professional_layout.addWidget(self.detail_text)
-        detail_layout.addWidget(self.professional_group)
+        self.audit_dialog = QDialog(self)
+        self.audit_dialog.setObjectName("recordAuditDialog")
+        self.audit_dialog.setWindowTitle("核算记录审计详情（只读）")
+        self.audit_dialog.resize(780, 560)
+        audit_layout = QVBoxLayout(self.audit_dialog)
+        self.detail_text = self._readonly_text("recordDetailView", self.audit_dialog)
+        audit_layout.addWidget(self.detail_text)
+        self.audit_button = QPushButton("查看审计详情", detail_card)
+        self.audit_button.setObjectName("openRecordAuditButton")
+        self.audit_button.clicked.connect(self.audit_dialog.open)
+        detail_layout.addWidget(self.audit_button)
         self.delete_button = QPushButton("删除记录", detail_card)
         self.delete_button.setObjectName("deleteRecordButton")
         self.delete_button.clicked.connect(self._delete_selected)

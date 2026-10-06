@@ -2,42 +2,35 @@
 
 状态：CURRENT STATE；更新：2026-10-06。
 
-## 当前工作包与基线
+## 当前工作包
 
-- 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- 工作包：GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环。
-- Base / 开工时最新 `origin/main`：`d11d21a79cc89d291ebe4cc2cc5162a75018b1af`；PR #28（UAT01-A）合并结果已进入main。分支：`codex/ghg-uat01-b-material-steam`；由该main独立创建；PR #27没有用作基线或被修改。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定 SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`，未升级。
-- 平台 / Contract 预检查：按锁定 SHA 读取 Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；Domain保持独立于PySide6/SQLite/Excel，数值运算沿用项目 Carbon Decimal Profile，由Calculator显式策略驱动归一化及C.4/C.5插值。本任务未修改中央公共Contract或本地baseline；不存在Contract冲突。
-- Standard Issue：涉及既有 `GHG-STD-32151-34-003`（C.4异常键）；仍按已批准的1.70/1.80 MPa项目解释，保留原始异常证据，不称官方勘误。本任务不改变此既有决定、不新增标准问题。
-- PR #27：GitHub状态为 `OPEN / UNMERGED`；仅读取其 `carbon_material_normalization.py` 的纯Python可复用能力作为参考，未基于其分支开发、未修改该PR。
+- 工作包：**GHG-UAT02 — 核算录入与结果查看体验收口**。本地实现及验证完成，等待本包PR最新head的Windows CI与独立验收；本包不自行合并。
+- 仓库：`adgo07/GHGTOOL`；已核对`origin=https://github.com/adgo07/GHGTOOL.git`及实际工作树。分支：`codex/ghg-uat02-accounting-usability`，从开工时最新`origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`独立创建；没有从PF01或其他未合并PR派生。
+- RS01/RS02及UAT01-A/B已进入`main`；RS03-A用户UAT仍待独立推进，RS03-B、Golden Freeze、Release及第二标准未在本包启动。`GB/T 32151.34—2024`仍为`NOT SUPPORTED`。
 
-## 实现状态
+## 平台、标准和Scope预检查
 
-- UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`；本包独立PR及其最终head的GitHub Actions仍是交付门槛。
-- 新增共享纯Python物料归一化：多行质量汇总、质量加权固定碳/挥发分、副产品碳质量求和、空白与显式0区分；兼容PR #27参考的 `MaterialAmount`、`weighted_fraction`、`carbon_mass` 基础能力，GUI经同一标准化器传入现有 `CarbonMaterialInput`。式(6)～(8)公式本身未变。
-- 普通过程录入新增物料行、类别/名称、数量、固定碳/挥发分和各自数据来源；目前无适用 Canonical 标准缺省值，默认实测，可选化学计算，不造默认值；标准需计算的组成缺失或数值非法则 Domain 阻断。
-- 蒸汽录入改为吨与绝压 MPa。饱和/过热蒸汽焓由既有版本化Domain Calculator查C.4/C.5并沿用线性/双向内插；允许手动焓值覆盖，差异和表外参考状态仅警告，自动模式缺值/超范围才阻断。热力因子0.11由现有Canonical参数Resolver提供，实测值可覆盖。
-- 结果/Trace保存并呈现手动/自动焓值来源、自动参考值、压力/温度插值端点、热力因子来源；业务排放公式、C.4/C.5正式表值及Canonical数据未更改。
-- 旧Project通过现有`form_state_json`作加法兼容；旧蒸汽kg输入换算回吨，原手动焓值恢复为手动模式，旧聚合物料字段在用户填写新物料行前仍可读。没有破坏性迁移。成功计算继续新建不可变Record；历史Record不重算、不改写。
-- 没有实现新的多过程/多热源/多电力行模型，没有修改Excel模板或Excel导入流程；RS03-B、Golden Freeze、Release及第二标准未启动。
+- `platform-lock.json`锁定中央`Qingzhou-contracts@ee5feb0cc34dbd99790500fadd0c4c932e202a20`，未升级。按该SHA读取Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；读取当前适用的UI Design Guidelines。适用MUST/MUST NOT：Presentation与Domain/Infrastructure隔离，正式Decimal结果由声明的项目Profile控制，显示格式不回流计算；本包不修改计算Profile、公共Contract或中央基线，无冲突。本任务不涉及新的中央公共Contract。
+- 已读取`STANDARD_ISSUES_REGISTER.md`；本包只改既有UI行为及企业自填参数来源说明的错误等级，不改变标准解释、正式公式、Canonical值或已登记Standard Issue；无需新增标准问题。
+- PF01拥有的`packages/ui/catalog_pages.py`、`packages/application/catalog_queries.py`、`data-source/carbon_accounting/catalog.json`、`specs/common/canonical_catalog.schema.json`、`packages/core/parameter_resolution.py`及共享标准数据均未修改。未修改`计算表/`用户文件、数据库schema、迁移、Excel/Word或第二标准。
 
-## 本地验证
+## 实现断点
 
-- 聚焦：`python -m unittest tests.test_g06_carbon_material tests.test_uat01b_material_steam -v`，30/30通过；覆盖式(6)～(8)多物料手算对照、零值/缺项、C.4/C.5节点与内插、吨转kg、手动焓值及历史Record快照。
-- 全量：`python -m unittest discover -s tests -t . -v`；145项实际运行，11个Qt UI测试模块在导入时因本机缺少`PySide6`报错；其余已运行用例通过。全量回归不记为通过，等待Windows/Python 3.12 CI覆盖。
-- GUI/缩放验收：未能本机执行，原因同为当前Python环境未安装`PySide6`。
-- Canonical：`python scripts/validate_canonical.py`通过：9 standards、12 sources、98 parameters、98 factors（本包未改Canonical）。
-- 编译：`python -m compileall -q apps packages scripts tests`通过。
-- 依赖：`python -m pip check`通过，无损坏依赖。
-- 隔离数据库：`python scripts/initialize_databases.py --output-dir <临时目录>`通过，创建catalog、user、records、projects四库；本包无数据库迁移。
-- Windows standalone：`python scripts/build_standalone.py --output-root <临时目录>`未通过，当前本地Python缺少`PyInstaller`；本机也缺少`PySide6`，未产出可运行版，因此release archive审计和smoke启动未执行。
-- `git diff --check`：截至报告草稿前通过；提交前复核。
-- GitHub Actions：尚待独立PR与最终head创建后验证，不能引用历史head结果。
+- 关闭的下拉框/数字框滚轮不再误改选项或数值；展开的下拉列表和键盘操作仍可用。公共滚动宿主在动态行1/5/20条、删除、折叠、展开后重新匹配当前页面高度，滚动范围随之变化。
+- 脱硫剂内部组件ID隐藏；多过程实例新增放入次级管理入口，物料新增入口保留；排放源卡片与快捷导航使长表单更易查找和操作。
+- 校验失败以“未完成：请修正N项问题”提示并定位首项；企业实测/自定义参数数值有效但缺来源文字时只给WARNING且保留真实空来源快照，缺必填数值、非化石电力证据和物料基准换算证据仍按原规则阻断。
+- 细小非零排放值采用适应量级的展示，Domain Decimal和正式结果不变；`0.35`标示为“挥发分折算系数”；防重复计碳控制进专业层。结果过期、成功但含提醒等状态可见；正式记录审计详情默认隐藏、按需打开，历史快照仍只读。
 
-## 治理状态与停止点
+## 本地验证与未执行项
 
-- UAT01-A由PR #28合并进入main；当前UAT01-B已实现，等待最新PR head CI与独立验收。
-- RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且只读。
-- RS03-B：`NOT STARTED`；GB/T 32151.34—2024：`NOT SUPPORTED`。
-- 本包PR不合并；完成最新head Windows CI验证后停止，等待独立验收。
+- UAT02专项：`python -m unittest tests.test_uat02_usability tests.test_uat02_geometry -q`，**8/8通过，0失败、0错误、0跳过**。
+- 定向回归：`QT_QPA_PLATFORM=offscreen python -m unittest tests.test_uat02_usability tests.test_uat02_geometry tests.test_g06_page tests.test_g07_records tests.test_accounting_projects_ui tests.test_uir03_advanced_details -q`，**77/77通过，0失败、0错误、0跳过**。
+- 全量：`QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -t . -q`，**268项，退出码0，0失败、0错误、0跳过**。这是本地Windows/Python 3.12/PySide6的offscreen Qt测试，不冒充可见桌面人工验收。
+- `python -m compileall -q apps packages scripts tests`、`python -m pip check`均通过；`python scripts/validate_canonical.py`通过：9 standards、12 sources、98 parameters、98 factors。
+- `python scripts/initialize_databases.py --output-dir <隔离临时目录>`通过，catalog/user/records/projects四库从零生成；临时数据库已清理。
+- `python scripts/build_standalone.py --output-root <隔离临时目录>`通过，并通过内置release/archive审计；`python scripts/smoke_standalone.py <artifact> --starts 2`通过，独立版隔离启动2次；临时构建产物已清理。
+- 可见桌面人工操作与独立产品验收未在本地自动测试中完成，留给独立验收；GitHub Actions必须以最终PR head核对，不能借用旧run。
+
+## 停止点
+
+完成提交、推送和PR后，只等待最新head Windows CI及独立验收；不得自行合并本包、启动PF01/RS03-B、Golden Freeze或Release。

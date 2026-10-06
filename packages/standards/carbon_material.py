@@ -1635,8 +1635,20 @@ class CarbonMaterialCalculator:
             return None
         try:
             self._check_parameter_semantics(converted, expected_unit, field_id, problems)
-            if value.source_id is None or value.source_version is None or value.source_location is None:
-                problems.append(_problem("CAR-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 缺少来源、版本或定位。", field_id))
+            source_incomplete = value.source_id is None or value.source_version is None or value.source_location is None
+            if source_incomplete:
+                if value.source_kind in {
+                    ParameterSourceKind.MEASURED,
+                    ParameterSourceKind.CALCULATED,
+                    ParameterSourceKind.USER_DEFINED,
+                    ParameterSourceKind.PROJECT_SPECIFIED,
+                }:
+                    problems.append(_problem(
+                        "CAR-VAL-FACTOR-SOURCE", IssueLevel.WARNING,
+                        f"参数 {field_id} 未填写来源说明；本次仍按录入数值计算。", field_id,
+                    ))
+                else:
+                    problems.append(_problem("CAR-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 缺少来源、版本或定位。", field_id))
             snapshot_id = f"{field_id}.parameter-snapshot"
             snapshots.append(
                 ParameterSnapshot(
@@ -1660,8 +1672,6 @@ class CarbonMaterialCalculator:
             )
             if value.source_kind is ParameterSourceKind.USER_DEFINED:
                 problems.append(_problem("GEN-VAL-CUSTOM-FACTOR", IssueLevel.WARNING, f"参数 {field_id} 使用用户自定义值。", field_id))
-            if value.source_kind is ParameterSourceKind.MEASURED and value.source_location is None:
-                problems.append(_problem("GEN-VAL-MEASURED-NO-TEST-INFO", IssueLevel.WARNING, f"参数 {field_id} 缺少检测/取样信息。", field_id))
             return converted
         except DomainValidationError as exc:
             problems.append(_problem("GEN-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 无法形成快照：{exc}", field_id))
@@ -1774,14 +1784,15 @@ class CarbonMaterialCalculator:
         explicit = line.factor
         if explicit is not None:
             factor = self._parameter(explicit, "tCO2/GJ", f"CAR-FLD-HEAT-{line.line_id}-EF3", snapshots, problems, snapshot_at)
-            is_measured = (
-                line.factor_mode is HeatFactorMode.MEASURED
-                or explicit.source_kind is ParameterSourceKind.MEASURED
-            )
-            if is_measured and line.factor_source_note is None:
+            # A source-bearing factor can still lack the per-line measurement
+            # note. Do not duplicate the missing-source warning from _parameter.
+            if (
+                (line.factor_mode is HeatFactorMode.MEASURED or explicit.source_kind is ParameterSourceKind.MEASURED)
+                and line.factor_source_note is None
+                and explicit.source_location is not None
+            ):
                 problems.append(_problem(
-                    "CAR-VAL-FACTOR-SOURCE",
-                    IssueLevel.WARNING,
+                    "CAR-VAL-FACTOR-SOURCE", IssueLevel.WARNING,
                     "实测热力因子未填写来源说明；本次仍按您提供的数值计算。",
                     f"CAR-FLD-HEAT-{line.line_id}-EF3",
                 ))
