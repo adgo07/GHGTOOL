@@ -10,7 +10,7 @@
 - `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`，未升级。
 - 平台 / Contract预检查：按locked SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；中央ACTIVE UI指南按当前正式版本核对。适用要求为分层隔离、Canonical JSON可校验、只读界面不替代Resolver、普通界面隐藏内部标识、历史Record不可漂移。本任务不涉及中央公共Contract；无冲突、无baseline变更。
 - Standard Issue：涉及既有 `GHG-STD-32151-34-003`，C.4/C.5只读展示复用Calculator数据并继续既有1.70/1.80 MPa项目解释；本任务不改变解释、不新增问题。
-- 交付：本分支创建独立PF01 PR；PR最终Head的Windows/Python 3.12 CI成功后等待独立验收，不合并。
+- 交付：独立PR #30已创建并保持OPEN / UNMERGED；以其最新Head的Windows/Python 3.12 CI作为验收证据，之后等待独立验收，不合并。
 
 ## 实现状态
 

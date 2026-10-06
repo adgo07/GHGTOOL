@@ -1,6 +1,6 @@
 # GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。实现、全量本地回归和Windows standalone构建已完成；独立PR最终Head的Windows CI仍是交付门槛。当前报告不内嵌PR Head或CI run SHA，最终以GitHub PR Checks与交付回复中的精确Head证据为准，避免自引用提交。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。实现、全量本地回归和Windows standalone构建已完成；独立PR #30保持OPEN / UNMERGED，等待独立验收。PR最新Head的Windows CI以GitHub PR Checks为准；本报告不内嵌Head或run SHA，最终精确证据见交付回复，避免自引用提交。
 
 ## 1. 基线与平台 / Contract 预检查
 
@@ -61,7 +61,7 @@
 - `python scripts/initialize_databases.py --output-dir build/pf01-isolated-db-final`：通过，隔离创建catalog/user/records/projects四库；另验证Catalog 001→002旧行保留。
 - `python scripts/build_standalone.py --output-root build/pf01-standalone-final`：通过；release文件范围/哈希/数据库审计与ZIP归档往返审计均由构建流程执行。
 - `python scripts/smoke_standalone.py build/pf01-standalone-final/QingzhouCarbonAccounting`：通过，两次隔离启动。
-- GitHub Actions：待独立PR创建并推送最终Head后确认Windows/Python 3.12 Merge-ref Full Tests与PR-head Standalone Audit均成功且`head_sha`等于最终PR Head。CI结果以GitHub PR Checks和最终交付回复为准。
+- GitHub Actions：PR #30必须由当前最新Head通过Windows/Python 3.12 `Merge-ref Full Tests`与`PR-head Standalone Audit`；最终精确Head和两项结果以GitHub PR Checks及交付回复为准，不在本文件重复记录run SHA。
 
 ## 5. 治理状态与停止点
 

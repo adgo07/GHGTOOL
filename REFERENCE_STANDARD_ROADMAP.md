@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-06（GHG-PF01；注册库与页面改造已实现，等待独立验收）
+最后更新：2026-10-06（GHG-PF01；PR #30已创建，等待latest-head CI和独立验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -353,7 +353,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-PF01 — 参数与因子注册库基础架构 + 页面重构**；从开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 创建独立分支。Canonical 注册模型、只读查询、按标准/文件浏览与全库搜索已实现；Resolver选择策略与正式计算公式保持原样，等待独立PR最新head CI及独立验收。
+- 当前工作包：**GHG-PF01 — 参数与因子注册库基础架构 + 页面重构**；从开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 创建独立分支，独立PR #30保持OPEN / UNMERGED。Canonical注册模型、只读查询、按标准/文件浏览与全库搜索已实现；Resolver选择策略与正式计算公式保持原样，latest-head CI结果以PR Checks为准，之后等待独立验收。
 - PF01仅扩展标准参考资料登记与查阅能力；C.4/C.5仍由版本化Calculator提供，不复制蒸汽表；中央baseline未升级。RS03-A用户UAT仍为 `PENDING`；PR #27保持 `OPEN / UNMERGED`且本包不修改；RS03-B `NOT STARTED`。
 - UAT01-A/B、RS01与RS02已合并进入main；Golden Freeze、Release Gate及第二标准尚未启动。标准仍为 `NOT SUPPORTED`。
 - 第二标准不得早于 **RS05**。
