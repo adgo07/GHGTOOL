@@ -9,7 +9,7 @@
 | 应用版本 | `1.1.0` |
 | Canonical schema 版本 | `1.0.0` |
 | Catalog data 版本 | `2026.09.22-catui01.1`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
-| Catalog / User / Records 数据库迁移 | `001` / `001` / `002` |
+| Catalog / User / Records 数据库迁移 | `001` / `001` / `004` |
 | Projects 数据库迁移 | `002` |
 
 构建脚本会从 `data-source/carbon_accounting/catalog.json` 重新生成只读 `databases/catalog.sqlite`，并写入 `build-manifest.json`。发布前必须通过 `scripts/inspect_release.py` 的文件范围、哈希、数据库元数据和敏感文件检查。
@@ -59,7 +59,7 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 - 计算链只覆盖 GB/T 32150—2025 通用规则和 GB/T 32151.34—2024 炭素材料生产企业模块。
 - 其余计划标准只有目录与状态信息，不实现计算规则。
-- Excel 导入、报告/导出、企业档案完善、企业层级、审批、`.qzproj` 项目文件和云端服务当前尚未实现；其中 Excel 正式闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 `GHG-RS03`，不是永久排除。
+- Excel R2 模板与只读预览、基于已保存 Record 的 Word 核算报告已由 GHG-RPT01 提供，当前工作包等待独立验收；Excel 正式写入及结果导出、企业层级、审批、`.qzproj` 项目文件和云端服务当前未开放。Excel 完整闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 `GHG-RS03`，不是永久排除。
 - 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
 - 本机已在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
 

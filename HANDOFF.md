@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-06（GHG-UAT01-B）
+最后更新：2026-10-07（GHG-RPT01）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,8 +30,8 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前返修包：`GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环`；基于开工时最新main `d11d21a79cc89d291ebe4cc2cc5162a75018b1af` 的独立分支实施，不从PR #27派生且不修改PR #27。实现及可执行本地验证完成，等待独立PR latest-head Windows CI和独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- UAT01-A已由PR #28合并；UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且保持只读；RS03-B：`NOT STARTED`。
+- 当前工作包：`GHG-RPT01 — 统一报告模型 + Word核算报告 + Excel R2正式导入模板`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立分支，没有从 PR #27、PF01 或 UAT02 派生。Word 报告、R2模板和逐单元只读预览已实现，本地验证完成；当前等待独立验收。最终 PR head 与 CI 证据见最终交付回复和 PR Checks。
+- UAT01-A/B已合并；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本工作包只读参考；RS03-B：`NOT STARTED`。GHG-RPT01 不合并主线，独立验收前保持未验收。
 - RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -100,9 +100,9 @@ Module ID：`qz.carbon_accounting`
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：Excel 导入只保留禁用入口与占位说明，未实现。
+- **当前状态**：GHG-RPT01 增加 R2 标准输入模板下载与逐核算单元只读预览，采用与桌面共用的 Domain / Calculator；预览不保存 Project / Workspace / Record。正式 Excel 写入、结果导出尚未实现，模板入口处于 RPT01 独立验收中。
 - **最终定位**（中央 Product Delivery Policy）：Excel 是 Import / Export Adapter，必须与 GUI 进入同一 Canonical Input → 同一 Application → 同一 Domain / Calculator → 同一 Result。
-- 正式实现属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**；本阶段不得启用或实现。
+- Excel 完整闭环仍属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**。
 
 ### 3.6 架构与分层
 
@@ -180,11 +180,11 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环：
+本文件当前对应工作包 GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板：
 
-- 煅烧、焙烧/炭化和石墨化在单个过程实例中支持多条真实物料；共享纯 Python 标准化器完成质量汇总、质量加权成分及副产品碳质量汇总，再输入既有公式，GUI不另算一套业务公式；
-- 过程物料采用固定碳/挥发分及各自数据来源；当前 Canonical 无相应标准缺省值，默认实测，允许化学计算，空白表示未提供、显式0保留为零；核心必需物料缺失时阻断；
-- 购入/输出蒸汽以吨录入、绝压 MPa 录入；自动模式使用版本化 Calculator 的 C.4/C.5 表值与现有插值，手动焓值优先用于计算，明显差异仅提醒；结果 Trace 标示焓值来源、自动参考值和插值定位；
-- 热力因子标准缺省值由 Canonical resolver 提供 0.11；实测覆盖可以使用，缺少简短来源说明只提醒。旧 Project 仍可读取，旧蒸汽质量单位与手工焓值按向后兼容逻辑恢复；历史Record不可变、不重算；
-- 未修改标准公式、C.4/C.5 标准表数值、Canonical数据、数据库迁移、Numeric Contract、platform-lock 或 Record生命周期；不做Excel导入/导出、RS03-B、Golden Freeze或Release；
-- UAT01-B `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且保持只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- ReportModel 位于 Application 层，只读一条不可变 AccountingRecord 已保存的输入、结果、参数、Trace、Provenance、Reporting 与资格快照；不调用 Calculator、不查当前 Catalog、不更改历史 Record。Word renderer 输出 DOCX；补充信息写入 records.sqlite 新增追加式报告导出历史表，并记录审计事件。
+- 报告按 B.1–B.9 展示快照中的业务输入、参数来源、逐项结果与追溯说明；旧快照不足时提示缺失，不补算、不伪造。Word 报告不展示内部 Rule、Trace、参数或 Record 编号。
+- Excel R2 有十张中文可见表和隐藏模板元数据页，B.2–B.9 分页录入，支持动态行、空白/显式零区分及严格 OOXML Decimal 词法入口；每个核算单元单独复用当前 Domain / Calculator 预览，不写 Project / Workspace / Record，不提供 Excel 结果导出。
+- PR #27 只作只读参考；共享物料标准化能力在本任务 Base 中已经存在并继续复用。报告、R2 导入预览与企业文件输出由本工作包实现，未引入 PR #27 未合并代码作为正式依赖。
+- 未修改计算公式、Canonical 标准数据、中央 Frozen Contract、`platform-lock.json`、正式记录生命周期或用户目录 `计算表/`；没有启动 RS03-B、Golden、Release 或第二标准。
+- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED` 且保持只读；RS03-B：`NOT STARTED`；Excel 结果导出：`NOT STARTED`；GB/T 32151.34—2024 仍为 `NOT SUPPORTED`。

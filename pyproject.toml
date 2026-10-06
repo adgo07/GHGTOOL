@@ -8,7 +8,9 @@ version = "1.1.0"
 description = "青舟温室气体排放核算软件 Windows V1.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "openpyxl>=3.1,<4",
     "PySide6>=6.8,<7",
+    "python-docx>=1.1,<2",
 ]
 
 [project.optional-dependencies]

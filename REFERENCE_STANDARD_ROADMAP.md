@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-06（GHG-UAT01-B；实现与可执行本地验证完成，等待最新PR head CI和独立验收）
+最后更新：2026-10-07（GHG-RPT01；实现完成，当前等待独立验收；最终 PR head 与 CI 证据见交付回复）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -345,16 +345,16 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
-| Excel | `NOT STARTED` | 当前仅禁用入口与占位说明；正式实现属于 RS03 |
+| Excel | `PARTIAL` | RPT01 提供 R2 标准输入模板、OOXML 数值词法保护和逐核算单元只读预览；不写入 Project / Workspace / Record，结果导出及完整闭环仍属 RS03 |
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02已合并进入main；UAT01-A已随PR #28合并。当前UAT01-B已实现，等待独立验收；RS03-A用户UAT仍待进行，PR #27保持OPEN / UNMERGED；RS03-B未启动。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02及UAT01-A/B已合并进入main。当前GHG-RPT01实现包含统一报告模型、Word报告和Excel R2模板/只读预览，当前等待独立验收；最终 PR head 与 CI 证据见交付回复。RS03-A用户UAT仍待进行，PR #27保持OPEN / UNMERGED；RS03-B未启动。Excel正式写入及结果导出尚未实现。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 8. 当前阶段与下一步
 
-- 当前返修包：**GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环**；基于最新 `origin/main` `d11d21a79cc89d291ebe4cc2cc5162a75018b1af` 的独立分支实施，不从PR #27派生且不修改PR #27；本地可执行验证已完成，等待独立PR latest-head CI和独立验收。
-- UAT01-A已合并（PR #28）；UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。
+- 当前工作包：**GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板**；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立工作分支，不从 PR #27、PF01 或 UAT02 分支派生；实现及本地验证完成，当前等待独立验收，PR 最新提交与 CI 证据见交付回复。
+- UAT01-A/B已合并进入main；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PF01 与 UAT02 为并行工作包，集成情况以最终 `origin/main` 检查为准；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本包只读参考；RS03-B：`NOT STARTED`。
 - RS01与RS02已合并进入main；Golden Freeze、Release Gate及第二标准尚未启动。标准仍为 `NOT SUPPORTED`。
 - 第二标准不得早于 **RS05**。
 
@@ -372,9 +372,9 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次UAT01-B由用户明确启动；RS03-B及RS04～RS06+未获本轮启动；
-- 本次UAT01-B仅完成B.3–B.5单过程实例多物料归一化、B.9蒸汽自动焓值及手动覆盖；不改变公式、标准表数值或Record生命周期，不实现Excel导入、Excel模板修改或RS03-B；
-- PR #27保持OPEN / UNMERGED且只读；RS03-A用户UAT仍为PENDING；
+- 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次GHG-RPT01由用户明确启动；RS03-B及RS04～RS06+未获本轮启动；
+- 本次GHG-RPT01建立冻结Record快照驱动的ReportModel和Word导出，并增加Excel R2输入模板及逐核算单元只读预览；不重新计算、不写入Project / Workspace / Record、不实现Excel结果导出；
+- PR #27保持OPEN / UNMERGED且只读；RS03-A用户UAT仍为PENDING；RS03-B仍未启动；
 - 不修改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或任何中央 Contract；
 - 不把 `DRAFT` / `NOT FROZEN` 描述成 `FROZEN`；
 - 不建立第二套产品路线。

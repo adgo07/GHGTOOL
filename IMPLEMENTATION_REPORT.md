@@ -1,56 +1,73 @@
-# GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环
+# GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本地可运行的定向验证已通过；当前执行环境缺少PySide6和PyInstaller，GUI/standalone本地验收未完成。独立PR latest-head Windows CI和独立验收仍为交付门槛。UAT01-A已合并；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且未修改；RS03-B `NOT STARTED`；标准仍为 `NOT SUPPORTED`。最终Head与exact-head CI结果见最终交付回复和PR Checks，本报告不写自身提交SHA以避免自引用提交。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。最终独立 PR 最新提交的 GitHub Actions 与独立验收是交付门槛；本报告不写入会触发新提交的自身 head 或 CI run SHA，精确提交与 CI 证据见最终交付回复及 PR Checks。
 
 ## 1. 基线与平台 / Contract 预检查
 
 - 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- Base / 开工时最新 `origin/main`：`d11d21a79cc89d291ebe4cc2cc5162a75018b1af`，包含PR #28的UAT01-A合并结果。分支：`codex/ghg-uat01-b-material-steam`；PR #27未作为Base。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央Locked SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。
-- 按locked SHA读取Architecture V2.1、Numeric Contract v1、Numeric Profiles v1。适用要求：分层隔离；Domain不得依赖Qt、SQLite或Excel；权威数值必须消费声明的Numeric Profile，helper不得静默切换ambient/default配置，调用方ambient context不得改变同一Profile的结果。项目Carbon Decimal Profile继续由既有`DecimalPolicy`负责。本任务不涉及中央公共Contract，未修改Frozen Contract、`platform-lock.json`或`PLATFORM_BASELINE.md`，无Contract冲突。
-- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`。继续保留C.4原始重复键事实并使用项目已批准的1.70/1.80 MPa执行解释；非官方勘误。本任务未改变既有软件解释、未新增标准问题。
-- PR #27当前仍为OPEN、未合并；仅读取其纯Python `carbon_material_normalization.py` 作为可复用能力参考，没有使用其分支作为Base或修改该PR。
+- 开工时最新 `origin/main` Base：`c61b29baa2f5d75deae5fc243874d2b1d947bf4a`。
+- 独立分支：`codex/ghg-rpt01-report-excel-r2`；未从 PR #27、PF01 或 UAT02 分支派生。
+- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央 SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。未修改或升级锁定基线。
+- 按锁定 SHA 核对 Architecture V2.1、Numeric Contract v1 与 Numeric Profiles v1。适用要求是保持分层边界和已采用的数值语义；本任务的 ReportModel 留在 Application，Word / Excel 为外层适配器，Decimal OOXML 读取是本仓 Excel 适配语义。
+- 本任务不涉及中央公共 Contract，没有 Contract 冲突；未修改 Calculator、标准公式、标准解释、Canonical 标准数据、标准适用范围或 Frozen Contract。
+- Standard Issue：没有新增问题或改变既有解释。PR #27 保持 `OPEN / UNMERGED` 且未修改，仅作只读背景参考。
 
-## 2. Base→Final Head的实际改动
+## 2. 实际交付
 
-本报告对应本包PR中的最终Base→Head diff；准确提交数、变更文件数、增删行与Head SHA由Git和最终PR记录确定，不把Head写回此文件。改动集中在Domain物料归一化、Carbon Material UI/输入元数据、相关Domain与UI测试，以及Roadmap、HANDOFF、TASK_STATE和本报告；没有修改Canonical数据、数据库迁移、`platform-lock.json`、`PLATFORM_BASELINE.md`、Excel模板或PR #27。最终回复列出逐文件名称与精确diff统计。
+### 统一报告模型与 Word 报告
 
-### B.3–B.5多物料
+- Application `ReportModel` 从一条已保存 AccountingRecord 的输入、结果、参数、Trace、Provenance、Reporting 和资格快照生成 B.1–B.9 结构化报告；不调用 Calculator、不查当前 Catalog、不补算旧快照中没有的值。
+- Infrastructure Word renderer 生成中文 DOCX 报告，包含报告所需业务输入、来源、结果、汇总及可追溯说明。显示修约只用于输出展示。补充信息优先取 Record 的 Reporting 快照，再取同一 Record 既有导出历史，最后使用空白表单。
+- 新增 `records.sqlite` 迁移 004 `report_export_history`，追加保存导出格式、模板版本、文件名、文件 SHA-256 与补充信息，并写入审计事件。表有禁止 UPDATE / DELETE 的触发器。既有正式 Record 不变、不可编辑，报告导出不重算或改写历史记录。
+- Word 页面采用 A4，宽表切换横向、表头跨页重复、缺失快照明确显示缺项。以非敏感示例生成的简单报告与含长表、多实例的报告在 WPS 打开并渲染检查；页数分别为 4 页与 7 页，检查了中文、分页、表格和重复表头。
 
-- 新增 `packages/standards/carbon_material_normalization.py`：纯Python接收现实物料行，并提供可复用质量汇总、质量加权固定碳/挥发分、碳质量合计和按标准公式变量映射。参考PR #27中`MaterialAmount`、`weighted_fraction`、`carbon_mass`能力，扩展过程角色与问题定位；UI与Domain共用此模块，未来Excel可以复用；物料CalculationTrace另记`CAR-MATERIAL-NORMALIZATION-V1`，与Calculator Numeric Profile版本分开追溯。
-- 煅烧、焙烧/炭化、石墨化录入真实物料类别/名称/质量/固定碳/挥发分及独立来源，软件显示汇总值并映射至既有`CarbonMaterialInput`字段。公式(6)～(8)未修改；多行物料在每一过程实例内聚合，不更改实例/多能源数据模型。
-- 当前Canonical没有可适用于过程物料组成的标准缺省值，故默认实测、允许化学计算，不复制硬编码默认值。显式0是零；空白是未提供/不存在。必需物料缺失、正质量缺少组成或非法数值时，Domain返回错误，不生成成功Record。
+### Excel R2 输入模板与预览
 
-### B.9蒸汽热力
+- `packages/excel/r2.py` 提供 10 张中文可见工作表及 1 张隐藏模板元数据页，覆盖基本信息、B.2–B.9 输入；动态明细行、下拉项、必要数据提示和 Excel 单元格数据校验均在模板中提供。
+- 导入器读取 OOXML 原始数字词法并保留 Decimal；拒绝公式、文本数字、日期、布尔值、非有限值及超过 15 位有效数字的输入。空白和显式数值 0 保持不同含义。
+- 每个核算单元独立解析、验证并复用现有 Application / Domain / Calculator 生成只读预览，失败单元与其他单元隔离；预览会说明模板版本、来源文件哈希和行列位置。不保存 Project、Workspace 或 Record，不提供核算结果写回/结果导出。
+- Excel 禁止半角斜线作为页签名，模板的 B.4 使用标准的全角斜线。真实 WPS 另存会将它规范化成 `B.4 焙烧_炭化`；导入器接受该已验证别名但仅在内存归一化，规范页名与别名同时出现时因歧义阻断，不改写用户源文件。实际 WPS 另存文件的导入检查成功识别 2 个核算单元。
+- Excel 仍只提供导入预览；正式写入 Project / Record 及 Excel 结果导出留在 GHG-RS03。
 
-- 用户输入蒸汽吨数与绝压MPa；过热蒸汽额外输入温度。Domain通过现有`UnitService`将吨转换为公式要求的kg。
-- 饱和蒸汽从版本化Domain Calculator的C.4表取值并线性内插；过热蒸汽从C.5表取值并沿用当前压力/温度插值。C.4/C.5完整表、既有表格查找架构与正式数值未改；继续执行`GHG-STD-32151-34-003`已批准的1.70/1.80 MPa解释，不称官方勘误。
-- 自动计算是默认焓值模式。用户可手动覆盖；正式Calculator使用手动焓值。手动值与参考值明显不同、或状态超出表范围导致无自动参考时仅警告；自动模式缺压力/温度/可计算状态时阻断。Result/Record Trace区分来源，保存自动参考、焓值、表号、压力/温度节点和插值版本。
-- 热力缺省因子0.11来自现有Canonical参数Resolver；实测因子可以覆盖，来源说明可选，缺失时提示但不阻止合法计算。没有新增硬编码标准值或C.4/C.5 reference-table架构。
+### UI、架构与 PR #27 参考资产
 
-## 3. 兼容与历史稳定性
+- UI 增加已保存 Record 的 Word 报告导出、R2 模板下载及只读导入预览，不增加第二套计算路径；普通提示为中文。
+- 新增报告输出架构说明、标准能力渐进架构说明、GB/T 32151.34—2024 报告 Schema，以及交付 / 路线 / 交接状态更新。
+- PR #27 资产处置：复用已在 Base 中的共享物料标准化 Domain 能力；将现有输入语义适配到 R2 工作簿并增加 Decimal OOXML 入口。没有依赖或复制 PR #27 未合并分支中的旧 Excel 计算器，也没有修改 PR #27。
+- 对用户现有 `计算表/` 文件只进行结构性只读检查：5 个 `.xlsx` 与 2 个 `.xls`；没有改动源文件或将其中企业数据写入仓库。历史表格主要是多页、公式驱动的月度台账；R2 将标准业务入口分为 B.2–B.9，并让软件负责计算与预览。
 
-- Project：使用现有`form_state_json`兼容路径加法保存新物料行，没有破坏性数据库迁移。已有聚合字段继续读取；用户填写新物料明细前保持原数据可用。旧蒸汽kg值恢复为吨输入，已有焓值恢复为手动模式。
-- Record：新的输入与焓值来源进入Trace/快照；成功计算仍追加新的不可变正式Record。历史Record不重算、不改写、不重新读取当前Canonical数据；定向测试验证后续新核算不改变先前Record。
-- 业务标准解释与正式公式没有变化；没有修改Numeric Contract或平台基线。
+## 3. 测试预期变更
 
-## 4. 测试变更与本地验证
+- 数据 / 持久化契约变化：新增 Records 数据库迁移 004 后，`test_g08_delivery` 中“记录库迁移版本数为 3”的旧断言改为 4，以匹配实际新增迁移。Canonical 数据集没有变化，标准、来源、参数和因子计数未因本包改变。
+- 新增行为验证：报告使用不可变 Record 快照；导出历史追加且不能更新或删除；R2 按单元隔离；输入数字按 OOXML Decimal 规则检查；空白与零区分；WPS B.4 已知页签别名成功归一，双重页签则阻断。
+- 这次工作没有通过放松既有业务校验或修改正式公式来让测试通过，也未改历史 Record 行为。
 
-**行为预期变化：**新物料行由共享归一化器生成既有公式变量；未选择合法自动焓值来源时由表数据确定，手工焓值覆盖并保留来源。没有修改测试来掩盖结果，也未改排放公式。
+## 4. 本地验证
 
-**定向测试：**`python -m unittest tests.test_g06_carbon_material tests.test_uat01b_material_steam -v`，30/30通过。覆盖三种过程多物料独立手算对照、质量加权、必需与可选物料、空白与显式0、C.4/C.5表节点与内插、吨转kg、自动超范围阻断、手动偏差警告/覆盖、来源Trace和既有Record不漂移。
+验证均在 Windows / Python 3.12.14 本地执行；完整测试通过，不把本地结果冒充 GitHub Actions。
 
-**全量测试：**`python -m unittest discover -s tests -t . -v`共运行145项，其中11个Qt UI模块由于当前Python环境缺少`PySide6`而在导入时失败；其余已运行用例通过。故本地全量回归未通过/未完整执行，不计为PASS。GUI字段、界面中文、旧Project UI恢复和布局需由Windows/Python 3.12 CI执行确认。
+- 定向：`python -m unittest tests.test_rpt01_report_excel -v`：8/8 通过。
+- 交付回归：`python -m unittest tests.test_g08_delivery -v`：10/10 通过。
+- 全量：`python -m unittest discover -s tests -t . -v`：268/268 通过。
+- Canonical：`python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、98 factors。
+- 编译：`python -m compileall -q apps packages scripts tests`：通过。
+- 依赖：`python -m pip check`：通过，无损坏依赖。
+- 数据库：`python scripts/initialize_databases.py --output-dir <隔离临时目录>`：通过，隔离创建 catalog、user、records、projects 四库。
+- Windows 便携版：用 Python 3.12.14 与 RPT01 声明的 DOCX / Excel 依赖从干净临时目录重建 onedir；`scripts/build_standalone.py` 通过文件范围审计和归档校验；`scripts/smoke_standalone.py` 隔离启动 2/2 通过。最初直接使用未安装新增 `python-docx` 的既有本地 `.venv` 构建时，smoke 检出缺失 `docx` 模块；随后在依赖完整的 Python 3.12 构建环境重建，并以最终产物完成启动验证。
+- WPS：验证 Word DOCX 的实际打开 / 渲染与 R2 模板、填写样例的打开、另存和重新导入；工作表数量为 10 张可见 + 1 张隐藏元数据页。
+- `git diff --check`：提交前执行并要求 exit 0；GitHub Actions 的两项 Windows 检查在独立 PR 最新提交完成后确认。
 
-- `python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、98 factors；本包未改Canonical。
-- `python -m compileall -q apps packages scripts tests`：通过。
-- `python -m pip check`：通过，无依赖问题。
-- `python scripts/initialize_databases.py --output-dir <临时目录>`：通过，隔离创建catalog/user/records/projects四库；未新增迁移。
-- GUI acceptance / 1.0、1.25、1.5缩放：未执行，本地缺少`PySide6`。
-- Windows standalone构建：已尝试，因本地缺少`PyInstaller`失败，未生成构建产物；release archive审计和smoke启动因此未执行。
-- `git diff --check`：提交前检查；最终结论以最终Head的检查结果为准。
-- GitHub Actions：等待本包独立PR完成后验证Windows/Python 3.12 `Merge-ref Full Tests` 与 `PR-head Standalone Audit`；必须确认两项的`head_sha`等于最终PR Head。结果在最终交付回复记录，不将CI元数据反写到触发新Head的本文档。
+## 5. 差异与治理状态
 
-## 5. 停止边界
+本包差异仅包括：统一报告模型与 Word renderer、报告导出审计迁移、Excel R2 模板与只读预览、对应 UI 和测试、交付构建/审计支持、报告架构及路线/交接文档。精确文件数、行数、提交数和 Final Head 由最终 Base→Head Git 差异与 PR 给出。
 
-UAT01-B达到实现状态后等待latest-head CI和独立验收，不合并本包PR。RS03-A USER UAT保持`PENDING`；PR #27继续`OPEN / UNMERGED`且只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024继续为`NOT SUPPORTED`。独立验收通过并合并后，由用户先重新人工测试软件本体，再决定是否回到PR #27继续Excel工作。
+最终状态：
+
+- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。
+- RS03-A USER UAT：`PENDING`。
+- PR #27：`OPEN / UNMERGED`，保持未修改。
+- RS03-B：`NOT STARTED`。
+- Excel 结果导出：`NOT STARTED`。
+- `GB/T 32151.34—2024`：`NOT SUPPORTED`。
+
+最终 PR Head 的精确 SHA、两项 Windows CI run 及其 head SHA 在最终交付回复中报告；文档不会写入自身提交后的 CI run 元数据以避免循环提交。

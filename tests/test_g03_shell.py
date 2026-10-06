@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QLabel,
     QPushButton,
+    QTextEdit,
     QWidget,
 )
 
@@ -129,22 +130,15 @@ class G03ShellTest(unittest.TestCase):
         home.findChild(QPushButton, "reservedButton").click()
         self.assertEqual(shell.current_route, AppRoute.EXCEL_IMPORT)
 
-    def test_excel_placeholder_has_no_enabled_import_control(self) -> None:
+    def test_excel_r2_page_exposes_template_and_preview_only(self) -> None:
         shell = self.shell
         shell.navigate(AppRoute.EXCEL_IMPORT)
         page = shell.pages[AppRoute.EXCEL_IMPORT]
-        self.assertIn("功能预留，当前版本暂未开放", page.findChild(QLabel, "cardTitle").text())
-        controls = page.findChild(QWidget, "disabledImportControls")
-        self.assertIsNotNone(controls)
-        assert controls is not None
-        self.assertFalse(controls.isEnabled())
-        for widget in (
-            *page.findChildren(QLineEdit),
-            *page.findChildren(QComboBox),
-            *page.findChildren(QPushButton),
-        ):
-            self.assertFalse(widget.isEnabled(), widget.objectName())
-            self.assertEqual(widget.focusPolicy(), Qt.FocusPolicy.NoFocus)
+        self.assertIn("模板与预览", page.findChild(QLabel, "cardTitle").text())
+        self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
+        self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
+        self.assertTrue(page.findChild(QTextEdit, "excelImportPreview").isReadOnly())
+        self.assertIsNone(page.findChild(QPushButton, "importButton"))
 
     def test_logo_and_main_content_resize_rules(self) -> None:
         shell = self.shell
