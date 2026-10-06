@@ -7,6 +7,8 @@
 - 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
 - 开工时最新 `origin/main` Base：`c61b29baa2f5d75deae5fc243874d2b1d947bf4a`。
 - 独立分支：`codex/ghg-rpt01-report-excel-r2`；未从 PR #27、PF01 或 UAT02 分支派生。
+- 并行集成：任务执行期间 UAT02 经 PR #31 合入 `main`，最新 main 为 `880d5515e8c48cc01294926f7727de4270f73a66`。已重新 fetch，并确认远端 RPT01 分支仍指向本包原提交后合入 main；4 份治理文档的冲突按本包当前报告状态和已合并 UAT02 事实人工协调，UI 页面自动合并。最终验证在集成后的 head 重新执行。
+- PF01 独立 PR #30 经 GitHub 页面核验仍为 `OPEN / UNMERGED`，没有合入本分支；本次只集成已进入 `main` 的 UAT02。PR #27 同样保持 `OPEN / UNMERGED`且未修改。
 - `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央 SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。未修改或升级锁定基线。
 - 按锁定 SHA 核对 Architecture V2.1、Numeric Contract v1 与 Numeric Profiles v1。适用要求是保持分层边界和已采用的数值语义；本任务的 ReportModel 留在 Application，Word / Excel 为外层适配器，Decimal OOXML 读取是本仓 Excel 适配语义。
 - 本任务不涉及中央公共 Contract，没有 Contract 冲突；未修改 Calculator、标准公式、标准解释、Canonical 标准数据、标准适用范围或 Frozen Contract。
@@ -48,7 +50,7 @@
 
 - 定向：`python -m unittest tests.test_rpt01_report_excel -v`：8/8 通过。
 - 交付回归：`python -m unittest tests.test_g08_delivery -v`：10/10 通过。
-- 全量：`python -m unittest discover -s tests -t . -v`：268/268 通过。
+- 全量：在合入 PR #31 最新 main 后，以 Python 3.12.14、PySide6 6.11.2、`QT_QPA_PLATFORM=offscreen` 重跑 `python -m unittest discover -s tests -t . -v`：276/276 通过，0失败、0错误。
 - Canonical：`python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、98 factors。
 - 编译：`python -m compileall -q apps packages scripts tests`：通过。
 - 依赖：`python -m pip check`：通过，无损坏依赖。
@@ -57,9 +59,11 @@
 - WPS：验证 Word DOCX 的实际打开 / 渲染与 R2 模板、填写样例的打开、另存和重新导入；工作表数量为 10 张可见 + 1 张隐藏元数据页。
 - `git diff --check`：提交前执行并要求 exit 0；GitHub Actions 的两项 Windows 检查在独立 PR 最新提交完成后确认。
 
+上述集成后回归使用本机 Windows Python 3.12.14；D 盘项目虚拟环境提供 PySide6/PyInstaller，Codex Python 3.12 运行时的已安装 `python-docx` / `openpyxl` 作为 `PYTHONPATH` 补充。此前用默认 Python 3.11 运行产生的导入/临时目录错误不计为通过；正式全量证据是之后 Python 3.12.14 的 **276/276** 通过结果。
+
 ## 5. 差异与治理状态
 
-本包差异仅包括：统一报告模型与 Word renderer、报告导出审计迁移、Excel R2 模板与只读预览、对应 UI 和测试、交付构建/审计支持、报告架构及路线/交接文档。精确文件数、行数、提交数和 Final Head 由最终 Base→Head Git 差异与 PR 给出。
+本包的 PR 相对最新 `main` 差异包括：统一报告模型与 Word renderer、报告导出审计迁移、Excel R2 模板与只读预览、对应 UI 和测试、交付构建/审计支持、报告架构及路线/交接文档。开工 Base 到最终 head 还包含执行期间合入 main 的 UAT02；两种口径的提交数、文件数、行数在最终交付回复中分别列出。
 
 最终状态：
 

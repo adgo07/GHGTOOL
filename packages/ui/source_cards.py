@@ -71,6 +71,10 @@ class SourceCard(QFrame):
         self._action_button.setAutoDefault(False)
         self._action_button.clicked.connect(self._on_action_clicked)
         header_layout.addWidget(self._action_button)
+        self._expand_button = QPushButton("展开", header)
+        self._expand_button.setObjectName(f"sourceCardExpand_{source_id}")
+        self._expand_button.clicked.connect(lambda: self.set_expanded(not self._expanded))
+        header_layout.addWidget(self._expand_button)
 
         outer.addWidget(header)
 
@@ -135,6 +139,7 @@ class SourceCard(QFrame):
         self.presentation_state = state
         self.presentation_state_label.setText(state.value)
         self.summary_label.setText(summary)
+        self.summary_label.setVisible(state is not SourceCardPresentationState.NOT_INVOLVED)
         self._sync_controls()
 
     def _domain_status(self) -> object | None:
@@ -157,6 +162,8 @@ class SourceCard(QFrame):
             self._action_button.setText("启用")
         else:
             self._action_button.setText("停用")
+        self._expand_button.setVisible(status == self._involved_value)
+        self._expand_button.setText("收起" if self._expanded else "展开")
 
     def set_expanded(self, expanded: bool) -> None:
         status = self._domain_status()

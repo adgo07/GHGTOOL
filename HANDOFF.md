@@ -30,8 +30,8 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RPT01 — 统一报告模型 + Word核算报告 + Excel R2正式导入模板`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立分支，没有从 PR #27、PF01 或 UAT02 派生。Word 报告、R2模板和逐单元只读预览已实现，本地验证完成；当前等待独立验收。最终 PR head 与 CI 证据见最终交付回复和 PR Checks。
-- UAT01-A/B已合并；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本工作包只读参考；RS03-B：`NOT STARTED`。GHG-RPT01 不合并主线，独立验收前保持未验收。
+- 当前工作包：`GHG-RPT01 — 统一报告模型 + Word核算报告 + Excel R2正式导入模板`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立分支，没有从 PR #27、PF01 或 UAT02 派生。并行的 UAT02 后续经 PR #31 合并至 `main`（`880d5515e8c48cc01294926f7727de4270f73a66`）；本分支已合入该最新 main 并完成冲突收口。Word 报告、R2模板和逐单元只读预览已实现，本地验证完成；当前等待独立验收。最终 PR head 与 CI 证据见最终交付回复和 PR Checks。
+- UAT01-A/B及UAT02已合并；PF01 PR #30 仍为 `OPEN / UNMERGED`，未并入本分支；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本工作包只读参考；RS03-B：`NOT STARTED`。GHG-RPT01 不合并主线，独立验收前保持未验收。
 - RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -186,5 +186,6 @@ Module ID：`qz.carbon_accounting`
 - 报告按 B.1–B.9 展示快照中的业务输入、参数来源、逐项结果与追溯说明；旧快照不足时提示缺失，不补算、不伪造。Word 报告不展示内部 Rule、Trace、参数或 Record 编号。
 - Excel R2 有十张中文可见表和隐藏模板元数据页，B.2–B.9 分页录入，支持动态行、空白/显式零区分及严格 OOXML Decimal 词法入口；每个核算单元单独复用当前 Domain / Calculator 预览，不写 Project / Workspace / Record，不提供 Excel 结果导出。
 - PR #27 只作只读参考；共享物料标准化能力在本任务 Base 中已经存在并继续复用。报告、R2 导入预览与企业文件输出由本工作包实现，未引入 PR #27 未合并代码作为正式依赖。
+- 并行集成：在执行期间 `origin/main` 从开工 Base 前进至 PR #31 的合并提交 `880d5515e8c48cc01294926f7727de4270f73a66`。已确认远端目标分支仍为本包 head 后，将最新 main 合入本分支；仅 HANDOFF、IMPLEMENTATION_REPORT、REFERENCE_STANDARD_ROADMAP、TASK_STATE 有文档冲突，按 RPT01 当前状态与 main 已合并的 UAT02 状态合并；`packages/ui/pages.py` 自动合并，其他 UAT02 源码与测试由 main 带入。
 - 未修改计算公式、Canonical 标准数据、中央 Frozen Contract、`platform-lock.json`、正式记录生命周期或用户目录 `计算表/`；没有启动 RS03-B、Golden、Release 或第二标准。
 - GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED` 且保持只读；RS03-B：`NOT STARTED`；Excel 结果导出：`NOT STARTED`；GB/T 32151.34—2024 仍为 `NOT SUPPORTED`。

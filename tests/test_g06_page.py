@@ -893,7 +893,7 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(payload.gc.value, normalized.value("gc"))
         self.assertEqual(payload.wfc.value, normalized.value("wfc"))
         self.assertEqual(payload.cc.value, normalized.value("cc"))
-        self.assertIn("原料 150 t", process_row["material_summary"].text())
+        self.assertIn("原料 150.00 t", process_row["material_summary"].text())
         outcome = self.page.calculator.calculate(domain_input)
         self.assertTrue(outcome.successful, outcome.problems)
         trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-CALCINATION-001")
