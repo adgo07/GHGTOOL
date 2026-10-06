@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-06（GHG-UAT01-B）
+最后更新：2026-10-06（GHG-UAT02）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,9 +29,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前返修包：`GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环`；基于开工时最新main `d11d21a79cc89d291ebe4cc2cc5162a75018b1af` 的独立分支实施，不从PR #27派生且不修改PR #27。实现及可执行本地验证完成，等待独立PR latest-head Windows CI和独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- UAT01-A已由PR #28合并；UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且保持只读；RS03-B：`NOT STARTED`。
+- 已完成并合并：RS01-A-R1、RS01-B1及UAT01-A/B。UAT01-B由PR #29进入`main`。
+- 当前返修包：`GHG-UAT02 — 核算录入与结果查看体验收口`；从开工时最新`origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`独立创建`codex/ghg-uat02-accounting-usability`。本包只修核算录入、结果与记录查看的可用性问题；状态及测试证据见`TASK_STATE.md`与`IMPLEMENTATION_REPORT.md`。
+- RS03-A USER UAT仍待独立推进；RS03-B未启动。本包不得修改PF01拥有的标准目录、参数解析与Canonical文件，也不得顺手合并其他PR。
 - RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -180,11 +180,10 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环：
+本文件当前对应工作包 **GHG-UAT02 — 核算录入与结果查看体验收口**：
 
-- 煅烧、焙烧/炭化和石墨化在单个过程实例中支持多条真实物料；共享纯 Python 标准化器完成质量汇总、质量加权成分及副产品碳质量汇总，再输入既有公式，GUI不另算一套业务公式；
-- 过程物料采用固定碳/挥发分及各自数据来源；当前 Canonical 无相应标准缺省值，默认实测，允许化学计算，空白表示未提供、显式0保留为零；核心必需物料缺失时阻断；
-- 购入/输出蒸汽以吨录入、绝压 MPa 录入；自动模式使用版本化 Calculator 的 C.4/C.5 表值与现有插值，手动焓值优先用于计算，明显差异仅提醒；结果 Trace 标示焓值来源、自动参考值和插值定位；
-- 热力因子标准缺省值由 Canonical resolver 提供 0.11；实测覆盖可以使用，缺少简短来源说明只提醒。旧 Project 仍可读取，旧蒸汽质量单位与手工焓值按向后兼容逻辑恢复；历史Record不可变、不重算；
-- 未修改标准公式、C.4/C.5 标准表数值、Canonical数据、数据库迁移、Numeric Contract、platform-lock 或 Record生命周期；不做Excel导入/导出、RS03-B、Golden Freeze或Release；
-- UAT01-B `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且保持只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- 录入控件：关闭的下拉框/数字框滚轮不应误改数值；大量明细增删后页面高度和滚动位置须同步；脱硫剂内部组件ID只供程序追踪，不进入普通界面。
+- 状态反馈：致命校验失败应显示业务化的“未完成：请修正N项问题”并定位首项；用户实测参数缺少来源文字为非致命提醒，缺数值、非化石电力证明和物料基准换算证据仍须阻断。
+- 操作层级：多过程实例新增退到次级管理入口，新增物料仍直接可用；燃料、材料及排放量采用适应量级的展示，`0.35`解释为“挥发分折算系数”，防重复计碳设置放入专业层。
+- 结果与记录：成功、警告与失败状态清楚分层；正式记录审计详情默认收起并可打开，保留完整审计内容；排放源卡片和导航保持长表单可用。
+- 不改变公式、Canonical、参数解析口径、数据库schema、项目/正式记录生命周期、Numeric Profile或标准支持状态；不实施PF01、Excel、Word、第二标准、Golden Freeze和Release。完成后只提交本包PR，等待独立验收，不自行合并。
