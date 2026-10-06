@@ -30,7 +30,7 @@
 - Canonical：`python scripts/validate_canonical.py` 通过，9 standards、12 sources、98 parameters、98 factors。
 - 编译与依赖：集成后使用 Python 3.12.14 执行 `python -m compileall -q apps packages scripts tests` 通过；`python -m pip check` 输出 No broken requirements found。
 - 隔离数据库重建：集成后使用 Python 3.12.14 执行 `python scripts/initialize_databases.py --output-dir <独立临时目录>`，成功创建 catalog、user、records、projects 四库。
-- Windows onedir：用 Python 3.12.14 和 RPT01 声明的 DOCX/Excel 依赖重建成功；`build_standalone.py` 内含的发布范围审计与归档校验均通过，`smoke_standalone.py` 隔离启动 2/2 通过。先前直接使用未装新增 `python-docx` 的既有本地 `.venv` 时，首个临时构建缺少 `docx`；发现后改用已具备全部依赖的 3.12 运行环境重建并完成验收。
+- Windows onedir：合入最新 main 后用 Python 3.12.14、项目 venv 的 PySide6/PyInstaller 和 RPT01 DOCX/Excel 依赖重新构建成功；`inspect_release.py` PASS（295 files），`verify_release_archive.py` PASS（296 visible files），`smoke_standalone.py --starts 2` 隔离启动2/2通过。初次缺少 `python-docx` 的环境问题已通过使用正确的依赖路径排除。
 - WPS 检查：用生成的非敏感示例打开 R2 模板和填写样例，并另存、重新导入；确认识别 2 个核算单元。实际 Word 输出在 WPS 打开并渲染，检查 A4 页面、重复表头、跨页长表与中文内容。用户参考 Excel 文件仅作只读结构检查：5 个 `.xlsx`、2 个 `.xls`，没有将其中企业数据复制到仓库或报告。
 - `git diff --check` 与文档状态在提交前复核；GitHub Actions 以独立 PR 最新提交为准，结果见最终交付回复。
 

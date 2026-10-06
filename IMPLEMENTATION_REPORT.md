@@ -55,7 +55,7 @@
 - 编译：`python -m compileall -q apps packages scripts tests`：通过。
 - 依赖：`python -m pip check`：通过，无损坏依赖。
 - 数据库：`python scripts/initialize_databases.py --output-dir <隔离临时目录>`：通过，隔离创建 catalog、user、records、projects 四库。
-- Windows 便携版：用 Python 3.12.14 与 RPT01 声明的 DOCX / Excel 依赖从干净临时目录重建 onedir；`scripts/build_standalone.py` 通过文件范围审计和归档校验；`scripts/smoke_standalone.py` 隔离启动 2/2 通过。最初直接使用未安装新增 `python-docx` 的既有本地 `.venv` 构建时，smoke 检出缺失 `docx` 模块；随后在依赖完整的 Python 3.12 构建环境重建，并以最终产物完成启动验证。
+- Windows 便携版：合入最新 main 后，以 Python 3.12.14、项目 venv 的 PySide6/PyInstaller 和 RPT01 的 DOCX / Excel 依赖重建 onedir；`build_standalone.py` 成功；`inspect_release.py` 发布范围审计 PASS（295 files）；`verify_release_archive.py` ZIP 往返清单 PASS（296 visible files）；`smoke_standalone.py --starts 2` 隔离启动 2/2 通过。此前未装新增 `python-docx` 的 venv 初次构建失败已如实记录；本次最终集成构建的依赖路径完整，构建与启动通过。
 - WPS：验证 Word DOCX 的实际打开 / 渲染与 R2 模板、填写样例的打开、另存和重新导入；工作表数量为 10 张可见 + 1 张隐藏元数据页。
 - `git diff --check`：提交前执行并要求 exit 0；GitHub Actions 的两项 Windows 检查在独立 PR 最新提交完成后确认。
 
