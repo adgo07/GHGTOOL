@@ -132,6 +132,87 @@ class FactorCatalogRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceTableColumnRecord:
+    key: str
+    label: str
+    parameter_type: ParameterType | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SourceTableCatalogRecord:
+    source_table_id: str
+    source_id: str
+    display_number: str
+    title: str
+    source_location: str
+    layout: str
+    columns: tuple[SourceTableColumnRecord, ...]
+    provider_id: str | None
+    notes: str
+    sort_order: int
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceDataAssetCatalogRecord:
+    asset_id: str
+    asset_version: str
+    parameter_id: str
+    subject_id: str
+    value: Decimal
+    unit: str
+    source_value: Decimal
+    source_unit: str
+    normalized_value: Decimal
+    normalized_unit: str
+    value_type: ValueType
+    notes: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceDataBindingCatalogRecord:
+    binding_id: str
+    asset_id: str
+    source_table_id: str
+    binding_type: str
+    factor_id: str | None
+    source_location: str
+    applicable_standard_ids: tuple[str, ...]
+    factor_year: int
+    valid_from: date | None
+    valid_to: date | None
+    review_status: ReviewStatus
+    notes: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConversionRuleCatalogRecord:
+    conversion_id: str
+    from_unit: str
+    to_unit: str
+    multiplier: Decimal
+    offset: Decimal
+    source_id: str
+    source_location: str
+    review_status: ReviewStatus
+    notes: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceLibrarySearchResult:
+    result_type: str
+    key: str
+    title: str
+    subtitle: str
+    value_text: str
+    unit: str
+    asset: ReferenceDataAssetCatalogRecord | None = None
+    table: SourceTableCatalogRecord | None = None
+    source: SourceCatalogRecord | None = None
+    standard: StandardCatalogRecord | None = None
+    bindings: tuple[ReferenceDataBindingCatalogRecord, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class StandardDetail:
     standard: StandardCatalogRecord
     status: CatalogStatus
@@ -166,3 +247,15 @@ class CatalogRepository(Protocol):
 
     def list_factors(self) -> Sequence[FactorCatalogRecord]:
         """Return all immutable factor values."""
+
+    def list_source_tables(self) -> Sequence[SourceTableCatalogRecord]:
+        """Return the source-declared display tables and their layouts."""
+
+    def list_reference_data_assets(self) -> Sequence[ReferenceDataAssetCatalogRecord]:
+        """Return immutable shared values independent of their source bindings."""
+
+    def list_reference_data_bindings(self) -> Sequence[ReferenceDataBindingCatalogRecord]:
+        """Return all source- and locator-specific bindings for shared values."""
+
+    def list_conversion_rules(self) -> Sequence[ConversionRuleCatalogRecord]:
+        """Return source-traceable unit conversion rules for library display."""

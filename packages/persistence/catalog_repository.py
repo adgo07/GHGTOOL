@@ -14,8 +14,13 @@ from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, So
 from packages.standards.catalog import (
     CatalogRepository,
     CatalogStandardType,
+    ConversionRuleCatalogRecord,
     FactorCatalogRecord,
     ParameterCatalogRecord,
+    ReferenceDataAssetCatalogRecord,
+    ReferenceDataBindingCatalogRecord,
+    SourceTableCatalogRecord,
+    SourceTableColumnRecord,
     SourceCatalogRecord,
     StandardCatalogRecord,
     SubjectCatalogRecord,
@@ -73,7 +78,7 @@ class SQLiteCatalogRepository(CatalogRepository):
         try:
             yield connection
         except sqlite3.Error as exc:
-            raise CatalogRepositoryError("catalog query failed") from exc
+            raise CatalogRepositoryError(f"catalog query failed: {exc}") from exc
         finally:
             connection.close()
 
@@ -181,6 +186,107 @@ class SQLiteCatalogRepository(CatalogRepository):
             for row in rows
         )
 
+    def list_source_tables(self) -> tuple[SourceTableCatalogRecord, ...]:
+        try:
+            with self._connection() as connection:
+                rows = connection.execute(
+                    "SELECT source_table_id, source_id, display_number, title, source_location, layout, "
+                    "columns_json, provider_id, notes, sort_order FROM reference_source_tables "
+                    "ORDER BY sort_order, source_table_id"
+                ).fetchall()
+        except CatalogRepositoryError as exc:
+            if "no such table" in str(exc).lower():
+                return ()
+            raise
+        output = []
+        try:
+            for row in rows:
+                try:
+                    columns_data = json.loads(row["columns_json"])
+                except json.JSONDecodeError as exc:
+                    raise CatalogRepositoryError("invalid JSON in source table columns") from exc
+                if not isinstance(columns_data, list):
+                    raise CatalogRepositoryError("source table columns must be an array")
+                columns = tuple(
+                    SourceTableColumnRecord(
+                        key=str(item["key"]),
+                        label=str(item["label"]),
+                        parameter_type=(ParameterType(item["parameter_type"]) if item.get("parameter_type") else None),
+                    )
+                    for item in columns_data
+                )
+                output.append(SourceTableCatalogRecord(
+                    source_table_id=row["source_table_id"], source_id=row["source_id"],
+                    display_number=row["display_number"], title=row["title"],
+                    source_location=row["source_location"], layout=row["layout"], columns=columns,
+                    provider_id=row["provider_id"], notes=row["notes"], sort_order=int(row["sort_order"]),
+                ))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise CatalogRepositoryError("invalid source table definition") from exc
+        return tuple(output)
+    def list_reference_data_assets(self) -> tuple[ReferenceDataAssetCatalogRecord, ...]:
+        try:
+            with self._connection() as connection:
+                rows = connection.execute(
+                    "SELECT asset_id, asset_version, parameter_id, subject_id, value, unit, source_value, "
+                    "source_unit, normalized_value, normalized_unit, value_type, notes "
+                    "FROM reference_data_assets ORDER BY parameter_id, subject_id, asset_id"
+                ).fetchall()
+        except CatalogRepositoryError as exc:
+            if "no such table" in str(exc).lower():
+                return ()
+            raise
+        try:
+            return tuple(ReferenceDataAssetCatalogRecord(
+                asset_id=row["asset_id"], asset_version=row["asset_version"],
+                parameter_id=row["parameter_id"], subject_id=row["subject_id"],
+                value=Decimal(row["value"]), unit=row["unit"],
+                source_value=Decimal(row["source_value"]), source_unit=row["source_unit"],
+                normalized_value=Decimal(row["normalized_value"]), normalized_unit=row["normalized_unit"],
+                value_type=ValueType(row["value_type"]), notes=row["notes"],
+            ) for row in rows)
+        except (ArithmeticError, TypeError, ValueError) as exc:
+            raise CatalogRepositoryError("invalid reference data asset") from exc
+    def list_reference_data_bindings(self) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
+        try:
+            with self._connection() as connection:
+                rows = connection.execute(
+                    "SELECT binding_id, asset_id, source_table_id, binding_type, factor_id, source_location, "
+                    "applicable_standard_ids_json, factor_year, valid_from, valid_to, review_status, notes "
+                    "FROM reference_data_bindings ORDER BY asset_id, source_table_id, binding_id"
+                ).fetchall()
+        except CatalogRepositoryError as exc:
+            if "no such table" in str(exc).lower():
+                return ()
+            raise
+        try:
+            return tuple(ReferenceDataBindingCatalogRecord(
+                binding_id=row["binding_id"], asset_id=row["asset_id"],
+                source_table_id=row["source_table_id"], binding_type=row["binding_type"],
+                factor_id=row["factor_id"], source_location=row["source_location"],
+                applicable_standard_ids=_tuple_json(row["applicable_standard_ids_json"], "applicable_standard_ids_json"),
+                factor_year=int(row["factor_year"]), valid_from=_date(row["valid_from"]),
+                valid_to=_date(row["valid_to"]), review_status=ReviewStatus(row["review_status"]),
+                notes=row["notes"],
+            ) for row in rows)
+        except (ArithmeticError, TypeError, ValueError) as exc:
+            raise CatalogRepositoryError("invalid reference data binding") from exc
+    def list_conversion_rules(self) -> tuple[ConversionRuleCatalogRecord, ...]:
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT conversion_id, from_unit, to_unit, multiplier, offset, source_id, source_location, "
+                "review_status, notes FROM conversion_rules ORDER BY conversion_id"
+            ).fetchall()
+        try:
+            return tuple(ConversionRuleCatalogRecord(
+                conversion_id=row["conversion_id"], from_unit=row["from_unit"], to_unit=row["to_unit"],
+                multiplier=Decimal(row["multiplier"]), offset=Decimal(row["offset"]),
+                source_id=row["source_id"], source_location=row["source_location"],
+                review_status=ReviewStatus(row["review_status"]), notes=row["notes"],
+            ) for row in rows)
+        except (ArithmeticError, TypeError, ValueError) as exc:
+            raise CatalogRepositoryError("invalid conversion rule") from exc
+
     def list_factors(self) -> tuple[FactorCatalogRecord, ...]:
         with self._connection() as connection:
             rows = connection.execute(
@@ -236,4 +342,16 @@ class EmptyCatalogRepository(CatalogRepository):
         return ()
 
     def list_factors(self) -> tuple[FactorCatalogRecord, ...]:
+        return ()
+
+    def list_source_tables(self) -> tuple[SourceTableCatalogRecord, ...]:
+        return ()
+
+    def list_reference_data_assets(self) -> tuple[ReferenceDataAssetCatalogRecord, ...]:
+        return ()
+
+    def list_reference_data_bindings(self) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
+        return ()
+
+    def list_conversion_rules(self) -> tuple[ConversionRuleCatalogRecord, ...]:
         return ()

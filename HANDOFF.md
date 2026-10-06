@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-06（GHG-UAT01-B）
+最后更新：2026-10-06（GHG-PF01）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,20 +29,21 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前返修包：`GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环`；基于开工时最新main `d11d21a79cc89d291ebe4cc2cc5162a75018b1af` 的独立分支实施，不从PR #27派生且不修改PR #27。实现及可执行本地验证完成，等待独立PR latest-head Windows CI和独立验收；细节见 `TASK_STATE.md` 与 `IMPLEMENTATION_REPORT.md`。
-- UAT01-A已由PR #28合并；UAT01-B：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且保持只读；RS03-B：`NOT STARTED`。
-- RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
-- 本工作包仍须遵守：
+- 已完成并合并：RS01-A-R1、RS01-B1/B2、RS02-A/B及UAT01-A/B。
+- 当前工作包：`GHG-PF01 — 参数与因子注册库基础架构 + 页面重构`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为Base，独立分支 `codex/pf01-parameter-factor-library`。不从PR #27派生且不修改PR #27。
+- PF01实现Canonical来源表/资产/绑定注册、只读查询投影、标准/文件浏览与全库搜索；Resolver选择策略、正式公式、历史Record语义不变。实现状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；独立PR最新head Windows CI和独立验收仍为门槛。
+- 本包增量不升级 `platform-lock.json` 或 `PLATFORM_BASELINE.md`；标准仍为 `NOT SUPPORTED`。
+- RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。本包完成后停止，等待独立验收。
+
+PF01范围约束：
 
 ```text
-1. 用户明确启动对应工作包（一个阶段只建立一个 Goal）；
-2. 重新读取 AGENTS.md、REFERENCE_STANDARD_ROADMAP.md、TASK_STATE.md；
-3. 使用仓库内当前可追溯、已冻结的 GB/T 32151.34—2024 Standard Mapping；
-4. 确认 platform-lock.json 的 locked SHA 未变（未经独立治理批准不得升级baseline）。
+1. 来源文件、来源表、参数概念、参考数据资产、来源绑定各自保留明确责任；
+2. 相同值可共用不可变数据资产并绑定多处独立来源定位；不同值创建新资产版本，不设置来源权重；
+3. Resolver继续决定计算候选与默认值；目录页面只读，不能成为计算真值源；
+4. C.4/C.5蒸汽表从版本化Domain Calculator只读展示，不复制第二份数值表；
+5. Catalog数据库仅增量新增注册表，不重写Project或历史Record。
 ```
-
-- 一个阶段未完成、未形成报告或存在 BLOCKED 时，不得进入下一阶段。
 
 ## 3. 当前有效的长期产品决定（提炼保留）
 
@@ -180,11 +181,10 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环：
+本文件当前对应工作包 **GHG-PF01 — 参数与因子注册库基础架构 + 页面重构**：
 
-- 煅烧、焙烧/炭化和石墨化在单个过程实例中支持多条真实物料；共享纯 Python 标准化器完成质量汇总、质量加权成分及副产品碳质量汇总，再输入既有公式，GUI不另算一套业务公式；
-- 过程物料采用固定碳/挥发分及各自数据来源；当前 Canonical 无相应标准缺省值，默认实测，允许化学计算，空白表示未提供、显式0保留为零；核心必需物料缺失时阻断；
-- 购入/输出蒸汽以吨录入、绝压 MPa 录入；自动模式使用版本化 Calculator 的 C.4/C.5 表值与现有插值，手动焓值优先用于计算，明显差异仅提醒；结果 Trace 标示焓值来源、自动参考值和插值定位；
-- 热力因子标准缺省值由 Canonical resolver 提供 0.11；实测覆盖可以使用，缺少简短来源说明只提醒。旧 Project 仍可读取，旧蒸汽质量单位与手工焓值按向后兼容逻辑恢复；历史Record不可变、不重算；
-- 未修改标准公式、C.4/C.5 标准表数值、Canonical数据、数据库迁移、Numeric Contract、platform-lock 或 Record生命周期；不做Excel导入/导出、RS03-B、Golden Freeze或Release；
-- UAT01-B `IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且保持只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- Canonical注册来源表、参考数据资产和来源绑定；同值可共用资产并保留多处定位，不同值分开版本化，不设来源权重；
+- SQLite只增量增加只读查询投影；页面按标准/文件查看与全库搜索，按登记表结构显示并隐藏内部标识；
+- C.4/C.5仅通过版本化Calculator的只读Adapter展示，不复制蒸汽表；
+- Resolver继续独占计算默认候选选择；本包不改变选择策略、正式公式或历史Record语义；
+- 状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。PR #27继续 `OPEN / UNMERGED`且未修改；RS03-A用户UAT `PENDING`；RS03-B `NOT STARTED`；标准仍为 `NOT SUPPORTED`。

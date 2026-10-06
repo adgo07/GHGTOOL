@@ -1770,7 +1770,7 @@ class CarbonMaterialCalculator:
             FuelPath.HEAT: fuel_heat_emission(activity, carbon, fox),
         }[item.path]
 
-    def _heat_factor(self, line: HeatInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str) -> Decimal | None:
+    def _heat_factor(self, line: HeatInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str, accounting_period: AccountingPeriod) -> Decimal | None:
         explicit = line.factor
         if explicit is not None:
             factor = self._parameter(explicit, "tCO2/GJ", f"CAR-FLD-HEAT-{line.line_id}-EF3", snapshots, problems, snapshot_at)
@@ -1808,6 +1808,7 @@ class CarbonMaterialCalculator:
                 standard_id=STANDARD_ID,
                 parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
                 subject_id="purchased_heat",
+                accounting_period=accounting_period,
                 emission_source_type=energy_direction,
                 extra_context=(("energy_direction", energy_direction),),
             ),
@@ -2262,7 +2263,7 @@ class CarbonMaterialCalculator:
             for line in input_value.purchased_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="purchased_heat")
+                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="purchased_heat", accounting_period=input_value.period)
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy.value, factor)
                     purchased_heat_total += amount
@@ -2287,7 +2288,7 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="exported_heat")
+                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="exported_heat", accounting_period=input_value.period)
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy.value, factor)
                     exported_heat_total += amount

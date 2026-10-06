@@ -1,8 +1,8 @@
 {
   "manifest": {
     "catalog_id": "qingzhou-carbon-catalog",
-    "schema_version": "1.0.0",
-    "data_version": "2026.09.22-catui01.1",
+    "schema_version": "1.1.0",
+    "data_version": "2026.10.06-pf01.1",
     "app_compatibility": "1.x",
     "canonical_format": "JSON",
     "generated_from": "data-source/carbon_accounting/catalog.json"
@@ -4372,6 +4372,28 @@
         "gbt_32151_34_2024"
       ],
       "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "factor_id": "heat_default_gbt32151_34_c3",
+      "parameter_id": "heat_emission_factor_default",
+      "subject_id": "purchased_heat",
+      "value": "0.11",
+      "unit": "tCO₂/GJ",
+      "source_value": "0.11",
+      "source_unit": "tCO₂/GJ",
+      "normalized_value": "0.11",
+      "normalized_unit": "tCO₂/GJ",
+      "source_id": "SRC-32151-34-2024",
+      "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "value_type": "STANDARD_DEFAULT",
+      "review_status": "VERIFIED",
+      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源及适用起始日期。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
     }
   ],
   "conversion_rules": [
@@ -4517,6 +4539,3406 @@
       "source_location": "HANDOFF.md第4.4节：1 kgCO₂/kWh=1 tCO₂/MWh",
       "review_status": "VERIFIED",
       "notes": ""
+    }
+  ],
+  "source_tables": [
+    {
+      "source_table_id": "tab-32150-756-757",
+      "source_id": "SRC-32150-2025",
+      "display_number": "7.5.6～7.5.7",
+      "title": "无实测时的供热因子缺省值",
+      "source_location": "GB/T 32150—2025 第7.5.6～7.5.7条；PDF第16页",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 10,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用对象"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-522",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "5.2.2",
+      "title": "煅烧过程缺省参数",
+      "source_location": "GB/T 32151.34—2024 第5.2.2条；PDF第12页；印刷页4",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 5,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用过程"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-523",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "5.2.3",
+      "title": "焙烧过程缺省参数",
+      "source_location": "GB/T 32151.34—2024 第5.2.3条；PDF第13页；印刷页5",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 6,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用过程"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-524",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "5.2.4",
+      "title": "石墨化过程缺省参数",
+      "source_location": "GB/T 32151.34—2024 第5.2.4条；PDF第14页；印刷页6",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 7,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用过程"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-5252",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "5.2.5.2",
+      "title": "脱硫缺省参数",
+      "source_location": "GB/T 32151.34—2024 第5.2.5.2条；PDF第14页；印刷页6",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 8,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用对象"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-5261",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "5.2.6.1 / D.1.1",
+      "title": "非化石电力因子",
+      "source_location": "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 9,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用对象"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-c1",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "C.1",
+      "title": "常见化石燃料参数",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "layout": "parameter_matrix",
+      "provider_id": null,
+      "notes": "按标准表格结构按燃料归组；显示原表数值和单位。",
+      "sort_order": 0,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "燃料"
+        },
+        {
+          "key": "activity_unit",
+          "label": "计量单位",
+          "parameter_type": "LOWER_HEATING_VALUE"
+        },
+        {
+          "key": "LOWER_HEATING_VALUE",
+          "label": "低位发热量"
+        },
+        {
+          "key": "CARBON_CONTENT_PER_HEAT",
+          "label": "单位热值含碳量"
+        },
+        {
+          "key": "OXIDATION_RATE",
+          "label": "碳氧化率"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-c2",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "C.2",
+      "title": "碳酸盐二氧化碳质量分数",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 1,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "碳酸盐"
+        },
+        {
+          "key": "value",
+          "label": "二氧化碳质量分数"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-c3",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "C.3",
+      "title": "电力与热力参数",
+      "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "电力数值引用当前已登记的最新适用官方发布值；标准规定热力缺省值从标准生效日起适用。",
+      "sort_order": 2,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用对象"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "数据来源"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-c4",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "C.4",
+      "title": "饱和蒸汽热焓",
+      "source_location": "GB/T 32151.34—2024 附录C.4；PDF第27～28页；印刷页19～20",
+      "layout": "provider",
+      "provider_id": "CARBON_MATERIAL_C4",
+      "notes": "读取版本化Calculator正式查表数据；保留原文压力键异常，按冻结Mapping采用1.70/1.80 MPa解释，不宣称官方勘误。",
+      "sort_order": 3,
+      "columns": [
+        {
+          "key": "pressure",
+          "label": "蒸汽压力（MPa）"
+        },
+        {
+          "key": "enthalpy",
+          "label": "饱和蒸汽焓（kJ/kg）"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-32151-34-c5",
+      "source_id": "SRC-32151-34-2024",
+      "display_number": "C.5",
+      "title": "过热蒸汽热焓",
+      "source_location": "GB/T 32151.34—2024 附录C.5；PDF第29页；印刷页21",
+      "layout": "provider",
+      "provider_id": "CARBON_MATERIAL_C5",
+      "notes": "读取版本化Calculator正式查表数据；计算和插值仍由Calculator负责。",
+      "sort_order": 4,
+      "columns": [
+        {
+          "key": "temperature",
+          "label": "蒸汽温度（℃）"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-elec-2025-47-1",
+      "source_id": "SRC-ELEC-2023-47",
+      "display_number": "表1",
+      "title": "电力消费排放因子",
+      "source_location": "公告2025年第47号表1：全国平均",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 11,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "适用对象"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-ipcc-ar6-715",
+      "source_id": "SRC-IPCC-AR6-WGI",
+      "display_number": "表7.15 / 7.SM.7",
+      "title": "GWP-100 科学参考值",
+      "source_location": "Chapter 7 Table 7.15 / Supplementary Table 7.SM.7",
+      "layout": "flat",
+      "provider_id": null,
+      "notes": "",
+      "sort_order": 12,
+      "columns": [
+        {
+          "key": "subject",
+          "label": "温室气体"
+        },
+        {
+          "key": "parameter",
+          "label": "参数"
+        },
+        {
+          "key": "value",
+          "label": "数值"
+        },
+        {
+          "key": "unit",
+          "label": "单位"
+        },
+        {
+          "key": "source_location",
+          "label": "依据定位"
+        }
+      ]
+    },
+    {
+      "source_table_id": "tab-qz-unit-policy",
+      "source_id": "SRC-SYSTEM-UNIT-POLICY",
+      "display_number": "单位规则",
+      "title": "单位换算政策",
+      "source_location": "QZ-UNIT-POLICY G02",
+      "layout": "provider",
+      "provider_id": "CANONICAL_CONVERSION_RULES",
+      "notes": "只读展示Canonical单位换算规则；不用于展示44/12等化学计量变换。",
+      "sort_order": 13,
+      "columns": [
+        {
+          "key": "from_unit",
+          "label": "原单位"
+        },
+        {
+          "key": "to_unit",
+          "label": "目标单位"
+        },
+        {
+          "key": "multiplier",
+          "label": "倍率"
+        }
+      ]
+    }
+  ],
+  "reference_data_assets": [
+    {
+      "asset_id": "asset-anthracite_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "anthracite_carbon_content",
+      "subject_id": "anthracite",
+      "value": "0.0274",
+      "unit": "tC/GJ",
+      "source_value": "0.0274",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0274",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-anthracite_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "anthracite_lhv",
+      "subject_id": "anthracite",
+      "value": "26.7",
+      "unit": "GJ/t",
+      "source_value": "26.7",
+      "source_unit": "GJ/t",
+      "normalized_value": "26.7",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-anthracite_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "anthracite_oxidation_rate",
+      "subject_id": "anthracite",
+      "value": "0.94",
+      "unit": "ratio",
+      "source_value": "94",
+      "source_unit": "%",
+      "normalized_value": "0.94",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-bituminous_coal_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "bituminous_coal_carbon_content",
+      "subject_id": "bituminous_coal",
+      "value": "0.0261",
+      "unit": "tC/GJ",
+      "source_value": "0.0261",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0261",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-bituminous_coal_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "bituminous_coal_lhv",
+      "subject_id": "bituminous_coal",
+      "value": "19.570",
+      "unit": "GJ/t",
+      "source_value": "19.570",
+      "source_unit": "GJ/t",
+      "normalized_value": "19.570",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-bituminous_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "bituminous_coal_oxidation_rate",
+      "subject_id": "bituminous_coal",
+      "value": "0.93",
+      "unit": "ratio",
+      "source_value": "93",
+      "source_unit": "%",
+      "normalized_value": "0.93",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-blast_furnace_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "blast_furnace_gas_carbon_content",
+      "subject_id": "blast_furnace_gas",
+      "value": "0.07080",
+      "unit": "tC/GJ",
+      "source_value": "0.07080",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.07080",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-blast_furnace_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "blast_furnace_gas_lhv",
+      "subject_id": "blast_furnace_gas",
+      "value": "33.00",
+      "unit": "GJ/10⁴Nm³",
+      "source_value": "33.00",
+      "source_unit": "GJ/10⁴Nm³",
+      "normalized_value": "33.00",
+      "normalized_unit": "GJ/10⁴Nm³",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-blast_furnace_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "blast_furnace_gas_oxidation_rate",
+      "subject_id": "blast_furnace_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "99",
+      "source_unit": "%",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-briquette_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "briquette_carbon_content",
+      "subject_id": "briquette",
+      "value": "0.0336",
+      "unit": "tC/GJ",
+      "source_value": "0.0336",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0336",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-briquette_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "briquette_lhv",
+      "subject_id": "briquette",
+      "value": "17.460",
+      "unit": "GJ/t",
+      "source_value": "17.460",
+      "source_unit": "GJ/t",
+      "normalized_value": "17.460",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-briquette_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "briquette_oxidation_rate",
+      "subject_id": "briquette",
+      "value": "0.9",
+      "unit": "ratio",
+      "source_value": "90",
+      "source_unit": "%",
+      "normalized_value": "0.9",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-carbonate_baco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-baco3",
+      "subject_id": "carbonate_baco3",
+      "value": "0.223",
+      "unit": "tCO2/t",
+      "source_value": "0.223",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.223",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_caco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-caco3",
+      "subject_id": "carbonate_caco3",
+      "value": "0.440",
+      "unit": "tCO2/t",
+      "source_value": "0.440",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.440",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_camgco3_2_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-camgco3-2",
+      "subject_id": "carbonate_camgco3_2",
+      "value": "0.477",
+      "unit": "tCO2/t",
+      "source_value": "0.477",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.477",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_feco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-feco3",
+      "subject_id": "carbonate_feco3",
+      "value": "0.380",
+      "unit": "tCO2/t",
+      "source_value": "0.380",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.380",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_k2co3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-k2co3",
+      "subject_id": "carbonate_k2co3",
+      "value": "0.318",
+      "unit": "tCO2/t",
+      "source_value": "0.318",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.318",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_li2co3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-li2co3",
+      "subject_id": "carbonate_li2co3",
+      "value": "0.595",
+      "unit": "tCO2/t",
+      "source_value": "0.595",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.595",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_mgco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-mgco3",
+      "subject_id": "carbonate_mgco3",
+      "value": "0.522",
+      "unit": "tCO2/t",
+      "source_value": "0.522",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.522",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_mnco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-mnco3",
+      "subject_id": "carbonate_mnco3",
+      "value": "0.383",
+      "unit": "tCO2/t",
+      "source_value": "0.383",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.383",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_na2co3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-na2co3",
+      "subject_id": "carbonate_na2co3",
+      "value": "0.415",
+      "unit": "tCO2/t",
+      "source_value": "0.415",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.415",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_nahco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-nahco3",
+      "subject_id": "carbonate_nahco3",
+      "value": "0.524",
+      "unit": "tCO2/t",
+      "source_value": "0.524",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.524",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-carbonate_srco3_gbt32151_34_c2",
+      "asset_version": "1",
+      "parameter_id": "car-par-c2-srco3",
+      "subject_id": "carbonate_srco3",
+      "value": "0.298",
+      "unit": "tCO2/t",
+      "source_value": "0.298",
+      "source_unit": "tCO2/t",
+      "normalized_value": "0.298",
+      "normalized_unit": "tCO2/t",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。"
+    },
+    {
+      "asset_id": "asset-methane_conversion_factor_calcination_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "car-par-k1",
+      "subject_id": "calcination",
+      "value": "0.35",
+      "unit": "ratio",
+      "source_value": "0.35",
+      "source_unit": "ratio",
+      "normalized_value": "0.35",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "asset_id": "asset-methane_conversion_factor_baking_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "car-par-k2",
+      "subject_id": "baking",
+      "value": "0.35",
+      "unit": "ratio",
+      "source_value": "0.35",
+      "source_unit": "ratio",
+      "normalized_value": "0.35",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "asset_id": "asset-methane_conversion_factor_graphitization_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "car-par-k3",
+      "subject_id": "graphitization",
+      "value": "0.35",
+      "unit": "ratio",
+      "source_value": "0.35",
+      "source_unit": "ratio",
+      "normalized_value": "0.35",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "asset_id": "asset-fgd_carbonate_content_default_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "car-par-p04b-i",
+      "subject_id": "fgd",
+      "value": "0.90",
+      "unit": "ratio",
+      "source_value": "0.90",
+      "source_unit": "ratio",
+      "normalized_value": "0.90",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "asset_id": "asset-fgd_conversion_rate_default_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "car-par-p04b-tr",
+      "subject_id": "fgd",
+      "value": "1",
+      "unit": "ratio",
+      "source_value": "1",
+      "source_unit": "ratio",
+      "normalized_value": "1",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准允许的一般缺省参数。"
+    },
+    {
+      "asset_id": "asset-cleaned_coal_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "cleaned_coal_carbon_content",
+      "subject_id": "cleaned_coal",
+      "value": "0.02541",
+      "unit": "tC/GJ",
+      "source_value": "0.02541",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.02541",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-cleaned_coal_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "cleaned_coal_lhv",
+      "subject_id": "cleaned_coal",
+      "value": "26.334",
+      "unit": "GJ/t",
+      "source_value": "26.334",
+      "source_unit": "GJ/t",
+      "normalized_value": "26.334",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "cleaned_coal_oxidation_rate",
+      "subject_id": "cleaned_coal",
+      "value": "0.9",
+      "unit": "ratio",
+      "source_value": "90",
+      "source_unit": "%",
+      "normalized_value": "0.9",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_carbon_content",
+      "subject_id": "coke",
+      "value": "0.0295",
+      "unit": "tC/GJ",
+      "source_value": "0.0295",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0295",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_lhv",
+      "subject_id": "coke",
+      "value": "28.435",
+      "unit": "GJ/t",
+      "source_value": "28.435",
+      "source_unit": "GJ/t",
+      "normalized_value": "28.435",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_oven_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_oven_gas_carbon_content",
+      "subject_id": "coke_oven_gas",
+      "value": "0.01358",
+      "unit": "tC/GJ",
+      "source_value": "0.01358",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.01358",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_oven_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_oven_gas_lhv",
+      "subject_id": "coke_oven_gas",
+      "value": "179.81",
+      "unit": "GJ/10⁴Nm³",
+      "source_value": "179.81",
+      "source_unit": "GJ/10⁴Nm³",
+      "normalized_value": "179.81",
+      "normalized_unit": "GJ/10⁴Nm³",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_oven_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_oven_gas_oxidation_rate",
+      "subject_id": "coke_oven_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "99",
+      "source_unit": "%",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-coke_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "coke_oxidation_rate",
+      "subject_id": "coke",
+      "value": "0.93",
+      "unit": "ratio",
+      "source_value": "93",
+      "source_unit": "%",
+      "normalized_value": "0.93",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-converter_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "converter_gas_carbon_content",
+      "subject_id": "converter_gas",
+      "value": "0.04960",
+      "unit": "tC/GJ",
+      "source_value": "0.04960",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.04960",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-converter_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "converter_gas_lhv",
+      "subject_id": "converter_gas",
+      "value": "84.00",
+      "unit": "GJ/10⁴Nm³",
+      "source_value": "84.00",
+      "source_unit": "GJ/10⁴Nm³",
+      "normalized_value": "84.00",
+      "normalized_unit": "GJ/10⁴Nm³",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-converter_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "converter_gas_oxidation_rate",
+      "subject_id": "converter_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "99",
+      "source_unit": "%",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_benzene_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_benzene_carbon_content",
+      "subject_id": "crude_benzene",
+      "value": "0.0227",
+      "unit": "tC/GJ",
+      "source_value": "0.0227",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0227",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_benzene_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_benzene_lhv",
+      "subject_id": "crude_benzene",
+      "value": "41.816",
+      "unit": "GJ/t",
+      "source_value": "41.816",
+      "source_unit": "GJ/t",
+      "normalized_value": "41.816",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_benzene_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_benzene_oxidation_rate",
+      "subject_id": "crude_benzene",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_oil_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_oil_carbon_content",
+      "subject_id": "crude_oil",
+      "value": "0.0201",
+      "unit": "tC/GJ",
+      "source_value": "0.0201",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0201",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_oil_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_oil_lhv",
+      "subject_id": "crude_oil",
+      "value": "41.816",
+      "unit": "GJ/t",
+      "source_value": "41.816",
+      "source_unit": "GJ/t",
+      "normalized_value": "41.816",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-crude_oil_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "crude_oil_oxidation_rate",
+      "subject_id": "crude_oil",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-diesel_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "diesel_carbon_content",
+      "subject_id": "diesel",
+      "value": "0.0202",
+      "unit": "tC/GJ",
+      "source_value": "0.0202",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0202",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-diesel_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "diesel_lhv",
+      "subject_id": "diesel",
+      "value": "42.652",
+      "unit": "GJ/t",
+      "source_value": "42.652",
+      "source_unit": "GJ/t",
+      "normalized_value": "42.652",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-diesel_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "diesel_oxidation_rate",
+      "subject_id": "diesel",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-electricity_national_average_2023",
+      "asset_version": "1",
+      "parameter_id": "electricity_emission_factor_national",
+      "subject_id": "purchased_electricity",
+      "value": "0.5306",
+      "unit": "tCO₂/MWh",
+      "source_value": "0.5306",
+      "source_unit": "kgCO₂/kWh",
+      "normalized_value": "0.5306",
+      "normalized_unit": "tCO₂/MWh",
+      "value_type": "GOVERNMENT_PUBLISHED",
+      "notes": "1 kgCO₂/kWh = 1 tCO₂/MWh，数值以 Decimal 保留。"
+    },
+    {
+      "asset_id": "asset-electricity_nonfossil_zero_gbt32151_34_2024",
+      "asset_version": "1",
+      "parameter_id": "electricity_emission_factor_nonfossil",
+      "subject_id": "purchased_electricity",
+      "value": "0",
+      "unit": "tCO₂/MWh",
+      "source_value": "0",
+      "source_unit": "tCO₂/MWh",
+      "normalized_value": "0",
+      "normalized_unit": "tCO₂/MWh",
+      "value_type": "STANDARD_SPECIFIED",
+      "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是使用本零因子的前置条件。"
+    },
+    {
+      "asset_id": "asset-fuel_oil_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "fuel_oil_carbon_content",
+      "subject_id": "fuel_oil",
+      "value": "0.0211",
+      "unit": "tC/GJ",
+      "source_value": "0.0211",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0211",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-fuel_oil_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "fuel_oil_lhv",
+      "subject_id": "fuel_oil",
+      "value": "41.816",
+      "unit": "GJ/t",
+      "source_value": "41.816",
+      "source_unit": "GJ/t",
+      "normalized_value": "41.816",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-fuel_oil_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "fuel_oil_oxidation_rate",
+      "subject_id": "fuel_oil",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-gasoline_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "gasoline_carbon_content",
+      "subject_id": "gasoline",
+      "value": "0.0189",
+      "unit": "tC/GJ",
+      "source_value": "0.0189",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0189",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-gasoline_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "gasoline_lhv",
+      "subject_id": "gasoline",
+      "value": "43.070",
+      "unit": "GJ/t",
+      "source_value": "43.070",
+      "source_unit": "GJ/t",
+      "normalized_value": "43.070",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-gasoline_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "gasoline_oxidation_rate",
+      "subject_id": "gasoline",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-gwp_co2_ar6_100",
+      "asset_version": "1",
+      "parameter_id": "gwp_co2_ar6_100",
+      "subject_id": "co2",
+      "value": "1",
+      "unit": "ratio",
+      "source_value": "1",
+      "source_unit": "ratio",
+      "normalized_value": "1",
+      "normalized_unit": "ratio",
+      "value_type": "SCIENTIFIC_REFERENCE",
+      "notes": "CO₂ 的 GWP100 定义值。"
+    },
+    {
+      "asset_id": "asset-heat_default_2025",
+      "asset_version": "1",
+      "parameter_id": "heat_emission_factor_default",
+      "subject_id": "purchased_heat",
+      "value": "0.11",
+      "unit": "tCO₂/GJ",
+      "source_value": "0.11",
+      "source_unit": "tCO₂/GJ",
+      "normalized_value": "0.11",
+      "normalized_unit": "tCO₂/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "GB/T 32150—2025共用规则层标准缺省值；无符合要求的供热单位实测因子时推荐。"
+    },
+    {
+      "asset_id": "asset-kerosene_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "kerosene_carbon_content",
+      "subject_id": "kerosene",
+      "value": "0.0196",
+      "unit": "tC/GJ",
+      "source_value": "0.0196",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0196",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-kerosene_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "kerosene_lhv",
+      "subject_id": "kerosene",
+      "value": "43.070",
+      "unit": "GJ/t",
+      "source_value": "43.070",
+      "source_unit": "GJ/t",
+      "normalized_value": "43.070",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-kerosene_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "kerosene_oxidation_rate",
+      "subject_id": "kerosene",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-lignite_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "lignite_carbon_content",
+      "subject_id": "lignite",
+      "value": "0.028",
+      "unit": "tC/GJ",
+      "source_value": "0.028",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.028",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-lignite_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "lignite_lhv",
+      "subject_id": "lignite",
+      "value": "11.9",
+      "unit": "GJ/t",
+      "source_value": "11.9",
+      "source_unit": "GJ/t",
+      "normalized_value": "11.9",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-lignite_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "lignite_oxidation_rate",
+      "subject_id": "lignite",
+      "value": "0.96",
+      "unit": "ratio",
+      "source_value": "96",
+      "source_unit": "%",
+      "normalized_value": "0.96",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_natural_gas_carbon_content",
+      "subject_id": "liquefied_natural_gas",
+      "value": "0.0153",
+      "unit": "tC/GJ",
+      "source_value": "0.0153",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0153",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_natural_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_natural_gas_lhv",
+      "subject_id": "liquefied_natural_gas",
+      "value": "51.498",
+      "unit": "GJ/t",
+      "source_value": "51.498",
+      "source_unit": "GJ/t",
+      "normalized_value": "51.498",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_natural_gas_oxidation_rate",
+      "subject_id": "liquefied_natural_gas",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_petroleum_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_petroleum_gas_carbon_content",
+      "subject_id": "liquefied_petroleum_gas",
+      "value": "0.0172",
+      "unit": "tC/GJ",
+      "source_value": "0.0172",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0172",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_petroleum_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_petroleum_gas_lhv",
+      "subject_id": "liquefied_petroleum_gas",
+      "value": "50.179",
+      "unit": "GJ/t",
+      "source_value": "50.179",
+      "source_unit": "GJ/t",
+      "normalized_value": "50.179",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-liquefied_petroleum_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "liquefied_petroleum_gas_oxidation_rate",
+      "subject_id": "liquefied_petroleum_gas",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-naphtha_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "naphtha_carbon_content",
+      "subject_id": "naphtha",
+      "value": "0.0200",
+      "unit": "tC/GJ",
+      "source_value": "0.0200",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0200",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-naphtha_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "naphtha_lhv",
+      "subject_id": "naphtha",
+      "value": "44.5",
+      "unit": "GJ/t",
+      "source_value": "44.5",
+      "source_unit": "GJ/t",
+      "normalized_value": "44.5",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-naphtha_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "naphtha_oxidation_rate",
+      "subject_id": "naphtha",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-natural_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "natural_gas_carbon_content",
+      "subject_id": "natural_gas",
+      "value": "0.0153",
+      "unit": "tC/GJ",
+      "source_value": "0.0153",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0153",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-natural_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "natural_gas_lhv",
+      "subject_id": "natural_gas",
+      "value": "389.31",
+      "unit": "GJ/10⁴Nm³",
+      "source_value": "389.31",
+      "source_unit": "GJ/10⁴Nm³",
+      "normalized_value": "389.31",
+      "normalized_unit": "GJ/10⁴Nm³",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-natural_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "natural_gas_oxidation_rate",
+      "subject_id": "natural_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "0.99",
+      "source_unit": "ratio",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_cleaned_coal_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_cleaned_coal_carbon_content",
+      "subject_id": "other_cleaned_coal",
+      "value": "0.02541",
+      "unit": "tC/GJ",
+      "source_value": "0.02541",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.02541",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_cleaned_coal_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_cleaned_coal_lhv",
+      "subject_id": "other_cleaned_coal",
+      "value": "12.545",
+      "unit": "GJ/t",
+      "source_value": "12.545",
+      "source_unit": "GJ/t",
+      "normalized_value": "12.545",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_cleaned_coal_oxidation_rate",
+      "subject_id": "other_cleaned_coal",
+      "value": "0.9",
+      "unit": "ratio",
+      "source_value": "90",
+      "source_unit": "%",
+      "normalized_value": "0.9",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_coal_products_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_coal_products_carbon_content",
+      "subject_id": "other_coal_products",
+      "value": "0.0336",
+      "unit": "tC/GJ",
+      "source_value": "0.0336",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0336",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_coal_products_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_coal_products_lhv",
+      "subject_id": "other_coal_products",
+      "value": "17.460",
+      "unit": "GJ/t",
+      "source_value": "17.460",
+      "source_unit": "GJ/t",
+      "normalized_value": "17.460",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_coal_products_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_coal_products_oxidation_rate",
+      "subject_id": "other_coal_products",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_gas_carbon_content",
+      "subject_id": "other_gas",
+      "value": "0.0122",
+      "unit": "tC/GJ",
+      "source_value": "0.0122",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0122",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_gas_lhv",
+      "subject_id": "other_gas",
+      "value": "52.270",
+      "unit": "GJ/10⁴Nm³",
+      "source_value": "52.270",
+      "source_unit": "GJ/10⁴Nm³",
+      "normalized_value": "52.270",
+      "normalized_unit": "GJ/10⁴Nm³",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_gas_oxidation_rate",
+      "subject_id": "other_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "99",
+      "source_unit": "%",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_petroleum_products_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_petroleum_products_carbon_content",
+      "subject_id": "other_petroleum_products",
+      "value": "0.0200",
+      "unit": "tC/GJ",
+      "source_value": "0.0200",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0200",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_petroleum_products_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_petroleum_products_lhv",
+      "subject_id": "other_petroleum_products",
+      "value": "41.031",
+      "unit": "GJ/t",
+      "source_value": "41.031",
+      "source_unit": "GJ/t",
+      "normalized_value": "41.031",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-other_petroleum_products_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "other_petroleum_products_oxidation_rate",
+      "subject_id": "other_petroleum_products",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-petroleum_coke_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "petroleum_coke_carbon_content",
+      "subject_id": "petroleum_coke",
+      "value": "0.02750",
+      "unit": "tC/GJ",
+      "source_value": "0.02750",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.02750",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-petroleum_coke_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "petroleum_coke_lhv",
+      "subject_id": "petroleum_coke",
+      "value": "32.5",
+      "unit": "GJ/t",
+      "source_value": "32.5",
+      "source_unit": "GJ/t",
+      "normalized_value": "32.5",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-petroleum_coke_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "petroleum_coke_oxidation_rate",
+      "subject_id": "petroleum_coke",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-refinery_dry_gas_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "refinery_dry_gas_carbon_content",
+      "subject_id": "refinery_dry_gas",
+      "value": "0.0182",
+      "unit": "tC/GJ",
+      "source_value": "0.0182",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0182",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-refinery_dry_gas_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "refinery_dry_gas_lhv",
+      "subject_id": "refinery_dry_gas",
+      "value": "45.998",
+      "unit": "GJ/t",
+      "source_value": "45.998",
+      "source_unit": "GJ/t",
+      "normalized_value": "45.998",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-refinery_dry_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "refinery_dry_gas_oxidation_rate",
+      "subject_id": "refinery_dry_gas",
+      "value": "0.99",
+      "unit": "ratio",
+      "source_value": "99",
+      "source_unit": "%",
+      "normalized_value": "0.99",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-tar_carbon_content_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "tar_carbon_content",
+      "subject_id": "tar",
+      "value": "0.0220",
+      "unit": "tC/GJ",
+      "source_value": "0.0220",
+      "source_unit": "tC/GJ",
+      "normalized_value": "0.0220",
+      "normalized_unit": "tC/GJ",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-tar_lhv_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "tar_lhv",
+      "subject_id": "tar",
+      "value": "33.453",
+      "unit": "GJ/t",
+      "source_value": "33.453",
+      "source_unit": "GJ/t",
+      "normalized_value": "33.453",
+      "normalized_unit": "GJ/t",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    },
+    {
+      "asset_id": "asset-tar_oxidation_rate_gbt32151_34_c1",
+      "asset_version": "1",
+      "parameter_id": "tar_oxidation_rate",
+      "subject_id": "tar",
+      "value": "0.98",
+      "unit": "ratio",
+      "source_value": "98",
+      "source_unit": "%",
+      "normalized_value": "0.98",
+      "normalized_unit": "ratio",
+      "value_type": "STANDARD_DEFAULT",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。"
+    }
+  ],
+  "reference_data_bindings": [
+    {
+      "binding_id": "binding-anthracite_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-anthracite_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "anthracite_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-anthracite_lhv_gbt32151_34_c1",
+      "asset_id": "asset-anthracite_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "anthracite_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-anthracite_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-anthracite_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "anthracite_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-bituminous_coal_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-bituminous_coal_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "bituminous_coal_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-bituminous_coal_lhv_gbt32151_34_c1",
+      "asset_id": "asset-bituminous_coal_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "bituminous_coal_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-bituminous_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-bituminous_coal_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "bituminous_coal_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-blast_furnace_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-blast_furnace_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "blast_furnace_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-blast_furnace_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-blast_furnace_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "blast_furnace_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-blast_furnace_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-blast_furnace_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "blast_furnace_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-briquette_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-briquette_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "briquette_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-briquette_lhv_gbt32151_34_c1",
+      "asset_id": "asset-briquette_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "briquette_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-briquette_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-briquette_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "briquette_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_baco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_baco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_baco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_caco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_caco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_caco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_camgco3_2_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_camgco3_2_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_camgco3_2_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_feco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_feco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_feco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_k2co3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_k2co3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_k2co3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_li2co3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_li2co3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_li2co3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_mgco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_mgco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_mgco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_mnco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_mnco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_mnco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_na2co3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_na2co3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_na2co3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_nahco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_nahco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_nahco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-carbonate_srco3_gbt32151_34_c2",
+      "asset_id": "asset-carbonate_srco3_gbt32151_34_c2",
+      "source_table_id": "tab-32151-34-c2",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "carbonate_srco3_gbt32151_34_c2",
+      "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.2明确的碳酸盐种类专用CO2质量分数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-cleaned_coal_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-cleaned_coal_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "cleaned_coal_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-cleaned_coal_lhv_gbt32151_34_c1",
+      "asset_id": "asset-cleaned_coal_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "cleaned_coal_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-coke_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_lhv_gbt32151_34_c1",
+      "asset_id": "asset-coke_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_oven_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-coke_oven_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_oven_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_oven_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-coke_oven_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_oven_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_oven_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-coke_oven_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_oven_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-coke_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-coke_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "coke_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-converter_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-converter_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "converter_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-converter_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-converter_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "converter_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-converter_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-converter_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "converter_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_benzene_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-crude_benzene_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_benzene_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_benzene_lhv_gbt32151_34_c1",
+      "asset_id": "asset-crude_benzene_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_benzene_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_benzene_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-crude_benzene_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_benzene_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_oil_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-crude_oil_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_oil_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_oil_lhv_gbt32151_34_c1",
+      "asset_id": "asset-crude_oil_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_oil_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-crude_oil_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-crude_oil_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "crude_oil_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-diesel_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-diesel_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "diesel_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-diesel_lhv_gbt32151_34_c1",
+      "asset_id": "asset-diesel_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "diesel_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-diesel_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-diesel_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "diesel_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-32151-34-c3-electricity-latest",
+      "asset_id": "asset-electricity_national_average_2023",
+      "source_table_id": "tab-32151-34-c3",
+      "binding_type": "STANDARD_REFERENCE",
+      "factor_id": null,
+      "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
+      "factor_year": 2023,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "C.3要求采用主管部门发布的最新电力消费排放因子；当前值和发布日期沿用官方公告资产。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-electricity_national_average_2023",
+      "asset_id": "asset-electricity_national_average_2023",
+      "source_table_id": "tab-elec-2025-47-1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "electricity_national_average_2023",
+      "source_location": "公告2025年第47号表1：全国平均",
+      "factor_year": 2023,
+      "valid_from": "2025-12-31",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "1 kgCO₂/kWh = 1 tCO₂/MWh，数值以 Decimal 保留。",
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-electricity_nonfossil_zero_gbt32151_34_2024",
+      "asset_id": "asset-electricity_nonfossil_zero_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-5261",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "electricity_nonfossil_zero_gbt32151_34_2024",
+      "source_location": "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "附录D.2要求的交易合同及结算凭证或GEC等证明，是使用本零因子的前置条件。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-fgd_carbonate_content_default_gbt32151_34_2024",
+      "asset_id": "asset-fgd_carbonate_content_default_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-5252",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "fgd_carbonate_content_default_gbt32151_34_2024",
+      "source_location": "第5.2.5.2条；PDF第14页；印刷页6",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准允许的一般缺省参数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-fgd_conversion_rate_default_gbt32151_34_2024",
+      "asset_id": "asset-fgd_conversion_rate_default_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-5252",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "fgd_conversion_rate_default_gbt32151_34_2024",
+      "source_location": "第5.2.5.2条；PDF第14页；印刷页6",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准允许的一般缺省参数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-fuel_oil_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-fuel_oil_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "fuel_oil_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-fuel_oil_lhv_gbt32151_34_c1",
+      "asset_id": "asset-fuel_oil_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "fuel_oil_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-fuel_oil_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-fuel_oil_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "fuel_oil_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-gasoline_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-gasoline_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "gasoline_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-gasoline_lhv_gbt32151_34_c1",
+      "asset_id": "asset-gasoline_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "gasoline_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-gasoline_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-gasoline_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "gasoline_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-gwp_co2_ar6_100",
+      "asset_id": "asset-gwp_co2_ar6_100",
+      "source_table_id": "tab-ipcc-ar6-715",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "gwp_co2_ar6_100",
+      "source_location": "Chapter 7 Table 7.15 / Supplementary Table 7.SM.7：GWP-100",
+      "factor_year": 2021,
+      "valid_from": null,
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "CO₂ 的 GWP100 定义值。",
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-heat_default_2025",
+      "asset_id": "asset-heat_default_2025",
+      "source_table_id": "tab-32150-756-757",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "heat_default_2025",
+      "source_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
+      "factor_year": 2025,
+      "valid_from": "2026-07-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "GB/T 32150—2025共用规则层标准缺省值；无符合要求的供热单位实测因子时推荐。",
+      "applicable_standard_ids": [
+        "gbt_32150_2025",
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-heat_default_gbt32151_34_c3",
+      "asset_id": "asset-heat_default_2025",
+      "source_table_id": "tab-32151-34-c3",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "heat_default_gbt32151_34_c3",
+      "source_location": "GB/T 32151.34—2024 附录C表C.3；PDF第27页；印刷页19",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "与GB/T 32150—2025共用规则的0.11参考数据为同一资产；单独保留本标准C.3来源及适用起始日期。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-kerosene_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-kerosene_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "kerosene_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-kerosene_lhv_gbt32151_34_c1",
+      "asset_id": "asset-kerosene_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "kerosene_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-kerosene_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-kerosene_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "kerosene_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-lignite_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-lignite_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "lignite_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-lignite_lhv_gbt32151_34_c1",
+      "asset_id": "asset-lignite_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "lignite_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-lignite_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-lignite_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "lignite_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_natural_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_natural_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_natural_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_natural_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,e。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_petroleum_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_petroleum_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_petroleum_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_petroleum_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_petroleum_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_petroleum_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-liquefied_petroleum_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-liquefied_petroleum_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "liquefied_petroleum_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-methane_conversion_factor_baking_gbt32151_34_2024",
+      "asset_id": "asset-methane_conversion_factor_baking_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-523",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "methane_conversion_factor_baking_gbt32151_34_2024",
+      "source_location": "第5.2.3条；PDF第13页；印刷页5",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准允许的一般缺省参数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-methane_conversion_factor_calcination_gbt32151_34_2024",
+      "asset_id": "asset-methane_conversion_factor_calcination_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-522",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "methane_conversion_factor_calcination_gbt32151_34_2024",
+      "source_location": "第5.2.2条；PDF第12页；印刷页4",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准允许的一般缺省参数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-methane_conversion_factor_graphitization_gbt32151_34_2024",
+      "asset_id": "asset-methane_conversion_factor_graphitization_gbt32151_34_2024",
+      "source_table_id": "tab-32151-34-524",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "methane_conversion_factor_graphitization_gbt32151_34_2024",
+      "source_location": "第5.2.4条；PDF第14页；印刷页6",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准允许的一般缺省参数。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-naphtha_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-naphtha_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "naphtha_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-naphtha_lhv_gbt32151_34_c1",
+      "asset_id": "asset-naphtha_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "naphtha_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-naphtha_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-naphtha_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "naphtha_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-natural_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-natural_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "natural_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-natural_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-natural_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "natural_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-natural_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-natural_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "natural_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_cleaned_coal_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-other_cleaned_coal_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_cleaned_coal_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_cleaned_coal_lhv_gbt32151_34_c1",
+      "asset_id": "asset-other_cleaned_coal_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_cleaned_coal_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-other_cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_cleaned_coal_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：c,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_coal_products_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-other_coal_products_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_coal_products_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_coal_products_lhv_gbt32151_34_c1",
+      "asset_id": "asset-other_coal_products_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_coal_products_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_coal_products_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-other_coal_products_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_coal_products_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-other_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-other_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-other_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_petroleum_products_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-other_petroleum_products_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_petroleum_products_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_petroleum_products_lhv_gbt32151_34_c1",
+      "asset_id": "asset-other_petroleum_products_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_petroleum_products_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-other_petroleum_products_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-other_petroleum_products_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "other_petroleum_products_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,c。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-petroleum_coke_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-petroleum_coke_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "petroleum_coke_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-petroleum_coke_lhv_gbt32151_34_c1",
+      "asset_id": "asset-petroleum_coke_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "petroleum_coke_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-petroleum_coke_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-petroleum_coke_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "petroleum_coke_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：a,b。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-refinery_dry_gas_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-refinery_dry_gas_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "refinery_dry_gas_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-refinery_dry_gas_lhv_gbt32151_34_c1",
+      "asset_id": "asset-refinery_dry_gas_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "refinery_dry_gas_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-refinery_dry_gas_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-refinery_dry_gas_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "refinery_dry_gas_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-tar_carbon_content_gbt32151_34_c1",
+      "asset_id": "asset-tar_carbon_content_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "tar_carbon_content_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-tar_lhv_gbt32151_34_c1",
+      "asset_id": "asset-tar_lhv_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "tar_lhv_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
+    },
+    {
+      "binding_id": "binding-tar_oxidation_rate_gbt32151_34_c1",
+      "asset_id": "asset-tar_oxidation_rate_gbt32151_34_c1",
+      "source_table_id": "tab-32151-34-c1",
+      "binding_type": "FACTOR_SOURCE",
+      "factor_id": "tar_oxidation_rate_gbt32151_34_c1",
+      "source_location": "GB/T 32151.34—2024 附录C表C.1；PDF第26页；印刷页18",
+      "factor_year": 2024,
+      "valid_from": "2025-03-01",
+      "valid_to": null,
+      "review_status": "VERIFIED",
+      "notes": "标准表C.1脚注来源：b,d。数值按标准打印值记录。",
+      "applicable_standard_ids": [
+        "gbt_32151_34_2024"
+      ]
     }
   ]
 }

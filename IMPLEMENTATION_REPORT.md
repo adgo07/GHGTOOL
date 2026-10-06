@@ -1,56 +1,70 @@
-# GHG-UAT01-B — 多物料过程与蒸汽热力简化闭环
+# GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本地可运行的定向验证已通过；当前执行环境缺少PySide6和PyInstaller，GUI/standalone本地验收未完成。独立PR latest-head Windows CI和独立验收仍为交付门槛。UAT01-A已合并；RS03-A USER UAT `PENDING`；PR #27 `OPEN / UNMERGED`且未修改；RS03-B `NOT STARTED`；标准仍为 `NOT SUPPORTED`。最终Head与exact-head CI结果见最终交付回复和PR Checks，本报告不写自身提交SHA以避免自引用提交。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。实现、全量本地回归和Windows standalone构建已完成；独立PR最终Head的Windows CI仍是交付门槛。当前报告不内嵌PR Head或CI run SHA，最终以GitHub PR Checks与交付回复中的精确Head证据为准，避免自引用提交。
 
 ## 1. 基线与平台 / Contract 预检查
 
 - 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- Base / 开工时最新 `origin/main`：`d11d21a79cc89d291ebe4cc2cc5162a75018b1af`，包含PR #28的UAT01-A合并结果。分支：`codex/ghg-uat01-b-material-steam`；PR #27未作为Base。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央Locked SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。
-- 按locked SHA读取Architecture V2.1、Numeric Contract v1、Numeric Profiles v1。适用要求：分层隔离；Domain不得依赖Qt、SQLite或Excel；权威数值必须消费声明的Numeric Profile，helper不得静默切换ambient/default配置，调用方ambient context不得改变同一Profile的结果。项目Carbon Decimal Profile继续由既有`DecimalPolicy`负责。本任务不涉及中央公共Contract，未修改Frozen Contract、`platform-lock.json`或`PLATFORM_BASELINE.md`，无Contract冲突。
-- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`。继续保留C.4原始重复键事实并使用项目已批准的1.70/1.80 MPa执行解释；非官方勘误。本任务未改变既有软件解释、未新增标准问题。
-- PR #27当前仍为OPEN、未合并；仅读取其纯Python `carbon_material_normalization.py` 作为可复用能力参考，没有使用其分支作为Base或修改该PR。
+- Base：开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`，含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`。
+- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
+- 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
+- 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
+- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`。C.4/C.5仍由版本化Calculator提供并延续已批准的1.70/1.80 MPa项目解释；不改变既有软件解释、不新增Standard Issue、不称官方勘误。
+- PR #27保持 `OPEN / UNMERGED`且未修改；未从PR #27分支派生。
 
-## 2. Base→Final Head的实际改动
+## 2. 实现内容
 
-本报告对应本包PR中的最终Base→Head diff；准确提交数、变更文件数、增删行与Head SHA由Git和最终PR记录确定，不把Head写回此文件。改动集中在Domain物料归一化、Carbon Material UI/输入元数据、相关Domain与UI测试，以及Roadmap、HANDOFF、TASK_STATE和本报告；没有修改Canonical数据、数据库迁移、`platform-lock.json`、`PLATFORM_BASELINE.md`、Excel模板或PR #27。最终回复列出逐文件名称与精确diff统计。
+### 注册数据与可追溯关系
 
-### B.3–B.5多物料
+- Canonical catalog升至schema `1.1.0`、data version `2026.10.06-pf01.1`。
+- 新增14张来源表、98个不可变参考数据资产、100条来源绑定；因新增C.3热力缺省候选，Factor由98增至99，Parameter仍为98。Canonical校验通过：9个标准、12个来源、98个参数、99个因子。
+- C.1登记26个燃料表项，C.2登记完整11个碳酸盐表项；简单标准参考数据通过来源表结构、资产和绑定展示。等值多来源可共享资产并保留各自定位；来源值不同使用独立资产版本；没有权重字段。
+- 为GB/T 32151.34—2024 C.3新增0.11 tCO₂/GJ正式缺省因子候选，定位附录C表C.3（PDF第27页、印刷页19），有效期从2025-03-01开始。它与GB/T 32150—2025通用缺省的数值相同但保留独立来源适用信息；资产按相同值复用。
+- C.4/C.5蒸汽表没有复制进Canonical。只读Adapter调用版本化Calculator的 `steam_reference_table_rows()`；插值、算法及正式表值均不变。
+- 对C.4/C.5相关问题继续执行 `GHG-STD-32151-34-003`：原始重复/异常压力键事实保留，后两项沿用批准的1.70/1.80 MPa软件解释，非官方勘误。
 
-- 新增 `packages/standards/carbon_material_normalization.py`：纯Python接收现实物料行，并提供可复用质量汇总、质量加权固定碳/挥发分、碳质量合计和按标准公式变量映射。参考PR #27中`MaterialAmount`、`weighted_fraction`、`carbon_mass`能力，扩展过程角色与问题定位；UI与Domain共用此模块，未来Excel可以复用；物料CalculationTrace另记`CAR-MATERIAL-NORMALIZATION-V1`，与Calculator Numeric Profile版本分开追溯。
-- 煅烧、焙烧/炭化、石墨化录入真实物料类别/名称/质量/固定碳/挥发分及独立来源，软件显示汇总值并映射至既有`CarbonMaterialInput`字段。公式(6)～(8)未修改；多行物料在每一过程实例内聚合，不更改实例/多能源数据模型。
-- 当前Canonical没有可适用于过程物料组成的标准缺省值，故默认实测、允许化学计算，不复制硬编码默认值。显式0是零；空白是未提供/不存在。必需物料缺失、正质量缺少组成或非法数值时，Domain返回错误，不生成成功Record。
+### 查询与页面
 
-### B.9蒸汽热力
+- 新增只读查询模型及SQLite投影，按登记列布局浏览来源表；C.1/C.2显示Canonical登记数据，C.4/C.5显示Calculator只读数据。
+- 页面提供“按标准/文件查看”和“全库搜索”。全库检索覆盖标准目录项、来源文件/政策/公告、来源表元数据与单元格内容、参考数据资产；共享资产按ID和版本去重，详情列出多处来源定位。
+- 详情使用侧栏式分栏呈现，提供已登记官方页面链接；普通页面不显示内部主键或数据库字段。
+- 在 `AGENTS.md` 增加一条简短长期规则，明确Canonical登记职责与Resolver单一选择权；同步更新 `docs/DELIVERY.md` 中Canonical schema与Catalog/User/Records迁移版本。
 
-- 用户输入蒸汽吨数与绝压MPa；过热蒸汽额外输入温度。Domain通过现有`UnitService`将吨转换为公式要求的kg。
-- 饱和蒸汽从版本化Domain Calculator的C.4表取值并线性内插；过热蒸汽从C.5表取值并沿用当前压力/温度插值。C.4/C.5完整表、既有表格查找架构与正式数值未改；继续执行`GHG-STD-32151-34-003`已批准的1.70/1.80 MPa解释，不称官方勘误。
-- 自动计算是默认焓值模式。用户可手动覆盖；正式Calculator使用手动焓值。手动值与参考值明显不同、或状态超出表范围导致无自动参考时仅警告；自动模式缺压力/温度/可计算状态时阻断。Result/Record Trace区分来源，保存自动参考、焓值、表号、压力/温度节点和插值版本。
-- 热力缺省因子0.11来自现有Canonical参数Resolver；实测因子可以覆盖，来源说明可选，缺失时提示但不阻止合法计算。没有新增硬编码标准值或C.4/C.5 reference-table架构。
+### 热力因子适用期接通
 
-## 3. 兼容与历史稳定性
+- 回归发现既有热力Resolver按日期选取候选，但Calculator调用时漏传核算期间，导致有效期候选无法按核算期间判定。现将既有输入期间传入 `ParameterResolutionContext`；Resolver优先级与选择策略未改。
+- 年度与自定义核算期间、2025/2026适用日期、购入与输出热力均由既有Resolver取得适用0.11候选；没有在UI硬编码标准值。
 
-- Project：使用现有`form_state_json`兼容路径加法保存新物料行，没有破坏性数据库迁移。已有聚合字段继续读取；用户填写新物料明细前保持原数据可用。旧蒸汽kg值恢复为吨输入，已有焓值恢复为手动模式。
-- Record：新的输入与焓值来源进入Trace/快照；成功计算仍追加新的不可变正式Record。历史Record不重算、不改写、不重新读取当前Canonical数据；定向测试验证后续新核算不改变先前Record。
-- 业务标准解释与正式公式没有变化；没有修改Numeric Contract或平台基线。
+### 数据库与兼容
 
-## 4. 测试变更与本地验证
+- Catalog迁移002只新增来源表、参考数据资产、来源绑定三张表及索引，无删除或重建旧表；不修改Project或Record存储。
+- 从迁移001状态升级到002的隔离检查通过，旧来源记录仍保留。
+- 未改Calculator正式排放公式、Numeric Contract、历史Record快照或PR #27。
 
-**行为预期变化：**新物料行由共享归一化器生成既有公式变量；未选择合法自动焓值来源时由表数据确定，手工焓值覆盖并保留来源。没有修改测试来掩盖结果，也未改排放公式。
+## 3. 测试预期与计数变更
 
-**定向测试：**`python -m unittest tests.test_g06_carbon_material tests.test_uat01b_material_steam -v`，30/30通过。覆盖三种过程多物料独立手算对照、质量加权、必需与可选物料、空白与显式0、C.4/C.5表节点与内插、吨转kg、自动超范围阻断、手动偏差警告/覆盖、来源Trace和既有Record不漂移。
+**Canonical / 数据契约变化：**本包从Canonical schema `1.0.0`升至`1.1.0`；Catalog数据库迁移从`001`升至`002`；因增加C.3热力因子候选，Factor断言由98改为99。新增资产/表/绑定真实计数为98/14/100。同步更新了Canonical校验测试、持久化计数、release audit与归档审计夹具；这些更新对应正式数据和版本增加，不是删除旧测试。
 
-**全量测试：**`python -m unittest discover -s tests -t . -v`共运行145项，其中11个Qt UI模块由于当前Python环境缺少`PySide6`而在导入时失败；其余已运行用例通过。故本地全量回归未通过/未完整执行，不计为PASS。GUI字段、界面中文、旧Project UI恢复和布局需由Windows/Python 3.12 CI执行确认。
+**行为预期变化：**热力因子解析现携带已有核算期间，使既有有效期规则在Calculator链路真正生效；选择政策未变。全库搜索新增标准和来源文件结果，因此界面测试按结果类别选择参数项/表项，不再把结果数量当作固定常量。未改变公式或Resolver选择顺序。
 
-- `python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、98 factors；本包未改Canonical。
+## 4. 本地验证
+
+以下均由Windows Python 3.12.14项目虚拟环境实际执行：
+
+- `python -m unittest tests.test_g02_canonical -v`：19/19通过，覆盖共享资产多定位和不同值版本。
+- `python -m unittest tests.test_g04_catalog -v`：14/14通过，覆盖页面、动态表结构、标准/来源/表格内容与资产搜索、蒸汽Calculator Adapter及来源链接。
+- `python -m unittest tests.test_g06_carbon_material.G06CalculatorTests.test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods -v`：1/1通过，覆盖2025/2026、年度/自定义期间及购入/输出热力。
+- `python -m unittest discover -s tests -t . -v`：264/264通过。
+- `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）。
 - `python -m compileall -q apps packages scripts tests`：通过。
-- `python -m pip check`：通过，无依赖问题。
-- `python scripts/initialize_databases.py --output-dir <临时目录>`：通过，隔离创建catalog/user/records/projects四库；未新增迁移。
-- GUI acceptance / 1.0、1.25、1.5缩放：未执行，本地缺少`PySide6`。
-- Windows standalone构建：已尝试，因本地缺少`PyInstaller`失败，未生成构建产物；release archive审计和smoke启动因此未执行。
-- `git diff --check`：提交前检查；最终结论以最终Head的检查结果为准。
-- GitHub Actions：等待本包独立PR完成后验证Windows/Python 3.12 `Merge-ref Full Tests` 与 `PR-head Standalone Audit`；必须确认两项的`head_sha`等于最终PR Head。结果在最终交付回复记录，不将CI元数据反写到触发新Head的本文档。
+- `python -m pip check`：通过，无损坏依赖。
+- `python scripts/initialize_databases.py --output-dir build/pf01-isolated-db-final`：通过，隔离创建catalog/user/records/projects四库；另验证Catalog 001→002旧行保留。
+- `python scripts/build_standalone.py --output-root build/pf01-standalone-final`：通过；release文件范围/哈希/数据库审计与ZIP归档往返审计均由构建流程执行。
+- `python scripts/smoke_standalone.py build/pf01-standalone-final/QingzhouCarbonAccounting`：通过，两次隔离启动。
+- GitHub Actions：待独立PR创建并推送最终Head后确认Windows/Python 3.12 Merge-ref Full Tests与PR-head Standalone Audit均成功且`head_sha`等于最终PR Head。CI结果以GitHub PR Checks和最终交付回复为准。
 
-## 5. 停止边界
+## 5. 治理状态与停止点
 
-UAT01-B达到实现状态后等待latest-head CI和独立验收，不合并本包PR。RS03-A USER UAT保持`PENDING`；PR #27继续`OPEN / UNMERGED`且只读；RS03-B `NOT STARTED`；GB/T 32151.34—2024继续为`NOT SUPPORTED`。独立验收通过并合并后，由用户先重新人工测试软件本体，再决定是否回到PR #27继续Excel工作。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；交付独立PR，等待最终Head exact-head Windows CI及独立验收；不自行合并。
+- PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
+- Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

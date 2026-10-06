@@ -55,6 +55,17 @@ def _insert_catalog(connection: sqlite3.Connection, catalog: dict[str, Any]) -> 
                 "notes",
             )),
         )
+    for table in sorted(catalog["source_tables"], key=lambda item: (item["sort_order"], item["source_table_id"])):
+        connection.execute(
+            "INSERT INTO reference_source_tables(source_table_id, source_id, display_number, title, "
+            "source_location, layout, columns_json, provider_id, notes, sort_order) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                table["source_table_id"], table["source_id"], table["display_number"], table["title"],
+                table["source_location"], table["layout"], _json(table["columns"]), table["provider_id"],
+                table["notes"], table["sort_order"],
+            ),
+        )
     for subject in sorted(catalog["subjects"], key=lambda item: item["subject_id"]):
         connection.execute(
             "INSERT INTO subject_catalog(subject_id, subject_type, name, aliases_json, notes) "
@@ -118,6 +129,16 @@ def _insert_catalog(connection: sqlite3.Connection, catalog: dict[str, Any]) -> 
                 parameter["notes"],
             ),
         )
+    for asset in sorted(catalog["reference_data_assets"], key=lambda item: item["asset_id"]):
+        connection.execute(
+            "INSERT INTO reference_data_assets(asset_id, asset_version, parameter_id, subject_id, value, unit, "
+            "source_value, source_unit, normalized_value, normalized_unit, value_type, notes) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            tuple(asset[field] for field in (
+                "asset_id", "asset_version", "parameter_id", "subject_id", "value", "unit",
+                "source_value", "source_unit", "normalized_value", "normalized_unit", "value_type", "notes",
+            )),
+        )
     for factor in sorted(catalog["factors"], key=lambda item: item["factor_id"]):
         connection.execute(
             "INSERT INTO factor_values("
@@ -151,6 +172,18 @@ def _insert_catalog(connection: sqlite3.Connection, catalog: dict[str, Any]) -> 
                 "INSERT INTO factor_applicable_standards(factor_id, standard_id) VALUES (?, ?)",
                 (factor["factor_id"], standard_id),
             )
+    for binding in sorted(catalog["reference_data_bindings"], key=lambda item: item["binding_id"]):
+        connection.execute(
+            "INSERT INTO reference_data_bindings(binding_id, asset_id, source_table_id, binding_type, factor_id, "
+            "source_location, applicable_standard_ids_json, factor_year, valid_from, valid_to, review_status, notes) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                binding["binding_id"], binding["asset_id"], binding["source_table_id"], binding["binding_type"],
+                binding["factor_id"], binding["source_location"], _json(binding["applicable_standard_ids"]),
+                binding["factor_year"], binding["valid_from"], binding["valid_to"], binding["review_status"],
+                binding["notes"],
+            ),
+        )
     for rule in sorted(catalog["conversion_rules"], key=lambda item: item["conversion_id"]):
         connection.execute(
             "INSERT INTO conversion_rules("

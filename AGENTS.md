@@ -72,6 +72,7 @@ git status --short                 # 工作区状态
 - 保持 Presentation / Application / Domain / Infrastructure 分层；Domain 不得依赖 PySide6、SQLite、Windows API、页面控件或桌面弹窗；UI、计算、校验、数据访问必须分离，数据访问通过 Repository 接口。
 - 标准和参数的 Canonical Source 必须是可校验的 JSON/YAML，SQLite 只是 Windows 查询与部署格式：官方标准与参数入 `catalog.sqlite`，用户设置入 `user.sqlite`，成功核算记录入 `records.sqlite`。
 - Canonical-first **不等于**“所有碳核算算法都必须 JSON DSL 化”：复杂标准公式、查表/插值继续允许保留在**版本化 Domain Calculator** 中，缺口补在 Contract / reference data / Conformance。
+- 参数与因子注册库使用 Canonical 来源表、参考数据资产与独立来源绑定；同值多来源可共享资产，不同值使用单独版本。注册库只负责可追溯查询，Resolver 仍是计算候选与选择的唯一入口；不使用权重合并标准参考值。
 
 ### 2.3 Numeric / Unit 语义（本仓专属）
 

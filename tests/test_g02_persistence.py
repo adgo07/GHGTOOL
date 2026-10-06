@@ -63,6 +63,9 @@ class PersistenceTests(unittest.TestCase):
             self.assertIn("parameter_definitions", catalog_tables)
             self.assertIn("catalog_manifest", catalog_tables)
             self.assertNotIn("standard_scopes", catalog_tables)
+            self.assertIn("reference_source_tables", catalog_tables)
+            self.assertIn("reference_data_assets", catalog_tables)
+            self.assertIn("reference_data_bindings", catalog_tables)
             self.assertNotIn("user_settings", catalog_tables)
             self.assertIn("user_settings", user_tables)
             self.assertNotIn("source_documents", user_tables)
@@ -74,8 +77,8 @@ class PersistenceTests(unittest.TestCase):
             self.assertNotIn("accounting_records", projects_tables)
             self.assertNotIn("audit_log", projects_tables)
 
-            self.assertEqual(_metadata(paths["catalog"])["schema_version"], "001")
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.09.22-catui01.1")
+            self.assertEqual(_metadata(paths["catalog"])["schema_version"], "002")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.10.06-pf01.1")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["projects"])["data_version"], "not_applicable")
@@ -84,8 +87,11 @@ class PersistenceTests(unittest.TestCase):
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM standard_catalog").fetchone()[0], 9)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM source_documents").fetchone()[0], 12)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM parameter_definitions").fetchone()[0], 98)
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 98)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM factor_values").fetchone()[0], 99)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM conversion_rules").fetchone()[0], 13)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM reference_source_tables").fetchone()[0], 14)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM reference_data_assets").fetchone()[0], 98)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM reference_data_bindings").fetchone()[0], 100)
             finally:
                 connection.close()
 
