@@ -9,7 +9,7 @@
 - `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
 - 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
 - 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
-- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`及本次新增`GHG-STD-32151-34-005`。C.4/C.5既有解释不变；005记录用户对标准实施日期与因子自身有效期的产品裁定，不称官方解释。
+- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`、本次已处理的`GHG-STD-32151-34-005`及待逐项核查的OPEN项`GHG-STD-32151-34-006`。C.4/C.5既有解释不变；005记录用户对标准实施日期与C.3因子自身有效期的产品裁定，不称官方解释。
 - PR #27保持 `OPEN / UNMERGED`且未修改；未从PR #27分支派生。
 
 ## 2. 实现内容
@@ -35,6 +35,7 @@
 - 回归发现既有热力Resolver按日期选取候选，但Calculator调用时漏传核算期间，导致有效期候选无法按核算期间判定。现将既有输入期间传入 `ParameterResolutionContext`；Resolver优先级与选择策略未改。
 - 年度与自定义核算期间、2025/2026适用日期、购入与输出热力均由既有Resolver取得适用0.11候选；没有在UI硬编码标准值。
 - 本次用户产品裁定下，所选标准的实施日期经Catalog查询层交给版本化Calculator。核算期间完全早于或跨越实施日时，Calculator追加一条结构化、非阻断WARNING；该提醒进入CalculationResult、成功Record及普通页面的“数据质量”提示，并使新Record状态按既有规则为`COMPLETED_WITH_WARNINGS`。实施日后不追加这条提醒。C.3历史期间仍为候选，`accounting_period`继续筛选真正有期间适用性的因子（例如年度官方电力因子）。不改Resolver Selection Policy、正式公式、历史Record或数据库schema。
+- 范围边界：本次原始来源核对与前/跨/后三例只证明C.3热力路径。收尾审计发现Canonical另有95条适用于本标准的因子仍标记`valid_from=2025-03-01`；其日期是否只是标准实施日尚未逐项核实，部分其他排放源的早期期间仍可能被候选过滤。已登记`GHG-STD-32151-34-006`，不机械更改这些因子，不把本次结果称为“全场景历史期间已支持”。
 
 ### 数据库与兼容
 

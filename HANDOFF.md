@@ -33,6 +33,7 @@ Module ID：`qz.carbon_accounting`
 - 当前工作包：`GHG-PF01 — 参数与因子注册库基础架构 + 页面重构`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为Base，独立分支 `codex/pf01-parameter-factor-library`。不从PR #27派生且不修改PR #27。
 - PF01实现Canonical来源表/资产/绑定注册、只读查询投影、标准/文件浏览与全库搜索；Resolver选择策略、正式公式、历史Record语义不变。实现状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持OPEN / UNMERGED，等待独立验收，当前最新Head的Windows CI以PR Checks为准。
 - PF01增量裁定：用户选择GB/T 32151.34—2024进行早于或跨越2025-03-01实施日的核算时，提示非阻断提醒并继续按所选标准执行；提醒须进入新计算状态与新Record。附录C.3的0.11热力缺省因子不得因标准实施日失去候选资格。标准实施日期保留在标准元数据中，不写成该因子自身`valid_from`；真正按期间适用的因子（如年度官方电力因子）仍按`accounting_period`解析。依据与产品决定登记于`GHG-STD-32151-34-005`。
+- PF01此次仅完成已核对原文的C.3热力路径。Canonical另有95条本标准因子仍标记`valid_from=2025-03-01`，已登记`GHG-STD-32151-34-006`为OPEN，须逐项确认是否具有独立有效期；本次不得宣称其他排放源的历史期间都已打通，也不得机械批量去掉日期。
 - 本包增量不升级 `platform-lock.json` 或 `PLATFORM_BASELINE.md`；标准仍为 `NOT SUPPORTED`。
 - RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。本包完成后停止，等待独立验收。
 
