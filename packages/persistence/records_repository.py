@@ -428,6 +428,82 @@ class SQLiteRecordRepository:
     def get_report_qualification(self, record_id: str) -> object | None:
         return self._get_snapshot(record_id, "report_qualification_json")
 
+    def get_latest_report_export_supplementary(self, record_id: str) -> dict[str, Any]:
+        """Load user-entered report details from the latest append-only export event."""
+
+        connection = self._connection()
+        try:
+            row = connection.execute(
+                "SELECT supplementary_json FROM report_export_history "
+                "WHERE record_id = ? ORDER BY rowid DESC LIMIT 1",
+                (record_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return {}
+        value = _load_json(row["supplementary_json"], "report_export_history.supplementary_json")
+        return value if isinstance(value, dict) else {}
+
+    def record_report_export(
+        self,
+        record_id: str,
+        *,
+        export_id: str,
+        format: str = "DOCX",
+        template_version: str = "1.0.0",
+        document_filename: str,
+        document_sha256: str,
+        supplementary_info: dict[str, object],
+        actor: str = "current_user",
+    ) -> None:
+        """Append report-export information separately from immutable record snapshots."""
+
+        if not export_id.strip() or not format.strip() or not template_version.strip() or not document_filename.strip() or not actor.strip():
+            raise DomainValidationError("report export identity, filename and actor are required")
+        digest = document_sha256.strip().upper()
+        if len(digest) != 64 or any(character not in "0123456789ABCDEF" for character in digest):
+            raise DomainValidationError("report export document SHA-256 must be 64 hexadecimal characters")
+        allowed = {
+            "enterprise_name", "social_credit_code", "legal_representative", "address", "contact_person",
+            "preparer_name", "phone", "products_and_process", "prepared_on", "supplementary_note",
+        }
+        if any(key not in allowed for key in supplementary_info):
+            raise DomainValidationError("report export contains unsupported supplementary fields")
+        occurred_at = datetime.now(timezone.utc).isoformat()
+        connection = self._connection()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            exists = connection.execute(
+                "SELECT 1 FROM accounting_records WHERE record_id = ?",
+                (record_id,),
+            ).fetchone()
+            if exists is None:
+                raise DomainValidationError(f"record does not exist: {record_id}")
+            connection.execute(
+                "INSERT INTO report_export_history "
+                "(export_id, record_id, exported_at, actor, format, template_version, document_filename, document_sha256, supplementary_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (export_id, record_id, occurred_at, actor.strip(), format.strip().upper(), template_version.strip(), document_filename.strip(), digest, _json(supplementary_info)),
+            )
+            connection.execute(
+                "INSERT INTO audit_log (audit_id, record_id, action, occurred_at, actor, details_json) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    f"audit.{uuid4().hex}", record_id, "REPORT_EXPORT", occurred_at, actor.strip(),
+                    _json({"export_id": export_id, "format": format.strip().upper(), "template_version": template_version.strip(), "document_filename": document_filename.strip(), "document_sha256": digest}),
+                ),
+            )
+            connection.commit()
+        except sqlite3.Error as exc:
+            connection.rollback()
+            raise RecordRepositoryError(f"report export history could not be recorded: {exc}") from exc
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
     def get_snapshot_schema_version(self, record_id: str) -> int:
         """Return 1 when this record contains post-RS02-A detail snapshots."""
 

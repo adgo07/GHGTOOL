@@ -24,7 +24,7 @@ from packages.persistence import (
 )
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.ui.view_models import AppRoute
-from scripts.build_standalone import _write_manifest
+from scripts.build_standalone import _remove_unpacked_docx_template, _write_manifest
 from scripts.inspect_release import inspect_release
 from scripts.verify_release_archive import verify_release_archive
 
@@ -104,7 +104,7 @@ class G08DeliveryTests(unittest.TestCase):
             try:
                 self.assertEqual(
                     connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0],
-                    3,
+                    4,
                 )
                 self.assertEqual(
                     dict(connection.execute("SELECT key, value FROM database_metadata"))["app_version"],
@@ -126,9 +126,18 @@ class G08DeliveryTests(unittest.TestCase):
             (artifact / "QingzhouCarbonAccounting.exe").touch()
             (artifact / "records.sqlite").touch()
             (artifact / "source.pdf").touch()
+            (artifact / "user-report.docx").touch()
+            runtime_template = artifact / "docx" / "templates" / "default.docx"
+            runtime_template.parent.mkdir(parents=True)
+            runtime_template.touch()
             issues = inspect_release(artifact)
             self.assertTrue(any("unexpected database file" in issue for issue in issues))
-            self.assertTrue(any("forbidden source/document/secret file" in issue for issue in issues))
+            forbidden_documents = [
+                issue for issue in issues if "forbidden source/document/secret file" in issue
+            ]
+            self.assertTrue(any("source.pdf" in issue for issue in forbidden_documents))
+            self.assertTrue(any("user-report.docx" in issue for issue in forbidden_documents))
+            self.assertFalse(any("docx/templates/default.docx" in issue for issue in forbidden_documents))
 
     def test_uploaded_archive_preserves_manifest_file_set(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -140,6 +149,15 @@ class G08DeliveryTests(unittest.TestCase):
             (artifact / "migrations" / ".gitkeep").write_text("", encoding="utf-8")
             (artifact / "resources" / "icons").mkdir(parents=True)
             (artifact / "resources" / "icons" / ".gitkeep").write_text("", encoding="utf-8")
+            templates = artifact / "docx" / "templates"
+            templates.mkdir(parents=True)
+            (templates / "default.docx").write_bytes(b"runtime-template")
+            unpacked_template = templates / "default-docx-template" / "_rels"
+            unpacked_template.mkdir(parents=True)
+            (unpacked_template / ".rels").write_text("redundant", encoding="utf-8")
+            _remove_unpacked_docx_template(artifact)
+            self.assertFalse((templates / "default-docx-template").exists())
+            self.assertTrue((templates / "default.docx").is_file())
             with patch("scripts.build_standalone._source_commit", return_value="checkout-sha"), patch.dict(os.environ, {"QZ_PR_HEAD_SHA": "pr-head-sha", "QZ_TESTED_MERGE_SHA": "tested-merge-sha"}, clear=False):
                 _write_manifest(
                     artifact,

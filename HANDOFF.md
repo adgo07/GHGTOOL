@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-06（GHG-UAT02）
+最后更新：2026-10-07（GHG-RPT01）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,9 +29,9 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已完成并合并：RS01-A-R1、RS01-B1及UAT01-A/B。UAT01-B由PR #29进入`main`。
-- 当前返修包：`GHG-UAT02 — 核算录入与结果查看体验收口`；从开工时最新`origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`独立创建`codex/ghg-uat02-accounting-usability`。本包只修核算录入、结果与记录查看的可用性问题；状态及测试证据见`TASK_STATE.md`与`IMPLEMENTATION_REPORT.md`。
-- RS03-A USER UAT仍待独立推进；RS03-B未启动。本包不得修改PF01拥有的标准目录、参数解析与Canonical文件，也不得顺手合并其他PR。
+- 已完成并合并：RS01-A-R1及RS01-B1。
+- 当前工作包：`GHG-RPT01 — 统一报告模型 + Word核算报告 + Excel R2正式导入模板`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立分支，没有从 PR #27、PF01 或 UAT02 派生。并行的 UAT02 后续经 PR #31 合并至 `main`（`880d5515e8c48cc01294926f7727de4270f73a66`）；本分支已合入该最新 main 并完成冲突收口。Word 报告、R2模板和逐单元只读预览已实现，本地验证完成；当前等待独立验收。最终 PR head 与 CI 证据见最终交付回复和 PR Checks。
+- UAT01-A/B及UAT02已合并；PF01 PR #30 仍为 `OPEN / UNMERGED`，未并入本分支；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本工作包只读参考；RS03-B：`NOT STARTED`。GHG-RPT01 不合并主线，独立验收前保持未验收。
 - RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 - 本工作包仍须遵守：
 
@@ -100,9 +100,9 @@ Module ID：`qz.carbon_accounting`
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：Excel 导入只保留禁用入口与占位说明，未实现。
+- **当前状态**：GHG-RPT01 增加 R2 标准输入模板下载与逐核算单元只读预览，采用与桌面共用的 Domain / Calculator；预览不保存 Project / Workspace / Record。正式 Excel 写入、结果导出尚未实现，模板入口处于 RPT01 独立验收中。
 - **最终定位**（中央 Product Delivery Policy）：Excel 是 Import / Export Adapter，必须与 GUI 进入同一 Canonical Input → 同一 Application → 同一 Domain / Calculator → 同一 Result。
-- 正式实现属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**；本阶段不得启用或实现。
+- Excel 完整闭环仍属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**。
 
 ### 3.6 架构与分层
 
@@ -180,10 +180,12 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 **GHG-UAT02 — 核算录入与结果查看体验收口**：
+本文件当前对应工作包 GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板：
 
-- 录入控件：关闭的下拉框/数字框滚轮不应误改数值；大量明细增删后页面高度和滚动位置须同步；脱硫剂内部组件ID只供程序追踪，不进入普通界面。
-- 状态反馈：致命校验失败应显示业务化的“未完成：请修正N项问题”并定位首项；用户实测参数缺少来源文字为非致命提醒，缺数值、非化石电力证明和物料基准换算证据仍须阻断。
-- 操作层级：多过程实例新增退到次级管理入口，新增物料仍直接可用；燃料、材料及排放量采用适应量级的展示，`0.35`解释为“挥发分折算系数”，防重复计碳设置放入专业层。
-- 结果与记录：成功、警告与失败状态清楚分层；正式记录审计详情默认收起并可打开，保留完整审计内容；排放源卡片和导航保持长表单可用。
-- 不改变公式、Canonical、参数解析口径、数据库schema、项目/正式记录生命周期、Numeric Profile或标准支持状态；不实施PF01、Excel、Word、第二标准、Golden Freeze和Release。完成后只提交本包PR，等待独立验收，不自行合并。
+- ReportModel 位于 Application 层，只读一条不可变 AccountingRecord 已保存的输入、结果、参数、Trace、Provenance、Reporting 与资格快照；不调用 Calculator、不查当前 Catalog、不更改历史 Record。Word renderer 输出 DOCX；补充信息写入 records.sqlite 新增追加式报告导出历史表，并记录审计事件。
+- 报告按 B.1–B.9 展示快照中的业务输入、参数来源、逐项结果与追溯说明；旧快照不足时提示缺失，不补算、不伪造。Word 报告不展示内部 Rule、Trace、参数或 Record 编号。
+- Excel R2 有十张中文可见表和隐藏模板元数据页，B.2–B.9 分页录入，支持动态行、空白/显式零区分及严格 OOXML Decimal 词法入口；每个核算单元单独复用当前 Domain / Calculator 预览，不写 Project / Workspace / Record，不提供 Excel 结果导出。
+- PR #27 只作只读参考；共享物料标准化能力在本任务 Base 中已经存在并继续复用。报告、R2 导入预览与企业文件输出由本工作包实现，未引入 PR #27 未合并代码作为正式依赖。
+- 并行集成：在执行期间 `origin/main` 从开工 Base 前进至 PR #31 的合并提交 `880d5515e8c48cc01294926f7727de4270f73a66`。已确认远端目标分支仍为本包 head 后，将最新 main 合入本分支；仅 HANDOFF、IMPLEMENTATION_REPORT、REFERENCE_STANDARD_ROADMAP、TASK_STATE 有文档冲突，按 RPT01 当前状态与 main 已合并的 UAT02 状态合并；`packages/ui/pages.py` 自动合并，其他 UAT02 源码与测试由 main 带入。
+- 未修改计算公式、Canonical 标准数据、中央 Frozen Contract、`platform-lock.json`、正式记录生命周期或用户目录 `计算表/`；没有启动 RS03-B、Golden、Release 或第二标准。
+- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED` 且保持只读；RS03-B：`NOT STARTED`；Excel 结果导出：`NOT STARTED`；GB/T 32151.34—2024 仍为 `NOT SUPPORTED`。

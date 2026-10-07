@@ -102,7 +102,7 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
         "database_schema_versions": {
             "catalog": "001",
             "user": "001",
-            "records": "002",
+            "records": "004",
             "projects": "001",
         },
         **_release_provenance(),
@@ -130,6 +130,21 @@ def _remove_hidden_release_placeholders(artifact: Path) -> None:
     for candidate in artifact.rglob(".gitkeep"):
         if candidate.is_file() and not candidate.is_symlink():
             candidate.unlink()
+
+
+def _remove_unpacked_docx_template(artifact: Path) -> None:
+    """Remove PyInstaller's redundant extracted copy of python-docx's template.
+
+    The original ``docx/templates/default.docx`` remains as the runtime resource.
+    The extracted directory only duplicates that OOXML package and contains hidden
+    ``.rels`` files that artifact ZIP filters omit.
+    """
+
+    candidate = artifact / "docx" / "templates" / "default-docx-template"
+    if candidate.is_dir() and not candidate.is_symlink():
+        candidate_resolved = candidate.resolve()
+        if candidate_resolved.is_relative_to(artifact.resolve()):
+            shutil.rmtree(candidate_resolved)
 
 
 def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -> Path:
@@ -190,6 +205,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             raise RuntimeError(f"PyInstaller did not create {artifact}")
         _remove_incompatible_external_icu(artifact)
         _remove_hidden_release_placeholders(artifact)
+        _remove_unpacked_docx_template(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:
