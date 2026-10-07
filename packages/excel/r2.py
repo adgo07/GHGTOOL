@@ -305,6 +305,7 @@ class NumericCellEvidence:
     workbook_value_repr: str
     serialized_numeric_text: str
     normalized_decimal: Decimal
+    accounting_unit_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -507,7 +508,7 @@ def create_template_bytes() -> bytes:
         ("蒸汽", "蒸汽量使用吨，压力使用绝压MPa；可留空焓值按附录C.4/C.5自动确定，也可填写手动焓值。"),
         ("错误隔离", "每个启用核算单元单独校验；一个单元的问题不会阻止其他有效单元预览。"),
         ("工作表", "请保留10个可见工作表及隐藏模板信息页。Excel不允许工作表名称含半角斜线，因此B.4页使用全角斜线。"),
-        ("范围", "Excel导入预览不保存项目、工作区或正式核算记录；正式写入闭环和Excel结果导出尚未开放。"),
+        ("范围", "预览不会生成正式记录。预览后可保存有效核算单元为本地项目，再明确点击正式核算；已保存的核算记录可在记录页导出Excel报告。"),
     )
     for row, (label, explanation) in enumerate(guidance, start=3):
         notes.cell(row, 1, label).font = Font(name="Microsoft YaHei", bold=True, color="176B64")
@@ -707,7 +708,10 @@ class _CellReader:
         except InvalidOperation:
             self.error(ctx, "EXCEL-NUMBER-INVALID", "此数值不是有效的十进制数。", location)
             return None
-        self.evidence.append(NumericCellEvidence(sheet, cell.coordinate, cell.data_type, repr(cell.value), serialized, value))
+        self.evidence.append(NumericCellEvidence(
+            sheet, cell.coordinate, cell.data_type, repr(cell.value), serialized, value,
+            None if sheet == "基本信息" else ctx.unit_id,
+        ))
         if not value.is_finite():
             self.error(ctx, "EXCEL-NUMBER-NONFINITE", "NaN 和 Infinity 不能作为核算输入。", location)
             return None
@@ -1464,8 +1468,19 @@ def _make_input(ctx: _UnitContext, digest: str) -> CarbonMaterialInput:
 class ExcelWorkbookImporter:
     """Read supported workbooks into independent, non-persistent unit previews."""
 
-    def __init__(self, parameter_resolver: ParameterResolver | None = None):
+    def __init__(
+        self,
+        parameter_resolver: ParameterResolver | None = None,
+        *,
+        preview_use_case: CarbonAccountingPreviewUseCase | None = None,
+    ):
+        if preview_use_case is not None:
+            bound_resolver = preview_use_case.calculator.parameter_resolver
+            if parameter_resolver is not None and parameter_resolver is not bound_resolver:
+                raise ValueError("工作簿解析与核算预览必须使用同一参数选择服务。")
+            parameter_resolver = bound_resolver
         self.parameter_resolver = parameter_resolver
+        self.preview_use_case = preview_use_case
 
     def import_preview(self, file_path: str | Path) -> WorkbookImportPreview:
         path = Path(file_path)
@@ -1528,7 +1543,7 @@ class ExcelWorkbookImporter:
             imported_at = datetime.now(timezone.utc)
             provenance = WorkbookProvenance(digest, metadata["template_id"], metadata["template_version"], metadata["standard_id"], metadata["standard_version"], metadata["ingress_policy_id"], imported_at)
             previews: list[UnitCalculationPreview] = []
-            preview_use_case = CarbonAccountingPreviewUseCase(
+            preview_use_case = self.preview_use_case or CarbonAccountingPreviewUseCase(
                 CarbonMaterialCalculator(parameter_resolver=self.parameter_resolver)
             )
             for ctx in contexts.values():

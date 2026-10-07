@@ -575,6 +575,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
     record_created = Signal(str)
     record_requested = Signal(str)
+    canonical_project_requested = Signal(str)
 
     def __init__(
         self,
@@ -1629,6 +1630,9 @@ class CarbonMaterialAccountingPage(BasePage):
         if workspace is None:
             return
         if self._project_dirty and not self._confirm_save_discard_cancel("打开其他项目"):
+            return
+        if any(unit.canonical_input is not None for unit in workspace.units):
+            self.canonical_project_requested.emit(workspace.project_id)
             return
         self._workspace = workspace
         self.project_name.setText(workspace.name)

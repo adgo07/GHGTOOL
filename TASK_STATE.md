@@ -19,6 +19,9 @@
 - Canonical可空字段迁移003及模块内typed JSON codec已实现；指定Python 3.12.14下项目codec9/9、持久化8/8、既有项目UI19/19通过。正式UseCase可选导入证据以严格JSON附加至既有raw_input快照，GUI默认结构不变，UseCase与证据定向10/10通过。
 - 计划复用Python/openpyxl既有成熟Adapter；不新增数据库或主要技术栈，不改计算表用户文件。
 
+- Excel明确保存/重开/正式计算与查看Record已实现；有效单元隔离、源文件变更后冻结证据、首次关联失败恢复有回归。工作流/G03/入口19/19及renderer/RPT01 13/13通过；独立双单元恢复测试1/1通过。当前代码进入全量回归与Windows打包，不沿用PR34测试冒充本包证据。
+- 完整B.2～B.9实际合成样本形成11个报告页；近似style QA修复列膨胀、重复基本表及换行裁切，不能替代原生Excel/WPS打印。
+
 ## 下一断点
 
 实施Canonical项目保存/重开、用户明确正式核算与Record关联恢复，以及基于冻结ReportModel的Excel报告输出。入口定向集成测试已覆盖预览零Record、同Calculator精确结果、离线Catalog历史导出与导出失败。完成后交付独立PR并停止等待验收，不自行合并新RS03 PR。

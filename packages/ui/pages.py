@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from datetime import date
+from collections.abc import Callable, Mapping
+from dataclasses import fields, is_dataclass, replace
+from datetime import date, datetime
+from decimal import Decimal
+from enum import Enum
 import hashlib
+import json
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -33,11 +37,24 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.canonical_input_codec import encode_canonical_input
+from packages.application.project_workspaces import (
+    AccountingUnitWorkspace,
+    ProjectWorkspace,
+    ProjectWorkspaceService,
+)
 from packages.application.reporting import build_saved_record_report
 from packages.core.models import AccountingRecord, RecordStatus
 from packages.core.repositories import RecordRepository
-from packages.application.carbon_accounting import CarbonAccountingUseCase
-from packages.infrastructure.reporting import render_report_docx
+from packages.application.carbon_accounting import (
+    CarbonAccountingPreviewUseCase,
+    CarbonAccountingUseCase,
+    RecordPersistenceError,
+    create_g06_parameter_resolver,
+    resolve_formal_record_repository,
+)
+from packages.standards.carbon_material import CarbonMaterialCalculator, STANDARD_ID, STANDARD_VERSION
+from packages.infrastructure.reporting import render_report_docx, render_report_xlsx
 from .record_experience import (
     SnapshotState,
     build_activity_evidence_view,
@@ -483,7 +500,7 @@ class HomePage(BasePage):
             empty_title.setObjectName("emptyStateTitle")
             self.recent_layout.addWidget(empty_title)
             empty_description = QLabel(
-                "可以通过“新建核算”手工开始，或使用 Excel 模板预览。\n预览不会保存项目或生成正式核算记录。",
+                "可以通过“新建核算”手工开始，或先做 Excel 模板预览，之后保存项目并明确执行正式核算。",
                 self.recent_work,
             )
             empty_description.setObjectName("emptyStateDescription")
@@ -594,7 +611,13 @@ class RecordLibraryPage(BasePage):
         self.export_word_button = QPushButton("导出 Word 核算报告", detail_card)
         self.export_word_button.setObjectName("exportWordReportButton")
         self.export_word_button.clicked.connect(self._export_selected_report)
-        detail_layout.addWidget(self.export_word_button)
+        export_actions = QHBoxLayout()
+        export_actions.addWidget(self.export_word_button)
+        self.export_excel_button = QPushButton("导出 Excel 核算报告", detail_card)
+        self.export_excel_button.setObjectName("exportExcelReportButton")
+        self.export_excel_button.clicked.connect(lambda: self._export_selected_report(file_format="XLSX"))
+        export_actions.addWidget(self.export_excel_button)
+        detail_layout.addLayout(export_actions)
         content_layout.addWidget(detail_card, 2)
         self.body_layout.addWidget(content, 1)
         self.refresh_records()
@@ -657,6 +680,7 @@ class RecordLibraryPage(BasePage):
                 selected_row = index
         self.delete_button.setEnabled(bool(self._records))
         self.export_word_button.setEnabled(bool(self._records))
+        self.export_excel_button.setEnabled(bool(self._records))
         if self._records:
             self.record_list.setCurrentRow(selected_row if selected_row >= 0 else 0)
         else:
@@ -831,7 +855,10 @@ class RecordLibraryPage(BasePage):
         result["supplementary_note"] = note.toPlainText().strip()
         return result
 
-    def _export_selected_report(self) -> None:
+    def _export_selected_report(self, *, file_format: str = "DOCX") -> None:
+        formats = {"DOCX": ("Word", ".docx", "Word 文档 (*.docx)", render_report_docx),
+                   "XLSX": ("Excel", ".xlsx", "Excel 工作簿 (*.xlsx)", render_report_xlsx)}
+        label, suffix, file_filter, renderer = formats[file_format]
         row = self.record_list.currentRow()
         if row < 0 or row >= len(self._records) or self.record_repository is None:
             return
@@ -839,23 +866,23 @@ class RecordLibraryPage(BasePage):
         supplementary = self._report_supplementary_dialog(record)
         if supplementary is None:
             return
-        default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}.docx"
-        target, _ = QFileDialog.getSaveFileName(self, "保存 Word 核算报告", default_name, "Word 文档 (*.docx)")
+        default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}{suffix}"
+        target, _ = QFileDialog.getSaveFileName(self, f"保存 {label} 核算报告", default_name, file_filter)
         if not target:
             return
         path = Path(target)
-        if path.suffix.lower() != ".docx":
-            path = path.with_suffix(".docx")
+        if path.suffix.lower() != suffix:
+            path = path.with_suffix(suffix)
         try:
             report = build_saved_record_report(self.record_repository, record, supplementary_info=supplementary)
-            document_bytes = render_report_docx(report)
+            document_bytes = renderer(report)
             path.write_bytes(document_bytes)
             history_writer = getattr(self.record_repository, "record_report_export", None)
             if callable(history_writer):
                 history_writer(
                     record.record_id,
                     export_id=f"report-export.{uuid4().hex}",
-                    format="DOCX",
+                    format=file_format,
                     template_version=report.schema_version,
                     document_filename=path.name,
                     document_sha256=hashlib.sha256(document_bytes).hexdigest(),
@@ -863,37 +890,140 @@ class RecordLibraryPage(BasePage):
                     actor="current_user",
                 )
         except Exception as exc:
-            QMessageBox.critical(self, "报告导出失败", f"无法生成 Word 核算报告：{exc}")
+            QMessageBox.critical(self, "报告导出失败", f"无法生成 {label} 核算报告：{exc}")
             return
-        QMessageBox.information(self, "报告已导出", f"Word 核算报告已保存到：\n{path}")
+        QMessageBox.information(self, "报告已导出", f"{label} 核算报告已保存到：\n{path}")
 
 class ExcelImportPage(BasePage):
-    """R2 workbook template download and read-only per-unit calculation preview."""
+    """R2 import, saved canonical projects, explicit formal calculation and record access."""
 
-    def __init__(self, parent: QWidget | None = None, catalog_service: CatalogQueryService | None = None) -> None:
+    record_created = Signal(str)
+    record_requested = Signal(str)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        catalog_service: CatalogQueryService | None = None,
+        calculation_use_case: CarbonAccountingUseCase | None = None,
+        project_service: ProjectWorkspaceService | None = None,
+        record_repository: RecordRepository | None = None,
+    ) -> None:
         super().__init__(AppRoute.EXCEL_IMPORT, parent)
+        self.calculation_use_case = calculation_use_case
+        self.project_service = project_service
+        self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
-        self.add_header("Excel 导入预览", "下载标准 R2 模板并预览各核算单元。预览不会保存项目或生成正式核算记录。")
-        card, layout = _card("模板与预览", self)
-        button_row = QHBoxLayout()
-        self.templateButton = QPushButton("下载 R2 模板", card)
+        self._last_preview = None
+        self._last_workbook_path: Path | None = None
+        self._workspace: ProjectWorkspace | None = None
+        self._selected_unit_id: str | None = None
+
+        if calculation_use_case is not None:
+            self.preview_use_case = CarbonAccountingPreviewUseCase(calculation_use_case.calculator)
+        else:
+            resolver = None
+            try:
+                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                pass
+            try:
+                calculator = CarbonMaterialCalculator(
+                    parameter_resolver=resolver,
+                    standard_version=self.catalog_service.standard_version(STANDARD_ID) or STANDARD_VERSION,
+                    standard_implementation_date=self.catalog_service.standard_implementation_date(STANDARD_ID),
+                    reference_data_identity_provider=self.catalog_service.reference_data_identity,
+                )
+            except (AttributeError, TypeError, ValueError):
+                calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
+            self.preview_use_case = CarbonAccountingPreviewUseCase(calculator)
+
+        self.add_header(
+            "Excel 导入与核算",
+            "选择 R2 工作簿后先预览，再将有效核算单元保存为项目；正式核算由你明确启动，每次成功都会新增一条记录。",
+        )
+
+        import_card, import_layout = _card("模板与预览", self)
+        import_row = QHBoxLayout()
+        self.templateButton = QPushButton("下载 R2 模板", import_card)
         self.templateButton.setObjectName("templateButton")
         self.templateButton.clicked.connect(self._download_template)
-        button_row.addWidget(self.templateButton)
-        self.selectFileButton = QPushButton("选择并预览工作簿", card)
+        import_row.addWidget(self.templateButton)
+        self.selectFileButton = QPushButton("选择并预览工作簿", import_card)
         self.selectFileButton.setObjectName("selectFileButton")
         self.selectFileButton.clicked.connect(self._choose_workbook)
-        button_row.addWidget(self.selectFileButton)
-        button_row.addStretch(1)
-        layout.addLayout(button_row)
-        self.preview_text = QTextEdit(card)
+        import_row.addWidget(self.selectFileButton)
+        import_row.addStretch(1)
+        import_layout.addLayout(import_row)
+
+        self.preview_text = QTextEdit(import_card)
         self.preview_text.setObjectName("excelImportPreview")
         self.preview_text.setReadOnly(True)
-        self.preview_text.setMinimumHeight(300)
+        self.preview_text.setMinimumHeight(250)
         self.preview_text.setPlainText("尚未选择工作簿。")
-        layout.addWidget(self.preview_text)
-        self.body_layout.addWidget(card)
+        import_layout.addWidget(self.preview_text)
+        self.body_layout.addWidget(import_card)
+
+        project_card, project_layout = _card("已保存的 Excel 项目", self)
+        name_row = QHBoxLayout()
+        name_row.addWidget(QLabel("项目名称", project_card))
+        self.project_name = QLineEdit(project_card)
+        self.project_name.setObjectName("excelProjectName")
+        self.project_name.setPlaceholderText("可为导入项目填写名称")
+        name_row.addWidget(self.project_name, 1)
+        self.save_project_button = QPushButton("保存有效核算单元", project_card)
+        self.save_project_button.setObjectName("saveExcelProjectButton")
+        self.save_project_button.clicked.connect(self._save_preview_as_project)
+        name_row.addWidget(self.save_project_button)
+        project_layout.addLayout(name_row)
+
+        saved_row = QHBoxLayout()
+        self.saved_projects = QComboBox(project_card)
+        self.saved_projects.setObjectName("savedExcelProjects")
+        saved_row.addWidget(self.saved_projects, 1)
+        self.open_project_button = QPushButton("打开项目", project_card)
+        self.open_project_button.setObjectName("openExcelProjectButton")
+        self.open_project_button.clicked.connect(self._open_selected_project)
+        saved_row.addWidget(self.open_project_button)
+        project_layout.addLayout(saved_row)
+
+        unit_row = QHBoxLayout()
+        unit_row.addWidget(QLabel("核算单元", project_card))
+        self.unit_selector = QComboBox(project_card)
+        self.unit_selector.setObjectName("canonicalUnitSelector")
+        self.unit_selector.currentIndexChanged.connect(self._selected_unit_changed)
+        unit_row.addWidget(self.unit_selector, 1)
+        self.calculate_button = QPushButton("正式计算排放量", project_card)
+        self.calculate_button.setObjectName("formalCalculateButton")
+        self.calculate_button.clicked.connect(self._calculate_selected_unit)
+        unit_row.addWidget(self.calculate_button)
+        project_layout.addLayout(unit_row)
+
+        record_row = QHBoxLayout()
+        record_row.addWidget(QLabel("本单元正式记录", project_card))
+        self.unit_record_selector = QComboBox(project_card)
+        self.unit_record_selector.setObjectName("unitRecordSelector")
+        record_row.addWidget(self.unit_record_selector, 1)
+        self.open_record_button = QPushButton("查看核算记录", project_card)
+        self.open_record_button.setObjectName("openUnitRecordButton")
+        self.open_record_button.clicked.connect(self._open_selected_record)
+        record_row.addWidget(self.open_record_button)
+        project_layout.addLayout(record_row)
+
+        self.status_label = QLabel(project_card)
+        self.status_label.setObjectName("excelWorkflowStatus")
+        self.status_label.setWordWrap(True)
+        project_layout.addWidget(self.status_label)
+        self.body_layout.addWidget(project_card)
         self.body_layout.addStretch(1)
+
+        self._refresh_saved_projects()
+        self._update_controls()
+        if self.calculation_use_case is None:
+            self.status_label.setText("正式核算尚未配置；当前可以预览工作簿并保存项目。")
+        elif self.project_service is None:
+            self.status_label.setText("项目存储尚未配置；正式计算按钮保持禁用。")
+        elif self._workspace is None and self.saved_projects.count() == 0:
+            self.status_label.setText("暂无已保存的 Excel 项目；保存项目后可在此处重新打开。")
 
     def _download_template(self) -> None:
         from packages.excel.r2 import write_template
@@ -913,44 +1043,403 @@ class ExcelImportPage(BasePage):
 
     def _choose_workbook(self) -> None:
         target, _ = QFileDialog.getOpenFileName(self, "选择 Excel R2 工作簿", "", "Excel 工作簿 (*.xlsx)")
-        if not target:
-            return
+        if target:
+            self._preview_workbook(Path(target))
+
+    def _preview_workbook(self, path: Path) -> None:
         try:
             from packages.excel.r2 import ExcelWorkbookImporter
 
-            resolver = None
-            if self.catalog_service.has_data:
-                from packages.application.carbon_accounting import create_g06_parameter_resolver
-
-                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
-            preview = ExcelWorkbookImporter(resolver).import_preview(target)
+            preview = ExcelWorkbookImporter(preview_use_case=self.preview_use_case).import_preview(path)
         except Exception as exc:
+            self._last_preview = None
+            self._last_workbook_path = None
             self.preview_text.setPlainText(f"无法预览该工作簿：{exc}")
+            self.status_label.setText(f"工作簿无法预览：{exc}")
             QMessageBox.warning(self, "工作簿无法预览", str(exc))
+            self._update_controls()
             return
+
+        self._last_preview = preview
+        self._last_workbook_path = path
+        self._workspace = None
+        self._selected_unit_id = None
+        self.project_name.setReadOnly(False)
+        self.project_name.setText(path.stem)
+        blocker = QSignalBlocker(self.unit_selector)
+        self.unit_selector.clear()
+        del blocker
+        self.unit_record_selector.clear()
+        self._render_import_preview(preview)
+        valid_count = sum(1 for unit in preview.units if unit.can_calculate)
+        invalid_count = len(preview.units) - valid_count
+        self.status_label.setText(
+            f"预览完成：{valid_count} 个有效单元可保存，{invalid_count} 个无效单元将保持未保存。"
+            if valid_count
+            else "预览完成：没有有效核算单元可保存；请修正工作簿后重新预览。"
+        )
+        self._update_controls()
+
+    @staticmethod
+    def _friendly_import_message(message: str) -> str:
+        import re
+
+        return re.sub(r"(?:CAR|GEN)-(?:FLD|VAL|PAR|FML|SRC|RULE)-[A-Z0-9_.-]+", "对应数据项", message)
+
+    def _render_import_preview(self, preview) -> None:
         unit_type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
-        def friendly_message(message: str) -> str:
-            import re
-
-            return re.sub(r"(?:CAR|GEN)-(?:FLD|VAL|PAR|FML|SRC|RULE)-[A-Z0-9_.-]+", "对应数据项", message)
-
-        lines = [f"模板版本：{preview.provenance.template_version}", f"独立核算单元：{len(preview.units)}", ""]
+        lines = [
+            f"模板版本：{preview.provenance.template_version}",
+            f"独立核算单元：{len(preview.units)}",
+            "",
+        ]
         for unit in preview.units:
             lines.append(f"{unit.name}（{unit_type_names.get(unit.unit_type.value, '核算单元')}）")
-            if unit.result is not None:
+            if unit.can_calculate and unit.result is not None:
                 lines.append(f"  预览排放总量：{format_amount(unit.result.total_amount, unit.result.total_unit)}")
+                lines.append("  状态：有效，可保存为项目")
             else:
-                lines.append("  当前输入不能形成预览结果；请按下方错误修正。")
+                lines.append("  状态：无效，未保存")
             for message in unit.errors:
-                lines.append(f"  需要修正：{friendly_message(message.message)}")
+                lines.append(f"  需要修正：{self._friendly_import_message(message.message)}")
             for message in unit.warnings:
-                lines.append(f"  提醒：{friendly_message(message.message)}")
+                lines.append(f"  提醒：{self._friendly_import_message(message.message)}")
         if preview.warnings:
             lines.append("\n工作簿提醒")
-            lines.extend(f"- {friendly_message(message.message)}" for message in preview.warnings)
-        lines.append("\n以上均为独立预览；不会写入工作区或正式核算记录。")
+            lines.extend(f"- {self._friendly_import_message(message.message)}" for message in preview.warnings)
+        lines.append("\n预览本身不写入项目或正式记录；请使用上方按钮保存有效单元。")
         self.preview_text.setPlainText("\n".join(lines))
 
+    @staticmethod
+    def _plain_json_value(value):
+        if isinstance(value, Enum):
+            return ExcelImportPage._plain_json_value(value.value)
+        if value is None or isinstance(value, (bool, int, str)):
+            return value
+        if isinstance(value, float):
+            return str(value)
+        if isinstance(value, Decimal):
+            return str(value)
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if is_dataclass(value):
+            result = {"type": type(value).__name__}
+            result.update({field.name: ExcelImportPage._plain_json_value(getattr(value, field.name)) for field in fields(value)})
+            return result
+        if isinstance(value, Mapping):
+            return {str(key): ExcelImportPage._plain_json_value(item) for key, item in value.items()}
+        if isinstance(value, (tuple, list)):
+            return [ExcelImportPage._plain_json_value(item) for item in value]
+        return str(value)
+
+    @staticmethod
+    def _collect_source_evidence(value, path: str = "input") -> list[dict[str, object]]:
+        evidence_fields = {
+            "source_reference", "source_type", "source_kind", "source_ids", "evidence_ref_ids",
+            "source_location", "monitoring_location", "applies_to", "source_level", "source_version",
+            "source_id", "factor_id", "reason", "note",
+        }
+        found: list[dict[str, object]] = []
+        if is_dataclass(value):
+            value_fields = fields(value)
+            names = {item.name for item in value_fields}
+            if names & evidence_fields:
+                found.append({
+                    "path": path,
+                    "type": type(value).__name__,
+                    "values": ExcelImportPage._plain_json_value(value),
+                })
+            for item in value_fields:
+                found.extend(ExcelImportPage._collect_source_evidence(getattr(value, item.name), f"{path}.{item.name}"))
+        elif isinstance(value, Mapping):
+            for key, item in value.items():
+                found.extend(ExcelImportPage._collect_source_evidence(item, f"{path}.{key}"))
+        elif isinstance(value, (tuple, list)):
+            for index, item in enumerate(value):
+                found.extend(ExcelImportPage._collect_source_evidence(item, f"{path}[{index}]"))
+        return found
+
+    def _numeric_cell_evidence_for_unit(self, preview, unit) -> list[dict[str, object]]:
+        return [
+            {
+                "sheet": item.sheet,
+                "cell": item.cell,
+                "raw_cell_type": item.raw_cell_type,
+                "workbook_value_repr": item.workbook_value_repr,
+                "raw_numeric_lexical": item.serialized_numeric_text,
+                "normalized_decimal_lexical": str(item.normalized_decimal),
+                "accounting_unit_id": item.accounting_unit_id,
+            }
+            for item in preview.numeric_evidence
+            if item.accounting_unit_id in (None, unit.unit_id)
+        ]
+
+    def _build_ingress_provenance(self, preview, unit) -> dict[str, object]:
+        source_path = self._last_workbook_path
+        return {
+            "source": "EXCEL_R2",
+            "workbook": {
+                "sha256": preview.provenance.workbook_sha256,
+                "file_name": source_path.name if source_path is not None else None,
+                "template_id": preview.provenance.template_id,
+                "template_version": preview.provenance.template_version,
+                "standard_id": preview.provenance.standard_id,
+                "standard_version": preview.provenance.standard_version,
+                "ingress_policy_id": preview.provenance.ingress_policy_id,
+                "imported_at": preview.provenance.imported_at.isoformat(),
+            },
+            "accounting_unit": {
+                "importer_unit_id": unit.unit_id,
+                "name": unit.name,
+                "unit_type": unit.unit_type.value,
+            },
+            "numeric_cell_evidence": self._numeric_cell_evidence_for_unit(preview, unit),
+            "canonical_source_evidence": self._collect_source_evidence(unit.input_value),
+            "unit_warnings": [self._plain_json_value(message) for message in unit.warnings],
+            "workbook_warnings": [self._plain_json_value(message) for message in preview.warnings],
+        }
+
+    def _save_preview_as_project(self) -> None:
+        if self.project_service is None:
+            self.status_label.setText("项目存储尚未配置，无法保存项目。")
+            return
+        preview = self._last_preview
+        if preview is None:
+            self.status_label.setText("请先选择并预览工作簿。")
+            return
+        valid_units = [unit for unit in preview.units if unit.can_calculate and unit.input_value is not None]
+        if not valid_units:
+            self.status_label.setText("没有有效核算单元；项目未保存，也未生成正式记录。")
+            return
+        name = self.project_name.text().strip()
+        if not name:
+            name = self._last_workbook_path.stem if self._last_workbook_path is not None else "Excel 导入项目"
+        units = tuple(
+            AccountingUnitWorkspace(
+                unit_id=f"unit.{uuid4().hex}",
+                name=unit.name,
+                unit_type=unit.unit_type,
+                position=index,
+                form_state={},
+                canonical_input=unit.input_value,
+                ingress_provenance=self._build_ingress_provenance(preview, unit),
+                input_fingerprint=hashlib.sha256(
+                    encode_canonical_input(unit.input_value).encode("utf-8")
+                ).hexdigest(),
+            )
+            for index, unit in enumerate(valid_units)
+        )
+        workspace = ProjectWorkspace(
+            project_id=f"project.{uuid4().hex}",
+            name=name,
+            active_unit_id=units[0].unit_id,
+            units=units,
+        )
+        try:
+            self.project_service.save(workspace)
+        except Exception as exc:
+            self.status_label.setText(f"项目保存失败；未生成正式记录：{exc}")
+            QMessageBox.warning(self, "项目保存失败", str(exc))
+            return
+        self._last_preview = None
+        self._workspace = workspace
+        self._refresh_saved_projects(workspace.project_id)
+        self.open_project(workspace.project_id)
+        invalid_count = len(preview.units) - len(valid_units)
+        self.status_label.setText(
+            f"项目“{name}”已保存，包含 {len(valid_units)} 个有效单元；"
+            f"{invalid_count} 个无效单元未保存。尚未生成正式核算记录。"
+        )
+
+    def _refresh_saved_projects(self, selected_project_id: str | None = None) -> None:
+        blocker = QSignalBlocker(self.saved_projects)
+        previous = selected_project_id or self.saved_projects.currentData()
+        self.saved_projects.clear()
+        workspaces = ()
+        if self.project_service is not None:
+            try:
+                workspaces = self.project_service.list_all()
+            except Exception as exc:
+                self.status_label.setText(f"无法读取已保存项目：{exc}")
+        for workspace in workspaces:
+            if any(unit.canonical_input is not None for unit in workspace.units):
+                self.saved_projects.addItem(workspace.name, workspace.project_id)
+        index = self.saved_projects.findData(previous)
+        if index >= 0:
+            self.saved_projects.setCurrentIndex(index)
+        del blocker
+        self.open_project_button.setEnabled(self.project_service is not None and self.saved_projects.count() > 0)
+
+    def _open_selected_project(self) -> None:
+        project_id = self.saved_projects.currentData()
+        if project_id:
+            self.open_project(str(project_id))
+
+    def open_project(self, project_id: str) -> bool:
+        if self.project_service is None:
+            self.status_label.setText("项目存储尚未配置，无法打开项目。")
+            return False
+        try:
+            workspace = self.project_service.get(project_id)
+        except Exception as exc:
+            self.status_label.setText(f"打开项目失败：{exc}")
+            QMessageBox.warning(self, "项目打开失败", str(exc))
+            return False
+        if workspace is None:
+            self.status_label.setText("未找到所选项目；请刷新项目列表后重试。")
+            return False
+        canonical_units = [unit for unit in workspace.units if unit.canonical_input is not None]
+        if not canonical_units:
+            self.status_label.setText("所选项目没有可打开的 Excel 核算单元。")
+            return False
+
+        self._workspace = workspace
+        self._last_preview = None
+        self._last_workbook_path = None
+        self.project_name.setText(workspace.name)
+        self.project_name.setReadOnly(True)
+        self._selected_unit_id = workspace.active_unit_id if any(unit.unit_id == workspace.active_unit_id for unit in canonical_units) else canonical_units[0].unit_id
+        blocker = QSignalBlocker(self.unit_selector)
+        self.unit_selector.clear()
+        for index, unit in enumerate(canonical_units, 1):
+            self.unit_selector.addItem(f"{unit.name}（核算单元 {index}）", unit.unit_id)
+        selected_index = self.unit_selector.findData(self._selected_unit_id)
+        if selected_index >= 0:
+            self.unit_selector.setCurrentIndex(selected_index)
+        del blocker
+        self._update_controls()
+        self._selected_unit_changed()
+        self.status_label.setText(f"已打开项目“{workspace.name}”；原工作簿不是重新打开所必需的。")
+        return True
+
+    def _selected_unit(self):
+        if self._workspace is None:
+            return None
+        unit_id = self.unit_selector.currentData()
+        if not unit_id:
+            return None
+        return next((unit for unit in self._workspace.units if unit.unit_id == unit_id), None)
+
+    def _selected_unit_changed(self, *_args) -> None:
+        unit = self._selected_unit()
+        blocker = QSignalBlocker(self.unit_record_selector)
+        self.unit_record_selector.clear()
+        if unit is not None:
+            for index, record_id in enumerate(unit.record_ids, 1):
+                self.unit_record_selector.addItem(f"第 {index} 次正式核算", record_id)
+        del blocker
+        self._update_controls()
+        if unit is None or unit.canonical_input is None:
+            return
+        try:
+            outcome = self.preview_use_case.calculate(unit.canonical_input)
+        except Exception as exc:
+            self.preview_text.setPlainText(f"已保存项目中的单元无法预览：{exc}")
+            return
+        lines = [
+            f"已保存项目：{self._workspace.name}",
+            f"核算单元：{unit.name}",
+            "当前展示为同一计算器生成的预览值；预览不生成正式核算记录。",
+        ]
+        if outcome.successful and outcome.result is not None:
+            lines.append(f"预览排放总量：{format_amount(outcome.result.total_amount, outcome.result.total_unit)}")
+        else:
+            lines.append("当前输入未通过核算校验；本次预览没有生成正式记录。")
+        for problem in outcome.problems:
+            lines.append(f"- {self._friendly_import_message(problem.message)}")
+        provenance = unit.ingress_provenance or {}
+        workbook = provenance.get("workbook")
+        if isinstance(workbook, dict):
+            lines.append(f"导入工作簿：{workbook.get('file_name') or '来源名称未记录'}")
+            lines.append(f"已保留数值来源单元格：{len(provenance.get('numeric_cell_evidence', []))}")
+        self.preview_text.setPlainText("\n".join(lines))
+
+    def _update_controls(self) -> None:
+        valid_import = self._last_preview is not None and any(unit.can_calculate for unit in self._last_preview.units)
+        self.save_project_button.setEnabled(self.project_service is not None and valid_import)
+        unit = self._selected_unit()
+        can_calculate = (
+            self.calculation_use_case is not None
+            and self.project_service is not None
+            and unit is not None
+            and unit.canonical_input is not None
+        )
+        self.calculate_button.setEnabled(can_calculate)
+        self.open_record_button.setEnabled(self.record_repository is not None and self.unit_record_selector.count() > 0)
+        self.open_project_button.setEnabled(self.project_service is not None and self.saved_projects.count() > 0)
+
+    def _calculate_selected_unit(self) -> None:
+        unit = self._selected_unit()
+        if self.calculation_use_case is None or self.project_service is None or self._workspace is None or unit is None or unit.canonical_input is None:
+            self.status_label.setText("正式核算未配置或尚未打开已保存的核算单元。")
+            self._update_controls()
+            return
+        try:
+            outcome = self.calculation_use_case.calculate(
+                unit.canonical_input,
+                ingress_provenance=unit.ingress_provenance,
+            )
+        except RecordPersistenceError as exc:
+            self.status_label.setText(f"正式记录保存失败；本次未标记为完成：{exc}")
+            QMessageBox.warning(self, "正式记录保存失败", str(exc))
+            return
+        except Exception as exc:
+            self.status_label.setText(f"正式核算失败；本次未标记为完成：{exc}")
+            QMessageBox.warning(self, "正式核算失败", str(exc))
+            return
+        if not outcome.successful:
+            messages = "；".join(self._friendly_import_message(problem.message) for problem in outcome.problems)
+            self.status_label.setText(f"本次核算未通过校验，未生成正式记录。{messages}")
+            return
+        record = outcome.record
+        if record is None:
+            self.status_label.setText("计算结果未附带已保存的正式记录；请检查正式核算配置。")
+            return
+
+        self.record_created.emit(record.record_id)
+        result = outcome.result
+        encoded_input = encode_canonical_input(unit.canonical_input)
+        result_snapshot = {
+            "record_id": record.record_id,
+            "total_amount": str(result.total_amount) if result is not None else str(record.calculation_result.total_amount),
+            "total_unit": result.total_unit if result is not None else record.calculation_result.total_unit,
+            "status": record.status.value,
+            "calculated_at": record.created_at.isoformat(),
+        }
+        updated_unit = replace(
+            unit,
+            result_snapshot=result_snapshot,
+            record_ids=unit.record_ids + (record.record_id,),
+            input_fingerprint=hashlib.sha256(encoded_input.encode("utf-8")).hexdigest(),
+        )
+        updated_workspace = replace(
+            self._workspace,
+            active_unit_id=unit.unit_id,
+            units=tuple(updated_unit if candidate.unit_id == unit.unit_id else candidate for candidate in self._workspace.units),
+        )
+        self._workspace = updated_workspace
+        try:
+            self.project_service.save_after_record(updated_workspace, record.record_id)
+        except Exception as exc:
+            self.status_label.setText(
+                f"正式核算记录已保存，但项目关联失败；可在“核算记录”查看，项目记录关联待恢复：{exc}"
+            )
+            QMessageBox.warning(self, "项目记录关联失败", self.status_label.text())
+            self._selected_unit_changed()
+            return
+
+        self.status_label.setText("正式核算已完成并新增一条不可编辑记录；项目已保存该记录关联。")
+        self._selected_unit_changed()
+
+    def _open_selected_record(self) -> None:
+        record_id = self.unit_record_selector.currentData()
+        if not record_id:
+            self.status_label.setText("所选核算单元尚无正式记录。")
+            return
+        if self.record_repository is None:
+            self.status_label.setText("记录存储尚未配置，无法打开正式记录。")
+            return
+        self.record_requested.emit(str(record_id))
 
 def create_page(
     route: AppRoute,
@@ -967,7 +1456,13 @@ def create_page(
     if route is AppRoute.HOME:
         return HomePage(view_model, navigate, parent, record_repository=record_repository)
     if route is AppRoute.EXCEL_IMPORT:
-        return ExcelImportPage(parent, catalog_service=catalog_service)
+        return ExcelImportPage(
+            parent,
+            catalog_service=catalog_service,
+            calculation_use_case=calculation_use_case,
+            project_service=project_service,
+            record_repository=record_repository,
+        )
     if route is AppRoute.STANDARDS:
         from .catalog_pages import StandardLibraryPage
 

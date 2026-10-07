@@ -75,7 +75,8 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(home.findChild(QWidget, "recentStandardsCard"))
         self.assertEqual(home.findChild(QLabel, "emptyStateTitle").text(), "尚无核算记录")
         self.assertIn("Excel 模板预览", home.findChild(QLabel, "emptyStateDescription").text())
-        self.assertIn("不会保存项目或生成正式核算记录", home.findChild(QLabel, "emptyStateDescription").text())
+        self.assertIn("保存项目并明确执行正式核算", home.findChild(QLabel, "emptyStateDescription").text())
+        self.assertNotIn("不会保存项目或生成正式核算记录", home.findChild(QLabel, "emptyStateDescription").text())
         self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "成功核算后可在“核算记录”查看结果与来源依据。")
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
@@ -95,7 +96,7 @@ class G03ShellTest(unittest.TestCase):
             [(button.objectName(), button.text()) for button in buttons],
             [
                 ("primaryButton", "＋ 新建核算"),
-                ("reservedButton", "Excel 导入预览"),
+                ("reservedButton", "Excel 导入与核算"),
                 ("secondaryButton", "查看标准库"),
             ],
         )
@@ -131,7 +132,7 @@ class G03ShellTest(unittest.TestCase):
         home.findChild(QPushButton, "reservedButton").click()
         self.assertEqual(shell.current_route, AppRoute.EXCEL_IMPORT)
 
-    def test_excel_r2_page_exposes_template_and_preview_only(self) -> None:
+    def test_excel_r2_page_exposes_template_preview_and_explicit_workflow_controls(self) -> None:
         shell = self.shell
         shell.navigate(AppRoute.EXCEL_IMPORT)
         page = shell.pages[AppRoute.EXCEL_IMPORT]
@@ -139,6 +140,9 @@ class G03ShellTest(unittest.TestCase):
         self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
         self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
         self.assertTrue(page.findChild(QTextEdit, "excelImportPreview").isReadOnly())
+        self.assertIsNotNone(page.findChild(QPushButton, "saveExcelProjectButton"))
+        self.assertIsNotNone(page.findChild(QPushButton, "formalCalculateButton"))
+        self.assertIsNotNone(page.findChild(QPushButton, "openUnitRecordButton"))
         self.assertIsNone(page.findChild(QPushButton, "importButton"))
 
     def test_logo_and_main_content_resize_rules(self) -> None:

@@ -186,6 +186,11 @@ def _enum(value: object, names: Mapping[str, str]) -> str:
     return text
 
 
+def _source_label(value: object) -> str:
+    text = _text(value)
+    return {"user-input": "用户录入", "gbt_32151_34_2024": "GB/T 32151.34—2024"}.get(text, text)
+
+
 def _snapshot_source(snapshot: Mapping[str, Any] | None) -> str | None:
     if not snapshot:
         return None
@@ -193,7 +198,7 @@ def _snapshot_source(snapshot: Mapping[str, Any] | None) -> str | None:
     for field in ("source_location", "source_version", "factor_year"):
         value = snapshot.get(field)
         if value not in (None, ""):
-            pieces.append(str(value))
+            pieces.append(_source_label(value))
     return "；".join(piece for piece in pieces if piece)
 
 
@@ -203,7 +208,7 @@ def _parameter_cell(raw_value: object, snapshots: Mapping[str, Mapping[str, Any]
         return ReportCell(_text(snapshot.get("value_used")), _text(snapshot.get("unit_used")) or None, _snapshot_source(snapshot))
     parameter = _mapping(raw_value)
     source_kind = _enum(parameter.get("source_kind"), _SOURCE_NAMES)
-    source_parts = [source_kind, _text(parameter.get("source_location")), _text(parameter.get("source_version"))]
+    source_parts = [source_kind, _text(parameter.get("source_location")), _source_label(parameter.get("source_version"))]
     return ReportCell(_text(parameter.get("value")), _text(parameter.get("unit")) or None, "；".join(item for item in source_parts if item) or None)
 
 
@@ -345,7 +350,7 @@ def build_report_model(
         fuel_rows.append((
             ReportCell(fuel_name), ReportCell(_enum(item.get("path"), _PATH_NAMES)),
             ReportCell(_text(activity.get("value")), _text(activity.get("unit")) or None, _activity_source(activity)),
-            lhv, carbon, oxidation, ReportCell(_text(emission), "tCO₂" if emission != "" else None),
+            lhv, carbon, oxidation, ReportCell(_display_amount(emission), "tCO₂" if emission != "" else None),
         ))
     sections.append(ReportSection("b2", "B.2 化石燃料活动数据和排放因子", (_table(
         "b2-fuels", "燃料明细", ("燃料品种", "计量方式", "活动量", "低位发热量/来源", "单位热值含碳量/来源", "碳氧化率/来源", "排放量"), fuel_rows, landscape=True,
@@ -460,7 +465,7 @@ def build_report_model(
                 ("检测方法", "testing_method"), ("检测频次", "testing_frequency"),
                 ("引用标准", "referenced_standard"),
             )
-            detail_text = "；".join(f"{label}：{_text(item[key])}" for label, key in details if item.get(key) not in (None, ""))
+            detail_text = "；".join(f"{label}：{_source_label(item[key]) if key == 'referenced_standard' else _text(item[key])}" for label, key in details if item.get(key) not in (None, ""))
             evidence_rows.append((
                 ReportCell(evidence_type), ReportCell("；".join(value for value in (source_names, applies_to) if value)),
                 ReportCell(_text(item.get("source_reference"))), ReportCell(detail_text),
