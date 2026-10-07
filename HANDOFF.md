@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-07（最新主线集成验收）
+最后更新：2026-10-07（核算 Application UseCase 收口；候选待独立验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,13 +29,15 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已合并进入main：RS01-A-R1、RS01-B1/B2、RS02-A/B、UAT01-A/B、UAT02（PR #31）、GHG-RPT01（PR #32）与GHG-PF01（PR #30）。这些合并只说明代码进入主线，不等于本次集成验收或独立验收已通过。
-- 当前工作包：最新main集成验收，属于既有路线内部工作包，不新增路线阶段。验收基线为开工时已同步的main；本次统一以main中已合入的RPT01 Excel R2为Excel验收入口。
-- PF01（PR #30）已合入：包括Canonical来源表、参考数据资产与来源绑定、只读查询投影、标准/文件浏览及全库搜索。Resolver候选选择、正式公式和历史Record语义未改变。合入后的定向回归129/129、全量回归282/282、Canonical校验、compileall、pip check、四库初始化及Windows standalone发布/归档审计和双启动均有记录；GitHub Actions Run 166的合并基线与精确PR head Windows jobs均成功。上述属于PF01合入前后的验证历史，当前主线仍须完成本工作包集成验收。
+- 已合并进入main：RS01-A-R1、RS01-B1/B2、RS02-A/B、UAT01-A/B、UAT02（PR #31）、GHG-RPT01（PR #32）、GHG-PF01（PR #30）及获用户批准合并的PR #33。合并只说明代码进入主线，不等于本工作包或产品独立验收通过。
+- 当前工作包：**核算 Application UseCase 收口**，属于既有路线内部工作包，不新增路线阶段；候选从PR #33合并后的最新main创建。本包验证结果见 `IMPLEMENTATION_REPORT.md` 与 `TASK_STATE.md`；候选待独立验收。
+- 本包将正式计算改由必需Repository的 `CarbonAccountingUseCase` 编排保存，纯Domain Calculator返回冻结的Evidence快照；预览使用无Repository的Preview UseCase。GUI正式计算与记录读取/恢复共享显式Repository，保存失败时不显示成功结果、不新增项目成功关联；SQLite Repository由apps组合根构造。Excel仍只做共享输入/Resolver的只读预览，不写正式Record、Project或核算结果导出。
+- InMemory Record Repository 已迁至 Infrastructure，仅允许测试显式注入；Catalog查询工厂迁至Infrastructure，保持Application层不依赖持久化实现。无公式、Numeric、Resolver、标准解释、数据库Schema或历史Record语义变化。
+- PF01（PR #30）已合入：包括Canonical来源表、参考数据资产与来源绑定、只读查询投影、标准/文件浏览及全库搜索。Resolver候选选择、正式公式和历史Record语义未改变。合入后的定向回归129/129、全量回归282/282、Canonical校验、compileall、pip check、四库初始化及Windows standalone发布/归档审计和双启动均有记录；GitHub Actions Run 166的合并基线与精确PR head Windows jobs均成功。上述均为PF01的历史验证记录，不构成本包验收证据；本包候选验证状态见本节及第7节。
 - PF01专业决定继续有效：区分来源文件实施日期与具体数据自身适用期。用户选择GB/T 32151.34—2024时，核算期间完全早于、跨越或晚于2025-03-01均继续核算，并在进入计算状态时收到非阻断Warning，且Warning写入新Record。标准实施日期留在标准元数据；只有具体来源对数值另有独立适用期要求时，Factor/Binding才记录自身有效期。C.1、C.2、C.3及§5.2中已清除95条因子及其对应来源绑定上的重复`valid_from`；C.3热力缺省因子保持候选资格，具有期间适用性的年度官方电力因子仍按`accounting_period`筛选。依据及软件决定见`GHG-STD-32151-34-005/006`。正式公式、Resolver策略和历史Record未改变。
-- UAT02（PR #31）与RPT01（PR #32）已合入；本次验收核对当前main上的集成行为和相应治理状态，不据合并本身宣布独立验收完成。
-- Excel R2提供十张用户可见输入表的模板、严格导入校验和逐核算单元只读预览；当前没有Project / Workspace / Record写入，也不导出计算结果。R2主线自动化集成回归已通过，Windows原生交互/视觉独立验收待完成；完整RS03闭环尚未完成，正式写入及结果导出仍未启动。
-- PR #27已由远端关闭且未合并，当前为`CLOSED / UNMERGED`并只读保留其历史验收意图；审计确认其旧V1 runtime与四页规范已被main中的R2替代，不移植为生产代码；本工作包已按R2增加6条集成测试，验证映射、精度和逐单元错误隔离。本工作包不修改、重新打开或合并该PR。标准仍为`NOT SUPPORTED`；本次不升级`platform-lock.json`或`PLATFORM_BASELINE.md`。
+- Excel R2提供十张用户可见输入表的模板、严格导入校验和逐核算单元只读预览；当前没有Project / Workspace / Record写入，也不导出计算结果。其自动化集成回归属于历史验证；原生鼠标交互与视觉独立验收仍待完成。完整RS03闭环尚未完成，正式写入及结果导出仍未启动。
+- PR #27已由远端关闭且未合并，当前为`CLOSED / UNMERGED`并只读保留其历史验收意图；审计确认其旧V1 runtime与四页规范已被main中的R2替代，不移植为生产代码。此前R2集成包增加的6条测试覆盖映射、精度和逐单元错误隔离，属于历史工作包证据；本包不修改、重新打开或合并PR #27。标准仍为`NOT SUPPORTED`；本次不升级`platform-lock.json`或`PLATFORM_BASELINE.md`。
+- 独立验收仍需覆盖原生鼠标视觉体验、Word分页和记录长标题可读性；不得据本包宣布产品`SUPPORTED`。此前main集成包的测试与GitHub Actions成功记录属于历史证据，不代表本包候选验证结果。
 
 PF01范围约束：
 
@@ -104,14 +106,15 @@ PF01范围约束：
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：Excel R2提供十张用户可见输入表的模板、严格导入校验及逐核算单元只读预览；不写入Project / Workspace / Record，也不导出计算结果。HANDOFF旧版“仅禁用入口与占位说明、未实现”表述已失效。
+- **当前状态**：Excel R2提供十张用户可见输入表的模板、严格导入校验及逐核算单元只读预览；当前流程通过无Repository的Preview UseCase计算，不写入Project / Workspace / Record，也不导出计算结果。HANDOFF旧版“仅禁用入口与占位说明、未实现”表述已失效。
 - **最终定位**（中央 Product Delivery Policy）：Excel 是 Import / Export Adapter，必须与 GUI 进入同一 Canonical Input → 同一 Application → 同一 Domain / Calculator → 同一 Result。
-- 正式导入写入及结果导出闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**，当前仍未完成。主线集成验收统一以已合入main的R2为Excel验收入口；合并不等于独立验收通过。PR #27保留历史验收意图且当前为`CLOSED / UNMERGED`、只读；旧V1 runtime与四页规范不移植，本工作包已按R2增加6条集成测试，验证映射、精度和逐单元错误隔离。
+- 正式导入写入及结果导出闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**，当前仍未完成。本包仅收口应用层正式核算与Excel只读预览的UseCase边界，不启动Excel正式写入或结果导出。PR #27保留历史验收意图且当前为`CLOSED / UNMERGED`、只读；旧V1 runtime与四页规范不移植；R2既有6条集成测试属于历史工作包证据。
 
 ### 3.6 架构与分层
 
 - 保持 Presentation / Application / Domain / Infrastructure 分层；Domain 不得依赖 PySide6、SQLite、Windows API、页面控件或桌面弹窗。
 - 数据访问通过 Repository 接口。
+- 正式核算由 Application UseCase 编排，并要求显式注入正式 Record Repository；纯 Domain Calculator 不持有Repository。预览通过无Repository的 Preview UseCase；SQLite Repository 由 apps 组合根构造，UI不得创建持久化Adapter或隐式降级为内存保存。
 - Canonical-first **不等于**所有碳核算算法都必须 JSON DSL 化：复杂标准公式、查表/插值允许保留在版本化 Domain Calculator 中。
 
 ## 4. 阶段执行流程（每次启动一个 Goal）
@@ -184,10 +187,11 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包：**最新main集成验收**，属于既有产品路线内部工作，不新增路线或标准支持状态。
+本文件当前对应工作包：**核算 Application UseCase 收口**，属于既有产品路线内部工作，不新增路线或标准支持状态；本包候选待独立验收。
 
-- 以开工时最新main为验收对象，集成核对已合并的PF01（PR #30）、UAT02（PR #31）和RPT01（PR #32）及相应文档状态；各PR已合并不代表独立验收已经通过。
-- Excel统一以main中RPT01提供的R2为验收入口：十张可见输入表模板、严格导入校验、逐核算单元只读预览；不写Project / Workspace / Record，不导出结果。此入口属于RS03，正式写入和结果导出闭环仍未完成。
-- PR #27当前为`CLOSED / UNMERGED`，只读保留历史验收意图，本工作包不修改、重新打开或合并。旧V1 runtime与四页规范已被R2替代，不移植为生产代码；本工作包已按R2增加6条集成测试，验证映射、精度和逐单元错误隔离，并以独立差异评估证据追踪。
+- 本包收口纯Domain Calculator与正式/预览Application UseCase边界；正式GUI计算要求显式Record Repository，保存失败不得反馈成功或建立成功项目关联；正式SQLite Repository由apps组合根提供，UI不创建持久化Adapter。
+- GUI与记录页面使用共享Repository；Excel通过Preview UseCase保持只读预览，不写入Project / Workspace / Record，也不导出核算结果。正式Excel导入写入与结果导出仍属RS03后续闭环。
+- PR #27当前为`CLOSED / UNMERGED`，只读保留历史验收意图；旧V1 runtime与四页规范已被R2替代，不移植为生产代码。R2既有6条集成测试覆盖映射、精度和逐单元错误隔离，属于历史工作包证据，本包不修改、重新打开或合并PR #27。
 - PF01已合入实现的来源注册、只读目录、C.4/C.5展示和期间裁定等专业边界继续有效（见第2节）；不改变正式公式、Resolver策略或历史Record语义。
-- 本工作包不修改标准适用范围、标准支持状态、中央公共Contract或Frozen baseline；标准仍为`NOT SUPPORTED`，RS03-B及RS04～RS06+未启动。
+- 本工作包不修改公式、Numeric、Resolver、标准解释、数据库Schema、历史Record语义、标准适用范围、中央公共Contract或Frozen baseline；标准仍为`NOT SUPPORTED`，RS03-B及RS04～RS06+未启动。
+- 本包验证结果见 `IMPLEMENTATION_REPORT.md` 与 `TASK_STATE.md`；候选待独立验收。独立验收还需覆盖原生鼠标视觉体验、Word分页和记录长标题可读性。不得宣称产品`SUPPORTED`。

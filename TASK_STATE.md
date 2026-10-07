@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：IN PROGRESS — 核算 Application UseCase 收口
+状态：AWAITING ACCEPTANCE — 核算 Application UseCase 收口
 最后更新：2026-10-07
 
 ## 授权与预检查
@@ -17,7 +17,10 @@
 - GUI/Excel调用Application；保存失败中文反馈且不显示成功、不关联项目。生产SQLite组合在apps入口；测试假repo显式注入。
 - 为使Application边界真实成立，既有目录SQLite工厂移到Infrastructure；只读空目录移至纯标准模块，查询和因子语义不变。
 - 重构前main全B.2～B.9合成样例已捕获，重构后7组输出+6类持久化快照精确一致（业务结果/参数/trace/provenance/报告等）；此为characterization，不是标准Golden。
-- 定向用例与迁移测试通过，组间有重叠；架构AST门禁5/5。最终全量、构建及CI尚待代码冻结后执行。
+- 本地冻结代码/测试head为 `5acf1fa0a25a7804b03bd4a320a9add8a374ea4a`；定向最终17/17、全量305/305（380.235s），失败0。Canonical、compileall、pip check、四库隔离初始化、UIR04五场景及1.25/1.5缩放通过；首次长缓存路径编译失败后取消prefix重跑通过。
+- Windows standalone构建、262文件目录审计、263文件ZIP审计及两次隔离启动通过，manifest source_commit与代码验证head一致。正式命令/数量/日志/限制见IMPLEMENTATION_REPORT。
+- GUI四个入口的仓库一致性已检查；缺省查看仓库采用UseCase仓库，显式冲突即拒绝。
+- 本包独立PR发布后核对最新head CI；远端证据以PR Checks为准，不把CI称为本地执行。
 - 无数据库迁移、历史Record修改、用户数据库或计算表改动。
 
 ## 交付边界
