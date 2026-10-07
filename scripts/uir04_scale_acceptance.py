@@ -30,9 +30,13 @@ def main() -> int:
     from apps.carbon_accounting_desktop.app import create_main_window
     from apps.carbon_accounting_desktop.config import AppConfig
     from packages.application import CatalogQueryService
-    from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+    from packages.persistence import (
+        InMemoryRecordRepository,
+        SQLiteCatalogRepository,
+        build_catalog_database,
+    )
     from packages.reference_data import DEFAULT_SOURCE_PATH
-    from packages.standards.carbon_material import EmissionSourceStatus, InMemoryRecordRepository
+    from packages.standards.carbon_material import EmissionSourceStatus
     from packages.ui.view_models import AppRoute
 
     application = QApplication.instance() or QApplication([])

@@ -15,6 +15,7 @@ from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
 
 from packages.application import CatalogQueryService, ProjectWorkspaceService
+from packages.application.carbon_accounting import CarbonAccountingUseCase, create_g06_parameter_resolver
 from packages.core import (
     ElectricityAcquisitionMode,
     ElectricityAttribute,
@@ -23,14 +24,15 @@ from packages.core import (
     PeriodType,
 )
 from packages.persistence import SQLiteCatalogRepository, SQLiteProjectWorkspaceRepository, build_catalog_database
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
+    CarbonMaterialCalculator,
     EmissionSourceStatus,
     FGDInput,
     HeatFactorMode,
     FuelPath,
     FuelType,
-    InMemoryRecordRepository,
     ParameterSourceKind,
 )
 from packages.standards.carbon_material_normalization import MaterialRole
@@ -67,9 +69,13 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.temp_directory.cleanup()
 
     def _new_page(self) -> CarbonMaterialAccountingPage:
+        calculator = CarbonMaterialCalculator(
+            parameter_resolver=create_g06_parameter_resolver(self.catalog_service.repository)
+        )
         return CarbonMaterialAccountingPage(
             catalog_service=self.catalog_service,
             record_repository=self.records,
+            calculation_use_case=CarbonAccountingUseCase(calculator, self.records),
             project_service=self.project_service,
         )
 

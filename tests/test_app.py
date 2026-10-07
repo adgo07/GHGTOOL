@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
-from packages.standards.carbon_material import InMemoryRecordRepository
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 
 
 class MinimalApplicationTest(unittest.TestCase):
@@ -36,4 +36,3 @@ class MinimalApplicationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

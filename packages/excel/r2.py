@@ -2,12 +2,12 @@
 
 The adapter reads the workbook's saved OOXML numeric lexemes into Decimal,
 normalizes standard table rows into the existing Domain input, and delegates
-all validation and emission arithmetic to CarbonMaterialCalculator.
+calculation to the shared Application preview workflow.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
@@ -24,6 +24,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.utils import get_column_letter
 
+from packages.application.carbon_accounting import CarbonAccountingPreviewUseCase
 from packages.application.project_workspaces import AccountingUnitType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError
@@ -67,7 +68,6 @@ from packages.standards.carbon_material import (
     ParameterSourceKind,
     ParameterValue,
     SteamKind,
-    InMemoryRecordRepository,
     MaterialInputLine,
     SOURCE_BAKING,
     SOURCE_CALCINATION,
@@ -1528,6 +1528,9 @@ class ExcelWorkbookImporter:
             imported_at = datetime.now(timezone.utc)
             provenance = WorkbookProvenance(digest, metadata["template_id"], metadata["template_version"], metadata["standard_id"], metadata["standard_version"], metadata["ingress_policy_id"], imported_at)
             previews: list[UnitCalculationPreview] = []
+            preview_use_case = CarbonAccountingPreviewUseCase(
+                CarbonMaterialCalculator(parameter_resolver=self.parameter_resolver)
+            )
             for ctx in contexts.values():
                 input_value = None
                 try:
@@ -1536,15 +1539,14 @@ class ExcelWorkbookImporter:
                     ctx.errors.append(ImportMessage("EXCEL-DOMAIN-INPUT-INVALID", f"无法构造该核算单元的数据：{exc}"))
                 calculation = None
                 if input_value is not None and not ctx.errors:
-                    calculator = CarbonMaterialCalculator(parameter_resolver=self.parameter_resolver, record_repository=InMemoryRecordRepository())
-                    outcome = calculator.calculate(input_value, calculated_at=imported_at)
+                    outcome = preview_use_case.calculate(input_value, calculated_at=imported_at)
                     for problem in outcome.problems:
                         message = ImportMessage(problem.code, problem.message, problem.field_id)
                         if getattr(problem.level, "value", "ERROR") == "ERROR":
                             ctx.errors.append(message)
                         else:
                             ctx.warnings.append(message)
-                    calculation = replace(outcome, record=None)
+                    calculation = outcome
                 previews.append(UnitCalculationPreview(ctx.unit_id, ctx.name, ctx.unit_type, input_value, calculation, tuple(ctx.errors), tuple(ctx.warnings)))
             return WorkbookImportPreview(provenance, tuple(previews), tuple(warnings), tuple(reader.evidence))
         finally:

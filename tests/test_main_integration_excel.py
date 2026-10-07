@@ -33,7 +33,6 @@ from packages.standards.carbon_material import (
     EmissionSourceStatus,
     FuelPath,
     FuelType,
-    InMemoryRecordRepository,
     ParameterSourceKind,
 )
 
@@ -329,7 +328,6 @@ class MainIntegrationExcelTests(unittest.TestCase):
         self.assertTrue(unit.can_calculate, tuple((item.code, item.message) for item in unit.errors))
         reference = CarbonMaterialCalculator(
             parameter_resolver=self.resolver,
-            record_repository=InMemoryRecordRepository(),
         ).calculate(unit.input_value, calculated_at=preview.provenance.imported_at)
         self.assertTrue(reference.successful, reference.problems)
         self.assertEqual(_outcome_value_semantics(unit.calculation), _outcome_value_semantics(reference))

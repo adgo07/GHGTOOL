@@ -27,8 +27,8 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     CarbonMaterialCalculator,
     EmissionSourceStatus,
-    InMemoryRecordRepository,
 )
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
@@ -193,7 +193,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.application.processEvents()
         self.assertFalse(self.page.result_card.isHidden())
         self.assertTrue(self.page.quality_card.isVisible())
-        records = self.page.calculator.record_repository.list_all()
+        records = self.page.record_repository.list_all()
         self.assertEqual(len(records), 1)
         self.assertIsNone(records[0].input_snapshot.enterprise_name)
         messages = tree_texts(self.page.validation_list)
@@ -210,7 +210,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.application.processEvents()
         self.assertFalse(self.page.result_card.isVisible())
         self.assertTrue(self.page.quality_card.isVisible())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
 
     def test_ui_result_matches_independent_domain_calculation_and_record(self) -> None:
         self.page.enterprise_name.setText("结果等价企业")
@@ -235,7 +235,6 @@ class UIR04FinalizationTests(unittest.TestCase):
         before_input = self.page._input()
         independent = CarbonMaterialCalculator(
             parameter_resolver=self.page._parameter_resolver,
-            record_repository=InMemoryRecordRepository(),
             standard_version=self.page.calculator.standard_version,
         )
         before_outcome = independent.calculate(before_input)
@@ -243,7 +242,7 @@ class UIR04FinalizationTests(unittest.TestCase):
 
         self.page._run_calculation()
         self.application.processEvents()
-        records = self.page.calculator.record_repository.list_all()
+        records = self.page.record_repository.list_all()
         self.assertEqual(len(records), 1)
         record = records[0]
         self.assertEqual(record.input_snapshot.enterprise_name, before_input.enterprise_name)

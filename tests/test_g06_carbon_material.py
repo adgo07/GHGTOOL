@@ -22,6 +22,8 @@ from packages.core import (
     ReviewStatus,
     ValueType,
 )
+from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
     ALGORITHM_VERSION,
     MAPPING_VERSION,
@@ -51,7 +53,6 @@ from packages.standards.carbon_material import (
     GraphitizationInput,
     HeatFactorMode,
     HeatInput,
-    InMemoryRecordRepository,
     InputValue,
     ParameterValue,
     MaterialComponentKind,
@@ -438,7 +439,7 @@ class G06CalculatorTests(unittest.TestCase):
         )
         incomplete = CalcinationInput(gc="50", instance_id="missing-line")
         repository = InMemoryRecordRepository()
-        outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
             _input(calcinations=(complete, incomplete)), calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(outcome.blocked)
@@ -462,8 +463,8 @@ class G06CalculatorTests(unittest.TestCase):
             ),
         )
         repository = InMemoryRecordRepository()
-        outcome = CarbonMaterialCalculator(
-            parameter_resolver=_resolver(), record_repository=repository
+        outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(parameter_resolver=_resolver()), repository
         ).calculate(_input(electricity_details=details), calculated_at=SNAPSHOT_AT)
 
         self.assertTrue(outcome.successful)
@@ -739,7 +740,7 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertIn("car-par-k1", {snapshot.parameter_id for snapshot in default_k1.parameter_snapshots})
 
         record_store = InMemoryRecordRepository()
-        unknown_fgd = CarbonMaterialCalculator(record_repository=record_store).calculate(
+        unknown_fgd = CarbonAccountingUseCase(CarbonMaterialCalculator(), record_store).calculate(
             _input(fgd=FGDInput(cal="10")), calculated_at=SNAPSHOT_AT
         )
         self.assertFalse(unknown_fgd.successful)
@@ -753,7 +754,7 @@ class G06CalculatorTests(unittest.TestCase):
         ))
 
         default_heat_store = InMemoryRecordRepository()
-        default_heat = CarbonMaterialCalculator(record_repository=default_heat_store).calculate(
+        default_heat = CarbonAccountingUseCase(CarbonMaterialCalculator(), default_heat_store).calculate(
             _input(purchased_heat=(HeatInput("default.heat", "1000", "2800"),)),
             calculated_at=SNAPSHOT_AT,
         )
@@ -779,7 +780,9 @@ class G06CalculatorTests(unittest.TestCase):
                     "fuel_oxidation", "0.98", "ratio", source_kind,
                     "test-source", "test-version", "test location", "validation fixture",
                 )
-                outcome = CarbonMaterialCalculator(record_repository=record_store).calculate(
+                outcome = CarbonAccountingUseCase(
+                    CarbonMaterialCalculator(), record_store
+                ).calculate(
                     _input(fuel_inputs=(FuelInput("negative-carbon", FuelPath.VOLUME, "1", carbon, oxidation),)),
                     calculated_at=SNAPSHOT_AT,
                 )
@@ -789,7 +792,9 @@ class G06CalculatorTests(unittest.TestCase):
                 self.assertEqual(record_store.list_all(), ())
 
         record_store = InMemoryRecordRepository()
-        negative_heat = CarbonMaterialCalculator(record_repository=record_store).calculate(
+        negative_heat = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(), record_store
+        ).calculate(
             _input(purchased_heat=(HeatInput(
                 "negative-heat", "1", "2800",
                 ParameterValue("measured_heat_factor", "-0.11", "tCO2/GJ", ParameterSourceKind.MEASURED,
@@ -911,10 +916,15 @@ class G06CalculatorTests(unittest.TestCase):
             )
             for case_name, period, expected_factor_id, expected_relation in cases:
                 with self.subTest(case=case_name, period=period, expected=expected_factor_id):
-                    outcome = CarbonMaterialCalculator(
-                        parameter_resolver=resolver,
-                        standard_implementation_date=implementation_date,
-                    ).calculate(
+                    repository = InMemoryRecordRepository()
+                    use_case = CarbonAccountingUseCase(
+                        CarbonMaterialCalculator(
+                            parameter_resolver=resolver,
+                            standard_implementation_date=implementation_date,
+                        ),
+                        repository,
+                    )
+                    outcome = use_case.calculate(
                         _input(
                             period=period,
                             purchased_heat=(HeatInput(
@@ -993,7 +1003,7 @@ class G06CalculatorTests(unittest.TestCase):
 
     def test_heat_activity_path_cannot_apply_a_second_heating_value(self) -> None:
         records = InMemoryRecordRepository()
-        outcome = CarbonMaterialCalculator(record_repository=records).calculate(
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), records).calculate(
             _input(fuel_inputs=(FuelInput(
                 "heat-with-lhv", FuelPath.HEAT, "1",
                 ParameterValue("heat_carbon", "0.0153", "tC/GJ", source_location="test"),
@@ -1085,8 +1095,8 @@ class G06CalculatorTests(unittest.TestCase):
             ElectricityAttribute.NONFOSSIL, proof_type=ElectricityProofType.GEC,
         )
         repository = InMemoryRecordRepository()
-        outcome = CarbonMaterialCalculator(
-            parameter_resolver=_resolver(), record_repository=repository
+        outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(parameter_resolver=_resolver()), repository
         ).calculate(_input(electricity_details=(detail,)), calculated_at=SNAPSHOT_AT)
 
         self.assertTrue(outcome.blocked)

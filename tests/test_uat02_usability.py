@@ -20,7 +20,8 @@ from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import CatalogQueryService
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, FuelType, InMemoryRecordRepository
+from packages.persistence.in_memory_records import InMemoryRecordRepository
+from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, FuelType
 from packages.ui.carbon_material_page import _display_amount, _display_compact_decimal
 from packages.ui.record_experience import format_amount
 from packages.ui.view_models import AppRoute
@@ -140,7 +141,7 @@ class UAT02UsabilityTests(unittest.TestCase):
             combo.setCurrentIndex(combo.findData("MEASURED"))
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
-        record = self.page.calculator.record_repository.list_all()[0]
+        record = self.page.record_repository.list_all()[0]
         self.assertEqual(record.status.value, "COMPLETED_WITH_WARNINGS")
         self.assertTrue(any(snapshot.source_id is None for snapshot in record.parameter_snapshots))
         self.assertEqual(row.source_reference.text(), "")
@@ -159,7 +160,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertTrue(self.page._source_cards["CAR-SRC-FUEL-001"].is_expanded)
         self.assertIn("未完成：请修正", self.page.calculation_status_hint.text())
         self.assertIs(self.application.focusWidget(), row.carbon)
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
 
     def test_small_display_value_is_not_zeroed_or_written_to_input(self) -> None:
         value = Decimal("0.000023456789")

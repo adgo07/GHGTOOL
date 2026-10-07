@@ -23,7 +23,8 @@ from packages.core import (
 )
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import EmissionSourceStatus, InMemoryRecordRepository
+from packages.persistence.in_memory_records import InMemoryRecordRepository
+from packages.standards.carbon_material import EmissionSourceStatus
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute

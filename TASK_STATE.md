@@ -1,27 +1,25 @@
 # 当前任务状态
 
-状态：AWAITING ACCEPTANCE — 最新main集成验收候选
+状态：IN PROGRESS — 核算 Application UseCase 收口
 最后更新：2026-10-07
 
-## 范围与基线
+## 授权与预检查
 
-- 用户授权：步骤1（状态同步、Excel入口统一）及步骤2（集成验收、普通缺陷小补丁）；不启动UseCase或Excel正式写入。
-- 起点main：`124a16a6490d161bc2db8d1734e554454fca4ac6`；分支codex/main-integration-acceptance。原checkout和用户已有文件未覆盖。
-- 最终代码与测试checkpoint：`e1328f2ef0244f2ee9944d29ea79dfd72ca282dc`；最终全量291/291通过；构建、发布/归档审计和隔离双启动均通过。后续仅治理文档提交。
-- 中央锁定：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级Frozen Contract。Standard Issue 001～006既有解释不变。
-- PF01 #30、UAT02 #31、RPT01 #32已合并；旧PR #27远端CLOSED/UNMERGED，本包只读。合并不等于正式验收。
+- 用户明确接受并授权合并PR #33，且授权按已说明范围执行步骤3。
+- PR #33已合并；本包从最新main `26fd95e497baade6a16f471e81b185743b3f9fcd`创建分支codex/carbon-accounting-usecase。复用已附加、干净工作树；原checkout与用户文件保留。
+- 中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`：已读取锁定Architecture V2.1、Numeric v1、Numeric Profiles v1及当前ACTIVE UI指南；不升级Contract或baseline。
+- 本任务不涉及中央公共Contract。DetailedRecordRepository与计算证据是本模块内部接口，不声称中央DRAFT Record已冻结。
+- Standard Issue 001～006既有解释不变；本包不改变标准规则、公式、Resolver策略、Numeric Profile或适用范围，无新增标准解释问题。
 
 ## 当前稳定断点
 
-- 步骤1完成：HANDOFF/唯一路线已同步；Excel统一为main R2模板/严格校验/只读预览。
-- 普通修复：Excel入口可键盘聚焦且不再称未开放；预览长Decimal格式化；Catalog构建清单002与实际一致并有发布审计；首页删除陈旧“暂无核算记录”提示。
-- 新增9条集成测试：Excel B.2～B.9输入/精度/错误隔离6条；GUI—Excel一致性、不可变SQLite Record和报告快照导出3条。
-- 最终代码checkpoint全量291/291通过（328.146秒）；Canonical/compileall/pip check、构建、发布审计262文件、ZIP往返263文件及双启动2/2均通过。命令、数量、初次失败和限制见IMPLEMENTATION_REPORT.md。
-- UIR04自动场景5/5、离屏缩放3/3；六张Qt辅助图可读。Astra子agent已验证最终EXE中文首页和键盘进入新建核算；其他原生导航未完成。原生截图超时、坐标输入不可用，不能宣布真实鼠标/视觉验收通过。
-- Word快照导出、B.1～B.9结构和字段通过；bundled LibreOffice缺失，未做PDF/PNG逐页视觉验收。
-- 长记录标题截断、小量显示精度与原生视觉作为后续验收项保留。
-- 本地证据与GitHub Actions分开；最新PR head CI创建后检查，不用历史Run替代。
+- Calculator仅计算并冻结完整证据；正式UseCase显式依赖详细Repository，成功一次保存Record/快照/审计，blocked不写；preview不创建临时Record。
+- GUI/Excel调用Application；保存失败中文反馈且不显示成功、不关联项目。生产SQLite组合在apps入口；测试假repo显式注入。
+- 为使Application边界真实成立，既有目录SQLite工厂移到Infrastructure；只读空目录移至纯标准模块，查询和因子语义不变。
+- 重构前main全B.2～B.9合成样例已捕获，重构后7组输出+6类持久化快照精确一致（业务结果/参数/trace/provenance/报告等）；此为characterization，不是标准Golden。
+- 定向用例与迁移测试通过，组间有重叠；架构AST门禁5/5。最终全量、构建及CI尚待代码冻结后执行。
+- 无数据库迁移、历史Record修改、用户数据库或计算表改动。
 
-## 停止点
+## 交付边界
 
-交付独立分支和可审核PR后停止等待独立验收，不自行合并。Excel预览不写Project/Record；RS03正式写入/结果导出、RS04/RS05及架构收口未启动，标准仍PARTIAL/NOT SUPPORTED。无用户正式数据库、计算表或旧安装包修改。
+仅完成本包核算编排与持久化职责收口，不实现Excel正式写入/结果导出、新标准或RS04/RS05；不扩充Word功能。PR33遗留原生鼠标/视觉、Word分页与长标题观察项仍保留。交付本包独立PR后停止等待验收，不自行合并步骤3 PR。

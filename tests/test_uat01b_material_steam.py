@@ -7,6 +7,8 @@ import unittest
 
 from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
+from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
     BakingInput,
     ALGORITHM_VERSION,
@@ -16,7 +18,6 @@ from packages.standards.carbon_material import (
     GraphitizationInput,
     HeatFactorMode,
     HeatInput,
-    InMemoryRecordRepository,
     InputValue,
     ParameterSourceKind,
     ParameterValue,
@@ -175,7 +176,7 @@ class UAT01BMaterialNormalizationTests(unittest.TestCase):
         self.assertTrue(any(problem.code == "CAR-VAL-MATERIAL-COMPONENT-MISSING" for problem in incomplete.problems))
 
         repository = InMemoryRecordRepository()
-        missing_product = CarbonMaterialCalculator(record_repository=repository).calculate(
+        missing_product = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
             _input(calcination=CalcinationInput(k1="0.35", material_rows=(rows[0],))),
             calculated_at=CALCULATED_AT,
         )
@@ -211,7 +212,6 @@ class UAT01BSteamTests(unittest.TestCase):
             (SteamKind.SUPERHEATED, "2", "325", c5_double),
         ):
             with self.subTest(kind=kind):
-                repository = InMemoryRecordRepository()
                 heat = HeatInput(
                     f"auto-{kind.value}",
                     InputValue("1.25", "t"),
@@ -224,7 +224,7 @@ class UAT01BSteamTests(unittest.TestCase):
                     factor_mode=HeatFactorMode.MEASURED,
                     steam_amount_t=InputValue("1.25", "t"),
                 )
-                outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+                outcome = CarbonMaterialCalculator().calculate(
                     _input(purchased_heat=(heat,)), calculated_at=CALCULATED_AT,
                 )
                 self.assertTrue(outcome.successful, outcome.problems)
@@ -264,7 +264,8 @@ class UAT01BSteamTests(unittest.TestCase):
             factor_source_note="检测报告第3页",
             steam_amount_t=InputValue("1", "t"),
         )
-        outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+        use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository)
+        outcome = use_case.calculate(
             _input(purchased_heat=(heat,)), calculated_at=CALCULATED_AT,
         )
         self.assertTrue(outcome.successful, outcome.problems)
@@ -289,7 +290,7 @@ class UAT01BSteamTests(unittest.TestCase):
         self.assertIsNotNone(trace_snapshot)
         assert trace_snapshot is not None
         before = repository.get_raw_input_snapshot(outcome.record.record_id)
-        second = CarbonMaterialCalculator(record_repository=repository).calculate(
+        second = use_case.calculate(
             _input(input_id="uat01b.second", purchased_heat=(replace_heat_id(heat, "second"),)),
             calculated_at=CALCULATED_AT,
         )
@@ -342,7 +343,9 @@ class UAT01BSteamTests(unittest.TestCase):
             factor_mode=HeatFactorMode.MEASURED,
         )
         repository = InMemoryRecordRepository()
-        automatic_outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+        automatic_outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(), repository
+        ).calculate(
             _input(purchased_heat=(automatic,)), calculated_at=CALCULATED_AT,
         )
         self.assertTrue(automatic_outcome.blocked)
