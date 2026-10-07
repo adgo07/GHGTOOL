@@ -46,7 +46,7 @@ def _relative_files(root: Path) -> tuple[Path, ...]:
     )
 
 
-def _check_catalog(path: Path, issues: list[str]) -> None:
+def _check_catalog(path: Path, issues: list[str]) -> str | None:
     if not path.is_file():
         issues.append("missing packaged databases/catalog.sqlite")
         return
@@ -96,6 +96,7 @@ def _check_catalog(path: Path, issues: list[str]) -> None:
         issues.append(f"expected 9 catalog standards, found {standard_count}")
     if {"accounting_records", "audit_log"} & table_names:
         issues.append("release catalog contains records tables")
+    return metadata.get("schema_version")
 
 
 def inspect_release(root: str | Path) -> tuple[str, ...]:
@@ -110,7 +111,7 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     if not executable.is_file():
         issues.append(f"missing {APP_EXECUTABLE}")
 
-    _check_catalog(artifact / ALLOWED_SQLITE, issues)
+    catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     for path in _relative_files(artifact):
         relative = Path(path)
         normalized = relative.as_posix()
@@ -159,6 +160,11 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         issues.append("unexpected release artifact name")
     if manifest.get("app_version") != "1.1.0":
         issues.append(f"unexpected manifest app version: {manifest.get('app_version')!r}")
+    database_versions = manifest.get("database_schema_versions")
+    if not isinstance(database_versions, dict):
+        issues.append("manifest missing database_schema_versions")
+    elif catalog_database_version is not None and database_versions.get("catalog") != catalog_database_version:
+        issues.append("manifest catalog database schema version does not match packaged database")
     for provenance_field in ("source_commit", "pr_head_sha", "tested_merge_sha"):
         if not isinstance(manifest.get(provenance_field), str) or not manifest[provenance_field].strip():
             issues.append(f"manifest has empty provenance field: {provenance_field}")

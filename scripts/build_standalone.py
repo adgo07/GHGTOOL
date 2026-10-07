@@ -100,7 +100,7 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
         "catalog_schema_version": catalog_meta["schema_version"],
         "catalog_data_version": catalog_meta["data_version"],
         "database_schema_versions": {
-            "catalog": "001",
+            "catalog": "002",
             "user": "001",
             "records": "004",
             "projects": "001",

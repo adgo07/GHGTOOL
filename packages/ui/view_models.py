@@ -52,7 +52,7 @@ class ShellViewModel:
     status_summary: str = "暂无核算记录 · 暂无企业 · 暂无待处理事项"
     primary_action_label: str = "＋ 新建核算"
     standards_action_label: str = "查看标准库"
-    excel_action_label: str = "Excel 导入（暂未开放）"
+    excel_action_label: str = "Excel 导入预览"
 
     def __post_init__(self) -> None:
         routes = tuple(item.route for item in self.navigation)
