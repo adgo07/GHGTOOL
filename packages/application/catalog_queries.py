@@ -9,11 +9,11 @@ from decimal import Decimal
 from enum import Enum
 import hashlib
 import json
-from pathlib import Path
 
 from packages.core.models import OfficialStatus, ParameterType, ReviewStatus, SourceType, ValueType
 from packages.standards.catalog import (
     CatalogRepository,
+    EmptyCatalogRepository,
     CatalogStatus,
     CatalogValueCategory,
     FactorCatalogRecord,
@@ -136,8 +136,6 @@ class CatalogQueryService:
 
     @classmethod
     def empty(cls) -> CatalogQueryService:
-        from packages.persistence.catalog_repository import EmptyCatalogRepository
-
         return cls(EmptyCatalogRepository())
 
     @property
@@ -662,21 +660,3 @@ class CatalogQueryService:
             if result.factor is not None and result.factor.factor_id == factor_id:
                 return result
         return None
-
-
-def create_catalog_query_service(path: str | Path | None) -> CatalogQueryService:
-    """Create a query service, degrading safely when the optional catalog is absent."""
-
-    from packages.persistence.catalog_repository import (
-        CatalogRepositoryError,
-        EmptyCatalogRepository,
-        SQLiteCatalogRepository,
-    )
-
-    if path is None:
-        return CatalogQueryService(EmptyCatalogRepository())
-    try:
-        repository = SQLiteCatalogRepository(path)
-    except CatalogRepositoryError:
-        return CatalogQueryService(EmptyCatalogRepository())
-    return CatalogQueryService(repository)

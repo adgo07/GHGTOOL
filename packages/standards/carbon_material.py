@@ -1,8 +1,8 @@
 """GB/T 32151.34-2024 calculation domain for G06.
 
 The module is deliberately platform independent.  It contains the frozen SM01
-formula paths, standard-specific input contracts, validation and an in-memory
-record boundary used by G06.  Qt and SQLite adapters live outside this module.
+formula paths, standard-specific input contracts, validation and immutable
+calculation evidence. Record persistence and adapters live outside this module.
 """
 
 from __future__ import annotations
@@ -14,10 +14,9 @@ from enum import Enum
 import hashlib
 import json
 from typing import Callable, Mapping, Sequence
-from uuid import uuid4
 
 from packages.core.decimal_policy import DecimalPolicy
-from packages.core.errors import DomainValidationError, IssueLevel, ValidationProblem, contains_errors, contains_warnings
+from packages.core.errors import DomainValidationError, IssueLevel, ValidationProblem, contains_errors
 from packages.core.models import (
     AccountingInput,
     AccountingPeriod,
@@ -34,7 +33,6 @@ from packages.core.models import (
     ParameterSnapshot,
     ParameterType,
     PeriodType,
-    RecordStatus,
     ValueType,
 )
 from packages.core.parameter_resolution import (
@@ -43,7 +41,7 @@ from packages.core.parameter_resolution import (
     ParameterResolutionContext,
     ParameterResolver,
 )
-from packages.core.repositories import ParameterRepository, RecordRepository
+from packages.core.repositories import ParameterRepository
 from packages.standards.carbon_material_normalization import (
     MATERIAL_NORMALIZATION_VERSION,
     MaterialInputLine,
@@ -889,6 +887,25 @@ class ReportQualification:
 
 
 @dataclass(frozen=True, slots=True)
+class CarbonMaterialCalculationEvidence:
+    """Frozen calculation facts consumed by Application, without a Record ID.
+
+    JSON text freezes nested evidence before the calculator is reused. Decimal
+    values remain lexical text, matching the existing persisted snapshots.
+    This is a module-internal value object, not a public platform contract.
+    """
+
+    input_snapshot: AccountingInput
+    standard_version: str
+    effective_rule_ids: tuple[str, ...]
+    raw_input_snapshot_json: str
+    trace_snapshot_json: str
+    provenance_snapshot_json: str
+    reporting_snapshot_json: str
+    report_qualification_json: str
+
+
+@dataclass(frozen=True, slots=True)
 class CarbonMaterialCalculationOutcome:
     input: CarbonMaterialInput
     result: CalculationResult | None
@@ -898,6 +915,7 @@ class CarbonMaterialCalculationOutcome:
     algorithm_version: str = ALGORITHM_VERSION
     record: AccountingRecord | None = None
     report_qualification: ReportQualification | None = None
+    evidence: CarbonMaterialCalculationEvidence | None = None
 
     @property
     def blocked(self) -> bool:
@@ -907,95 +925,6 @@ class CarbonMaterialCalculationOutcome:
     def successful(self) -> bool:
         return not self.blocked and self.result is not None
 
-
-class InMemoryRecordRepository(RecordRepository):
-    """Ephemeral record store used by tests and callers without records.sqlite."""
-
-    def __init__(self) -> None:
-        self._records: dict[str, AccountingRecord] = {}
-        self._deleted: set[str] = set()
-        self._audit: list[dict[str, object]] = []
-        self._details: dict[str, dict[str, object]] = {}
-        self._detail_schema_records: set[str] = set()
-
-    def create(self, record: AccountingRecord) -> None:
-        if record.record_id in self._records:
-            raise DomainValidationError(f"record already exists: {record.record_id}")
-        self._records[record.record_id] = record
-        self._audit.append({"record_id": record.record_id, "action": "CREATE", "actor": "system"})
-
-    def create_with_details(
-        self,
-        record: AccountingRecord,
-        *,
-        raw_input: object | None = None,
-        effective_rule_set: Sequence[str] = (),
-        trace_snapshot: object | None = None,
-        provenance_snapshot: object | None = None,
-        reporting_snapshot: object | None = None,
-        report_qualification: object | None = None,
-    ) -> None:
-        self.create(record)
-        self._details[record.record_id] = {
-            "raw_input": _snapshot_value(raw_input if raw_input is not None else record.input_snapshot),
-            "effective_rule_set": {"rule_ids": tuple(sorted(set(effective_rule_set)))},
-            "trace_snapshot": _snapshot_value(trace_snapshot) if trace_snapshot else None,
-            "provenance_snapshot": _snapshot_value(provenance_snapshot) if provenance_snapshot else None,
-            "reporting_snapshot": _snapshot_value(reporting_snapshot) if reporting_snapshot else None,
-            "report_qualification": _snapshot_value(report_qualification) if report_qualification else None,
-        }
-        if any(value is not None for value in (
-            raw_input, trace_snapshot, provenance_snapshot, reporting_snapshot, report_qualification,
-        )):
-            self._detail_schema_records.add(record.record_id)
-
-    def _detail(self, record_id: str, key: str) -> dict[str, object] | None:
-        details = self._details.get(record_id)
-        value = details.get(key) if details else None
-        return value if isinstance(value, dict) else None
-
-    def get_raw_input_snapshot(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "raw_input")
-
-    def get_effective_rule_set(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "effective_rule_set")
-
-    def get_trace_snapshot(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "trace_snapshot")
-
-    def get_provenance_snapshot(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "provenance_snapshot")
-
-    def get_reporting_snapshot(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "reporting_snapshot")
-
-    def get_report_qualification(self, record_id: str) -> dict[str, object] | None:
-        return self._detail(record_id, "report_qualification")
-
-    def get_snapshot_schema_version(self, record_id: str) -> int:
-        return int(record_id in self._detail_schema_records)
-
-    def get(self, record_id: str) -> AccountingRecord | None:
-        if record_id in self._deleted:
-            return None
-        return self._records.get(record_id)
-
-    def list_all(self) -> tuple[AccountingRecord, ...]:
-        return tuple(record for record_id, record in self._records.items() if record_id not in self._deleted)
-
-    def delete(self, record_id: str, *, actor: str, reason: str) -> bool:
-        if not actor.strip() or not reason.strip():
-            raise DomainValidationError("delete actor and reason are required")
-        if record_id not in self._records or record_id in self._deleted:
-            return False
-        self._deleted.add(record_id)
-        self._audit.append({"record_id": record_id, "action": "DELETE", "actor": actor, "reason": reason})
-        return True
-
-    def list_audit(self, record_id: str | None = None) -> tuple[dict[str, object], ...]:
-        if record_id is None:
-            return tuple(self._audit)
-        return tuple(item for item in self._audit if item.get("record_id") == record_id)
 
 
 def _d(value: str | Decimal | int) -> Decimal:
@@ -1392,7 +1321,6 @@ class CarbonMaterialCalculator:
         self,
         *,
         parameter_resolver: ParameterResolver | None = None,
-        record_repository: RecordRepository | None = None,
         standard_version: str = STANDARD_VERSION,
         standard_implementation_date: date | None = None,
         policy: DecimalPolicy | None = None,
@@ -1402,7 +1330,6 @@ class CarbonMaterialCalculator:
         self.policy = policy or DecimalPolicy()
         self.units = unit_service or UnitService(self.policy)
         self.parameter_resolver = parameter_resolver
-        self.record_repository = record_repository or InMemoryRecordRepository()
         self.standard_version = standard_version
         if standard_implementation_date is not None and not isinstance(standard_implementation_date, date):
             raise DomainValidationError("standard_implementation_date must be a date when supplied")
@@ -1480,15 +1407,14 @@ class CarbonMaterialCalculator:
 
     def _provenance_snapshot(
         self,
-        record: AccountingRecord,
         rule_snapshot: dict[str, object],
         parameter_snapshots: Sequence[ParameterSnapshot],
     ) -> dict[str, object]:
         return {
             "provenance_schema_version": 1,
-            "standard": {"standard_id": record.standard_id, "version": record.standard_version},
+            "standard": {"standard_id": STANDARD_ID, "version": self.standard_version},
             "mapping": {"version": MAPPING_VERSION, "status": "FROZEN"},
-            "calculator": {"algorithm_version": record.algorithm_version},
+            "calculator": {"algorithm_version": ALGORITHM_VERSION},
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -1504,7 +1430,7 @@ class CarbonMaterialCalculator:
 
     def _trace_snapshot(
         self,
-        record: AccountingRecord,
+        calculation_result: CalculationResult,
         traces: Sequence[CalculationTrace],
         parameter_snapshots: Sequence[ParameterSnapshot],
         source_subtotals: Mapping[str, Decimal],
@@ -1562,16 +1488,16 @@ class CarbonMaterialCalculator:
         total = self.policy.add(direct, indirect)
         return {
             "trace_schema_version": 1,
-            "standard_id": record.standard_id,
-            "standard_version": record.standard_version,
+            "standard_id": STANDARD_ID,
+            "standard_version": self.standard_version,
             "mapping_version": MAPPING_VERSION,
-            "calculated_at": record.created_at.isoformat(),
+            "calculated_at": calculation_result.calculated_at.isoformat(),
             "formula_steps": steps,
             "parameter_snapshots": _snapshot_value(tuple(parameter_snapshots)),
             "effective_rule_ids": sorted(self._effective_rule_ids),
             "source_subtotals": {key: str(value) for key, value in source_subtotals.items()},
             "aggregations": {"ES": str(direct), "EI": str(indirect), "ET": str(total)},
-            "calculation_lines": _snapshot_value(record.calculation_result.lines),
+            "calculation_lines": _snapshot_value(calculation_result.lines),
         }
 
     @staticmethod
@@ -2350,7 +2276,7 @@ class CarbonMaterialCalculator:
                     ))
 
         calculation_result: CalculationResult | None = None
-        record: AccountingRecord | None = None
+        evidence: CarbonMaterialCalculationEvidence | None = None
         if not contains_errors(problems):
             direct_total = direct_emission(fuel_total, calc_total, bake_total, graph_total, gas_total)
             indirect_total = indirect_emission(purchased_power_total, purchased_heat_total, exported_power_total, exported_heat_total)
@@ -2384,49 +2310,38 @@ class CarbonMaterialCalculator:
                 boundary_component_ids=input_value.boundary_component_ids,
                 emission_sources=tuple(EmissionSourceSelection(item.source_id, item.status is EmissionSourceStatus.INVOLVED) for item in input_value.source_states),
             )
-            status = RecordStatus.COMPLETED_WITH_WARNINGS if contains_warnings(problems) else RecordStatus.COMPLETED
-            record = AccountingRecord(
-                f"record.{input_value.input_id}.{uuid4().hex}",
-                STANDARD_ID,
-                ALGORITHM_VERSION,
-                snapshot_at,
-                generic_input,
-                calculation_result,
-                status,
-                tuple(snapshots),
-                tuple(problems),
-                self.standard_version,
+            rule_snapshot = self._effective_rule_snapshot()
+            source_subtotals = {
+                "fuel": fuel_total,
+                "calcination": calc_total,
+                "baking": bake_total,
+                "graphitization": graph_total,
+                "gas_control": gas_total,
+                "purchased_electricity": purchased_power_total,
+                "purchased_heat": purchased_heat_total,
+                "exported_electricity": exported_power_total,
+                "exported_heat": exported_heat_total,
+            }
+            trace_snapshot = self._trace_snapshot(calculation_result, traces, snapshots, source_subtotals)
+            provenance_snapshot = self._provenance_snapshot(rule_snapshot, snapshots)
+
+            def freeze_snapshot(value: object) -> str:
+                return json.dumps(_snapshot_value(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+            evidence = CarbonMaterialCalculationEvidence(
+                input_snapshot=generic_input,
+                standard_version=self.standard_version,
+                effective_rule_ids=tuple(sorted(self._effective_rule_ids)),
+                raw_input_snapshot_json=freeze_snapshot(input_value),
+                trace_snapshot_json=freeze_snapshot(trace_snapshot),
+                provenance_snapshot_json=freeze_snapshot(provenance_snapshot),
+                reporting_snapshot_json=freeze_snapshot(input_value.reporting_data),
+                report_qualification_json=freeze_snapshot(report_qualification),
             )
-            create_with_details = getattr(self.record_repository, "create_with_details", None)
-            if callable(create_with_details):
-                rule_snapshot = self._effective_rule_snapshot()
-                source_subtotals = {
-                    "fuel": fuel_total,
-                    "calcination": calc_total,
-                    "baking": bake_total,
-                    "graphitization": graph_total,
-                    "gas_control": gas_total,
-                    "purchased_electricity": purchased_power_total,
-                    "purchased_heat": purchased_heat_total,
-                    "exported_electricity": exported_power_total,
-                    "exported_heat": exported_heat_total,
-                }
-                trace_snapshot = self._trace_snapshot(record, traces, snapshots, source_subtotals)
-                provenance_snapshot = self._provenance_snapshot(record, rule_snapshot, snapshots)
-                create_with_details(
-                    record,
-                    raw_input=input_value,
-                    effective_rule_set=tuple(sorted(self._effective_rule_ids)),
-                    trace_snapshot=trace_snapshot,
-                    provenance_snapshot=provenance_snapshot,
-                    reporting_snapshot=_snapshot_value(input_value.reporting_data),
-                    report_qualification=_snapshot_value(report_qualification),
-                )
-            else:
-                self.record_repository.create(record)
-        return CarbonMaterialCalculationOutcome(input_value, calculation_result, tuple(problems), tuple(snapshots), tuple(traces), ALGORITHM_VERSION, record, report_qualification)
+
+        return CarbonMaterialCalculationOutcome(input_value, calculation_result, tuple(problems), tuple(snapshots), tuple(traces), ALGORITHM_VERSION, None, report_qualification, evidence)
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "InMemoryRecordRepository", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationEvidence", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
 ]

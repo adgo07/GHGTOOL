@@ -88,3 +88,21 @@ class SettingsRepository(Protocol):
 class RuleRepository(Protocol):
     def list_rules(self, standard_id: str | None = None) -> Sequence[RuleDefinition]:
         """Return immutable common/industry rules, optionally scoped to a standard."""
+
+
+@runtime_checkable
+class DetailedRecordRepository(RecordRepository, Protocol):
+    """Append immutable records together with their versioned evidence snapshots."""
+
+    def create_with_details(
+        self,
+        record: AccountingRecord,
+        *,
+        raw_input: object | None = None,
+        effective_rule_set: Sequence[str] = (),
+        trace_snapshot: object | None = None,
+        provenance_snapshot: object | None = None,
+        reporting_snapshot: object | None = None,
+        report_qualification: object | None = None,
+    ) -> None:
+        """Atomically append one record and all of its immutable evidence."""

@@ -40,7 +40,9 @@ from packages.persistence import (
     build_catalog_database,
 )
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput, InMemoryRecordRepository
+from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.persistence.in_memory_records import InMemoryRecordRepository
+from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput
 from packages.ui.pages import RecordLibraryPage
 from packages.ui.view_models import AppRoute
 
@@ -205,7 +207,7 @@ class G07RecordRepositoryTests(unittest.TestCase):
 
     def test_same_input_creates_new_record_and_error_creates_none(self) -> None:
         repository = InMemoryRecordRepository()
-        calculator = CarbonMaterialCalculator(record_repository=repository)
+        use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository)
         input_value = CarbonMaterialInput(
             input_id="input.same",
             enterprise_id="enterprise.g07",
@@ -213,14 +215,14 @@ class G07RecordRepositoryTests(unittest.TestCase):
             period=PERIOD,
             boundary_confirmed=True,
         )
-        first = calculator.calculate(input_value, calculated_at=NOW)
-        second = calculator.calculate(input_value, calculated_at=NOW)
+        first = use_case.calculate(input_value, calculated_at=NOW)
+        second = use_case.calculate(input_value, calculated_at=NOW)
         self.assertTrue(first.successful)
         self.assertTrue(second.successful)
         self.assertNotEqual(first.record.record_id, second.record.record_id)
         self.assertEqual(len(repository.list_all()), 2)
 
-        blocked = calculator.calculate(
+        blocked = use_case.calculate(
             CarbonMaterialInput(
                 input_id="input.error",
                 enterprise_id="enterprise.g07",
@@ -238,7 +240,7 @@ class G07RecordRepositoryTests(unittest.TestCase):
     def test_calculator_writes_sqlite_record_and_full_raw_input_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = SQLiteRecordRepository(Path(directory) / "records.sqlite")
-            calculator = CarbonMaterialCalculator(record_repository=repository)
+            use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository)
             input_value = CarbonMaterialInput(
                 input_id="input.sqlite",
                 enterprise_id="enterprise.g07",
@@ -246,7 +248,7 @@ class G07RecordRepositoryTests(unittest.TestCase):
                 period=PERIOD,
                 boundary_confirmed=True,
             )
-            outcome = calculator.calculate(input_value, calculated_at=NOW)
+            outcome = use_case.calculate(input_value, calculated_at=NOW)
             self.assertTrue(outcome.successful)
             self.assertIsNotNone(outcome.record)
             self.assertEqual(len(repository.list_all()), 1)
@@ -458,7 +460,7 @@ class G07UiTests(unittest.TestCase):
             first_shell = first_window.centralWidget()
             self.assertIsInstance(first_shell.record_repository, SQLiteRecordRepository)
             page = first_shell.pages[AppRoute.NEW_ACCOUNTING]
-            outcome = page.calculator.calculate(
+            outcome = page.calculation_use_case.calculate(
                 CarbonMaterialInput(
                     input_id="input.default-app",
                     enterprise_id="enterprise.default-app",

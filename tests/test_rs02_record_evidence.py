@@ -8,6 +8,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from packages.core.models import AccountingPeriod, PeriodType
+from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.persistence.records_repository import RecordRepositoryError, SQLiteRecordRepository
 from packages.standards.carbon_material import (
     ActivityDataEvidence,
@@ -26,7 +28,6 @@ from packages.standards.carbon_material import (
     ParameterValue,
     SOURCE_FUEL,
     SOURCE_GRAPHITIZATION,
-    InMemoryRecordRepository,
     verify_record_aggregation,
 )
 
@@ -79,9 +80,9 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             identity = {"catalog_id": "catalog-test", "data_version": "test-1", "content_sha256": "a" * 64}
             repository = SQLiteRecordRepository(path)
             calculator = CarbonMaterialCalculator(
-                record_repository=repository,
                 reference_data_identity_provider=lambda: identity,
             )
+            use_case = CarbonAccountingUseCase(calculator, repository)
             reporting = CarbonReportingData(
                 organization_nature="有限责任公司",
                 industry="炭素材料制造",
@@ -118,7 +119,7 @@ class RS02RecordEvidenceTests(unittest.TestCase):
                 fuel_inputs=(FuelInput.mass("fuel.coke", "2", measured_carbon, "0.98"),),
             )
 
-            outcome = calculator.calculate(input_value, calculated_at=NOW)
+            outcome = use_case.calculate(input_value, calculated_at=NOW)
             self.assertTrue(outcome.successful)
             record_id = outcome.record.record_id
             trace_before = repository.get_trace_snapshot(record_id)
@@ -153,8 +154,8 @@ class RS02RecordEvidenceTests(unittest.TestCase):
 
     def test_multi_instance_trace_keeps_stable_process_identity_and_subtotals(self) -> None:
         repository = SQLiteRecordRepository(Path(tempfile.mkdtemp()) / "records.sqlite")
-        calculator = CarbonMaterialCalculator(record_repository=repository)
-        result = calculator.calculate(_input(calcinations=(
+        use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository)
+        result = use_case.calculate(_input(calcinations=(
             CalcinationInput(gc="100", wfc="0.008", cc="70", ucc="5", du="1", wfc_c="0.002", wvar="0.10", wvar_c="0.02", k1="0.35", instance_id="calcination-a"),
             CalcinationInput(gc="80", wfc="0.009", cc="60", ucc="4", du="1", wfc_c="0.003", wvar="0.08", wvar_c="0.02", k1="0.35", instance_id="calcination-b"),
         )), calculated_at=NOW)
@@ -180,7 +181,7 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             k3=ParameterValue("CAR-PAR-K3", "0.40", "ratio", source_location="附录C.3"),
             instance_id="graph-10",
         )
-        outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
             _input(
                 graphitizations=(first, second),
                 source_states=(EmissionSourceState(SOURCE_GRAPHITIZATION, EmissionSourceStatus.INVOLVED),),
@@ -216,7 +217,7 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             "CAR-PAR-FUEL-CARBON", "0.02", "tC/t", source_location="附录C.1",
             evidence_ref_ids=("evidence.fuel",),
         )
-        outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
             _input(
                 reporting_data=reporting,
                 source_states=(EmissionSourceState(SOURCE_FUEL, EmissionSourceStatus.INVOLVED),),
@@ -251,7 +252,9 @@ class RS02RecordEvidenceTests(unittest.TestCase):
     def test_snapshot_schema_distinguishes_legacy_migration_defaults_from_corruption(self) -> None:
         database = Path(tempfile.mkdtemp()) / "records.sqlite"
         repository = SQLiteRecordRepository(database)
-        outcome = CarbonMaterialCalculator(record_repository=InMemoryRecordRepository()).calculate(
+        outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(), InMemoryRecordRepository()
+        ).calculate(
             _input(), calculated_at=NOW,
         )
         repository.create(outcome.record)
@@ -295,7 +298,9 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         for period_type in (PeriodType.MONTHLY, PeriodType.CUSTOM):
             with self.subTest(period_type=period_type):
                 repository = SQLiteRecordRepository(Path(tempfile.mkdtemp()) / "records.sqlite")
-                outcome = CarbonMaterialCalculator(record_repository=repository).calculate(
+                outcome = CarbonAccountingUseCase(
+                    CarbonMaterialCalculator(), repository
+                ).calculate(
                     _input(period_type), calculated_at=NOW
                 )
                 self.assertTrue(outcome.successful)
@@ -315,15 +320,17 @@ class RS02RecordEvidenceTests(unittest.TestCase):
 
     def test_fatal_calculator_error_still_creates_no_record_and_legacy_trace_is_absent(self) -> None:
         repository = SQLiteRecordRepository(Path(tempfile.mkdtemp()) / "records.sqlite")
-        calculator = CarbonMaterialCalculator(record_repository=repository)
-        failed = calculator.calculate(_input(boundary_confirmed=False), calculated_at=NOW)
+        use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository)
+        failed = use_case.calculate(_input(boundary_confirmed=False), calculated_at=NOW)
         self.assertFalse(failed.successful)
         self.assertIsNone(failed.record)
         self.assertEqual(repository.list_all(), ())
 
         legacy_repository = SQLiteRecordRepository(Path(tempfile.mkdtemp()) / "legacy.sqlite")
         # A successful record written through the base create API has no new RS02-A details.
-        succeeded = CarbonMaterialCalculator(record_repository=InMemoryRecordRepository()).calculate(_input(), calculated_at=NOW)
+        succeeded = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(), InMemoryRecordRepository()
+        ).calculate(_input(), calculated_at=NOW)
         legacy_record = succeeded.record
         legacy_repository.create(legacy_record)
         self.assertEqual(legacy_repository.get_trace_snapshot(legacy_record.record_id), {})

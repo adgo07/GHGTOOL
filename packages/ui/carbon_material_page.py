@@ -43,7 +43,12 @@ from PySide6.QtWidgets import (
     QInputDialog,
 )
 
-from packages.application.carbon_accounting import create_g06_parameter_resolver
+from packages.application.carbon_accounting import (
+    CarbonAccountingUseCase,
+    resolve_formal_record_repository,
+    RecordPersistenceError,
+    create_g06_parameter_resolver,
+)
 from packages.application.catalog_queries import CatalogQueryService
 from packages.application.project_workspaces import (
     AccountingUnitType,
@@ -84,7 +89,6 @@ from packages.standards.carbon_material import (
     HeatInput,
     InputValue,
     ElectricityOutputLine,
-    InMemoryRecordRepository,
     MaterialBasis,
     MaterialComponentKind,
     MeasuredFactorEvidence,
@@ -580,10 +584,13 @@ class CarbonMaterialAccountingPage(BasePage):
         standard_id: str = STANDARD_ID,
         project_service: ProjectWorkspaceService | None = None,
         parent: QWidget | None = None,
+        calculation_use_case: CarbonAccountingUseCase | None = None,
     ) -> None:
         super().__init__(AppRoute.NEW_ACCOUNTING, parent)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
         self.project_service = project_service
+        self.calculation_use_case = calculation_use_case
+        self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         resolver = None
         try:
             resolver = create_g06_parameter_resolver(self.catalog_service.repository)
@@ -591,18 +598,17 @@ class CarbonMaterialAccountingPage(BasePage):
             resolver = None
         self._parameter_resolver = resolver
         standard_implementation_date = self.catalog_service.standard_implementation_date(standard_id)
-        if calculator is None:
+        use_case_calculator = getattr(calculation_use_case, "calculator", None)
+        if use_case_calculator is not None:
+            calculator = use_case_calculator
+        elif calculator is None:
             catalog_version = self.catalog_service.standard_version(standard_id)
             calculator = CarbonMaterialCalculator(
                 parameter_resolver=resolver,
-                record_repository=record_repository,
                 standard_version=catalog_version or STANDARD_VERSION,
                 standard_implementation_date=standard_implementation_date,
                 reference_data_identity_provider=self.catalog_service.reference_data_identity,
             )
-        else:
-            calculator.standard_implementation_date = standard_implementation_date
-            calculator.reference_data_identity_provider = self.catalog_service.reference_data_identity
         self.calculator = calculator
         self.standard_id = standard_id
         self._calculation_index = 0
@@ -1812,7 +1818,7 @@ class CarbonMaterialAccountingPage(BasePage):
         record_id = result.get("record_id")
         if not isinstance(record_id, str) or not record_id:
             record_id = unit.record_ids[-1] if unit.record_ids else None
-        getter = getattr(getattr(self.calculator, "record_repository", None), "get_raw_input_snapshot", None)
+        getter = getattr(self.record_repository, "get_raw_input_snapshot", None)
         if not record_id or not callable(getter):
             return None
         try:
@@ -5122,6 +5128,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._known_source_errors.clear()
         self._validation_count_override = None
         self._calculation_has_result = False
+        self._latest_record_id = None
+        self.view_record_button.setEnabled(False)
         self.result_card.setVisible(False)
         self.process_card.setVisible(False)
         self.quality_card.setVisible(False)
@@ -5133,8 +5141,17 @@ class CarbonMaterialAccountingPage(BasePage):
             card.check_result_label.clear()
         self._refresh_source_cards()
         technical_lines: list[str] = []
+        if self.calculation_use_case is None:
+            self._show_formal_calculation_error(
+                "正式核算服务尚未配置，无法计算并保存核算记录。"
+            )
+            return
         try:
-            outcome = self.calculator.calculate(self._input())
+            outcome = self.calculation_use_case.calculate(self._input())
+        except RecordPersistenceError as exc:
+            _LOGGER.exception("Formal carbon-accounting record persistence failed: %s", exc)
+            self._show_formal_calculation_error(f"未能保存核算记录：{exc}")
+            return
         except (DomainValidationError, InvalidOperation, ValueError) as exc:
             raw_message = str(exc)
             _LOGGER.error("Carbon-material calculation input validation failed: %s", raw_message)
@@ -5180,6 +5197,11 @@ class CarbonMaterialAccountingPage(BasePage):
             self._refresh_live_feedback()
             self._schedule_layout_refresh()
             QTimer.singleShot(0, self, self._focus_first_error)
+            return
+        if outcome.record is None:
+            self._show_formal_calculation_error(
+                "未能保存核算记录：当前正式核算服务未返回已保存的核算记录。"
+            )
             return
         self._calculation_has_result = True
         self.result_card.setVisible(True)
@@ -5322,6 +5344,22 @@ class CarbonMaterialAccountingPage(BasePage):
                 self.project_save_status.setText("核算记录已生成；当前项目未配置持久化服务。")
             self._refresh_unit_result_summary()
         QTimer.singleShot(0, self, lambda: self._scroll_to_widget(self.result_card))
+        self._refresh_live_feedback()
+        self._schedule_layout_refresh()
+
+    def _show_formal_calculation_error(self, message: str) -> None:
+        """Show a workflow or persistence failure without presenting a result."""
+
+        root = self._validation_root("未能保存核算记录")
+        section = self._validation_child(root, "核算记录", ("record", "persistence"))
+        section.addChild(QTreeWidgetItem([self._sanitize_business_message(message)]))
+        self._update_validation_root_labels()
+        self.validation_list.expandAll()
+        self.result_total.setText("未生成结果")
+        self.result_status.setText("核算状态：未能保存核算记录")
+        self.project_save_status.setText("未建立新的项目关联。")
+        self.quality_card.setVisible(True)
+        self._validation_count_override = (1, 0)
         self._refresh_live_feedback()
         self._schedule_layout_refresh()
 

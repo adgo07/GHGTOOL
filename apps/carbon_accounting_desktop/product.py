@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from packages.application import CatalogQueryService, ProjectWorkspaceService, create_catalog_query_service
+from packages.application import (
+    CarbonAccountingUseCase,
+    resolve_formal_record_repository,
+    CatalogQueryService,
+    ProjectWorkspaceService,
+)
+from packages.persistence.catalog_queries_factory import create_catalog_query_service
 from packages.core.repositories import RecordRepository
-from packages.persistence import SQLiteProjectWorkspaceRepository, SQLiteRecordRepository
 
 from .config import AppConfig
 from packages.ui.shell import AppShell
@@ -39,14 +44,11 @@ def create_shell(
     catalog_service: CatalogQueryService | None = None,
     record_repository: RecordRepository | None = None,
     project_service: ProjectWorkspaceService | None = None,
+    calculation_use_case: CarbonAccountingUseCase | None = None,
 ) -> AppShell:
-    """Build the product shell while keeping database access in the application edge."""
+    """Build the product shell from services composed by the desktop entry point."""
 
-    if record_repository is None:
-        record_repository = SQLiteRecordRepository(
-            config.resolved_records_database(),
-            app_version=config.app_version,
-        )
+    record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
 
     return AppShell(
         carbon_accounting_view_model(),
@@ -57,4 +59,5 @@ def create_shell(
         ),
         record_repository=record_repository,
         project_service=project_service,
+        calculation_use_case=calculation_use_case,
     )

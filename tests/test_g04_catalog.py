@@ -28,7 +28,7 @@ from packages.standards.catalog import (
 from packages.ui.catalog_pages import ParameterFactorLibraryPage
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
-from packages.standards.carbon_material import InMemoryRecordRepository
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 
 
 def _standard_action_button(page: object, standard_id: str) -> QPushButton:

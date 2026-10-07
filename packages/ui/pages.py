@@ -36,6 +36,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.application.reporting import build_saved_record_report
 from packages.core.models import AccountingRecord, RecordStatus
 from packages.core.repositories import RecordRepository
+from packages.application.carbon_accounting import CarbonAccountingUseCase
 from packages.infrastructure.reporting import render_report_docx
 from .record_experience import (
     SnapshotState,
@@ -959,6 +960,7 @@ def create_page(
     catalog_service: CatalogQueryService | None = None,
     record_repository: RecordRepository | None = None,
     project_service=None,
+    calculation_use_case: CarbonAccountingUseCase | None = None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
@@ -985,6 +987,7 @@ def create_page(
             catalog_service=catalog_service or CatalogQueryService.empty(),
             record_repository=record_repository,
             project_service=project_service,
+            calculation_use_case=calculation_use_case,
             parent=parent,
         )
 

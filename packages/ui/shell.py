@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from packages.application import CarbonAccountingUseCase, resolve_formal_record_repository
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.repositories import RecordRepository
 from packages.application.project_workspaces import ProjectWorkspaceService
@@ -99,6 +100,7 @@ class AppShell(QWidget):
         catalog_service: CatalogQueryService | None = None,
         record_repository: RecordRepository | None = None,
         project_service: ProjectWorkspaceService | None = None,
+        calculation_use_case: CarbonAccountingUseCase | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -106,8 +108,9 @@ class AppShell(QWidget):
         self._logo_path = logo_path
         self._icon_directory = icon_directory
         self.catalog_service = catalog_service or CatalogQueryService.empty()
-        self.record_repository = record_repository
+        self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.project_service = project_service
+        self.calculation_use_case = calculation_use_case
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
@@ -134,6 +137,7 @@ class AppShell(QWidget):
                     catalog_service=self.catalog_service,
                     record_repository=self.record_repository,
                     project_service=self.project_service,
+                    calculation_use_case=self.calculation_use_case,
                 )
             else:
                 page = self._page_factory(item.route, view_model, self.navigate, self)

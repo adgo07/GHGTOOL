@@ -1,13 +1,33 @@
-"""Application adapters for the G06 carbon-material calculation module."""
+"""Application services for catalog access and carbon-accounting workflows."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from dataclasses import replace
+from datetime import datetime
+from typing import Any
+from uuid import uuid4
 
-from packages.core.models import Factor, Parameter
+from packages.core.errors import contains_warnings
+from packages.core.models import AccountingRecord, Factor, Parameter, RecordStatus
 from packages.core.parameter_resolution import ParameterResolver
-from packages.core.repositories import ParameterRepository
+from packages.core.repositories import DetailedRecordRepository, ParameterRepository, RecordRepository
 from packages.standards.catalog import CatalogRepository
+
+from packages.standards.carbon_material import (
+    CarbonMaterialCalculationOutcome,
+    CarbonMaterialCalculator,
+    CarbonMaterialInput,
+)
+
+
+class RecordRepositoryConfigurationError(ValueError):
+    """Raised when a formal calculation has no detail-capable record store."""
+
+
+class RecordPersistenceError(RuntimeError):
+    """Raised when a successful calculation could not be saved as a formal record."""
 
 
 class CatalogParameterRepository(ParameterRepository):
@@ -66,4 +86,122 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
     return ParameterResolver.with_default_g05_rules(CatalogParameterRepository(repository))
 
 
-__all__ = ["CatalogParameterRepository", "create_g06_parameter_resolver"]
+def _decode_evidence_snapshot(value: str, label: str) -> Any:
+    if not isinstance(value, str):
+        raise RecordPersistenceError(f"核算器未提供有效的{label}快照，未保存正式记录。")
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise RecordPersistenceError(f"{label}快照格式无效，未保存正式记录。") from exc
+
+
+class CarbonAccountingUseCase:
+    """Persist successful Domain outcomes as append-only formal records."""
+
+    def __init__(
+        self,
+        calculator: CarbonMaterialCalculator,
+        record_repository: DetailedRecordRepository,
+    ) -> None:
+        if calculator is None:
+            raise RecordRepositoryConfigurationError("正式核算必须配置计算器。")
+        if record_repository is None:
+            raise RecordRepositoryConfigurationError("正式核算必须配置记录仓库。")
+        create_with_details = getattr(record_repository, "create_with_details", None)
+        if not callable(create_with_details):
+            raise RecordRepositoryConfigurationError(
+                "正式核算要求支持详细证据快照的记录仓库（create_with_details）。"
+            )
+        self.calculator = calculator
+        self.record_repository = record_repository
+        self._create_with_details = create_with_details
+
+    def calculate(
+        self,
+        input_value: CarbonMaterialInput,
+        *,
+        calculated_at: datetime | None = None,
+    ) -> CarbonMaterialCalculationOutcome:
+        outcome = self.calculator.calculate(input_value, calculated_at=calculated_at)
+        if outcome.blocked or not outcome.successful:
+            return outcome
+
+        evidence = outcome.evidence
+        result = outcome.result
+        if evidence is None or result is None:
+            raise RecordPersistenceError("计算器未返回完整正式记录证据，未保存正式记录。")
+
+        status = (
+            RecordStatus.COMPLETED_WITH_WARNINGS
+            if contains_warnings((*outcome.problems, *result.problems))
+            else RecordStatus.COMPLETED
+        )
+        record = AccountingRecord(
+            record_id=f"record.{evidence.input_snapshot.input_id}.{uuid4().hex}",
+            standard_id=evidence.input_snapshot.standard_id,
+            algorithm_version=outcome.algorithm_version,
+            created_at=result.calculated_at,
+            input_snapshot=evidence.input_snapshot,
+            calculation_result=result,
+            status=status,
+            parameter_snapshots=outcome.parameter_snapshots,
+            problems=outcome.problems,
+            standard_version=evidence.standard_version,
+        )
+
+        try:
+            self._create_with_details(
+                record,
+                raw_input=_decode_evidence_snapshot(evidence.raw_input_snapshot_json, "原始输入"),
+                effective_rule_set=evidence.effective_rule_ids,
+                trace_snapshot=_decode_evidence_snapshot(evidence.trace_snapshot_json, "计算追溯"),
+                provenance_snapshot=_decode_evidence_snapshot(evidence.provenance_snapshot_json, "参数来源"),
+                reporting_snapshot=_decode_evidence_snapshot(evidence.reporting_snapshot_json, "报告信息"),
+                report_qualification=_decode_evidence_snapshot(evidence.report_qualification_json, "报告周期资格"),
+            )
+        except RecordPersistenceError:
+            raise
+        except Exception as exc:
+            raise RecordPersistenceError(
+                "计算结果未能保存为正式记录；请重试，或联系管理员检查记录存储。"
+            ) from exc
+        return replace(outcome, record=record)
+
+
+def resolve_formal_record_repository(
+    calculation_use_case: CarbonAccountingUseCase | None,
+    record_repository: RecordRepository | None,
+) -> RecordRepository | None:
+    """Use the same repository for formal calculation and record browsing."""
+    if calculation_use_case is None:
+        return record_repository
+    bound_repository = calculation_use_case.record_repository
+    if record_repository is not None and record_repository is not bound_repository:
+        raise RecordRepositoryConfigurationError("正式核算与记录查看必须使用同一记录仓库。")
+    return bound_repository
+
+
+class CarbonAccountingPreviewUseCase:
+    """Run a preview using only the pure calculator, without a record store."""
+
+    def __init__(self, calculator: CarbonMaterialCalculator) -> None:
+        self.calculator = calculator
+
+    def calculate(
+        self,
+        input_value: CarbonMaterialInput,
+        *,
+        calculated_at: datetime | None = None,
+    ) -> CarbonMaterialCalculationOutcome:
+        return self.calculator.calculate(input_value, calculated_at=calculated_at)
+
+
+__all__ = [
+    "CarbonAccountingPreviewUseCase",
+    "CarbonAccountingUseCase",
+    "CatalogParameterRepository",
+    "RecordPersistenceError",
+    "RecordRepositoryConfigurationError",
+    "create_g06_parameter_resolver",
+    "resolve_formal_record_repository",
+]

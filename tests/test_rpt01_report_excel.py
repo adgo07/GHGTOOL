@@ -13,6 +13,7 @@ from docx import Document
 from openpyxl import load_workbook
 
 from packages.application.reporting import build_saved_record_report
+from packages.application.carbon_accounting import CarbonAccountingUseCase
 from packages.application.reporting.model import build_report_model
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.core.models import (
@@ -34,6 +35,7 @@ from packages.persistence.catalog_builder import build_catalog_database
 from packages.persistence.catalog_repository import SQLiteCatalogRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.persistence.records_repository import SQLiteRecordRepository
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
     ActivityDataEvidence,
     CarbonMaterialCalculator,
@@ -250,7 +252,9 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
                     ),),
                 ),
             )
-            outcome = CarbonMaterialCalculator(record_repository=repository).calculate(input_value, calculated_at=NOW)
+            outcome = CarbonAccountingUseCase(
+                CarbonMaterialCalculator(), repository
+            ).calculate(input_value, calculated_at=NOW)
             self.assertTrue(outcome.successful)
             record = repository.get(outcome.record.record_id)
             report = build_saved_record_report(repository, record, supplementary_info={"prepared_on": "2026-10-06"})

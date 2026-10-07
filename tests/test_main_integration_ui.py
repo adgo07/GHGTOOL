@@ -16,18 +16,31 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtTest import QSignalSpy
 from docx import Document
 from openpyxl import load_workbook
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
+from packages.application.carbon_accounting import CarbonAccountingUseCase, RecordRepositoryConfigurationError
 from packages.application.reporting import build_saved_record_report
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.excel.r2 import ExcelWorkbookImporter, create_template_bytes
 from packages.persistence import SQLiteCatalogRepository, SQLiteRecordRepository, build_catalog_database
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, FuelType
 from packages.ui.view_models import AppRoute
+
+
+class FailingDetailedRecordRepository(InMemoryRecordRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.persistence_attempts = 0
+
+    def create_with_details(self, record, **kwargs) -> None:
+        self.persistence_attempts += 1
+        raise OSError("simulated record-store failure")
 
 
 class MainIntegrationUiTests(unittest.TestCase):
@@ -64,6 +77,30 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.window.deleteLater()
         self.app.processEvents()
         self.directory.cleanup()
+
+    def test_formal_calculation_and_browsing_reject_different_repositories(self) -> None:
+        from apps.carbon_accounting_desktop.product import create_shell
+        from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
+        from packages.ui.shell import AppShell
+        use_case = self.page.calculation_use_case
+        other = InMemoryRecordRepository()
+        config = AppConfig(catalog_database=self.catalog)
+        factories = (
+            lambda: create_main_window(config, record_repository=other, calculation_use_case=use_case),
+            lambda: create_shell(config, record_repository=other, calculation_use_case=use_case),
+            lambda: AppShell(self.shell.view_model, self.shell._logo_path, self.shell._icon_directory,
+                             record_repository=other, calculation_use_case=use_case),
+            lambda: CarbonMaterialAccountingPage(record_repository=other, calculation_use_case=use_case),
+        )
+        for factory in factories:
+            with self.subTest(factory=factory):
+                with self.assertRaisesRegex(RecordRepositoryConfigurationError, "同一记录仓库"):
+                    factory()
+        derived = create_main_window(config, calculation_use_case=use_case)
+        self.assertIs(derived.centralWidget().record_repository, self.repository)
+        derived.close()
+        derived.deleteLater()
+        self.app.processEvents()
 
     def _workbook(self) -> Path:
         workbook = load_workbook(BytesIO(create_template_bytes()))
@@ -120,6 +157,31 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.assertIn("未完成", self.page.calculation_status_hint.text())
         reopened = SQLiteRecordRepository(self.records_path)
         self.assertEqual(tuple(asdict(record) for record in reopened.list_all()), originals)
+
+    def test_record_persistence_failure_does_not_show_or_link_a_result(self) -> None:
+        failing_repository = FailingDetailedRecordRepository()
+        self.page.calculation_use_case = CarbonAccountingUseCase(
+            self.page.calculator,
+            failing_repository,
+        )
+        self.page.record_repository = failing_repository
+        created = QSignalSpy(self.page.record_created)
+        requested = QSignalSpy(self.page.record_requested)
+
+        self.page.quick_calculate_button.click()
+        self.app.processEvents()
+
+        self.assertEqual(failing_repository.persistence_attempts, 1)
+        self.assertEqual(failing_repository.list_all(), ())
+        self.assertEqual(self.repository.list_all(), ())
+        self.assertFalse(self.page.result_card.isVisible())
+        self.assertIn("未能保存核算记录", self.page.result_status.text())
+        self.assertIn("未能保存核算记录", self.page.validation_list.topLevelItem(0).text(0))
+        self.assertEqual(self.page._unit().record_ids, ())
+        self.assertIsNone(self.page._unit().result_snapshot)
+        self.assertIn("未建立新的项目关联", self.page.project_save_status.text())
+        self.assertEqual(created.count(), 0)
+        self.assertEqual(requested.count(), 0)
 
     def test_word_export_after_catalog_change_uses_frozen_record(self) -> None:
         self.page.quick_calculate_button.click()

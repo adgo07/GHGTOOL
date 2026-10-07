@@ -259,3 +259,33 @@ class CatalogRepository(Protocol):
 
     def list_conversion_rules(self) -> Sequence[ConversionRuleCatalogRecord]:
         """Return source-traceable unit conversion rules for library display."""
+
+class EmptyCatalogRepository(CatalogRepository):
+    """Pure empty read adapter used before a catalog is installed."""
+
+    def list_standards(self) -> tuple[StandardCatalogRecord, ...]:
+        return ()
+
+    def list_sources(self) -> tuple[SourceCatalogRecord, ...]:
+        return ()
+
+    def list_subjects(self) -> tuple[SubjectCatalogRecord, ...]:
+        return ()
+
+    def list_parameters(self) -> tuple[ParameterCatalogRecord, ...]:
+        return ()
+
+    def list_factors(self) -> tuple[FactorCatalogRecord, ...]:
+        return ()
+
+    def list_source_tables(self) -> tuple[SourceTableCatalogRecord, ...]:
+        return ()
+
+    def list_reference_data_assets(self) -> tuple[ReferenceDataAssetCatalogRecord, ...]:
+        return ()
+
+    def list_reference_data_bindings(self) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
+        return ()
+
+    def list_conversion_rules(self) -> tuple[ConversionRuleCatalogRecord, ...]:
+        return ()

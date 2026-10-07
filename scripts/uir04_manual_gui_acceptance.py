@@ -29,13 +29,16 @@ from packages.core import (  # noqa: E402
     ElectricityProofStatus,
     ElectricityProofType,
 )
-from packages.persistence import SQLiteCatalogRepository, build_catalog_database  # noqa: E402
+from packages.persistence import (  # noqa: E402
+    InMemoryRecordRepository,
+    SQLiteCatalogRepository,
+    build_catalog_database,
+)
 from packages.reference_data import DEFAULT_SOURCE_PATH  # noqa: E402
 from packages.standards.carbon_material import (  # noqa: E402
     EmissionSourceStatus,
     FuelPath,
     FuelType,
-    InMemoryRecordRepository,
     MaterialBasis,
 )
 from packages.ui.view_models import AppRoute  # noqa: E402

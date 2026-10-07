@@ -22,6 +22,7 @@ from packages.core import (
     ElectricityProofType,
 )
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
     STANDARD_ID,
@@ -32,7 +33,6 @@ from packages.standards.carbon_material import (
     MaterialBasis,
     MaterialComponentKind,
     EmissionSourceStatus,
-    InMemoryRecordRepository,
     ParameterSourceKind,
     SteamKind,
 )
@@ -147,7 +147,7 @@ class G06PageTests(unittest.TestCase):
         self.assertIn("单位含碳量", missing)
         self.assertIn("碳氧化率", missing)
         self.assertTrue(self.page.result_card.isHidden())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
 
         row.carbon.setText("0.02")
         row.oxidation.setText("98")
@@ -157,7 +157,7 @@ class G06PageTests(unittest.TestCase):
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
         self.assertEqual(self.page._fuel()[0].fuel_label, "工艺回收混合燃料")
-        saved = self.page.calculator.record_repository.list_all()
+        saved = self.page.record_repository.list_all()
         self.assertEqual(len(saved), 1)
 
     def test_blank_fuel_activity_is_distinct_from_explicit_zero(self) -> None:
@@ -213,7 +213,7 @@ class G06PageTests(unittest.TestCase):
         outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(outcome.blocked)
         self.assertTrue(any(problem.code == "CAR-VAL-CARBONATE-FACTOR-MISSING" for problem in outcome.problems))
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
 
         self.page._fields["fgd.ef1"].setText("0.500")
         self.page._fields["fgd.factor_source_reference"].setText("脱硫剂检测报告-UI-01")
@@ -330,7 +330,7 @@ class G06PageTests(unittest.TestCase):
         self.assertIn("石墨化过程 3", messages)
         self.assertTrue(any("固定碳" in message and "必填信息不完整" in message for message in messages), messages)
         self.assertTrue(self.page.result_card.isHidden())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
         self.assertNotIn(instance_id, "\n".join(messages))
 
     def test_one_calculation_collects_issues_from_multiple_source_cards(self) -> None:
@@ -354,7 +354,7 @@ class G06PageTests(unittest.TestCase):
         self.assertGreater(sum("必填信息不完整" in text for text in messages), 2)
         self.assertNotIn("CAR-VAL-", joined)
         self.assertTrue(self.page.result_card.isHidden())
-        self.assertEqual(self.page.calculator.record_repository.list_all(), ())
+        self.assertEqual(self.page.record_repository.list_all(), ())
 
     def test_new_accounting_reset_removes_secondary_business_rows(self) -> None:
         for prefix in ("calcination", "baking", "graphitization", "fume", "fgd"):
@@ -801,7 +801,7 @@ class G06PageTests(unittest.TestCase):
         self.page.calculate_button.click()
         self.application.processEvents()
         self.assertFalse(self.page.result_card.isHidden())
-        records = self.page.calculator.record_repository.list_all()
+        records = self.page.record_repository.list_all()
         self.assertEqual(len(records), 1)
         self.assertIsNone(records[0].input_snapshot.enterprise_name)
         messages = tree_texts(self.page.validation_list)
@@ -974,7 +974,7 @@ class G06PageTests(unittest.TestCase):
         self.application.processEvents()
         self.assertIn("温室气体排放总量：", self.page.result_total.text())
         self.assertIn("已形成 0 条参数快照", self.page.parameter_snapshot_summary.text())
-        calculator_repository = self.page.calculator.record_repository
+        calculator_repository = self.page.record_repository
         self.assertEqual(len(calculator_repository.list_all()), 1)
 
         self.page.boundary_confirmed.setChecked(False)

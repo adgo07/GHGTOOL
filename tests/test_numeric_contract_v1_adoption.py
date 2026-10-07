@@ -10,6 +10,8 @@ from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError
 from packages.core.units import UnitService
+from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
     ALGORITHM_VERSION,
     CarbonMaterialCalculator,
@@ -87,9 +89,9 @@ class NumericContractV1AdoptionTests(unittest.TestCase):
 
     def test_formal_result_and_record_algorithm_version_map_to_numeric_v1_profile(self) -> None:
         profile = self.vectors["numeric_profile"]
-        outcome = CarbonMaterialCalculator(policy=DecimalPolicy()).calculate(
-            _fuel_only_input(), calculated_at=SNAPSHOT_AT
-        )
+        outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(policy=DecimalPolicy()), InMemoryRecordRepository()
+        ).calculate(_fuel_only_input(), calculated_at=SNAPSHOT_AT)
         self.assertTrue(outcome.successful)
         self.assertIsNotNone(outcome.result)
         self.assertIsNotNone(outcome.record)
