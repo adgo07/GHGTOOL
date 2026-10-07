@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-07（GHG-PF01；最新main整合后的复测与Windows发布验证通过，等待推送、精确head CI与独立验收）
+最后更新：2026-10-07（GHG-PF01；代码候选已推送且Run 166精确head CI通过，状态文档提交后的最新检查以PR Checks为准，等待独立验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -349,7 +349,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02、UAT01-A/B及UAT02已合并进入main；RPT01经PR #32合并但仍待独立验收。PF01候选已在本地分支合入最新main；合并后定向与全量测试、Canonical、编译、依赖、数据库初始化和Windows发布验证通过，PR #30远端仍为旧head，待推送及精确head CI。RS03-A用户UAT仍待进行，PR #27保持OPEN / UNMERGED；RS03-B未启动。Excel正式写入及结果导出尚未实现。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02、UAT01-A/B及UAT02已合并进入main；RPT01经PR #32合并但仍待独立验收。PF01候选已合入最新main；合并后定向与全量测试、Canonical、编译、依赖、数据库初始化和Windows发布验证通过。代码候选head已推送PR #30，Run 166的合并基线与精确head Windows job均通过；状态文档提交后的最新PR Checks以GitHub为准。RS03-A用户UAT仍待进行，PR #27保持OPEN / UNMERGED；RS03-B未启动。Excel正式写入及结果导出尚未实现。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 8. 当前阶段与下一步
 

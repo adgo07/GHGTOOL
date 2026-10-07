@@ -1,6 +1,6 @@
 # GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`，五份治理文档冲突已收口。合并后本地复测与Windows standalone检查通过；状态记录更新后推送至PR #30原分支并等待精确head CI，之后停止等待独立验收。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`，五份治理文档冲突已收口。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已推送PR #30，GitHub Actions Run 166（ID `37567132440`）的合并基线与精确head Windows job均成功，standalone artifact已上传。后续状态文档提交仅记录结果；PR未合并，等待用户独立验收。
 
 ## 1. 基线与平台 / Contract 预检查
 
@@ -63,10 +63,10 @@
 - 先运行`pip install -e ".[build]"`同步项目依赖（含`python-docx`）和Windows构建依赖。`python scripts/initialize_databases.py --output-dir build/pf01-final-databases-3b95459`通过，隔离创建catalog/user/records/projects四库。
 - 合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的Windows standalone构建通过；`scripts/inspect_release.py`检查262个文件通过，`scripts/verify_release_archive.py`完成263个可见文件ZIP往返检查；隔离双启动smoke为2/2通过。Manifest source_commit为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。
 - 首次默认TEMP/TMP落入受限AppData，导致持久化测试写入失败；将TEMP/TMP指向隔离工作区目录后，定向与全量测试均完成通过。
-- GitHub Actions：Run #162（ID `37491936893`）为Windows CI SUCCESS，但对应旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，不覆盖本轮候选或`main`整合。必须推送后等待PR #30最新head的Windows检查。
+- GitHub Actions：Run #162（ID `37491936893`）只对应旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，不作为本轮证据。Run #166（ID `37567132440`）对应代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`，合并基线与精确head Windows job均SUCCESS，精确head standalone artifact已上传；后续状态文档提交产生的新head以PR Checks为准。
 
 ## 5. 治理状态与停止点
 
-- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30远端仍为旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`；本地合并候选已完成复测与构建，状态记录更新后推送至同一分支。确认最新head Windows CI后停止等待独立验收；不自行合并。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持Open/Unmerged。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已通过Run 166（ID `37567132440`）两个Windows job，standalone artifact已上传；本状态文档提交推送后以PR最新head Checks为准。之后停止等待独立验收；不自行合并。
 - PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
 - Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
