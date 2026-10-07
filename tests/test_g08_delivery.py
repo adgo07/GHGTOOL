@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import os
 import json
 import sqlite3
@@ -174,7 +175,18 @@ class G08DeliveryTests(unittest.TestCase):
             self.assertEqual(manifest["source_commit"], "checkout-sha")
             self.assertEqual(manifest["pr_head_sha"], "pr-head-sha")
             self.assertEqual(manifest["tested_merge_sha"], "tested-merge-sha")
+            with closing(sqlite3.connect(catalog_path)) as connection:
+                catalog_schema_version = connection.execute(
+                    "SELECT value FROM database_metadata WHERE key='schema_version'"
+                ).fetchone()[0]
+            self.assertEqual(manifest["database_schema_versions"]["catalog"], catalog_schema_version)
             self.assertGreater(verify_release_archive(artifact), 0)
+            manifest["database_schema_versions"]["catalog"] = "001"
+            (artifact / "build-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertIn(
+                "manifest catalog database schema version does not match packaged database",
+                inspect_release(artifact),
+            )
 
     def test_fresh_user_gui_calculate_and_reload_record_end_to_end(self) -> None:
         application = QApplication.instance() or QApplication([])

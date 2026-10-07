@@ -47,6 +47,7 @@ from .record_experience import (
     build_record_list_label,
     build_report_view,
     evidence_names_for,
+    format_amount,
     snapshot_state,
     summary_with_trace,
 )
@@ -429,9 +430,7 @@ class HomePage(BasePage):
 
         excel_button = QPushButton(view_model.excel_action_label, start_panel)
         excel_button.setObjectName("reservedButton")
-        excel_button.setProperty("reserved", True)
-        excel_button.setCursor(Qt.CursorShape.ArrowCursor)
-        excel_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        excel_button.setCursor(Qt.CursorShape.PointingHandCursor)
         excel_button.clicked.connect(lambda: navigate(AppRoute.EXCEL_IMPORT))
         start_layout.addWidget(excel_button)
 
@@ -483,7 +482,7 @@ class HomePage(BasePage):
             empty_title.setObjectName("emptyStateTitle")
             self.recent_layout.addWidget(empty_title)
             empty_description = QLabel(
-                "可以通过“新建核算”手工开始。\nExcel 导入功能将在后续版本开放。",
+                "可以通过“新建核算”手工开始，或使用 Excel 模板预览。\n预览不会保存项目或生成正式核算记录。",
                 self.recent_work,
             )
             empty_description.setObjectName("emptyStateDescription")
@@ -938,7 +937,7 @@ class ExcelImportPage(BasePage):
         for unit in preview.units:
             lines.append(f"{unit.name}（{unit_type_names.get(unit.unit_type.value, '核算单元')}）")
             if unit.result is not None:
-                lines.append(f"  预览排放总量：{unit.result.total_amount} {unit.result.total_unit}")
+                lines.append(f"  预览排放总量：{format_amount(unit.result.total_amount, unit.result.total_unit)}")
             else:
                 lines.append("  当前输入不能形成预览结果；请按下方错误修正。")
             for message in unit.errors:

@@ -54,14 +54,14 @@ class G03ShellTest(unittest.TestCase):
                 "首页",
                 "标准库",
                 "新建核算",
-                "Excel 导入（暂未开放）",
+                "Excel 导入预览",
                 "核算记录",
                 "参数与因子库",
                 "设置",
             ],
         )
         self.assertTrue(shell.navigation_buttons[AppRoute.HOME].isChecked())
-        self.assertTrue(shell.navigation_buttons[AppRoute.EXCEL_IMPORT].property("reserved"))
+        self.assertFalse(shell.navigation_buttons[AppRoute.EXCEL_IMPORT].property("reserved"))
         settings_y = shell.navigation_buttons[AppRoute.SETTINGS].mapTo(sidebar, QPoint(0, 0)).y()
         factors_y = shell.navigation_buttons[AppRoute.FACTORS].mapTo(sidebar, QPoint(0, 0)).y()
         self.assertGreater(settings_y, factors_y)
@@ -74,8 +74,9 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentStandardsCard"))
         self.assertEqual(home.findChild(QLabel, "emptyStateTitle").text(), "尚无核算记录")
-        self.assertEqual(home.findChild(QLabel, "emptyStateDescription").text().splitlines()[0], "可以通过“新建核算”手工开始。")
-        self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "暂无核算记录 · 暂无企业 · 暂无待处理事项")
+        self.assertIn("Excel 模板预览", home.findChild(QLabel, "emptyStateDescription").text())
+        self.assertIn("不会保存项目或生成正式核算记录", home.findChild(QLabel, "emptyStateDescription").text())
+        self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "成功核算后可在“核算记录”查看结果与来源依据。")
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
@@ -94,7 +95,7 @@ class G03ShellTest(unittest.TestCase):
             [(button.objectName(), button.text()) for button in buttons],
             [
                 ("primaryButton", "＋ 新建核算"),
-                ("reservedButton", "Excel 导入（暂未开放）"),
+                ("reservedButton", "Excel 导入预览"),
                 ("secondaryButton", "查看标准库"),
             ],
         )
