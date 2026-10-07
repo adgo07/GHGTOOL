@@ -1,6 +1,6 @@
 # GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。实现、全量本地回归和Windows standalone构建已完成；独立PR #30保持OPEN / UNMERGED，等待独立验收。PR最新Head的Windows CI以GitHub PR Checks为准；本报告不内嵌Head或run SHA，最终精确证据见交付回复，避免自引用提交。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选已从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆；起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。GitHub PR #30仍OPEN / UNMERGED，远端head尚未包含本轮候选。最新`origin/main`为`4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，需合入并在该基线上重新验证、推送及等待exact-head CI后再进行独立验收。
 
 ## 1. 基线与平台 / Contract 预检查
 
@@ -9,14 +9,14 @@
 - `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
 - 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
 - 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
-- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`、本次已处理的`GHG-STD-32151-34-005`及待逐项核查的OPEN项`GHG-STD-32151-34-006`。C.4/C.5既有解释不变；005记录用户对标准实施日期与C.3因子自身有效期的产品裁定，不称官方解释。
+- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`及已解决的`GHG-STD-32151-34-005/006`。C.4/C.5既有解释不变；005/006记录用户产品裁定及C.1/C.2/C.3/§5.2分组原文核对，不称官方解释。
 - PR #27保持 `OPEN / UNMERGED`且未修改；未从PR #27分支派生。
 
 ## 2. 实现内容
 
 ### 注册数据与可追溯关系
 
-- Canonical catalog升至schema `1.1.0`、data version `2026.10.06-pf01.1`。
+- Canonical catalog升至schema `1.1.0`、data version `2026.10.07-pf01.2`。
 - 新增14张来源表、98个不可变参考数据资产、100条来源绑定；因新增C.3热力缺省候选，Factor由98增至99，Parameter仍为98。Canonical校验通过：9个标准、12个来源、98个参数、99个因子。
 - C.1登记26个燃料表项，C.2登记完整11个碳酸盐表项；简单标准参考数据通过来源表结构、资产和绑定展示。等值多来源可共享资产并保留各自定位；来源值不同使用独立资产版本；没有权重字段。
 - 为GB/T 32151.34—2024 C.3新增0.11 tCO₂/GJ正式缺省因子候选，定位附录C表C.3（PDF第27页、印刷页19）。本次直接核对原始PDF（SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`）：封面实施日期为2025-03-01，但C.3未给该因子独立的起始有效日期。已把C.3因子及其来源绑定的`valid_from`改为`null`，保留标准目录的实施日期；不宣称标准官方认可追溯适用。它与GB/T 32150—2025通用缺省的数值相同但保留独立来源适用信息；资产按相同值复用。
@@ -34,8 +34,9 @@
 
 - 回归发现既有热力Resolver按日期选取候选，但Calculator调用时漏传核算期间，导致有效期候选无法按核算期间判定。现将既有输入期间传入 `ParameterResolutionContext`；Resolver优先级与选择策略未改。
 - 年度与自定义核算期间、2025/2026适用日期、购入与输出热力均由既有Resolver取得适用0.11候选；没有在UI硬编码标准值。
-- 本次用户产品裁定下，所选标准的实施日期经Catalog查询层交给版本化Calculator。核算期间完全早于或跨越实施日时，Calculator追加一条结构化、非阻断WARNING；该提醒进入CalculationResult、成功Record及普通页面的“数据质量”提示，并使新Record状态按既有规则为`COMPLETED_WITH_WARNINGS`。实施日后不追加这条提醒。C.3历史期间仍为候选，`accounting_period`继续筛选真正有期间适用性的因子（例如年度官方电力因子）。不改Resolver Selection Policy、正式公式、历史Record或数据库schema。
-- 范围边界：本次原始来源核对与前/跨/后三例只证明C.3热力路径。收尾审计发现Canonical另有95条适用于本标准的因子仍标记`valid_from=2025-03-01`；其日期是否只是标准实施日尚未逐项核实，部分其他排放源的早期期间仍可能被候选过滤。已登记`GHG-STD-32151-34-006`，不机械更改这些因子，不把本次结果称为“全场景历史期间已支持”。
+- 本次用户产品裁定下，所选标准实施日期经Catalog查询层传入版本化Calculator。核算期间完全早于、跨越或晚于实施日时，Calculator均追加结构化、非阻断WARNING；提醒进入CalculationResult、成功Record及普通页面“数据质量”提示，并使新Record状态按既有规则为`COMPLETED_WITH_WARNINGS`。不改Resolver Selection Policy、正式公式、历史Record或数据库schema。
+- 日期来源分组审计：按标准原文位置核对C.1燃料参数78条、C.2碳酸盐参数11条、§5.2相关参数6条，未发现具体值自2025-03-01起适用的独立日期要求；据此清除95条Factor及对应95条`FACTOR_SOURCE` binding上的重复日期。C.3标准参考绑定上的重复实施日期也清除。SourceDocument `effective_from=2025-03-01`保留为标准元数据；年度官方全国电力因子的`valid_from=2025-12-31`及来源绑定日期保留，因其来自独立官方年度发布。Resolver仍按核算期间筛选有自身适用期的数据。
+- 原始标准核对对象：GB/T 32151.34—2024本地PDF，SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；分组复核C.1、C.2、C.3、§5.2对应表格/条款。此判断为产品数据治理与原文事实，不声称官方认可对实施日前的标准追溯适用。
 
 ### 数据库与兼容
 
@@ -55,18 +56,20 @@
 
 - `python -m unittest tests.test_g02_canonical -q`：20/20通过，覆盖共享资产多定位、不同值版本及标准实施日与C.3因子有效期分离。
 - `python -m unittest tests.test_g04_catalog -v`：14/14通过，覆盖页面、动态表结构、标准/来源/表格内容与资产搜索、蒸汽Calculator Adapter及来源链接。
-- `python -m unittest tests.test_g06_carbon_material.G06CalculatorTests.test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods tests.test_g06_page tests.test_uir04_finalization -q`：36/36通过，覆盖完全早于、跨越、实施日后及购入/输出热力、普通页面提醒、Record状态。
-- `python -m unittest discover -s tests -t . -q`：265/265通过，0失败、0错误、0跳过。首次复跑暴露旧UI“成功后质量区必须隐藏”断言，更新为核对本次合法非阻断提醒后重新全量通过。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，定向命令`python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material.G06CalculatorTests.test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：104/104通过。
+- `python -m unittest tests.test_g04_catalog -q`：14/14通过。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，`python -m unittest discover -s tests -t . -q`：266/266通过（75.605秒）。
 - `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）。
 - `python -m compileall -q apps packages scripts tests`：通过。
 - `python -m pip check`：通过，无损坏依赖。
-- `python scripts/initialize_databases.py --output-dir build/pf01-period-check`：通过，隔离创建catalog/user/records/projects四库，临时库随后清理。Catalog 001→002保留检查为PF01前次已执行结果，本次未重复。
-- `python scripts/build_standalone.py --output-root build/pf01-period-standalone`：通过，本次构建输出随后清理。
-- `python scripts/smoke_standalone.py build/pf01-period-standalone/QingzhouCarbonAccounting`：通过，两次隔离启动。
+- `python scripts/initialize_databases.py --output-dir build/pf01-final-databases`：通过，隔离创建catalog/user/records/projects四库。
+- `python -m compileall -q apps packages scripts tests`及`python -m pip check`：通过；Canonical校验为9 standards、12 sources、98 parameters、99 factors。
+- Windows standalone构建与双启动smoke此前在迁移前的候选上通过；D盘迁移并合入最新`origin/main`后的最终构建尚待重跑，不将旧构建证据冒充最终head验证。
+- 首次默认TEMP/TMP落入受限AppData，导致持久化测试写入失败；将TEMP/TMP指向隔离工作区目录后，定向与全量测试均完成通过。
 - GitHub Actions：PR #30必须由当前最新Head通过Windows/Python 3.12 `Merge-ref Full Tests`与`PR-head Standalone Audit`；最终精确Head和两项结果以GitHub PR Checks及交付回复为准，不在本文件重复记录run SHA。
 
 ## 5. 治理状态与停止点
 
-- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；交付独立PR，等待最终Head exact-head Windows CI及独立验收；不自行合并。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；当前D盘候选尚未推送。合入最新`origin/main`、最终测试/构建、推送至PR #30原分支并确认最新head Windows CI后，停止等待独立验收；不自行合并。
 - PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
 - Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

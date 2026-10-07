@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-06（GHG-PF01）
+最后更新：2026-10-07（GHG-PF01）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -32,8 +32,8 @@ Module ID：`qz.carbon_accounting`
 - 已完成并合并：RS01-A-R1、RS01-B1/B2、RS02-A/B及UAT01-A/B。
 - 当前工作包：`GHG-PF01 — 参数与因子注册库基础架构 + 页面重构`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为Base，独立分支 `codex/pf01-parameter-factor-library`。不从PR #27派生且不修改PR #27。
 - PF01实现Canonical来源表/资产/绑定注册、只读查询投影、标准/文件浏览与全库搜索；Resolver选择策略、正式公式、历史Record语义不变。实现状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持OPEN / UNMERGED，等待独立验收，当前最新Head的Windows CI以PR Checks为准。
-- PF01增量裁定：用户选择GB/T 32151.34—2024进行早于或跨越2025-03-01实施日的核算时，提示非阻断提醒并继续按所选标准执行；提醒须进入新计算状态与新Record。附录C.3的0.11热力缺省因子不得因标准实施日失去候选资格。标准实施日期保留在标准元数据中，不写成该因子自身`valid_from`；真正按期间适用的因子（如年度官方电力因子）仍按`accounting_period`解析。依据与产品决定登记于`GHG-STD-32151-34-005`。
-- PF01此次仅完成已核对原文的C.3热力路径。Canonical另有95条本标准因子仍标记`valid_from=2025-03-01`，已登记`GHG-STD-32151-34-006`为OPEN，须逐项确认是否具有独立有效期；本次不得宣称其他排放源的历史期间都已打通，也不得机械批量去掉日期。
+- PR #30候选已按13个实际变更文件迁入D盘独立克隆，起点核对为原PR head `4d5d7bc42336afa6d80a9894297454a43f8706d6`；候选文件与只读来源逐字节一致。最新远端`main`已同步至`4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`（包含后续PR合并），本地候选尚待合入该基线、最终复测/构建、推送及精确head CI；此状态不是正式验收结论。
+- PF01增量裁定：明确区分来源文件实施日期与具体数据自身适用期。用户选择GB/T 32151.34—2024时，无论核算期间完全早于、跨越或晚于2025-03-01实施日，均继续按所选标准核算并产生非阻断Warning，提醒进入计算状态与新Record。标准实施日期保留在标准元数据；只有来源对具体值另有独立时间适用要求时，Factor/Binding才保留自身有效期。C.1、C.2、C.3及§5.2分组复核已清除无独立适用期证据的95条因子及对应来源绑定的重复`valid_from`；C.3热力缺省因子保持候选资格。真正按期间适用的外部数据（如年度官方电力因子）仍按`accounting_period`筛选。依据与软件决定登记于`GHG-STD-32151-34-005/006`。
 - 本包增量不升级 `platform-lock.json` 或 `PLATFORM_BASELINE.md`；标准仍为 `NOT SUPPORTED`。
 - RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。本包完成后停止，等待独立验收。
 
@@ -45,7 +45,7 @@ PF01范围约束：
 3. Resolver继续决定计算候选与默认值；目录页面只读，不能成为计算真值源；
 4. C.4/C.5蒸汽表从版本化Domain Calculator只读展示，不复制第二份数值表；
 5. Catalog数据库仅增量新增注册表，不重写Project或历史Record。
-6. 本次期间裁定不修改正式公式、Resolver Selection Policy或既有历史Record；须覆盖完全早于、跨实施日、实施日后三类回归。
+6. 本次期间裁定不修改正式公式、Resolver Selection Policy或既有历史Record；须覆盖完全早于、跨实施日、实施日后三类非阻断Warning回归，并确认自身有效期数据仍按期间筛选。
 ```
 
 ## 3. 当前有效的长期产品决定（提炼保留）
@@ -190,5 +190,5 @@ PF01范围约束：
 - SQLite只增量增加只读查询投影；页面按标准/文件查看与全库搜索，按登记表结构显示并隐藏内部标识；
 - C.4/C.5仅通过版本化Calculator的只读Adapter展示，不复制蒸汽表；
 - Resolver继续独占计算默认候选选择；本包不改变选择策略、正式公式或历史Record语义；
-- 明确区分所选标准实施日期与因子自身有效期；早于/跨实施日只作非阻断提醒并写入新Record，C.3热力缺省因子保持候选资格；
+- 明确区分所选标准实施日期与具体因子自身适用期；早于/跨越/晚于实施日均只作非阻断提醒并写入新Record，C.1/C.2/C.3/§5.2中无独立期间证据的重复日期已清除；真正自身具有期间适用性的年度外部因子仍由Resolver按核算期间筛选；
 - 状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。PR #27继续 `OPEN / UNMERGED`且未修改；RS03-A用户UAT `PENDING`；RS03-B `NOT STARTED`；标准仍为 `NOT SUPPORTED`。

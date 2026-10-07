@@ -906,7 +906,7 @@ class G06CalculatorTests(unittest.TestCase):
                     "after",
                     AccountingPeriod(PeriodType.ANNUAL, date(2026, 1, 1), date(2026, 12, 31)),
                     "heat_default_2025",
-                    None,
+                    "AFTER",
                 ),
             )
             for case_name, period, expected_factor_id, expected_relation in cases:
@@ -943,28 +943,18 @@ class G06CalculatorTests(unittest.TestCase):
                         for problem in outcome.problems
                         if problem.code == "CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD"
                     ]
-                    if expected_relation is None:
-                        self.assertEqual(warnings, [])
-                    else:
-                        self.assertEqual(len(warnings), 1)
-                        self.assertEqual(warnings[0].level, IssueLevel.WARNING)
-                        self.assertEqual(dict(warnings[0].details)["period_relation"], expected_relation)
-                        self.assertIsNotNone(outcome.record)
-                        self.assertIsNotNone(outcome.result)
-                        assert outcome.record is not None
-                        assert outcome.result is not None
-                        self.assertIn(warnings[0], outcome.result.problems)
-                        self.assertIn(warnings[0], outcome.record.problems)
-                        self.assertEqual(outcome.record.status.value, "COMPLETED_WITH_WARNINGS")
+                    self.assertEqual(len(warnings), 1)
+                    self.assertEqual(warnings[0].level, IssueLevel.WARNING)
+                    self.assertEqual(dict(warnings[0].details)["period_relation"], expected_relation)
+                    self.assertIsNotNone(outcome.record)
+                    self.assertIsNotNone(outcome.result)
+                    assert outcome.record is not None
+                    assert outcome.result is not None
+                    self.assertIn(warnings[0], outcome.result.problems)
+                    self.assertIn(warnings[0], outcome.record.problems)
+                    self.assertEqual(outcome.record.status.value, "COMPLETED_WITH_WARNINGS")
                     self.assertIsNotNone(outcome.record)
                     assert outcome.record is not None
-                    if expected_relation is None:
-                        self.assertEqual(
-                            outcome.record.status.value,
-                            "COMPLETED_WITH_WARNINGS"
-                            if any(problem.level is IssueLevel.WARNING for problem in outcome.record.problems)
-                            else "COMPLETED",
-                        )
 
     def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
         fuels = (

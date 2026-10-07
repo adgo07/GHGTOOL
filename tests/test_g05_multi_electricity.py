@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from pathlib import Path
+import tempfile
 import unittest
 
 from packages.core import (
@@ -237,6 +239,43 @@ class G05MultiElectricityTests(unittest.TestCase):
         self.assertIsNone(result.snapshot)
         assert result.result is not None
         self.assertIsNone(result.result.recommended)
+
+    def test_catalog_official_electricity_factor_keeps_its_own_period_filter(self) -> None:
+        from packages.application.carbon_accounting import create_g06_parameter_resolver
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+
+        before = AccountingPeriod(PeriodType.ANNUAL, date(2024, 1, 1), date(2024, 12, 31))
+        after = AccountingPeriod(PeriodType.ANNUAL, date(2026, 1, 1), date(2026, 12, 31))
+        factor_id = "electricity_national_average_2023"
+
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = Path(directory) / "catalog.sqlite"
+            build_catalog_database(output_path=catalog_path)
+            resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
+            for label, period in (("before_factor_validity", before), ("after_factor_validity", after)):
+                detail = replace(
+                    _detail(
+                        f"detail.official-factor.{label}",
+                        "20",
+                        ElectricityAcquisitionMode.PURCHASED,
+                        ElectricityAttribute.ORDINARY,
+                    ),
+                    accounting_period=period,
+                )
+                with self.subTest(period=label):
+                    result = resolver.resolve_electricity_details((detail,), snapshot_at=SNAPSHOT_AT)[0]
+                    assert result.result is not None
+                    candidate_ids = {
+                        candidate.factor.factor_id
+                        for candidate in (
+                            *((result.result.recommended,) if result.result.recommended else ()),
+                            *result.result.alternatives,
+                        )
+                    }
+                    if label == "before_factor_validity":
+                        self.assertNotIn(factor_id, candidate_ids)
+                    else:
+                        self.assertEqual(result.result.recommended.factor.factor_id, factor_id)
 
     def test_missing_proof_is_error_without_zero_or_national_fallback(self) -> None:
         result = _resolver().resolve_electricity_details(

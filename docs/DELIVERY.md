@@ -8,7 +8,7 @@
 | --- | --- |
 | 应用版本 | `1.1.0` |
 | Canonical schema 版本 | `1.1.0` |
-| Catalog data 版本 | `2026.10.06-pf01.1`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
+| Catalog data 版本 | `2026.10.07-pf01.2`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
 | Catalog / User / Records 数据库迁移 | `002` / `001` / `003` |
 | Projects 数据库迁移 | `002` |
 

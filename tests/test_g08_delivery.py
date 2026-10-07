@@ -62,7 +62,7 @@ class G08DeliveryTests(unittest.TestCase):
         )
         self.assertEqual(project["project"]["version"], "1.1.0")
         self.assertEqual(catalog["manifest"]["schema_version"], "1.1.0")
-        self.assertEqual(catalog["manifest"]["data_version"], "2026.10.06-pf01.1")
+        self.assertEqual(catalog["manifest"]["data_version"], "2026.10.07-pf01.2")
         self.assertEqual(catalog["manifest"]["app_compatibility"], "1.x")
         build_source = (PROJECT_ROOT / "scripts" / "build_standalone.py").read_text(encoding="utf-8")
         self.assertIn('"projects": "001"', build_source)
@@ -146,7 +146,7 @@ class G08DeliveryTests(unittest.TestCase):
                     app_version="1.1.0",
                     catalog_meta={
                         "schema_version": "1.1.0",
-                        "data_version": "2026.10.06-pf01.1",
+                        "data_version": "2026.10.07-pf01.2",
                     },
                 )
             manifest = json.loads((artifact / "build-manifest.json").read_text(encoding="utf-8"))

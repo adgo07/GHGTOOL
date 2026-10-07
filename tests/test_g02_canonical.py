@@ -240,13 +240,38 @@ class CanonicalCatalogTests(unittest.TestCase):
         c3_factor = next(item for item in self.catalog["factors"] if item["factor_id"] == "heat_default_gbt32151_34_c3")
         c3_binding = next(item for item in self.catalog["reference_data_bindings"] if item["factor_id"] == c3_factor["factor_id"])
         electricity = next(item for item in self.catalog["factors"] if item["factor_id"] == "electricity_national_average_2023")
+        source = next(item for item in self.catalog["sources"] if item["source_id"] == "SRC-32151-34-2024")
 
         self.assertEqual(standard["implementation_date"], "2025-03-01")
+        self.assertEqual(source["effective_from"], "2025-03-01")
         self.assertEqual(c3_factor["normalized_value"], "0.11")
         self.assertIsNone(c3_factor["valid_from"])
         self.assertIsNone(c3_binding["valid_from"])
         self.assertEqual(c3_factor["applicable_standard_ids"], [standard["standard_id"]])
-        self.assertIsNotNone(electricity["valid_from"])
+        self.assertEqual(electricity["valid_from"], "2025-12-31")
+
+        standard_factors = [
+            item for item in self.catalog["factors"]
+            if standard["standard_id"] in item["applicable_standard_ids"]
+        ]
+        groups = {
+            "C.1": [item for item in standard_factors if "附录C表C.1" in item["source_location"]],
+            "C.2": [item for item in standard_factors if "附录C表C.2" in item["source_location"]],
+            "§5.2": [item for item in standard_factors if "第5.2." in item["source_location"]],
+        }
+        self.assertEqual({key: len(value) for key, value in groups.items()}, {"C.1": 78, "C.2": 11, "§5.2": 6})
+        for factors in groups.values():
+            for factor in factors:
+                with self.subTest(factor_id=factor["factor_id"]):
+                    self.assertIsNone(factor["valid_from"])
+                    self.assertIsNone(factor["valid_to"])
+        dated_bindings = {
+            item["factor_id"]: item
+            for item in self.catalog["reference_data_bindings"]
+            if item["factor_id"] in {factor["factor_id"] for values in groups.values() for factor in values}
+        }
+        self.assertEqual(len(dated_bindings), 95)
+        self.assertTrue(all(item["valid_from"] is None and item["valid_to"] is None for item in dated_bindings.values()))
 
     def test_different_source_value_is_a_separate_immutable_asset_version(self) -> None:
         catalog = copy.deepcopy(self.catalog)
@@ -386,13 +411,13 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(zero["unit"], "tCO₂/MWh")
         self.assertEqual(zero["source_id"], "SRC-32151-34-2024")
         self.assertEqual(zero["factor_year"], 2024)
-        self.assertEqual(zero["valid_from"], "2025-03-01")
+        self.assertIsNone(zero["valid_from"])
         self.assertEqual(
             zero["source_location"],
             "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
         )
         self.assertEqual(self.catalog["manifest"]["schema_version"], "1.1.0")
-        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.10.06-pf01.1")
+        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.10.07-pf01.2")
     def test_duplicate_stable_id_blocks_validation(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["sources"].append(copy.deepcopy(catalog["sources"][0]))

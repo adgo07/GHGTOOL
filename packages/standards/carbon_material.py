@@ -1425,10 +1425,17 @@ class CarbonMaterialCalculator:
 
     def _standard_implementation_period_warning(self, period: AccountingPeriod) -> ValidationProblem | None:
         implementation_date = self.standard_implementation_date
-        if implementation_date is None or period.start >= implementation_date:
+        if implementation_date is None:
             return None
-        relation = "BEFORE" if period.end < implementation_date else "CROSSES"
-        period_description = "完全早于" if relation == "BEFORE" else "跨越"
+        if period.end < implementation_date:
+            relation = "BEFORE"
+            period_description = "完全早于"
+        elif period.start < implementation_date:
+            relation = "CROSSES"
+            period_description = "跨越"
+        else:
+            relation = "AFTER"
+            period_description = "晚于"
         return _problem(
             "CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD",
             IssueLevel.WARNING,

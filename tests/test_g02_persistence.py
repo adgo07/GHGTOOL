@@ -78,7 +78,7 @@ class PersistenceTests(unittest.TestCase):
             self.assertNotIn("audit_log", projects_tables)
 
             self.assertEqual(_metadata(paths["catalog"])["schema_version"], "002")
-            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.10.06-pf01.1")
+            self.assertEqual(_metadata(paths["catalog"])["data_version"], "2026.10.07-pf01.2")
             self.assertEqual(_metadata(paths["user"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["records"])["data_version"], "not_applicable")
             self.assertEqual(_metadata(paths["projects"])["data_version"], "not_applicable")
@@ -139,7 +139,7 @@ class PersistenceTests(unittest.TestCase):
                     "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
                 )
                 self.assertEqual(nonfossil[3:6], ("0", "tCO₂/MWh", "STANDARD_SPECIFIED"))
-                self.assertEqual(nonfossil[6:], (2024, "2025-03-01"))
+                self.assertEqual(nonfossil[6:], (2024, None))
                 source = connection.execute(
                     "SELECT source_type, publisher FROM source_documents WHERE source_id=?",
                     ("SRC-ELEC-2023-47",),
