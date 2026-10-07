@@ -9,7 +9,7 @@
 | 应用版本 | `1.1.0` |
 | Canonical schema 版本 | `1.1.0` |
 | Catalog data 版本 | `2026.10.07-pf01.2`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
-| Catalog / User / Records 数据库迁移 | `002` / `001` / `003` |
+| Catalog / User / Records 数据库迁移 | `002` / `001` / `004` |
 | Projects 数据库迁移 | `002` |
 
 构建脚本会从 `data-source/carbon_accounting/catalog.json` 重新生成只读 `databases/catalog.sqlite`，并写入 `build-manifest.json`。发布前必须通过 `scripts/inspect_release.py` 的文件范围、哈希、数据库元数据和敏感文件检查。

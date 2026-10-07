@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 from enum import Enum
 import re
 from typing import Any
@@ -161,8 +161,15 @@ def format_amount(value: object, unit: str = "tCO₂") -> str:
     if value is None:
         return "历史记录未保存该分项"
     try:
-        amount = Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        number = f"{amount:,.2f}"
+        amount = Decimal(str(value))
+        places = 2 if amount.is_zero() else max(2, -amount.adjusted() + 2)
+        if places > 12:
+            number = f"{amount:.3E}"
+        else:
+            with localcontext() as context:
+                context.prec = max(28, len(amount.as_tuple().digits) + places + 4)
+                shown = amount.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+            number = f"{shown:,.2f}" if places == 2 else f"{shown:,.{places}f}".rstrip("0").rstrip(".")
     except (InvalidOperation, ValueError):
         number = str(value)
     return f"{number} {unit}".strip()
@@ -653,6 +660,8 @@ def build_parameter_view(record: AccountingRecord, evidence_names: Mapping[str, 
         lines = [f"- {snapshot.value_used} {snapshot.unit_used}；{source_kind}"]
         if snapshot.source_location:
             lines.append(f"  依据：{snapshot.source_location}")
+        elif snapshot.source_id is None:
+            lines.append("  来源说明：未提供")
         if snapshot.selection_reason:
             lines.append(f"  采用说明：{snapshot.selection_reason}")
         if snapshot.source_id or snapshot.factor_id:
@@ -767,8 +776,9 @@ def build_record_summary(
     boundary = "已记录核算边界分项" if record.input_snapshot.boundary_component_ids else "历史记录未保存边界分项"
     source_lines = []
     for item in record.input_snapshot.emission_sources:
-        source_lines.append(f"- {SOURCE_LABELS.get(item.source_id, '其他已记录排放源')}：{'纳入核算' if item.included else '未纳入'}")
-    source_text = "\n".join(source_lines) if source_lines else "历史记录未保存排放源判断"
+        if item.included:
+            source_lines.append(f"- {SOURCE_LABELS.get(item.source_id, '其他已记录排放源')}")
+    source_text = "、".join(line.removeprefix("- ") for line in source_lines) if source_lines else "无已启用排放源"
     output = [
         "基本信息",
         f"企业：{record.input_snapshot.enterprise_name or '未填写企业'}",
@@ -778,7 +788,7 @@ def build_record_summary(
         f"核算状态：{status_label(record.status)}",
         f"年度报告资格：{_qualification_label(qualification, qualification_state)}",
         f"所属工作区：{association}（当前工作区关系，不属于不可变 Record 快照）",
-        f"\n排放源判断：\n{source_text}",
+        f"已启用排放源：{source_text}",
         "\n核算结果",
     ]
     aggregations = _trace_aggregation(trace)
@@ -791,6 +801,15 @@ def build_record_summary(
         f"购入/输出能源对应的净间接排放量：{format_amount(indirect)}",
         "标准报告数据 B.1—B.9 及逐项依据见“标准报告数据”页。",
     ))
+    component_lines = [
+        f"- {SOURCE_LABELS.get(line.emission_source_id, '其他排放源')}：{format_amount(line.amount, line.unit)}"
+        for line in record.calculation_result.lines
+        if line.line_id not in {"CAR-FLD-DIRECT-RESULT", "CAR-FLD-INDIRECT-RESULT", "CAR-FLD-TOTAL-RESULT"}
+    ]
+    if component_lines:
+        output.extend(("\n排放源构成", *component_lines))
+    if record.status is RecordStatus.COMPLETED_WITH_WARNINGS:
+        output.append("\n关键提醒：本次核算含非致命提醒，详见“数据质量与提醒”。")
     return "\n".join(output)
 
 

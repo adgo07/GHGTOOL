@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import date
+import hashlib
+from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QDateEdit,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
     QFrame,
-    QGroupBox,
+    QDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -24,8 +33,10 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.reporting import build_saved_record_report
 from packages.core.models import AccountingRecord, RecordStatus
 from packages.core.repositories import RecordRepository
+from packages.infrastructure.reporting import render_report_docx
 from .record_experience import (
     SnapshotState,
     build_activity_evidence_view,
@@ -565,17 +576,25 @@ class RecordLibraryPage(BasePage):
         self.detail_tabs.addTab(self.quality_text, "数据质量与提醒")
         detail_layout.addWidget(self.detail_tabs, 1)
 
-        self.professional_group = QGroupBox("专业信息（展开查看）", detail_card)
-        self.professional_group.setCheckable(True)
-        self.professional_group.setChecked(False)
-        professional_layout = QVBoxLayout(self.professional_group)
-        self.detail_text = self._readonly_text("recordDetailView", self.professional_group)
-        professional_layout.addWidget(self.detail_text)
-        detail_layout.addWidget(self.professional_group)
+        self.audit_dialog = QDialog(self)
+        self.audit_dialog.setObjectName("recordAuditDialog")
+        self.audit_dialog.setWindowTitle("核算记录审计详情（只读）")
+        self.audit_dialog.resize(780, 560)
+        audit_layout = QVBoxLayout(self.audit_dialog)
+        self.detail_text = self._readonly_text("recordDetailView", self.audit_dialog)
+        audit_layout.addWidget(self.detail_text)
+        self.audit_button = QPushButton("查看审计详情", detail_card)
+        self.audit_button.setObjectName("openRecordAuditButton")
+        self.audit_button.clicked.connect(self.audit_dialog.open)
+        detail_layout.addWidget(self.audit_button)
         self.delete_button = QPushButton("删除记录", detail_card)
         self.delete_button.setObjectName("deleteRecordButton")
         self.delete_button.clicked.connect(self._delete_selected)
         detail_layout.addWidget(self.delete_button)
+        self.export_word_button = QPushButton("导出 Word 核算报告", detail_card)
+        self.export_word_button.setObjectName("exportWordReportButton")
+        self.export_word_button.clicked.connect(self._export_selected_report)
+        detail_layout.addWidget(self.export_word_button)
         content_layout.addWidget(detail_card, 2)
         self.body_layout.addWidget(content, 1)
         self.refresh_records()
@@ -637,6 +656,7 @@ class RecordLibraryPage(BasePage):
             if record.record_id == selected_before:
                 selected_row = index
         self.delete_button.setEnabled(bool(self._records))
+        self.export_word_button.setEnabled(bool(self._records))
         if self._records:
             self.record_list.setCurrentRow(selected_row if selected_row >= 0 else 0)
         else:
@@ -760,55 +780,176 @@ class RecordLibraryPage(BasePage):
             delete(record.record_id, actor="current_user", reason="用户二次确认删除")
         self.refresh_records()
 
+    def _report_supplementary_dialog(self, record: AccountingRecord) -> dict[str, object] | None:
+        reporting_getter = getattr(self.record_repository, "get_reporting_snapshot", None)
+        reporting = reporting_getter(record.record_id) if callable(reporting_getter) else {}
+        reporting = reporting if isinstance(reporting, dict) else {}
+        history_getter = getattr(self.record_repository, "get_latest_report_export_supplementary", None)
+        previous = history_getter(record.record_id) if callable(history_getter) else {}
+        previous = previous if isinstance(previous, dict) else {}
+        fields = (
+            ("enterprise_name", "企业名称", reporting.get("enterprise_name", record.input_snapshot.enterprise_name or "")),
+            ("social_credit_code", "统一社会信用代码", reporting.get("social_credit_code", "")),
+            ("legal_representative", "法定代表人", reporting.get("legal_representative", "")),
+            ("address", "地址", reporting.get("address", "")),
+            ("contact_person", "联系人", reporting.get("contact_person", "")),
+            ("preparer_name", "编制人", reporting.get("preparer_name", "")),
+            ("phone", "联系电话", reporting.get("preparer_contact", "")),
+            ("products_and_process", "主要产品及工艺", reporting.get("products_and_process", "")),
+        )
+        dialog = QDialog(self)
+        dialog.setWindowTitle("报告补充信息")
+        dialog.setMinimumWidth(520)
+        form = QFormLayout(dialog)
+        widgets: dict[str, QLineEdit] = {}
+        for key, label, fallback in fields:
+            edit = QLineEdit(dialog)
+            edit.setText(str(fallback or previous.get(key, "") or ""))
+            widgets[key] = edit
+            form.addRow(label, edit)
+        prepared_on = QDateEdit(dialog)
+        prepared_on.setCalendarPopup(True)
+        prepared_on.setDisplayFormat("yyyy-MM-dd")
+        try:
+            parsed_date = QDate.fromString(str(previous.get("prepared_on") or date.today().isoformat()), "yyyy-MM-dd")
+            prepared_on.setDate(parsed_date if parsed_date.isValid() else QDate.currentDate())
+        except ValueError:
+            prepared_on.setDate(QDate.currentDate())
+        form.addRow("编制日期", prepared_on)
+        note = QTextEdit(dialog)
+        note.setMaximumHeight(90)
+        note.setPlainText(str(reporting.get("other_report_information", "") or previous.get("supplementary_note", "") or ""))
+        form.addRow("补充说明", note)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, dialog)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        result: dict[str, object] = {key: edit.text().strip() for key, edit in widgets.items()}
+        result["prepared_on"] = prepared_on.date().toString("yyyy-MM-dd")
+        result["supplementary_note"] = note.toPlainText().strip()
+        return result
+
+    def _export_selected_report(self) -> None:
+        row = self.record_list.currentRow()
+        if row < 0 or row >= len(self._records) or self.record_repository is None:
+            return
+        record = self._records[row]
+        supplementary = self._report_supplementary_dialog(record)
+        if supplementary is None:
+            return
+        default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}.docx"
+        target, _ = QFileDialog.getSaveFileName(self, "保存 Word 核算报告", default_name, "Word 文档 (*.docx)")
+        if not target:
+            return
+        path = Path(target)
+        if path.suffix.lower() != ".docx":
+            path = path.with_suffix(".docx")
+        try:
+            report = build_saved_record_report(self.record_repository, record, supplementary_info=supplementary)
+            document_bytes = render_report_docx(report)
+            path.write_bytes(document_bytes)
+            history_writer = getattr(self.record_repository, "record_report_export", None)
+            if callable(history_writer):
+                history_writer(
+                    record.record_id,
+                    export_id=f"report-export.{uuid4().hex}",
+                    format="DOCX",
+                    template_version=report.schema_version,
+                    document_filename=path.name,
+                    document_sha256=hashlib.sha256(document_bytes).hexdigest(),
+                    supplementary_info=supplementary,
+                    actor="current_user",
+                )
+        except Exception as exc:
+            QMessageBox.critical(self, "报告导出失败", f"无法生成 Word 核算报告：{exc}")
+            return
+        QMessageBox.information(self, "报告已导出", f"Word 核算报告已保存到：\n{path}")
+
 class ExcelImportPage(BasePage):
-    """Non-interactive Excel placeholder; no file or import action is wired."""
+    """R2 workbook template download and read-only per-unit calculation preview."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, catalog_service: CatalogQueryService | None = None) -> None:
         super().__init__(AppRoute.EXCEL_IMPORT, parent)
-        self.add_header("Excel 导入", "通过标准化模板快速导入核算数据")
-
-        card, layout = _card("功能预留，当前版本暂未开放。", self)
-        controls = QWidget(card)
-        controls.setObjectName("disabledImportControls")
-        controls_layout = QVBoxLayout(controls)
-        controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(12)
-
-        file_input = QLineEdit(controls)
-        file_input.setObjectName("reservedInput")
-        file_input.setPlaceholderText("文件选择将在后续版本开放")
-        file_input.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        controls_layout.addWidget(file_input)
-        self.file_input = file_input
-
-        standard_input = QComboBox(controls)
-        standard_input.setObjectName("reservedInput")
-        standard_input.addItem("标准选择将在后续版本开放")
-        standard_input.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        controls_layout.addWidget(standard_input)
-        self.standard_input = standard_input
-
+        self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.add_header("Excel 导入预览", "下载标准 R2 模板并预览各核算单元。预览不会保存项目或生成正式核算记录。")
+        card, layout = _card("模板与预览", self)
         button_row = QHBoxLayout()
-        button_row.setSpacing(12)
-        for object_name, label in (
-            ("selectFileButton", "选择文件"),
-            ("templateButton", "模板下载"),
-            ("nextButton", "下一步"),
-            ("importButton", "导入"),
-        ):
-            button = QPushButton(label, controls)
-            button.setObjectName("reservedControl")
-            button.setProperty("controlName", object_name)
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.setCursor(Qt.CursorShape.ArrowCursor)
-            button_row.addWidget(button)
-            setattr(self, object_name, button)
-        controls_layout.addLayout(button_row)
-        controls.setEnabled(False)
-        layout.addWidget(controls)
-        layout.addStretch(1)
+        self.templateButton = QPushButton("下载 R2 模板", card)
+        self.templateButton.setObjectName("templateButton")
+        self.templateButton.clicked.connect(self._download_template)
+        button_row.addWidget(self.templateButton)
+        self.selectFileButton = QPushButton("选择并预览工作簿", card)
+        self.selectFileButton.setObjectName("selectFileButton")
+        self.selectFileButton.clicked.connect(self._choose_workbook)
+        button_row.addWidget(self.selectFileButton)
+        button_row.addStretch(1)
+        layout.addLayout(button_row)
+        self.preview_text = QTextEdit(card)
+        self.preview_text.setObjectName("excelImportPreview")
+        self.preview_text.setReadOnly(True)
+        self.preview_text.setMinimumHeight(300)
+        self.preview_text.setPlainText("尚未选择工作簿。")
+        layout.addWidget(self.preview_text)
         self.body_layout.addWidget(card)
         self.body_layout.addStretch(1)
+
+    def _download_template(self) -> None:
+        from packages.excel.r2 import write_template
+
+        target, _ = QFileDialog.getSaveFileName(self, "保存 Excel R2 模板", "GB_T_32151_34_2024_R2.xlsx", "Excel 工作簿 (*.xlsx)")
+        if not target:
+            return
+        path = Path(target)
+        if path.suffix.lower() != ".xlsx":
+            path = path.with_suffix(".xlsx")
+        try:
+            write_template(path)
+        except Exception as exc:
+            QMessageBox.critical(self, "模板保存失败", f"无法生成 Excel R2 模板：{exc}")
+            return
+        QMessageBox.information(self, "模板已保存", f"Excel R2 模板已保存到：\n{path}")
+
+    def _choose_workbook(self) -> None:
+        target, _ = QFileDialog.getOpenFileName(self, "选择 Excel R2 工作簿", "", "Excel 工作簿 (*.xlsx)")
+        if not target:
+            return
+        try:
+            from packages.excel.r2 import ExcelWorkbookImporter
+
+            resolver = None
+            if self.catalog_service.has_data:
+                from packages.application.carbon_accounting import create_g06_parameter_resolver
+
+                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
+            preview = ExcelWorkbookImporter(resolver).import_preview(target)
+        except Exception as exc:
+            self.preview_text.setPlainText(f"无法预览该工作簿：{exc}")
+            QMessageBox.warning(self, "工作簿无法预览", str(exc))
+            return
+        unit_type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
+        def friendly_message(message: str) -> str:
+            import re
+
+            return re.sub(r"(?:CAR|GEN)-(?:FLD|VAL|PAR|FML|SRC|RULE)-[A-Z0-9_.-]+", "对应数据项", message)
+
+        lines = [f"模板版本：{preview.provenance.template_version}", f"独立核算单元：{len(preview.units)}", ""]
+        for unit in preview.units:
+            lines.append(f"{unit.name}（{unit_type_names.get(unit.unit_type.value, '核算单元')}）")
+            if unit.result is not None:
+                lines.append(f"  预览排放总量：{unit.result.total_amount} {unit.result.total_unit}")
+            else:
+                lines.append("  当前输入不能形成预览结果；请按下方错误修正。")
+            for message in unit.errors:
+                lines.append(f"  需要修正：{friendly_message(message.message)}")
+            for message in unit.warnings:
+                lines.append(f"  提醒：{friendly_message(message.message)}")
+        if preview.warnings:
+            lines.append("\n工作簿提醒")
+            lines.extend(f"- {friendly_message(message.message)}" for message in preview.warnings)
+        lines.append("\n以上均为独立预览；不会写入工作区或正式核算记录。")
+        self.preview_text.setPlainText("\n".join(lines))
 
 
 def create_page(
@@ -825,7 +966,7 @@ def create_page(
     if route is AppRoute.HOME:
         return HomePage(view_model, navigate, parent, record_repository=record_repository)
     if route is AppRoute.EXCEL_IMPORT:
-        return ExcelImportPage(parent)
+        return ExcelImportPage(parent, catalog_service=catalog_service)
     if route is AppRoute.STANDARDS:
         from .catalog_pages import StandardLibraryPage
 

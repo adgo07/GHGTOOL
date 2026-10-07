@@ -54,6 +54,28 @@ class RecordLifecycleRepository(Protocol):
 
 
 @runtime_checkable
+class ReportExportHistoryRepository(Protocol):
+    """Append-only supplementary information for Word exports of saved records."""
+
+    def get_latest_report_export_supplementary(self, record_id: str) -> dict[str, object]:
+        """Return supplementary fields used by the most recent successful export."""
+
+    def record_report_export(
+        self,
+        record_id: str,
+        *,
+        export_id: str,
+        format: str,
+        template_version: str,
+        document_filename: str,
+        document_sha256: str,
+        supplementary_info: dict[str, object],
+        actor: str = "current_user",
+    ) -> None:
+        """Append one successful report export event without changing its record."""
+
+
+@runtime_checkable
 class SettingsRepository(Protocol):
     def load(self) -> Settings:
         """Load user settings from the implementation-selected store."""

@@ -60,7 +60,7 @@ git status --short                 # 工作区状态
 ### 2.1 产品与交付边界
 
 - Windows-first：本仓当前只开发 Windows V1 桌面产品。
-- Excel 导入当前只保留禁用入口和占位说明；正式 Excel 闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**。Excel 是 Import / Export Adapter，必须与 GUI 共用同一 Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法。
+- Excel R2 当前提供标准输入模板与逐核算单元只读预览，不写入 Project / Workspace / Record；正式导入写入及结果导出闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**。Excel 是 Import / Export Adapter，必须与 GUI 共用同一 Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法。
 - 必要导出按中央 Policy 单独规划，不得顺手实现。
 - 标准全文不得复制或打包进软件；“打开标准原文”只能调用官方网址。
 - `GB/T 32151.34` 遇其他行业活动或上下游运输只提示需要其他标准，不得猜算、套算或并入当前结果。
@@ -118,6 +118,11 @@ git status --short                 # 工作区状态
 ```text
 任何任务：
   本仓 AGENTS.md → REFERENCE_STANDARD_ROADMAP.md → TASK_STATE.md（+ HANDOFF.md）
+
+报告模型、报告导出或多标准能力架构任务：
+  → docs/architecture/REPORT_OUTPUT_ARCHITECTURE.md
+  → specs/reporting/GB_T_32151_34_2024_REPORT_SCHEMA.md
+  → docs/architecture/STANDARD_CAPABILITY_ARCHITECTURE.md
 
 涉及中央公共语义（Numeric / Unit / Module-Capability / Workspace-Record-Result / qzpack / Conformance）：
   → platform-lock.json（取得 locked SHA）

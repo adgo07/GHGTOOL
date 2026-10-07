@@ -19,6 +19,7 @@ from typing import Any
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
+PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
 FORBIDDEN_SUFFIXES = frozenset(
     {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".pem", ".key", ".p12"}
 )
@@ -117,7 +118,10 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         parts = {part.lower() for part in relative.parts}
         if parts & {part.lower() for part in FORBIDDEN_PARTS}:
             issues.append(f"forbidden development or user-data path: {normalized}")
-        if relative.suffix.lower() in FORBIDDEN_SUFFIXES:
+        if relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
+            relative.suffix.lower() == ".docx"
+            and normalized.lower() == PYTHON_DOCX_DEFAULT_TEMPLATE
+        ):
             issues.append(f"forbidden source/document/secret file: {normalized}")
         if relative.suffix.lower() in {".sqlite", ".db"} and relative != ALLOWED_SQLITE:
             issues.append(f"unexpected database file: {normalized}")

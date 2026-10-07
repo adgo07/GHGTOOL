@@ -141,7 +141,7 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             self._set_involved(source_id)
             summary = self.page._material_controls[prefix]["parameter_summary"]
             self.assertTrue(summary.isVisible())
-            self.assertIn("默认排放参数：0.35（比例）· 标准默认", summary.text())
+            self.assertIn("挥发分折算系数：0.35（标准一般取值", summary.text())
             self.assertNotIn(parameter_id, summary.text())
 
         for _, prefix, parameter_id in process_sources:
