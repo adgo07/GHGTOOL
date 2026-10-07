@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 from docx import Document
 from openpyxl import load_workbook
 
@@ -109,6 +109,11 @@ class MainIntegrationUiTests(unittest.TestCase):
         records = self.repository.list_all()
         self.assertEqual(len(records), 2)
         self.assertNotEqual(records[0].record_id, records[1].record_id)
+        self.shell.navigate(AppRoute.HOME)
+        self.app.processEvents()
+        home = self.shell.pages[AppRoute.HOME]
+        self.assertNotIn("暂无核算记录", home.findChild(QLabel, "statusSummary").text())
+        self.shell.navigate(AppRoute.NEW_ACCOUNTING)
         originals = tuple(asdict(record) for record in records)
         self.page._fuel_rows[0].activity.setText("-1")
         self.page.quick_calculate_button.click()

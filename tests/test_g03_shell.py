@@ -76,7 +76,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(home.findChild(QLabel, "emptyStateTitle").text(), "尚无核算记录")
         self.assertIn("Excel 模板预览", home.findChild(QLabel, "emptyStateDescription").text())
         self.assertIn("不会保存项目或生成正式核算记录", home.findChild(QLabel, "emptyStateDescription").text())
-        self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "暂无核算记录 · 暂无企业 · 暂无待处理事项")
+        self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "成功核算后可在“核算记录”查看结果与来源依据。")
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
