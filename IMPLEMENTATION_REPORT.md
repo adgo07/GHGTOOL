@@ -1,11 +1,11 @@
 # GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已在本地合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，五份治理文档冲突已收口，合并提交尚未完成。PR #30远端head仍为旧`4d5d7bc`；合并后最终回归、构建、推送及exact-head CI待完成，之后再进行独立验收。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`，五份治理文档冲突已收口。合并后本地复测与Windows standalone检查通过；状态记录更新后推送至PR #30原分支并等待精确head CI，之后停止等待独立验收。
 
 ## 1. 基线与平台 / Contract 预检查
 
 - 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- Base：开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`，含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`。本地已同步后续`main`至`4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，含UAT02与RPT01；该合并后的最终状态仍待复测。
+- Base：开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`，含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`。随后同步并合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，含UAT02与RPT01；合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的定向、全量、数据和Windows发布验证已完成。
 - `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
 - 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
 - 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
@@ -56,20 +56,17 @@
 
 - `python -m unittest tests.test_g02_canonical -q`：20/20通过，覆盖共享资产多定位、不同值版本及标准实施日与C.3因子有效期分离。
 - `python -m unittest tests.test_g04_catalog -v`：14/14通过，覆盖页面、动态表结构、标准/来源/表格内容与资产搜索、蒸汽Calculator Adapter及来源链接。
-- 设置`TEMP/TMP=build/pf01-test-tmp`后，合并main前定向命令`python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material.G06CalculatorTests.test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：104/104通过。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，合并main后定向命令`python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：129/129通过。
 - `python -m unittest tests.test_g04_catalog -q`：合并main前14/14通过。
-- 设置`TEMP/TMP=build/pf01-test-tmp`后，合并main前`python -m unittest discover -s tests -t . -q`：266/266通过（75.605秒）；合并后的全量复测仍待执行。
-- `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）。
-- `python -m compileall -q apps packages scripts tests`：通过。
-- `python -m pip check`：通过，无损坏依赖。
-- `python scripts/initialize_databases.py --output-dir build/pf01-final-databases`：通过，隔离创建catalog/user/records/projects四库。
-- 合并main前，`python -m compileall -q apps packages scripts tests`、`python -m pip check`及Canonical校验通过（9 standards、12 sources、98 parameters、99 factors）；最终合并head的上述检查仍待复跑。
-- Windows standalone构建与双启动smoke此前在迁移前的候选上通过；D盘迁移并合入最新`origin/main`后的最终构建尚待重跑，不将旧构建证据冒充最终head验证。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，`python -m unittest discover -s tests -t . -q`：282/282通过，用时268.721秒。合并前266/266仅保留为历史对照。
+- `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）；`python -m compileall -q apps packages scripts tests`通过；`python -m pip check`通过，无损坏依赖。
+- 先运行`pip install -e ".[build]"`同步项目依赖（含`python-docx`）和Windows构建依赖。`python scripts/initialize_databases.py --output-dir build/pf01-final-databases-3b95459`通过，隔离创建catalog/user/records/projects四库。
+- 合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的Windows standalone构建通过；`scripts/inspect_release.py`检查262个文件通过，`scripts/verify_release_archive.py`完成263个可见文件ZIP往返检查；隔离双启动smoke为2/2通过。Manifest source_commit为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。
 - 首次默认TEMP/TMP落入受限AppData，导致持久化测试写入失败；将TEMP/TMP指向隔离工作区目录后，定向与全量测试均完成通过。
 - GitHub Actions：Run #162（ID `37491936893`）为Windows CI SUCCESS，但对应旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，不覆盖本轮候选或`main`整合。必须推送后等待PR #30最新head的Windows检查。
 
 ## 5. 治理状态与停止点
 
-- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；候选及`origin/main`已在D盘工作区合并处理中，尚未提交该merge或推送。完成合并提交、最终测试/构建并推送到PR #30原分支，确认最新head Windows CI后，停止等待独立验收；不自行合并。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30远端仍为旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`；本地合并候选已完成复测与构建，状态记录更新后推送至同一分支。确认最新head Windows CI后停止等待独立验收；不自行合并。
 - PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
 - Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

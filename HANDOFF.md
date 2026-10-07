@@ -32,7 +32,7 @@ Module ID：`qz.carbon_accounting`
 - 已合并进入main：RS01-A-R1、RS01-B1/B2、RS02-A/B、UAT01-A/B、UAT02与GHG-RPT01（RPT01仍待独立验收）。
 - 当前工作包：`GHG-PF01 — 参数与因子注册库基础架构 + 页面重构`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为Base，独立分支 `codex/pf01-parameter-factor-library`。不从PR #27派生且不修改PR #27。
 - PF01实现Canonical来源表/资产/绑定注册、只读查询投影、标准/文件浏览与全库搜索；Resolver选择策略、正式公式、历史Record语义不变。实现状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持OPEN / UNMERGED，等待独立验收，当前最新Head的Windows CI以PR Checks为准。
-- PR #30候选已按13个实际变更文件迁入D盘独立克隆，起点核对为原PR head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，候选文件与只读来源逐字节一致。候选提交`405c34a`已合入最新`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`；PR远端仍停在`4d5d7bc`，尚未推送。合并后的最终回归、构建、推送及精确head CI待完成；不得把预合并测试视为最终验收。
+- PR #30候选已按13个实际变更文件迁入D盘独立克隆，起点核对为原PR head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，候选文件与只读来源逐字节一致。候选提交`405c34a`已与最新`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`合并，当前本地合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。合并后定向回归129/129、全量282/282、Canonical/compileall/pip check/四库初始化、Windows standalone发布审计/归档审计及双启动均通过。PR远端仍停在`4d5d7bc`，合并后的候选尚未推送；下一步只更新原PR分支并等待精确head CI，不得把本地测试视为独立验收。
 - PF01增量裁定：明确区分来源文件实施日期与具体数据自身适用期。用户选择GB/T 32151.34—2024时，无论核算期间完全早于、跨越或晚于2025-03-01实施日，均继续按所选标准核算并产生非阻断Warning，提醒进入计算状态与新Record。标准实施日期保留在标准元数据；只有来源对具体值另有独立时间适用要求时，Factor/Binding才保留自身有效期。C.1、C.2、C.3及§5.2分组复核已清除无独立适用期证据的95条因子及对应来源绑定的重复`valid_from`；C.3热力缺省因子保持候选资格。真正按期间适用的外部数据（如年度官方电力因子）仍按`accounting_period`筛选。依据与软件决定登记于`GHG-STD-32151-34-005/006`。
 - 本包增量不升级 `platform-lock.json` 或 `PLATFORM_BASELINE.md`；标准仍为 `NOT SUPPORTED`。
 - RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。本包完成后停止，等待独立验收。
