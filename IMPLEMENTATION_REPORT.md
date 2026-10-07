@@ -1,72 +1,88 @@
-# GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
+# 最新 main 集成验收与普通缺陷修复
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`，五份治理文档冲突已收口。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已推送PR #30，GitHub Actions Run 166（ID `37567132440`）的合并基线与精确head Windows job均成功，standalone artifact已上传。后续状态文档提交仅记录结果；PR未合并，等待用户独立验收。
+日期：2026-10-07。状态：AWAITING ACCEPTANCE。步骤1已完成；步骤2的自动化和发布验证已执行，Windows原生鼠标/视觉与Word排版验收未完成，不宣布完整UAT或正式标准支持通过。
 
-## 1. 基线与平台 / Contract 预检查
+## 平台 / Contract 预检查
 
-- 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- Base：开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`，含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`。随后同步并合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，含UAT02与RPT01；合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的定向、全量、数据和Windows发布验证已完成。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
-- 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
-- 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
-- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`及已解决的`GHG-STD-32151-34-005/006`。C.4/C.5既有解释不变；005/006记录用户产品裁定及C.1/C.2/C.3/§5.2分组原文核对，不称官方解释。
-- PR #27保持 `OPEN / UNMERGED`且未修改；未从PR #27分支派生。
+- 授权：步骤1（状态同步、Excel入口统一）和步骤2（集成验收、已确认普通缺陷小补丁）。不启动步骤3 UseCase、Excel正式写入或新标准。
+- Git已确认实际工作树、origin和默认main；仓库为adgo07/GHGTOOL。开工fetch后的main：`124a16a6490d161bc2db8d1734e554454fca4ac6`；任务分支codex/main-integration-acceptance从该点创建。原checkout和用户未跟踪文件未覆盖。
+- PF01 #30、UAT02 #31、RPT01 #32已合并；旧PR #27远端已关闭且未合并。本包只读核验，不关闭、重开或合并其他PR。
+- 中央锁定SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。读取锁定Architecture V2.1、Numeric Contract v1、Numeric Profiles v1及当前ACTIVE UI指南。不改变platform-lock.json或PLATFORM_BASELINE.md。
+- MUST：分层、共用Domain Calculator、Decimal p40/HALF_UP声明Profile及ambient independence、成功Record不可变、显示修约仅作用Presentation。
+- MUST NOT：显示值回流计算/正式比较、Excel另建算法、报告回查当前Catalog重算历史记录、预览保存Record/Project、将DRAFT称为FROZEN。
+- 不定义或改变中央公共Contract。问题均为本地普通缺陷，无需改中央Contract；保留本仓Numeric Profile差异。
+- Standard Issue预检查：001～006均RESOLVED；热力回归涉及既有005/006日期口径。未新增解释、修改公式、Resolver策略、适用范围或既有软件解释。
+- 按用户要求，测试扩展、发布回归和辅助渲染由GPT-6 Luna、max子agent承担；主agent负责修复、边界判断及汇总。
 
-## 2. 实现内容
+## 实现内容
 
-### 注册数据与可追溯关系
+1. HANDOFF与唯一路线文件纠正PF01合并状态、Excel R2能力和PR #27状态。R2提供十张可见输入表模板、严格校验及逐核算单元只读预览；RS03正式写入/结果导出未启动。
+2. Excel首页及导航改为“Excel 导入预览”，移除禁用式语义和NoFocus，说明预览不生成项目或正式记录。
+3. Excel预览总量采用既有Presentation格式器，避免未经格式化的长Decimal字符串；内部精度与比较不变。
+4. 构建manifest的Catalog版本从001修为实际002；发布审计比较manifest与真实数据库版本，测试验证故意写回001会被拒绝。
+5. 辅助图发现首页已有记录时底部仍称“暂无核算记录”。改为中性提示，并增加有记录时不出现误导提示的回归断言。
 
-- Canonical catalog升至schema `1.1.0`、data version `2026.10.07-pf01.2`。
-- 新增14张来源表、98个不可变参考数据资产、100条来源绑定；因新增C.3热力缺省候选，Factor由98增至99，Parameter仍为98。Canonical校验通过：9个标准、12个来源、98个参数、99个因子。
-- C.1登记26个燃料表项，C.2登记完整11个碳酸盐表项；简单标准参考数据通过来源表结构、资产和绑定展示。等值多来源可共享资产并保留各自定位；来源值不同使用独立资产版本；没有权重字段。
-- 为GB/T 32151.34—2024 C.3新增0.11 tCO₂/GJ正式缺省因子候选，定位附录C表C.3（PDF第27页、印刷页19）。本次直接核对原始PDF（SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`）：封面实施日期为2025-03-01，但C.3未给该因子独立的起始有效日期。已把C.3因子及其来源绑定的`valid_from`改为`null`，保留标准目录的实施日期；不宣称标准官方认可追溯适用。它与GB/T 32150—2025通用缺省的数值相同但保留独立来源适用信息；资产按相同值复用。
-- C.4/C.5蒸汽表没有复制进Canonical。只读Adapter调用版本化Calculator的 `steam_reference_table_rows()`；插值、算法及正式表值均不变。
-- 对C.4/C.5相关问题继续执行 `GHG-STD-32151-34-003`：原始重复/异常压力键事实保留，后两项沿用批准的1.70/1.80 MPa软件解释，非官方勘误。
+## 新增集成测试
 
-### 查询与页面
+新增两组共9条，使用真实生产入口和隔离数据库。不是标准Golden Case；入口间一致不构成独立的标准公式正确性证明。
 
-- 新增只读查询模型及SQLite投影，按登记列布局浏览来源表；C.1/C.2显示Canonical登记数据，C.4/C.5显示Calculator只读数据。
-- 页面提供“按标准/文件查看”和“全库搜索”。全库检索覆盖标准目录项、来源文件/政策/公告、来源表元数据与单元格内容、参考数据资产；共享资产按ID和版本去重，详情列出多处来源定位。
-- 详情使用侧栏式分栏呈现，提供已登记官方页面链接；普通页面不显示内部主键或数据库字段。
-- 在 `AGENTS.md` 增加一条简短长期规则，明确Canonical登记职责与Resolver单一选择权；同步更新 `docs/DELIVERY.md` 中Canonical schema与Catalog/User/Records迁移版本。
+- Excel 6条：B.2～B.9映射；全活动预览与同Canonical Input正式Calculator的全精度结果、分项、参数/trace一致；坏单元隔离；错误元数据/缺表；OOXML NaN/Infinity拒绝；活动与实测参数十进制精度保留。
+- GUI 3条：GUI与R2预览精确一致且预览不保存；重复成功新增两条SQLite Record而失败不改历史；Catalog不可用后GUI按钮仍从冻结Record导出报告、原记录和报告模型不漂移、导出审计增加事件。
+- 报告样例QA：完整B.2～B.9输入经R2 importer/resolver、同一Calculator及显式SQLite Repository保存，再经软件报告模型/renderer导出B.1～B.9 DOCX。1条隔离记录、14张表、章节和关键字段结构检查通过；不是正式企业报告，也未证明分页通过。
 
-### 热力因子适用期接通
+## 本地验证
 
-- 回归发现既有热力Resolver按日期选取候选，但Calculator调用时漏传核算期间，导致有效期候选无法按核算期间判定。现将既有输入期间传入 `ParameterResolutionContext`；Resolver优先级与选择策略未改。
-- 年度与自定义核算期间、2025/2026适用日期、购入与输出热力均由既有Resolver取得适用0.11候选；没有在UI硬编码标准值。
-- 本次用户产品裁定下，所选标准实施日期经Catalog查询层传入版本化Calculator。核算期间完全早于、跨越或晚于实施日时，Calculator均追加结构化、非阻断WARNING；提醒进入CalculationResult、成功Record及普通页面“数据质量”提示，并使新Record状态按既有规则为`COMPLETED_WITH_WARNINGS`。不改Resolver Selection Policy、正式公式、历史Record或数据库schema。
-- 日期来源分组审计：按标准原文位置核对C.1燃料参数78条、C.2碳酸盐参数11条、§5.2相关参数6条，未发现具体值自2025-03-01起适用的独立日期要求；据此清除95条Factor及对应95条`FACTOR_SOURCE` binding上的重复日期。C.3标准参考绑定上的重复实施日期也清除。SourceDocument `effective_from=2025-03-01`保留为标准元数据；年度官方全国电力因子的`valid_from=2025-12-31`及来源绑定日期保留，因其来自独立官方年度发布。Resolver仍按核算期间筛选有自身适用期的数据。
-- 原始标准核对对象：GB/T 32151.34—2024本地PDF，SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；分组复核C.1、C.2、C.3、§5.2对应表格/条款。此判断为产品数据治理与原文事实，不声称官方认可对实施日前的标准追溯适用。
+最终代码与测试checkpoint：`e1328f2ef0244f2ee9944d29ea79dfd72ca282dc`。最终重跑291/291通过（328.146秒；wrapper 340.437秒），exit 0；此前完整回归checkpoint `3af0a5788149cac7f44893e6c34fd1b9cea52ba0`已291/291通过（406.896秒）。后续治理文档提交不改生产实现。
 
-### 数据库与兼容
+Windows Python 3.12.14、PySide6 6.11.2、openpyxl 3.1.5、python-docx 1.2.0、PyInstaller 6.22.3。TEMP/TMP、LOCALAPPDATA及数据库均隔离；未触碰用户正式数据库、旧安装包或计算表/。以下均为本地执行，CI单列。
 
-- PF01 Catalog迁移002只新增来源表、参考数据资产、来源绑定三张表及索引，无删除或重建旧表；不修改Project或Record存储。最新main中RPT01另含Records迁移004，PF01未修改该迁移。
-- 从迁移001状态升级到002的隔离检查通过，旧来源记录仍保留。
-- 未改Calculator正式排放公式、Numeric Contract、历史Record快照或PR #27。
+| 命令 | 结果 |
+|---|---|
+| `python -m unittest discover -s tests -t . -q` | 最终checkpoint 291/291通过，328.146秒，exit 0 |
+| `python -m unittest tests.test_g03_shell tests.test_g08_delivery -q` | 18/18 |
+| `python -m unittest tests.test_main_integration_excel -v` | 新增6/6 |
+| `python -m unittest tests.test_main_integration_ui -v` | 新增3/3；最终首页断言已在291条全量中通过 |
+| `python scripts/validate_canonical.py` | 最终checkpoint通过：9 standards / 12 sources / 98 parameters / 99 factors |
+| `python -m compileall -q apps packages resources scripts tests`、`python -m pip check` | 最终checkpoint通过，无损坏依赖 |
+| `python scripts/initialize_databases.py --output-dir build/integration-acceptance/databases` | 四库成功；catalog/user/records/projects：002/001/004/001 |
+| `python scripts/uir04_manual_gui_acceptance.py` | 5/5；本次是offscreen自动场景，名称含manual不代表人工实测 |
+| `python scripts/uir04_scale_acceptance.py --scale 1.0`及1.25/1.5 | 3/3；1366×768离屏几何检查 |
+| `python scripts/build_standalone.py --output-root dist/integration-acceptance` | 最终checkpoint构建成功，65.655秒 |
+| `python scripts/inspect_release.py dist/integration-acceptance/QingzhouCarbonAccounting` | 最终构建262文件通过 |
+| `python scripts/verify_release_archive.py dist/integration-acceptance/QingzhouCarbonAccounting` | 最终构建263可见文件ZIP往返通过 |
+| `python scripts/smoke_standalone.py dist/integration-acceptance/QingzhouCarbonAccounting` | 最终构建隔离双启动2/2通过，16.215秒 |
 
-## 3. 测试预期与计数变更
+最终构建manifest的source_commit / pr_head_sha / tested_merge_sha均为e1328f2ef0244f2ee9944d29ea79dfd72ca282dc；manifest SHA-256为addadc6839d12a76f01343f2f407ba7d0fec05851f8c0265290a47971af480e0，EXE SHA-256为6616d202a774a1a2459c8d807981a8ba4adf3d9fcbf15ad5a0a50c41bf3debf6。后续治理文档head与此构建checkpoint有意区分。
 
-**Canonical / 数据契约变化：**本包从Canonical schema `1.0.0`升至`1.1.0`；Catalog数据库迁移从`001`升至`002`；因增加C.3热力因子候选，Factor断言由98改为99。新增资产/表/绑定真实计数为98/14/100。同步更新了Canonical校验测试、持久化计数、release audit与归档审计夹具；这些更新对应正式数据和版本增加，不是删除旧测试。
+日志在build/integration-acceptance/logs/，含命令、checkpoint、解释器和退出码。Qt六图/manifest在qt-render/；Word样例、输入、结构检查与渲染失败说明在report-qa/。均为ignored本地QA产物，不是正式用户数据。
 
-**行为预期变化：**热力因子解析现携带已有核算期间，使既有有效期规则在Calculator链路真正生效；选择政策未变。本次再区分标准实施日期与C.3因子有效期，并让早于/跨越实施日的选择产生非阻断提醒。旧UI测试原先要求2025全年成功结果完全没有质量提醒，已按新裁定改为核对提醒可见且不阻断。全库搜索新增标准和来源文件结果，因此界面测试按结果类别选择参数项/表项，不再把结果数量当作固定常量。未改变公式或Resolver选择顺序。
+首次边修改边跑的282条checkpoint出现1 failure（旧文案断言）、1 error（新增测试SQLite连接未关闭导致Windows临时目录清理失败）；修复后稳定checkpoint全量通过。非有限数fixture首次被openpyxl读取阶段拒绝，测试接受WorkbookFatalError或单元错误两种有效拒绝路径；未删除计算断言或放松容差。
 
-## 4. 本地验证
+深路径安装PySide6构建依赖遇Windows路径长度限制，换短路径隔离venv后成功。初次离屏图字体呈方框，只在QA脚本注册本机已有Microsoft YaHei UI、Segoe UI和Arial后六图可读，未改生产字体设置。
 
-以下均由Windows Python 3.12.14项目虚拟环境实际执行：
+## 原始问题的验收边界
 
-- `python -m unittest tests.test_g02_canonical -q`：20/20通过，覆盖共享资产多定位、不同值版本及标准实施日与C.3因子有效期分离。
-- `python -m unittest tests.test_g04_catalog -v`：14/14通过，覆盖页面、动态表结构、标准/来源/表格内容与资产搜索、蒸汽Calculator Adapter及来源链接。
-- 设置`TEMP/TMP=build/pf01-test-tmp`后，合并main后定向命令`python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：129/129通过。
-- `python -m unittest tests.test_g04_catalog -q`：合并main前14/14通过。
-- 设置`TEMP/TMP=build/pf01-test-tmp`后，`python -m unittest discover -s tests -t . -q`：282/282通过，用时268.721秒。合并前266/266仅保留为历史对照。
-- `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）；`python -m compileall -q apps packages scripts tests`通过；`python -m pip check`通过，无损坏依赖。
-- 先运行`pip install -e ".[build]"`同步项目依赖（含`python-docx`）和Windows构建依赖。`python scripts/initialize_databases.py --output-dir build/pf01-final-databases-3b95459`通过，隔离创建catalog/user/records/projects四库。
-- 合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的Windows standalone构建通过；`scripts/inspect_release.py`检查262个文件通过，`scripts/verify_release_archive.py`完成263个可见文件ZIP往返检查；隔离双启动smoke为2/2通过。Manifest source_commit为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。
-- 首次默认TEMP/TMP落入受限AppData，导致持久化测试写入失败；将TEMP/TMP指向隔离工作区目录后，定向与全量测试均完成通过。
-- GitHub Actions：Run #162（ID `37491936893`）只对应旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，不作为本轮证据。Run #166（ID `37567132440`）对应代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`，合并基线与精确head Windows job均SUCCESS，精确head standalone artifact已上传；后续状态文档提交产生的新head以PR Checks为准。
+| 问题 | 最新主线与本包证据 |
+|---|---|
+| 滚轮误改、增行挤压 | UAT02滚轮/20行展开收起/scroll host几何回归通过；辅助图末行和添加按钮可见；原生鼠标待实测 |
+| 新增过程/物料、0.35、产品碳说明 | 沿用已合并UI解释与层级，UAT/advanced details回归通过；不删除多过程能力或改变规则 |
+| 来源可空、计算失败无反馈 | 来源提醒与缺值阻断分离、错误定位/隐藏结果现有回归通过；新增失败不写Record通过 |
+| 脱硫UUID、C.2缺省 | C.2逐项选择/因子及未知旧输入阻断现有测试通过，未重新录入官方值 |
+| 热力0.11 | PF01既有Canonical/期间Resolver修复及购入/输出热力集成通过，不在UI硬编码 |
+| 所有数字最多两位 | Excel长小数已修复；主线仍保留小量、参数输入精度及科学计数显示，未宣布全局严格最多两位完成 |
+| 核算记录复杂 | 普通详情/审计渐进展示测试通过；辅助图详情可读，左列表长标题在1440宽仍截断，留作后续观察项 |
+| 标准库跳转、因子库 | PF01页面/导航回归纳入全量；完整原生视觉走查未做 |
+| Word报告 | 快照导出、B.1～B.9结构/字段、导出审计通过；分页、横纵版切换、裁切未视觉验收 |
 
-## 5. 治理状态与停止点
+## 原生与视觉限制
 
-- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持Open/Unmerged。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已通过Run 166（ID `37567132440`）两个Windows job，standalone artifact已上传；本状态文档提交推送后以PR最新head Checks为准。之后停止等待独立验收；不自行合并。
-- PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
-- Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+- 最终e1328f2构建由GPT-6 Astra低推理子agent以独立LOCALAPPDATA实际启动。原生控件树确认中文首页/侧栏与预览不保存声明；Tab/Space成功进入新建核算，标题、标准与未计算状态可读。未完成Excel/记录页原生导航、完整表单填报或鼠标检查；详细结果位于build/integration-acceptance/native-qa/。
+- 原生截图FrameArrived超时，恢复后仍window capture超时；点击报coordinate input geometry is unavailable。没有把离屏图冒充原生截图，拥有的测试进程已关闭。
+- 六张1440×960 offscreen辅助图逐张查看：首页、初始核算、20行燃料上下部、Excel预览、记录详情；不能替代真实DPI、鼠标和Windows视觉UAT。
+- documents渲染器因bundled LibreOffice缺失报soffice.exe was not found on PATH，未生成PDF/PNG，未逐页检查。DOCX含6个横/纵向分区，后续需检查分页、表宽、页码、裁切。本包未安装新依赖或调用用户Office。
+
+## GitHub Actions与停止点
+
+本报告成文时新PR尚未发布；提交后检查最新head GitHub Actions，以PR Checks为CI证据。不引用PF01历史Run 166替代本包CI，本地与CI证据分开。
+
+交付候选后停止等待独立验收，不自行合并。RS03-B、RS04/RS05、Excel正式写入/导出、UseCase收口和生产InMemory隐式兜底整改均未启动。总体仍PARTIAL/NOT SUPPORTED；下一步补原生鼠标/视觉、Word分页及记录列表可读性验收，再启动后续工作包。

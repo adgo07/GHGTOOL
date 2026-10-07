@@ -183,7 +183,7 @@ RS02内部工作包（不是新产品阶段）：
 
 一句话目标：让 Excel 成为**同一个业务内核的 Import / Export Adapter**，而不是第二套算法。
 
-RPT01已通过PR #32将Excel R2合入main，当前提供十张用户可见输入表的模板、严格导入校验及逐核算单元只读预览；本工作包统一以main中的R2作为集成验收入口。合并不等于独立验收完成。R2不写入Project / Workspace / Record，也不导出核算结果；完整RS03闭环尚未完成，正式写入及结果导出仍未启动。PR #27保留历史验收意图并保持`OPEN / UNMERGED`、只读；审计确认其旧V1 runtime和四页规范已被main中的R2替代，不移植为生产代码，本工作包将按R2重述相关测试意图。RS03-B未启动。
+RPT01已通过PR #32将Excel R2合入main，当前提供十张用户可见输入表的模板、严格导入校验及逐核算单元只读预览；本工作包统一以main中的R2作为集成验收入口。合并不等于独立验收完成。R2不写入Project / Workspace / Record，也不导出核算结果；完整RS03闭环尚未完成，正式写入及结果导出仍未启动。PR #27保留历史验收意图并保持`CLOSED / UNMERGED`、只读；审计确认其旧V1 runtime和四页规范已被main中的R2替代，不移植为生产代码，本工作包已按R2增加6条集成测试，验证映射、精度和逐单元错误隔离。RS03-B未启动。
 
 Excel 设计、实现、GUI↔Excel Conformance 属于**同一产品阶段内部工作包**，不拆成独立产品阶段。
 
@@ -345,16 +345,16 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
-| Excel | `PARTIAL` | RPT01（PR #32）已合入main，提供十张可见输入表模板、严格导入校验及逐核算单元只读预览；本次统一以该R2为集成验收入口，合并不等于独立验收完成；不写入Project / Workspace / Record，也不导出核算结果，完整RS03闭环尚未完成；PR #27保留历史验收意图并保持OPEN / UNMERGED、只读，其旧V1 runtime/四页规范不移植，相关测试意图将按R2重述 |
+| Excel | `PARTIAL` | RPT01（PR #32）已合入main，提供十张可见输入表模板、严格导入校验及逐核算单元只读预览；本次统一以该R2为集成验收入口，合并不等于独立验收完成；不写入Project / Workspace / Record，也不导出核算结果，完整RS03闭环尚未完成；PR #27保留历史验收意图并保持CLOSED / UNMERGED、只读，其旧V1 runtime/四页规范不移植，相关测试意图已按R2落实为6条集成测试 |
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02、UAT01-A/B、UAT02（PR #31）、RPT01（PR #32）及PF01（PR #30）均已合并进入main，当前工作包为最新main集成验收；这些合并不等于独立验收完成。PF01合并前后定向与全量测试、Canonical、编译、依赖、数据库初始化和Windows发布验证有记录；GitHub Actions Run 166的合并基线与精确head Windows jobs均成功。Excel R2提供十张输入表模板、严格导入校验及逐核算单元只读预览，本次统一以该R2为验收入口；它不写Project / Workspace / Record，也不导出核算结果。PR #27保持OPEN / UNMERGED并只读，RS03-B未启动。Excel正式写入及结果导出尚未实现。Golden/正式支持及Release门禁待RS04/RS05。4条历史RESOLVED标准问题不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
+参考标准总体状态：**`PARTIAL`**。共登记11条Gap：10条已关闭；仅GAP-009仍开放为非阻塞provenance debt。RS01、RS02、UAT01-A/B、UAT02（PR #31）、RPT01（PR #32）及PF01（PR #30）均已合并进入main，当前工作包为最新main集成验收；这些合并不等于独立验收完成。PF01合并前后定向与全量测试、Canonical、编译、依赖、数据库初始化和Windows发布验证有记录；GitHub Actions Run 166的合并基线与精确head Windows jobs均成功。Excel R2提供十张输入表模板、严格导入校验及逐核算单元只读预览，本次统一以该R2为验收入口；它不写Project / Workspace / Record，也不导出核算结果。PR #27保持CLOSED / UNMERGED并只读，RS03-B未启动。Excel正式写入及结果导出尚未实现。Golden/正式支持及Release门禁待RS04/RS05。当前6条RESOLVED标准问题（4条历史解释与2条日期口径）不是新增未解决Gap。盘点状态不是中央标准支持enum；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 8. 当前阶段与下一步
 
 - 当前工作包：**最新main集成验收**，属于既有路线内部工作，不新增路线阶段；验收对象包括已合并的PF01（PR #30）、UAT02（PR #31）和RPT01（PR #32）。本次Excel验收统一使用main中的R2，不以旧PR分支作为入口。
-- UAT01-A/B已合并（PR #28/#29），UAT02、RPT01与PF01分别经PR #31/#32/#30合并进入main；本工作包完成独立集成验收前不得把合并表述为验收完成。PR #27保留历史验收意图，保持`OPEN / UNMERGED`并只读，不修改、合并或关闭；旧V1 runtime/四页规范已被R2替代，不移植，本工作包将按R2重述验收测试意图。RS03-B为`NOT STARTED`；Excel正式写入与结果导出为`NOT STARTED`。
+- UAT01-A/B已合并（PR #28/#29），UAT02、RPT01与PF01分别经PR #31/#32/#30合并进入main；本工作包完成独立集成验收前不得把合并表述为验收完成。PR #27保留历史验收意图，保持`CLOSED / UNMERGED`并只读，不修改、重新打开或合并；旧V1 runtime/四页规范已被R2替代，不移植，本工作包已按R2增加6条集成测试。RS03-B为`NOT STARTED`；Excel正式写入与结果导出为`NOT STARTED`。
 - RS01与RS02已合并进入main；Golden Freeze、Release Gate及第二标准尚未启动。标准仍为 `NOT SUPPORTED`。
 - 第二标准不得早于 **RS05**。
 
@@ -374,7 +374,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 - 路线文件本身不授权未来工作包；具体实施授权以用户明确启动的当前工作包为准。本次为最新main集成验收，不新增路线阶段；RS03-B及RS04～RS06+未获本轮启动；
 - 本次统一以main已合入的R2进行Excel验收；R2只有模板、严格输入校验和逐核算单元只读预览，不写入Project / Workspace / Record、不导出核算结果；正式写入与结果导出仍属RS03后续闭环；
-- PR #27保留历史验收意图，保持OPEN / UNMERGED且只读，不修改、合并或关闭；旧V1 runtime/四页规范已被main中的R2替代，不移植为生产代码，本工作包将按R2重述相关测试意图；
+- PR #27保留历史验收意图，保持CLOSED / UNMERGED且只读，不修改、重新打开或合并；旧V1 runtime/四页规范已被main中的R2替代，不移植为生产代码，本工作包已按R2增加6条集成测试，验证映射、精度和逐单元错误隔离；
 - PF01的期间裁定及测试历史继续按其合入实现和`GHG-STD-32151-34-005/006`追溯；本次不改变正式公式、Resolver策略或历史Record；
 - 不修改 `platform-lock.json`、`PLATFORM_BASELINE.md` 或任何中央 Contract；
 - 不把 `DRAFT` / `NOT FROZEN` 描述成 `FROZEN`；
