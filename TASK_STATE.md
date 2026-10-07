@@ -4,40 +4,46 @@
 
 ## 当前工作包与基线
 
-- 仓库：`adgo07/GHGTOOL`；Canonical origin：`https://github.com/adgo07/GHGTOOL.git`。
-- 工作包：GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板。
-- 基线：开工时最新 `origin/main` SHA `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`；独立分支 `codex/ghg-rpt01-report-excel-r2`，未从 PR #27、PF01 或 UAT02 分支派生。
-- 并行集成：执行期间 UAT02 经 PR #31 合并，最新 `origin/main` 为 `880d5515e8c48cc01294926f7727de4270f73a66`。确认远端本包分支仍为已推送 head 后，将该 main 合入本分支；4 份治理文档冲突已按 RPT01 当前状态和已合并 UAT02 事实解决，UI 页面自动合并。
-- 当前阶段：`IMPLEMENTED / AWAITING ACCEPTANCE`。实现与本地验证完成；独立 PR、最新提交 CI 和验收的精确证据见最终交付回复及 PR Checks。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定 SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`，未升级。
-- 平台 / Contract 预检查：按锁定 SHA 检查 Architecture V2.1、Numeric Contract v1、Numeric Profiles v1。报告模型不依赖 UI、数据库或 renderer；Excel Decimal 入口是本仓适配器规则，不声明为中央冻结语义。本任务不涉及中央公共 Contract，未修改 Frozen baseline。
-- Standard Issue：未新增或改变标准解释；本任务不改变计算公式、标准适用范围或 Canonical 标准数据。
-- PR #27：只读参考，未修改、未合并或以其分支为 Base；当前仍保持 `OPEN / UNMERGED`。
+- 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
+- 工作包：GHG-PF01 — 参数与因子注册库基础架构 + 页面重构。
+- Base / 开工时最新 `origin/main`：`c61b29baa2f5d75deae5fc243874d2b1d947bf4a`；该提交包含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`；未从PR #27派生，PR #27未修改。
+- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；中央锁定SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`，未升级。
+- 平台 / Contract预检查：按locked SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；中央ACTIVE UI指南按当前正式版本核对。适用要求为分层隔离、Canonical JSON可校验、只读界面不替代Resolver、普通界面隐藏内部标识、历史Record不可漂移。本任务不涉及中央公共Contract；无冲突、无baseline变更。
+- Standard Issue：涉及既有 `GHG-STD-32151-34-003`；`GHG-STD-32151-34-005/006`已按用户裁定和原始标准分组核查解决。C.1 78条、C.2 11条、§5.2 6条共95条因子及对应来源绑定不再把标准实施日重复记作自身有效期；SourceDocument实施日仍保留。核算期间早于、跨越或晚于实施日均继续核算并产生非阻断Warning。真正具有自身适用期间的年度官方电力因子仍由Resolver按期间筛选。不宣称发布机构认可标准追溯适用。
+- 交付：PR #30保持OPEN / UNMERGED；候选`405c34a`与最新`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`合并为`3b9545952561c929955a05bc5bb9eabfbfa741e3`；五份治理文档冲突已按PF01与main中UAT02/RPT01事实收口。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已推送，GitHub Actions Run 166（ID `37567132440`）的合并基线与精确head两个Windows job均SUCCESS，并成功上传standalone artifact。PR未合并；当前状态更新仅涉及治理文档，推送后以GitHub最新head Checks核对，随后停止等待独立验收。
 
 ## 实现状态
 
-- Application ReportModel 从不可变 AccountingRecord 快照构建 B.1–B.9 报告内容，不调用 Calculator、不读取当前 Catalog、不重算旧记录。Word renderer 输出 DOCX，报告导出采用追加式历史记录和审计事件。
-- 新增 `records.sqlite` 迁移 004：保存报告格式、模板版本、文件名、文件 SHA-256 与补充信息；导出历史禁止更新和删除。不修改正式 Record 表或既有记录。
-- Excel R2 提供十张中文可见工作表与一张隐藏元数据页；支持动态行、空白与显式零区分、严格 OOXML Decimal 数值入口，以及逐核算单元复用现有 Domain / Calculator 的只读预览。不保存 Project / Workspace / Record，不提供结果导出。
-- WPS 实际另存会把 B.4 页签的全角斜线规范化为下划线。导入器仅在内存中接受该已验证别名；若规范名和别名同时出现则阻断，原始工作簿不会被改写。
-- UI 增加已保存记录 Word 导出、R2 模板下载和只读预览。报告与 Excel 适配器共用既有 Domain / Calculator。
-- 未修改 `计算表/` 用户参考文件、正式公式、Canonical 标准参考数据、`platform-lock.json` 或标准解释；未启动 RS03-B、Golden、Release、Excel 结果导出或第二标准。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；完成注册数据模型、Canonical校验、SQLite只读投影、查询服务与注册库页面重构。
+- Canonical schema `1.1.0` / data version `2026.10.07-pf01.2`：14张来源表、98个参考数据资产、100条来源绑定、99个因子候选。C.1/C.2与其他简单参数表使用正式Canonical；C.4/C.5由版本化Calculator只读提供。
+- 同值多来源共用同一不可变资产并保留多个独立定位；值不同使用独立版本；无权重字段。Resolver继续作为计算默认选择唯一入口，不因目录排序或展示发生变化。
+- 新增Catalog迁移002，仅新增来源表、参考数据资产、来源绑定三张表与索引；无破坏性迁移。
+- 最新main已包含RPT01的Records迁移004；PF01不修改此迁移，交付版本矩阵应为Catalog/User/Records `002/001/004`。
+- 查询层支持来源/表/资产的动态结构、跨库搜索（含表格实际单元格内容）及按资产去重展示多来源。页面提供“按标准/文件查看”和“全库搜索”，不显示内部ID。
+- 热力缺省0.11继续经Resolver使用，Calculator传入核算期间，不改变选择策略。C.3因子和来源绑定不再把标准实施日2025-03-01记作自身`valid_from`，故用户明确选择本标准核算较早期间时仍有候选；标准元数据实施日期保留，真正具有期间适用性的年度电力因子日期不变。购入/输出热力共用既有解析路径。
+- 对完全早于、跨越或晚于所选标准实施日的期间，新计算均给出非阻断WARNING，成功Record随之为`COMPLETED_WITH_WARNINGS`并保留提醒。正式公式、Resolver Selection Policy和历史Record均未修改。
+- 按C.1、C.2、C.3及§5.2参数分组核对原始标准，移除了无具体值独立适用期证据的95条因子及对应来源绑定上的重复日期；年度官方电力因子自身有效日期保留并有前后期间解析回归。
+- 不改正式排放公式；成功Record快照和历史Record不漂移规则保持不变；PR #27仍为 `OPEN / UNMERGED`且只读；RS03-A用户UAT `PENDING`，RS03-B `NOT STARTED`；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
 
 ## 本地验证
 
-- 定向测试：`python -m unittest tests.test_rpt01_report_excel -v`，8/8 通过；另 `tests.test_g08_delivery` 10/10 通过。覆盖 Word 快照和追加式导出历史、R2 模板、单元隔离、Decimal 入口、空白 / 零与 WPS 页签别名冲突。
-- 全量回归：在集成 PR #31 最新 main 后，`QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -t . -v`，276/276 通过，0失败、0错误，Windows / Python 3.12.14。
-- Canonical：`python scripts/validate_canonical.py` 通过，9 standards、12 sources、98 parameters、98 factors。
-- 编译与依赖：集成后使用 Python 3.12.14 执行 `python -m compileall -q apps packages scripts tests` 通过；`python -m pip check` 输出 No broken requirements found。
-- 隔离数据库重建：集成后使用 Python 3.12.14 执行 `python scripts/initialize_databases.py --output-dir <独立临时目录>`，成功创建 catalog、user、records、projects 四库。
-- Windows onedir：合入最新 main 后用 Python 3.12.14、项目 venv 的 PySide6/PyInstaller 和 RPT01 DOCX/Excel 依赖重新构建成功；`inspect_release.py` PASS（295 files），`verify_release_archive.py` PASS（296 visible files），`smoke_standalone.py --starts 2` 隔离启动2/2通过。初次缺少 `python-docx` 的环境问题已通过使用正确的依赖路径排除。
-- WPS 检查：用生成的非敏感示例打开 R2 模板和填写样例，并另存、重新导入；确认识别 2 个核算单元。实际 Word 输出在 WPS 打开并渲染，检查 A4 页面、重复表头、跨页长表与中文内容。用户参考 Excel 文件仅作只读结构检查：5 个 `.xlsx`、2 个 `.xls`，没有将其中企业数据复制到仓库或报告。
-- `git diff --check` 与文档状态在提交前复核；GitHub Actions 以独立 PR 最新提交为准，结果见最终交付回复。
-
-- 并行工作包状态：UAT02经PR #31已合并进入最新main；PF01 PR #30仍为`OPEN / UNMERGED`且未并入本分支；PR #27未修改，仍为`OPEN / UNMERGED`。
+- 使用Python 3.12.14项目虚拟环境（PySide6 6.11.2）；Qt测试临时目录位于隔离工作副本内。
+- `python -m unittest tests.test_g02_canonical -q`：20/20通过，新增标准实施日与C.3因子有效期分离断言。
+- `python -m unittest tests.test_g04_catalog -v`：14/14通过，含目录页面、表结构、全库搜索、蒸汽表和单位表单元格检索。
+- `TEMP/TMP=build/pf01-test-tmp; python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：合并后129/129通过；覆盖三种实施日期关系、期间因子筛选、Canonical、记录、交付、UAT02与UI回归。
+- `TEMP/TMP=build/pf01-test-tmp; python -m unittest tests.test_g04_catalog -q`：14/14通过。
+- `python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、99 factors。
+- `build_catalog_database()`隔离构建通过：14张来源表、98个数据资产、100条绑定、13条转换规则；迁移002成功。
+- `TEMP/TMP=build/pf01-test-tmp; python -m unittest discover -s tests -t . -q`：合并后282/282通过，用时268.721秒。此前合并前266/266仅作历史记录，不替代本次结果。
+- 合并后`python scripts/validate_canonical.py`通过（9 standards、12 sources、98 parameters、99 factors）；`python -m compileall -q apps packages scripts tests`通过；`python -m pip check`通过（无损坏依赖）。为当前主线新增的`python-docx`及项目声明依赖，先运行`pip install -e ".[build]"`完成环境同步。
+- 合并后`python scripts/initialize_databases.py --output-dir build/pf01-final-databases-3b95459`通过，隔离创建catalog/user/records/projects四库。Catalog迁移001→002保留检查沿用原报告，本次未重复执行。
+- Windows standalone以合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`构建通过；发布审计检查262个文件通过，上传归档往返检查263个可见文件通过，manifest记载Catalog/User/Records/Projects迁移`001/001/004/001`及Canonical版本。隔离双启动smoke 2/2通过。
+- GitHub Actions Run 166 / ID `37567132440`绑定代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`；`Windows / Python 3.12 / Merge-ref Full Tests`与`Windows / Python 3.12 / PR-head Standalone Audit`均SUCCESS。精确head步骤含Canonical、compileall、pip check、四库重建、UIR04 GUI与缩放、G08测试、standalone构建/审计/归档/来源追溯/smoke，并上传artifact `QingzhouCarbonAccounting-0bb06b888a269c46daa8b372db614c5f19516636`（58,688,325 bytes，SHA-256 `a5bdc5702d11eea7a79df86ba019449e01c85199bb9e3a843023cf48a29405c7`）。后续状态文档提交产生的新head以PR Checks为准。
+- 首次在默认TEMP/TMP目录运行持久化测试遇沙箱AppData写入拒绝；改用隔离的`build/pf01-test-tmp`后，定向与全量测试均通过。此环境限制及实际命令均已如实记录。
+- 首次本地热力回归发现Calculator调用漏传核算期间；通过传递既有输入期间修复，不更改Resolver候选优先级。注册库搜索加入标准和来源文件后再次运行全量回归通过。
 
 ## 治理状态与停止点
 
-- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR 最终提交 Windows CI 与独立验收通过后停止，不合并。
-- RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且未修改；RS03-B：`NOT STARTED`；Excel 结果导出：`NOT STARTED`。
-- `GB/T 32151.34—2024` 仍为 `NOT SUPPORTED`；本任务不启动产品下一阶段。
+- UAT01-A/B、UAT02、RPT01、RS01与RS02已合并进入main；PR #30 PF01仍等待最终Head验证与独立验收，不自行合并。
+- RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且保持只读；RS03-B：`NOT STARTED`。
+- Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

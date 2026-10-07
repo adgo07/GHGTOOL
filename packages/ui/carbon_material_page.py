@@ -590,15 +590,18 @@ class CarbonMaterialAccountingPage(BasePage):
         except (AttributeError, KeyError, TypeError, ValueError):
             resolver = None
         self._parameter_resolver = resolver
+        standard_implementation_date = self.catalog_service.standard_implementation_date(standard_id)
         if calculator is None:
             catalog_version = self.catalog_service.standard_version(standard_id)
             calculator = CarbonMaterialCalculator(
                 parameter_resolver=resolver,
                 record_repository=record_repository,
                 standard_version=catalog_version or STANDARD_VERSION,
+                standard_implementation_date=standard_implementation_date,
                 reference_data_identity_provider=self.catalog_service.reference_data_identity,
             )
         else:
+            calculator.standard_implementation_date = standard_implementation_date
             calculator.reference_data_identity_provider = self.catalog_service.reference_data_identity
         self.calculator = calculator
         self.standard_id = standard_id

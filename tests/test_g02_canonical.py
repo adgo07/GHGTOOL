@@ -25,7 +25,7 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(len(self.catalog["standards"]), 9)
         self.assertEqual(len(self.catalog["sources"]), 12)
         self.assertEqual(len(self.catalog["parameters"]), 98)
-        self.assertEqual(len(self.catalog["factors"]), 98)
+        self.assertEqual(len(self.catalog["factors"]), 99)
         self.assertEqual(self.catalog["manifest"]["canonical_format"], "JSON")
         self.assertNotIn("full_text", json.dumps(self.catalog, ensure_ascii=False))
         self.assertTrue(DEFAULT_SOURCE_PATH.is_file())
@@ -217,6 +217,128 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertIn("1.70 MPa=2793.8 kJ/kg", source["notes"])
         self.assertIn("3.0 MPa/350 ℃=3115.7 kJ/kg", source["notes"])
 
+    def test_reference_registry_shares_equal_values_and_keeps_source_locators(self) -> None:
+        assets = {item["asset_id"]: item for item in self.catalog["reference_data_assets"]}
+        heat_asset = assets["asset-heat_default_2025"]
+        heat_bindings = [
+            item for item in self.catalog["reference_data_bindings"]
+            if item["asset_id"] == heat_asset["asset_id"]
+        ]
+        tables = {item["source_table_id"]: item for item in self.catalog["source_tables"]}
+        source_ids = {tables[item["source_table_id"]]["source_id"] for item in heat_bindings}
+        locators = {item["source_location"] for item in heat_bindings}
+        self.assertEqual(heat_asset["value"], "0.11")
+        self.assertEqual(source_ids, {"SRC-32150-2025", "SRC-32151-34-2024"})
+        self.assertEqual(len(locators), 2)
+        self.assertEqual(len(self.catalog["source_tables"]), 14)
+        self.assertEqual(len(self.catalog["reference_data_assets"]), 98)
+        self.assertEqual(len(self.catalog["reference_data_bindings"]), 100)
+        self.assertNotIn("weight", json.dumps(self.catalog["reference_data_bindings"]).lower())
+
+    def test_standard_implementation_date_is_not_c3_factor_validity(self) -> None:
+        standard = next(item for item in self.catalog["standards"] if item["standard_id"] == "gbt_32151_34_2024")
+        c3_factor = next(item for item in self.catalog["factors"] if item["factor_id"] == "heat_default_gbt32151_34_c3")
+        c3_binding = next(item for item in self.catalog["reference_data_bindings"] if item["factor_id"] == c3_factor["factor_id"])
+        electricity = next(item for item in self.catalog["factors"] if item["factor_id"] == "electricity_national_average_2023")
+        source = next(item for item in self.catalog["sources"] if item["source_id"] == "SRC-32151-34-2024")
+
+        self.assertEqual(standard["implementation_date"], "2025-03-01")
+        self.assertEqual(source["effective_from"], "2025-03-01")
+        self.assertEqual(c3_factor["normalized_value"], "0.11")
+        self.assertIsNone(c3_factor["valid_from"])
+        self.assertIsNone(c3_binding["valid_from"])
+        self.assertEqual(c3_factor["applicable_standard_ids"], [standard["standard_id"]])
+        self.assertEqual(electricity["valid_from"], "2025-12-31")
+
+        standard_factors = [
+            item for item in self.catalog["factors"]
+            if standard["standard_id"] in item["applicable_standard_ids"]
+        ]
+        groups = {
+            "C.1": [item for item in standard_factors if "附录C表C.1" in item["source_location"]],
+            "C.2": [item for item in standard_factors if "附录C表C.2" in item["source_location"]],
+            "§5.2": [item for item in standard_factors if "第5.2." in item["source_location"]],
+        }
+        self.assertEqual({key: len(value) for key, value in groups.items()}, {"C.1": 78, "C.2": 11, "§5.2": 6})
+        for factors in groups.values():
+            for factor in factors:
+                with self.subTest(factor_id=factor["factor_id"]):
+                    self.assertIsNone(factor["valid_from"])
+                    self.assertIsNone(factor["valid_to"])
+        dated_bindings = {
+            item["factor_id"]: item
+            for item in self.catalog["reference_data_bindings"]
+            if item["factor_id"] in {factor["factor_id"] for values in groups.values() for factor in values}
+        }
+        self.assertEqual(len(dated_bindings), 95)
+        self.assertTrue(all(item["valid_from"] is None and item["valid_to"] is None for item in dated_bindings.values()))
+
+    def test_different_source_value_is_a_separate_immutable_asset_version(self) -> None:
+        catalog = copy.deepcopy(self.catalog)
+        source = copy.deepcopy(next(item for item in catalog["sources"] if item["source_id"] == "SRC-32151-34-2024"))
+        source.update({
+            "source_id": "SRC-TEST-HEAT-C",
+            "document_no": "测试权威资料C",
+            "document_name": "测试热力因子资料",
+            "publisher": "测试机构",
+            "publication_date": "2026-01-01",
+            "effective_from": None,
+            "effective_to": None,
+            "official_url": "https://example.com/heat-c",
+            "version": "test",
+            "notes": "测试夹具，不进入正式目录。",
+        })
+        catalog["sources"].append(source)
+        table = copy.deepcopy(next(item for item in catalog["source_tables"] if item["source_table_id"] == "tab-32151-34-c3"))
+        table.update({
+            "source_table_id": "tab-test-heat-c",
+            "source_id": "SRC-TEST-HEAT-C",
+            "display_number": "表C",
+            "title": "测试热力因子表",
+            "source_location": "测试权威资料C 表C",
+            "sort_order": 100,
+        })
+        catalog["source_tables"].append(table)
+        factor = copy.deepcopy(next(item for item in catalog["factors"] if item["factor_id"] == "heat_default_gbt32151_34_c3"))
+        factor.update({
+            "factor_id": "heat_default_test_source_c",
+            "value": "0.12",
+            "source_value": "0.12",
+            "normalized_value": "0.12",
+            "source_id": "SRC-TEST-HEAT-C",
+            "source_location": "测试权威资料C 表C；第2页",
+            "factor_year": 2026,
+            "notes": "独立来源的不同值，测试时使用单独资产版本。",
+        })
+        catalog["factors"].append(factor)
+        asset = copy.deepcopy(next(item for item in catalog["reference_data_assets"] if item["asset_id"] == "asset-heat_default_2025"))
+        asset.update({
+            "asset_id": "asset-heat_default_test_source_c",
+            "asset_version": "2",
+            "value": "0.12",
+            "source_value": "0.12",
+            "normalized_value": "0.12",
+            "notes": "单独值版本。",
+        })
+        catalog["reference_data_assets"].append(asset)
+        binding = copy.deepcopy(next(item for item in catalog["reference_data_bindings"] if item["factor_id"] == "heat_default_gbt32151_34_c3"))
+        binding.update({
+            "binding_id": "binding-heat-default-test-source-c",
+            "asset_id": "asset-heat_default_test_source_c",
+            "source_table_id": "tab-test-heat-c",
+            "factor_id": "heat_default_test_source_c",
+            "source_location": factor["source_location"],
+            "factor_year": 2026,
+            "notes": "测试来源与定位。",
+        })
+        catalog["reference_data_bindings"].append(binding)
+
+        validated = validate_catalog(catalog)
+        values = [item for item in validated["reference_data_assets"] if item["parameter_id"] == "heat_emission_factor_default"]
+        self.assertEqual(len(values), 2)
+        self.assertEqual({item["value"] for item in values}, {"0.11", "0.12"})
+        self.assertNotEqual(values[0]["asset_id"], values[1]["asset_id"])
+
     def test_standard_parameter_references_must_be_applicable(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         common_rules = next(
@@ -289,13 +411,13 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(zero["unit"], "tCO₂/MWh")
         self.assertEqual(zero["source_id"], "SRC-32151-34-2024")
         self.assertEqual(zero["factor_year"], 2024)
-        self.assertEqual(zero["valid_from"], "2025-03-01")
+        self.assertIsNone(zero["valid_from"])
         self.assertEqual(
             zero["source_location"],
             "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
         )
-        self.assertEqual(self.catalog["manifest"]["schema_version"], "1.0.0")
-        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.09.22-catui01.1")
+        self.assertEqual(self.catalog["manifest"]["schema_version"], "1.1.0")
+        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.10.07-pf01.2")
     def test_duplicate_stable_id_blocks_validation(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["sources"].append(copy.deepcopy(catalog["sources"][0]))

@@ -1,77 +1,72 @@
-# GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板
+# GHG-PF01 — 参数与因子注册库基础架构 + 页面重构
 
-状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。最终独立 PR 最新提交的 GitHub Actions 与独立验收是交付门槛；本报告不写入会触发新提交的自身 head 或 CI run SHA，精确提交与 CI 证据见最终交付回复及 PR Checks。
+状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。本轮候选从只读工作树按13个已跟踪文件逐字节迁入D盘独立克隆，起点为PR #30原分支head `4d5d7bc42336afa6d80a9894297454a43f8706d6`。候选提交为`405c34a0171e3319d4c6d00a2ec84c0d44a04c73`；已合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`，五份治理文档冲突已收口。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已推送PR #30，GitHub Actions Run 166（ID `37567132440`）的合并基线与精确head Windows job均成功，standalone artifact已上传。后续状态文档提交仅记录结果；PR未合并，等待用户独立验收。
 
 ## 1. 基线与平台 / Contract 预检查
 
 - 仓库：`adgo07/GHGTOOL`；origin：`https://github.com/adgo07/GHGTOOL.git`。
-- 开工时最新 `origin/main` Base：`c61b29baa2f5d75deae5fc243874d2b1d947bf4a`。
-- 独立分支：`codex/ghg-rpt01-report-excel-r2`；未从 PR #27、PF01 或 UAT02 分支派生。
-- 并行集成：任务执行期间 UAT02 经 PR #31 合入 `main`，最新 main 为 `880d5515e8c48cc01294926f7727de4270f73a66`。已重新 fetch，并确认远端 RPT01 分支仍指向本包原提交后合入 main；4 份治理文档的冲突按本包当前报告状态和已合并 UAT02 事实人工协调，UI 页面自动合并。最终验证在集成后的 head 重新执行。
-- PF01 独立 PR #30 经 GitHub 页面核验仍为 `OPEN / UNMERGED`，没有合入本分支；本次只集成已进入 `main` 的 UAT02。PR #27 同样保持 `OPEN / UNMERGED`且未修改。
-- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央 SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`。未修改或升级锁定基线。
-- 按锁定 SHA 核对 Architecture V2.1、Numeric Contract v1 与 Numeric Profiles v1。适用要求是保持分层边界和已采用的数值语义；本任务的 ReportModel 留在 Application，Word / Excel 为外层适配器，Decimal OOXML 读取是本仓 Excel 适配语义。
-- 本任务不涉及中央公共 Contract，没有 Contract 冲突；未修改 Calculator、标准公式、标准解释、Canonical 标准数据、标准适用范围或 Frozen Contract。
-- Standard Issue：没有新增问题或改变既有解释。PR #27 保持 `OPEN / UNMERGED` 且未修改，仅作只读背景参考。
+- Base：开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a`，含已合并的UAT01-B。分支：`codex/pf01-parameter-factor-library`。随后同步并合并`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`，含UAT02与RPT01；合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的定向、全量、数据和Windows发布验证已完成。
+- `platform-lock.json` SHA-256：`BE9052155BBCAE94C782E2C7BDBAA384358CC605C27E81C5BF62A2957247FDD0`；锁定中央SHA：`ee5feb0cc34dbd99790500fadd0c4c932e202a20`；未升级。
+- 按锁定SHA核对Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；并读取中央当前ACTIVE UI指南。执行分层隔离、Canonical可校验、内部ID不泄露、目录只读且不得取代计算Resolver、Record快照不漂移等要求。
+- 本任务不涉及中央公共Contract；无Contract冲突，不改 `platform-lock.json` 或 `PLATFORM_BASELINE.md`。
+- 相关Standard Issue：是，既有 `GHG-STD-32151-34-003`及已解决的`GHG-STD-32151-34-005/006`。C.4/C.5既有解释不变；005/006记录用户产品裁定及C.1/C.2/C.3/§5.2分组原文核对，不称官方解释。
+- PR #27保持 `OPEN / UNMERGED`且未修改；未从PR #27分支派生。
 
-## 2. 实际交付
+## 2. 实现内容
 
-### 统一报告模型与 Word 报告
+### 注册数据与可追溯关系
 
-- Application `ReportModel` 从一条已保存 AccountingRecord 的输入、结果、参数、Trace、Provenance、Reporting 和资格快照生成 B.1–B.9 结构化报告；不调用 Calculator、不查当前 Catalog、不补算旧快照中没有的值。
-- Infrastructure Word renderer 生成中文 DOCX 报告，包含报告所需业务输入、来源、结果、汇总及可追溯说明。显示修约只用于输出展示。补充信息优先取 Record 的 Reporting 快照，再取同一 Record 既有导出历史，最后使用空白表单。
-- 新增 `records.sqlite` 迁移 004 `report_export_history`，追加保存导出格式、模板版本、文件名、文件 SHA-256 与补充信息，并写入审计事件。表有禁止 UPDATE / DELETE 的触发器。既有正式 Record 不变、不可编辑，报告导出不重算或改写历史记录。
-- Word 页面采用 A4，宽表切换横向、表头跨页重复、缺失快照明确显示缺项。以非敏感示例生成的简单报告与含长表、多实例的报告在 WPS 打开并渲染检查；页数分别为 4 页与 7 页，检查了中文、分页、表格和重复表头。
+- Canonical catalog升至schema `1.1.0`、data version `2026.10.07-pf01.2`。
+- 新增14张来源表、98个不可变参考数据资产、100条来源绑定；因新增C.3热力缺省候选，Factor由98增至99，Parameter仍为98。Canonical校验通过：9个标准、12个来源、98个参数、99个因子。
+- C.1登记26个燃料表项，C.2登记完整11个碳酸盐表项；简单标准参考数据通过来源表结构、资产和绑定展示。等值多来源可共享资产并保留各自定位；来源值不同使用独立资产版本；没有权重字段。
+- 为GB/T 32151.34—2024 C.3新增0.11 tCO₂/GJ正式缺省因子候选，定位附录C表C.3（PDF第27页、印刷页19）。本次直接核对原始PDF（SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`）：封面实施日期为2025-03-01，但C.3未给该因子独立的起始有效日期。已把C.3因子及其来源绑定的`valid_from`改为`null`，保留标准目录的实施日期；不宣称标准官方认可追溯适用。它与GB/T 32150—2025通用缺省的数值相同但保留独立来源适用信息；资产按相同值复用。
+- C.4/C.5蒸汽表没有复制进Canonical。只读Adapter调用版本化Calculator的 `steam_reference_table_rows()`；插值、算法及正式表值均不变。
+- 对C.4/C.5相关问题继续执行 `GHG-STD-32151-34-003`：原始重复/异常压力键事实保留，后两项沿用批准的1.70/1.80 MPa软件解释，非官方勘误。
 
-### Excel R2 输入模板与预览
+### 查询与页面
 
-- `packages/excel/r2.py` 提供 10 张中文可见工作表及 1 张隐藏模板元数据页，覆盖基本信息、B.2–B.9 输入；动态明细行、下拉项、必要数据提示和 Excel 单元格数据校验均在模板中提供。
-- 导入器读取 OOXML 原始数字词法并保留 Decimal；拒绝公式、文本数字、日期、布尔值、非有限值及超过 15 位有效数字的输入。空白和显式数值 0 保持不同含义。
-- 每个核算单元独立解析、验证并复用现有 Application / Domain / Calculator 生成只读预览，失败单元与其他单元隔离；预览会说明模板版本、来源文件哈希和行列位置。不保存 Project、Workspace 或 Record，不提供核算结果写回/结果导出。
-- Excel 禁止半角斜线作为页签名，模板的 B.4 使用标准的全角斜线。真实 WPS 另存会将它规范化成 `B.4 焙烧_炭化`；导入器接受该已验证别名但仅在内存归一化，规范页名与别名同时出现时因歧义阻断，不改写用户源文件。实际 WPS 另存文件的导入检查成功识别 2 个核算单元。
-- Excel 仍只提供导入预览；正式写入 Project / Record 及 Excel 结果导出留在 GHG-RS03。
+- 新增只读查询模型及SQLite投影，按登记列布局浏览来源表；C.1/C.2显示Canonical登记数据，C.4/C.5显示Calculator只读数据。
+- 页面提供“按标准/文件查看”和“全库搜索”。全库检索覆盖标准目录项、来源文件/政策/公告、来源表元数据与单元格内容、参考数据资产；共享资产按ID和版本去重，详情列出多处来源定位。
+- 详情使用侧栏式分栏呈现，提供已登记官方页面链接；普通页面不显示内部主键或数据库字段。
+- 在 `AGENTS.md` 增加一条简短长期规则，明确Canonical登记职责与Resolver单一选择权；同步更新 `docs/DELIVERY.md` 中Canonical schema与Catalog/User/Records迁移版本。
 
-### UI、架构与 PR #27 参考资产
+### 热力因子适用期接通
 
-- UI 增加已保存 Record 的 Word 报告导出、R2 模板下载及只读导入预览，不增加第二套计算路径；普通提示为中文。
-- 新增报告输出架构说明、标准能力渐进架构说明、GB/T 32151.34—2024 报告 Schema，以及交付 / 路线 / 交接状态更新。
-- PR #27 资产处置：复用已在 Base 中的共享物料标准化 Domain 能力；将现有输入语义适配到 R2 工作簿并增加 Decimal OOXML 入口。没有依赖或复制 PR #27 未合并分支中的旧 Excel 计算器，也没有修改 PR #27。
-- 对用户现有 `计算表/` 文件只进行结构性只读检查：5 个 `.xlsx` 与 2 个 `.xls`；没有改动源文件或将其中企业数据写入仓库。历史表格主要是多页、公式驱动的月度台账；R2 将标准业务入口分为 B.2–B.9，并让软件负责计算与预览。
+- 回归发现既有热力Resolver按日期选取候选，但Calculator调用时漏传核算期间，导致有效期候选无法按核算期间判定。现将既有输入期间传入 `ParameterResolutionContext`；Resolver优先级与选择策略未改。
+- 年度与自定义核算期间、2025/2026适用日期、购入与输出热力均由既有Resolver取得适用0.11候选；没有在UI硬编码标准值。
+- 本次用户产品裁定下，所选标准实施日期经Catalog查询层传入版本化Calculator。核算期间完全早于、跨越或晚于实施日时，Calculator均追加结构化、非阻断WARNING；提醒进入CalculationResult、成功Record及普通页面“数据质量”提示，并使新Record状态按既有规则为`COMPLETED_WITH_WARNINGS`。不改Resolver Selection Policy、正式公式、历史Record或数据库schema。
+- 日期来源分组审计：按标准原文位置核对C.1燃料参数78条、C.2碳酸盐参数11条、§5.2相关参数6条，未发现具体值自2025-03-01起适用的独立日期要求；据此清除95条Factor及对应95条`FACTOR_SOURCE` binding上的重复日期。C.3标准参考绑定上的重复实施日期也清除。SourceDocument `effective_from=2025-03-01`保留为标准元数据；年度官方全国电力因子的`valid_from=2025-12-31`及来源绑定日期保留，因其来自独立官方年度发布。Resolver仍按核算期间筛选有自身适用期的数据。
+- 原始标准核对对象：GB/T 32151.34—2024本地PDF，SHA256=`60B034B025E9E4BC97A6FD7E18946923B696012FED0D4A3A8E901FB530136738`；分组复核C.1、C.2、C.3、§5.2对应表格/条款。此判断为产品数据治理与原文事实，不声称官方认可对实施日前的标准追溯适用。
 
-## 3. 测试预期变更
+### 数据库与兼容
 
-- 数据 / 持久化契约变化：新增 Records 数据库迁移 004 后，`test_g08_delivery` 中“记录库迁移版本数为 3”的旧断言改为 4，以匹配实际新增迁移。Canonical 数据集没有变化，标准、来源、参数和因子计数未因本包改变。
-- 新增行为验证：报告使用不可变 Record 快照；导出历史追加且不能更新或删除；R2 按单元隔离；输入数字按 OOXML Decimal 规则检查；空白与零区分；WPS B.4 已知页签别名成功归一，双重页签则阻断。
-- 这次工作没有通过放松既有业务校验或修改正式公式来让测试通过，也未改历史 Record 行为。
+- PF01 Catalog迁移002只新增来源表、参考数据资产、来源绑定三张表及索引，无删除或重建旧表；不修改Project或Record存储。最新main中RPT01另含Records迁移004，PF01未修改该迁移。
+- 从迁移001状态升级到002的隔离检查通过，旧来源记录仍保留。
+- 未改Calculator正式排放公式、Numeric Contract、历史Record快照或PR #27。
+
+## 3. 测试预期与计数变更
+
+**Canonical / 数据契约变化：**本包从Canonical schema `1.0.0`升至`1.1.0`；Catalog数据库迁移从`001`升至`002`；因增加C.3热力因子候选，Factor断言由98改为99。新增资产/表/绑定真实计数为98/14/100。同步更新了Canonical校验测试、持久化计数、release audit与归档审计夹具；这些更新对应正式数据和版本增加，不是删除旧测试。
+
+**行为预期变化：**热力因子解析现携带已有核算期间，使既有有效期规则在Calculator链路真正生效；选择政策未变。本次再区分标准实施日期与C.3因子有效期，并让早于/跨越实施日的选择产生非阻断提醒。旧UI测试原先要求2025全年成功结果完全没有质量提醒，已按新裁定改为核对提醒可见且不阻断。全库搜索新增标准和来源文件结果，因此界面测试按结果类别选择参数项/表项，不再把结果数量当作固定常量。未改变公式或Resolver选择顺序。
 
 ## 4. 本地验证
 
-验证均在 Windows / Python 3.12.14 本地执行；完整测试通过，不把本地结果冒充 GitHub Actions。
+以下均由Windows Python 3.12.14项目虚拟环境实际执行：
 
-- 定向：`python -m unittest tests.test_rpt01_report_excel -v`：8/8 通过。
-- 交付回归：`python -m unittest tests.test_g08_delivery -v`：10/10 通过。
-- 全量：在合入 PR #31 最新 main 后，以 Python 3.12.14、PySide6 6.11.2、`QT_QPA_PLATFORM=offscreen` 重跑 `python -m unittest discover -s tests -t . -v`：276/276 通过，0失败、0错误。
-- Canonical：`python scripts/validate_canonical.py`：通过，9 standards、12 sources、98 parameters、98 factors。
-- 编译：`python -m compileall -q apps packages scripts tests`：通过。
-- 依赖：`python -m pip check`：通过，无损坏依赖。
-- 数据库：`python scripts/initialize_databases.py --output-dir <隔离临时目录>`：通过，隔离创建 catalog、user、records、projects 四库。
-- Windows 便携版：合入最新 main 后，以 Python 3.12.14、项目 venv 的 PySide6/PyInstaller 和 RPT01 的 DOCX / Excel 依赖重建 onedir；`build_standalone.py` 成功；`inspect_release.py` 发布范围审计 PASS（295 files）；`verify_release_archive.py` ZIP 往返清单 PASS（296 visible files）；`smoke_standalone.py --starts 2` 隔离启动 2/2 通过。此前未装新增 `python-docx` 的 venv 初次构建失败已如实记录；本次最终集成构建的依赖路径完整，构建与启动通过。
-- WPS：验证 Word DOCX 的实际打开 / 渲染与 R2 模板、填写样例的打开、另存和重新导入；工作表数量为 10 张可见 + 1 张隐藏元数据页。
-- `git diff --check`：提交前执行并要求 exit 0；GitHub Actions 的两项 Windows 检查在独立 PR 最新提交完成后确认。
+- `python -m unittest tests.test_g02_canonical -q`：20/20通过，覆盖共享资产多定位、不同值版本及标准实施日与C.3因子有效期分离。
+- `python -m unittest tests.test_g04_catalog -v`：14/14通过，覆盖页面、动态表结构、标准/来源/表格内容与资产搜索、蒸汽Calculator Adapter及来源链接。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，合并main后定向命令`python -m unittest tests.test_g02_canonical tests.test_g02_persistence tests.test_g05_multi_electricity tests.test_g06_carbon_material tests.test_g06_page tests.test_g07_records tests.test_g08_delivery tests.test_uir03_advanced_details tests.test_uir04_finalization -q`：129/129通过。
+- `python -m unittest tests.test_g04_catalog -q`：合并main前14/14通过。
+- 设置`TEMP/TMP=build/pf01-test-tmp`后，`python -m unittest discover -s tests -t . -q`：282/282通过，用时268.721秒。合并前266/266仅保留为历史对照。
+- `python scripts/validate_canonical.py`：通过（9 standards、12 sources、98 parameters、99 factors）；`python -m compileall -q apps packages scripts tests`通过；`python -m pip check`通过，无损坏依赖。
+- 先运行`pip install -e ".[build]"`同步项目依赖（含`python-docx`）和Windows构建依赖。`python scripts/initialize_databases.py --output-dir build/pf01-final-databases-3b95459`通过，隔离创建catalog/user/records/projects四库。
+- 合并提交`3b9545952561c929955a05bc5bb9eabfbfa741e3`上的Windows standalone构建通过；`scripts/inspect_release.py`检查262个文件通过，`scripts/verify_release_archive.py`完成263个可见文件ZIP往返检查；隔离双启动smoke为2/2通过。Manifest source_commit为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。
+- 首次默认TEMP/TMP落入受限AppData，导致持久化测试写入失败；将TEMP/TMP指向隔离工作区目录后，定向与全量测试均完成通过。
+- GitHub Actions：Run #162（ID `37491936893`）只对应旧head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，不作为本轮证据。Run #166（ID `37567132440`）对应代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`，合并基线与精确head Windows job均SUCCESS，精确head standalone artifact已上传；后续状态文档提交产生的新head以PR Checks为准。
 
-上述集成后回归使用本机 Windows Python 3.12.14；D 盘项目虚拟环境提供 PySide6/PyInstaller，Codex Python 3.12 运行时的已安装 `python-docx` / `openpyxl` 作为 `PYTHONPATH` 补充。此前用默认 Python 3.11 运行产生的导入/临时目录错误不计为通过；正式全量证据是之后 Python 3.12.14 的 **276/276** 通过结果。
+## 5. 治理状态与停止点
 
-## 5. 差异与治理状态
-
-本包的 PR 相对最新 `main` 差异包括：统一报告模型与 Word renderer、报告导出审计迁移、Excel R2 模板与只读预览、对应 UI 和测试、交付构建/审计支持、报告架构及路线/交接文档。开工 Base 到最终 head 还包含执行期间合入 main 的 UAT02；两种口径的提交数、文件数、行数在最终交付回复中分别列出。
-
-最终状态：
-
-- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。
-- RS03-A USER UAT：`PENDING`。
-- PR #27：`OPEN / UNMERGED`，保持未修改。
-- RS03-B：`NOT STARTED`。
-- Excel 结果导出：`NOT STARTED`。
-- `GB/T 32151.34—2024`：`NOT SUPPORTED`。
-
-最终 PR Head 的精确 SHA、两项 Windows CI run 及其 head SHA 在最终交付回复中报告；文档不会写入自身提交后的 CI run 元数据以避免循环提交。
+- GHG-PF01：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持Open/Unmerged。代码候选head `0bb06b888a269c46daa8b372db614c5f19516636`已通过Run 166（ID `37567132440`）两个Windows job，standalone artifact已上传；本状态文档提交推送后以PR最新head Checks为准。之后停止等待独立验收；不自行合并。
+- PR #27：`OPEN / UNMERGED`，未修改；RS03-A USER UAT：`PENDING`；RS03-B：`NOT STARTED`。
+- Golden Freeze、Release Gate及第二标准未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。

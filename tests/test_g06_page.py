@@ -804,7 +804,11 @@ class G06PageTests(unittest.TestCase):
         records = self.page.calculator.record_repository.list_all()
         self.assertEqual(len(records), 1)
         self.assertIsNone(records[0].input_snapshot.enterprise_name)
-        self.assertEqual(self.page.validation_list.topLevelItemCount(), 0)
+        messages = tree_texts(self.page.validation_list)
+        self.assertTrue(any("跨越所选标准的实施日期" in message for message in messages), messages)
+        self.assertTrue(any("此提醒不阻断核算" in message for message in messages), messages)
+        self.assertEqual(self.page.validation_list.topLevelItemCount(), 1)
+        self.assertEqual(records[0].status.value, "COMPLETED_WITH_WARNINGS")
 
     def test_heat_defaults_to_canonical_factor_and_automatic_steam_enthalpy(self) -> None:
         self.page.period_year.setValue(2026)

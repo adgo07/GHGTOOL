@@ -169,7 +169,10 @@ class UIR04FinalizationTests(unittest.TestCase):
 
         self.assertFalse(self.page.result_card.isHidden())
         self.assertFalse(self.page.process_card.isVisible())
-        self.assertFalse(self.page.quality_card.isVisible())
+        self.assertTrue(self.page.quality_card.isVisible())
+        messages = tree_texts(self.page.validation_list)
+        self.assertTrue(any("跨越所选标准的实施日期" in message for message in messages), messages)
+        self.assertTrue(any("此提醒不阻断核算" in message for message in messages), messages)
         self.assertIn("温室气体排放总量：", self.page.result_total.text())
         self.assertIn("已完成", self.page.result_status.text())
         self.assertIn("直接排放量：", self.page.result_breakdown.text())
@@ -189,11 +192,14 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.calculate_button.click()
         self.application.processEvents()
         self.assertFalse(self.page.result_card.isHidden())
-        self.assertFalse(self.page.quality_card.isVisible())
+        self.assertTrue(self.page.quality_card.isVisible())
         records = self.page.calculator.record_repository.list_all()
         self.assertEqual(len(records), 1)
         self.assertIsNone(records[0].input_snapshot.enterprise_name)
-        self.assertEqual(tree_texts(self.page.validation_list), [])
+        messages = tree_texts(self.page.validation_list)
+        self.assertTrue(any("跨越所选标准的实施日期" in message for message in messages), messages)
+        self.assertTrue(any("此提醒不阻断核算" in message for message in messages), messages)
+        self.assertEqual(records[0].status.value, "COMPLETED_WITH_WARNINGS")
 
     def test_domain_error_keeps_result_hidden_even_when_result_object_exists(self) -> None:
         self.page.enterprise_name.setText("阻断结果企业")

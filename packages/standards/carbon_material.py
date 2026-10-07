@@ -1394,6 +1394,7 @@ class CarbonMaterialCalculator:
         parameter_resolver: ParameterResolver | None = None,
         record_repository: RecordRepository | None = None,
         standard_version: str = STANDARD_VERSION,
+        standard_implementation_date: date | None = None,
         policy: DecimalPolicy | None = None,
         unit_service: UnitService | None = None,
         reference_data_identity_provider: Callable[[], Mapping[str, object]] | None = None,
@@ -1403,6 +1404,9 @@ class CarbonMaterialCalculator:
         self.parameter_resolver = parameter_resolver
         self.record_repository = record_repository or InMemoryRecordRepository()
         self.standard_version = standard_version
+        if standard_implementation_date is not None and not isinstance(standard_implementation_date, date):
+            raise DomainValidationError("standard_implementation_date must be a date when supplied")
+        self.standard_implementation_date = standard_implementation_date
         self.reference_data_identity_provider = reference_data_identity_provider
         self._effective_rule_ids: set[str] = set()
 
@@ -1417,6 +1421,30 @@ class CarbonMaterialCalculator:
             "CAR-VAL-ANNUAL-REPORT-PERIOD", False, "ERROR",
             "CAR-VAL-ANNUAL-REPORT-PERIOD",
             "月度或自定义期间可以核算和保存记录，但不符合标准年度报告周期。",
+        )
+
+    def _standard_implementation_period_warning(self, period: AccountingPeriod) -> ValidationProblem | None:
+        implementation_date = self.standard_implementation_date
+        if implementation_date is None:
+            return None
+        if period.end < implementation_date:
+            relation = "BEFORE"
+            period_description = "完全早于"
+        elif period.start < implementation_date:
+            relation = "CROSSES"
+            period_description = "跨越"
+        else:
+            relation = "AFTER"
+            period_description = "晚于"
+        return _problem(
+            "CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD",
+            IssueLevel.WARNING,
+            f"核算期间{period_description}所选标准的实施日期（{implementation_date.isoformat()}）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。",
+            details=(
+                ("standard_id", STANDARD_ID),
+                ("implementation_date", implementation_date.isoformat()),
+                ("period_relation", relation),
+            ),
         )
 
     def _effective_rule_snapshot(self) -> dict[str, object]:
@@ -1780,7 +1808,7 @@ class CarbonMaterialCalculator:
             FuelPath.HEAT: fuel_heat_emission(activity, carbon, fox),
         }[item.path]
 
-    def _heat_factor(self, line: HeatInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str) -> Decimal | None:
+    def _heat_factor(self, line: HeatInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str, accounting_period: AccountingPeriod) -> Decimal | None:
         explicit = line.factor
         if explicit is not None:
             factor = self._parameter(explicit, "tCO2/GJ", f"CAR-FLD-HEAT-{line.line_id}-EF3", snapshots, problems, snapshot_at)
@@ -1819,6 +1847,7 @@ class CarbonMaterialCalculator:
                 standard_id=STANDARD_ID,
                 parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
                 subject_id="purchased_heat",
+                accounting_period=accounting_period,
                 emission_source_type=energy_direction,
                 extra_context=(("energy_direction", energy_direction),),
             ),
@@ -1971,6 +2000,9 @@ class CarbonMaterialCalculator:
         if snapshot_at.tzinfo is None:
             raise DomainValidationError("calculated_at must be timezone-aware")
         problems: list[ValidationProblem] = []
+        implementation_period_warning = self._standard_implementation_period_warning(input_value.period)
+        if implementation_period_warning is not None:
+            problems.append(implementation_period_warning)
         report_qualification = self._report_qualification(input_value.period)
         snapshots: list[ParameterSnapshot] = []
         traces: list[CalculationTrace] = []
@@ -2273,7 +2305,7 @@ class CarbonMaterialCalculator:
             for line in input_value.purchased_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="purchased_heat")
+                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="purchased_heat", accounting_period=input_value.period)
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy.value, factor)
                     purchased_heat_total += amount
@@ -2298,7 +2330,7 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_heat:
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
-                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="exported_heat")
+                factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="exported_heat", accounting_period=input_value.period)
                 if None not in (quantity, enthalpy, factor):
                     amount = purchased_heat_emission(quantity, enthalpy.value, factor)
                     exported_heat_total += amount

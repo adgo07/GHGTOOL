@@ -315,9 +315,9 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             self.page.validation_list.topLevelItem(index).text(0).split("（", 1)[0]
             for index in range(self.page.validation_list.topLevelItemCount())
         ]
-        # Both unavailable required calculation inputs are Domain errors;
-        # no reminder bucket should be invented for this blocked calculation.
-        self.assertEqual(roots, ["必须修正"])
+        # The standard implementation-date notice is non-blocking and remains
+        # visible alongside the Domain errors for unavailable inputs.
+        self.assertEqual(roots, ["提醒", "必须修正"])
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)

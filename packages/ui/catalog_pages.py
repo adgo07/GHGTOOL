@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -419,7 +420,7 @@ class StandardLibraryPage(BasePage):
 
 
 class ParameterFactorLibraryPage(BasePage):
-    """Global parameter/factor search with object and source views."""
+    """Browse source documents and search one shared reference-data library."""
 
     def __init__(
         self,
@@ -430,303 +431,202 @@ class ParameterFactorLibraryPage(BasePage):
         super().__init__(AppRoute.FACTORS, parent)
         self._service = service
         self._navigate = navigate
-        self.selected_factor_id: str | None = None
-        self._results: tuple[ParameterFactorResult, ...] = ()
+        self._search_results = ()
         self._build_page()
-        self._refresh()
+        self._refresh_sources()
+        self._refresh_tables()
 
     def _build_page(self) -> None:
-        self.add_header("参数与排放因子库", "查看核算参数、缺省值及排放因子")
-        appendix_card, appendix_layout = _card("GB/T 32151.34—2024 附录 C 参数表", self)
-        appendix_hint = QLabel("选择表名查看只读参数；C.1～C.3 来自正式目录，C.4/C.5 直接读取版本化计算器表。", appendix_card)
-        appendix_hint.setWordWrap(True)
-        appendix_layout.addWidget(appendix_hint)
-        appendix_buttons = QHBoxLayout()
-        self.appendix_c_buttons: dict[str, QPushButton] = {}
-        for table_id, title in (
-            ("C.1", "C.1 化石燃料参数"),
-            ("C.2", "C.2 碳酸盐因子"),
-            ("C.3", "C.3 其他缺省参数"),
-            ("C.4", "C.4 饱和蒸汽焓"),
-            ("C.5", "C.5 过热蒸汽焓"),
-        ):
-            button = QPushButton(title, appendix_card)
-            button.setObjectName(f"appendix{table_id.replace('.', '')}Button")
-            button.setCheckable(True)
-            button.clicked.connect(lambda _checked=False, _table=table_id: self._show_appendix_table(_table))
-            self.appendix_c_buttons[table_id] = button
-            appendix_buttons.addWidget(button)
-        appendix_buttons.addStretch(1)
-        appendix_layout.addLayout(appendix_buttons)
-        self.appendix_table_title = QLabel("", appendix_card)
-        self.appendix_table_title.setObjectName("appendixCSelectedTableTitle")
-        appendix_layout.addWidget(self.appendix_table_title)
-        self.appendix_table_note = QLabel("", appendix_card)
-        self.appendix_table_note.setObjectName("appendixCSelectedTableSource")
-        self.appendix_table_note.setWordWrap(True)
-        appendix_layout.addWidget(self.appendix_table_note)
-        self.appendix_table = QTableWidget(appendix_card)
-        self.appendix_table.setObjectName("appendixCReadOnlyTable")
-        self.appendix_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.appendix_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self.appendix_table.verticalHeader().setVisible(False)
-        self.appendix_table.horizontalHeader().setStretchLastSection(True)
-        self.appendix_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.appendix_table.setWordWrap(True)
-        appendix_layout.addWidget(self.appendix_table)
-        self.body_layout.addWidget(appendix_card)
-        self._show_appendix_table("C.1")
+        self.add_header("参数与因子注册库", "按标准资料查看原表，或在全库搜索已登记的参数与参考值。")
+        mode_card, mode_layout = _card("查看方式", self)
+        self.view_mode_filter = QComboBox(mode_card)
+        self.view_mode_filter.setObjectName("referenceLibraryMode")
+        self.view_mode_filter.addItem("按标准/文件查看", "browse")
+        self.view_mode_filter.addItem("全库搜索", "search")
+        mode_layout.addWidget(self.view_mode_filter)
+        self.body_layout.addWidget(mode_card)
 
-        filters, filters_layout = _card("全局搜索和筛选", self)
-        search = QLineEdit(filters)
-        search.setObjectName("parameterSearch")
-        search.setPlaceholderText("搜索标准号、公告、燃料、物料、参数、温室气体……")
-        filters_layout.addWidget(search)
-        self.search_input = search
+        self.browse_card, browse_layout = _card("标准与文件", self)
+        browse_filters = QHBoxLayout()
+        browse_filters.addWidget(QLabel("资料文件", self.browse_card))
+        self.source_filter = QComboBox(self.browse_card)
+        self.source_filter.setObjectName("sourceDocumentFilter")
+        browse_filters.addWidget(self.source_filter, 2)
+        browse_filters.addWidget(QLabel("表格", self.browse_card))
+        self.table_filter = QComboBox(self.browse_card)
+        self.table_filter.setObjectName("sourceTableFilter")
+        browse_filters.addWidget(self.table_filter, 2)
+        browse_layout.addLayout(browse_filters)
+        self.browse_table_title = QLabel("", self.browse_card)
+        self.browse_table_title.setObjectName("sourceTableTitle")
+        self.browse_table_title.setWordWrap(True)
+        browse_layout.addWidget(self.browse_table_title)
+        self.browse_table_note = QLabel("", self.browse_card)
+        self.browse_table_note.setObjectName("sourceTableNote")
+        self.browse_table_note.setWordWrap(True)
+        browse_layout.addWidget(self.browse_table_note)
+        self.factor_table = QTableWidget(self.browse_card)
+        self.factor_table.setObjectName("sourceTableView")
+        self.factor_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.factor_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.factor_table.verticalHeader().setVisible(False)
+        self.factor_table.horizontalHeader().setStretchLastSection(True)
+        self.factor_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.factor_table.setWordWrap(True)
+        self.factor_table.setMinimumHeight(300)
+        browse_layout.addWidget(self.factor_table)
+        self.body_layout.addWidget(self.browse_card)
 
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(12)
-        self.view_mode_filter = QComboBox(filters)
-        self.view_mode_filter.setObjectName("parameterViewModeFilter")
-        self.view_mode_filter.addItem("按对象", ParameterViewMode.BY_SUBJECT)
-        self.view_mode_filter.addItem("按来源", ParameterViewMode.BY_SOURCE)
-        filter_row.addWidget(self.view_mode_filter)
-
-        self.subject_filter = QComboBox(filters)
-        self.subject_filter.setObjectName("parameterSubjectFilter")
-        self.subject_filter.addItem("全部对象", None)
-        for subject in self._service.list_subjects():
-            self.subject_filter.addItem(subject.name, subject.subject_id)
-        filter_row.addWidget(self.subject_filter)
-
-        self.source_filter = QComboBox(filters)
-        self.source_filter.setObjectName("parameterSourceFilter")
-        self.source_filter.addItem("全部来源", None)
+        self.search_card, search_layout = _card("全库搜索", self)
+        filters = QHBoxLayout()
+        self.search_input = QLineEdit(self.search_card)
+        self.search_input.setObjectName("referenceLibrarySearch")
+        self.search_input.setPlaceholderText("搜索文件、表号、参数、适用对象或数值")
+        filters.addWidget(self.search_input, 3)
+        self.search_source_filter = QComboBox(self.search_card)
+        self.search_source_filter.setObjectName("searchSourceDocumentFilter")
+        self.search_source_filter.addItem("全部资料", None)
         for source in self._service.list_sources():
-            self.source_filter.addItem(source.document_no, source.source_id)
-        filter_row.addWidget(self.source_filter)
-
-        self.type_filter = QComboBox(filters)
-        self.type_filter.setObjectName("parameterTypeFilter")
-        self.type_filter.addItem("全部参数类型", None)
-        for parameter_type in ParameterType:
-            self.type_filter.addItem(
-                self._service.parameter_type_label(parameter_type), parameter_type
-            )
-        filter_row.addWidget(self.type_filter)
-
-        self.review_filter = QComboBox(filters)
-        self.review_filter.setObjectName("parameterReviewFilter")
-        self.review_filter.addItem("全部审核状态", None)
-        for review_status in ReviewStatus:
-            self.review_filter.addItem(
-                self._service.review_status_label(review_status), review_status
-            )
-        filter_row.addWidget(self.review_filter)
-
-        self.year_filter = QComboBox(filters)
-        self.year_filter.setObjectName("parameterYearFilter")
-        self.year_filter.addItem("全部年份", None)
-        for year in self._service.factor_years():
-            self.year_filter.addItem(str(year), year)
-        filter_row.addWidget(self.year_filter)
-        filter_row.addStretch(1)
-        filters_layout.addLayout(filter_row)
-        self.body_layout.addWidget(filters)
-
-        list_card, list_layout = _card("参数与因子列表", self)
-        self.result_summary = QLabel(list_card)
-        self.result_summary.setObjectName("secondaryText")
-        list_layout.addWidget(self.result_summary)
-        self.factor_table = QTableWidget(list_card)
-        _configure_table(
-            self.factor_table,
-            ("对象", "参数/因子", "数值", "单位", "来源", "状态"),
-        )
-        self.factor_table.setMinimumHeight(250)
-        list_layout.addWidget(self.factor_table)
-        self.body_layout.addWidget(list_card)
-
-        detail_card, detail_layout = _card("参数/因子详情", self)
-        detail_layout.setContentsMargins(0, 0, 0, 0)
-        self.factor_detail_host = QWidget(detail_card)
+            self.search_source_filter.addItem(source.document_no, source.source_id)
+        filters.addWidget(self.search_source_filter, 2)
+        search_layout.addLayout(filters)
+        self.result_summary = QLabel("", self.search_card)
+        self.result_summary.setObjectName("referenceLibrarySummary")
+        search_layout.addWidget(self.result_summary)
+        self.search_splitter = QSplitter(Qt.Orientation.Horizontal, self.search_card)
+        self.search_splitter.setObjectName("referenceLibrarySplitter")
+        self.search_result_table = QTableWidget(self.search_splitter)
+        _configure_table(self.search_result_table, ("类别", "资料或参数", "数值", "单位", "来源"))
+        self.search_result_table.setObjectName("catalogTable")
+        self.search_result_table.setMinimumHeight(320)
+        self.factor_detail_host = QWidget(self.search_splitter)
         self.factor_detail_host.setObjectName("parameterDetailHost")
         self.factor_detail_layout = QVBoxLayout(self.factor_detail_host)
-        self.factor_detail_layout.setContentsMargins(20, 20, 20, 20)
-        self.factor_detail_layout.setSpacing(16)
-        detail_layout.addWidget(self.factor_detail_host)
-        self.body_layout.addWidget(detail_card)
+        self.factor_detail_layout.setContentsMargins(12, 12, 12, 12)
+        self.factor_detail_layout.setSpacing(12)
+        self.search_splitter.addWidget(self.search_result_table)
+        self.search_splitter.addWidget(self.factor_detail_host)
+        self.search_splitter.setStretchFactor(0, 3)
+        self.search_splitter.setStretchFactor(1, 2)
+        search_layout.addWidget(self.search_splitter)
+        self.body_layout.addWidget(self.search_card)
         self.body_layout.addStretch(1)
 
-        search.textChanged.connect(self._refresh)
-        for combo in (
-            self.view_mode_filter,
-            self.subject_filter,
-            self.source_filter,
-            self.type_filter,
-            self.review_filter,
-            self.year_filter,
-        ):
-            combo.currentIndexChanged.connect(self._refresh)
-        self.factor_table.itemSelectionChanged.connect(self._show_selected_detail)
+        self.view_mode_filter.currentIndexChanged.connect(self._change_mode)
+        self.source_filter.currentIndexChanged.connect(self._refresh_tables)
+        self.table_filter.currentIndexChanged.connect(self._show_source_table)
+        self.search_input.textChanged.connect(self._refresh_search)
+        self.search_source_filter.currentIndexChanged.connect(self._refresh_search)
+        self.search_result_table.itemSelectionChanged.connect(self._show_selected_search_detail)
+        self._change_mode()
 
-    def _show_appendix_table(self, table_id: str) -> None:
-        for key, button in self.appendix_c_buttons.items():
-            button.setChecked(key == table_id)
-        if table_id in {"C.4", "C.5"}:
-            headers, rows, note = self._steam_appendix_table(table_id)
+    def _refresh_sources(self) -> None:
+        sources = self._service.list_sources()
+        source_by_id = {source.source_id: source for source in sources}
+        table_source_ids = {table.source_id for table in self._service.list_source_tables()}
+        for source in sources:
+            if source.source_id in table_source_ids:
+                self.source_filter.addItem(
+                    f"{source.document_no} · {source.document_name}", source.source_id
+                )
+        preferred = next(
+            (index for index in range(self.source_filter.count())
+             if "32151.34" in self.source_filter.itemText(index)),
+            0,
+        )
+        if self.source_filter.count():
+            self.source_filter.setCurrentIndex(preferred)
+        if not source_by_id:
+            self.browse_table_note.setText("当前没有可查看的标准资料。")
+
+    def _change_mode(self, *_args: object) -> None:
+        is_browse = self.view_mode_filter.currentData() != "search"
+        self.browse_card.setVisible(is_browse)
+        self.search_card.setVisible(not is_browse)
+        if not is_browse:
+            self._refresh_search()
+
+    def _refresh_tables(self, *_args: object) -> None:
+        source_id = self.source_filter.currentData()
+        self.table_filter.blockSignals(True)
+        self.table_filter.clear()
+        for table in self._service.list_source_tables(source_id if isinstance(source_id, str) else None):
+            self.table_filter.addItem(f"{table.display_number} · {table.title}", table.source_table_id)
+        self.table_filter.blockSignals(False)
+        if self.table_filter.count():
+            self.table_filter.setCurrentIndex(0)
+            self._show_source_table()
         else:
-            headers, rows, note = self._canonical_appendix_table(table_id)
-        self.appendix_table.clear()
-        self.appendix_table.setColumnCount(len(headers))
-        self.appendix_table.setHorizontalHeaderLabels(headers)
-        self.appendix_table.setRowCount(len(rows))
+            self.factor_table.clear()
+            self.factor_table.setRowCount(0)
+            self.browse_table_title.setText("")
+            self.browse_table_note.setText("该资料没有登记可浏览的参数表。")
+
+    def _show_source_table(self, *_args: object) -> None:
+        table_id = self.table_filter.currentData()
+        if not isinstance(table_id, str):
+            return
+        table = next((item for item in self._service.list_source_tables() if item.source_table_id == table_id), None)
+        view = self._service.get_source_table_view(table_id)
+        if table is None or view is None:
+            return
+        headers, rows, note = view
+        self.factor_table.clear()
+        self.factor_table.setColumnCount(len(headers))
+        self.factor_table.setHorizontalHeaderLabels(headers)
+        self.factor_table.setRowCount(len(rows))
         for row_number, values in enumerate(rows):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                self.appendix_table.setItem(row_number, column, item)
-        self.appendix_table.resizeRowsToContents()
-        self.appendix_table_title.setText(f"{table_id} · {len(rows)} 行")
-        self.appendix_table_note.setText(note)
+                self.factor_table.setItem(row_number, column, item)
+        self.factor_table.resizeRowsToContents()
+        self.browse_table_title.setText(f"{table.display_number} · {table.title} · {len(rows)} 行")
+        self.browse_table_note.setText(note)
 
-    def _canonical_appendix_table(self, table_id: str):
-        appendix_code = table_id.replace(".", ".")
-        all_parameters = tuple(self._service.repository.list_parameters())
-        if table_id == "C.3":
-            # C.3 electricity and heat values use canonical entries whose
-            # provenance correctly points to their originating publications.
-            appendix_parameter_ids = {
-                "electricity_emission_factor_national",
-                "heat_emission_factor_default",
-            }
-            parameters = tuple(
-                parameter for parameter in all_parameters
-                if parameter.parameter_id in appendix_parameter_ids
-                and STANDARD_ID in parameter.applicable_standard_ids
-            )
-        else:
-            parameters = tuple(
-                parameter for parameter in all_parameters
-                if f"表{appendix_code}" in parameter.source_location
-                and STANDARD_ID in parameter.applicable_standard_ids
-            )
-        subjects = {item.subject_id: item.name for item in self._service.repository.list_subjects()}
-        factors_by_parameter: dict[str, list[object]] = {}
-        for factor in self._service.repository.list_factors():
-            if factor.review_status is ReviewStatus.VERIFIED and STANDARD_ID in factor.applicable_standard_ids:
-                factors_by_parameter.setdefault(factor.parameter_id, []).append(factor)
-        rows: list[tuple[str, ...]] = []
-        for parameter in sorted(parameters, key=lambda item: (item.subject_id, item.parameter_id)):
-            factors = sorted(factors_by_parameter.get(parameter.parameter_id, ()), key=lambda item: (item.factor_year or 0, item.factor_id))
-            for factor in factors:
-                if table_id == "C.1" and factor.value_type not in {ValueType.STANDARD_DEFAULT, ValueType.STANDARD_SPECIFIED}:
-                    continue
-                rows.append((
-                    subjects.get(parameter.subject_id, parameter.name),
-                    parameter.name,
-                    format(factor.value, "f"),
-                    factor.unit,
-                    f"{factor.source_location} · {factor.factor_year}年",
-                ))
-        note = "来源：GB/T 32151.34—2024 附录 C 表 " + table_id + "；数值和来源定位直接读取 Canonical 参数/因子目录。"
-        if table_id == "C.3":
-            note += " 电力显示当前正式目录已收录的官方因子；热力缺省参数沿用 GB/T 32150—2025 共用规则，具体来源见表内定位。"
-        headers = ("对象", "参数", "数值", "单位", "标准来源与定位")
-        return headers, tuple(rows), note
-
-    @staticmethod
-    def _steam_appendix_table(table_id: str):
-        values = steam_reference_table_rows(table_id)
-        if table_id == "C.4":
-            rows = tuple((format(pressure, "f"), format(enthalpy, "f")) for pressure, enthalpy in values)
-            return (
-                ("压力（MPa）", "饱和蒸汽焓（kJ/kg）"), rows,
-                f"来源：GB/T 32151.34—2024 附录 C.4，Mapping §9.5；版本化 Calculator {ALGORITHM_VERSION} 只读数据。原文异常事实继续保留，执行口径按冻结 Mapping 采用 1.70 / 1.80 MPa 解释；非官方勘误。",
-            )
-        temperatures = tuple(sorted({row[0] for row in values}))
-        pressures = tuple(sorted({row[1] for row in values}))
-        lookup = {(temperature, pressure): enthalpy for temperature, pressure, enthalpy in values}
-        headers = ("温度（℃）", *(f"{pressure:g} MPa" for pressure in pressures))
-        rows = tuple(
-            (format(temperature, "f"), *(format(lookup[(temperature, pressure)], "f") for pressure in pressures))
-            for temperature in temperatures
+    def _refresh_search(self, *_args: object) -> None:
+        source_id = self.search_source_filter.currentData()
+        self._search_results = self._service.search_reference_library(
+            self.search_input.text(), source_id=source_id if isinstance(source_id, str) else None
         )
-        return (
-            headers, rows,
-            f"来源：GB/T 32151.34—2024 附录 C.5，Mapping §9.6；版本化 Calculator {ALGORITHM_VERSION} 只读数据。蒸汽焓自动计算留待后续 UAT01-B。",
-        )
-
-    def _refresh(self) -> None:
-        view_mode = _enum_data(self.view_mode_filter.currentData(), ParameterViewMode)
-        subject_id = self.subject_filter.currentData()
-        source_id = self.source_filter.currentData()
-        parameter_type = _enum_data(self.type_filter.currentData(), ParameterType)
-        review_status = _enum_data(self.review_filter.currentData(), ReviewStatus)
-        factor_year = self.year_filter.currentData()
-        self._results = self._service.search_parameter_factors(
-            self.search_input.text(),
-            view_mode=view_mode if isinstance(view_mode, ParameterViewMode) else ParameterViewMode.BY_SUBJECT,
-            subject_id=subject_id if isinstance(subject_id, str) else None,
-            source_id=source_id if isinstance(source_id, str) else None,
-            parameter_type=parameter_type if isinstance(parameter_type, ParameterType) else None,
-            review_status=review_status if isinstance(review_status, ReviewStatus) else None,
-            factor_year=factor_year if isinstance(factor_year, int) else None,
-        )
-        self.factor_table.setRowCount(0)
-        by_source = view_mode is ParameterViewMode.BY_SOURCE
-        if by_source:
-            self.factor_table.setHorizontalHeaderLabels(
-                ("来源", "参数/因子", "对象", "数值", "单位", "审核状态")
+        self.search_result_table.setRowCount(0)
+        for row_number, result in enumerate(self._search_results):
+            self.search_result_table.insertRow(row_number)
+            source_label = result.subtitle
+            category = {
+                "standard": "标准",
+                "source": "来源文件",
+                "table": "标准表",
+                "asset": "参数值",
+            }.get(result.result_type, "资料")
+            values = (
+                category,
+                result.title,
+                result.value_text or "—",
+                result.unit or "—",
+                source_label,
             )
-        else:
-            self.factor_table.setHorizontalHeaderLabels(
-                ("对象", "参数/因子", "数值", "单位", "来源", "状态")
-            )
-        for row_number, result in enumerate(self._results):
-            self.factor_table.insertRow(row_number)
-            factor = result.factor
-            source_name = result.source.document_no if result.source else "—"
-            value = _decimal_text(factor.value if factor else None)
-            unit = factor.unit if factor else result.parameter.canonical_unit
-            state = (
-                self._service.value_category_label(self._service.value_category(factor))
-                + " · "
-                + self._service.review_status_label(factor.review_status)
-                if factor
-                else self._service.review_status_label(result.parameter.review_status)
-            )
-            if by_source:
-                values = (source_name, result.parameter.name, result.subject.name, value, unit, state)
-            else:
-                values = (result.subject.name, result.parameter.name, value, unit, source_name, state)
             for column, text in enumerate(values):
                 item = QTableWidgetItem(text)
                 if column == 0:
-                    item.setData(
-                        Qt.ItemDataRole.UserRole,
-                        factor.factor_id if factor else result.parameter.parameter_id,
-                    )
-                self.factor_table.setItem(row_number, column, item)
-        self.factor_table.resizeRowsToContents()
-        self.result_summary.setText(f"共 {len(self._results)} 项参数/因子")
-        if self._results:
-            self.factor_table.selectRow(0)
-            self._show_selected_detail()
+                    item.setData(Qt.ItemDataRole.UserRole, result.key)
+                self.search_result_table.setItem(row_number, column, item)
+        self.search_result_table.resizeRowsToContents()
+        self.result_summary.setText(f"找到 {len(self._search_results)} 项资料或参数值")
+        if self._search_results:
+            self.search_result_table.selectRow(0)
+            self._show_selected_search_detail()
         else:
-            self._clear_detail("没有找到匹配的参数或因子。")
+            self._clear_search_detail("没有找到匹配的资料或参数值。")
 
-    def _show_selected_detail(self) -> None:
-        row = self.factor_table.currentRow()
-        if row < 0 or row >= len(self._results):
-            self._clear_detail("请选择一项参数或因子查看详情。")
+    def _show_selected_search_detail(self) -> None:
+        row = self.search_result_table.currentRow()
+        if row < 0 or row >= len(self._search_results):
+            self._clear_search_detail("选择一项资料或参数值查看来源。")
             return
-        result = self._results[row]
-        self.selected_factor_id = result.factor.factor_id if result.factor else result.parameter.parameter_id
-        self._render_detail(result)
+        self._render_search_detail(self._search_results[row])
 
-    def _clear_detail(self, message: str) -> None:
-        self.selected_factor_id = None
+    def _clear_search_detail(self, message: str) -> None:
         _replace_layout_contents(self.factor_detail_layout)
         label = QLabel(message, self.factor_detail_host)
         label.setObjectName("emptyStateDescription")
@@ -734,101 +634,112 @@ class ParameterFactorLibraryPage(BasePage):
         self.factor_detail_layout.addWidget(label)
         self.factor_detail_layout.addStretch(1)
 
-    def _render_detail(self, result: ParameterFactorResult) -> None:
+    def _render_search_detail(self, result: object) -> None:
         _replace_layout_contents(self.factor_detail_layout)
-        parameter = result.parameter
-        factor = result.factor
-        source = result.source
-        heading = QLabel(parameter.name, self.factor_detail_host)
+        heading = QLabel(result.title, self.factor_detail_host)
         heading.setObjectName("parameterDetailName")
         heading.setWordWrap(True)
         self.factor_detail_layout.addWidget(heading)
-
-        rows: list[tuple[str, str]] = [
-            ("对象", result.subject.name),
-            ("参数类型", self._service.parameter_type_label(parameter.parameter_type)),
-            ("数值", _decimal_text(factor.value if factor else None)),
-            ("单位", factor.unit if factor else parameter.canonical_unit),
-            (
-                "值分类",
-                self._service.value_category_label(self._service.value_category(factor))
-                if factor
-                else "参数定义",
-            ),
-            ("数据类别", self._service.value_type_label(factor.value_type) if factor else "暂无已核对数值"),
-            (
-                "审核状态",
-                self._service.review_status_label(factor.review_status if factor else parameter.review_status),
-            ),
-        ]
-        if factor is not None:
-            rows.extend(
-                (
-                    ("因子年度", str(factor.factor_year)),
-                    ("适用起始日期", _date_text(factor.valid_from)),
-                    ("适用结束日期", _date_text(factor.valid_to)),
-                    ("适用标准", self._standard_text(factor.applicable_standard_ids)),
-                    ("依据定位", factor.source_location),
-                )
+        if result.standard is not None:
+            standard = result.standard
+            source = next((item for item in self._service.list_sources()
+                           if item.source_id == standard.official_source_id), None)
+            rows = (
+                ("标准编号", standard.standard_number),
+                ("标准名称", standard.standard_name),
+                ("状态", self._service.status_label(self._service.standard_status(standard))),
+                ("实施日期", _date_text(standard.implementation_date)),
+                ("發布部門", standard.issuing_authority or "—"),
+                ("官方資料", source.document_no if source else "—"),
             )
-        else:
-            rows.extend(
-                (
-                    ("适用标准", self._standard_text(parameter.applicable_standard_ids)),
-                    ("依据定位", parameter.source_location),
-                )
+            self.factor_detail_layout.addWidget(_detail_section("标准信息", self.factor_detail_host, rows))
+            url = standard.official_source_url or (source.official_url if source else None)
+            if url:
+                button = QPushButton("打开标准官方页面", self.factor_detail_host)
+                button.setObjectName("openOfficialReferenceButton")
+                button.clicked.connect(lambda _checked=False, target=url: QDesktopServices.openUrl(QUrl(target)))
+                self.factor_detail_layout.addWidget(button)
+        elif result.source is not None:
+            source = result.source
+            rows = (
+                ("资料文件", source.document_no),
+                ("资料名称", source.document_name),
+                ("发布机构", source.publisher),
+                ("发布日期", _date_text(source.publication_date)),
+                ("生效日期", _date_text(source.effective_from)),
+                ("资料核对", self._service.review_status_label(source.review_status)),
+                ("说明", source.notes or "—"),
             )
-        self.factor_detail_layout.addWidget(
-            _detail_section("参数值", self.factor_detail_host, rows)
-        )
-
-        if source is not None:
-            self.factor_detail_layout.addWidget(
-                _detail_section(
-                    "来源追溯",
-                    self.factor_detail_host,
-                    (
-                        ("来源文件", source.document_no),
-                        ("来源名称", source.document_name),
-                        ("来源类型", self._service.source_type_label(source.source_type)),
-                        ("发布单位", source.publisher),
-                        ("发布日期", _date_text(source.publication_date)),
-                        ("官方页面", "已配置" if source.official_url else "未配置"),
-                        ("来源备注", source.notes),
-                    ),
-                )
-            )
-            source_button = QPushButton("查看官方来源", self.factor_detail_host)
-            source_button.setObjectName("viewFactorSourceButton")
-            source_button.setEnabled(bool(source.official_url))
+            self.factor_detail_layout.addWidget(_detail_section("来源文件", self.factor_detail_host, rows))
             if source.official_url:
-                source_button.clicked.connect(
-                    lambda: QDesktopServices.openUrl(QUrl(source.official_url))
-                )
-            else:
-                source_button.setToolTip("尚未配置来源官方页面。")
-            self.factor_detail_layout.addWidget(source_button)
-        else:
-            self.factor_detail_layout.addWidget(
-                _detail_section("来源追溯", self.factor_detail_host, (("来源", "暂无已配置来源。"),))
+                button = QPushButton("打开官方来源页面", self.factor_detail_host)
+                button.setObjectName("openOfficialReferenceButton")
+                button.clicked.connect(lambda _checked=False, target=source.official_url: QDesktopServices.openUrl(QUrl(target)))
+                self.factor_detail_layout.addWidget(button)
+        elif result.result_type == "table" and result.table is not None:
+            source = next((item for item in self._service.list_sources() if item.source_id == result.table.source_id), None)
+            rows = (
+                ("资料文件", source.document_no if source else "标准资料"),
+                ("表格", f"{result.table.display_number} · {result.table.title}"),
+                ("依据定位", result.table.source_location),
+                ("说明", result.table.notes or "—"),
             )
-
-        self.factor_detail_layout.addWidget(
-            _detail_section(
-                "数据说明",
-                self.factor_detail_host,
-                (
-                    ("参数说明", parameter.notes or "—"),
-                    ("因子说明", factor.notes if factor else "—"),
-                ),
+            self.factor_detail_layout.addWidget(_detail_section("表格来源", self.factor_detail_host, rows))
+            button = QPushButton("按原表结构查看", self.factor_detail_host)
+            button.setObjectName("openRegisteredTableButton")
+            button.clicked.connect(lambda: self._open_registered_table(result.table.source_table_id))
+            self.factor_detail_layout.addWidget(button)
+        elif result.asset is not None:
+            asset = result.asset
+            parameter = next((item for item in self._service.repository.list_parameters() if item.parameter_id == asset.parameter_id), None)
+            subject = next((item for item in self._service.repository.list_subjects() if item.subject_id == asset.subject_id), None)
+            rows = (
+                ("适用对象", subject.name if subject else "—"),
+                ("参数", parameter.name if parameter else "—"),
+                ("数值", f"{format(asset.value, 'f')} {asset.unit}"),
+                ("数值类别", self._service.value_type_label(asset.value_type)),
+                ("版本", asset.asset_version),
+                ("数据说明", asset.notes or "—"),
             )
-        )
+            self.factor_detail_layout.addWidget(_detail_section("参数值", self.factor_detail_host, rows))
+            binding_rows = []
+            tables = {item.source_table_id: item for item in self._service.list_source_tables()}
+            sources = {item.source_id: item for item in self._service.list_sources()}
+            for binding in result.bindings:
+                table = tables.get(binding.source_table_id)
+                source = sources.get(table.source_id) if table else None
+                label = f"{source.document_no} · {table.display_number}" if source and table else "标准资料"
+                binding_rows.append((label, binding.source_location))
+            if binding_rows:
+                self.factor_detail_layout.addWidget(_detail_section("来源与定位", self.factor_detail_host, binding_rows))
+            source_ids = tuple(dict.fromkeys(
+                tables[binding.source_table_id].source_id
+                for binding in result.bindings if binding.source_table_id in tables
+            ))
+            for source_id in source_ids:
+                source = sources.get(source_id)
+                if source is None:
+                    continue
+                source_button = QPushButton(f"打开来源：{source.document_no}", self.factor_detail_host)
+                source_button.setObjectName("viewFactorSourceButton")
+                source_button.setProperty("officialSourceUrl", source.official_url)
+                source_button.setEnabled(bool(source.official_url))
+                if source.official_url:
+                    source_button.clicked.connect(lambda _checked=False, url=source.official_url: QDesktopServices.openUrl(QUrl(url)))
+                else:
+                    source_button.setToolTip("该资料尚未配置官方页面。")
+                self.factor_detail_layout.addWidget(source_button)
         self.factor_detail_layout.addStretch(1)
 
-    def _standard_text(self, standard_ids: tuple[str, ...]) -> str:
-        standards = {standard.standard_id: standard for standard, _, _ in self._service.search_standards()}
-        return "\n".join(
-            f"{standards[standard_id].standard_number} {standards[standard_id].standard_name}"
-            for standard_id in standard_ids
-            if standard_id in standards
-        ) or "—"
+    def _open_registered_table(self, source_table_id: str) -> None:
+        self.view_mode_filter.setCurrentIndex(0)
+        for index in range(self.source_filter.count()):
+            source_id = self.source_filter.itemData(index)
+            if any(table.source_table_id == source_table_id and table.source_id == source_id
+                   for table in self._service.list_source_tables()):
+                self.source_filter.setCurrentIndex(index)
+                break
+        for index in range(self.table_filter.count()):
+            if self.table_filter.itemData(index) == source_table_id:
+                self.table_filter.setCurrentIndex(index)
+                break

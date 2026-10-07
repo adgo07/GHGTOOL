@@ -43,6 +43,7 @@ class _MultiVersionRepository:
     """In-memory G04 fixture with three source-declared values for one parameter."""
 
     def __init__(self, repository: SQLiteCatalogRepository) -> None:
+        self._repository = repository
         self._standards = repository.list_standards()
         self._sources = repository.list_sources()
         self._subjects = repository.list_subjects()
@@ -74,6 +75,30 @@ class _MultiVersionRepository:
             notes="测试夹具：历史值",
         )
         self._factors = repository.list_factors() + (other_factor, historical_factor)
+        base_asset = next(
+            asset for asset in repository.list_reference_data_assets()
+            if asset.parameter_id == base_factor.parameter_id and asset.subject_id == base_factor.subject_id
+        )
+        self._assets = repository.list_reference_data_assets() + (
+            replace(base_asset, asset_id="asset-natural-gas-lhv-other-2023", asset_version="2023",
+                    value=Decimal("400"), source_value=Decimal("400"), normalized_value=Decimal("400"),
+                    value_type=ValueType.GOVERNMENT_PUBLISHED, notes="测试夹具：其他适用值"),
+            replace(base_asset, asset_id="asset-natural-gas-lhv-historical-2020", asset_version="2020",
+                    value=Decimal("380"), source_value=Decimal("380"), normalized_value=Decimal("380"),
+                    value_type=ValueType.HISTORICAL, notes="测试夹具：历史值"),
+        )
+        base_binding = next(
+            binding for binding in repository.list_reference_data_bindings()
+            if binding.factor_id == base_factor.factor_id
+        )
+        self._bindings = repository.list_reference_data_bindings() + (
+            replace(base_binding, binding_id="binding-natural-gas-lhv-other-2023",
+                    asset_id="asset-natural-gas-lhv-other-2023", factor_id=other_factor.factor_id,
+                    factor_year=2023),
+            replace(base_binding, binding_id="binding-natural-gas-lhv-historical-2020",
+                    asset_id="asset-natural-gas-lhv-historical-2020", factor_id=historical_factor.factor_id,
+                    factor_year=2020),
+        )
 
     def list_standards(self):
         return self._standards
@@ -89,6 +114,18 @@ class _MultiVersionRepository:
 
     def list_factors(self):
         return self._factors
+
+    def list_source_tables(self):
+        return self._repository.list_source_tables()
+
+    def list_reference_data_assets(self):
+        return self._assets
+
+    def list_reference_data_bindings(self):
+        return self._bindings
+
+    def list_conversion_rules(self):
+        return self._repository.list_conversion_rules()
 
 
 class G04CatalogTests(unittest.TestCase):
@@ -207,13 +244,13 @@ class G04CatalogTests(unittest.TestCase):
             "GB/T 32151.34",
             view_mode=ParameterViewMode.BY_SOURCE,
         )
-        self.assertEqual(len(by_source), 98)
+        self.assertEqual(len(by_source), 99)
         self.assertTrue(all(item.source is not None for item in by_source))
         source_specific = self.service.search_parameter_factors(
             view_mode=ParameterViewMode.BY_SOURCE,
             source_id="SRC-32151-34-2024",
         )
-        self.assertEqual(len(source_specific), 95)
+        self.assertEqual(len(source_specific), 96)
         self.assertTrue(
             all(item.source is not None and item.source.source_id == "SRC-32151-34-2024" for item in source_specific)
         )
@@ -244,7 +281,7 @@ class G04CatalogTests(unittest.TestCase):
             review_status=ReviewStatus.VERIFIED,
             factor_year=2024,
         )
-        self.assertEqual(len(result), 95)
+        self.assertEqual(len(result), 96)
         self.assertTrue(all(item.factor is not None for item in result))
         self.assertEqual(self.service.review_status_label(ReviewStatus.VERIFIED), "已核对")
 
@@ -397,79 +434,95 @@ class G04CatalogTests(unittest.TestCase):
         home_height = shell.page_stack.sizeHint().height()
         self.assertLess(home_height, standards_height)
 
-    def test_parameter_factor_page_switches_views_and_hides_internal_ids(self) -> None:
+    def test_parameter_factor_page_browses_sources_and_aggregates_shared_assets(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
         self.application.processEvents()
         page = self.shell.pages[AppRoute.FACTORS]
-        table = page.findChild(QTableWidget, "catalogTable")
-        self.assertIsNotNone(table)
-        assert table is not None
+        self.assertEqual(page.view_mode_filter.itemText(0), "按标准/文件查看")
+        self.assertEqual(page.view_mode_filter.itemText(1), "全库搜索")
+        self.assertEqual(page.source_filter.currentData(), "SRC-32151-34-2024")
+        self.assertEqual(page.factor_table.rowCount(), 26)
+        self.assertEqual(page.factor_table.columnCount(), 5)
+        self.assertIn("天然气", [page.factor_table.item(row, 0).text() for row in range(page.factor_table.rowCount())])
 
-        page.search_input.setText("天然气")
-        self.application.processEvents()
-        self.assertEqual(table.rowCount(), 6)
-        self.assertIn(
-            page.selected_factor_id,
-            {
-                "natural_gas_lhv_gbt32151_34_c1",
-                "natural_gas_carbon_content_gbt32151_34_c1",
-                "natural_gas_oxidation_rate_gbt32151_34_c1",
-                "liquefied_natural_gas_lhv_gbt32151_34_c1",
-                "liquefied_natural_gas_carbon_content_gbt32151_34_c1",
-                "liquefied_natural_gas_oxidation_rate_gbt32151_34_c1",
-            },
-        )
-        detail_heading = page.factor_detail_layout.itemAt(0).widget()
-        self.assertIsInstance(detail_heading, QLabel)
-        assert isinstance(detail_heading, QLabel)
-        self.assertIn("天然气", detail_heading.text())
-        self.assertNotIn("全球变暖潜势", detail_heading.text())
         page.view_mode_filter.setCurrentIndex(1)
+        page.search_input.setText("0.11")
         self.application.processEvents()
-        self.assertEqual(table.rowCount(), 6)
-        detail_text = "\n".join(
-            label.text() for label in page.factor_detail_host.findChildren(QLabel)
+        heat_row = next(
+            row for row in range(page.search_result_table.rowCount())
+            if page.search_result_table.item(row, 0).text() == "参数值"
+            and "外购热力" in page.search_result_table.item(row, 1).text()
         )
+        page.search_result_table.selectRow(heat_row)
+        self.application.processEvents()
+        self.assertIn("2 处依据", page.search_result_table.item(heat_row, 4).text())
+        detail_text = "\n".join(label.text() for label in page.factor_detail_host.findChildren(QLabel))
+        self.assertIn("GB/T 32150—2025", detail_text)
         self.assertIn("GB/T 32151.34—2024", detail_text)
-        source_button = page.findChild(QPushButton, "viewFactorSourceButton")
-        self.assertIsNotNone(source_button)
-        assert source_button is not None
-        self.assertTrue(source_button.isEnabled())
+        self.assertIn("7.5.6", detail_text)
+        self.assertIn("表C.3", detail_text)
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
-        self.assertNotIn("natural_gas", visible_text)
+        self.assertNotIn("asset-heat_default", visible_text)
+        self.assertNotIn("heat_default_gbt", visible_text)
 
-        page.search_input.setText("不存在的参数")
+        page.search_input.setText("饱和蒸汽")
         self.application.processEvents()
-        self.assertEqual(table.rowCount(), 0)
-        self.assertIsNone(page.selected_factor_id)
+        self.assertTrue(any(
+            page.search_result_table.item(row, 0).text() == "标准表"
+            and "C.4" in page.search_result_table.item(row, 1).text()
+            for row in range(page.search_result_table.rowCount())
+        ))
+        self.assertTrue(any(
+            page.search_result_table.item(row, 0).text() == "来源文件"
+            for row in range(page.search_result_table.rowCount())
+        ))
 
-    def test_appendix_c_table_view_reads_canonical_and_calculator_reference_data(self) -> None:
-        self.shell.navigate(AppRoute.FACTORS)
+        page.search_input.setText("GB/T 32151.34")
         self.application.processEvents()
+        self.assertTrue(any(
+            page.search_result_table.item(row, 0).text() == "标准"
+            for row in range(page.search_result_table.rowCount())
+        ))
+        standard_row = next(
+            row for row in range(page.search_result_table.rowCount())
+            if page.search_result_table.item(row, 0).text() == "标准"
+        )
+        page.search_result_table.selectRow(standard_row)
+        self.application.processEvents()
+        detail_text = "\n".join(label.text() for label in page.factor_detail_host.findChildren(QLabel))
+        self.assertIn("GB/T 32151.34—2024", detail_text)
+        self.assertIn("实施日期", detail_text)
+        self.assertNotIn("狀態", detail_text)
+        self.assertTrue(page.findChild(QPushButton, "openOfficialReferenceButton"))
+
+    def test_registered_source_tables_keep_dynamic_layout_and_calculator_providers(self) -> None:
+        tables = self.service.list_source_tables("SRC-32151-34-2024")
+        self.assertEqual({item.display_number for item in tables if item.display_number.startswith("C.")},
+                         {"C.1", "C.2", "C.3", "C.4", "C.5"})
+        c1 = next(item for item in tables if item.display_number == "C.1")
+        c1_headers, c1_rows, _ = self.service.get_source_table_view(c1.source_table_id)
+        self.assertEqual(len(c1_headers), 5)
+        self.assertEqual(len(c1_rows), 26)
+        self.assertEqual(c1_headers, ("燃料", "计量单位", "低位发热量", "单位热值含碳量", "碳氧化率"))
+        c2 = next(item for item in tables if item.display_number == "C.2")
+        self.assertEqual(len(self.service.get_source_table_view(c2.source_table_id)[1]), 11)
+
+        for table in tables:
+            if table.display_number in {"C.4", "C.5"}:
+                headers, rows, note = self.service.get_source_table_view(table.source_table_id)
+                self.assertGreater(len(rows), 0)
+                self.assertGreaterEqual(len(headers), 2)
+                self.assertIn("版本化计算器", note)
+                if table.display_number == "C.4":
+                    self.assertIn("1.70", note)
+                    self.assertIn("1.80", note)
+
         page = self.shell.pages[AppRoute.FACTORS]
-        table = page.findChild(QTableWidget, "appendixCReadOnlyTable")
-        self.assertIsNotNone(table)
-        assert table is not None
-        self.assertEqual(set(page.appendix_c_buttons), {"C.1", "C.2", "C.3", "C.4", "C.5"})
-
-        for appendix_id in ("C.1", "C.2", "C.3", "C.4", "C.5"):
-            with self.subTest(appendix=appendix_id):
-                page.appendix_c_buttons[appendix_id].click()
-                self.application.processEvents()
-                self.assertGreater(table.rowCount(), 0)
-                self.assertGreaterEqual(table.columnCount(), 2)
-                self.assertEqual(table.editTriggers(), QAbstractItemView.EditTrigger.NoEditTriggers)
-                self.assertIn(appendix_id, page.appendix_table_title.text())
-                self.assertIn("GB/T 32151.34—2024", page.appendix_table_note.text())
-                if appendix_id in {"C.1", "C.2", "C.3"}:
-                    self.assertIn("Canonical", page.appendix_table_note.text())
-                else:
-                    self.assertIn("版本化 Calculator", page.appendix_table_note.text())
-        page.appendix_c_buttons["C.4"].click()
-        self.assertIn("1.70", page.appendix_table_note.text())
-        self.assertIn("1.80", page.appendix_table_note.text())
-        page.appendix_c_buttons["C.5"].click()
-        self.assertIn("UAT01-B", page.appendix_table_note.text())
+        self.assertGreater(page.table_filter.count(), 0)
+        page.table_filter.setCurrentIndex(page.table_filter.findData(c2.source_table_id))
+        self.application.processEvents()
+        self.assertEqual(page.factor_table.rowCount(), 11)
+        self.assertIn("C.2", page.browse_table_title.text())
 
     def test_multi_version_values_have_explicit_categories_in_service_and_page(self) -> None:
         service = CatalogQueryService(
@@ -496,30 +549,46 @@ class G04CatalogTests(unittest.TestCase):
         page.show()
         self.application.processEvents()
         try:
+            page.view_mode_filter.setCurrentIndex(1)
             page.search_input.setText("天然气低位发热量")
             self.application.processEvents()
-            self.assertEqual(page.factor_table.rowCount(), 4)
-            state_values = {
-                page.factor_table.item(row, 5).text()
-                for row in range(page.factor_table.rowCount())
-            }
-            self.assertEqual(
-                state_values,
-                {
-                    "推荐值（标准缺省） · 已核对",
-                    "其他适用值 · 已核对",
-                    "历史值 · 已弃用",
-                },
-            )
-            self.assertEqual(page.selected_factor_id, "natural_gas_lhv_gbt32151_34_c1")
-            heading = page.factor_detail_layout.itemAt(0).widget()
-            self.assertIsInstance(heading, QLabel)
-            assert isinstance(heading, QLabel)
-            self.assertIn("天然气低位发热量", heading.text())
+            self.assertEqual(page.search_result_table.rowCount(), 4)
+            visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
+            self.assertNotIn("natural_gas", visible_text)
+            self.assertNotIn("natural_gas_lhv_gbt32151_34_c1", visible_text)
+            detail_heading = page.factor_detail_layout.itemAt(0).widget()
+            self.assertIsInstance(detail_heading, QLabel)
+            assert isinstance(detail_heading, QLabel)
+            self.assertIn("天然气低位发热量", detail_heading.text())
         finally:
             page.close()
             page.deleteLater()
             self.application.processEvents()
+
+    def test_reference_search_deduplicates_shared_assets_and_finds_steam_tables(self) -> None:
+        heat = [item for item in self.service.search_reference_library("0.11")
+                if item.result_type == "asset" and item.asset is not None
+                and item.asset.parameter_id == "heat_emission_factor_default"]
+        self.assertEqual(len(heat), 1)
+        self.assertEqual(heat[0].asset.asset_id, "asset-heat_default_2025")
+        self.assertEqual(len(heat[0].bindings), 2)
+        locators = {binding.source_location for binding in heat[0].bindings}
+        self.assertEqual(len(locators), 2)
+
+        steam_tables = [item for item in self.service.search_reference_library("蒸汽")
+                        if item.result_type == "table" and item.table is not None]
+        self.assertEqual({item.table.display_number for item in steam_tables}, {"C.4", "C.5"})
+
+        conversion_tables = [item for item in self.service.search_reference_library("kWh")
+                             if item.result_type == "table" and item.table is not None]
+        self.assertTrue(any(item.table.source_table_id == "tab-qz-unit-policy" for item in conversion_tables))
+
+        source_results = [item for item in self.service.search_reference_library("QZ-UNIT-POLICY")
+                          if item.result_type == "source" and item.source is not None]
+        self.assertTrue(any(item.source.document_no == "QZ-UNIT-POLICY" for item in source_results))
+        standard_results = [item for item in self.service.search_reference_library("GB/T 32151.34")
+                            if item.result_type == "standard" and item.standard is not None]
+        self.assertTrue(any(item.standard.standard_id == "gbt_32151_34_2024" for item in standard_results))
 
     def test_missing_catalog_degrades_to_safe_empty_pages(self) -> None:
         missing = Path(self.temp_directory.name) / "not-installed.sqlite"
@@ -560,6 +629,16 @@ class G04CatalogTests(unittest.TestCase):
             shell.navigate(AppRoute.FACTORS)
             self.application.processEvents()
             page = shell.pages[AppRoute.FACTORS]
+            page.view_mode_filter.setCurrentIndex(1)
+            page.search_input.setText("0.11")
+            self.application.processEvents()
+            heat_row = next(
+                row for row in range(page.search_result_table.rowCount())
+                if page.search_result_table.item(row, 0).text() == "参数值"
+                and "外购热力" in page.search_result_table.item(row, 1).text()
+            )
+            page.search_result_table.selectRow(heat_row)
+            self.application.processEvents()
             buttons = page.findChildren(QPushButton, "viewFactorSourceButton")
             self.assertTrue(buttons)
             self.assertTrue(all(not button.isEnabled() for button in buttons))

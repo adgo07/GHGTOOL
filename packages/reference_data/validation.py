@@ -226,6 +226,9 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
     standards = _unique_ids(list(catalog.get("standards", [])), "standard_id", "standards", errors)
     parameters = _unique_ids(list(catalog.get("parameters", [])), "parameter_id", "parameters", errors)
     factors = _unique_ids(list(catalog.get("factors", [])), "factor_id", "factors", errors)
+    source_tables = _unique_ids(list(catalog.get("source_tables", [])), "source_table_id", "source_tables", errors)
+    assets = _unique_ids(list(catalog.get("reference_data_assets", [])), "asset_id", "reference_data_assets", errors)
+    bindings = _unique_ids(list(catalog.get("reference_data_bindings", [])), "binding_id", "reference_data_bindings", errors)
     conversions = _unique_ids(
         list(catalog.get("conversion_rules", [])), "conversion_id", "conversion_rules", errors
     )
@@ -358,6 +361,117 @@ def _cross_validate(catalog: Mapping[str, Any]) -> list[str]:
         for standard_id in factor.get("applicable_standard_ids", []):
             if standard_id not in standards:
                 errors.append(f"$.factors[{row_number}].applicable_standard_ids: unknown standard")
+
+    for row_number, table in enumerate(catalog.get("source_tables", [])):
+        path = f"$.source_tables[{row_number}]"
+        if table.get("source_id") not in sources:
+            errors.append(f"{path}.source_id: unknown source")
+        layout = table.get("layout")
+        provider_id = table.get("provider_id")
+        if layout == "provider" and not provider_id:
+            errors.append(f"{path}.provider_id: provider layout requires a registered provider")
+        if layout != "provider" and provider_id is not None:
+            errors.append(f"{path}.provider_id: only provider tables may name a provider")
+        for column_number, column in enumerate(table.get("columns", [])):
+            parameter_type = column.get("parameter_type")
+            if parameter_type is not None:
+                _validate_g01_enum(
+                    parameter_type,
+                    "parameter_type",
+                    f"{path}.columns[{column_number}].parameter_type",
+                    errors,
+                )
+
+    for row_number, asset in enumerate(catalog.get("reference_data_assets", [])):
+        path = f"$.reference_data_assets[{row_number}]"
+        parameter = parameters.get(asset.get("parameter_id"))
+        if parameter is None:
+            errors.append(f"{path}.parameter_id: unknown parameter")
+        if asset.get("subject_id") not in subjects:
+            errors.append(f"{path}.subject_id: unknown subject")
+        if parameter is not None and asset.get("subject_id") != parameter.get("subject_id"):
+            errors.append(f"{path}.subject_id: does not match parameter subject")
+        _validate_g01_enum(asset.get("value_type"), "value_type", f"{path}.value_type", errors)
+        for unit_field in ("unit", "source_unit", "normalized_unit"):
+            if not _known_unit(asset.get(unit_field, ""), units):
+                errors.append(f"{path}.{unit_field}: unknown unit")
+        source_value = _parse_decimal(asset.get("source_value"), f"{path}.source_value", policy, errors)
+        normalized_value = _parse_decimal(asset.get("normalized_value"), f"{path}.normalized_value", policy, errors)
+        value = _parse_decimal(asset.get("value"), f"{path}.value", policy, errors)
+        if value is not None and normalized_value is not None and value != normalized_value:
+            errors.append(f"{path}.value: must equal normalized_value")
+        if asset.get("unit") != asset.get("normalized_unit"):
+            errors.append(f"{path}.unit: must equal normalized_unit")
+        if source_value is not None and normalized_value is not None:
+            converted = _compound_conversion(source_value, asset.get("source_unit", ""), asset.get("normalized_unit", ""))
+            if converted is None:
+                try:
+                    converted = units.convert(source_value, asset.get("source_unit", ""), asset.get("normalized_unit", ""))
+                except UnitError as exc:
+                    errors.append(f"{path}: unit normalization failed: {exc}")
+                    converted = None
+            if converted is not None and converted != normalized_value:
+                errors.append(f"{path}: normalized_value does not match unit conversion")
+
+    binding_count_by_factor: dict[str, int] = {}
+    used_asset_ids: set[str] = set()
+    for row_number, binding in enumerate(catalog.get("reference_data_bindings", [])):
+        path = f"$.reference_data_bindings[{row_number}]"
+        asset = assets.get(binding.get("asset_id"))
+        table = source_tables.get(binding.get("source_table_id"))
+        if asset is None:
+            errors.append(f"{path}.asset_id: unknown reference data asset")
+        else:
+            used_asset_ids.add(asset["asset_id"])
+        if table is None:
+            errors.append(f"{path}.source_table_id: unknown source table")
+        for standard_id in binding.get("applicable_standard_ids", []):
+            if standard_id not in standards:
+                errors.append(f"{path}.applicable_standard_ids: unknown standard")
+        _validate_g01_enum(binding.get("review_status"), "review_status", f"{path}.review_status", errors)
+        valid_from = binding.get("valid_from")
+        valid_to = binding.get("valid_to")
+        try:
+            start = date.fromisoformat(valid_from) if valid_from else None
+            end = date.fromisoformat(valid_to) if valid_to else None
+            if start is not None and end is not None and start > end:
+                errors.append(f"{path}: applicability dates are out of order")
+        except (TypeError, ValueError):
+            # JSON Schema reports malformed date text; avoid secondary validator failures.
+            pass
+        factor_id = binding.get("factor_id")
+        if binding.get("binding_type") == "STANDARD_REFERENCE":
+            if factor_id is not None:
+                errors.append(f"{path}.factor_id: standard reference bindings do not create resolver candidates")
+            continue
+        factor = factors.get(factor_id)
+        if factor is None:
+            errors.append(f"{path}.factor_id: factor-source binding must reference a known factor")
+            continue
+        binding_count_by_factor[factor_id] = binding_count_by_factor.get(factor_id, 0) + 1
+        if table is not None and table.get("source_id") != factor.get("source_id"):
+            errors.append(f"{path}.source_table_id: factor-source table must match the factor source")
+        if binding.get("source_location") != factor.get("source_location"):
+            errors.append(f"{path}.source_location: must preserve the factor's precise locator")
+        if binding.get("applicable_standard_ids") != factor.get("applicable_standard_ids"):
+            errors.append(f"{path}.applicable_standard_ids: must preserve factor applicability")
+        if binding.get("factor_year") != factor.get("factor_year"):
+            errors.append(f"{path}.factor_year: must preserve factor year")
+        if binding.get("valid_from") != factor.get("valid_from") or binding.get("valid_to") != factor.get("valid_to"):
+            errors.append(f"{path}: must preserve factor applicability dates")
+        if binding.get("review_status") != factor.get("review_status"):
+            errors.append(f"{path}.review_status: must preserve factor review status")
+        if asset is not None:
+            for field in ("parameter_id", "subject_id", "value", "unit", "source_value", "source_unit", "normalized_value", "normalized_unit", "value_type"):
+                if asset.get(field) != factor.get(field):
+                    errors.append(f"{path}.asset_id: asset content does not match factor field {field!r}")
+
+    for factor_id in factors:
+        if binding_count_by_factor.get(factor_id) != 1:
+            errors.append(f"$.factors: factor {factor_id!r} must have exactly one source binding")
+    for asset_id in assets:
+        if asset_id not in used_asset_ids:
+            errors.append(f"$.reference_data_assets: asset {asset_id!r} has no source binding")
 
     for row_number, rule in enumerate(catalog.get("conversion_rules", [])):
         _validate_g01_enum(

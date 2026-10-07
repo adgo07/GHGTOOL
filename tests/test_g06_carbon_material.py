@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import tempfile
+from pathlib import Path
 from decimal import Decimal, localcontext
 import unittest
 
@@ -181,11 +183,12 @@ def _detail(
 
 
 def _input(**kwargs: object) -> CarbonMaterialInput:
+    period = kwargs.pop("period", PERIOD)
     return CarbonMaterialInput(
         input_id=kwargs.pop("input_id", "input.g06"),
         enterprise_id=ENTERPRISE_ID,
         enterprise_name="G06 测试企业",
-        period=PERIOD,
+        period=period,
         boundary_confirmed=kwargs.pop("boundary_confirmed", True),
         **kwargs,
     )
@@ -870,6 +873,88 @@ class G06CalculatorTests(unittest.TestCase):
             self.assertEqual(dict(trace.provenance)["heat_factor_source"], "标准缺省值")
             variables = {name: value for name, value, _unit in trace.variables}
             self.assertEqual(variables["EF3"], Decimal("0.11"))
+
+    def test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods(self) -> None:
+        from packages.application.catalog_queries import CatalogQueryService
+        from packages.application.carbon_accounting import create_g06_parameter_resolver
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+
+        temporary_root = Path("build/pf01-test-tmp")
+        temporary_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
+            catalog_path = Path(directory) / "catalog.sqlite"
+            build_catalog_database(output_path=catalog_path)
+            repository = SQLiteCatalogRepository(catalog_path)
+            catalog = CatalogQueryService(repository)
+            resolver = create_g06_parameter_resolver(repository)
+            implementation_date = catalog.standard_implementation_date(STANDARD_ID)
+            self.assertEqual(implementation_date, date(2025, 3, 1))
+            cases = (
+                (
+                    "entirely_before",
+                    AccountingPeriod(PeriodType.ANNUAL, date(2024, 1, 1), date(2024, 12, 31)),
+                    "heat_default_gbt32151_34_c3",
+                    "BEFORE",
+                ),
+                (
+                    "crosses",
+                    AccountingPeriod(PeriodType.CUSTOM, date(2025, 2, 1), date(2025, 3, 31)),
+                    "heat_default_gbt32151_34_c3",
+                    "CROSSES",
+                ),
+                (
+                    "after",
+                    AccountingPeriod(PeriodType.ANNUAL, date(2026, 1, 1), date(2026, 12, 31)),
+                    "heat_default_2025",
+                    "AFTER",
+                ),
+            )
+            for case_name, period, expected_factor_id, expected_relation in cases:
+                with self.subTest(case=case_name, period=period, expected=expected_factor_id):
+                    outcome = CarbonMaterialCalculator(
+                        parameter_resolver=resolver,
+                        standard_implementation_date=implementation_date,
+                    ).calculate(
+                        _input(
+                            period=period,
+                            purchased_heat=(HeatInput(
+                                "purchased-heat", "1", unit="t", manual_enthalpy=False,
+                                pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT,
+                            ),),
+                            exported_heat=(HeatInput(
+                                "exported-heat", "0.5", unit="t", manual_enthalpy=False,
+                                pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT,
+                            ),),
+                        ),
+                        calculated_at=SNAPSHOT_AT,
+                    )
+                    self.assertTrue(outcome.successful, outcome.problems)
+                    heat_snapshots = {
+                        snapshot.detail_id: snapshot.factor_id
+                        for snapshot in outcome.parameter_snapshots
+                        if snapshot.parameter_id == "heat_emission_factor_default"
+                    }
+                    self.assertEqual(
+                        heat_snapshots,
+                        {"purchased-heat": expected_factor_id, "exported-heat": expected_factor_id},
+                    )
+                    warnings = [
+                        problem
+                        for problem in outcome.problems
+                        if problem.code == "CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD"
+                    ]
+                    self.assertEqual(len(warnings), 1)
+                    self.assertEqual(warnings[0].level, IssueLevel.WARNING)
+                    self.assertEqual(dict(warnings[0].details)["period_relation"], expected_relation)
+                    self.assertIsNotNone(outcome.record)
+                    self.assertIsNotNone(outcome.result)
+                    assert outcome.record is not None
+                    assert outcome.result is not None
+                    self.assertIn(warnings[0], outcome.result.problems)
+                    self.assertIn(warnings[0], outcome.record.problems)
+                    self.assertEqual(outcome.record.status.value, "COMPLETED_WITH_WARNINGS")
+                    self.assertIsNotNone(outcome.record)
+                    assert outcome.record is not None
 
     def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
         fuels = (

@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-07（GHG-RPT01）
+最后更新：2026-10-07（GHG-PF01）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,20 +29,24 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- 已完成并合并：RS01-A-R1及RS01-B1。
-- 当前工作包：`GHG-RPT01 — 统一报告模型 + Word核算报告 + Excel R2正式导入模板`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为 Base 创建独立分支，没有从 PR #27、PF01 或 UAT02 派生。并行的 UAT02 后续经 PR #31 合并至 `main`（`880d5515e8c48cc01294926f7727de4270f73a66`）；本分支已合入该最新 main 并完成冲突收口。Word 报告、R2模板和逐单元只读预览已实现，本地验证完成；当前等待独立验收。最终 PR head 与 CI 证据见最终交付回复和 PR Checks。
-- UAT01-A/B及UAT02已合并；PF01 PR #30 仍为 `OPEN / UNMERGED`，未并入本分支；GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`。RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`且本工作包只读参考；RS03-B：`NOT STARTED`。GHG-RPT01 不合并主线，独立验收前保持未验收。
-- RS01与RS02已完成并合入main；Golden Freeze、Release Gate和第二标准均未启动；GB/T 32151.34—2024仍为 `NOT SUPPORTED`。
-- 本工作包仍须遵守：
+- 已合并进入main：RS01-A-R1、RS01-B1/B2、RS02-A/B、UAT01-A/B、UAT02与GHG-RPT01（RPT01仍待独立验收）。
+- 当前工作包：`GHG-PF01 — 参数与因子注册库基础架构 + 页面重构`；以开工时最新 `origin/main` `c61b29baa2f5d75deae5fc243874d2b1d947bf4a` 为Base，独立分支 `codex/pf01-parameter-factor-library`。不从PR #27派生且不修改PR #27。
+- PF01实现Canonical来源表/资产/绑定注册、只读查询投影、标准/文件浏览与全库搜索；Resolver选择策略、正式公式、历史Record语义不变。实现状态：`IMPLEMENTED / AWAITING ACCEPTANCE`；PR #30保持OPEN / UNMERGED，等待独立验收，当前最新Head的Windows CI以PR Checks为准。
+- PR #30候选已按13个实际变更文件迁入D盘独立克隆，起点核对为原PR head `4d5d7bc42336afa6d80a9894297454a43f8706d6`，候选文件与只读来源逐字节一致。候选提交`405c34a`已与最新`origin/main` `4f2e1c3d40f91b05e7eaa0dc245aad7e5d019f95`合并，合并提交为`3b9545952561c929955a05bc5bb9eabfbfa741e3`。合并后定向回归129/129、全量282/282、Canonical/compileall/pip check/四库初始化、Windows standalone发布审计/归档审计及双启动均通过。代码候选`0bb06b888a269c46daa8b372db614c5f19516636`已推送到原PR分支；GitHub Actions Run 166（ID `37567132440`）对该head的合并基线与精确head job均成功，并上传standalone artifact。PR #30仍Open/Unmerged；后续状态文档提交产生的新head以PR Checks为准，本包完成后停止等待独立验收，不自行合并。
+- PF01增量裁定：明确区分来源文件实施日期与具体数据自身适用期。用户选择GB/T 32151.34—2024时，无论核算期间完全早于、跨越或晚于2025-03-01实施日，均继续按所选标准核算并产生非阻断Warning，提醒进入计算状态与新Record。标准实施日期保留在标准元数据；只有来源对具体值另有独立时间适用要求时，Factor/Binding才保留自身有效期。C.1、C.2、C.3及§5.2分组复核已清除无独立适用期证据的95条因子及对应来源绑定的重复`valid_from`；C.3热力缺省因子保持候选资格。真正按期间适用的外部数据（如年度官方电力因子）仍按`accounting_period`筛选。依据与软件决定登记于`GHG-STD-32151-34-005/006`。
+- 本包增量不升级 `platform-lock.json` 或 `PLATFORM_BASELINE.md`；标准仍为 `NOT SUPPORTED`。
+- RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED`；RS03-B：`NOT STARTED`。本包完成后停止，等待独立验收。
+
+PF01范围约束：
 
 ```text
-1. 用户明确启动对应工作包（一个阶段只建立一个 Goal）；
-2. 重新读取 AGENTS.md、REFERENCE_STANDARD_ROADMAP.md、TASK_STATE.md；
-3. 使用仓库内当前可追溯、已冻结的 GB/T 32151.34—2024 Standard Mapping；
-4. 确认 platform-lock.json 的 locked SHA 未变（未经独立治理批准不得升级baseline）。
+1. 来源文件、来源表、参数概念、参考数据资产、来源绑定各自保留明确责任；
+2. 相同值可共用不可变数据资产并绑定多处独立来源定位；不同值创建新资产版本，不设置来源权重；
+3. Resolver继续决定计算候选与默认值；目录页面只读，不能成为计算真值源；
+4. C.4/C.5蒸汽表从版本化Domain Calculator只读展示，不复制第二份数值表；
+5. Catalog数据库仅增量新增注册表，不重写Project或历史Record。
+6. 本次期间裁定不修改正式公式、Resolver Selection Policy或既有历史Record；须覆盖完全早于、跨实施日、实施日后三类非阻断Warning回归，并确认自身有效期数据仍按期间筛选。
 ```
-
-- 一个阶段未完成、未形成报告或存在 BLOCKED 时，不得进入下一阶段。
 
 ## 3. 当前有效的长期产品决定（提炼保留）
 
@@ -100,9 +104,9 @@ Module ID：`qz.carbon_accounting`
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：GHG-RPT01 增加 R2 标准输入模板下载与逐核算单元只读预览，采用与桌面共用的 Domain / Calculator；预览不保存 Project / Workspace / Record。正式 Excel 写入、结果导出尚未实现，模板入口处于 RPT01 独立验收中。
+- **当前状态**：Excel 导入只保留禁用入口与占位说明，未实现。
 - **最终定位**（中央 Product Delivery Policy）：Excel 是 Import / Export Adapter，必须与 GUI 进入同一 Canonical Input → 同一 Application → 同一 Domain / Calculator → 同一 Result。
-- Excel 完整闭环仍属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**。
+- 正式实现属于 `REFERENCE_STANDARD_ROADMAP.md` 的 **GHG-RS03**；本阶段不得启用或实现。
 
 ### 3.6 架构与分层
 
@@ -180,12 +184,11 @@ Module ID：`qz.carbon_accounting`
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应工作包 GHG-RPT01 — 统一报告模型 + Word 核算报告 + Excel R2 正式导入模板：
+本文件当前对应工作包 **GHG-PF01 — 参数与因子注册库基础架构 + 页面重构**：
 
-- ReportModel 位于 Application 层，只读一条不可变 AccountingRecord 已保存的输入、结果、参数、Trace、Provenance、Reporting 与资格快照；不调用 Calculator、不查当前 Catalog、不更改历史 Record。Word renderer 输出 DOCX；补充信息写入 records.sqlite 新增追加式报告导出历史表，并记录审计事件。
-- 报告按 B.1–B.9 展示快照中的业务输入、参数来源、逐项结果与追溯说明；旧快照不足时提示缺失，不补算、不伪造。Word 报告不展示内部 Rule、Trace、参数或 Record 编号。
-- Excel R2 有十张中文可见表和隐藏模板元数据页，B.2–B.9 分页录入，支持动态行、空白/显式零区分及严格 OOXML Decimal 词法入口；每个核算单元单独复用当前 Domain / Calculator 预览，不写 Project / Workspace / Record，不提供 Excel 结果导出。
-- PR #27 只作只读参考；共享物料标准化能力在本任务 Base 中已经存在并继续复用。报告、R2 导入预览与企业文件输出由本工作包实现，未引入 PR #27 未合并代码作为正式依赖。
-- 并行集成：在执行期间 `origin/main` 从开工 Base 前进至 PR #31 的合并提交 `880d5515e8c48cc01294926f7727de4270f73a66`。已确认远端目标分支仍为本包 head 后，将最新 main 合入本分支；仅 HANDOFF、IMPLEMENTATION_REPORT、REFERENCE_STANDARD_ROADMAP、TASK_STATE 有文档冲突，按 RPT01 当前状态与 main 已合并的 UAT02 状态合并；`packages/ui/pages.py` 自动合并，其他 UAT02 源码与测试由 main 带入。
-- 未修改计算公式、Canonical 标准数据、中央 Frozen Contract、`platform-lock.json`、正式记录生命周期或用户目录 `计算表/`；没有启动 RS03-B、Golden、Release 或第二标准。
-- GHG-RPT01：`IMPLEMENTED / AWAITING ACCEPTANCE`；RS03-A USER UAT：`PENDING`；PR #27：`OPEN / UNMERGED` 且保持只读；RS03-B：`NOT STARTED`；Excel 结果导出：`NOT STARTED`；GB/T 32151.34—2024 仍为 `NOT SUPPORTED`。
+- Canonical注册来源表、参考数据资产和来源绑定；同值可共用资产并保留多处定位，不同值分开版本化，不设来源权重；
+- SQLite只增量增加只读查询投影；页面按标准/文件查看与全库搜索，按登记表结构显示并隐藏内部标识；
+- C.4/C.5仅通过版本化Calculator的只读Adapter展示，不复制蒸汽表；
+- Resolver继续独占计算默认候选选择；本包不改变选择策略、正式公式或历史Record语义；
+- 明确区分所选标准实施日期与具体因子自身适用期；早于/跨越/晚于实施日均只作非阻断提醒并写入新Record，C.1/C.2/C.3/§5.2中无独立期间证据的重复日期已清除；真正自身具有期间适用性的年度外部因子仍由Resolver按核算期间筛选；
+- 状态：`IMPLEMENTED / AWAITING ACCEPTANCE`。PR #27继续 `OPEN / UNMERGED`且未修改；RS03-A用户UAT `PENDING`；RS03-B `NOT STARTED`；标准仍为 `NOT SUPPORTED`。
