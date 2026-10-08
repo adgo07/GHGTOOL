@@ -441,6 +441,34 @@ class SQLiteProjectWorkspaceRepository:
         finally:
             connection.close()
 
+    def list_updated_at_by_project_id(self) -> dict[str, datetime]:
+        """Read existing project update timestamps without changing project data."""
+        connection = sqlite3.connect(self.path)
+        try:
+            rows = connection.execute(
+                "SELECT project_id,updated_at FROM projects ORDER BY updated_at DESC, project_id"
+            ).fetchall()
+            timestamps: dict[str, datetime] = {}
+            for project_id, raw_timestamp in rows:
+                try:
+                    timestamp = datetime.fromisoformat(str(raw_timestamp))
+                except ValueError as exc:
+                    raise ProjectWorkspaceRepositoryError(
+                        f"invalid project update timestamp for {project_id}"
+                    ) from exc
+                if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                    raise ProjectWorkspaceRepositoryError(
+                        f"project update timestamp for {project_id} must be timezone-aware"
+                    )
+                timestamps[str(project_id)] = timestamp.astimezone(timezone.utc)
+            return timestamps
+        except ProjectWorkspaceRepositoryError:
+            raise
+        except (sqlite3.Error, TypeError, ValueError, OverflowError) as exc:
+            raise ProjectWorkspaceRepositoryError(f"cannot read project update timestamps: {exc}") from exc
+        finally:
+            connection.close()
+
     def delete(self, project_id: str) -> bool:
         connection = sqlite3.connect(self.path)
         try:

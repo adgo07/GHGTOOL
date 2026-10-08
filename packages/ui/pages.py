@@ -10,22 +10,16 @@ from enum import Enum
 import hashlib
 import json
 import logging
-import os
 from pathlib import Path
-import tempfile
 from typing import Any
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, QSignalBlocker, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
-    QDateEdit,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
-    QFormLayout,
     QFrame,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -47,7 +41,6 @@ from packages.application.project_workspaces import (
     ProjectWorkspace,
     ProjectWorkspaceService,
 )
-from packages.application.reporting import build_saved_record_report
 from packages.core.models import AccountingRecord, RecordStatus
 from packages.core.repositories import RecordRepository
 from packages.application.carbon_accounting import (
@@ -58,7 +51,7 @@ from packages.application.carbon_accounting import (
     resolve_formal_record_repository,
 )
 from packages.standards.carbon_material import CarbonMaterialCalculator, STANDARD_ID, STANDARD_VERSION
-from packages.infrastructure.reporting import render_report_docx
+from .report_export import export_saved_record_report, report_supplementary_dialog
 from .record_experience import (
     SnapshotState,
     build_activity_evidence_view,
@@ -80,29 +73,6 @@ from .view_models import AppRoute, ShellViewModel
 
 Navigate = Callable[[AppRoute], None]
 _LOGGER = logging.getLogger(__name__)
-
-
-def _write_report_atomically(path: Path, content: bytes) -> None:
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="wb",
-            prefix=".ghg-report-",
-            suffix=".tmp",
-            dir=path.parent,
-            delete=False,
-        ) as temporary_file:
-            temporary_path = Path(temporary_file.name)
-            temporary_file.write(content)
-            temporary_file.flush()
-        os.replace(temporary_path, path)
-    except Exception:
-        if temporary_path is not None:
-            try:
-                temporary_path.unlink(missing_ok=True)
-            except OSError:
-                _LOGGER.exception("Unable to remove temporary report file %s", temporary_path)
-        raise
 
 
 _SNAPSHOT_LABELS = {
@@ -828,127 +798,20 @@ class RecordLibraryPage(BasePage):
         self.refresh_records()
 
     def _report_supplementary_dialog(self, record: AccountingRecord) -> dict[str, object] | None:
-        reporting_getter = getattr(self.record_repository, "get_reporting_snapshot", None)
-        reporting = reporting_getter(record.record_id) if callable(reporting_getter) else {}
-        reporting = reporting if isinstance(reporting, dict) else {}
-        history_getter = getattr(self.record_repository, "get_latest_report_export_supplementary", None)
-        previous = history_getter(record.record_id) if callable(history_getter) else {}
-        previous = previous if isinstance(previous, dict) else {}
-        fields = (
-            ("enterprise_name", "企业名称", reporting.get("enterprise_name", record.input_snapshot.enterprise_name or "")),
-            ("social_credit_code", "统一社会信用代码", reporting.get("social_credit_code", "")),
-            ("legal_representative", "法定代表人", reporting.get("legal_representative", "")),
-            ("address", "地址", reporting.get("address", "")),
-            ("contact_person", "联系人", reporting.get("contact_person", "")),
-            ("preparer_name", "编制人", reporting.get("preparer_name", "")),
-            ("phone", "联系电话", reporting.get("preparer_contact", "")),
-            ("products_and_process", "主要产品及工艺", reporting.get("products_and_process", "")),
-        )
-        dialog = QDialog(self)
-        dialog.setWindowTitle("报告补充信息")
-        dialog.setMinimumWidth(520)
-        form = QFormLayout(dialog)
-        widgets: dict[str, QLineEdit] = {}
-        for key, label, fallback in fields:
-            edit = QLineEdit(dialog)
-            edit.setText(str(fallback or previous.get(key, "") or ""))
-            widgets[key] = edit
-            form.addRow(label, edit)
-        prepared_on = QDateEdit(dialog)
-        prepared_on.setCalendarPopup(True)
-        prepared_on.setDisplayFormat("yyyy-MM-dd")
-        try:
-            parsed_date = QDate.fromString(str(previous.get("prepared_on") or date.today().isoformat()), "yyyy-MM-dd")
-            prepared_on.setDate(parsed_date if parsed_date.isValid() else QDate.currentDate())
-        except ValueError:
-            prepared_on.setDate(QDate.currentDate())
-        form.addRow("编制日期", prepared_on)
-        note = QTextEdit(dialog)
-        note.setMaximumHeight(90)
-        note.setPlainText(str(reporting.get("other_report_information", "") or previous.get("supplementary_note", "") or ""))
-        form.addRow("补充说明", note)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, dialog)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        form.addRow(buttons)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if self.record_repository is None:
             return None
-        result: dict[str, object] = {key: edit.text().strip() for key, edit in widgets.items()}
-        result["prepared_on"] = prepared_on.date().toString("yyyy-MM-dd")
-        result["supplementary_note"] = note.toPlainText().strip()
-        return result
+        return report_supplementary_dialog(self, self.record_repository, record)
 
     def _export_selected_report(self) -> None:
         row = self.record_list.currentRow()
         if row < 0 or row >= len(self._records) or self.record_repository is None:
             return
-        record = self._records[row]
-        supplementary = self._report_supplementary_dialog(record)
-        if supplementary is None:
-            return
-        suffix = ".docx"
-        default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}{suffix}"
-        target, _ = QFileDialog.getSaveFileName(self, "保存 Word 核算报告", default_name, "Word 文档 (*.docx)")
-        if not target:
-            return
-        path = Path(target)
-        suffix_added = path.suffix.lower() != suffix
-        if suffix_added:
-            path = path.with_suffix(suffix)
-        if suffix_added and path.exists():
-            answer = QMessageBox.question(
-                self,
-                "确认覆盖文件",
-                f"补全 Word 文件扩展名后的目标文件已存在：\n{path}\n是否覆盖？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-            if answer != QMessageBox.StandardButton.Yes:
-                return
-        try:
-            report = build_saved_record_report(self.record_repository, record, supplementary_info=supplementary)
-            document_bytes = render_report_docx(report)
-        except Exception:
-            _LOGGER.exception("Unable to generate Word report for record %s", record.record_id)
-            QMessageBox.critical(
-                self,
-                "报告文件未保存",
-                f"无法生成 Word 核算报告，文件未保存。\n目标位置：\n{path}\n请检查后重试。",
-            )
-            return
-        try:
-            _write_report_atomically(path, document_bytes)
-        except Exception:
-            _LOGGER.exception("Unable to write Word report for record %s to %s", record.record_id, path)
-            QMessageBox.critical(
-                self,
-                "报告文件未保存",
-                f"无法写入 Word 核算报告，文件未保存。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
-            )
-            return
-        history_writer = getattr(self.record_repository, "record_report_export", None)
-        try:
-            if not callable(history_writer):
-                raise RuntimeError("report export audit writer is unavailable")
-            history_writer(
-                record.record_id,
-                export_id=f"report-export.{uuid4().hex}",
-                format="DOCX",
-                template_version=report.schema_version,
-                document_filename=path.name,
-                document_sha256=hashlib.sha256(document_bytes).hexdigest(),
-                supplementary_info=supplementary,
-                actor="current_user",
-            )
-        except Exception:
-            _LOGGER.exception("Unable to record Word report export for record %s at %s", record.record_id, path)
-            QMessageBox.warning(
-                self,
-                "报告已保存，审计未完成",
-                f"Word 核算报告已保存到：\n{path}\n该文件可使用；导出审计未完成，正式记录未改。请保留该文件，并保存诊断信息以便排查。",
-            )
-            return
-        QMessageBox.information(self, "报告已导出", f"Word 核算报告已保存到：\n{path}")
+        export_saved_record_report(
+            self,
+            self.record_repository,
+            self._records[row],
+            supplementary_dialog=self._report_supplementary_dialog,
+        )
 
 class ExcelImportPage(BasePage):
     """R2 import, saved canonical projects, explicit formal calculation and record access."""

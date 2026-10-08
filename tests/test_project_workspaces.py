@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import replace
 import sqlite3
+from datetime import datetime, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +23,34 @@ from packages.persistence import (
 
 
 class ProjectWorkspacePersistenceTests(unittest.TestCase):
+    def test_project_updated_at_query_is_read_only_and_returns_aware_utc(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "projects.sqlite"
+            service = ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(database))
+            workspace = service.new_workspace("近期企业项目")
+            service.save(workspace)
+
+            with closing(sqlite3.connect(database)) as connection:
+                saved_text = connection.execute(
+                    "SELECT updated_at FROM projects WHERE project_id=?",
+                    (workspace.project_id,),
+                ).fetchone()[0]
+
+            timestamps = service.list_updated_at_by_project_id()
+            self.assertEqual(tuple(timestamps), (workspace.project_id,))
+            self.assertIs(timestamps[workspace.project_id].tzinfo, timezone.utc)
+            self.assertEqual(
+                timestamps[workspace.project_id],
+                datetime.fromisoformat(saved_text).astimezone(timezone.utc),
+            )
+
+            with closing(sqlite3.connect(database)) as connection:
+                after_text = connection.execute(
+                    "SELECT updated_at FROM projects WHERE project_id=?",
+                    (workspace.project_id,),
+                ).fetchone()[0]
+            self.assertEqual(after_text, saved_text)
+
     def test_multiple_units_round_trip_and_project_deletion_never_touches_records(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             paths = build_all_databases(directory)

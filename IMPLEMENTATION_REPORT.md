@@ -1,52 +1,26 @@
-# PR35范围收口与PR36整合实施报告
+# GHG-UAT03 V2实施报告
 
-日期：2026-10-09。状态：LOCAL VERIFIED。用户授权调整PR35，PR36合并后再合并PR35；PR36已合并main@9955ee88f197b8e7e4e6b8c479eb5af73619e7b1。
+日期：2026-10-09。状态：IN PROGRESS。
 
 ## 平台 / Contract 预检查
 
-- 实际origin为adgo07/GHGTOOL，使用附加工作树的codex/rs03-excel-workflow；实际核对根目录、origin、fetch、分支、HEAD与状态，不覆盖原checkout或计算表用户文件。收口断点4b19b76基于e0c6c69，已整合最新main，运行代码/本地验证head为a9a4ec57c121162bc0c81af869797cae9e746f81，后续仅验证文档。
-- 中央Frozen locked SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，沿用Architecture V2.1 / Numeric v1 / Profiles v1，并读取适用ACTIVE Policy/UI Guide。
-- MUST：GUI/Excel共用Canonical/Application/Calculator；正式成功追加不可变Record、blocked与预览零Record；Project隔离；Word读取冻结Record；保持项目Decimal40/HALF_UP、ambient independence与exact comparison。
-- MUST NOT：Excel另建算法、display rounding回流、当前Catalog重算历史、Qt状态冒充公共Contract；不升级Frozen baseline或新建数据库/依赖。
-- 本包异常接口只在模块Application内实现，不改变公共Contract。Carbon Profile为ALLOWED PROJECT DIFFERENCE，无新Frozen冲突；中央Excel Numeric交换仍OPEN/PARTIAL。无需中央Contract变更。
-- Standard Issue：无新问题；001～006既有解释不变，不修改公式、Resolver或标准适用范围。
+实际业务起点main ff15061d2d765dbff869a0b182af4432d09398bc，origin/default branch/工作区已核验；独立codex/uat03-new-accounting-v2不覆盖用户实测文件。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；已读取locked Architecture V2.1、Numeric v1、Profiles v1及当前ACTIVE Policy/标准开发指南/UI v0.2/家族规格/验收清单。
 
-## 范围与实现
+MUST：UI/Application/Domain/Infrastructure分层；库与Resolver唯一默认参数链；共享Calculator；Decimal40/HALF_UP与ambient independence、full-value exact比较；输入保存保留完整decimal，展示修约不回流；成功新增不可变Record、致命失败不新增；Word只读正式快照；旧项目/历史Record保留。
 
-保留R2模板、严格导入预览、有效Canonical项目保存/恢复、明确正式核算及不可变Record查看。删除Excel核算结果按钮、renderer和专属测试；Word报告保留。输入模板改版、Word分页/版式、新建核算重设计延期，不作为本包出口条件。
+MUST NOT：UI硬编码重复因子清单、UI另写正式公式、当前Catalog重算历史、Qt状态冒充公共Workspace、升级Frozen/增加标准范围/复制标准全文。本轮内部可选地区字段及UI适配不新增公共Contract；ALLOWED PROJECT DIFFERENCE继续为项目Numeric Profile。无需中央Contract修改。
 
-Word导出区分生成失败、写入失败和审计失败；同目录临时文件原子替换保护已有文件，补后缀后的目标冲突明确确认。审计失败如实提示文件已保存且审计未完成，不改Record。
+Standard Issue：用户V2明确批准取消非化石电力自动证明前置；新问题/Software Decision须先登记再实现，冻结Mapping保留。地区因子的适用性与实际来源需保持。既有001～006与44/12、蒸汽查表、过程K参数计算不变。
 
-项目关联失败区分marker未写入、marker已写入但关联未保存、关联已保存但marker清理失败；未知异常不承诺恢复信息已保存。异常定义置于Application，Persistence保留旧导入兼容。恢复仍保留当前最新项目输入、元数据和导航，不自动重算。
+## 授权、范围与当前验证
 
-## 本地验证
+正式需求见docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md及用户三图；这是本次需求副本，不是第二条产品路线。UAT03属于既有参考标准路线内新建页与记录业务链工作包。输入模板/Word排版与其他页面重设计仍不在本包；新建页仅复用已有Word输出流程。
 
-以下为Windows / Python3.12.14本地执行，绑定运行代码a9a4ec57c121162bc0c81af869797cae9e746f81。Qt offscreen，TEMP/TMP/LOCALAPPDATA分别隔离；日志在忽略目录build/step4/trim35。
+当前处于实现，不宣称测试/原生视觉/构建通过。三个Luna/max子agent分工，主agent负责接口、标准决定与版本复核、完整回归与独立验收。需要computer use时使用Astra/low子agent；无法取得原生证据必须明确未执行，不以离屏冒充。
 
-| 命令 | 结果 |
-|---|---|
-| python -m unittest discover -s tests -t . -q | 344/344，546.994s，失败0、错误0、跳过0 |
-| python -m compileall -q apps packages resources scripts tests | 退出0 |
-| python -m pip check | 无依赖冲突，退出0 |
-| python scripts/validate_canonical.py | 9 standards / 12 sources / 102 parameters / 138 factors，退出0 |
-| python scripts/initialize_databases.py --output-dir build/step4/trim35/auxiliary/databases | 四库初始化退出0；实际迁移Catalog003 / User001 / Records004 / Projects003 |
-| python scripts/uir04_manual_gui_acceptance.py | A～E五场景PASS，离屏自动化 |
-| python scripts/uir04_scale_acceptance.py --scale 1.25 / --scale 1.5 | 两种缩放均PASS |
-| git diff --check | 退出0 |
+治理文档与中央当前事实中的Excel只读旧描述已落后于已明确授权合并PR35的独立正式计算链；本轮不修改或退回Excel，按用户既有授权保留，避免把展示任务扩成能力回退或治理改版。
+## 原生界面验证状态
 
-独立GPT-6 Luna/max子agent对同一runtime只读复核，62/62定向通过：
-`python -m unittest tests.test_g08_delivery tests.test_rs03_excel_entrypoints tests.test_rpt01_report_excel tests.test_pr35_pending_marker_failures tests.test_rs03_excel_project_workflow tests.test_rs03_pending_link_recovery tests.test_project_workspaces tests.test_canonical_project_inputs tests.test_rs03_record_ingress_evidence tests.test_architecture_boundaries -v`。
+2026-10-09 Astra/low子agent按computer-use技能尝试初始化原生Windows接口，两次均失败：`node_repl kernel exited unexpectedly` / `windows sandbox failed: helper_unknown_error: setup refresh had errors`。没有启动用户现有应用、操作已有窗口或取得原生截图；工具限制不得通过自建UIA/helper绕过。
 
-覆盖：无Excel结果入口且R2模板仍可导出；Catalog不可用仍从历史Record导出Word；导出生成/写入/审计失败和补后缀覆盖确认；Record及六类快照不漂移；marker三态、零自动重算和重开保留最新项目元数据；GUI/Excel共享业务内核、分层门禁与G08交付。
-
-PR36合入数据版本2026.10.08-electricity2023.1，构建清单同时保留catalog003与projects003，二者迁移独立。本包相对最新main未改Domain/Standards/Numeric/Record迁移；应用层仅把Excel来源证据冻结进既有raw_input。
-
-## 远端证据与交付
-
-本轮Windows standalone构建、目录/归档审计、provenance和隔离启动交由GitHub Actions精确PR head job执行；本地未重复构建，不写成本地成功。推送后的最新PR head、CI链接与状态记录在PR35描述及Checks；CI成功后按用户授权合并。
-
-旧99a2038的334/334、Windows构建与CI173仅属历史证据，旧候选仍含已取消的Excel结果导出，不能作为本次交付。当前本地日志也不冒充远端CI结果。
-
-GPT-6 Luna/max子agent承担输出收口、恢复状态与独立审查，主agent整合最新main和完成全量验证。没有使用computer use；原生Windows鼠标视觉、真实Excel/WPS打印及Word分页本次未执行，不宣称通过。输入模板改版、Word版式/分页/展示完善和新建核算重设计延期，正式数值/读取错误记录等缺陷不延期。
-
-本包不升级平台基线、不提供.qzproj、不新建数据库/依赖，不启动新标准或RS04～RS06+；正式标准支持状态仍PARTIAL / NOT SUPPORTED。G08运行manifest的Projects版本可以以后补直接断言，现实现与源码断言/实际初始化均003，无实现级阻断。
+1366×768和1920×1080下的原生排版、滚轮、可搜索下拉、增删行、启停恢复、错误定位和Word按钮业务操作均未执行。后续Qt离屏尺寸/逻辑测试仅提供技术证据，不作为原生验收通过；最终需用户实际操作验收。
