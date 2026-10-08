@@ -182,6 +182,7 @@ class ReferenceDataBindingCatalogRecord:
     valid_to: date | None
     review_status: ReviewStatus
     notes: str
+    region: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

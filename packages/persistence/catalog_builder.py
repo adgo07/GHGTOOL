@@ -175,13 +175,13 @@ def _insert_catalog(connection: sqlite3.Connection, catalog: dict[str, Any]) -> 
     for binding in sorted(catalog["reference_data_bindings"], key=lambda item: item["binding_id"]):
         connection.execute(
             "INSERT INTO reference_data_bindings(binding_id, asset_id, source_table_id, binding_type, factor_id, "
-            "source_location, applicable_standard_ids_json, factor_year, valid_from, valid_to, review_status, notes) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "source_location, applicable_standard_ids_json, factor_year, valid_from, valid_to, review_status, notes, region) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 binding["binding_id"], binding["asset_id"], binding["source_table_id"], binding["binding_type"],
                 binding["factor_id"], binding["source_location"], _json(binding["applicable_standard_ids"]),
                 binding["factor_year"], binding["valid_from"], binding["valid_to"], binding["review_status"],
-                binding["notes"],
+                binding["notes"], binding.get("region"),
             ),
         )
     for rule in sorted(catalog["conversion_rules"], key=lambda item: item["conversion_id"]):

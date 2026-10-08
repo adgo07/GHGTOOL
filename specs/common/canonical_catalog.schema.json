@@ -860,6 +860,13 @@
               "DEPRECATED"
             ]
           },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
           "notes": {
             "type": "string"
           }

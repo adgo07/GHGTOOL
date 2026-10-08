@@ -252,9 +252,7 @@ class SQLiteCatalogRepository(CatalogRepository):
         try:
             with self._connection() as connection:
                 rows = connection.execute(
-                    "SELECT binding_id, asset_id, source_table_id, binding_type, factor_id, source_location, "
-                    "applicable_standard_ids_json, factor_year, valid_from, valid_to, review_status, notes "
-                    "FROM reference_data_bindings ORDER BY asset_id, source_table_id, binding_id"
+                    "SELECT * FROM reference_data_bindings ORDER BY asset_id, source_table_id, binding_id"
                 ).fetchall()
         except CatalogRepositoryError as exc:
             if "no such table" in str(exc).lower():
@@ -268,7 +266,7 @@ class SQLiteCatalogRepository(CatalogRepository):
                 applicable_standard_ids=_tuple_json(row["applicable_standard_ids_json"], "applicable_standard_ids_json"),
                 factor_year=int(row["factor_year"]), valid_from=_date(row["valid_from"]),
                 valid_to=_date(row["valid_to"]), review_status=ReviewStatus(row["review_status"]),
-                notes=row["notes"],
+                notes=row["notes"], region=row["region"] if "region" in row.keys() else None,
             ) for row in rows)
         except (ArithmeticError, TypeError, ValueError) as exc:
             raise CatalogRepositoryError("invalid reference data binding") from exc

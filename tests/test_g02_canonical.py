@@ -24,8 +24,8 @@ class CanonicalCatalogTests(unittest.TestCase):
     def test_approved_minimal_catalog_loads(self) -> None:
         self.assertEqual(len(self.catalog["standards"]), 9)
         self.assertEqual(len(self.catalog["sources"]), 12)
-        self.assertEqual(len(self.catalog["parameters"]), 98)
-        self.assertEqual(len(self.catalog["factors"]), 99)
+        self.assertEqual(len(self.catalog["parameters"]), 102)
+        self.assertEqual(len(self.catalog["factors"]), 138)
         self.assertEqual(self.catalog["manifest"]["canonical_format"], "JSON")
         self.assertNotIn("full_text", json.dumps(self.catalog, ensure_ascii=False))
         self.assertTrue(DEFAULT_SOURCE_PATH.is_file())
@@ -230,9 +230,9 @@ class CanonicalCatalogTests(unittest.TestCase):
         self.assertEqual(heat_asset["value"], "0.11")
         self.assertEqual(source_ids, {"SRC-32150-2025", "SRC-32151-34-2024"})
         self.assertEqual(len(locators), 2)
-        self.assertEqual(len(self.catalog["source_tables"]), 14)
-        self.assertEqual(len(self.catalog["reference_data_assets"]), 98)
-        self.assertEqual(len(self.catalog["reference_data_bindings"]), 100)
+        self.assertEqual(len(self.catalog["source_tables"]), 18)
+        self.assertEqual(len(self.catalog["reference_data_assets"]), 137)
+        self.assertEqual(len(self.catalog["reference_data_bindings"]), 139)
         self.assertNotIn("weight", json.dumps(self.catalog["reference_data_bindings"]).lower())
 
     def test_standard_implementation_date_is_not_c3_factor_validity(self) -> None:
@@ -417,7 +417,7 @@ class CanonicalCatalogTests(unittest.TestCase):
             "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22",
         )
         self.assertEqual(self.catalog["manifest"]["schema_version"], "1.1.0")
-        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.10.07-pf01.2")
+        self.assertEqual(self.catalog["manifest"]["data_version"], "2026.10.08-electricity2023.1")
     def test_duplicate_stable_id_blocks_validation(self) -> None:
         catalog = copy.deepcopy(self.catalog)
         catalog["sources"].append(copy.deepcopy(catalog["sources"][0]))

@@ -549,6 +549,7 @@ class CatalogQueryService:
                 value_by_key = {
                     "subject": subject.name if subject else "—",
                     "parameter": parameter.name if parameter else "—",
+                    "region": "、".join(dict.fromkeys(item.region for item in asset_bindings if item.region)) or "—",
                     "value": format(asset.value, "f"),
                     "unit": asset.unit,
                     "source_location": location,
@@ -630,7 +631,7 @@ class CatalogQueryService:
             for binding in asset_bindings:
                 table = table_by_id.get(binding.source_table_id)
                 source = sources.get(table.source_id) if table else None
-                source_text.extend((binding.source_location, binding.notes, table.title if table else "", table.display_number if table else ""))
+                source_text.extend((binding.region or "", binding.source_location, binding.notes, table.title if table else "", table.display_number if table else ""))
                 if source:
                     source_text.extend((source.document_no, source.document_name, source.publisher))
             if not _matches(query, (
@@ -644,6 +645,9 @@ class CatalogQueryService:
                 for b in asset_bindings if b.source_table_id in table_by_id and table_by_id[b.source_table_id].source_id in sources
             ))
             title = f"{subject.name if subject else '参数'} · {parameter.name if parameter else ''}".strip(" ·")
+            regions = tuple(dict.fromkeys(binding.region for binding in asset_bindings if binding.region))
+            if regions:
+                title += " · " + "、".join(regions)
             subtitle = "、".join(source_labels) or "已登记来源"
             if len(asset_bindings) > 1:
                 subtitle += f" · {len(asset_bindings)} 处依据"
