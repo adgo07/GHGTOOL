@@ -66,7 +66,7 @@ class G08DeliveryTests(unittest.TestCase):
         self.assertEqual(catalog["manifest"]["data_version"], "2026.10.08-electricity2023.1")
         self.assertEqual(catalog["manifest"]["app_compatibility"], "1.x")
         build_source = (PROJECT_ROOT / "scripts" / "build_standalone.py").read_text(encoding="utf-8")
-        self.assertIn('"projects": "001"', build_source)
+        self.assertIn('"projects": "003"', build_source)
 
     def test_frozen_runtime_resolves_bundled_catalog(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

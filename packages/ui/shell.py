@@ -152,6 +152,9 @@ class AppShell(QWidget):
             record_requested = getattr(page, "record_requested", None)
             if record_requested is not None:
                 record_requested.connect(self._request_record_view)
+            canonical_project_requested = getattr(page, "canonical_project_requested", None)
+            if canonical_project_requested is not None:
+                canonical_project_requested.connect(self._request_canonical_project)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
@@ -201,6 +204,13 @@ class AppShell(QWidget):
         if callable(open_record):
             open_record(record_id)
         self.navigate(AppRoute.RECORDS)
+
+    def _request_canonical_project(self, project_id: str) -> None:
+        self.navigate(AppRoute.EXCEL_IMPORT)
+        page = self._pages.get(AppRoute.EXCEL_IMPORT)
+        open_project = getattr(page, "open_project", None)
+        if callable(open_project):
+            open_project(project_id)
 
     def _request_standard_accounting(self, standard_id: str) -> None:
         """Keep the selected catalog version while routing to the future input page."""

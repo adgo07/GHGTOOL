@@ -260,6 +260,11 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
             report = build_saved_record_report(repository, record, supplementary_info={"prepared_on": "2026-10-06"})
             b2 = next(section for section in report.sections if section.section_id == "b2").tables[0]
             self.assertEqual(b2.rows[0].cells[0].value, "天然气")
+            # Presentation rounds saved emissions; the original Record remains exact.
+            exact_amount = record.calculation_result.lines[0].amount
+            self.assertEqual(b2.rows[0].cells[6].value, "19.72")
+            self.assertEqual(repository.get(record.record_id).calculation_result.lines[0].amount, exact_amount)
+            self.assertEqual(b2.rows[0].cells[4].value, "0.0153")
             self.assertEqual(b2.rows[0].cells[3].source.split("；", 1)[0], "企业实测值")
             evidence = next(section for section in report.sections if section.section_id == "evidence")
             self.assertIn("年度燃气计量台账", evidence.tables[0].rows[0].cells[2].value)

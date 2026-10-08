@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any
@@ -95,6 +95,27 @@ def _decode_evidence_snapshot(value: str, label: str) -> Any:
         raise RecordPersistenceError(f"{label}快照格式无效，未保存正式记录。") from exc
 
 
+def _copy_ingress_provenance(value: Mapping[str, object] | None) -> dict[str, object] | None:
+    """Freeze adapter evidence as JSON without float or implicit type coercion."""
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError("导入来源证据必须是JSON对象。")
+
+    def copy(item: object) -> object:
+        if item is None or type(item) in (str, int, bool):
+            return item
+        if isinstance(item, Mapping):
+            if any(type(key) is not str for key in item):
+                raise ValueError("导入来源证据字段名必须是字符串。")
+            return {key: copy(child) for key, child in item.items()}
+        if type(item) is list:
+            return [copy(child) for child in item]
+        raise ValueError("导入来源证据必须使用JSON原始类型；十进制证据请保留原始字符串。")
+
+    return copy(value)
+
+
 class CarbonAccountingUseCase:
     """Persist successful Domain outcomes as append-only formal records."""
 
@@ -121,7 +142,9 @@ class CarbonAccountingUseCase:
         input_value: CarbonMaterialInput,
         *,
         calculated_at: datetime | None = None,
+        ingress_provenance: Mapping[str, object] | None = None,
     ) -> CarbonMaterialCalculationOutcome:
+        frozen_ingress = _copy_ingress_provenance(ingress_provenance)
         outcome = self.calculator.calculate(input_value, calculated_at=calculated_at)
         if outcome.blocked or not outcome.successful:
             return outcome
@@ -150,9 +173,14 @@ class CarbonAccountingUseCase:
         )
 
         try:
+            raw_input = _decode_evidence_snapshot(evidence.raw_input_snapshot_json, "原始输入")
+            if frozen_ingress is not None:
+                if not isinstance(raw_input, dict) or "ingress_provenance" in raw_input:
+                    raise RecordPersistenceError("原始输入快照无法安全附加导入来源证据，未保存正式记录。")
+                raw_input["ingress_provenance"] = frozen_ingress
             self._create_with_details(
                 record,
-                raw_input=_decode_evidence_snapshot(evidence.raw_input_snapshot_json, "原始输入"),
+                raw_input=raw_input,
                 effective_rule_set=evidence.effective_rule_ids,
                 trace_snapshot=_decode_evidence_snapshot(evidence.trace_snapshot_json, "计算追溯"),
                 provenance_snapshot=_decode_evidence_snapshot(evidence.provenance_snapshot_json, "参数来源"),

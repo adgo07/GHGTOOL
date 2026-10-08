@@ -1,36 +1,31 @@
 # 报告输出架构
 
-状态：RPT01 实施口径（等待独立验收）
+状态：RPT01 + RS03 实施口径；PR35收口候选等待PR36整合与验收。
 
 ## 数据流
 
-```text
-成功的不可变 AccountingRecord
-  + 该记录保存的输入、结果、参数、Trace、Provenance、Reporting 与资格快照
-       ↓
-packages/application/reporting/ — 平台无关、只读 ReportModel
-       ↓
-packages/infrastructure/reporting/ — Word DOCX renderer
-       ↓
-未来 Excel 结果 renderer（尚未实现）
-```
+不可变Record及其输入、结果、参数、Trace、Provenance、Reporting和资格快照 → Application层只读ReportModel → Infrastructure层Word DOCX renderer。
 
-ReportModel 位于 Application 层，不依赖 Qt、SQLite、python-docx 或 openpyxl。它只消费选定记录的冻结快照；不得读取当前编辑页面、调用 Calculator、查询当前 Catalog 补历史参数，也不得按当前规则重算结果。旧记录的快照不足时，报告显示可取得的历史信息并提示限制。
+ReportModel不依赖Qt、SQLite、python-docx或openpyxl，只消费该Record冻结快照；不读取当前表单、不调用Calculator、不查询当前Catalog补参数或重算来源选择。旧快照不足时显示已有历史信息并提示限制，展示修约不回流计算。
 
-Word 与未来 Excel 结果输出共享同一 ReportModel 和字段语义。两个 renderer 不得各自遍历 Record 或建立独立取数逻辑。模型以附录 B 的业务分节表达数据，在对应位置列出已保存的排放量、小计和合计；不增加“标准原字段 / 软件计算字段”等来源分类，也不声称是标准附录的逐像素复制件。
+用户已取消核算结果Excel导出，只保留Word报告；输入模板与导入不取消。Word版式和分页完善延期，本包不宣称正式视觉验收通过。模型继续按附录B业务分节表达，不声称逐像素复制标准附录。
 
-## 记录与补充信息
+## 导出与审计
 
-一份 Word 报告对应一条不可变正式 Record。报告补充信息（如联系人、地址、编制日期和说明）只用于该次报告，不回写 Record；每次成功导出追加一条 `records.sqlite` 的 `report_export_history` 事件，记录格式、报告模板版本、文件名、SHA-256 和补充信息。该表为追加式，不增加数据库、不修改 `accounting_records`，并由单独审计事件记录导出。
+一份Word报告对应一条Record。联系人、地址、编制日期等补充信息仅用于该次导出，不回写Record。既有report_export_history和审计表保留，不新增数据库、不删除历史导出事件或改变Record状态。
 
-导出补充信息首先以当前 Record 的 Reporting 快照预填，再以同一 Record 最近一次导出信息补充空缺，最后使用空值；编制日期默认当天。普通报告不显示内部 Rule、Trace、参数、过程实例或 Record 标识。
+文件生成、保存和审计分别处理：未保存时明确失败；已保存但审计失败时提示路径和审计未写入，不能误报文件不存在或宣称审计完成。覆盖原文件需确认，写入失败不能破坏原文件。
 
-显示精度只用于文档展示，不能回流 Calculator 或更改 Record。历史结果、来源和有效规则仍以生成该 Record 时保存的快照为准。
+补充信息先从Reporting预填，再用同Record最近导出信息补空缺，最后保留空值；编制日期默认当天。普通报告不展示内部Rule、Trace、过程实例或Record标识。
 
-## Excel 职责
+## Excel输入
 
-Excel R2 当前是输入 Adapter：模板 → OOXML 词法数值证据 → Decimal → 现有 Application / Domain / Calculator → 每个核算单元只读预览。它不消费 ReportModel 生成结果、不保存 Project / Workspace / Record，也不实现正式公式。Excel 结果导出仍未开始。R2 当前严格读取行为是 GHGTOOL 本地 Adapter 行为，不代表中央 Excel Numeric ingress 已冻结。
+R2负责输入模板、严格校验、OOXML原始词法证据、Decimal及逐单元预览；预览与正式入口使用同一Calculator配置，不持有Record Repository。用户明确保存有效单元后再由CarbonAccountingUseCase正式核算；致命错误零Record、重复成功新增Record，不建立Excel算法或冻结公共Numeric交换。
 
-R2 的 B.1 是计算结果汇总，不属于输入表；因此模板只提供填写说明、基本信息及 B.2～B.9 输入工作表。工作表 B.4 使用“焙烧／炭化”全角斜线，因为 Excel 禁止名称含半角斜线。
+projects迁移003保存可选Canonical Input及ingress_provenance；Qt form_state仍仅是Presentation State。allowlist codec保留Decimal、日期、枚举和嵌套输入，拒绝float、非有限数、未知类型/版本，不是公共Workspace Contract或.qzproj。项目通过Excel专用页面恢复，不静默映射为空GUI表单。
 
-本文件与报告 Schema 均为开发资料，不打包为正式运行资源。
+正式UseCase在raw_input的ingress_provenance冻结首次导入的工作簿哈希、模板/词法策略、单元身份和原始/标准化数值字符串；保存不重读变化后的文件，不改变公式、Resolver或records.sqlite Schema。
+
+关联失败不重算、不撤销Record。分别反馈恢复标记写入失败、已保存标记后的关联失败、关联已保存后的标记清理失败；未保存标记时不能承诺重启自动恢复。
+
+R2的B.1不是输入表；模板保留填写说明、基本信息和B.2～B.9，B.4使用全角斜线页签。本文是开发资料，不打包为运行资源。

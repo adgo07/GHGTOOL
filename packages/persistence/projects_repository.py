@@ -9,17 +9,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from packages.application.canonical_input_codec import (
+    decode_canonical_input,
+    encode_canonical_input,
+)
 from packages.application.project_workspaces import (
     AccountingUnitType,
     AccountingUnitWorkspace,
+    ProjectRecordAssociationError,
     ProjectWorkspace,
+    ProjectWorkspaceRepositoryError,
 )
 
 from .sqlite import initialize_database
-
-
-class ProjectWorkspaceRepositoryError(RuntimeError):
-    """Raised when a project workspace cannot be safely read or written."""
 
 
 def _dump(value: Any) -> str:
@@ -27,10 +29,63 @@ def _dump(value: Any) -> str:
 
 
 def _load(value: str, field: str) -> Any:
+    def object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ValueError(f"duplicate object key {key!r}")
+            result[key] = item
+        return result
+
     try:
-        return json.loads(value)
-    except json.JSONDecodeError as exc:
+        return json.loads(value, object_pairs_hook=object_without_duplicate_keys)
+    except (json.JSONDecodeError, ValueError) as exc:
         raise ProjectWorkspaceRepositoryError(f"invalid project JSON in {field}") from exc
+
+
+def _validate_plain_json(value: object, field: str = "ingress_provenance") -> None:
+    if value is None or type(value) in (str, bool, int):
+        return
+    if isinstance(value, float):
+        raise TypeError(f"{field} numeric lexical values must be strings, not floats")
+    if isinstance(value, list):
+        for item in value:
+            _validate_plain_json(item, field)
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise TypeError(f"{field} object keys must be strings")
+            _validate_plain_json(item, field)
+        return
+    raise TypeError(f"{field} must contain only JSON values; got {type(value).__name__}")
+
+
+def _validated_ingress_provenance(
+    value: dict[str, object] | None,
+) -> dict[str, object] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise TypeError("ingress_provenance must be an object or None")
+    _validate_plain_json(value)
+    return value
+
+
+def _dump_ingress_provenance(value: dict[str, object] | None) -> str | None:
+    validated = _validated_ingress_provenance(value)
+    return _dump(validated) if validated is not None else None
+
+
+def _load_ingress_provenance(value: str, field: str) -> dict[str, object]:
+    payload = _load(value, field)
+    if not isinstance(payload, dict):
+        raise ProjectWorkspaceRepositoryError(f"invalid project JSON in {field}: expected an object")
+    try:
+        _validate_plain_json(payload, field)
+    except TypeError as exc:
+        raise ProjectWorkspaceRepositoryError(f"invalid project JSON in {field}: {exc}") from exc
+    return payload
 
 
 def _workspace_payload(workspace: ProjectWorkspace) -> dict[str, Any]:
@@ -48,6 +103,12 @@ def _workspace_payload(workspace: ProjectWorkspace) -> dict[str, Any]:
                 "result_snapshot": unit.result_snapshot,
                 "record_ids": list(unit.record_ids),
                 "input_fingerprint": unit.input_fingerprint,
+                "canonical_input": (
+                    encode_canonical_input(unit.canonical_input)
+                    if unit.canonical_input is not None
+                    else None
+                ),
+                "ingress_provenance": _validated_ingress_provenance(unit.ingress_provenance),
             }
             for unit in workspace.units
         ],
@@ -57,29 +118,46 @@ def _workspace_payload(workspace: ProjectWorkspace) -> dict[str, Any]:
 def _workspace_from_payload(payload: Any) -> ProjectWorkspace:
     if not isinstance(payload, dict) or not isinstance(payload.get("units"), list):
         raise ProjectWorkspaceRepositoryError("invalid pending project workspace payload")
-    units = tuple(
-        AccountingUnitWorkspace(
-            unit_id=str(item["unit_id"]),
-            name=str(item["name"]),
-            unit_type=AccountingUnitType(str(item["unit_type"])),
-            position=int(item["position"]),
-            form_state=item["form_state"],
-            result_snapshot=item.get("result_snapshot"),
-            record_ids=tuple(str(record_id) for record_id in item.get("record_ids", ())),
-            input_fingerprint=(
-                str(item["input_fingerprint"])
-                if item.get("input_fingerprint") is not None
-                else None
-            ),
+    units: list[AccountingUnitWorkspace] = []
+    for item in payload["units"]:
+        if not isinstance(item, dict):
+            raise ProjectWorkspaceRepositoryError("invalid pending accounting unit payload")
+        canonical_payload = item.get("canonical_input")
+        if canonical_payload is not None and not isinstance(canonical_payload, str):
+            raise ProjectWorkspaceRepositoryError("invalid pending canonical input payload")
+        canonical_input = (
+            decode_canonical_input(canonical_payload)
+            if canonical_payload is not None
+            else None
         )
-        for item in payload["units"]
-        if isinstance(item, dict)
-    )
+        provenance = item.get("ingress_provenance")
+        if provenance is not None:
+            if not isinstance(provenance, dict):
+                raise ProjectWorkspaceRepositoryError("invalid pending ingress provenance payload")
+            _validate_plain_json(provenance, "pending ingress_provenance")
+        units.append(
+            AccountingUnitWorkspace(
+                unit_id=str(item["unit_id"]),
+                name=str(item["name"]),
+                unit_type=AccountingUnitType(str(item["unit_type"])),
+                position=int(item["position"]),
+                form_state=item["form_state"],
+                result_snapshot=item.get("result_snapshot"),
+                record_ids=tuple(str(record_id) for record_id in item.get("record_ids", ())),
+                input_fingerprint=(
+                    str(item["input_fingerprint"])
+                    if item.get("input_fingerprint") is not None
+                    else None
+                ),
+                canonical_input=canonical_input,
+                ingress_provenance=provenance,
+            )
+        )
     return ProjectWorkspace(
         project_id=str(payload["project_id"]),
         name=str(payload["name"]),
         active_unit_id=str(payload["active_unit_id"]),
-        units=units,
+        units=tuple(units),
     )
 
 
@@ -92,8 +170,8 @@ def _merge_pending_record_link(
     """Merge only a queued record association into the latest saved project.
 
     The pending payload is a recovery snapshot, not an authoritative project
-    revision.  Project metadata, form input and unrelated units therefore
-    always come from ``current``.
+    revision. Project metadata, form input, canonical input, ingress provenance
+    and unrelated units therefore always come from ``current``.
     """
 
     if pending.project_id != current.project_id:
@@ -199,8 +277,9 @@ class SQLiteProjectWorkspaceRepository:
             for unit in workspace.units:
                 connection.execute(
                     "INSERT INTO accounting_units(unit_id,project_id,unit_name,unit_type,position,"
-                    "form_state_json,result_snapshot_json,record_ids_json,input_fingerprint) "
-                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                    "form_state_json,result_snapshot_json,record_ids_json,input_fingerprint,"
+                    "canonical_input_json,ingress_provenance_json) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         unit.unit_id,
                         workspace.project_id,
@@ -211,6 +290,10 @@ class SQLiteProjectWorkspaceRepository:
                         _dump(unit.result_snapshot) if unit.result_snapshot is not None else None,
                         _dump(list(unit.record_ids)),
                         unit.input_fingerprint,
+                        encode_canonical_input(unit.canonical_input)
+                        if unit.canonical_input is not None
+                        else None,
+                        _dump_ingress_provenance(unit.ingress_provenance),
                     ),
                 )
             connection.commit()
@@ -246,8 +329,11 @@ class SQLiteProjectWorkspaceRepository:
                     ),
                 )
         except (sqlite3.Error, TypeError, ValueError) as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"record {record_id} was created but its project recovery marker could not be saved: {exc}"
+            raise ProjectRecordAssociationError(
+                f"record {record_id} was created, but its project recovery marker was not saved; "
+                f"project association was not attempted: {exc}",
+                recovery_pending=False,
+                association_saved=False,
             ) from exc
         finally:
             connection.close()
@@ -255,8 +341,11 @@ class SQLiteProjectWorkspaceRepository:
         try:
             self.save(workspace)
         except ProjectWorkspaceRepositoryError as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"record {record_id} was created; its project association remains queued for recovery: {exc}"
+            raise ProjectRecordAssociationError(
+                f"record {record_id} was created; its project association was not saved, "
+                f"but the recovery marker is queued for recovery: {exc}",
+                recovery_pending=True,
+                association_saved=False,
             ) from exc
         self._clear_pending_link(record_id)
 
@@ -266,8 +355,11 @@ class SQLiteProjectWorkspaceRepository:
             with connection:
                 connection.execute("DELETE FROM pending_record_links WHERE record_id=?", (record_id,))
         except sqlite3.Error as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"project association was saved but recovery marker {record_id} could not be cleared: {exc}"
+            raise ProjectRecordAssociationError(
+                f"project association for record {record_id} was saved, but its recovery marker "
+                f"could not be cleared and remains queued: {exc}",
+                recovery_pending=True,
+                association_saved=True,
             ) from exc
         finally:
             connection.close()
@@ -366,7 +458,8 @@ class SQLiteProjectWorkspaceRepository:
     def _units(connection: sqlite3.Connection, project_id: str) -> tuple[AccountingUnitWorkspace, ...]:
         rows = connection.execute(
             "SELECT unit_id,unit_name,unit_type,position,form_state_json,result_snapshot_json,"
-            "record_ids_json,input_fingerprint FROM accounting_units WHERE project_id=? "
+            "record_ids_json,input_fingerprint,canonical_input_json,ingress_provenance_json "
+            "FROM accounting_units WHERE project_id=? "
             "ORDER BY position,unit_id",
             (project_id,),
         ).fetchall()
@@ -380,6 +473,14 @@ class SQLiteProjectWorkspaceRepository:
                 result_snapshot=_load(str(row[5]), "accounting_units.result_snapshot_json") if row[5] is not None else None,
                 record_ids=tuple(str(item) for item in _load(str(row[6]), "accounting_units.record_ids_json")),
                 input_fingerprint=str(row[7]) if row[7] is not None else None,
+                canonical_input=(
+                    decode_canonical_input(str(row[8])) if row[8] is not None else None
+                ),
+                ingress_provenance=(
+                    _load_ingress_provenance(str(row[9]), "accounting_units.ingress_provenance_json")
+                    if row[9] is not None
+                    else None
+                ),
             )
             for row in rows
         )
