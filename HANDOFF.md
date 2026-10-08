@@ -30,7 +30,7 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - 已合并进入main：RS01-A-R1、RS01-B1/B2、RS02-A/B、UAT01-A/B、UAT02（PR #31）、GHG-RPT01（PR #32）、GHG-PF01（PR #30）及获用户批准合并的PR #33/#34。合并只说明代码进入主线，不等于本工作包或产品独立验收通过。
-- 当前工作包：**GHG-RS03 Excel正式闭环（步骤4）**。用户接受并合并PR #34后，以最新main为依赖；用户另明确批准Canonical项目存储及projects.sqlite增量迁移。当前候选等待独立验收，不自行合并本包PR。
+- 当前工作包：**GHG-RS03 Excel正式闭环（步骤4）**。用户接受并合并PR #34后，以最新main为依赖；用户另明确批准Canonical项目存储及projects.sqlite增量迁移。用户已授权在PR36合并后合并本包；现整合已合并PR36，重新验证后按授权合并。
 - 正式核算继续使用显式Record Repository的CarbonAccountingUseCase；预览继续使用无Repository的Preview UseCase，二者共享同一配置的Domain Calculator。Excel成功核算追加不可变Record，blocked不写Record；GUI、Excel和记录页面共享正式仓库，SQLite由apps组合根提供。
 - 有效Excel单元可以明确保存为Canonical本地项目，再正式核算、重开及查看记录；保存/预览本身零Record，无效单元保留错误且不保存为可计算项目。迁移003只给projects.sqlite增加可空输入与来源字段，兼容旧Qt form_state。模块内allowlist JSON codec不构成公共Workspace Contract或.qzproj。
 - 工作簿哈希、模板/词法策略、单元身份、原始及标准化词法数值在首次导入时固化归属，保存不重读可能已变化的文件；正式UseCase将证据附入既有raw_input快照，不更改records.sqlite Schema。pending恢复只补Record关联和适用结果，保留当前已保存的输入/项目元数据及导航单元，不回放旧恢复快照。

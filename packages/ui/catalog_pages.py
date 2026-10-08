@@ -696,6 +696,7 @@ class ParameterFactorLibraryPage(BasePage):
             rows = (
                 ("适用对象", subject.name if subject else "—"),
                 ("参数", parameter.name if parameter else "—"),
+                *((("地区", "、".join(dict.fromkeys(binding.region for binding in result.bindings if binding.region))),) if any(binding.region for binding in result.bindings) else ()),
                 ("数值", f"{format(asset.value, 'f')} {asset.unit}"),
                 ("数值类别", self._service.value_type_label(asset.value_type)),
                 ("版本", asset.asset_version),

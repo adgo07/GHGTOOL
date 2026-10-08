@@ -8,8 +8,8 @@
 | --- | --- |
 | 应用版本 | `1.1.0` |
 | Canonical schema 版本 | `1.1.0` |
-| Catalog data 版本 | `2026.10.07-pf01.2`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
-| Catalog / User / Records 数据库迁移 | `002` / `001` / `004` |
+| Catalog data 版本 | `2026.10.08-electricity2023.1`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
+| Catalog / User / Records 数据库迁移 | `003` / `001` / `004` |
 | Projects 数据库迁移 | `003` |
 
 构建脚本会从 `data-source/carbon_accounting/catalog.json` 重新生成只读 `databases/catalog.sqlite`，并写入 `build-manifest.json`。发布前必须通过 `scripts/inspect_release.py` 的文件范围、哈希、数据库元数据和敏感文件检查。
@@ -28,7 +28,7 @@ python -m venv .venv
 
 本版本尚无一键备份/恢复。关闭所有本软件实例后，复制完整用户data目录；存在user.sqlite或SQLite附属文件时一并保留。只备份records.sqlite无法恢复项目输入，不混用不同时间的记录库与项目库。恢复或降级前须检查版本兼容性并另存当前数据，不覆盖正在使用的数据。
 
-当前PR35基于Catalog002。PR36合入后须重新核对Catalog003与Projects003组合及Canonical数据版本；旧head测试包不能冒充整合候选。
+PR35已整合PR36，交付版本组合为Catalog003与Projects003；旧head测试包不能冒充整合候选。
 
 输出目录为：
 
