@@ -257,7 +257,11 @@ class G04CatalogTests(unittest.TestCase):
         notice = self.service.search_parameter_factors("公告2025年第47号")
         self.assertEqual(
             {item.factor.factor_id for item in notice if item.factor is not None},
-            {"electricity_national_average_2023"},
+            {"electricity_national_average_2023"}
+            | {f"electricity_regional_average_2023_{index:02d}" for index in range(1, 8)}
+            | {f"electricity_provincial_average_2023_{index:02d}" for index in range(1, 31)}
+            | {"electricity_national_average_excluding_market_nonfossil_2023_01",
+               "electricity_national_fossil_2023_01"},
         )
 
         electricity = self.service.get_factor_detail("electricity_national_average_2023")

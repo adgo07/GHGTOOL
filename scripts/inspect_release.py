@@ -80,7 +80,7 @@ def _check_catalog(path: Path, issues: list[str]) -> str | None:
         issues.append(f"catalog read-only validation failed: {exc}")
         return
 
-    if metadata.get("schema_version") != "002":
+    if metadata.get("schema_version") != "003":
         issues.append(f"unexpected catalog database schema version: {metadata.get('schema_version')!r}")
     if metadata.get("app_version") != "1.1.0":
         issues.append(f"unexpected catalog app version: {metadata.get('app_version')!r}")
