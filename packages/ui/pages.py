@@ -9,7 +9,10 @@ from decimal import Decimal
 from enum import Enum
 import hashlib
 import json
+import logging
+import os
 from pathlib import Path
+import tempfile
 from typing import Any
 from uuid import uuid4
 
@@ -40,6 +43,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.application.canonical_input_codec import encode_canonical_input
 from packages.application.project_workspaces import (
     AccountingUnitWorkspace,
+    ProjectRecordAssociationError,
     ProjectWorkspace,
     ProjectWorkspaceService,
 )
@@ -54,7 +58,7 @@ from packages.application.carbon_accounting import (
     resolve_formal_record_repository,
 )
 from packages.standards.carbon_material import CarbonMaterialCalculator, STANDARD_ID, STANDARD_VERSION
-from packages.infrastructure.reporting import render_report_docx, render_report_xlsx
+from packages.infrastructure.reporting import render_report_docx
 from .record_experience import (
     SnapshotState,
     build_activity_evidence_view,
@@ -75,6 +79,30 @@ from .view_models import AppRoute, ShellViewModel
 
 
 Navigate = Callable[[AppRoute], None]
+_LOGGER = logging.getLogger(__name__)
+
+
+def _write_report_atomically(path: Path, content: bytes) -> None:
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=".ghg-report-",
+            suffix=".tmp",
+            dir=path.parent,
+            delete=False,
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            temporary_file.write(content)
+            temporary_file.flush()
+        os.replace(temporary_path, path)
+    except Exception:
+        if temporary_path is not None:
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                _LOGGER.exception("Unable to remove temporary report file %s", temporary_path)
+        raise
 
 
 _SNAPSHOT_LABELS = {
@@ -613,10 +641,6 @@ class RecordLibraryPage(BasePage):
         self.export_word_button.clicked.connect(self._export_selected_report)
         export_actions = QHBoxLayout()
         export_actions.addWidget(self.export_word_button)
-        self.export_excel_button = QPushButton("导出 Excel 核算报告", detail_card)
-        self.export_excel_button.setObjectName("exportExcelReportButton")
-        self.export_excel_button.clicked.connect(lambda: self._export_selected_report(file_format="XLSX"))
-        export_actions.addWidget(self.export_excel_button)
         detail_layout.addLayout(export_actions)
         content_layout.addWidget(detail_card, 2)
         self.body_layout.addWidget(content, 1)
@@ -680,7 +704,6 @@ class RecordLibraryPage(BasePage):
                 selected_row = index
         self.delete_button.setEnabled(bool(self._records))
         self.export_word_button.setEnabled(bool(self._records))
-        self.export_excel_button.setEnabled(bool(self._records))
         if self._records:
             self.record_list.setCurrentRow(selected_row if selected_row >= 0 else 0)
         else:
@@ -855,10 +878,7 @@ class RecordLibraryPage(BasePage):
         result["supplementary_note"] = note.toPlainText().strip()
         return result
 
-    def _export_selected_report(self, *, file_format: str = "DOCX") -> None:
-        formats = {"DOCX": ("Word", ".docx", "Word 文档 (*.docx)", render_report_docx),
-                   "XLSX": ("Excel", ".xlsx", "Excel 工作簿 (*.xlsx)", render_report_xlsx)}
-        label, suffix, file_filter, renderer = formats[file_format]
+    def _export_selected_report(self) -> None:
         row = self.record_list.currentRow()
         if row < 0 or row >= len(self._records) or self.record_repository is None:
             return
@@ -866,33 +886,69 @@ class RecordLibraryPage(BasePage):
         supplementary = self._report_supplementary_dialog(record)
         if supplementary is None:
             return
+        suffix = ".docx"
         default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}{suffix}"
-        target, _ = QFileDialog.getSaveFileName(self, f"保存 {label} 核算报告", default_name, file_filter)
+        target, _ = QFileDialog.getSaveFileName(self, "保存 Word 核算报告", default_name, "Word 文档 (*.docx)")
         if not target:
             return
         path = Path(target)
-        if path.suffix.lower() != suffix:
+        suffix_added = path.suffix.lower() != suffix
+        if suffix_added:
             path = path.with_suffix(suffix)
+        if suffix_added and path.exists():
+            answer = QMessageBox.question(
+                self,
+                "确认覆盖文件",
+                f"补全 Word 文件扩展名后的目标文件已存在：\n{path}\n是否覆盖？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
         try:
             report = build_saved_record_report(self.record_repository, record, supplementary_info=supplementary)
-            document_bytes = renderer(report)
-            path.write_bytes(document_bytes)
-            history_writer = getattr(self.record_repository, "record_report_export", None)
-            if callable(history_writer):
-                history_writer(
-                    record.record_id,
-                    export_id=f"report-export.{uuid4().hex}",
-                    format=file_format,
-                    template_version=report.schema_version,
-                    document_filename=path.name,
-                    document_sha256=hashlib.sha256(document_bytes).hexdigest(),
-                    supplementary_info=supplementary,
-                    actor="current_user",
-                )
-        except Exception as exc:
-            QMessageBox.critical(self, "报告导出失败", f"无法生成 {label} 核算报告：{exc}")
+            document_bytes = render_report_docx(report)
+        except Exception:
+            _LOGGER.exception("Unable to generate Word report for record %s", record.record_id)
+            QMessageBox.critical(
+                self,
+                "报告文件未保存",
+                f"无法生成 Word 核算报告，文件未保存。\n目标位置：\n{path}\n请检查后重试。",
+            )
             return
-        QMessageBox.information(self, "报告已导出", f"{label} 核算报告已保存到：\n{path}")
+        try:
+            _write_report_atomically(path, document_bytes)
+        except Exception:
+            _LOGGER.exception("Unable to write Word report for record %s to %s", record.record_id, path)
+            QMessageBox.critical(
+                self,
+                "报告文件未保存",
+                f"无法写入 Word 核算报告，文件未保存。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
+            )
+            return
+        history_writer = getattr(self.record_repository, "record_report_export", None)
+        try:
+            if not callable(history_writer):
+                raise RuntimeError("report export audit writer is unavailable")
+            history_writer(
+                record.record_id,
+                export_id=f"report-export.{uuid4().hex}",
+                format="DOCX",
+                template_version=report.schema_version,
+                document_filename=path.name,
+                document_sha256=hashlib.sha256(document_bytes).hexdigest(),
+                supplementary_info=supplementary,
+                actor="current_user",
+            )
+        except Exception:
+            _LOGGER.exception("Unable to record Word report export for record %s at %s", record.record_id, path)
+            QMessageBox.warning(
+                self,
+                "报告已保存，审计未完成",
+                f"Word 核算报告已保存到：\n{path}\n该文件可使用；导出审计未完成，正式记录未改。请保留该文件，并保存诊断信息以便排查。",
+            )
+            return
+        QMessageBox.information(self, "报告已导出", f"Word 核算报告已保存到：\n{path}")
 
 class ExcelImportPage(BasePage):
     """R2 import, saved canonical projects, explicit formal calculation and record access."""
@@ -1036,8 +1092,13 @@ class ExcelImportPage(BasePage):
             path = path.with_suffix(".xlsx")
         try:
             write_template(path)
-        except Exception as exc:
-            QMessageBox.critical(self, "模板保存失败", f"无法生成 Excel R2 模板：{exc}")
+        except Exception:
+            _LOGGER.exception("Unable to write Excel R2 template to %s", path)
+            QMessageBox.critical(
+                self,
+                "模板未保存",
+                f"无法保存 Excel R2 模板。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
+            )
             return
         QMessageBox.information(self, "模板已保存", f"Excel R2 模板已保存到：\n{path}")
 
@@ -1379,13 +1440,15 @@ class ExcelImportPage(BasePage):
                 unit.canonical_input,
                 ingress_provenance=unit.ingress_provenance,
             )
-        except RecordPersistenceError as exc:
-            self.status_label.setText(f"正式记录保存失败；本次未标记为完成：{exc}")
-            QMessageBox.warning(self, "正式记录保存失败", str(exc))
+        except RecordPersistenceError:
+            _LOGGER.exception("Unable to persist formal record for the selected Excel unit")
+            self.status_label.setText("正式记录保存失败；本次未标记为完成。请检查核算记录页面后重试；如仍失败，请保存诊断信息以便排查。")
+            QMessageBox.warning(self, "正式记录保存失败", self.status_label.text())
             return
-        except Exception as exc:
-            self.status_label.setText(f"正式核算失败；本次未标记为完成：{exc}")
-            QMessageBox.warning(self, "正式核算失败", str(exc))
+        except Exception:
+            _LOGGER.exception("Formal calculation failed for the selected Excel unit")
+            self.status_label.setText("正式核算未能完成；请检查核算记录页面后再决定是否重试。")
+            QMessageBox.warning(self, "正式核算未完成", self.status_label.text())
             return
         if not outcome.successful:
             messages = "；".join(self._friendly_import_message(problem.message) for problem in outcome.problems)
@@ -1420,11 +1483,23 @@ class ExcelImportPage(BasePage):
         self._workspace = updated_workspace
         try:
             self.project_service.save_after_record(updated_workspace, record.record_id)
-        except Exception as exc:
-            self.status_label.setText(
-                f"正式核算记录已保存，但项目关联失败；可在“核算记录”查看，项目记录关联待恢复：{exc}"
-            )
-            QMessageBox.warning(self, "项目记录关联失败", self.status_label.text())
+        except ProjectRecordAssociationError as exc:
+            _LOGGER.exception("Project association state for saved record %s", record.record_id)
+            if exc.association_saved:
+                message = "正式记录已保存，项目关联也已保存，但恢复标记未能清理；可在核算记录页面查看该记录。"
+            elif exc.recovery_pending:
+                message = "正式记录已保存，但项目关联失败；恢复信息已保留，项目关联待恢复。可在核算记录页面查看该记录。"
+            else:
+                message = "正式记录已保存，但项目关联和恢复信息均未保存。请在核算记录页面查看该记录，并保存诊断信息以便排查项目关联。"
+            self.status_label.setText(message)
+            QMessageBox.warning(self, "正式记录已保存，项目关联待处理", message)
+            self._selected_unit_changed()
+            return
+        except Exception:
+            _LOGGER.exception("Project association state is unknown for saved record %s", record.record_id)
+            message = "正式记录已保存，但项目关联状态无法确认。请先在核算记录页面检查该记录，并保存诊断信息以便排查。"
+            self.status_label.setText(message)
+            QMessageBox.warning(self, "项目关联状态无法确认", message)
             self._selected_unit_changed()
             return
 

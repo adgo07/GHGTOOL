@@ -10,6 +10,25 @@ from uuid import uuid4
 from packages.standards.carbon_material import CarbonMaterialInput
 
 
+class ProjectWorkspaceRepositoryError(RuntimeError):
+    """Raised when a project workspace cannot be safely read or written."""
+
+
+class ProjectRecordAssociationError(ProjectWorkspaceRepositoryError):
+    """Describe which part of a successful record's project link needs recovery."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        recovery_pending: bool,
+        association_saved: bool,
+    ) -> None:
+        super().__init__(message)
+        self.recovery_pending = recovery_pending
+        self.association_saved = association_saved
+
+
 class AccountingUnitType(str, Enum):
     WHOLE_SITE = "WHOLE_SITE"
     PROCESS = "PROCESS"

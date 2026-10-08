@@ -53,6 +53,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.application.project_workspaces import (
     AccountingUnitType,
     AccountingUnitWorkspace,
+    ProjectRecordAssociationError,
     ProjectWorkspace,
     ProjectWorkspaceService,
 )
@@ -5327,14 +5328,25 @@ class CarbonMaterialAccountingPage(BasePage):
                         outcome.record.record_id,
                     )
                 except Exception as exc:
-                    self.project_save_status.setText(
-                        "核算记录已生成，但项目关联尚未完成；恢复信息将保留并可重试。"
-                    )
+                    if isinstance(exc, ProjectRecordAssociationError):
+                        if exc.association_saved:
+                            status = "核算记录已生成并关联到项目，但恢复标记未能清理，待再次检查。"
+                            recovery_detail = "项目关联已经保存，但恢复标记清理失败；标记仍待恢复流程处理。"
+                        elif exc.recovery_pending:
+                            status = "核算记录已生成；项目关联未保存，但恢复标记已保存，可重新打开软件继续恢复。"
+                            recovery_detail = "项目关联尚未保存，恢复标记已经写入；重新打开软件可继续恢复。"
+                        else:
+                            status = "核算记录已生成；项目关联未保存，恢复标记未写入。请点击“保存项目”保存当前关联。"
+                            recovery_detail = "项目关联尚未保存，恢复标记写入失败；请点击“保存项目”保存当前关联。"
+                    else:
+                        status = "核算记录已生成，但项目关联处理失败；请查看详情并核对项目保存状态。"
+                        recovery_detail = "无法确认项目恢复标记状态；请核对项目保存状态。"
+                    self.project_save_status.setText(status)
                     QMessageBox.critical(
                         self,
                         "核算记录关联失败",
                         "成功核算记录已经安全保存在记录库中，不会撤销或删除。"
-                        "项目关联未完成；请检查项目数据文件后重新打开软件或再次保存项目。\n\n"
+                        f"{recovery_detail}\n\n"
                         f"详细信息：{exc}",
                     )
                 else:

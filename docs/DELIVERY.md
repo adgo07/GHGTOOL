@@ -10,7 +10,7 @@
 | Canonical schema 版本 | `1.1.0` |
 | Catalog data 版本 | `2026.10.07-pf01.2`（以 `data-source/carbon_accounting/catalog.json` 的 `data_version` 为唯一事实源） |
 | Catalog / User / Records 数据库迁移 | `002` / `001` / `004` |
-| Projects 数据库迁移 | `002` |
+| Projects 数据库迁移 | `003` |
 
 构建脚本会从 `data-source/carbon_accounting/catalog.json` 重新生成只读 `databases/catalog.sqlite`，并写入 `build-manifest.json`。发布前必须通过 `scripts/inspect_release.py` 的文件范围、哈希、数据库元数据和敏感文件检查。
 
@@ -23,6 +23,12 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[build]"
 .\.venv\Scripts\python.exe scripts\build_standalone.py --clean
 ```
+
+## 备份与整合注意
+
+本版本尚无一键备份/恢复。关闭所有本软件实例后，复制完整用户data目录；存在user.sqlite或SQLite附属文件时一并保留。只备份records.sqlite无法恢复项目输入，不混用不同时间的记录库与项目库。恢复或降级前须检查版本兼容性并另存当前数据，不覆盖正在使用的数据。
+
+当前PR35基于Catalog002。PR36合入后须重新核对Catalog003与Projects003组合及Canonical数据版本；旧head测试包不能冒充整合候选。
 
 输出目录为：
 
@@ -45,13 +51,14 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 应用只读 Catalog 位于发布目录 `databases\catalog.sqlite`。用户数据与日志不写入程序目录：
 
 - 核算记录：`%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting\data\records.sqlite`
+- 项目与未完成输入：同一用户data目录中的`projects.sqlite`，项目恢复依赖此文件。
 - 结构化日志：`%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting\logs\application.jsonl`
 
-首次使用时，records 数据库会自动创建并执行已知迁移。数据库迁移只允许向前应用；未知的未来迁移版本会安全失败，不会自动删除或覆盖文件。
+首次使用时，records与projects数据库会自动创建并执行已知迁移。数据库迁移只允许向前应用；未知的未来迁移版本会安全失败，不会自动删除或覆盖文件。
 
 ## 卸载与数据保留
 
-便携式交付没有注册表安装项。删除发布目录不会删除 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting\data` 或 `logs`，因此历史记录和日志默认保留。若确需清理，请先备份 `records.sqlite`，再由用户手动删除上述数据目录；软件不会在卸载或启动失败时自动清理用户数据。
+便携式交付没有注册表安装项。删除发布目录不会删除 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting\data` 或 `logs`，因此历史记录和日志默认保留。若确需清理，请先关闭所有本软件实例并备份完整用户data目录（至少records.sqlite和projects.sqlite，包括存在的SQLite附属文件），再由用户手动删除上述数据目录；软件不会在卸载或启动失败时自动清理用户数据。
 
 发布包不得包含标准全文、`计算表`、测试数据库、开发目录、环境文件或开发密钥。`build-manifest.json` 记录每个发布文件的 SHA-256 和大小，供验收与追溯使用；同时记录 `source_commit`（实际 checkout）、`pr_head_sha`（PR 精确 HEAD）和 `tested_merge_sha`（merge-ref 集成测试提交），避免把临时合并提交误认为 standalone 的源提交。
 
@@ -59,14 +66,14 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 - 计算链只覆盖 GB/T 32150—2025 通用规则和 GB/T 32151.34—2024 炭素材料生产企业模块。
 - 其余计划标准只有目录与状态信息，不实现计算规则。
-- Excel 导入、报告/导出、企业档案完善、企业层级、审批、`.qzproj` 项目文件和云端服务当前尚未实现；其中 Excel 正式闭环属于 `REFERENCE_STANDARD_ROADMAP.md` 的 `GHG-RS03`，不是永久排除。
+- Excel R2模板和预览已提供；PR35候选保留Canonical项目保存/恢复、正式核算与记录查看。核算结果Excel导出取消，Word报告保留，模板和Word排版完善延期。企业档案、层级、审批、.qzproj与云端不属于本包。
 - 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
 - 本机已在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
 
 ## 故障排查
 
 1. **启动提示找不到 Catalog**：确认 `databases\catalog.sqlite` 与 exe 同在发布目录，重新运行构建脚本；不要把标准 PDF 复制进发布包。
-2. **数据库迁移错误**：先关闭应用并备份 `%LOCALAPPDATA%` 下的 `records.sqlite`，保存 `application.jsonl` 后再提交问题；不要直接删除或手工修改迁移历史。
+2. **数据库迁移错误**：先关闭所有本软件实例并备份完整用户data目录（至少records.sqlite和projects.sqlite，包括存在的附属文件），保存 `application.jsonl` 后再提交问题；不要直接删除或手工修改迁移历史。
 3. **无写入权限**：确认用户对 `%LOCALAPPDATA%\QingzhouEnergySuite\carbon_accounting` 有写权限，程序目录只需可读。
 4. **查看日志**：日志是 JSON Lines，默认脱敏敏感字段；只收集与问题相关的时间段，避免上传用户数据。
 5. **自动化测试环境**：`QT_QPA_PLATFORM=offscreen` 仅用于无显示器测试，不是生产启动参数。

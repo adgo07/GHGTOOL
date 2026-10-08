@@ -16,14 +16,12 @@ from packages.application.canonical_input_codec import (
 from packages.application.project_workspaces import (
     AccountingUnitType,
     AccountingUnitWorkspace,
+    ProjectRecordAssociationError,
     ProjectWorkspace,
+    ProjectWorkspaceRepositoryError,
 )
 
 from .sqlite import initialize_database
-
-
-class ProjectWorkspaceRepositoryError(RuntimeError):
-    """Raised when a project workspace cannot be safely read or written."""
 
 
 def _dump(value: Any) -> str:
@@ -331,8 +329,11 @@ class SQLiteProjectWorkspaceRepository:
                     ),
                 )
         except (sqlite3.Error, TypeError, ValueError) as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"record {record_id} was created but its project recovery marker could not be saved: {exc}"
+            raise ProjectRecordAssociationError(
+                f"record {record_id} was created, but its project recovery marker was not saved; "
+                f"project association was not attempted: {exc}",
+                recovery_pending=False,
+                association_saved=False,
             ) from exc
         finally:
             connection.close()
@@ -340,8 +341,11 @@ class SQLiteProjectWorkspaceRepository:
         try:
             self.save(workspace)
         except ProjectWorkspaceRepositoryError as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"record {record_id} was created; its project association remains queued for recovery: {exc}"
+            raise ProjectRecordAssociationError(
+                f"record {record_id} was created; its project association was not saved, "
+                f"but the recovery marker is queued for recovery: {exc}",
+                recovery_pending=True,
+                association_saved=False,
             ) from exc
         self._clear_pending_link(record_id)
 
@@ -351,8 +355,11 @@ class SQLiteProjectWorkspaceRepository:
             with connection:
                 connection.execute("DELETE FROM pending_record_links WHERE record_id=?", (record_id,))
         except sqlite3.Error as exc:
-            raise ProjectWorkspaceRepositoryError(
-                f"project association was saved but recovery marker {record_id} could not be cleared: {exc}"
+            raise ProjectRecordAssociationError(
+                f"project association for record {record_id} was saved, but its recovery marker "
+                f"could not be cleared and remains queued: {exc}",
+                recovery_pending=True,
+                association_saved=True,
             ) from exc
         finally:
             connection.close()

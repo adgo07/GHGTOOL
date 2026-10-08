@@ -60,7 +60,7 @@ git status --short                 # 工作区状态
 ### 2.1 产品与交付边界
 
 - Windows-first：本仓当前只开发 Windows V1 桌面产品。
-- Excel R2负责标准输入模板、严格校验和逐核算单元预览；预览不写Record。GHG-RS03正式闭环通过用户明确保存Canonical本地项目、再点击正式核算，由共享Application追加Record；结果导出只消费冻结ReportModel。Excel是Import / Export Adapter，必须与GUI共用同一Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法；模块内词法策略不代表中央Excel Numeric交换已冻结。
+- Excel R2负责输入模板、严格校验和逐核算单元预览；预览不写Record。用户明确保存Canonical项目后，再由共享Application正式核算、追加Record。按用户决定取消核算结果Excel导出，只保留消费冻结Record的Word报告；输入模板改版与Word排版完善延期。Excel输入Adapter必须与GUI共用同一Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法；模块内词法策略不冻结中央Excel Numeric交换规则。
 - 必要导出按中央 Policy 单独规划，不得顺手实现。
 - 标准全文不得复制或打包进软件；“打开标准原文”只能调用官方网址。
 - `GB/T 32151.34` 遇其他行业活动或上下游运输只提示需要其他标准，不得猜算、套算或并入当前结果。
