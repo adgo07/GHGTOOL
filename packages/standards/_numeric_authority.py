@@ -29,7 +29,7 @@ from packages.core.errors import DomainValidationError
 from . import carbon_material
 
 
-N01C_ALGORITHM_VERSION = "CAR-SM01-2026-09-30-N01C-R1.1"
+N01C_ALGORITHM_VERSION = "CAR-SM01-2026-10-09-G06.2-N01C-R1.1"
 ORIGINAL_CALCULATE = carbon_material.CarbonMaterialCalculator.calculate
 ORIGINAL_D = carbon_material._d
 ORIGINAL_MUL = carbon_material._mul

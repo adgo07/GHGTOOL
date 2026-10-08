@@ -277,7 +277,7 @@ class G05MultiElectricityTests(unittest.TestCase):
                     else:
                         self.assertEqual(result.result.recommended.factor.factor_id, factor_id)
 
-    def test_missing_proof_is_error_without_zero_or_national_fallback(self) -> None:
+    def test_proof_is_not_automatically_verified_and_zero_factor_remains_independent(self) -> None:
         result = _resolver().resolve_electricity_details(
             (
                 _detail(
@@ -292,14 +292,16 @@ class G05MultiElectricityTests(unittest.TestCase):
             snapshot_at=SNAPSHOT_AT,
         )[0]
 
-        self.assertTrue(result.blocked)
-        self.assertIsNone(result.snapshot)
+        self.assertFalse(result.blocked)
+        self.assertIsNotNone(result.snapshot)
         self.assertIsNotNone(result.result)
         assert result.result is not None
-        self.assertIsNone(result.result.recommended)
-        self.assertTrue(
-            any(problem.code == "GEN-VAL-NONFOSSIL-EVIDENCE" for problem in result.problems)
+        self.assertEqual(
+            result.result.recommended.factor.factor_id,
+            "electricity_nonfossil_zero_gbt32151_34_2024",
         )
+        self.assertEqual(result.snapshot.factor_id, "electricity_nonfossil_zero_gbt32151_34_2024")
+        self.assertFalse(any(problem.code == "GEN-VAL-NONFOSSIL-EVIDENCE" for problem in result.problems))
         self.assertNotIn(
             "electricity_national_average_2024",
             {value.factor_id for value in result.result.alternatives},

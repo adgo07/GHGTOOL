@@ -37,6 +37,7 @@ from packages.core.models import (
 )
 from packages.core.parameter_resolution import (
     ElectricityConsumptionDetail,
+    PROVINCIAL_ELECTRICITY_PARAMETER_ID,
     ElectricityResolutionRoute,
     ParameterResolutionContext,
     ParameterResolver,
@@ -52,7 +53,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-09-13-G06.1"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-09-G06.2"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -67,7 +68,6 @@ SOURCE_EXPORTED_HEAT = "CAR-SRC-EXPORTED-HEAT-001"
 
 EVIDENCE_SOURCE_ID = "EVID-CAR-PDF-2024-LOCAL"
 MAPPING_VERSION = "SM01-2026-09-13-R6"
-GREEN_ELECTRICITY_EVIDENCE_CODE = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
 
 
 class EmissionSourceStatus(str, Enum):
@@ -678,11 +678,17 @@ class ElectricityOutputLine:
     amount: object
     factor: ParameterValue | None = None
     unit: str = "MWh"
+    region: str | None = None
 
     def __post_init__(self) -> None:
         if not self.line_id.strip():
             raise DomainValidationError("line_id is required")
         object.__setattr__(self, "amount", _coerce_input(self.amount, self.unit))
+        if self.region is not None:
+            if not isinstance(self.region, str):
+                raise DomainValidationError("region must be text")
+            normalized_region = self.region.strip()
+            object.__setattr__(self, "region", normalized_region or None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1599,7 +1605,7 @@ class CarbonMaterialCalculator:
                 }:
                     problems.append(_problem(
                         "CAR-VAL-FACTOR-SOURCE", IssueLevel.WARNING,
-                        f"参数 {field_id} 未填写来源说明；本次仍按录入数值计算。", field_id,
+                        f"参数 {field_id} 的来源未关联目录来源编号或版本；本次仍按录入数值计算。", field_id,
                     ))
                 else:
                     problems.append(_problem("CAR-VAL-FACTOR-SOURCE", IssueLevel.ERROR, f"参数 {field_id} 缺少来源、版本或定位。", field_id))
@@ -1672,26 +1678,6 @@ class CarbonMaterialCalculator:
         factor = resolution.recommended.factor
         self._check_parameter_semantics(factor.value, factor.unit, context.parameter_id, problems)
         return factor.value
-
-    @staticmethod
-    def _map_electricity_resolution_problems(
-        detail_id: str,
-        resolution_problems: Sequence[ValidationProblem],
-    ) -> tuple[ValidationProblem, ...]:
-        """Translate the generic G05 proof gate into the frozen G06 code."""
-
-        return tuple(
-            ValidationProblem(
-                GREEN_ELECTRICITY_EVIDENCE_CODE,
-                problem.level,
-                problem.message,
-                detail_id,
-                problem.details,
-            )
-            if problem.code == "GEN-VAL-NONFOSSIL-EVIDENCE"
-            else problem
-            for problem in resolution_problems
-        )
 
     def _source_check(self, input_value: CarbonMaterialInput, source_id: str, payload_present: bool, problems: list[ValidationProblem]) -> EmissionSourceStatus:
         status = input_value.status_for(source_id, payload_present)
@@ -2189,14 +2175,14 @@ class CarbonMaterialCalculator:
             else:
                 for detail in input_value.electricity_details:
                     if detail.acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED and detail.attribute is ElectricityAttribute.ORDINARY:
-                        problems.append(_problem("CAR-VAL-ELECTRICITY-ATTRIBUTE", IssueLevel.ERROR, "自发自用常规电力不能直接进入购入电力路径；应明确非化石证明或转交燃料路径。", detail.detail_id))
+                        problems.append(_problem("CAR-VAL-ELECTRICITY-ATTRIBUTE", IssueLevel.ERROR, "自发自用常规电力不能进入购入电力路径；如属燃料燃烧产生，应转交直接燃料路径。", detail.detail_id))
                         continue
                     resolution = self.parameter_resolver.resolve_electricity_details((detail,), snapshot_at=snapshot_at)[0]
                     if resolution.parameter_resolution is not None:
                         self._effective_rule_ids.update(resolution.parameter_resolution.effective_rules.rule_ids)
                     if resolution.route is ElectricityResolutionRoute.DELEGATE_DIRECT_FUEL_PATH:
                         continue
-                    problems.extend(self._map_electricity_resolution_problems(detail.detail_id, resolution.problems))
+                    problems.extend(resolution.problems)
                     if resolution.blocked or resolution.snapshot is None or resolution.result is None or resolution.result.recommended is None:
                         continue
                     snapshots.append(resolution.snapshot)
@@ -2214,10 +2200,61 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_electricity:
                 quantity = self._quantity(line.amount, "MWh", line.line_id, problems)
                 factor = line.factor
-                if factor is not None:
-                    factor_value = self._parameter(factor, "tCO2/MWh", f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}", snapshots, problems, snapshot_at)
+                parameter_id = PROVINCIAL_ELECTRICITY_PARAMETER_ID if line.region is not None else "electricity_emission_factor_national"
+                parameter_context = ParameterResolutionContext(
+                    parameter_id=parameter_id,
+                    standard_id=STANDARD_ID,
+                    accounting_period=input_value.period,
+                    parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+                    subject_id="purchased_electricity",
+                    region=line.region,
+                    electricity_acquisition_mode=ElectricityAcquisitionMode.PURCHASED,
+                    electricity_attribute=ElectricityAttribute.ORDINARY,
+                    extra_context=(("energy_direction", "exported"),),
+                )
+                if factor is None:
+                    factor_value = self._resolve_parameter(
+                        parameter_context, snapshots, problems, snapshot_at, detail_id=line.line_id
+                    )
+                elif (
+                    factor.parameter_id in {
+                        "electricity_emission_factor_national",
+                        PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+                    }
+                    and factor.parameter_id != parameter_id
+                ):
+                    problems.append(_problem(
+                        "CAR-VAL-ELECTRICITY-PARAMETER-REGION",
+                        IssueLevel.ERROR,
+                        "外供电力因子参数必须与所选地区对应；当前输入不能回退到其他地区或全国参数。",
+                        line.line_id,
+                    ))
+                    factor_value = None
+                elif (
+                    factor.factor_id is not None
+                    and factor.source_kind in {
+                        ParameterSourceKind.STANDARD_DEFAULT,
+                        ParameterSourceKind.STANDARD_SPECIFIED,
+                        ParameterSourceKind.OFFICIAL_PUBLISHED,
+                    }
+                ):
+                    selected_context = replace(
+                        parameter_context,
+                        confirmed_factor_id=factor.factor_id,
+                        confirmation_reason=factor.selection_reason,
+                    )
+                    factor_value = self._resolve_parameter(
+                        selected_context, snapshots, problems, snapshot_at, detail_id=line.line_id
+                    )
                 else:
-                    factor_value = self._resolve_parameter(ParameterResolutionContext(parameter_id="electricity_emission_factor_national", standard_id=STANDARD_ID, parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR, subject_id="purchased_electricity", electricity_acquisition_mode=ElectricityAcquisitionMode.PURCHASED, electricity_attribute=ElectricityAttribute.ORDINARY, extra_context=(("energy_direction", "exported"),)), snapshots, problems, snapshot_at, detail_id=line.line_id)
+                    factor_value = self._parameter(
+                        factor,
+                        "tCO2/MWh",
+                        f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}",
+                        snapshots,
+                        problems,
+                        snapshot_at,
+                    )
                 if quantity is not None and factor_value is not None:
                     amount = purchased_electricity_emission(quantity, factor_value)
                     exported_power_total += amount
@@ -2343,5 +2380,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "GREEN_ELECTRICITY_EVIDENCE_CODE", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationEvidence", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
+    "ALGORITHM_VERSION", "MAPPING_VERSION", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationEvidence", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
 ]

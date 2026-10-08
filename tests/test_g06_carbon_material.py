@@ -1089,7 +1089,7 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertTrue(any(line.line_id == "CAR-FLD-POWER-EXPORTED-RESULT.power.out" for line in outcome.result.lines))
         self.assertTrue(any(line.line_id == "CAR-FLD-HEAT-EXPORTED-RESULT.heat.out" for line in outcome.result.lines))
 
-    def test_missing_proof_blocks_without_zero_or_national_fallback(self) -> None:
+    def test_proof_is_not_automatically_verified_but_zero_factor_is_snapshotted(self) -> None:
         detail = _detail(
             "power.missing.proof", "20", ElectricityAcquisitionMode.PURCHASED,
             ElectricityAttribute.NONFOSSIL, proof_type=ElectricityProofType.GEC,
@@ -1099,11 +1099,15 @@ class G06CalculatorTests(unittest.TestCase):
             CarbonMaterialCalculator(parameter_resolver=_resolver()), repository
         ).calculate(_input(electricity_details=(detail,)), calculated_at=SNAPSHOT_AT)
 
-        self.assertTrue(outcome.blocked)
-        self.assertIsNone(outcome.record)
-        self.assertEqual(repository.list_all(), ())
-        self.assertTrue(any(problem.code == "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE" for problem in outcome.problems))
-        self.assertEqual(outcome.parameter_snapshots, ())
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertIsNotNone(outcome.record)
+        self.assertEqual(len(repository.list_all()), 1)
+        self.assertEqual(len(outcome.parameter_snapshots), 1)
+        snapshot = outcome.parameter_snapshots[0]
+        self.assertEqual(snapshot.parameter_id, "electricity_emission_factor_nonfossil")
+        self.assertEqual(snapshot.factor_id, "electricity_nonfossil_zero_gbt32151_34_2024")
+        self.assertEqual(snapshot.source_id, "SRC-32151-34-2024")
+        self.assertFalse(any(problem.code == "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE" for problem in outcome.problems))
 
     def test_missing_canonical_zero_blocks_without_average_fallback(self) -> None:
         detail = _detail(
