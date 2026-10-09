@@ -14,12 +14,14 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from PySide6.QtCore import QSignalBlocker, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, QSize, Qt, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -68,6 +70,7 @@ from .record_experience import (
 )
 
 from .design_tokens import WIDE_PAGE_MARGIN
+from .icons import load_tinted_icon
 from .view_models import AppRoute, ShellViewModel
 
 
@@ -415,7 +418,9 @@ def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
 
 
 class HomePage(BasePage):
-    """Professional workbench home with records-backed recent-work sections."""
+    """Task-first home with saved projects and immutable records as recent work."""
+
+    record_requested = Signal(str)
 
     def __init__(
         self,
@@ -423,60 +428,121 @@ class HomePage(BasePage):
         navigate: Navigate,
         parent: QWidget | None = None,
         record_repository: RecordRepository | None = None,
+        project_service: ProjectWorkspaceService | None = None,
+        logo_path: Path | None = None,
+        icon_directory: Path | None = None,
     ) -> None:
         super().__init__(AppRoute.HOME, parent)
         self.record_repository = record_repository
-        self.add_header(view_model.home_title, view_model.home_description)
+        self.project_service = project_service
+        self._icon_directory = icon_directory
+        self.entry_buttons: dict[AppRoute, QPushButton] = {}
+        self.project_layout: QVBoxLayout
+        self.recent_layout: QVBoxLayout
+
+        self._build_home_header(view_model, navigate, logo_path, icon_directory)
 
         workspace = QWidget(self)
         workspace.setObjectName("primaryWorkspace")
-        workspace_layout = QHBoxLayout(workspace)
+        workspace_layout = QVBoxLayout(workspace)
         workspace_layout.setContentsMargins(0, 0, 0, 0)
-        workspace_layout.setSpacing(24)
+        workspace_layout.setSpacing(16)
 
-        start_panel, start_layout = _card("开始", workspace)
+        start_panel, start_layout = _card("常用入口", workspace)
         start_panel.setObjectName("startPanel")
-        start_panel.setFixedWidth(320)
-
-        primary_button = QPushButton(view_model.primary_action_label, start_panel)
-        primary_button.setObjectName("primaryButton")
-        primary_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        primary_button.clicked.connect(lambda: navigate(AppRoute.NEW_ACCOUNTING))
-        start_layout.addWidget(primary_button)
-
-        excel_button = QPushButton(view_model.excel_action_label, start_panel)
-        excel_button.setObjectName("reservedButton")
-        excel_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        excel_button.clicked.connect(lambda: navigate(AppRoute.EXCEL_IMPORT))
-        start_layout.addWidget(excel_button)
-
-        standards_button = QPushButton(view_model.standards_action_label, start_panel)
-        standards_button.setObjectName("secondaryButton")
-        standards_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        standards_button.clicked.connect(lambda: navigate(AppRoute.STANDARDS))
-        start_layout.addWidget(standards_button)
-        start_layout.addStretch(1)
-
-        self.recent_work, self.recent_layout = _card("最近核算记录", workspace)
-        self.recent_work.setObjectName("recentWorkCard")
+        entry_grid_widget = QWidget(start_panel)
+        entry_grid = QGridLayout(entry_grid_widget)
+        entry_grid.setContentsMargins(0, 0, 0, 0)
+        entry_grid.setHorizontalSpacing(12)
+        entry_grid.setVerticalSpacing(12)
+        entry_routes = [
+            item
+            for item in view_model.navigation
+            if item.route not in {AppRoute.HOME, AppRoute.SETTINGS}
+        ]
+        for index, item in enumerate(entry_routes):
+            button = QPushButton(item.label, entry_grid_widget)
+            button.setObjectName("homeEntryButton")
+            button.setProperty("route", item.route.value)
+            button.setProperty("primary", item.route is AppRoute.NEW_ACCOUNTING)
+            button.setAccessibleName(item.label)
+            button.setCursor(
+                Qt.CursorShape.ArrowCursor
+                if item.reserved
+                else Qt.CursorShape.PointingHandCursor
+            )
+            button.setEnabled(not item.reserved)
+            if item.reserved:
+                button.setToolTip(f"{item.label}当前暂未开放。")
+            if icon_directory is not None:
+                button.setIcon(
+                    load_tinted_icon(
+                        icon_directory / f"{item.icon_name}.svg",
+                        "#FFFFFF" if item.route is AppRoute.NEW_ACCOUNTING else "#12618D",
+                        size=20,
+                    )
+                )
+            button.setIconSize(QSize(20, 20))
+            button.setMinimumHeight(68)
+            button.setStyleSheet(
+                """
+                QPushButton#homeEntryButton {
+                    background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 8px;
+                    color: #182F43; font-size: 15px; font-weight: 600;
+                    padding: 0 18px; text-align: left;
+                }
+                QPushButton#homeEntryButton:hover {
+                    background: #F5F8FB; border-color: #12618D;
+                }
+                QPushButton#homeEntryButton:focus {
+                    border: 2px solid #12618D;
+                }
+                QPushButton#homeEntryButton[primary="true"] {
+                    background: #12618D; border-color: #12618D; color: #FFFFFF;
+                }
+                QPushButton#homeEntryButton[primary="true"]:hover {
+                    background: #0D5278; border-color: #0D5278;
+                QPushButton#homeEntryButton[primary="true"]:focus {
+                    border: 2px solid #9DD8F7;
+                }
+                }
+                QPushButton#homeEntryButton:disabled {
+                    background: #F2F4F7; border-color: #E4E7EC; color: #98A2B3;
+                }
+                """
+            )
+            button.clicked.connect(
+                lambda _checked=False, route=item.route: navigate(route)
+            )
+            entry_grid.addWidget(button, index // 3, index % 3)
+            self.entry_buttons[item.route] = button
+        for column in range(3):
+            entry_grid.setColumnStretch(column, 1)
+        start_layout.addWidget(entry_grid_widget)
         workspace_layout.addWidget(start_panel)
-        workspace_layout.addWidget(self.recent_work, 1)
         self.body_layout.addWidget(workspace)
-        self.refresh_recent_records()
 
-        recent_standards, standards_layout = _card("最近使用标准", self)
-        recent_standards.setObjectName("recentStandardsCard")
-        if view_model.recent_standards:
-            for standard in view_model.recent_standards[:5]:
-                row = QLabel(str(standard.title or "标准名称未记录"), recent_standards)
-                row.setObjectName("bodyText")
-                row.setWordWrap(True)
-                standards_layout.addWidget(row)
-        else:
-            empty_standards = QLabel("暂无最近使用标准", recent_standards)
-            empty_standards.setObjectName("emptyStateDescription")
-            standards_layout.addWidget(empty_standards)
-        self.body_layout.addWidget(recent_standards)
+        recent_work = QWidget(self)
+        recent_work.setObjectName("recentWorkCard")
+        recent_layout = QVBoxLayout(recent_work)
+        recent_layout.setContentsMargins(0, 0, 0, 0)
+        recent_layout.setSpacing(12)
+        recent_title = QLabel("最近工作", recent_work)
+        recent_title.setObjectName("sectionTitle")
+        recent_layout.addWidget(recent_title)
+
+        recent_columns = QWidget(recent_work)
+        recent_columns_layout = QHBoxLayout(recent_columns)
+        recent_columns_layout.setContentsMargins(0, 0, 0, 0)
+        recent_columns_layout.setSpacing(16)
+        projects_card, self.project_layout = _card("已保存项目", recent_columns)
+        projects_card.setObjectName("recentProjectsCard")
+        records_card, self.recent_layout = _card("核算记录", recent_columns)
+        records_card.setObjectName("recentRecordsCard")
+        recent_columns_layout.addWidget(projects_card, 1)
+        recent_columns_layout.addWidget(records_card, 1)
+        recent_layout.addWidget(recent_columns)
+        self.body_layout.addWidget(recent_work)
 
         status = QLabel(view_model.status_summary, self)
         status.setObjectName("statusSummary")
@@ -484,32 +550,248 @@ class HomePage(BasePage):
         self.body_layout.addWidget(status)
         self.body_layout.addStretch(1)
 
-    def refresh_recent_records(self) -> None:
-        """Refresh the home card from the active records repository."""
+    def _build_home_header(
+        self,
+        view_model: ShellViewModel,
+        navigate: Navigate,
+        logo_path: Path | None,
+        icon_directory: Path | None,
+    ) -> None:
+        header = QWidget(self)
+        header.setObjectName("homeHeader")
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
 
-        while self.recent_layout.count() > 1:
-            item = self.recent_layout.takeAt(1)
+        logo_label = QLabel(header)
+        logo_label.setObjectName("homeLogo")
+        logo_label.setAccessibleName("青舟")
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        logo_label.setFixedSize(176, 44)
+        if logo_path is not None:
+            logo = QPixmap(str(logo_path))
+            if not logo.isNull():
+                logo_label.setPixmap(
+                    logo.scaled(
+                        QSize(176, 44),
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+        if logo_label.pixmap() is None or logo_label.pixmap().isNull():
+            logo_label.setText("青舟")
+        layout.addWidget(logo_label)
+
+        title_group = QWidget(header)
+        title_layout = QVBoxLayout(title_group)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+        title = QLabel(view_model.home_title, title_group)
+        title.setObjectName("pageTitle")
+        title.setWordWrap(True)
+        description = QLabel(view_model.home_description, title_group)
+        description.setObjectName("pageDescription")
+        description.setWordWrap(True)
+        title_layout.addWidget(title)
+        title_layout.addWidget(description)
+        layout.addWidget(title_group, 1)
+
+        settings_item = next(
+            item for item in view_model.navigation if item.route is AppRoute.SETTINGS
+        )
+        settings_button = QPushButton(settings_item.label, header)
+        settings_button.setObjectName("homeSettingsButton")
+        settings_button.setProperty("route", settings_item.route.value)
+        settings_button.setAccessibleName(settings_item.label)
+        settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        settings_button.setMinimumHeight(40)
+        if icon_directory is not None:
+            settings_button.setIcon(
+                load_tinted_icon(
+                    icon_directory / f"{settings_item.icon_name}.svg",
+                    "#526A7D",
+                )
+            )
+        settings_button.setIconSize(QSize(18, 18))
+        settings_button.setStyleSheet(
+            """
+            QPushButton#homeSettingsButton {
+                background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 6px;
+                color: #182F43; padding: 0 14px; font-size: 14px;
+            }
+            QPushButton#homeSettingsButton:hover {
+                background: #F5F8FB; border-color: #12618D;
+            }
+            QPushButton#homeSettingsButton:focus {
+                border: 2px solid #12618D;
+            }
+            """
+        )
+        settings_button.clicked.connect(lambda _checked=False: navigate(AppRoute.SETTINGS))
+        layout.addWidget(settings_button, 0, Qt.AlignmentFlag.AlignTop)
+        self.body_layout.addWidget(header)
+
+    def _clear_recent_items(self, layout: QVBoxLayout) -> None:
+        while layout.count() > 1:
+            item = layout.takeAt(1)
             widget = item.widget()
             if widget is not None:
+                widget.setParent(None)
                 widget.deleteLater()
-        records = tuple(self.record_repository.list_all()[:8]) if self.record_repository is not None else ()
-        if not records:
-            empty_title = QLabel("尚无核算记录", self.recent_work)
-            empty_title.setObjectName("emptyStateTitle")
-            self.recent_layout.addWidget(empty_title)
-            empty_description = QLabel(
-                "可以通过“新建核算”手工开始，或先做 Excel 模板预览，之后保存项目并明确执行正式核算。",
-                self.recent_work,
+
+    def _show_recent_empty(
+        self,
+        layout: QVBoxLayout,
+        title: str,
+        description: str,
+        object_name: str,
+    ) -> None:
+        self._clear_recent_items(layout)
+        empty_title = QLabel(title)
+        empty_title.setObjectName(f"{object_name}Title")
+        empty_title.setWordWrap(True)
+        layout.addWidget(empty_title)
+        empty_description = QLabel(description)
+        empty_description.setObjectName(f"{object_name}Description")
+        empty_description.setWordWrap(True)
+        layout.addWidget(empty_description)
+        layout.addStretch(1)
+
+    def _recent_item_row(
+        self,
+        label_text: str,
+        action_text: str,
+        row_name: str,
+        button_name: str,
+        action,
+        parent: QWidget,
+    ) -> QWidget:
+        row = QWidget(parent)
+        row.setObjectName(row_name)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(10)
+        label = QLabel(label_text, row)
+        label.setObjectName("bodyText")
+        label.setWordWrap(True)
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        row_layout.addWidget(label, 1)
+        button = QPushButton(action_text, row)
+        button.setObjectName(button_name)
+        button.setAccessibleName(f"{action_text}：{label_text}")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setMinimumHeight(36)
+        button.setStyleSheet(
+            """
+            QPushButton {
+                background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 6px;
+                color: #12618D; padding: 0 12px;
+            }
+            QPushButton:hover { background: #F5F8FB; border-color: #12618D; }
+            QPushButton:focus { border: 2px solid #12618D; }
+            """
+        )
+        button.clicked.connect(action)
+        row_layout.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
+        return row
+
+    def refresh_recent_records(self) -> None:
+        """Refresh recent projects and records from their existing read services."""
+
+        if self.project_service is None:
+            self._show_recent_empty(
+                self.project_layout,
+                "项目暂不可用",
+                "当前无法读取已保存项目。",
+                "projectRecentState",
             )
-            empty_description.setObjectName("emptyStateDescription")
-            empty_description.setWordWrap(True)
-            self.recent_layout.addWidget(empty_description)
-            self.recent_layout.addStretch(1)
+        else:
+            try:
+                projects = self.project_service.list_all()
+                reader = getattr(self.project_service, "list_updated_at_by_project_id", None)
+                timestamps = reader() if callable(reader) else {}
+                projects = sorted(
+                    projects,
+                    key=lambda project: (
+                        timestamps[project.project_id].timestamp()
+                        if project.project_id in timestamps
+                        else 0
+                    ),
+                    reverse=True,
+                )[:5]
+            except Exception:
+                _LOGGER.exception("Unable to read saved projects for the home page")
+                projects = None
+            if projects is None:
+                self._show_recent_empty(
+                    self.project_layout,
+                    "项目暂不可用",
+                    "本地项目数据当前无法读取。",
+                    "projectRecentState",
+                )
+            elif not projects:
+                self._show_recent_empty(
+                    self.project_layout,
+                    "暂无已保存项目",
+                    "保存后的项目会显示在这里；请在“新建核算”的项目列表中打开。",
+                    "projectRecentState",
+                )
+            else:
+                self._clear_recent_items(self.project_layout)
+                for project in projects:
+                    label = QLabel(project.name, self.project_layout.parentWidget())
+                    label.setObjectName("recentProjectLabel")
+                    label.setWordWrap(True)
+                    label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                    self.project_layout.addWidget(label)
+                self.project_layout.addStretch(1)
+
+        if self.record_repository is None:
+            self._show_recent_empty(
+                self.recent_layout,
+                "记录暂不可用",
+                "当前无法读取核算记录。",
+                "recordRecentState",
+            )
             return
+        try:
+            records = sorted(
+                self.record_repository.list_all(),
+                key=lambda record: record.created_at,
+                reverse=True,
+            )[:5]
+        except Exception:
+            _LOGGER.exception("Unable to read formal records for the home page")
+            records = None
+        if records is None:
+            self._show_recent_empty(
+                self.recent_layout,
+                "记录暂不可用",
+                "本地核算记录当前无法读取。",
+                "recordRecentState",
+            )
+            return
+        if not records:
+            self._show_recent_empty(
+                self.recent_layout,
+                "暂无核算记录",
+                "完成一次正式核算后，记录会显示在这里。",
+                "recordRecentState",
+            )
+            return
+
+        self._clear_recent_items(self.recent_layout)
         for record in records:
-            row = QLabel(build_home_record_label(record), self.recent_work)
-            row.setObjectName("bodyText")
-            row.setWordWrap(True)
+            label = build_home_record_label(record)
+            row = self._recent_item_row(
+                label,
+                "查看记录",
+                "recentRecordRow",
+                "openRecentRecordButton",
+                lambda _checked=False, record_id=record.record_id:
+                    self.record_requested.emit(record_id),
+                self.recent_layout.parentWidget(),
+            )
             self.recent_layout.addWidget(row)
         self.recent_layout.addStretch(1)
 
@@ -857,7 +1139,7 @@ class ExcelImportPage(BasePage):
             self.preview_use_case = CarbonAccountingPreviewUseCase(calculator)
 
         self.add_header(
-            "Excel 导入与核算",
+            "表格导入",
             "选择 R2 工作簿后先预览，再将有效核算单元保存为项目；正式核算由你明确启动，每次成功都会新增一条记录。",
         )
 
@@ -1388,11 +1670,21 @@ def create_page(
     record_repository: RecordRepository | None = None,
     project_service=None,
     calculation_use_case: CarbonAccountingUseCase | None = None,
+    logo_path: Path | None = None,
+    icon_directory: Path | None = None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
     if route is AppRoute.HOME:
-        return HomePage(view_model, navigate, parent, record_repository=record_repository)
+        return HomePage(
+            view_model,
+            navigate,
+            parent,
+            record_repository=record_repository,
+            project_service=project_service,
+            logo_path=logo_path,
+            icon_directory=icon_directory,
+        )
     if route is AppRoute.EXCEL_IMPORT:
         return ExcelImportPage(
             parent,
@@ -1443,8 +1735,8 @@ def create_page(
         ),
         AppRoute.SETTINGS: (
             "设置",
-            "管理软件级低频功能",
-            "设置项将在后续阶段按统一规范实现。",
+            "软件当前可调整的选项",
+            "当前版本暂无可调整的设置项。",
         ),
     }
     try:

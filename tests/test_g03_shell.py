@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -19,6 +20,8 @@ from PySide6.QtWidgets import (
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
+from packages.application.project_workspaces import ProjectWorkspaceService
+from packages.persistence import SQLiteProjectWorkspaceRepository
 import packages.ui.shell as shell_module
 from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
 from packages.ui.shell import AppShell
@@ -32,7 +35,15 @@ class G03ShellTest(unittest.TestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self.window = create_main_window(record_repository=InMemoryRecordRepository())
+        self._project_directory = tempfile.TemporaryDirectory()
+        project_repository = SQLiteProjectWorkspaceRepository(
+            Path(self._project_directory.name) / "projects.sqlite"
+        )
+        self.project_service = ProjectWorkspaceService(project_repository)
+        self.window = create_main_window(
+            record_repository=InMemoryRecordRepository(),
+            project_service=self.project_service,
+        )
         self.window.show()
         self.application.processEvents()
         self.shell = self.window.centralWidget()
@@ -41,20 +52,22 @@ class G03ShellTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.window.close()
         self.application.processEvents()
+        self._project_directory.cleanup()
 
-    def test_shell_uses_frozen_sidebar_and_navigation_order(self) -> None:
+    def test_shell_starts_on_home_without_sidebar_and_uses_navigation_order(self) -> None:
         shell = self.shell
         sidebar = shell.findChild(QWidget, "sidebar")
         self.assertIsNotNone(sidebar)
         assert sidebar is not None
         self.assertEqual(sidebar.width(), SIDEBAR_WIDTH)
+        self.assertTrue(sidebar.isHidden())
         self.assertEqual(
             [button.text() for button in shell.navigation_buttons.values()],
             [
                 "首页",
                 "标准库",
                 "新建核算",
-                "Excel 导入预览",
+                "表格导入",
                 "核算记录",
                 "参数与因子库",
                 "设置",
@@ -62,80 +75,102 @@ class G03ShellTest(unittest.TestCase):
         )
         self.assertTrue(shell.navigation_buttons[AppRoute.HOME].isChecked())
         self.assertFalse(shell.navigation_buttons[AppRoute.EXCEL_IMPORT].property("reserved"))
+        shell.navigate(AppRoute.STANDARDS)
+        self.application.processEvents()
+        self.assertFalse(sidebar.isHidden())
         settings_y = shell.navigation_buttons[AppRoute.SETTINGS].mapTo(sidebar, QPoint(0, 0)).y()
         factors_y = shell.navigation_buttons[AppRoute.FACTORS].mapTo(sidebar, QPoint(0, 0)).y()
         self.assertGreater(settings_y, factors_y)
-
     def test_home_is_a_safe_empty_workbench(self) -> None:
         home = self.shell.pages[AppRoute.HOME]
         self.assertEqual(home.findChild(QLabel, "pageTitle").text(), "温室气体排放核算")
         self.assertIsNotNone(home.findChild(QWidget, "primaryWorkspace"))
         self.assertIsNotNone(home.findChild(QWidget, "startPanel"))
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
-        self.assertIsNotNone(home.findChild(QWidget, "recentStandardsCard"))
-        self.assertEqual(home.findChild(QLabel, "emptyStateTitle").text(), "尚无核算记录")
-        self.assertIn("Excel 模板预览", home.findChild(QLabel, "emptyStateDescription").text())
-        self.assertIn("保存项目并明确执行正式核算", home.findChild(QLabel, "emptyStateDescription").text())
-        self.assertNotIn("不会保存项目或生成正式核算记录", home.findChild(QLabel, "emptyStateDescription").text())
-        self.assertEqual(home.findChild(QLabel, "statusSummary").text(), "成功核算后可在“核算记录”查看结果与来源依据。")
+        self.assertIsNotNone(home.findChild(QWidget, "recentProjectsCard"))
+        self.assertIsNotNone(home.findChild(QWidget, "recentRecordsCard"))
+        self.assertIsNone(home.findChild(QWidget, "recentStandardsCard"))
+        self.assertEqual(home.findChild(QLabel, "projectRecentStateTitle").text(), "暂无已保存项目")
+        self.assertEqual(home.findChild(QLabel, "recordRecentStateTitle").text(), "暂无核算记录")
+        self.assertIn("新建核算", home.findChild(QLabel, "projectRecentStateDescription").text())
+        self.assertIn("完成一次正式核算后", home.findChild(QLabel, "recordRecentStateDescription").text())
+        self.assertEqual(
+            home.findChild(QLabel, "statusSummary").text(),
+            "成功核算后可在“核算记录”查看结果与来源依据。",
+        )
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
-
-    def test_home_actions_follow_frozen_order(self) -> None:
+        self.assertNotIn("最近使用标准", all_text)
+    def test_home_actions_follow_the_five_entry_order_with_settings_separate(self) -> None:
         home = self.shell.pages[AppRoute.HOME]
-        start_panel = home.findChild(QWidget, "startPanel")
-        self.assertIsNotNone(start_panel)
-        assert start_panel is not None
-        buttons = [
-            start_panel.layout().itemAt(index).widget()
-            for index in range(start_panel.layout().count())
-            if isinstance(start_panel.layout().itemAt(index).widget(), QPushButton)
-        ]
         self.assertEqual(
-            [(button.objectName(), button.text()) for button in buttons],
+            [(route, button.text()) for route, button in home.entry_buttons.items()],
             [
-                ("primaryButton", "＋ 新建核算"),
-                ("reservedButton", "Excel 导入与核算"),
-                ("secondaryButton", "查看标准库"),
+                (AppRoute.STANDARDS, "标准库"),
+                (AppRoute.NEW_ACCOUNTING, "新建核算"),
+                (AppRoute.EXCEL_IMPORT, "表格导入"),
+                (AppRoute.RECORDS, "核算记录"),
+                (AppRoute.FACTORS, "参数与因子库"),
             ],
         )
-
-    def test_shell_uses_design_tokens_for_brand_height_and_icon_color(self) -> None:
+        settings = home.findChild(QPushButton, "homeSettingsButton")
+        self.assertIsNotNone(settings)
+        assert settings is not None
+        self.assertEqual(settings.text(), "设置")
+        self.assertNotIn(AppRoute.SETTINGS, home.entry_buttons)
+        for button in home.entry_buttons.values():
+            self.assertFalse(button.icon().isNull())
+    def test_shell_scopes_light_sidebar_styling_without_changing_global_tokens(self) -> None:
         shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
         self.assertIn("BRAND_AREA_HEIGHT", shell_source)
-        self.assertIn("SIDEBAR_ICON_INACTIVE", shell_source)
+        self.assertIn("NAV_ITEM_RADIUS", shell_source)
+        self.assertIn("_SIDEBAR_BACKGROUND", shell_source)
         self.assertNotIn("setFixedHeight(120)", shell_source)
-        self.assertNotIn("#FFFFFF", shell_source)
 
         brand_area = self.shell.findChild(QWidget, "brandArea")
         self.assertIsNotNone(brand_area)
         assert brand_area is not None
         self.assertEqual(brand_area.height(), BRAND_AREA_HEIGHT)
-
+        sidebar = self.shell.findChild(QWidget, "sidebar")
+        self.assertIn("#EAF3FB", sidebar.styleSheet())
     def test_all_routes_are_reachable_and_home_actions_share_routes(self) -> None:
         shell = self.shell
+        page_instances = dict(shell.pages)
+        sidebar = shell.findChild(QWidget, "sidebar")
         for route in AppRoute:
             shell.navigate(route)
             self.application.processEvents()
             self.assertEqual(shell.current_route, route)
-            self.assertIs(shell.page_stack.currentWidget(), shell.pages[route])
+            self.assertIs(shell.page_stack.currentWidget(), page_instances[route])
+            self.assertIs(shell.pages[route], page_instances[route])
+            self.assertEqual(sidebar.isHidden(), route is AppRoute.HOME)
+            if route is not AppRoute.HOME:
+                self.assertTrue(shell.navigation_buttons[route].isChecked())
 
-        shell.navigate(AppRoute.HOME)
         home = shell.pages[AppRoute.HOME]
-        home.findChild(QPushButton, "primaryButton").click()
-        self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
-        shell.navigate(AppRoute.HOME)
-        home.findChild(QPushButton, "secondaryButton").click()
-        self.assertEqual(shell.current_route, AppRoute.STANDARDS)
-        shell.navigate(AppRoute.HOME)
-        home.findChild(QPushButton, "reservedButton").click()
-        self.assertEqual(shell.current_route, AppRoute.EXCEL_IMPORT)
+        for route in (
+            AppRoute.STANDARDS,
+            AppRoute.NEW_ACCOUNTING,
+            AppRoute.EXCEL_IMPORT,
+            AppRoute.RECORDS,
+            AppRoute.FACTORS,
+        ):
+            shell.navigate(AppRoute.HOME)
+            home.entry_buttons[route].click()
+            self.assertEqual(shell.current_route, route)
+            self.assertIs(shell.pages[route], page_instances[route])
 
+        shell.navigate(AppRoute.HOME)
+        home.findChild(QPushButton, "homeSettingsButton").click()
+        self.assertEqual(shell.current_route, AppRoute.SETTINGS)
+        self.assertTrue(shell.navigation_buttons[AppRoute.SETTINGS].isChecked())
     def test_excel_r2_page_exposes_template_preview_and_explicit_workflow_controls(self) -> None:
         shell = self.shell
         shell.navigate(AppRoute.EXCEL_IMPORT)
         page = shell.pages[AppRoute.EXCEL_IMPORT]
+        self.assertEqual(page.findChild(QLabel, "pageTitle").text(), "表格导入")
+        self.assertEqual(AppRoute.EXCEL_IMPORT.value, "excel_import")
         self.assertIn("模板与预览", page.findChild(QLabel, "cardTitle").text())
         self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
         self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
@@ -144,6 +179,18 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(page.findChild(QPushButton, "formalCalculateButton"))
         self.assertIsNotNone(page.findChild(QPushButton, "openUnitRecordButton"))
         self.assertIsNone(page.findChild(QPushButton, "importButton"))
+    def test_home_recent_work_lists_only_saved_projects_and_keeps_existing_project_manager(self) -> None:
+        workspace = ProjectWorkspaceService.new_workspace("已保存的真实项目")
+        self.project_service.save(workspace)
+        home = self.shell.pages[AppRoute.HOME]
+        home.refresh_recent_records()
+        self.application.processEvents()
+
+        project_labels = home.findChildren(QLabel, "recentProjectLabel")
+        self.assertEqual([label.text() for label in project_labels], ["已保存的真实项目"])
+        self.assertEqual(self.project_service.get(workspace.project_id), workspace)
+        self.assertIsNotNone(home.findChild(QLabel, "recordRecentStateTitle"))
+        self.assertIsNone(home.findChild(QWidget, "recentStandardsCard"))
 
     def test_logo_and_main_content_resize_rules(self) -> None:
         shell = self.shell
@@ -154,6 +201,11 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(pixmap)
         assert pixmap is not None
         self.assertFalse(pixmap.isNull())
+        home_logo = shell.pages[AppRoute.HOME].findChild(QLabel, "homeLogo")
+        self.assertIsNotNone(home_logo)
+        assert home_logo is not None
+        self.assertIsNotNone(home_logo.pixmap())
+        self.assertFalse(home_logo.pixmap().isNull())
         self.assertLessEqual(pixmap.width(), 176)
         self.assertLessEqual(pixmap.height(), 44)
         self.assertAlmostEqual(pixmap.width() / pixmap.height(), 4.03, delta=0.15)
