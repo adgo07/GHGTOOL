@@ -29,9 +29,8 @@ from .design_tokens import (
     COMPACT_PAGE_MARGIN,
     MAIN_CONTENT_MAX_WIDTH,
     NAV_ITEM_HEIGHT,
+    NAV_ITEM_RADIUS,
     SIDEBAR_WIDTH,
-    SIDEBAR_ICON_ACTIVE,
-    SIDEBAR_ICON_INACTIVE,
     WIDE_PAGE_MARGIN,
 )
 from .icons import load_tinted_icon
@@ -44,6 +43,13 @@ PageFactory = Callable[
     [AppRoute, ShellViewModel, Callable[[AppRoute], None], QWidget | None],
     QWidget,
 ]
+
+
+_SIDEBAR_BACKGROUND = "#EAF3FB"
+_SIDEBAR_TEXT = "#182F43"
+_SIDEBAR_MUTED_TEXT = "#526A7D"
+_SIDEBAR_ACTIVE = "#12618D"
+_SIDEBAR_ACTIVE_BACKGROUND = "#E7F3F9"
 
 
 class ContentScrollArea(QScrollArea):
@@ -88,7 +94,7 @@ class CurrentPageStack(QStackedWidget):
 
 
 class AppShell(QWidget):
-    """Fixed-sidebar shell with route-driven page presentation."""
+    """Route-driven shell with a sidebar on business pages only."""
 
     def __init__(
         self,
@@ -124,7 +130,8 @@ class AppShell(QWidget):
         root_layout = QHBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
-        root_layout.addWidget(self._build_sidebar())
+        self._sidebar = self._build_sidebar()
+        root_layout.addWidget(self._sidebar)
         root_layout.addWidget(self._build_main_content(), 1)
 
         for item in view_model.navigation:
@@ -138,6 +145,8 @@ class AppShell(QWidget):
                     record_repository=self.record_repository,
                     project_service=self.project_service,
                     calculation_use_case=self.calculation_use_case,
+                    logo_path=self._logo_path,
+                    icon_directory=self._icon_directory,
                 )
             else:
                 page = self._page_factory(item.route, view_model, self.navigate, self)
@@ -226,6 +235,26 @@ class AppShell(QWidget):
         sidebar = QFrame(self)
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(SIDEBAR_WIDTH)
+        sidebar.setStyleSheet(
+            f"""
+            QFrame#sidebar {{ background: {_SIDEBAR_BACKGROUND}; }}
+            QWidget#brandArea, QLabel#brandLogo, QLabel#sidebarProductName {{ background: transparent; }}
+            QLabel#sidebarProductName {{ color: {_SIDEBAR_TEXT}; font-size: 16px; font-weight: 600; }}
+            QPushButton#navButton {{
+                background: transparent; border: 1px solid transparent; border-radius: {NAV_ITEM_RADIUS}px;
+                color: {_SIDEBAR_MUTED_TEXT}; font-size: 14px; font-weight: 400;
+                padding: 0 12px; text-align: left;
+            }}
+            QPushButton#navButton:hover {{ background: #F1F7FC; color: {_SIDEBAR_TEXT}; }}
+            QPushButton#navButton:checked {{
+                background: {_SIDEBAR_ACTIVE_BACKGROUND}; border-left: 3px solid {_SIDEBAR_ACTIVE};
+                color: {_SIDEBAR_ACTIVE}; font-weight: 600; padding-left: 9px;
+            }}
+            QPushButton#navButton:focus {{ border: 1px solid {_SIDEBAR_ACTIVE}; }}
+            QPushButton#navButton[reserved="true"] {{ color: #98A2B3; }}
+            QPushButton#navButton[reserved="true"]:hover {{ background: #F1F7FC; color: #98A2B3; }}
+            """
+        )
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
@@ -277,7 +306,7 @@ class AppShell(QWidget):
             button.setIcon(
                 load_tinted_icon(
                     self._icon_directory / f"{item.icon_name}.svg",
-                    SIDEBAR_ICON_INACTIVE,
+                    _SIDEBAR_MUTED_TEXT,
                 )
             )
             button.setIconSize(QSize(18, 18))
@@ -348,6 +377,7 @@ class AppShell(QWidget):
         page = self._pages.get(route)
         if page is None:
             return
+        self._sidebar.setVisible(route is not AppRoute.HOME)
         self.page_stack.setCurrentWidget(page)
         for item_route, button in self._navigation_buttons.items():
             is_active = item_route is route
@@ -355,9 +385,13 @@ class AppShell(QWidget):
             button.setIcon(
                 load_tinted_icon(
                     self._icon_directory / f"{self._icon_names[item_route]}.svg",
-                    SIDEBAR_ICON_ACTIVE if is_active else SIDEBAR_ICON_INACTIVE,
+                    _SIDEBAR_ACTIVE if is_active else _SIDEBAR_MUTED_TEXT,
                 )
             )
+        if route is AppRoute.HOME:
+            refresh_home = getattr(page, "refresh_recent_records", None)
+            if callable(refresh_home):
+                refresh_home()
         self.update_content_geometry()
         self._reset_content_scroll_position()
         QTimer.singleShot(0, self._settle_route_layout)

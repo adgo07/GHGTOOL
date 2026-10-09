@@ -1,0 +1,129 @@
+{
+  "evidence_type": "Windows PySide6 offscreen automated",
+  "native_human_acceptance": "OPEN",
+  "requested_logical_window": [
+    1920,
+    1080
+  ],
+  "qt_scale_factor": "1.0",
+  "font": "Installed Microsoft YaHei registered for offscreen rendering",
+  "source_files_sha256": {
+    "apps/carbon_accounting_desktop/product.py": "4e4dd9247762a42bab95e16634b037d5bef902c7f86e0c7c30a49804b692e423",
+    "packages/ui/shell.py": "51998e0915ba76cbf654ee75a3e5086155312f5890c8c29372354560401113e7",
+    "packages/ui/pages.py": "0a453c571a04879a2a1c8067973fa848d9eea103fd4283afe47bceeb33b51a4f",
+    "packages/ui/view_models.py": "cfc74b73f1a6ae9b84e1bf4386601dcc63ae1660a2a6d3193f8d584f14f8b891",
+    "packages/ui/catalog_pages.py": "e8c98cadb7477fe5ed481b620b56bae2b4cdac5bb7fb91e8ebcb3b22550689aa"
+  },
+  "captures": [
+    {
+      "file": "1920x1080-100-home.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1920x1080-100-standards.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1920x1080-100-standard-detail.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1920x1080-100-standards-empty.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    }
+  ],
+  "checks": [
+    {
+      "name": "启动首页无侧栏",
+      "passed": true
+    },
+    {
+      "name": "业务页显示侧栏",
+      "passed": true
+    },
+    {
+      "name": "标准列表五列",
+      "passed": true
+    },
+    {
+      "name": "真实目录关键词检索",
+      "passed": true
+    },
+    {
+      "name": "名称进入正确详情",
+      "passed": true
+    },
+    {
+      "name": "详情连续三分区",
+      "passed": true
+    },
+    {
+      "name": "返回保留查询和选中",
+      "passed": true
+    },
+    {
+      "name": "编号键盘进入正确详情",
+      "passed": true
+    },
+    {
+      "name": "无搜索结果真实空状态",
+      "passed": true
+    },
+    {
+      "name": "factors切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "records切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "excel_import切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "home切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "new_accounting切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "界面核查未生成正式记录",
+      "passed": true
+    }
+  ]
+}
