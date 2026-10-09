@@ -289,6 +289,63 @@ class UAT03RuleTests(unittest.TestCase):
         self.assertEqual(rule.evidence_source_id, "EVID-32151-34-PDF-2024-LOCAL")
         self.assertEqual(rule.confirmation_id, "GHG-STD-32151-34-007")
 
+    def test_nonfossil_without_any_proof_passes_formal_calculator_and_keeps_trace(self) -> None:
+        """Project decision 007: proof upload is not a software calculation gate.
+
+        This does not state that GB/T 32151.34 waives underlying documentation.
+        Only the independently registered zero factor can be used.
+        """
+        detail = ElectricityConsumptionDetail(
+            "power.nonfossil.proof-none",
+            "enterprise.uat03",
+            STANDARD_ID,
+            PERIOD,
+            "2",
+            "MWh",
+            ElectricityAcquisitionMode.PURCHASED,
+            ElectricityAttribute.NONFOSSIL,
+            proof_type=ElectricityProofType.NONE,
+            proof_status=ElectricityProofStatus.NOT_PROVIDED,
+        )
+        resolution = self.resolver.resolve_electricity_details(
+            (detail,), snapshot_at=SNAPSHOT_AT
+        )[0]
+        self.assertFalse(resolution.blocked, resolution.problems)
+        self.assertIsNotNone(resolution.snapshot)
+        self.assertEqual(
+            resolution.snapshot.factor_id,
+            "electricity_nonfossil_zero_gbt32151_34_2024",
+        )
+
+        input_value = CarbonMaterialInput(
+            "input.nonfossil.proof-none",
+            "enterprise.uat03",
+            None,
+            PERIOD,
+            boundary_confirmed=True,
+            electricity_details=(detail,),
+        )
+        outcome = CarbonMaterialCalculator(parameter_resolver=self.resolver).calculate(
+            input_value, calculated_at=SNAPSHOT_AT
+        )
+
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertEqual(outcome.result.total_amount, Decimal("0"))
+        self.assertTrue(any(
+            snapshot.factor_id == "electricity_nonfossil_zero_gbt32151_34_2024"
+            for snapshot in outcome.parameter_snapshots
+        ))
+        self.assertFalse(any(
+            problem.code in {
+                "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE",
+                "GEN-VAL-NONFOSSIL-EVIDENCE",
+            }
+            for problem in outcome.problems
+        ))
+        # Selection-rule behaviour changed under G06.2, even though Numeric
+        # conformance formula vectors stay unchanged.
+        self.assertIn("G06.2", outcome.algorithm_version)
+
     def test_unbound_provincial_factors_are_not_candidates_for_any_region(self) -> None:
         provincial_assets = {
             item.asset_id
