@@ -12,7 +12,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from packages.application import CatalogQueryService, ProjectWorkspaceService
 from packages.application.carbon_accounting import CarbonAccountingUseCase, create_g06_parameter_resolver
@@ -31,11 +31,13 @@ from packages.standards.carbon_material import (
     EmissionSourceStatus,
     FGDInput,
     HeatFactorMode,
+    MaterialBasis,
+    MaterialComponentKind,
     FuelPath,
     FuelType,
     ParameterSourceKind,
 )
-from packages.standards.carbon_material_normalization import MaterialRole
+from packages.standards.carbon_material_normalization import MaterialDataSource, MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from tests.ui_tree_helpers import tree_texts
 
@@ -80,11 +82,49 @@ class AccountingProjectUiTests(unittest.TestCase):
         )
 
     def _enable_fuel(self) -> None:
-        action = self.page.findChild(QPushButton, f"sourceCardAction_{F01}")
-        self.assertIsNotNone(action)
-        assert action is not None
-        action.click()
+        toggle = self.page.findChild(QPushButton, "sourceToggle_fuel")
+        self.assertIsNotNone(toggle)
+        assert toggle is not None
+        toggle.click()
         self.assertTrue(self.page._source_is_enabled(F01))
+
+    def _fill_custom_fuel(self, row, activity: str, source_reference: str) -> None:
+        row.fuel_type.setEditText("企业自定义燃料")
+        row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
+        row.activity.setText(activity)
+        row.carbon_direct.setText("0.2")
+        row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
+        row.oxidation.setText("98")
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.source_reference.setText(source_reference)
+
+    def test_project_unit_controls_expand_and_expose_save_and_unit_management(self) -> None:
+        toggle = self.page.findChild(QPushButton, "projectUnitControlsToggle")
+        card = self.page.findChild(QWidget, "projectUnitControlsCard")
+        self.assertIsNotNone(toggle)
+        self.assertIsNotNone(card)
+        assert toggle is not None and card is not None
+        self.page.resize(1200, 900)
+        self.page.show()
+        self.application.processEvents()
+        self.assertGreaterEqual(self.page.body_layout.indexOf(toggle), 0)
+        self.assertGreaterEqual(self.page.body_layout.indexOf(card), 0)
+        self.assertIs(card.parentWidget(), self.page)
+        self.assertTrue(card.isHidden())
+        toggle.click()
+        self.application.processEvents()
+        self.assertFalse(card.isHidden())
+        self.assertGreater(card.geometry().y(), toggle.geometry().y())
+        for object_name in (
+            "saveAccountingProjectButton",
+            "accountingUnitSelector",
+            "manageProcessInstancesButton",
+        ):
+            control = self.page.findChild(QWidget, object_name)
+            self.assertIsNotNone(control, object_name)
+            assert control is not None
+            self.assertFalse(control.isHidden(), object_name)
 
     def test_legacy_project_without_carbonate_selection_opens_and_blocks_recalculation(self) -> None:
         self.page.project_name.setText("旧版脱硫项目")
@@ -155,9 +195,9 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIn("活动量（10⁴ Nm³）", row.activity_label.text())
         self.assertIn("低位发热量（GJ/10⁴ Nm³）", row.lhv_label.text())
         self.assertIn("单位热值含碳量（tC/GJ）", row.carbon_label.text())
-        self.assertEqual(row.activity.placeholderText(), "")
+        self.assertEqual(row.activity.placeholderText(), "活动量")
         self.assertEqual(row.oxidation.text(), "99.00")
-        self.assertIn("标准缺省参数", row.parameter_summary.text())
+        self.assertIn("C.1 缺省参数已按核算期从参数库解析。", row.parameter_summary.text())
         fuel = self.page._fuel()[0]
         self.assertEqual(fuel.carbon_content.parameter_id, "natural_gas_carbon_content")
         self.assertEqual(str(fuel.carbon_content.value), row.carbon.text())
@@ -176,6 +216,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(self.records.list_all(), ())
 
         fuel = self.page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findText("天然气"))
         fuel.activity.setText("10")
         self.page.calculate_button.click()
         self.application.processEvents()
@@ -252,49 +293,31 @@ class AccountingProjectUiTests(unittest.TestCase):
 
     def test_electricity_rows_keep_stable_identity_through_delete_switch_and_reopen(self) -> None:
         self.page.project_name.setText("多条电力项目")
-        self.page._add_electricity_row()
-        self.page._add_electricity_row()
-        middle = self.page._electricity_rows[1]
-        self.page._remove_electricity_row(middle)
-        self.page._add_electricity_row()
+        rows = self.page._energy_family_rows["electricity"]
+        middle = self.page._add_unified_energy_row(kind="purchased_electricity", line_id="electricity-b")
+        self.page._add_unified_energy_row(kind="purchased_electricity", line_id="electricity-c")
+        self.page._remove_unified_energy_row(middle)
+        self.page._add_unified_energy_row(kind="purchased_electricity", line_id="electricity-d")
         expected = (
-            (
-                "electricity-a",
-                "11",
-                ElectricityAcquisitionMode.PURCHASED,
-                ElectricityAttribute.ORDINARY,
-                ElectricityProofType.NONE,
-                ElectricityProofStatus.NOT_PROVIDED,
-            ),
-            (
-                "electricity-c",
-                "33",
-                ElectricityAcquisitionMode.SELF_CONSUMED,
-                ElectricityAttribute.NONFOSSIL,
-                ElectricityProofType.MONTHLY_ORIGINAL_RECORD,
-                ElectricityProofStatus.VALID,
-            ),
-            (
-                "electricity-d",
-                "44",
-                ElectricityAcquisitionMode.PURCHASED,
-                ElectricityAttribute.NONFOSSIL,
-                ElectricityProofType.GEC,
-                ElectricityProofStatus.VALID,
-            ),
+            ("electricity-a", "11", ElectricityAttribute.ORDINARY),
+            ("electricity-c", "33", ElectricityAttribute.NONFOSSIL),
+            ("electricity-d", "44", "SELF_CONSUMED_EXCLUDED"),
         )
-        for row, values in zip(self.page._electricity_rows, expected):
-            detail_id, amount, acquisition, attribute, proof_type, proof_status = values
-            row.detail_id.setText(detail_id)
+        for row, (line_id, amount, attribute) in zip(rows, expected):
+            row.line_id.setText(line_id)
             row.amount.setText(amount)
-            row.acquisition.setCurrentIndex(row.acquisition.findData(acquisition))
             row.attribute.setCurrentIndex(row.attribute.findData(attribute))
-            row.proof_type.setCurrentIndex(row.proof_type.findData(proof_type))
-            row.proof_status.setCurrentIndex(row.proof_status.findData(proof_status))
-        row_keys = [row.row_key for row in self.page._electricity_rows]
+        row_keys = [row.row_key for row in rows]
         self.assertEqual(len(set(row_keys)), 3)
-        self.assertEqual(len({row.objectName() for row in self.page._electricity_rows}), 3)
 
+        toggle = self.page.findChild(QPushButton, "sourceToggle_electricity")
+        self.assertIsNotNone(toggle)
+        assert toggle is not None
+        toggle.click()
+        self.assertEqual(
+            [item.detail_id for item in self.page._electricity("enterprise.project", self.page._period())],
+            ["electricity-a", "electricity-c"],
+        )
         first_unit_id = self.page._unit().unit_id
         with (
             patch("packages.ui.carbon_material_page.QInputDialog.getItem", return_value=("生产工序", True)),
@@ -311,72 +334,94 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page._open_selected_project()
         first_index = self.page.unit_selector.findData(first_unit_id)
         self.page.unit_selector.setCurrentIndex(first_index)
-        self.assertEqual([row.row_key for row in self.page._electricity_rows], row_keys)
+        rows = self.page._energy_family_rows["electricity"]
+        self.assertEqual([row.row_key for row in rows], row_keys)
         actual = tuple(
-            (
-                row.detail_id.text(),
-                row.amount.text(),
-                row.acquisition.currentData(),
-                row.attribute.currentData(),
-                row.proof_type.currentData(),
-                row.proof_status.currentData(),
-            )
-            for row in self.page._electricity_rows
+            (row.line_id.text(), row.amount.text(), row.attribute.currentData())
+            for row in rows
         )
         self.assertEqual(actual, expected)
-        self.assertEqual(len({row.detail_id.text() for row in self.page._electricity_rows}), 3)
-
+        self.assertEqual(
+            [item.detail_id for item in self.page._electricity("enterprise.project", self.page._period())],
+            ["electricity-a", "electricity-c"],
+        )
     def test_multi_process_and_energy_lines_keep_identity_after_project_reopen(self) -> None:
         self.page.project_name.setText("多实例项目")
         self.page.enterprise_name.setText("多实例企业")
         self.page.boundary_confirmed.setChecked(True)
-        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
-            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
-        )
+        calcination_toggle = self.page.findChild(QPushButton, "sourceToggle_calcination")
+        heat_toggle = self.page.findChild(QPushButton, "sourceToggle_heat")
+        electricity_toggle = self.page.findChild(QPushButton, "sourceToggle_electricity")
+        assert calcination_toggle is not None and heat_toggle is not None and electricity_toggle is not None
+        calcination_toggle.click()
+
+        def fill_calcination(row, suffix: str, mass: str) -> tuple[str, str]:
+            feed, = row["materials"]
+            feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+            feed["name"].setText(f"原料{suffix}")
+            feed["mass"].setText(mass)
+            feed["fixed_carbon"].setText("50")
+            feed["volatile_matter"].setText("10")
+            product = self.page._add_material_line(row)
+            product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+            product["name"].setText(f"煅后料{suffix}")
+            product["mass"].setText("70")
+            product["fixed_carbon"].setText("25")
+            product["volatile_matter"].setText("2")
+            return feed["line_id"], product["line_id"]
+
         first, = self.page._process_rows["calcination"]
-        first["fields"]["gc"].setText("100")
+        first_feed, first_product = fill_calcination(first, "甲", "100")
         second = self.page._add_process_row("calcination")
-        second["fields"]["gc"].setText("200")
+        fill_calcination(second, "乙", "200")
         third = self.page._add_process_row("calcination")
-        third["fields"]["gc"].setText("300")
+        third_feed, third_product = fill_calcination(third, "丙", "300")
         first_id = str(first["instance_id"])
         third_id = str(third["instance_id"])
         self.page._remove_process_row("calcination", str(second["instance_id"]))
 
-        self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].setCurrentIndex(
-            self.page._source_statuses["CAR-SRC-PURCHASED-HEAT-001"].findData(EmissionSourceStatus.INVOLVED)
-        )
-        self.page._fields["heat_id"].setText("heat-source-a")
-        self.page._fields["heat_amount"].setText("10")
-        first_heat = self.page._heat_rows["heat"][0]
-        first_heat["factor_mode"].setCurrentIndex(first_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
-        self.page.heat_measured_factor.setText("0.11")
-        self.page.heat_factor_source_reference.setText("热力实测-A")
-        second_heat = self.page._add_heat_row("heat", line_id="heat-source-b")
-        second_heat["amount"].setText("20")
-        second_heat["factor_mode"].setCurrentIndex(second_heat["factor_mode"].findData(HeatFactorMode.MEASURED))
-        second_heat["measured"].setText("0.20")
-        second_heat["source"].setText("热力实测-B")
+        heat_toggle.click()
+        first_heat = self.page._energy_family_rows["heat"][0]
+        first_heat.line_id.setText("heat-source-a")
+        first_heat.amount.setText("10")
+        first_heat.enthalpy_mode.setCurrentIndex(first_heat.enthalpy_mode.findData("MANUAL"))
+        first_heat.enthalpy.setText("2800")
+        first_heat.heat_factor_mode.setCurrentIndex(first_heat.heat_factor_mode.findData(HeatFactorMode.MEASURED))
+        first_heat.measured_heat_factor.setText("0.11")
+        first_heat.heat_source.setText("热力实测-A")
+        second_heat = self.page._add_unified_energy_row(kind="purchased_heat", line_id="heat-source-b")
+        second_heat.amount.setText("20")
+        second_heat.enthalpy_mode.setCurrentIndex(second_heat.enthalpy_mode.findData("MANUAL"))
+        second_heat.enthalpy.setText("2900")
+        second_heat.heat_factor_mode.setCurrentIndex(second_heat.heat_factor_mode.findData(HeatFactorMode.MEASURED))
+        second_heat.measured_heat_factor.setText("0.20")
+        second_heat.heat_source.setText("热力实测-B")
 
-        self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"].setCurrentIndex(
-            self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"].findData(EmissionSourceStatus.INVOLVED)
-        )
-        self.page._output_electricity_rows[0]["id"].setText("power-source-a")
-        self.page._output_electricity_rows[0]["amount"].setText("5")
-        self.page._output_electricity_rows[0]["measured"].setText("0.50")
-        self.page._output_electricity_rows[0]["source"].setText("电力实测-A")
-        second_power = self.page._add_output_electricity_row(line_id="power-source-b")
-        second_power["amount"].setText("8")
-        second_power["measured"].setText("0.25")
-        second_power["source"].setText("电力实测-B")
+        electricity_toggle.click()
+        first_power = self.page._add_unified_energy_row(kind="exported_electricity", line_id="power-source-a")
+        first_power.amount.setText("5")
+        first_power.factor_mode.setCurrentIndex(first_power.factor_mode.findData("MANUAL"))
+        first_power.manual_factor.setText("0.50")
+        first_power.electricity_source.setText("电力实测-A")
+        second_power = self.page._add_unified_energy_row(kind="exported_electricity", line_id="power-source-b")
+        second_power.amount.setText("8")
+        second_power.factor_mode.setCurrentIndex(second_power.factor_mode.findData("MANUAL"))
+        second_power.manual_factor.setText("0.25")
+        second_power.electricity_source.setText("电力实测-B")
         self.assertTrue(self.page._save_project())
         project_id = self.page._workspace.project_id
         saved_workspace = self.project_service.get(project_id)
         self.assertIsNotNone(saved_workspace)
         assert saved_workspace is not None
         saved_state = saved_workspace.units[0].form_state
-        self.assertEqual(saved_state.get("heat_line_ids", {}).get("heat"), ["heat-source-a", "heat-source-b"])
-        self.assertEqual(saved_state.get("heatAmount_heat-source-b"), "20")
+        self.assertEqual(
+            [item["line_id"] for item in saved_state["energy_rows"] if item["kind"] == "purchased_heat"],
+            ["heat-source-a", "heat-source-b"],
+        )
+        self.assertEqual(
+            [item["line_id"] for item in saved_state["energy_rows"] if item["kind"] == "exported_electricity"],
+            ["power-source-a", "power-source-b"],
+        )
 
         self.page.close()
         self.page.deleteLater()
@@ -389,18 +434,135 @@ class AccountingProjectUiTests(unittest.TestCase):
 
         restored_processes = self.page._process_rows["calcination"]
         self.assertEqual([str(row["instance_id"]) for row in restored_processes], [first_id, third_id])
-        self.assertEqual([row["fields"]["gc"].text() for row in restored_processes], ["100", "300"])
+        self.assertEqual(
+            [row["materials"][0]["line_id"] for row in restored_processes],
+            [first_feed, third_feed],
+        )
+        self.assertEqual(
+            [row["materials"][0]["mass"].text() for row in restored_processes], ["100", "300"]
+        )
         domain_input = self.page._input()
         self.assertEqual([item.instance_id for item in domain_input.calcinations], [first_id, third_id])
-        self.assertEqual([str(item.gc.value) for item in domain_input.calcinations], ["100", "300"])
         self.assertEqual(
-            [item.line_id for item in domain_input.purchased_heat], ["heat-source-a", "heat-source-b"],
-            f"rows={[(row['id'].text(), row['amount'].text()) for row in self.page._heat_rows['heat']]}",
+            [item.material_rows[0].line_id for item in domain_input.calcinations], [first_feed, third_feed]
         )
+        self.assertEqual([item.line_id for item in domain_input.purchased_heat], ["heat-source-a", "heat-source-b"])
         self.assertEqual([str(item.factor.value) for item in domain_input.purchased_heat], ["0.11", "0.20"])
         self.assertEqual([item.line_id for item in domain_input.exported_electricity], ["power-source-a", "power-source-b"])
         self.assertEqual([str(item.factor.value) for item in domain_input.exported_electricity], ["0.50", "0.25"])
         self.assertEqual(self.page._add_process_row("calcination")["instance_id"], "calcination-4")
+    def test_legacy_dry_material_basis_and_evidence_round_trip_project_to_record(self) -> None:
+        self.page.project_name.setText("历史干基项目")
+        self.page.enterprise_name.setText("历史干基企业")
+        self.page.boundary_confirmed.setChecked(True)
+        self.page._source_statuses["CAR-SRC-CALCINATION-001"].setCurrentIndex(
+            self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
+        )
+        process_row = self.page._process_rows["calcination"][0]
+        feed, = process_row["materials"]
+        product = self.page._add_material_line(process_row)
+        for material, role, name, mass, fixed, volatile in (
+            (feed, MaterialRole.CALCINATION_FEED, "历史干基原料", "120", "82", "8"),
+            (product, MaterialRole.CALCINED_PRODUCT, "历史干基产品", "100", "95", "2"),
+        ):
+            material["role"].setCurrentIndex(material["role"].findData(role))
+            for field, value in (("name", name), ("mass", mass), ("fixed_carbon", fixed), ("volatile_matter", volatile)):
+                material[field].setText(value)
+        feed["fixed_carbon_source"].setCurrentIndex(
+            feed["fixed_carbon_source"].findData(MaterialDataSource.CHEMICAL_CALCULATION)
+        )
+        product["volatile_matter_source"].setCurrentIndex(
+            product["volatile_matter_source"].findData(MaterialDataSource.CHEMICAL_CALCULATION)
+        )
+        feed_id, product_id = feed["line_id"], product["line_id"]
+        controls = self.page._material_controls["calcination"]
+        for field, value in (
+            ("mass_basis", MaterialBasis.DRY),
+            ("composition_basis", MaterialBasis.DRY),
+            ("normalized_basis", MaterialBasis.RECEIVED),
+            ("fixed_carbon_component_kind", MaterialComponentKind.FIXED_CARBON),
+            ("volatile_matter_component_kind", MaterialComponentKind.VOLATILE_MATTER),
+        ):
+            controls[field].setCurrentIndex(controls[field].findData(value))
+        controls["moisture_evidence"].setChecked(True)
+        controls["conversion_evidence"].setChecked(True)
+        controls["evidence_reference"].setText("旧项目水分及换算依据记录")
+
+        self.assertTrue(self.page._save_project())
+        project_id = self.page._workspace.project_id
+        saved = self.project_service.get(project_id)
+        self.assertIsNotNone(saved)
+        assert saved is not None
+        saved_state = saved.units[0].form_state
+        self.assertEqual(saved_state[controls["mass_basis"].objectName()], controls["mass_basis"].currentIndex())
+        self.assertEqual(saved_state[controls["composition_basis"].objectName()], controls["composition_basis"].currentIndex())
+        self.assertEqual(saved_state[controls["normalized_basis"].objectName()], controls["normalized_basis"].currentIndex())
+        self.assertEqual(saved_state[controls["fixed_carbon_component_kind"].objectName()], controls["fixed_carbon_component_kind"].currentIndex())
+        self.assertEqual(saved_state[controls["volatile_matter_component_kind"].objectName()], controls["volatile_matter_component_kind"].currentIndex())
+        self.assertEqual(saved_state["calcination_materialFixedCarbonSource_" + feed_id], feed["fixed_carbon_source"].currentIndex())
+        self.assertEqual(saved_state["calcination_materialVolatileSource_" + product_id], product["volatile_matter_source"].currentIndex())
+        self.assertEqual(saved_state[controls["moisture_evidence"].objectName()], True)
+        self.assertEqual(saved_state[controls["conversion_evidence"].objectName()], True)
+        self.assertEqual(saved_state[controls["evidence_reference"].objectName()], "旧项目水分及换算依据记录")
+
+        self.page.close()
+        self.page.deleteLater()
+        self.application.processEvents()
+        self.page = self._new_page()
+        saved_index = self.page.saved_projects.findData(project_id)
+        self.assertGreaterEqual(saved_index, 0)
+        self.page.saved_projects.setCurrentIndex(saved_index)
+        self.page._open_selected_project()
+
+        reopened_controls = self.page._material_controls["calcination"]
+        self.assertEqual(reopened_controls["mass_basis"].currentData(), MaterialBasis.DRY)
+        self.assertEqual(reopened_controls["composition_basis"].currentData(), MaterialBasis.DRY)
+        self.assertEqual(reopened_controls["normalized_basis"].currentData(), MaterialBasis.RECEIVED)
+        self.assertEqual(reopened_controls["fixed_carbon_component_kind"].currentData(), MaterialComponentKind.FIXED_CARBON)
+        self.assertEqual(reopened_controls["volatile_matter_component_kind"].currentData(), MaterialComponentKind.VOLATILE_MATTER)
+        self.assertTrue(reopened_controls["moisture_evidence"].isChecked())
+        self.assertTrue(reopened_controls["conversion_evidence"].isChecked())
+        self.assertEqual(reopened_controls["evidence_reference"].text(), "旧项目水分及换算依据记录")
+
+        canonical_input = self.page._input()
+        canonical_process = canonical_input.calcinations[0]
+        self.assertIs(canonical_process.mass_basis, MaterialBasis.DRY)
+        self.assertIs(canonical_process.composition_basis, MaterialBasis.DRY)
+        self.assertIs(canonical_process.normalized_basis, MaterialBasis.RECEIVED)
+        self.assertTrue(canonical_process.moisture_evidence)
+        self.assertTrue(canonical_process.conversion_evidence)
+        self.assertEqual([line.line_id for line in canonical_process.material_rows], [feed_id, product_id])
+        self.assertEqual(
+            [(line.name, str(line.mass_t), str(line.fixed_carbon_percent), str(line.volatile_matter_percent),
+              line.fixed_carbon_source, line.volatile_matter_source)
+             for line in canonical_process.material_rows],
+            [("历史干基原料", "120", "82", "8", MaterialDataSource.CHEMICAL_CALCULATION, MaterialDataSource.MEASURED),
+             ("历史干基产品", "100", "95", "2", MaterialDataSource.MEASURED, MaterialDataSource.CHEMICAL_CALCULATION)],
+        )
+
+        self.page._run_calculation()
+        records = self.records.list_all()
+        self.assertEqual(len(records), 1, tree_texts(self.page.validation_list))
+        record = records[0]
+        raw = self.records.get_raw_input_snapshot(record.record_id)
+        self.assertIsNotNone(raw)
+        assert raw is not None
+        record_process = raw["calcinations"][0]
+        self.assertEqual(record_process["mass_basis"], canonical_process.mass_basis.value)
+        self.assertEqual(record_process["composition_basis"], canonical_process.composition_basis.value)
+        self.assertEqual(record_process["normalized_basis"], canonical_process.normalized_basis.value)
+        self.assertEqual(record_process["moisture_evidence"], canonical_process.moisture_evidence)
+        self.assertEqual(record_process["conversion_evidence"], canonical_process.conversion_evidence)
+        self.assertEqual(record_process["fixed_carbon_component_kind"], canonical_process.fixed_carbon_component_kind.value)
+        self.assertEqual(record_process["volatile_matter_component_kind"], canonical_process.volatile_matter_component_kind.value)
+        self.assertEqual(
+            [(line["line_id"], line["name"], line["mass_t"], line["fixed_carbon_percent"], line["volatile_matter_percent"],
+              line["fixed_carbon_source"], line["volatile_matter_source"])
+             for line in record_process["material_rows"]],
+            [(line.line_id, line.name, str(line.mass_t), str(line.fixed_carbon_percent), str(line.volatile_matter_percent),
+              line.fixed_carbon_source.value, line.volatile_matter_source.value)
+             for line in canonical_process.material_rows],
+        )
 
     def test_material_rows_keep_values_after_project_reopen(self) -> None:
         self.page.project_name.setText("多物料项目")
@@ -560,20 +722,23 @@ class AccountingProjectUiTests(unittest.TestCase):
     def test_measured_fuel_values_use_explicit_source_selection_and_remain_stable(self) -> None:
         self.page.project_name.setText("实测参数来源项目")
         row = self.page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
-        row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
-        row.lower_heating_value.setText("389.31")
+        row.fuel_type.setEditText("企业实测混合燃料")
+        row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
+        row.carbon_direct.setText("0.2")
+        row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         row.activity.setText("10")
-        row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
-        row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
+        row.oxidation.setText("98")
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
         row.source_reference.setText("企业检测报告-EQUAL-01")
         before_row_key = row.row_key
         before = self.page._fuel()[0]
         self.assertIs(before.carbon_content.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIn("实测值", row.parameter_summary.text())
-        self.assertEqual(self.page._capture_form_state()["fuel_rows"][0]["parameter_source"], "MEASURED")
+        self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.USER_DEFINED)
+        saved_fuel_state = self.page._capture_form_state()["fuel_rows"][0]
+        self.assertEqual(saved_fuel_state["carbon_direct"], "0.2")
+        self.assertEqual(saved_fuel_state["oxidation"], "98")
+        self.assertEqual(saved_fuel_state["carbon_basis"], row.carbon_basis.currentIndex())
         self.assertTrue(self.page._save_project())
 
         self.page.close()
@@ -585,11 +750,13 @@ class AccountingProjectUiTests(unittest.TestCase):
         after = self.page._fuel()[0]
         self.assertEqual(restored_row.row_key, before_row_key)
         self.assertEqual(restored_row.source_reference.text(), "企业检测报告-EQUAL-01")
-        self.assertEqual(restored_row.parameter_source, "MEASURED")
+        restored_fuel_state = self.page._capture_form_state()["fuel_rows"][0]
+        self.assertEqual(restored_fuel_state["carbon_direct"], "0.2")
+        self.assertEqual(restored_fuel_state["oxidation"], "98")
         self.assertEqual(after.carbon_content.parameter_id, before.carbon_content.parameter_id)
         self.assertEqual(after.oxidation_rate.parameter_id, before.oxidation_rate.parameter_id)
         self.assertIs(after.carbon_content.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(after.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
+        self.assertIs(after.oxidation_rate.source_kind, ParameterSourceKind.USER_DEFINED)
 
     def test_changed_input_marks_result_stale_after_switch_save_and_reopen(self) -> None:
         self.page.project_name.setText("结果过期项目")
@@ -597,10 +764,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._enable_fuel()
         fuel = self.page._fuel_rows[0]
-        fuel.activity.setText("10")
-        fuel.carbon.setText("0.2")
-        fuel.oxidation.setText("98")
-        fuel.source_reference.setText("结果过期检测报告")
+        self._fill_custom_fuel(fuel, "10", "结果过期检测报告")
         self.page._run_calculation()
         self.assertEqual(len(self.records.list_all()), 1)
         first_unit_id = self.page._unit().unit_id
@@ -635,10 +799,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._enable_fuel()
         fuel = self.page._fuel_rows[0]
-        fuel.activity.setText("10")
-        fuel.carbon.setText("0.2")
-        fuel.oxidation.setText("98")
-        fuel.source_reference.setText("报告资料变化测试燃料实测报告")
+        self._fill_custom_fuel(fuel, "10", "报告资料变化测试燃料实测报告")
         self.page.reporting_fields["industry"].setText("首次填写行业")
         self.page._run_calculation()
         first_record = self.records.list_all()[0]
@@ -680,10 +841,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._enable_fuel()
         fuel = self.page._fuel_rows[0]
-        fuel.activity.setText("10")
-        fuel.carbon.setText("0.2")
-        fuel.oxidation.setText("98")
-        fuel.source_reference.setText("完成单元检测报告")
+        self._fill_custom_fuel(fuel, "10", "完成单元检测报告")
         self.page._run_calculation()
         self.assertEqual(len(self.records.list_all()), 1)
 

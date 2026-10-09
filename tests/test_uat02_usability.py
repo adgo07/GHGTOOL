@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -61,7 +61,8 @@ class UAT02UsabilityTests(unittest.TestCase):
 
     def test_closed_selectors_and_year_do_not_consume_page_wheel(self) -> None:
         row = self.page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+        natural_gas = row.fuel_type.findData(FuelType.NATURAL_GAS)
+        row.fuel_type.setCurrentIndex(natural_gas)
         scrollbar = self.shell.main_scroll_area.verticalScrollBar()
         scrollbar.setValue(min(200, scrollbar.maximum()))
         before_scroll = scrollbar.value()
@@ -84,9 +85,16 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.page.period_year.setFocus()
         QTest.keyClick(self.page.period_year, Qt.Key.Key_Up)
         self.assertEqual(self.page.period_year.value(), year + 1)
-        row.fuel_type.setFocus()
-        QTest.keyClick(row.fuel_type, Qt.Key.Key_Down)
-        self.assertNotEqual(row.fuel_type.currentData(), before_fuel)
+
+        # The V2 fuel selector is searchable and accepts a concrete custom
+        # name in its editable text field; choosing a Catalog option remains
+        # an explicit popup action.
+        line_edit = row.fuel_type.lineEdit()
+        self.assertIsNotNone(line_edit)
+        assert line_edit is not None
+        line_edit.setText("测试燃料")
+        self.assertEqual(row.fuel_type.currentText(), "测试燃料")
+        row.fuel_type.setCurrentIndex(natural_gas)
         before_popup = row.fuel_type.currentIndex()
         row.fuel_type.showPopup()
         self.application.processEvents()
@@ -94,10 +102,8 @@ class UAT02UsabilityTests(unittest.TestCase):
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Down)
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Return)
         self.assertNotEqual(row.fuel_type.currentIndex(), before_popup)
-
     def test_twenty_dynamic_rows_expand_and_shrink_scroll_host(self) -> None:
-        source = self.page._source_statuses["CAR-SRC-FUEL-001"]
-        source.setCurrentIndex(source.findData(EmissionSourceStatus.INVOLVED))
+        self.page._source_toggle_buttons["fuel"].click()
         self.application.processEvents()
         baseline = self.shell.scroll_host.height()
         for _ in range(20):
@@ -124,42 +130,49 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertFalse(button.isHidden())
 
     def test_blank_enterprise_factor_source_warns_but_missing_value_blocks(self) -> None:
-        source = self.page._source_statuses["CAR-SRC-FUEL-001"]
-        source.setCurrentIndex(source.findData(EmissionSourceStatus.INVOLVED))
+        toggle = self.page.findChild(QPushButton, "sourceToggle_fuel")
+        self.assertIsNotNone(toggle)
+        assert toggle is not None
+        toggle.click()
         row = self.page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
-        row.custom_name.setText("测试燃料")
+        row.fuel_type.setEditText("测试燃料")
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
         self.page._run_calculation()
         self.assertTrue(self.page.result_card.isHidden())
         self.assertIn("未完成：请修正", self.page.calculation_status_hint.text())
         self.assertIn("单位含碳量", "\n".join(tree_texts(self.page.validation_list)))
-        row.carbon.setText("0.02")
+        row.carbon_direct.setText("0.02")
         row.oxidation.setText("98")
-        for combo in (row.carbon_source, row.oxidation_source):
-            combo.setCurrentIndex(combo.findData("MEASURED"))
+        row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
         record = self.page.record_repository.list_all()[0]
         self.assertEqual(record.status.value, "COMPLETED_WITH_WARNINGS")
-        self.assertTrue(any(snapshot.source_id is None for snapshot in record.parameter_snapshots))
+        self.assertTrue(any(
+            snapshot.parameter_id.endswith("direct_carbon") and snapshot.source_id is None
+            for snapshot in record.parameter_snapshots
+        ))
         self.assertEqual(row.source_reference.text(), "")
 
     def test_failed_calculation_focuses_the_specific_fuel_field(self) -> None:
-        source = self.page._source_statuses["CAR-SRC-FUEL-001"]
-        source.setCurrentIndex(source.findData(EmissionSourceStatus.INVOLVED))
+        toggle = self.page.findChild(QPushButton, "sourceToggle_fuel")
+        self.assertIsNotNone(toggle)
+        assert toggle is not None
+        toggle.click()
         row = self.page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
-        row.custom_name.setText("测试燃料")
+        row.fuel_type.setEditText("测试燃料")
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
         self.page.quick_calculate_button.click()
         self.application.processEvents()
         self.application.processEvents()
         self.assertTrue(self.page._source_cards["CAR-SRC-FUEL-001"].is_expanded)
         self.assertIn("未完成：请修正", self.page.calculation_status_hint.text())
-        self.assertIs(self.application.focusWidget(), row.carbon)
+        self.assertIs(self.application.focusWidget(), row.carbon_direct)
         self.assertEqual(self.page.record_repository.list_all(), ())
 
     def test_small_display_value_is_not_zeroed_or_written_to_input(self) -> None:

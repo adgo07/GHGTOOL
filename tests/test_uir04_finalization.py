@@ -12,23 +12,17 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QComboBox, QLineEdit, QWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import CatalogQueryService
-from packages.core import (
-    ElectricityAcquisitionMode,
-    ElectricityAttribute,
-    EmissionSourceSelection,
-)
+from packages.core import EmissionSourceSelection
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import (
-    CarbonMaterialCalculator,
-    EmissionSourceStatus,
-)
+from packages.standards.carbon_material import CarbonMaterialCalculator, EmissionSourceStatus, FuelPath
 from packages.persistence.in_memory_records import InMemoryRecordRepository
+from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
@@ -78,29 +72,40 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.window.close()
         self.application.processEvents()
 
-    def _status(self, source_id: str) -> QComboBox:
-        combo = self.page.findChild(QComboBox, f"sourceStatus_{source_id}")
-        self.assertIsNotNone(combo)
-        assert combo is not None
-        return combo
-
     def _involve(self, source_id: str) -> None:
-        combo = self._status(source_id)
-        combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
+        group_by_source = {
+            "CAR-SRC-FUEL-001": "fuel",
+            "CAR-SRC-CALCINATION-001": "calcination",
+            "CAR-SRC-BAKING-001": "baking",
+            "CAR-SRC-GRAPHITIZATION-001": "graphitization",
+            "CAR-SRC-FUME-INCINERATION-001": "fume",
+            "CAR-SRC-FGD-001": "fgd",
+            "CAR-SRC-PURCHASED-ELECTRICITY-001": "electricity",
+            "CAR-SRC-EXPORTED-ELECTRICITY-001": "electricity",
+            "CAR-SRC-PURCHASED-HEAT-001": "heat",
+            "CAR-SRC-EXPORTED-HEAT-001": "heat",
+        }
+        if not self.page._source_is_enabled(source_id):
+            toggle = self.page.findChild(QWidget, f"sourceToggle_{group_by_source[source_id]}")
+            self.assertIsNotNone(toggle)
+            assert toggle is not None
+            toggle.click()
 
     def _set_received_calcination(self) -> None:
         self._involve(P01)
-        for field, value in {
-            "gc": "100",
-            "wfc": "50",
-            "cc": "70",
-            "ucc": "5",
-            "du": "1",
-            "wfc_c": "25",
-            "wvar": "10",
-            "wvar_c": "2",
-        }.items():
-            self.page._fields[f"calcination.{field}"].setText(value)
+        process = self.page._process_rows["calcination"][0]
+        feed, = process["materials"]
+        feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+        feed["name"].setText("煅烧原料")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("50")
+        feed["volatile_matter"].setText("10")
+        product = self.page._add_material_line(process)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("70")
+        product["fixed_carbon"].setText("25")
+        product["volatile_matter"].setText("2")
 
     def test_uncomputed_page_uses_compact_status_and_hides_empty_sections(self) -> None:
         self.assertFalse(self.page.result_card.isVisible())
@@ -125,7 +130,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.application.processEvents()
         self.assertIn("已确认排放源：1", self.page.confirmed_source_count.text())
         self.assertIn("错误：0", self.page.error_count.text())
-        self.page._fields["calcination.gc"].setText("10")
+        self.page._process_rows["calcination"][0]["materials"][0]["mass"].setText("100")
         self.application.processEvents()
         self.assertIs(
             self.page._source_cards[P01].presentation_state,
@@ -141,7 +146,9 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.enterprise_name.setText("错误定位企业")
         self.page.boundary_confirmed.setChecked(True)
         self.page.period_year.setValue(2026)
-        self.page._fields["heat_amount"].setText("1000")
+        heat_row = self.page._energy_family_rows["heat"][0]
+        heat_row.amount.setText("1")
+        heat_row.pressure.clear()
         self.page._run_calculation()
         self.application.processEvents()
 
@@ -205,7 +212,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.enterprise_name.setText("阻断结果企业")
         self.page.boundary_confirmed.setChecked(True)
         self._involve(P01)
-        self.page._fields["calcination.gc"].setText("10")
+        self.page._process_rows["calcination"][0]["materials"][0]["mass"].setText("100")
         self.page._run_calculation()
         self.application.processEvents()
         self.assertFalse(self.page.result_card.isVisible())
@@ -216,20 +223,18 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.enterprise_name.setText("结果等价企业")
         self.page.boundary_confirmed.setChecked(True)
         self._involve(F01)
-        for key, value in (
-            ("fuel_id", "natural-gas"),
-            ("fuel_activity", "10"),
-            ("fuel_carbon", "0.2"),
-            ("fuel_oxidation", "98"),
-        ):
-            self.page._fields[key].setText(value)
-        self.page.findChild(QLineEdit, "fuelSourceReference1").setText("燃料检测报告-1")
+        fuel = self.page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findText("烟煤"))
+        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.MASS))
+        fuel.activity.setText("10")
+        fuel.carbon_basis.setCurrentIndex(fuel.carbon_basis.findData("DIRECT"))
+        fuel.carbon_direct.setText("0.2")
+        fuel.source_reference.setText("燃料检测报告-1")
         self._involve(I01)
-        row = self.page._electricity_rows[0]
-        row.detail_id.setText("grid-ordinary")
+        row = self.page._energy_family_rows["electricity"][0]
+        row.line_id.setText("grid-ordinary")
         row.amount.setText("20")
-        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
-        row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
+        row.attribute.setCurrentIndex(row.attribute.findData("ORDINARY"))
         self.application.processEvents()
 
         before_input = self.page._input()
