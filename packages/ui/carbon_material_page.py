@@ -50,6 +50,8 @@ from packages.application.carbon_accounting import (
     create_g06_parameter_resolver,
 )
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.enterprise_history import list_enterprise_name_candidates
+from packages.application.uat03_parameter_queries import UAT03ParameterQueries
 from packages.application.project_workspaces import (
     AccountingUnitType,
     AccountingUnitWorkspace,
@@ -106,12 +108,19 @@ from packages.standards.carbon_material_normalization import (
     normalize_material_inputs,
 )
 from packages.core.models import AccountingPeriod, RecordStatus, ReviewStatus, ValueType
-from packages.core.parameter_resolution import ParameterResolutionContext
+from packages.core.parameter_resolution import (
+    NATIONAL_ELECTRICITY_PARAMETER_ID,
+    PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+    ParameterResolutionContext,
+    UserProvidedParameterValue,
+)
 from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
+from .report_export import export_saved_record_report
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState
+from .responsive_fields import ResponsiveFieldGrid
 from .typed_inputs import NumericLineEdit, create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
 
@@ -465,92 +474,337 @@ class _ElectricityRow(QWidget):
         )
 
 
+
+class _UnifiedEnergyRow(QWidget):
+    """One visual list row for purchased/exported electricity and heat."""
+
+    ELECTRICITY_KINDS = (("购入", "purchased_electricity"), ("输出", "exported_electricity"))
+    HEAT_KINDS = (("购入", "purchased_heat"), ("输出", "exported_heat"))
+
+    def __init__(self, index: int, family: str, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.row_key = uuid4().hex
+        self.family = family
+        self.kinds = self.HEAT_KINDS if family == "heat" else self.ELECTRICITY_KINDS
+        self.setObjectName(f"unifiedEnergyRow{index}")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 4, 0, 4)
+        outer.setSpacing(4)
+
+        main = QHBoxLayout()
+        self.kind = QComboBox(self)
+        self.kind.setObjectName(f"energyDirection{index}")
+        for label, value in self.kinds:
+            self.kind.addItem(label, value)
+        self.line_id = QLineEdit(f"energy-{self.row_key}", self)
+        self.line_id.setObjectName(f"energyLineId{index}")
+        self.line_id.hide()
+        self.amount = create_typed_input(self, get_field_spec("electricity.amount"), f"energyAmount{index}")
+        self.amount.setPlaceholderText("填写电量或热力量")
+        self.unit_label = QLabel("MWh", self)
+        self.remove_button = QPushButton("删除", self)
+        self.remove_button.setObjectName(f"removeEnergyRow{index}")
+        self.remove_button.clicked.connect(lambda _checked=False: remove(self))
+        main.addWidget(self.kind, 2)
+        main.addWidget(self.amount, 2)
+        main.addWidget(self.unit_label)
+        main.addStretch(1)
+        main.addWidget(self.remove_button)
+        outer.addLayout(main)
+
+        self.electricity_details = QWidget(self)
+        electricity = QHBoxLayout(self.electricity_details)
+        electricity.setContentsMargins(0, 0, 0, 0)
+        electricity.setSpacing(6)
+        self.attribute = QComboBox(self.electricity_details)
+        self.attribute.setObjectName(f"energyElectricityAttribute{index}")
+        self.attribute.addItem("购入电网电力", ElectricityAttribute.ORDINARY)
+        self.attribute.addItem("购入非化石电力", ElectricityAttribute.NONFOSSIL)
+        self.attribute.addItem("自发自用（不计入）", "SELF_CONSUMED_EXCLUDED")
+        self.legacy_attribute_notice = QLabel("历史电力属性已保留", self.electricity_details)
+        self.legacy_attribute_notice.setObjectName(f"energyLegacyElectricityAttribute{index}")
+        self.legacy_attribute_notice.hide()
+        self.legacy_attribute: ElectricityAttribute | None = None
+        self.legacy_acquisition_mode: ElectricityAcquisitionMode | None = None
+        self.legacy_proof_type: ElectricityProofType | None = None
+        self.legacy_proof_status: ElectricityProofStatus | None = None
+        self.legacy_measured_factor = False
+        self.region = QComboBox(self.electricity_details)
+        self.region.setObjectName(f"energyElectricityRegion{index}")
+        self.factor_mode = QComboBox(self.electricity_details)
+        self.factor_mode.setObjectName(f"energyElectricityFactorMode{index}")
+        self.factor_mode.addItem("参数库候选", "LIBRARY")
+        self.factor_mode.addItem("企业手填", "MANUAL")
+        self.factor_selector = QComboBox(self.electricity_details)
+        self.factor_selector.setObjectName(f"energyElectricityFactor{index}")
+        self.manual_factor = QLineEdit(self.electricity_details)
+        self.manual_factor.setObjectName(f"energyElectricityManualFactor{index}")
+        self.manual_factor.setPlaceholderText("电力因子")
+        self.electricity_source = QLineEdit(self.electricity_details)
+        self.electricity_source.setObjectName(f"energyElectricitySource{index}")
+        self.electricity_source.setPlaceholderText("手填因子来源说明（可选）")
+        electricity.addWidget(self.attribute)
+        electricity.addWidget(self.legacy_attribute_notice)
+        electricity.addWidget(self.region)
+        electricity.addWidget(self.factor_mode)
+        electricity.addWidget(self.factor_selector, 2)
+        electricity.addWidget(self.manual_factor)
+        electricity.addWidget(self.electricity_source, 2)
+        outer.addWidget(self.electricity_details)
+
+        self.heat_details = QWidget(self)
+        heat = QHBoxLayout(self.heat_details)
+        heat.setContentsMargins(0, 0, 0, 0)
+        heat.setSpacing(6)
+        self.heat_kind = QComboBox(self.heat_details)
+        self.heat_kind.setObjectName(f"energyHeatKind{index}")
+        self.heat_kind.addItem("饱和蒸汽", SteamKind.SATURATED)
+        self.heat_kind.addItem("过热蒸汽", SteamKind.SUPERHEATED)
+        self.heat_kind.addItem("热水（暂不支持）", "HOT_WATER")
+        self.heat_kind.addItem("其他（暂不支持）", "OTHER")
+        for disabled_index in (2, 3):
+            item = self.heat_kind.model().item(disabled_index)
+            if item is not None:
+                item.setEnabled(False)
+        self.pressure = create_typed_input(self.heat_details, get_field_spec("heat_pressure"), f"energyHeatPressure{index}", "绝压 MPa")
+        self.temperature = create_typed_input(self.heat_details, get_field_spec("heat_temperature"), f"energyHeatTemperature{index}", "℃（过热蒸汽）")
+        self.enthalpy_mode = QComboBox(self.heat_details)
+        self.enthalpy_mode.setObjectName(f"energyHeatEnthalpyMode{index}")
+        self.enthalpy_mode.addItem("按标准表自动取焓", "AUTO")
+        self.enthalpy_mode.addItem("手动填写焓值", "MANUAL")
+        self.enthalpy = create_typed_input(self.heat_details, get_field_spec("heat_enthalpy"), f"energyHeatEnthalpy{index}", "kJ/kg")
+        self.heat_factor_mode = QComboBox(self.heat_details)
+        self.heat_factor_mode.setObjectName(f"energyHeatFactorMode{index}")
+        self.heat_factor_mode.addItem("标准缺省热力因子", HeatFactorMode.STANDARD_DEFAULT)
+        self.heat_factor_mode.addItem("实测热力因子", HeatFactorMode.MEASURED)
+        self.measured_heat_factor = QLineEdit(self.heat_details)
+        self.measured_heat_factor.setObjectName(f"energyHeatMeasuredFactor{index}")
+        self.measured_heat_factor.setPlaceholderText("tCO₂/GJ")
+        self.heat_source = QLineEdit(self.heat_details)
+        self.heat_source.setObjectName(f"energyHeatSource{index}")
+        self.heat_source.setPlaceholderText("实测来源（可选）")
+        for widget in (self.heat_kind, self.pressure, self.temperature, self.enthalpy_mode, self.enthalpy, self.heat_factor_mode, self.measured_heat_factor, self.heat_source):
+            heat.addWidget(widget, 1)
+        outer.addWidget(self.heat_details)
+
+        self.status = QLabel("参数状态：等待录入", self)
+        self.status.setObjectName(f"energyParameterState{index}")
+        self.status.setWordWrap(True)
+        outer.addWidget(self.status)
+        self.electricity_source.hide()
+        self.manual_factor.hide()
+        self.temperature.hide()
+        self.enthalpy.hide()
+        self.measured_heat_factor.hide()
+        self.heat_source.hide()
+
 class _FuelRow(QWidget):
-    def __init__(self, index: int, remove: Callable[[QWidget], None], parent: QWidget | None = None) -> None:
+    """Compact two-line fuel entry with separate heat-based and direct-carbon paths."""
+
+    def __init__(
+        self,
+        index: int,
+        remove: Callable[[QWidget], None],
+        parent: QWidget | None = None,
+        fuel_options: tuple[object, ...] = (),
+    ) -> None:
         super().__init__(parent)
         self.setObjectName(f"fuelRow{index}")
         self.row_key = uuid4().hex
-        layout = QFormLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setHorizontalSpacing(12)
-        layout.setVerticalSpacing(8)
-        layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.internal_id = QLineEdit(f"fuel-{self.row_key}", self)
-        self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
-        self.internal_id.hide()
-        self.fuel_type = create_typed_input(self, get_field_spec("fuel_type"), f"fuelType{index}")
-        for label, value in _FUEL_TYPE_OPTIONS:
-            self.fuel_type.addItem(label, value)
-        self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
-        for value, label in ((FuelPath.VOLUME, "体积"), (FuelPath.MASS, "质量"), (FuelPath.HEAT, "热量（历史路径）")):
-            self.path.addItem(label, value)
-        path_item = self.path.model().item(2) if hasattr(self.path.model(), "item") else None
-        if path_item is not None:
-            path_item.setEnabled(False)
-        self.custom_name = QLineEdit(self)
-        self.custom_name.setObjectName(f"fuelCustomName{index}")
-        self.custom_name.setPlaceholderText("填写具体燃料名称或煤种")
-        self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
-        self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
-        self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
-        self.lower_heating_value = create_typed_input(
-            self,
-            get_field_spec("fuel_lhv"),
-            f"fuelLhvInput{index}",
-        )
-        self.source_reference = create_typed_input(
-            self,
-            get_field_spec("fuel_source_reference"),
-            f"fuelSourceReference{index}",
-        )
-        self.source_reference.setPlaceholderText("实测/检测资料编号")
-        self.lhv_source = self._source_combo(index, "lhv")
-        self.carbon_source = self._source_combo(index, "carbon")
-        self.oxidation_source = self._source_combo(index, "oxidation")
-        self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
-        self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
-        self.oxidation_control = self._parameter_control(self.oxidation_source, self.oxidation)
+        self._fuel_options = tuple(fuel_options)
+        self._default_selection_reasons: dict[str, str] = {}
+        self._legacy_default_values: tuple[str, str, str] | None = None
+        self._legacy_source = "AUTO"
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 4, 0, 4)
+        outer.setSpacing(5)
+
+        header = QHBoxLayout()
+        self.title_label = QLabel(f"燃料 {index}", self)
+        self.title_label.setObjectName(f"fuelTitle{index}")
+        header.addWidget(self.title_label)
         self.parameter_summary = QLabel("参数来源待确定", self)
         self.parameter_summary.setObjectName(f"fuelParameterSummary{index}")
         self.parameter_summary.setWordWrap(True)
-        self.remove_button = QPushButton("删除本条燃料", self)
+        self.parameter_summary.hide()
+        header.addStretch(1)
+        self.remove_button = QPushButton("删除", self)
         self.remove_button.setObjectName(f"removeFuelButton{index}")
         self.remove_button.clicked.connect(lambda: remove(self))
-        self.fuel_type_label = QLabel("燃料种类", self)
+        header.addWidget(self.remove_button)
+        outer.addLayout(header)
+
+        self.internal_id = QLineEdit(f"fuel-{self.row_key}", self)
+        self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
+        self.internal_id.hide()
+
+        self.fuel_type = QComboBox(self)
+        self.fuel_type.setObjectName(f"fuelType{index}")
+        self.fuel_type.setProperty("fieldSpecKey", "fuel_type")
+        self.fuel_type.setEditable(True)
+        self.fuel_type.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.fuel_type.setPlaceholderText("搜索或输入燃料名称")
+        self.fuel_type.setMinimumWidth(190)
+        self.fuel_type.lineEdit().setMaxLength(120)
+        seen: set[tuple[str, str]] = set()
+        for option in self._fuel_options:
+            label = str(getattr(option, "label", "")).strip()
+            fuel_type = getattr(option, "fuel_type", None)
+            subject_id = str(getattr(option, "subject_id", ""))
+            if not label or label.strip() in {"煤", "煤炭", "其他", "其它"}:
+                continue
+            aliases = tuple(getattr(option, "aliases", ()) or ())
+            for candidate in (label, *aliases):
+                candidate = str(candidate).strip()
+                key = (candidate, subject_id)
+                if not candidate or key in seen:
+                    continue
+                seen.add(key)
+                self.fuel_type.addItem(candidate, fuel_type)
+                self.fuel_type.setItemData(self.fuel_type.count() - 1, subject_id, Qt.ItemDataRole.UserRole + 1)
+        if self.fuel_type.completer() is not None:
+            self.fuel_type.completer().setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.fuel_type.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+
+        self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
+        self.path.addItem("体积", FuelPath.VOLUME)
+        self.path.addItem("质量", FuelPath.MASS)
+        # Retained as an invisible, disabled legacy value so old workspaces restore
+        # without offering heat activity as a new-accounting choice.
+        self.path.addItem("", FuelPath.HEAT)
+        path_item = self.path.model().item(2) if hasattr(self.path.model(), "item") else None
+        if path_item is not None:
+            path_item.setEnabled(False)
+        self.path.view().setRowHidden(2, True)
+
+        self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
+        self.activity.setPlaceholderText("活动量")
+        self.fuel_type_label = QLabel("燃料种类 / 自定义名称", self)
         self.path_label = QLabel("计量方式", self)
-        self.custom_name_label = QLabel("具体名称", self)
         self.activity_label = QLabel("活动量", self)
+        self.carbon_basis_label = QLabel("含碳量方式", self)
+
+        self.lower_heating_value = create_typed_input(self, get_field_spec("fuel_lhv"), f"fuelLhvInput{index}")
+        self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
+        self.carbon_direct = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelMeasuredCarbonInput{index}")
+        self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
+        self.source_reference = create_typed_input(self, get_field_spec("fuel_source_reference"), f"fuelSourceReference{index}")
+        self.source_reference.setPlaceholderText("按需填写检测/台账来源说明")
+
+        self.carbon_basis = QComboBox(self)
+        self.carbon_basis.setObjectName(f"fuelCarbonBasis{index}")
+        self.carbon_basis.addItem("按热值计算", "HEAT_CONTENT")
+        self.carbon_basis.addItem("直接实测", "DIRECT")
+        self.lhv_source = self._source_combo(index, "lhv")
+        self.lhv_source.clear()
+        self.lhv_source.addItem("标准缺省", "STANDARD_DEFAULT")
+        self.lhv_source.addItem("实测/检测", "MEASURED")
+        self.carbon_source = self._source_combo(index, "carbon")
+        self.carbon_source.clear()
+        self.carbon_source.addItem("标准缺省", "STANDARD_DEFAULT")
+        self.direct_carbon_source = self._source_combo(index, "directCarbon")
+        self.direct_carbon_source.clear()
+        self.direct_carbon_source.addItem("实测/检测", "MEASURED")
+        self.oxidation_source = self._source_combo(index, "oxidation")
+        self.oxidation_source.clear()
+        self.oxidation_source.addItem("标准缺省", "STANDARD_DEFAULT")
+        self.oxidation_source.addItem("用户自填", "USER_DEFINED")
+        self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
+        self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
+        self.direct_carbon_control = self._parameter_control(self.direct_carbon_source, self.carbon_direct)
+        self.oxidation_control = self._parameter_control(self.oxidation_source, self.oxidation)
         self.lhv_label = QLabel("低位发热量", self)
-        self.carbon_label = QLabel("单位含碳量", self)
-        self.oxidation_label = QLabel("碳氧化率（%）", self)
-        self.source_reference_label = QLabel("来源说明/编号", self)
-        layout.addRow(self.fuel_type_label, self.fuel_type)
-        layout.addRow(self.path_label, self.path)
-        layout.addRow(self.custom_name_label, self.custom_name)
-        layout.addRow(self.activity_label, self.activity)
-        layout.addRow(self.lhv_label, self.lhv_control)
-        layout.addRow(self.carbon_label, self.carbon_control)
-        layout.addRow(self.oxidation_label, self.oxidation_control)
-        layout.addRow(self.source_reference_label, self.source_reference)
-        footer = QWidget(self)
-        footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(0, 0, 0, 0)
-        footer_layout.addWidget(self.parameter_summary, 1)
-        footer_layout.addWidget(self.remove_button)
-        layout.addRow(footer)
+        self.carbon_label = QLabel("单位热值含碳量", self)
+        self.direct_carbon_label = QLabel("实测单位含碳量", self)
+        self.oxidation_label = QLabel("碳氧化率", self)
+        self.source_reference_label = QLabel("来源资料", self)
+        self.calculated_carbon_label = QLabel("按热值计算：待录入", self)
+        self.calculated_carbon_label.setObjectName(f"fuelCalculatedCarbon{index}")
+        self.calculated_carbon_label.setAccessibleName("按低位发热量计算的单位活动量含碳量，仅供查看")
+        self.calculated_carbon_label.setWordWrap(False)
+
+        carbon_value_cell = QWidget(self)
+        carbon_value_layout = QHBoxLayout(carbon_value_cell)
+        carbon_value_layout.setContentsMargins(0, 0, 0, 0)
+        carbon_value_layout.setSpacing(5)
+        carbon_value_layout.addWidget(self.carbon_basis, 1)
+        self.carbon_calc_cell = QWidget(self)
+        calc_layout = QVBoxLayout(self.carbon_calc_cell)
+        calc_layout.setContentsMargins(0, 0, 0, 0)
+        calc_layout.setSpacing(0)
+        calc_layout.addWidget(self.calculated_carbon_label)
+        self.carbon_direct_cell = self.direct_carbon_control
+        carbon_value_layout.addWidget(self.carbon_calc_cell, 2)
+        carbon_value_layout.addWidget(self.carbon_direct_cell, 2)
+        self.carbon_direct_cell.hide()
+        self.carbon_basis_label.hide()
+        self.source_reference_label.hide()
+
+        self.lhv_cell = self.lhv_control
+        self.oxidation_cell = self.oxidation_control
+        self.source_cell = self.source_reference
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(3)
+        for column, label in enumerate((self.fuel_type_label, self.path_label, self.activity_label, self.lhv_label, self.carbon_label, self.direct_carbon_label, self.oxidation_label)):
+            grid.addWidget(label, 0, column)
+        for column, widget in enumerate((self.fuel_type, self.path, self.activity, self.lhv_control, self.carbon_control, carbon_value_cell, self.oxidation_control)):
+            grid.addWidget(widget, 1, column)
+        self.source_reference.hide()
+        grid.addWidget(self.source_reference, 2, 0, 1, 3)
+        grid.addWidget(self.lhv_source, 2, 3)
+        grid.addWidget(self.carbon_source, 2, 4)
+        grid.addWidget(self.oxidation_source, 2, 6)
+        for column, stretch in enumerate((3, 1, 2, 2, 2, 3, 1)):
+            grid.setColumnStretch(column, stretch)
+        outer.addLayout(grid)
+
+        # Backward-compatible, hidden legacy free-text field. New input lives in
+        # the searchable fuel selector and is matched to Catalog text exactly.
+        self.custom_name = QLineEdit(self)
+        self.custom_name.setObjectName(f"fuelCustomName{index}")
+        self.custom_name.setPlaceholderText("填写具体燃料名称或煤种")
+        self.custom_name.hide()
+        self.custom_name_label = QLabel("具体名称", self)
+        self.custom_name_label.hide()
+
         self._update_custom_name_visibility()
         self._last_default_values: tuple[str, str, str] | None = None
+        # Old workspace source choices can exceed the reduced V2 selectors.
+        # Preserve those choices as hidden compatibility metadata.
+        self._legacy_source_modes: dict[str, str] = {}
         self.parameter_source = "AUTO"
+
+    def _carbon_basis_row(self) -> QWidget:
+        row = QWidget(self)
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(QLabel("含碳量方式", row))
+        layout.addWidget(self.carbon_basis)
+        layout.addStretch(1)
+        self._carbon_basis_control = row
+        return row
+
+    @staticmethod
+    def _field_cell(label: QLabel, widget: QWidget) -> QWidget:
+        cell = QWidget(label.parentWidget())
+        layout = QVBoxLayout(cell)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        layout.addWidget(label)
+        layout.addWidget(widget)
+        return cell
 
     @staticmethod
     def _source_combo(index: int, key: str) -> QComboBox:
         combo = QComboBox()
         combo.setObjectName(f"fuel{key.title()}Source{index}")
-        combo.addItem("请选择来源", None)
-        combo.addItem("缺省值", "STANDARD_DEFAULT")
+        combo.addItem("标准缺省", "STANDARD_DEFAULT")
         combo.addItem("计算值", "CALCULATED")
-        combo.addItem("实测值", "MEASURED")
+        combo.addItem("实测/检测", "MEASURED")
+        combo.addItem("用户自填", "USER_DEFINED")
         combo.setMinimumWidth(94)
         return combo
 
@@ -559,16 +813,28 @@ class _FuelRow(QWidget):
         control = QWidget()
         row = QHBoxLayout(control)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)
-        row.addWidget(source)
+        row.setSpacing(0)
         row.addWidget(edit, 1)
         return control
 
     def _update_custom_name_visibility(self) -> None:
-        value = self.fuel_type.currentData()
-        needs_name = value in {FuelType.COAL, FuelType.OTHER}
-        self.custom_name_label.setVisible(needs_name)
-        self.custom_name.setVisible(needs_name)
+        # The searchable combo itself accepts custom text; the compatibility
+        # editor remains hidden and is read only by the legacy state adapter.
+        self.custom_name_label.hide()
+        self.custom_name.hide()
+
+
+class _SearchableEnterpriseCombo(QComboBox):
+    """Editable recent-name selector with the legacy line-edit convenience API."""
+
+    def text(self) -> str:
+        return self.currentText()
+
+    def setText(self, value: str) -> None:
+        self.setEditText(value)
+
+    def clear(self) -> None:
+        self.setEditText("")
 
 
 class CarbonMaterialAccountingPage(BasePage):
@@ -599,6 +865,11 @@ class CarbonMaterialAccountingPage(BasePage):
         except (AttributeError, KeyError, TypeError, ValueError):
             resolver = None
         self._parameter_resolver = resolver
+        try:
+            self._uat03_parameter_queries = UAT03ParameterQueries(self.catalog_service, resolver) if resolver is not None else None
+        except (AttributeError, KeyError, TypeError, ValueError):
+            _LOGGER.warning("UAT03 catalog parameter choices are unavailable", exc_info=True)
+            self._uat03_parameter_queries = None
         standard_implementation_date = self.catalog_service.standard_implementation_date(standard_id)
         use_case_calculator = getattr(calculation_use_case, "calculator", None)
         if use_case_calculator is not None:
@@ -615,8 +886,15 @@ class CarbonMaterialAccountingPage(BasePage):
         self.standard_id = standard_id
         self._calculation_index = 0
         self._latest_record_id: str | None = None
+        self._latest_record = None
+        self._latest_record_fingerprint: str | None = None
         self._electricity_rows: list[_ElectricityRow] = []
         self._electricity_row_serial = 0
+        self._energy_rows: list[_UnifiedEnergyRow] = []
+        self._energy_family_rows: dict[str, list[_UnifiedEnergyRow]] = {"electricity": [], "heat": []}
+        self._energy_row_serial = 0
+        self._unified_energy_cards: dict[str, QWidget] = {}
+        self._unified_energy_rows_layouts: dict[str, QVBoxLayout] = {}
         self._fuel_rows: list[_FuelRow] = []
         self._fuel_row_serial = 0
         self._process_rows: dict[str, list[dict[str, object]]] = {
@@ -633,6 +911,17 @@ class CarbonMaterialAccountingPage(BasePage):
         self._electricity_factor_records = {}
         self._source_statuses: dict[str, QComboBox] = {}
         self._source_cards: dict[str, SourceCard] = {}
+        self._source_toggle_buttons: dict[str, QPushButton] = {}
+        self._source_toggle_groups: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+            ("fuel", "化石燃料", ("CAR-SRC-FUEL-001",)),
+            ("calcination", "原料煅烧", ("CAR-SRC-CALCINATION-001",)),
+            ("baking", "焙烧/炭化", ("CAR-SRC-BAKING-001",)),
+            ("graphitization", "石墨化", ("CAR-SRC-GRAPHITIZATION-001",)),
+            ("fume", "烟气焚烧", ("CAR-SRC-FUME-INCINERATION-001",)),
+            ("fgd", "烟气脱硫", ("CAR-SRC-FGD-001",)),
+            ("electricity", "购入/输出电力", ("CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001")),
+            ("heat", "购入/输出热力", ("CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001")),
+        )
         self._advanced_process_buttons: list[QPushButton] = []
         self._fields: dict[str, QLineEdit] = {}
         self._material_controls: dict[str, dict[str, QWidget]] = {}
@@ -705,6 +994,23 @@ class CarbonMaterialAccountingPage(BasePage):
         if callable(refresh):
             refresh()
 
+    def _refresh_enterprise_candidates(self) -> None:
+        combo = getattr(self, "enterprise_name", None)
+        if not isinstance(combo, QComboBox):
+            return
+        current = combo.currentText()
+        candidates = list_enterprise_name_candidates(self.record_repository, self.project_service)
+        blocker = QSignalBlocker(combo)
+        line_blocker = QSignalBlocker(combo.lineEdit())
+        QComboBox.clear(combo)
+        combo.addItems(candidates)
+        combo.setEditText(current)
+        if combo.completer() is not None:
+            combo.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+            combo.completer().setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        del line_blocker
+        del blocker
+
     def set_standard_id(self, standard_id: str) -> None:
         self.standard_id = standard_id
         self.standard_id_label.setText("GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》")
@@ -712,19 +1018,25 @@ class CarbonMaterialAccountingPage(BasePage):
             self._refresh_heat_factor_details()
 
     def _build_page(self) -> None:
-        self.add_header("新建核算", "GB/T 32151.34-2024 炭素材料生产企业手工核算；成功计算后立即形成不可编辑核算记录。")
+        self.add_header("新建核算", "")
+        page_description = self.findChild(QLabel, "pageDescription")
+        if page_description is not None:
+            page_description.hide()
 
         identity, identity_layout = _card("01 核算信息与核算边界", self)
         form = QFormLayout()
         self.standard_id_label = QLabel("GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》", identity)
         self.standard_id_label.setObjectName("accountingStandardId")
         form.addRow("核算标准", self.standard_id_label)
-        self.enterprise_name = create_typed_input(
-            identity,
-            get_field_spec("enterprise_name"),
-            "enterpriseNameInput",
-            "企业名称",
-        )
+        self.enterprise_name = _SearchableEnterpriseCombo(identity)
+        self.enterprise_name.setObjectName("enterpriseNameInput")
+        self.enterprise_name.setProperty("fieldSpecKey", "enterprise_name")
+        self.enterprise_name.setEditable(True)
+        self.enterprise_name.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.enterprise_name.setPlaceholderText("输入企业名称，可从最近使用记录中选择")
+        self.enterprise_name.setMaxVisibleItems(12)
+        self.enterprise_name.lineEdit().setMaxLength(160)
+        self._refresh_enterprise_candidates()
         form.addRow("企业名称（可选填）", self.enterprise_name)
         self.period_type = create_typed_input(identity, get_field_spec("period_type"), "accountingPeriodType")
         self.period_type.addItem("全年", PeriodType.ANNUAL)
@@ -742,6 +1054,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_year.setValue(2025)
         self.period_year.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         self.period_year.valueChanged.connect(lambda _value: self._refresh_fuel_defaults())
+        self.period_year.valueChanged.connect(lambda _value: self._refresh_energy_parameters())
         self.period_month = QSpinBox(period_row)
         self.period_month.setObjectName("accountingPeriodMonth")
         self.period_month.setProperty("fieldSpecKey", "period_month")
@@ -780,7 +1093,13 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_end.dateChanged.connect(lambda _value: self._refresh_heat_factor_details())
         self.period_start.dateChanged.connect(lambda _value: self._refresh_fuel_defaults())
         self.period_end.dateChanged.connect(lambda _value: self._refresh_fuel_defaults())
+        self.period_start.dateChanged.connect(lambda _value: self._refresh_energy_parameters())
+        self.period_end.dateChanged.connect(lambda _value: self._refresh_energy_parameters())
         form.addRow("自定义周期", self.custom_period_row)
+        self.custom_period_label = form.labelForField(self.custom_period_row)
+        if self.custom_period_label is not None:
+            self.custom_period_label.setObjectName("customPeriodLabel")
+            self.custom_period_label.hide()
         identity_layout.addLayout(form)
 
         # Keep the boundary facts in the Domain input and saved workspace,
@@ -973,6 +1292,11 @@ class CarbonMaterialAccountingPage(BasePage):
         self.view_record_button.clicked.connect(self._open_latest_record)
         result_actions.addWidget(self.view_breakdown_button)
         result_actions.addWidget(self.view_record_button)
+        self.export_report_button = QPushButton("导出核算报告（Word）", result_card)
+        self.export_report_button.setObjectName("exportAccountingReportButton")
+        self.export_report_button.setEnabled(False)
+        self.export_report_button.clicked.connect(self._export_latest_record_report)
+        result_actions.addWidget(self.export_report_button)
         result_actions.addStretch(1)
         result_layout.addLayout(result_actions)
         result_card.setVisible(False)
@@ -1019,7 +1343,21 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _build_project_unit_controls(self) -> None:
-        card, layout = _card("核算单元", self)
+        toggle = QPushButton("展开项目与核算单元", self)
+        toggle.setObjectName("projectUnitControlsToggle")
+        toggle.setCheckable(True)
+        toggle.setAccessibleName("项目与核算单元")
+        card, layout = _card("项目与核算单元", self)
+        card.setObjectName("projectUnitControlsCard")
+        card.setVisible(False)
+        toggle.toggled.connect(card.setVisible)
+        toggle.toggled.connect(
+            lambda expanded: toggle.setText("收起项目与核算单元" if expanded else "展开项目与核算单元")
+        )
+        self.project_unit_toggle = toggle
+        self.project_unit_card = card
+        self.body_layout.addWidget(toggle)
+        self.body_layout.addWidget(card)
         project_row = QHBoxLayout()
         project_row.addWidget(QLabel("项目名称", card))
         self.project_name = QLineEdit(self._workspace.name, card)
@@ -1179,6 +1517,224 @@ class CarbonMaterialAccountingPage(BasePage):
             units=tuple(units),
         )
 
+    @staticmethod
+    def _energy_combo_value(combo: QComboBox) -> str | None:
+        value = combo.currentData()
+        return getattr(value, "value", value) if value is not None else None
+
+    def _energy_row_state(self, row: _UnifiedEnergyRow) -> dict[str, object]:
+        factor_option = row.factor_selector.currentData()
+        factor = getattr(factor_option, "factor", None)
+        return {
+            "row_key": row.row_key,
+            "family": row.family,
+            "line_id": row.line_id.text(),
+            "kind": row.kind.currentData(),
+            "amount": row.amount.text(),
+            "attribute": row.legacy_attribute.value if row.legacy_attribute is not None else self._energy_combo_value(row.attribute),
+            "legacy_attribute": row.legacy_attribute.value if row.legacy_attribute is not None else None,
+            "legacy_acquisition_mode": row.legacy_acquisition_mode.value if row.legacy_acquisition_mode is not None else None,
+            "legacy_measured_factor": row.legacy_measured_factor,
+            "proof_type": row.legacy_proof_type.value if row.legacy_proof_type is not None else None,
+            "proof_status": row.legacy_proof_status.value if row.legacy_proof_status is not None else None,
+            "region": row.region.currentData(),
+            "factor_mode": row.factor_mode.currentData(),
+            "factor_id": getattr(factor, "factor_id", None),
+            "manual_factor": row.manual_factor.text(),
+            "electricity_source": row.electricity_source.text(),
+            "heat_kind": self._energy_combo_value(row.heat_kind),
+            "pressure": row.pressure.text(),
+            "temperature": row.temperature.text(),
+            "enthalpy_mode": row.enthalpy_mode.currentData(),
+            "enthalpy": row.enthalpy.text(),
+            "heat_factor_mode": self._energy_combo_value(row.heat_factor_mode),
+            "measured_heat_factor": row.measured_heat_factor.text(),
+            "heat_source": row.heat_source.text(),
+        }
+
+    def _restore_unified_energy_rows(self, saved_rows: object) -> None:
+        if not isinstance(saved_rows, list):
+            saved_rows = []
+        for old_row in tuple(self._energy_rows):
+            self._remove_unified_energy_row(old_row, force=True)
+        normalized: list[dict[str, object]] = []
+        for item in saved_rows:
+            if not isinstance(item, dict):
+                continue
+            saved = dict(item)
+            kind = str(saved.get("kind", "purchased_electricity"))
+            if kind == "self_consumed_electricity":
+                saved["kind"] = kind = "purchased_electricity"
+                # Preserve a stored legacy Canonical acquisition/attribute pair.
+                # Previous V2 rows already marked as excluded stay on the V2 path.
+                legacy_attribute = saved.get("legacy_attribute", saved.get("attribute"))
+                if saved.get("attribute") != "SELF_CONSUMED_EXCLUDED" and legacy_attribute is not None:
+                    saved.setdefault("legacy_acquisition_mode", ElectricityAcquisitionMode.SELF_CONSUMED.value)
+                    saved.setdefault("legacy_attribute", legacy_attribute)
+            if kind not in {value for _, value in _UnifiedEnergyRow.ELECTRICITY_KINDS + _UnifiedEnergyRow.HEAT_KINDS}:
+                continue
+            normalized.append(saved)
+        if not normalized:
+            normalized = [{"kind": "purchased_electricity"}, {"kind": "purchased_heat"}]
+        present_families = {
+            "heat" if str(saved.get("kind", "")).endswith("heat") else "electricity"
+            for saved in normalized
+        }
+        if "electricity" not in present_families:
+            normalized.append({"kind": "purchased_electricity"})
+        if "heat" not in present_families:
+            normalized.append({"kind": "purchased_heat"})
+        for saved in normalized:
+            kind = str(saved.get("kind", "purchased_electricity"))
+            line_id = saved.get("line_id")
+            row = self._add_unified_energy_row(kind=kind, line_id=str(line_id) if line_id else None)
+            row_key = saved.get("row_key")
+            if isinstance(row_key, str) and row_key:
+                row.row_key = row_key
+            row.amount.setText(str(saved.get("amount", "")))
+            attribute = saved.get("attribute")
+            attribute_index = row.attribute.findData(attribute)
+            if attribute_index < 0:
+                try:
+                    attribute_index = row.attribute.findData(ElectricityAttribute(attribute))
+                except (TypeError, ValueError):
+                    attribute_index = -1
+            if attribute_index >= 0:
+                row.attribute.setCurrentIndex(attribute_index)
+            legacy_attribute = saved.get("legacy_attribute", attribute)
+            try:
+                legacy_value = ElectricityAttribute(legacy_attribute)
+            except (TypeError, ValueError):
+                legacy_value = None
+            if legacy_value is ElectricityAttribute.FOSSIL:
+                row.legacy_attribute = legacy_value
+            raw_acquisition = saved.get("legacy_acquisition_mode")
+            try:
+                row.legacy_acquisition_mode = ElectricityAcquisitionMode(raw_acquisition) if raw_acquisition is not None else None
+            except (TypeError, ValueError):
+                row.legacy_acquisition_mode = None
+            row.legacy_measured_factor = saved.get("legacy_measured_factor") is True
+            for key, enum_type, attr_name in (
+                ("proof_type", ElectricityProofType, "legacy_proof_type"),
+                ("proof_status", ElectricityProofStatus, "legacy_proof_status"),
+            ):
+                raw = saved.get(key)
+                try:
+                    setattr(row, attr_name, enum_type(raw) if raw is not None else None)
+                except (TypeError, ValueError):
+                    pass
+            self._refresh_energy_region_options(row)
+            region_index = row.region.findData(saved.get("region"))
+            if region_index >= 0:
+                row.region.setCurrentIndex(region_index)
+            mode_index = row.factor_mode.findData(saved.get("factor_mode"))
+            if mode_index >= 0:
+                row.factor_mode.setCurrentIndex(mode_index)
+            row.manual_factor.setText(str(saved.get("manual_factor", "")))
+            row.electricity_source.setText(str(saved.get("electricity_source", "")))
+            self._refresh_energy_factor_options(row)
+            factor_id = saved.get("factor_id")
+            if factor_id:
+                factor_index = next(
+                    (i for i in range(row.factor_selector.count())
+                     if getattr(getattr(row.factor_selector.itemData(i), "factor", None), "factor_id", None) == factor_id),
+                    -1,
+                )
+                if factor_index >= 0:
+                    row.factor_selector.setCurrentIndex(factor_index)
+            try:
+                heat_kind_value = SteamKind(saved.get("heat_kind"))
+                heat_index = row.heat_kind.findData(heat_kind_value)
+                if heat_index >= 0:
+                    row.heat_kind.setCurrentIndex(heat_index)
+            except (TypeError, ValueError):
+                pass
+            row.pressure.setText(str(saved.get("pressure", "")))
+            row.temperature.setText(str(saved.get("temperature", "")))
+            mode_index = row.enthalpy_mode.findData(saved.get("enthalpy_mode"))
+            if mode_index >= 0:
+                row.enthalpy_mode.setCurrentIndex(mode_index)
+            row.enthalpy.setText(str(saved.get("enthalpy", "")))
+            try:
+                factor_mode = HeatFactorMode(saved.get("heat_factor_mode"))
+                factor_index = row.heat_factor_mode.findData(factor_mode)
+                if factor_index >= 0:
+                    row.heat_factor_mode.setCurrentIndex(factor_index)
+            except (TypeError, ValueError):
+                pass
+            row.measured_heat_factor.setText(str(saved.get("measured_heat_factor", "")))
+            row.heat_source.setText(str(saved.get("heat_source", "")))
+            self._refresh_energy_factor_options(row)
+            self._refresh_unified_energy_row(row)
+        self._refresh_repeat_delete_controls()
+
+    def _migrate_legacy_energy_rows(self) -> None:
+        migrated: list[dict[str, object]] = []
+        for row in self._electricity_rows:
+            amount = row.amount.text().strip()
+            detail_id = row.detail_id.text().strip()
+            attr = _enum(row.attribute.currentData(), ElectricityAttribute)
+            acquisition = _enum(row.acquisition.currentData(), ElectricityAcquisitionMode)
+            if not amount and detail_id in {"", "electricity-detail-1"} and attr is ElectricityAttribute.ORDINARY:
+                continue
+            migrated.append({
+                "kind": "purchased_electricity",
+                "line_id": detail_id or f"legacy-electricity-{len(migrated) + 1}",
+                "amount": amount,
+                "attribute": attr.value,
+                "legacy_attribute": attr.value if attr is ElectricityAttribute.FOSSIL else None,
+                "legacy_acquisition_mode": acquisition.value if acquisition is ElectricityAcquisitionMode.SELF_CONSUMED else None,
+                "proof_type": _enum(row.proof_type.currentData(), ElectricityProofType).value,
+                "proof_status": _enum(row.proof_status.currentData(), ElectricityProofStatus).value,
+            })
+        for row in self._output_electricity_rows:
+            amount = _value(row.get("amount"))
+            line_id = _value(row.get("id")) or str(row.get("default_line_id", ""))
+            factor = row.get("factor")
+            factor_id = factor.currentData() if isinstance(factor, QComboBox) else None
+            measured = _value(row.get("measured"))
+            source = _value(row.get("source"))
+            if amount is None and not factor_id and measured is None and line_id == "exported-electricity-1":
+                continue
+            migrated.append({
+                "kind": "exported_electricity", "line_id": line_id or f"legacy-exported-electricity-{len(migrated)+1}",
+                "amount": "" if amount is None else str(amount),
+                "factor_id": factor_id,
+                "factor_mode": "MANUAL" if measured is not None else "LIBRARY",
+                "manual_factor": "" if measured is None else str(measured),
+                "electricity_source": source or "",
+                "legacy_measured_factor": measured is not None,
+            })
+        for prefix, kind in (("heat", "purchased_heat"), ("exported_heat", "exported_heat")):
+            for row in self._heat_rows[prefix]:
+                amount = _value(row.get("amount"))
+                pressure = _value(row.get("pressure"))
+                temperature = _value(row.get("temperature"))
+                enthalpy = _value(row.get("enthalpy"))
+                measured = _value(row.get("measured"))
+                source = _value(row.get("source"))
+                line_id = _value(row.get("id")) or str(row.get("default_line_id", ""))
+                default_id = "heat-1" if prefix == "heat" else "exported-heat-1"
+                if all(value is None for value in (amount, pressure, temperature, enthalpy, measured)) and line_id == default_id:
+                    continue
+                steam = row.get("steam")
+                steam_kind = _enum(steam.currentData(), SteamKind).value if isinstance(steam, QComboBox) else SteamKind.SATURATED.value
+                enthalpy_mode = row.get("enthalpy_mode")
+                factor_mode = row.get("factor_mode")
+                migrated.append({
+                    "kind": kind, "line_id": line_id or f"legacy-{kind}-{len(migrated)+1}",
+                    "amount": "" if amount is None else str(amount),
+                    "heat_kind": steam_kind,
+                    "pressure": "" if pressure is None else str(pressure),
+                    "temperature": "" if temperature is None else str(temperature),
+                    "enthalpy": "" if enthalpy is None else str(enthalpy),
+                    "enthalpy_mode": enthalpy_mode.currentData() if isinstance(enthalpy_mode, QComboBox) else "AUTO",
+                    "heat_factor_mode": self._energy_combo_value(factor_mode) if isinstance(factor_mode, QComboBox) else HeatFactorMode.STANDARD_DEFAULT.value,
+                    "measured_heat_factor": "" if measured is None else str(measured),
+                    "heat_source": source or "",
+                })
+        self._restore_unified_energy_rows(migrated)
+
     def _capture_form_state(self) -> dict[str, object]:
         values: dict[str, object] = {}
         excluded = {
@@ -1199,13 +1755,14 @@ class CarbonMaterialAccountingPage(BasePage):
             if isinstance(widget, QLineEdit):
                 values[name] = widget.text()
             elif isinstance(widget, QComboBox):
-                values[name] = widget.currentIndex()
+                values[name] = widget.currentText() if name == "enterpriseNameInput" else widget.currentIndex()
             elif isinstance(widget, QSpinBox):
                 values[name] = widget.value()
             elif isinstance(widget, QCheckBox):
                 values[name] = widget.isChecked()
             elif isinstance(widget, QDateEdit):
                 values[name] = widget.date().toString("yyyy-MM-dd")
+        values["energy_rows"] = [self._energy_row_state(row) for row in self._energy_rows]
         values["electricity_rows"] = [
             {
                 "row_key": row.row_key,
@@ -1225,20 +1782,47 @@ class CarbonMaterialAccountingPage(BasePage):
                 "row_key": row.row_key,
                 "id": row.internal_id.text(),
                 "type": row.fuel_type.currentIndex(),
+                "type_value": row.fuel_type.currentData().value if isinstance(row.fuel_type.currentData(), FuelType) else None,
+                "fuel_name": row.fuel_type.currentText(),
+                "fuel_subject_id": row.fuel_type.currentData(Qt.ItemDataRole.UserRole + 1),
                 "path": row.path.currentIndex(),
+                "carbon_basis": row.carbon_basis.currentIndex(),
                 "activity": row.activity.text(),
                 "carbon": row.carbon.text(),
+                "carbon_direct": row.carbon_direct.text(),
                 "oxidation": row.oxidation.text(),
                 "lower_heating_value": row.lower_heating_value.text(),
                 "source_reference": row.source_reference.text(),
                 "fuel_label": row.custom_name.text(),
+                # Keep the legacy numeric indices for old workspace readers and
+                # persist the actual semantic source modes for V2 round-trips.
                 "lhv_source": row.lhv_source.currentIndex(),
                 "carbon_source": row.carbon_source.currentIndex(),
+                "direct_carbon_source": row.direct_carbon_source.currentIndex(),
                 "oxidation_source": row.oxidation_source.currentIndex(),
+                "lhv_source_kind": self._fuel_source_mode(row, "lhv"),
+                "carbon_source_kind": self._fuel_source_mode(row, "carbon"),
+                "direct_carbon_source_kind": self._fuel_source_mode(row, "direct_carbon"),
+                "oxidation_source_kind": self._fuel_source_mode(row, "oxidation"),
                 "parameter_source": row.parameter_source,
             }
             for row in self._fuel_rows
         ]
+        values["fgd_carbonate_texts"] = {
+            str(component.get("component_id")): component["carbonate_type"].currentText()
+            for unit in self._process_rows.get("fgd", ())
+            for component in unit.get("components", ())
+            if isinstance(component, dict) and component.get("component_id") and isinstance(component.get("carbonate_type"), QComboBox)
+        }
+        values["fgd_factor_provenance"] = {
+            str(component.get("component_id")): {
+                "mode": component.get("factor_mode"),
+                "factor_id": component.get("catalog_factor_id"),
+            }
+            for unit in self._process_rows.get("fgd", ())
+            for component in unit.get("components", ())
+            if isinstance(component, dict) and component.get("component_id")
+        }
         values["process_instances"] = {
             prefix: [
                 {
@@ -1339,27 +1923,80 @@ class CarbonMaterialAccountingPage(BasePage):
             if isinstance(stored_row_key, str) and stored_row_key:
                 row.row_key = stored_row_key
             row.internal_id.setText(str(stored.get("id", row.internal_id.text())))
-            for combo, key in ((row.fuel_type, "type"), (row.path, "path")):
+            fuel_name = stored.get("fuel_name")
+            type_value = stored.get("type_value")
+            selected_fuel_type = None
+            if isinstance(type_value, str):
+                try:
+                    selected_fuel_type = FuelType(type_value)
+                except ValueError:
+                    selected_fuel_type = None
+            if selected_fuel_type is None:
+                old_index = stored.get("type")
+                if isinstance(old_index, int) and 0 <= old_index < len(_FUEL_TYPE_OPTIONS):
+                    selected_fuel_type = _FUEL_TYPE_OPTIONS[old_index][1]
+            if isinstance(fuel_name, str):
+                row.fuel_type.setEditText(fuel_name)
+            elif selected_fuel_type is not None:
+                selected_index = row.fuel_type.findData(selected_fuel_type)
+                if selected_index >= 0:
+                    row.fuel_type.setCurrentIndex(selected_index)
+                else:
+                    row.fuel_type.setEditText(str(stored.get("fuel_label", "")))
+            for key in ("path", "carbon_basis"):
+                combo = row.path if key == "path" else row.carbon_basis
                 index = stored.get(key)
                 if isinstance(index, int) and 0 <= index < combo.count():
                     combo.setCurrentIndex(index)
             for widget, key in ((row.activity, "activity"), (row.carbon, "carbon"),
+                                (row.carbon_direct, "carbon_direct"),
                                 (row.oxidation, "oxidation"), (row.lower_heating_value, "lower_heating_value"),
                                 (row.source_reference, "source_reference")):
                 widget.setText(str(stored.get(key, "")))
             row.custom_name.setText(str(stored.get("fuel_label", "")))
-            for combo, key in (
-                (row.lhv_source, "lhv_source"),
-                (row.carbon_source, "carbon_source"),
-                (row.oxidation_source, "oxidation_source"),
-            ):
-                index = stored.get(key)
-                if isinstance(index, int) and 0 <= index < combo.count():
-                    combo.setCurrentIndex(index)
+            row._legacy_source_modes.clear()
+            source_controls = (
+                ("lhv", row.lhv_source),
+                ("carbon", row.carbon_source),
+                ("direct_carbon", row.direct_carbon_source),
+                ("oxidation", row.oxidation_source),
+            )
+            legacy_source_indexes = {
+                0: "STANDARD_DEFAULT", 1: "CALCULATED", 2: "MEASURED", 3: "USER_DEFINED",
+            }
+            for source_key, combo in source_controls:
+                stored_index_key = f"{source_key}_source"
+                # Direct carbon had a separate control in intermediate V2 state;
+                # its historical four-item order is still understood here.
+                stored_kind = stored.get(f"{source_key}_source_kind")
+                if stored_kind not in {
+                    "STANDARD_DEFAULT", "CALCULATED", "MEASURED", "USER_DEFINED",
+                    "OFFICIAL_PUBLISHED", "PROJECT_SPECIFIED",
+                }:
+                    index = stored.get(stored_index_key)
+                    stored_kind = legacy_source_indexes.get(index) if isinstance(index, int) else None
+                if stored_kind is None and source_key == "direct_carbon":
+                    basis_index = stored.get("carbon_basis")
+                    if basis_index == 1:
+                        legacy_carbon_index = stored.get("carbon_source")
+                        stored_kind = legacy_source_indexes.get(legacy_carbon_index) if isinstance(legacy_carbon_index, int) else None
+                if stored_kind is None:
+                    continue
+                combo_index = combo.findData(stored_kind)
+                if combo_index >= 0:
+                    combo.setCurrentIndex(combo_index)
+                    row._legacy_source_modes.pop(source_key, None)
+                else:
+                    row._legacy_source_modes[source_key] = str(stored_kind)
             stored_source = stored.get("parameter_source")
             if stored_source in {"AUTO", "MEASURED", "STANDARD_DEFAULT"}:
                 row.parameter_source = str(stored_source)
-            if not any(key in stored for key in ("lhv_source", "carbon_source", "oxidation_source")):
+            if not any(
+                key in stored for key in (
+                    "lhv_source", "carbon_source", "oxidation_source", "direct_carbon_source",
+                    "lhv_source_kind", "carbon_source_kind", "oxidation_source_kind", "direct_carbon_source_kind",
+                )
+            ):
                 legacy_factors = self._fuel_default_factors(row)
                 legacy_factor_map = dict(zip(("lhv", "carbon", "oxidation"), legacy_factors or (None, None, None)))
                 legacy_inputs = {
@@ -1382,7 +2019,7 @@ class CarbonMaterialAccountingPage(BasePage):
                         mode = "MEASURED"
                     else:
                         mode = None
-                    combo.setCurrentIndex(max(0, combo.findData(mode)))
+                    self._restore_fuel_source_mode(row, key, mode)
             row._update_custom_name_visibility()
             self._refresh_fuel_row(row)
 
@@ -1474,6 +2111,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     continue
                 if isinstance(widget, QLineEdit) and isinstance(value, str):
                     widget.setText(value)
+                elif isinstance(widget, QComboBox) and name == "enterpriseNameInput" and isinstance(value, str):
+                    widget.setEditText(value)
                 elif isinstance(widget, QComboBox) and isinstance(value, int) and 0 <= value < widget.count():
                     widget.setCurrentIndex(value)
                 elif isinstance(widget, QSpinBox) and isinstance(value, int):
@@ -1488,6 +2127,52 @@ class CarbonMaterialAccountingPage(BasePage):
         # A blank unit must not inherit controls from the previously active unit.
         apply_values(default_state)
         apply_values(state)
+        c2_texts = state.get("fgd_carbonate_texts", default_state.get("fgd_carbonate_texts", {}))
+        c2_provenance = state.get("fgd_factor_provenance", {})
+        if not isinstance(c2_provenance, dict):
+            c2_provenance = {}
+        if isinstance(c2_texts, dict):
+            for unit in self._process_rows.get("fgd", ()):
+                for component in unit.get("components", ()):
+                    if not isinstance(component, dict):
+                        continue
+                    selector = component.get("carbonate_type")
+                    component_id = component.get("component_id")
+                    text = c2_texts.get(str(component_id)) if component_id else None
+                    if isinstance(selector, QComboBox) and isinstance(text, str):
+                        selector.setEditText(text)
+                    factor_widget = component.get("ef1")
+                    option = self._carbonate_option_for_text(selector.currentText()) if isinstance(selector, QComboBox) else None
+                    saved = c2_provenance.get(str(component_id), {}) if component_id else {}
+                    mode = saved.get("mode") if isinstance(saved, dict) else None
+                    factor_id = saved.get("factor_id") if isinstance(saved, dict) else None
+                    if mode == "CATALOG":
+                        if option is not None and option.factor.factor_id == factor_id and isinstance(factor_widget, QLineEdit):
+                            if not factor_widget.text().strip():
+                                blocker = QSignalBlocker(factor_widget)
+                                factor_widget.setText(str(option.factor.value))
+                                del blocker
+                            component["factor_mode"] = "CATALOG"
+                            component["catalog_factor_id"] = option.factor.factor_id
+                        else:
+                            if isinstance(factor_widget, QLineEdit):
+                                blocker = QSignalBlocker(factor_widget)
+                                factor_widget.clear()
+                                del blocker
+                            component["factor_mode"] = None
+                            component["catalog_factor_id"] = None
+                    elif mode in {"USER_DEFINED", "MEASURED"}:
+                        component["factor_mode"] = mode
+                        component["catalog_factor_id"] = None
+                    elif isinstance(factor_widget, QLineEdit) and factor_widget.text().strip():
+                        # Older workspaces persisted a factor amount without a
+                        # source selection. Preserve its previous measured-value
+                        # meaning; never relabel it as a catalog default.
+                        component["factor_mode"] = "MEASURED"
+                        component["catalog_factor_id"] = None
+                    else:
+                        component["factor_mode"] = None
+                        component["catalog_factor_id"] = None
         if legacy_steam_state:
             self._convert_legacy_steam_amounts_to_tonnes()
             for prefix, rows in self._heat_rows.items():
@@ -1506,6 +2191,12 @@ class CarbonMaterialAccountingPage(BasePage):
                         for row, value in zip(rows, values):
                             row["legacy_factor_override"] = value is True
         self._refresh_all_heat_enthalpy_previews()
+        if isinstance(state.get("energy_rows"), list):
+            self._restore_unified_energy_rows(state.get("energy_rows"))
+        elif not state and isinstance(default_state.get("energy_rows"), list):
+            self._restore_unified_energy_rows(default_state.get("energy_rows"))
+        else:
+            self._migrate_legacy_energy_rows()
         self.boundary_confirmed.setChecked(True)
         self.scope_exclusion_notice.setVisible(
             self.other_activity_present.isChecked() or self.transport_present.isChecked()
@@ -1617,6 +2308,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._input_dirty = False
         self.project_save_status.setText("项目已保存；历史核算记录仍独立保存。")
         self._refresh_saved_projects()
+        self._refresh_enterprise_candidates()
         return True
 
     def _open_selected_project(self) -> None:
@@ -1640,6 +2332,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._active_unit_index = next(i for i, unit in enumerate(workspace.units) if unit.unit_id == workspace.active_unit_id)
         self._refresh_unit_selector(workspace.active_unit_id)
         self._restore_form_state(workspace.units[self._active_unit_index].form_state)
+        self._refresh_enterprise_candidates()
         self._project_dirty = False
         self.project_save_status.setText("已打开已保存项目。")
 
@@ -1834,6 +2527,22 @@ class CarbonMaterialAccountingPage(BasePage):
             return None
         return None
 
+    def _saved_business_fingerprint(self, unit) -> str | None:
+        result = unit.result_snapshot or {}
+        record_id = result.get("record_id")
+        if not isinstance(record_id, str) or not record_id:
+            record_id = unit.record_ids[-1] if unit.record_ids else None
+        getter = getattr(self.record_repository, "get_raw_input_snapshot", None)
+        if not record_id or not callable(getter):
+            return None
+        try:
+            raw_snapshot = getter(record_id)
+            if isinstance(raw_snapshot, Mapping):
+                return self._fingerprint_business_input(raw_snapshot)
+        except Exception:
+            return None
+        return None
+
     def _calculation_result_is_stale(self, unit) -> bool:
         current = self._current_calculation_fingerprint()
         saved = self._saved_calculation_fingerprint(unit)
@@ -1876,7 +2585,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_line_details.setVisible(bool(result.get("show_breakdown", False)))
         self._calculation_has_result = True
         self._latest_record_id = result.get("record_id") or (unit.record_ids[-1] if unit.record_ids else None)
+        self._latest_record = self._record_for_report()
+        self._latest_record_fingerprint = self._saved_business_fingerprint(unit)
         self.view_record_button.setEnabled(bool(self._latest_record_id))
+        self._sync_report_export_gate()
         if self._current_business_fingerprint() != unit.input_fingerprint:
             self.report_changes_status.setText("报告资料已修改，需重新计算生成正式记录才能固化这些变化。")
         self._refresh_unit_result_summary()
@@ -1922,6 +2634,43 @@ class CarbonMaterialAccountingPage(BasePage):
         if record_id:
             self.record_requested.emit(record_id)
 
+    def _record_for_report(self):
+        record = self._latest_record
+        if record is not None and getattr(record, "record_id", None) == self._latest_record_id:
+            return record
+        record_id = self._latest_record_id
+        getter = getattr(self.record_repository, "get", None)
+        if record_id and callable(getter):
+            try:
+                return getter(record_id)
+            except Exception:
+                _LOGGER.warning("Unable to load the saved record for report export", exc_info=True)
+        return None
+
+    def _sync_report_export_gate(self) -> None:
+        button = getattr(self, "export_report_button", None)
+        if button is None:
+            return
+        record = self._record_for_report()
+        current = self._current_business_fingerprint() if record is not None else None
+        fresh = bool(
+            self._calculation_has_result
+            and not self._stale_result_notice
+            and record is not None
+            and current is not None
+            and self._latest_record_fingerprint is not None
+            and current == self._latest_record_fingerprint
+        )
+        button.setEnabled(fresh)
+
+    def _export_latest_record_report(self) -> None:
+        self._sync_report_export_gate()
+        if not self.export_report_button.isEnabled():
+            return
+        record = self._record_for_report()
+        if record is not None:
+            export_saved_record_report(self, self.record_repository, record)
+
     def _scroll_to_widget(self, widget: QWidget) -> None:
         scroll_area = self.window().findChild(QScrollArea, "mainScrollArea")
         if scroll_area is not None:
@@ -1966,7 +2715,32 @@ class CarbonMaterialAccountingPage(BasePage):
         self._mark_input_dirty()
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
-        """Build all ten source cards through one shared Presentation path."""
+        """Build eight visible source selectors over the ten legacy Domain states."""
+
+        selector_scroll = QScrollArea(self)
+        selector_scroll.setObjectName("accountingSourceToggleScroll")
+        selector_scroll.setWidgetResizable(True)
+        selector_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        selector_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        selector_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        selector_host = QWidget(selector_scroll)
+        selector_host.setObjectName("accountingSourceToggleRow")
+        self.source_toggle_host = selector_host
+        self.source_toggle_scroll = selector_scroll
+        selector_layout = QHBoxLayout(selector_host)
+        selector_layout.setContentsMargins(0, 2, 0, 2)
+        selector_layout.setSpacing(8)
+        for group_id, label, _source_ids in self._source_toggle_groups:
+            button = QPushButton(selector_host)
+            button.setObjectName(f"sourceToggle_{group_id}")
+            button.setMinimumHeight(36)
+            button.setAccessibleName(label)
+            button.clicked.connect(lambda _checked=False, _group=group_id: self._toggle_source_group(_group))
+            selector_layout.addWidget(button)
+            self._source_toggle_buttons[group_id] = button
+        selector_layout.addStretch(1)
+        selector_scroll.setWidget(selector_host)
+        parent_layout.addWidget(selector_scroll)
 
         source_definitions = (
             ("CAR-SRC-FUEL-001", lambda layout: self._build_fuel_section(layout)),
@@ -2035,8 +2809,16 @@ class CarbonMaterialAccountingPage(BasePage):
                 involved_value=EmissionSourceStatus.INVOLVED,
             )
             builder(card.body_layout)
+            combo.currentIndexChanged.connect(self._mark_input_dirty)
             card.status_changed.connect(lambda _status, _source_id=source_id: self._refresh_source_cards())
+            header = card.findChild(QWidget, f"sourceCardHeader_{source_id}")
+            if header is not None:
+                header.hide()
+            card.summary_label.hide()
+            card.check_result_label.hide()
             parent_layout.addWidget(card)
+
+        self._build_unified_energy_section(parent_layout)
 
         parameter_summary = QWidget(self)
         parameter_summary_layout = QVBoxLayout(parameter_summary)
@@ -2051,6 +2833,311 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addWidget(parameter_summary)
 
         self._refresh_source_cards()
+
+    def _build_unified_energy_section(self, parent_layout: QVBoxLayout) -> None:
+        for family, title, hint, add_label in (
+            ("electricity", "购入/输出电力", "逐条填写电量、方向和购入电力属性。停用排放源时保留输入，计算不计入。", "新增电力来源"),
+            ("heat", "购入/输出热力", "逐条填写热力量、方向和蒸汽参数。停用排放源时保留输入，计算不计入。", "新增热力来源"),
+        ):
+            card = QFrame(self)
+            card.setObjectName("unifiedElectricityCard" if family == "electricity" else "unifiedHeatCard")
+            card.setProperty("energyFamily", family)
+            card.setFrameShape(QFrame.Shape.StyledPanel)
+            layout = QVBoxLayout(card)
+            heading = QLabel(title, card)
+            heading.setObjectName("unifiedElectricityTitle" if family == "electricity" else "unifiedHeatTitle")
+            layout.addWidget(heading)
+            help_text = QLabel(hint, card)
+            help_text.setObjectName("unifiedEnergyHelp")
+            help_text.setWordWrap(True)
+            layout.addWidget(help_text)
+            host = QWidget(card)
+            rows_layout = QVBoxLayout(host)
+            rows_layout.setContentsMargins(0, 0, 0, 0)
+            rows_layout.setSpacing(2)
+            layout.addWidget(host)
+            add_row = QPushButton(add_label, card)
+            add_row.setObjectName("addUnifiedElectricityRow" if family == "electricity" else "addUnifiedHeatRow")
+            add_row.clicked.connect(lambda _checked=False, _family=family: self._add_unified_energy_row(
+                kind="purchased_electricity" if _family == "electricity" else "purchased_heat"
+            ))
+            layout.addWidget(add_row, 0, Qt.AlignmentFlag.AlignLeft)
+            parent_layout.addWidget(card)
+            self._unified_energy_cards[family] = card
+            self._unified_energy_rows_layouts[family] = rows_layout
+            self._add_unified_energy_row(
+                kind="purchased_electricity" if family == "electricity" else "purchased_heat"
+            )
+
+    def _add_unified_energy_row(
+        self,
+        *,
+        kind: str = "purchased_electricity",
+        line_id: str | None = None,
+    ) -> _UnifiedEnergyRow:
+        legacy_self_consumed = kind == "self_consumed_electricity"
+        if legacy_self_consumed:
+            kind = "purchased_electricity"
+        if kind in {value for _, value in _UnifiedEnergyRow.HEAT_KINDS}:
+            family = "heat"
+        elif kind in {value for _, value in _UnifiedEnergyRow.ELECTRICITY_KINDS}:
+            family = "electricity"
+        else:
+            kind = "purchased_electricity"
+            family = "electricity"
+        rows_layout = self._unified_energy_rows_layouts.get(family)
+        if rows_layout is None:
+            raise RuntimeError("unified energy sections are not initialized")
+        self._energy_row_serial += 1
+        row = _UnifiedEnergyRow(self._energy_row_serial, family, self._remove_unified_energy_row, self)
+        row.kind.setCurrentIndex(max(0, row.kind.findData(kind)))
+        if legacy_self_consumed:
+            row.attribute.setCurrentIndex(max(0, row.attribute.findData("SELF_CONSUMED_EXCLUDED")))
+        if line_id:
+            row.line_id.setText(line_id)
+        self._energy_rows.append(row)
+        self._energy_family_rows[family].append(row)
+        rows_layout.addWidget(row)
+        for widget in (
+            row.kind, row.amount, row.attribute, row.region, row.factor_mode, row.factor_selector,
+            row.manual_factor, row.electricity_source, row.heat_kind, row.pressure, row.temperature,
+            row.enthalpy_mode, row.enthalpy, row.heat_factor_mode, row.measured_heat_factor, row.heat_source,
+        ):
+            self._wire_dirty_tracking(widget)
+        row.kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.kind.currentIndexChanged.connect(self._refresh_source_cards)
+        row.region.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_energy_factor_options(_row))
+        row.attribute.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.heat_kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.enthalpy_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.heat_factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.amount.textChanged.connect(lambda *_args: self._refresh_source_cards())
+        row.amount.textChanged.connect(lambda *_args: self._refresh_electricity_rows())
+        row.factor_selector.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        self._refresh_energy_region_options(row)
+        self._refresh_energy_factor_options(row)
+        self._refresh_unified_energy_row(row)
+        self._refresh_repeat_delete_controls()
+        if hasattr(self, "result_card") and not self._restoring_workspace:
+            self._mark_input_dirty()
+        return row
+
+    def _remove_unified_energy_row(self, row: QWidget, *, force: bool = False) -> None:
+        if not isinstance(row, _UnifiedEnergyRow) or row not in self._energy_rows:
+            return
+        family_rows = self._energy_family_rows.get(row.family, [])
+        if not force and (not family_rows or row is family_rows[0] or len(family_rows) <= 1):
+            return
+        self._energy_rows.remove(row)
+        family_rows.remove(row)
+        rows_layout = self._unified_energy_rows_layouts.get(row.family)
+        if rows_layout is not None:
+            rows_layout.removeWidget(row)
+        row.setParent(None)
+        row.deleteLater()
+        self._refresh_repeat_delete_controls()
+        self._refresh_source_cards()
+        if hasattr(self, "result_card") and not self._restoring_workspace:
+            self._mark_input_dirty()
+
+    def _refresh_energy_region_options(self, row: _UnifiedEnergyRow) -> None:
+        combo = row.region
+        old = combo.currentData()
+        try:
+            period = self._period()
+            queries = self._uat03_parameter_queries
+            regions = queries.electricity_regions(period) if queries is not None else ()
+            preferred = queries.preferred_electricity_region(period) if queries is not None else None
+        except (AttributeError, DomainValidationError, TypeError, ValueError):
+            regions, preferred = (), None
+        blocker = QSignalBlocker(combo)
+        combo.clear()
+        combo.addItem("全国平均", None)
+        for region in regions:
+            combo.addItem(f"{region}地区平均", region)
+        wanted = old if old is not None else preferred
+        index = combo.findData(wanted)
+        combo.setCurrentIndex(index if index >= 0 else 0)
+        del blocker
+
+    def _refresh_energy_factor_options(self, row: _UnifiedEnergyRow) -> None:
+        selector = row.factor_selector
+        old = selector.currentData()
+        old_id = getattr(getattr(old, "factor", None), "factor_id", None)
+        try:
+            period = self._period()
+            queries = self._uat03_parameter_queries
+            region = row.region.currentData()
+            options = queries.electricity_options(region, period) if queries is not None else ()
+        except (AttributeError, DomainValidationError, TypeError, ValueError):
+            options = ()
+        blocker = QSignalBlocker(selector)
+        selector.clear()
+        for option in options:
+            factor = option.factor
+            year = f" · {factor.factor_year}" if factor.factor_year is not None else ""
+            selector.addItem(f"{option.label}：{factor.value} {factor.unit}{year}", option)
+        if not options:
+            selector.addItem("当前期间暂无适用目录候选", None)
+        index = next(
+            (i for i in range(selector.count()) if getattr(getattr(selector.itemData(i), "factor", None), "factor_id", None) == old_id),
+            0,
+        )
+        selector.setCurrentIndex(index)
+        selector.setEnabled(bool(options))
+        del blocker
+        self._refresh_unified_energy_row(row)
+
+    def _clear_legacy_energy_attribute(self, row: _UnifiedEnergyRow) -> None:
+        if row.legacy_attribute is None:
+            return
+        row.legacy_attribute = None
+        self._refresh_unified_energy_row(row)
+
+    def _refresh_unified_energy_row(self, row: _UnifiedEnergyRow) -> None:
+        kind = row.kind.currentData()
+        electricity = row.family == "electricity"
+        heat = row.family == "heat"
+        output = kind in {"exported_electricity", "exported_heat"}
+        row.electricity_details.setVisible(electricity)
+        row.heat_details.setVisible(heat)
+        row.unit_label.setText("MWh" if electricity else "t")
+        row.amount.setPlaceholderText("电量（MWh）" if electricity else "热力量（t）")
+        row.amount.setProperty("fieldUnit", "MWh" if electricity else "t")
+        row.attribute.setVisible(electricity and not output and row.legacy_attribute is None and row.legacy_acquisition_mode is None)
+        row.legacy_attribute_notice.setVisible(electricity and not output and (row.legacy_attribute is not None or row.legacy_acquisition_mode is not None))
+        attribute_data = row.attribute.currentData()
+        self_consumed = attribute_data == "SELF_CONSUMED_EXCLUDED"
+        try:
+            attribute = _enum(attribute_data, ElectricityAttribute)
+        except (TypeError, ValueError):
+            attribute = ElectricityAttribute.ORDINARY
+        row.region.setVisible(electricity and (output or (not self_consumed and attribute is ElectricityAttribute.ORDINARY)))
+        manual = row.factor_mode.currentData() == "MANUAL"
+        can_select_factor = electricity and (
+            output or (not self_consumed and attribute is ElectricityAttribute.ORDINARY)
+        )
+        show_factor_controls = can_select_factor
+        row.factor_mode.setVisible(show_factor_controls)
+        row.factor_selector.setVisible(show_factor_controls and not manual)
+        row.manual_factor.setVisible(show_factor_controls and manual)
+        row.electricity_source.setVisible(show_factor_controls and manual)
+        row.heat_kind.setVisible(heat)
+        try:
+            steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
+        except (TypeError, ValueError):
+            steam_kind = SteamKind.SATURATED
+        manual_enthalpy = row.enthalpy_mode.currentData() == "MANUAL"
+        row.temperature.setVisible(heat and steam_kind is SteamKind.SUPERHEATED and not manual_enthalpy)
+        row.enthalpy_mode.setVisible(heat)
+        row.enthalpy.setVisible(heat and manual_enthalpy)
+        row.pressure.setVisible(heat and not manual_enthalpy)
+        row.heat_factor_mode.setVisible(heat)
+        try:
+            measured_heat = _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED
+        except (TypeError, ValueError):
+            measured_heat = False
+        row.measured_heat_factor.setVisible(heat and measured_heat)
+        row.heat_source.setVisible(heat and measured_heat)
+        if self_consumed:
+            row.status.setText("自发自用电量保留在项目中，不计入本次正式核算输入。")
+        elif electricity:
+            row.status.setText("电力因子：待录入")
+        self._refresh_unified_energy_row_preview(row)
+
+    def _refresh_unified_energy_row_preview(self, row: _UnifiedEnergyRow) -> None:
+        if row.family != "heat":
+            return
+        try:
+            heat_kind = _enum(row.heat_kind.currentData(), SteamKind)
+            if row.enthalpy_mode.currentData() == "MANUAL":
+                enthalpy_text = row.enthalpy.text().strip()
+                status = "热力来源：手动焓值待填写" if not enthalpy_text else "热力来源：使用手动焓值"
+            else:
+                pressure_text = row.pressure.text().strip()
+                temperature_text = row.temperature.text().strip()
+                if not pressure_text or (heat_kind is SteamKind.SUPERHEATED and not temperature_text):
+                    missing = "蒸汽压力（绝压）" if not pressure_text else "过热蒸汽温度"
+                    status = f"热力来源：请填写{missing}"
+                else:
+                    pressure = self.calculator.policy.parse(pressure_text)
+                    if heat_kind is SteamKind.SUPERHEATED:
+                        reference = superheated_steam_enthalpy(pressure, self.calculator.policy.parse(temperature_text), policy=self.calculator.policy)[0]
+                    else:
+                        reference = saturated_steam_enthalpy(pressure, policy=self.calculator.policy)[0]
+                    status = f"热力来源：自动取焓 {self.calculator.policy.format_for_display(reference, 1)} kJ/kg"
+        except (ValueError, InvalidOperation, DomainValidationError):
+            status = "热力来源：压力或温度格式无效或超出标准表范围"
+        row.status.setText(status)
+
+    def _energy_source_is_enabled(self, source_id: str) -> bool:
+        return source_id in self._source_statuses and _enum(
+            self._source_statuses[source_id].currentData(), EmissionSourceStatus
+        ) is EmissionSourceStatus.INVOLVED
+
+    def _energy_electricity_parameter_unit(self, region: str | None) -> tuple[str, str]:
+        parameter_id = PROVINCIAL_ELECTRICITY_PARAMETER_ID if region else NATIONAL_ELECTRICITY_PARAMETER_ID
+        for parameter in self.catalog_service.repository.list_parameters():
+            if parameter.parameter_id == parameter_id:
+                return parameter_id, str(getattr(parameter, "canonical_unit", getattr(parameter, "default_unit", "tCO2/MWh")))
+        return parameter_id, "tCO2/MWh"
+
+    def _toggle_source_group(self, group_id: str) -> None:
+        group = next((item for item in self._source_toggle_groups if item[0] == group_id), None)
+        if group is None:
+            return
+        source_ids = group[2]
+        current = [
+            _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
+            for source_id in source_ids if source_id in self._source_statuses
+        ]
+        # A partially restored legacy group is made consistently enabled by a
+        # deliberate click; a fully enabled group is deliberately disabled.
+        target_enabled = not bool(current) or not all(current)
+        target = EmissionSourceStatus.INVOLVED if target_enabled else EmissionSourceStatus.NOT_INVOLVED
+        for source_id in source_ids:
+            combo = self._source_statuses.get(source_id)
+            if combo is not None:
+                index = combo.findData(target)
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+        self._mark_input_dirty()
+        self._refresh_source_cards()
+
+    def _refresh_source_toggle_buttons(self) -> None:
+        total_width = 0
+        for group_id, label, source_ids in self._source_toggle_groups:
+            button = self._source_toggle_buttons.get(group_id)
+            if button is None:
+                continue
+            states = [
+                _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
+                for source_id in source_ids if source_id in self._source_statuses
+            ]
+            enabled_count = sum(states)
+            if enabled_count == len(states) and states:
+                state = "已启用"
+            elif enabled_count:
+                state = "部分启用"
+            else:
+                state = "未启用"
+            button.setText(f"{state} | {label}")
+            button.setMinimumWidth(max(118, button.fontMetrics().horizontalAdvance(button.text()) + 30))
+            total_width += button.minimumWidth()
+            button.setProperty("sourceState", state)
+            button.setAccessibleDescription(f"{label}排放源，当前{state}；点击切换。")
+            button.setToolTip(f"{label}：{state}。点击切换。")
+            button.style().unpolish(button)
+            button.style().polish(button)
+        host = getattr(self, "source_toggle_host", None)
+        if isinstance(host, QWidget):
+            layout = host.layout()
+            spacing = layout.spacing() if layout is not None else 0
+            margins = layout.contentsMargins() if layout is not None else None
+            horizontal_margins = margins.left() + margins.right() if margins is not None else 0
+            button_count = len(self._source_toggle_groups)
+            host.setMinimumWidth(total_width + max(0, button_count - 1) * max(0, spacing) + horizontal_margins)
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
         self.fuel_rows_host = QWidget(self)
@@ -2074,40 +3161,145 @@ class CarbonMaterialAccountingPage(BasePage):
             "fuel_oxidation": row.oxidation,
         })
 
+    def _fuel_catalog_options(self) -> tuple[object, ...]:
+        queries = self._uat03_parameter_queries
+        if queries is None:
+            return ()
+        try:
+            return tuple(queries.fuel_options())
+        except (AttributeError, KeyError, TypeError, ValueError):
+            _LOGGER.warning("Unable to list C.1 fuel choices", exc_info=True)
+            return ()
+
+    def _bind_fuel_aliases(self, row: _FuelRow | None) -> None:
+        if row is None:
+            return
+        direct = row.carbon_basis.currentData() == "DIRECT"
+        self._fields.update({
+            "fuel_id": row.internal_id,
+            "fuel_path": row.path,  # type: ignore[dict-item]
+            "fuel_activity": row.activity,
+            "fuel_carbon": row.carbon_direct if direct else row.carbon,
+            "fuel_oxidation": row.oxidation,
+        })
+
     def _add_fuel_row(self) -> None:
         self._fuel_row_serial += 1
-        row = _FuelRow(self._fuel_row_serial, self._remove_fuel_row, self)
+        row = _FuelRow(
+            self._fuel_row_serial,
+            self._remove_fuel_row,
+            self,
+            fuel_options=self._fuel_catalog_options(),
+        )
         self._fuel_rows.append(row)
         self.fuel_rows_layout.addWidget(row)
+        row.remove_button.setVisible(len(self._fuel_rows) > 1)
         self._bind_fuel_aliases(self._fuel_rows[0])
         row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._on_fuel_type_changed(_row, initialize_defaults=True))
+        row.fuel_type.editTextChanged.connect(lambda _text, _row=row: self._on_fuel_type_changed(_row, initialize_defaults=True))
         row.path.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row, initialize_defaults=True))
-        for combo in (row.lhv_source, row.carbon_source, row.oxidation_source):
-            combo.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row))
+        row.carbon_basis.currentIndexChanged.connect(lambda _index, _row=row: self._on_fuel_basis_changed(_row))
+        for source_key, combo in (
+            ("lhv", row.lhv_source),
+            ("carbon", row.carbon_source),
+            ("direct_carbon", row.direct_carbon_source),
+            ("oxidation", row.oxidation_source),
+        ):
+            combo.currentIndexChanged.connect(
+                lambda _index, _row=row, _key=source_key: self._on_fuel_source_mode_changed(_row, _key)
+            )
             combo.currentIndexChanged.connect(self._mark_input_dirty)
-        row.custom_name.textChanged.connect(self._mark_input_dirty)
-        row.custom_name.textChanged.connect(lambda *_args: self._refresh_source_cards())
-        for widget in (row.activity, row.carbon, row.oxidation, row.lower_heating_value, row.source_reference):
+        row.source_reference.textChanged.connect(self._mark_input_dirty)
+        row.source_reference.textChanged.connect(lambda *_args: self._refresh_source_cards())
+        for widget in (row.activity, row.carbon, row.carbon_direct, row.oxidation, row.lower_heating_value):
             if isinstance(widget, QLineEdit):
                 if isinstance(widget, NumericLineEdit):
                     widget.defer_range_validation_to_domain()
                 widget.textChanged.connect(self._mark_input_dirty)
                 widget.textChanged.connect(lambda *_args: self._refresh_source_cards())
-        row.source_reference.textChanged.connect(lambda *_args, _row=row: self._refresh_source_cards())
         row.fuel_type.currentIndexChanged.connect(self._mark_input_dirty)
+        row.fuel_type.editTextChanged.connect(self._mark_input_dirty)
         row.path.currentIndexChanged.connect(self._mark_input_dirty)
-        row.fuel_type.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+        row.carbon_basis.currentIndexChanged.connect(self._mark_input_dirty)
         row.path.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
-        self._on_fuel_type_changed(row, initialize_defaults=True)
+        if hasattr(self, "result_card") and not self._restoring_workspace:
+            self._mark_input_dirty()
+        self._refresh_repeat_delete_controls()
+        self._refresh_fuel_row(row, initialize_defaults=True)
+
+    def _fuel_option_for_row(self, row: _FuelRow):
+        text = row.fuel_type.currentText().strip()
+        if not text:
+            return None
+        for option in row._fuel_options:
+            if text == str(getattr(option, "label", "")) or text in tuple(getattr(option, "aliases", ()) or ()):
+                return option
+        return None
+
+    @staticmethod
+    def _fuel_source_mode(row: _FuelRow, source_key: str) -> str | None:
+        return row._legacy_source_modes.get(source_key) or {
+            "lhv": row.lhv_source,
+            "carbon": row.carbon_source,
+            "direct_carbon": row.direct_carbon_source,
+            "oxidation": row.oxidation_source,
+        }[source_key].currentData()
+
+    @staticmethod
+    def _restore_fuel_source_mode(row: _FuelRow, source_key: str, mode: str | None) -> None:
+        combo = {
+            "lhv": row.lhv_source,
+            "carbon": row.carbon_source,
+            "direct_carbon": row.direct_carbon_source,
+            "oxidation": row.oxidation_source,
+        }[source_key]
+        index = combo.findData(mode)
+        if index >= 0:
+            combo.setCurrentIndex(index)
+            row._legacy_source_modes.pop(source_key, None)
+        elif mode:
+            row._legacy_source_modes[source_key] = mode
+
+    def _on_fuel_source_mode_changed(self, row: _FuelRow, source_key: str) -> None:
+        if self._restoring_workspace:
+            return
+        row._legacy_source_modes.pop(source_key, None)
+        self._refresh_fuel_row(row)
+
+    def _on_fuel_basis_changed(self, row: _FuelRow) -> None:
+        self._bind_fuel_aliases(self._fuel_rows[0] if self._fuel_rows else None)
+        # Switching carbon basis only changes the active input path. Catalog
+        # values and the hidden calculated-path inputs remain intact for return.
+        self._refresh_fuel_row(row)
+        self._mark_input_dirty()
+
+    def _recommended_fuel_activity_path(self, row: _FuelRow) -> FuelPath | None:
+        option = self._fuel_option_for_row(row)
+        if option is None:
+            return None
+        queries = self._uat03_parameter_queries
+        if queries is not None:
+            try:
+                defaults = queries.fuel_defaults(option.subject_id, self._period())
+                factor = defaults.lower_heating_value.factor if defaults.lower_heating_value is not None else None
+            except (AttributeError, DomainValidationError, KeyError, TypeError, ValueError):
+                factor = None
+            if factor is None:
+                return None
+            unit = _domain_unit(str(factor.unit)).casefold()
+            if unit == _domain_unit("GJ/t").casefold():
+                return FuelPath.MASS
+            if unit in {_domain_unit("GJ/10⁴Nm³").casefold(), _domain_unit("GJ/10⁴ Nm³").casefold()}:
+                return FuelPath.VOLUME
+            return None
+        # Compatibility fallback for standalone pages without a Catalog/Resolver.
+        fuel_type = getattr(option, "fuel_type", None)
+        return _FUEL_C1_ACTIVITY_PATH.get(fuel_type) if isinstance(fuel_type, FuelType) else None
 
     def _on_fuel_type_changed(self, row: _FuelRow, *, initialize_defaults: bool = False) -> None:
         if not self._restoring_workspace and not row.activity.text().strip():
-            try:
-                fuel_type = _enum(row.fuel_type.currentData(), FuelType)
-            except (TypeError, ValueError):
-                fuel_type = None
-            if fuel_type in _FUEL_C1_SUBJECT_IDS:
-                standard_path = _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS)
+            standard_path = self._recommended_fuel_activity_path(row)
+            if standard_path is not None:
                 path_index = row.path.findData(standard_path)
                 if path_index >= 0 and row.path.currentIndex() != path_index:
                     row.path.setCurrentIndex(path_index)
@@ -2115,26 +3307,17 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_fuel_row(row, initialize_defaults=initialize_defaults)
 
     def _remove_fuel_row(self, row: QWidget) -> None:
-        if row not in self._fuel_rows:
+        if row not in self._fuel_rows or not self._fuel_rows or row is self._fuel_rows[0]:
             return
         if len(self._fuel_rows) == 1:
-            assert isinstance(row, _FuelRow)
-            row.activity.clear()
-            row.carbon.clear()
-            row.oxidation.clear()
-            row.lower_heating_value.clear()
-            row.source_reference.clear()
-            row.custom_name.clear()
-            for combo in (row.lhv_source, row.carbon_source, row.oxidation_source):
-                combo.setCurrentIndex(0)
-            row.internal_id.setText(f"fuel-{uuid4().hex}")
-            self._refresh_fuel_row(row)
+            return
         else:
             self._fuel_rows.remove(row)  # type: ignore[arg-type]
             self.fuel_rows_layout.removeWidget(row)
             row.setParent(None)
             row.deleteLater()
             self._bind_fuel_aliases(self._fuel_rows[0])
+            self._fuel_rows[0].remove_button.hide()
             self._mark_input_dirty()
         self._refresh_source_cards()
 
@@ -2178,30 +3361,50 @@ class CarbonMaterialAccountingPage(BasePage):
             factor.factor_year,
         )
 
-    def _fuel_default_factors(self, row: _FuelRow) -> tuple[object | None, object, object] | None:
+    def _fuel_default_factors(self, row: _FuelRow) -> tuple[object | None, object | None, object | None] | None:
+        option = self._fuel_option_for_row(row)
+        queries = self._uat03_parameter_queries
+        if option is None or queries is None:
+            row._default_selection_reasons = {}
+            return None
         try:
-            fuel_type = _enum(row.fuel_type.currentData(), FuelType)
+            defaults = queries.fuel_defaults(option.subject_id, self._period())
+        except (AttributeError, DomainValidationError, KeyError, TypeError, ValueError):
+            row._default_selection_reasons = {}
+            return None
+        resolved = {
+            "lhv": defaults.lower_heating_value,
+            "carbon": defaults.carbon_content_per_heat,
+            "oxidation": defaults.oxidation_rate,
+        }
+        row._default_selection_reasons = {
+            key: item.selection_reason for key, item in resolved.items() if item is not None
+        }
+        factors = {key: item.factor if item is not None else None for key, item in resolved.items()}
+        try:
             path = _enum(row.path.currentData(), FuelPath)
         except (TypeError, ValueError):
             return None
-        subject_id = _FUEL_C1_SUBJECT_IDS.get(fuel_type)
-        if subject_id is None:
+        lhv = factors["lhv"]
+        if lhv is not None:
+            expected_unit = {
+                FuelPath.VOLUME: "GJ/10⁴Nm³",
+                FuelPath.MASS: "GJ/t",
+                FuelPath.HEAT: "GJ/GJ",
+            }[path]
+            if _domain_unit(str(lhv.unit)) != _domain_unit(expected_unit):
+                factors["lhv"] = None
+        if not any(factors.values()):
             return None
-        if path is not FuelPath.HEAT and path is not _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS):
-            return None
-        lhv_factor = self._canonical_default_factor(f"{subject_id}_lhv") if path is not FuelPath.HEAT else None
-        carbon_factor = self._canonical_default_factor(f"{subject_id}_carbon_content")
-        oxidation_factor = self._canonical_default_factor(f"{subject_id}_oxidation_rate")
-        if carbon_factor is None or oxidation_factor is None:
-            return None
-        if path is not FuelPath.HEAT and lhv_factor is None:
-            return None
-        return lhv_factor, carbon_factor, oxidation_factor
+        return factors["lhv"], factors["carbon"], factors["oxidation"]
+
+    def _refresh_energy_parameters(self) -> None:
+        for row in tuple(self._energy_family_rows.get("electricity", ())):
+            self._refresh_energy_region_options(row)
+            self._refresh_energy_factor_options(row)
+        self._refresh_carbonate_options()
 
     def _refresh_fuel_defaults(self) -> None:
-        # Date edits can temporarily produce an invalid interval while users
-        # set the start and end dates in sequence. Preserve selected defaults
-        # until the interval becomes valid again.
         try:
             period = self._period()
         except (DomainValidationError, TypeError, ValueError):
@@ -2213,8 +3416,9 @@ class CarbonMaterialAccountingPage(BasePage):
 
     @staticmethod
     def _set_fuel_default_option(combo: QComboBox, available: bool) -> None:
+        index = combo.findData("STANDARD_DEFAULT")
         model = combo.model()
-        item = model.item(1) if hasattr(model, "item") else None
+        item = model.item(index) if index >= 0 and hasattr(model, "item") else None
         if item is not None:
             item.setEnabled(available)
 
@@ -2222,8 +3426,8 @@ class CarbonMaterialAccountingPage(BasePage):
         try:
             path = _enum(row.path.currentData(), FuelPath)
         except (TypeError, ValueError):
-            path = None
-        activity_unit = {FuelPath.VOLUME: "10⁴ Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}.get(path, "")
+            path = FuelPath.MASS
+        direct = row.carbon_basis.currentData() == "DIRECT"
         factors = self._fuel_default_factors(row)
         lhv_factor, carbon_factor, oxidation_factor = factors if factors is not None else (None, None, None)
         default_values = {
@@ -2231,76 +3435,138 @@ class CarbonMaterialAccountingPage(BasePage):
             "carbon": "" if carbon_factor is None else str(carbon_factor.value),
             "oxidation": "" if oxidation_factor is None else str(oxidation_factor.value * Decimal("100")),
         }
-        field_map = (
-            ("lhv", row.lhv_source, row.lower_heating_value, lhv_factor),
-            ("carbon", row.carbon_source, row.carbon, carbon_factor),
-            ("oxidation", row.oxidation_source, row.oxidation, oxidation_factor),
-        )
-        for key, combo, edit, factor in field_map:
-            available = factor is not None
-            self._set_fuel_default_option(combo, available)
-            prior_mode = combo.currentData()
-            if initialize_defaults and prior_mode is None and available:
-                combo.setCurrentIndex(combo.findData("STANDARD_DEFAULT"))
-                prior_mode = "STANDARD_DEFAULT"
-            is_default = prior_mode == "STANDARD_DEFAULT" and available
-            edit.setReadOnly(is_default or path is FuelPath.HEAT and key == "lhv")
-            if is_default:
-                value = default_values[key]
-                if edit.text().strip() != value:
-                    # A prior standard-default value is replaced only while
-                    # the user keeps the explicit default source selected.
-                    edit.setText(value)
-            elif prior_mode in {"CALCULATED", "MEASURED"}:
-                edit.setReadOnly(False)
-            elif row._last_default_values is not None:
-                old = row._last_default_values[("lhv", "carbon", "oxidation").index(key)]
-                if old and edit.text().strip() == old:
-                    edit.clear()
-            if combo is row.lhv_source:
-                combo.setEnabled(path is not FuelPath.HEAT)
-                edit.setEnabled(path is not FuelPath.HEAT)
-        if path is FuelPath.HEAT and row.lower_heating_value.text().strip():
-            row.lower_heating_value.clear()
-            row.lhv_source.setCurrentIndex(0)
-        row._last_default_values = (
-            default_values["lhv"], default_values["carbon"], default_values["oxidation"]
-        ) if factors is not None else None
+        modes = {
+            "lhv": self._fuel_source_mode(row, "lhv"),
+            "carbon": self._fuel_source_mode(row, "carbon"),
+            "oxidation": self._fuel_source_mode(row, "oxidation"),
+            "direct_carbon": self._fuel_source_mode(row, "direct_carbon"),
+        }
+        previous = row._last_default_values or ("", "", "")
+        current = {
+            "lhv": row.lower_heating_value.text().strip(),
+            "carbon": row.carbon.text().strip(),
+            "oxidation": row.oxidation.text().strip(),
+        }
+        factors_by_key = {"lhv": lhv_factor, "carbon": carbon_factor, "oxidation": oxidation_factor}
+        edits = {"lhv": row.lower_heating_value, "carbon": row.carbon, "oxidation": row.oxidation}
+        combos = {"lhv": row.lhv_source, "carbon": row.carbon_source, "oxidation": row.oxidation_source}
 
-        lhv_unit = {FuelPath.VOLUME: "GJ/10⁴ Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}.get(path, "")
-        direct_carbon_unit = {FuelPath.VOLUME: "tC/10⁴ Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}.get(path, "")
-        has_lhv = bool(row.lower_heating_value.text().strip()) or (
-            row.lhv_source.currentData() == "STANDARD_DEFAULT" and lhv_factor is not None
-        )
+        for key in ("lhv", "carbon", "oxidation"):
+            factor = factors_by_key[key]
+            source_combo = combos[key]
+            edit = edits[key]
+            has_legacy_mode = key in row._legacy_source_modes
+            mode = modes[key]
+            self._set_fuel_default_option(source_combo, factor is not None)
+            if (
+                initialize_defaults and factor is not None and not has_legacy_mode
+                and mode in {None, "STANDARD_DEFAULT"}
+                and (not current[key] or current[key] == previous[("lhv", "carbon", "oxidation").index(key)])
+            ):
+                mode = "STANDARD_DEFAULT"
+                self._restore_fuel_source_mode(row, key, mode)
+                modes[key] = mode
+            if mode == "STANDARD_DEFAULT" and factor is not None:
+                if edit.text().strip() != default_values[key]:
+                    edit.setText(default_values[key])
+                edit.setReadOnly(True)
+            elif mode == "STANDARD_DEFAULT" and factor is None:
+                # A newly selected unmatched/custom fuel must not keep stale
+                # catalog defaults. Legacy source selections, however, retain
+                # the saved values and provenance verbatim for old projects.
+                if not has_legacy_mode:
+                    previous_value = previous[("lhv", "carbon", "oxidation").index(key)]
+                    if previous_value and edit.text().strip() == previous_value:
+                        edit.clear()
+                    fallback = "MEASURED" if key == "lhv" else "USER_DEFINED" if key == "oxidation" else None
+                    if fallback is not None and row.fuel_type.currentText().strip():
+                        index = source_combo.findData(fallback)
+                        if index >= 0:
+                            source_combo.setCurrentIndex(index)
+                            modes[key] = fallback
+                edit.setReadOnly(key == "carbon")
+            else:
+                edit.setReadOnly(key == "carbon")
+
+        direct_mode = modes["direct_carbon"]
+        if direct_mode is None:
+            direct_mode = "MEASURED"
+        row.direct_carbon_source.hide()
+        row.oxidation_source.hide()
+        row.source_reference.hide()
+        row.source_reference_label.hide()
+        row.parameter_summary.hide()
+        row.carbon_basis_label.hide()
+
+        activity_unit = {FuelPath.VOLUME: "10⁴ Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[path]
+        lhv_unit = {FuelPath.VOLUME: "GJ/10⁴ Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
+        direct_carbon_unit = {FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}[path]
+        row.carbon_basis.setEnabled(path in {FuelPath.VOLUME, FuelPath.MASS})
+        row.lhv_control.setVisible(path is not FuelPath.HEAT)
+        row.lhv_control.setEnabled(not direct and path is not FuelPath.HEAT)
+        row.lhv_source.setVisible(not direct and path is not FuelPath.HEAT)
+        row.carbon_control.setEnabled(not direct)
+        row.carbon_source.setVisible(carbon_factor is not None and not direct)
+        row.carbon_calc_cell.setVisible(not direct)
+        row.carbon_direct_cell.setVisible(direct)
+        row.lower_heating_value.setEnabled(not direct and path is not FuelPath.HEAT)
         row.activity_label.setText(f"活动量（{activity_unit}）")
+        row.activity.setProperty("fieldUnit", activity_unit)
         row.lhv_label.setText(f"低位发热量（{lhv_unit}）")
-        row.carbon_label.setText(
-            "单位热值含碳量（tC/GJ）" if has_lhv or path is FuelPath.HEAT
-            else f"单位含碳量（{direct_carbon_unit}）"
+        row.carbon_label.setText("单位热值含碳量（tC/GJ）")
+        row.direct_carbon_label.setText(f"单位活动量含碳量（{direct_carbon_unit}）")
+        row.carbon_label.setVisible(True)
+        row.direct_carbon_label.setVisible(True)
+        row.carbon_direct.setProperty("fieldUnit", direct_carbon_unit)
+
+        expected_path = self._recommended_fuel_activity_path(row)
+        unit_mismatch = bool(
+            not direct and expected_path is not None and path in {FuelPath.VOLUME, FuelPath.MASS}
+            and path is not expected_path
         )
-        modes = (row.lhv_source.currentData(), row.carbon_source.currentData(), row.oxidation_source.currentData())
-        if factors is None:
-            row.parameter_summary.setText(
-                "该燃料/计量方式无已核验的标准缺省参数；请逐项选择计算值或实测值，填写参数及来源编号。"
+        mismatch_message = "当前计量单位与该燃料的 C.1 缺省口径不同，请核实单位或选择直接实测。"
+        row.activity.setToolTip(mismatch_message if unit_mismatch else "")
+        if not direct:
+            try:
+                lhv_text = row.lower_heating_value.text().strip()
+                carbon_text = row.carbon.text().strip()
+                if lhv_text and carbon_text:
+                    policy = self.calculator.policy
+                    derived = policy.multiply(policy.parse(lhv_text), policy.parse(carbon_text))
+                    result_text = f"{policy.format_for_display(derived, 2)} {direct_carbon_unit}"
+                else:
+                    result_text = "计算值待录入"
+            except (DomainValidationError, InvalidOperation, ValueError):
+                result_text = "请检查数值"
+            row.calculated_carbon_label.setText(
+                f"{result_text} · 计量口径请核实" if unit_mismatch else result_text
             )
-        elif all(mode == "STANDARD_DEFAULT" for mode in modes):
-            row.parameter_summary.setText("已按 GB/T 32151.34—2024 附录 C.1 使用标准缺省参数。")
-        elif any(mode in {"MEASURED", "CALCULATED"} for mode in modes):
-            sources = []
-            if "MEASURED" in modes:
-                sources.append("实测值")
-            if "CALCULATED" in modes:
-                sources.append("计算值")
-            if "STANDARD_DEFAULT" in modes:
-                sources.append("缺省值")
-            row.parameter_summary.setText(
-                f"各参数按所选来源记录（{'、'.join(sources)}）；实测值或计算值需填写资料编号。"
-            )
+            row.calculated_carbon_label.setToolTip(mismatch_message if unit_mismatch else "")
         else:
-            row.parameter_summary.setText("请为低位发热量、单位含碳量和碳氧化率分别选择数据来源。")
-        row.parameter_source = "STANDARD_DEFAULT" if all(mode in {"STANDARD_DEFAULT", None} for mode in modes) and "STANDARD_DEFAULT" in modes else (
-            "MEASURED" if "MEASURED" in modes else "CALCULATED" if "CALCULATED" in modes else "AUTO"
+            row.calculated_carbon_label.setText("")
+            row.calculated_carbon_label.setToolTip("")
+
+        effective_modes = (
+            modes["lhv"] if not direct and path is not FuelPath.HEAT else None,
+            modes["carbon"] if not direct else direct_mode,
+            modes["oxidation"],
         )
+        if direct:
+            row.parameter_summary.setText("直接实测单位活动量含碳量；氧化率采用可用缺省值或按需填写。")
+        elif factors is None:
+            row.parameter_summary.setText("当前燃料/周期无已解析的 C.1 缺省项；请补充可追溯的实测数据。")
+        elif all(mode == "STANDARD_DEFAULT" for mode in effective_modes):
+            row.parameter_summary.setText("C.1 缺省参数已按核算期从参数库解析。")
+        else:
+            row.parameter_summary.setText("单位热值含碳量来自参数库；热值和氧化率按所选来源记录。")
+        row.parameter_source = "STANDARD_DEFAULT" if all(mode in {"STANDARD_DEFAULT", None} for mode in effective_modes) and "STANDARD_DEFAULT" in effective_modes else (
+            "MEASURED" if "MEASURED" in effective_modes else "USER_DEFINED" if "USER_DEFINED" in effective_modes else "AUTO"
+        )
+        row._last_default_values = (
+            default_values["lhv"], default_values["carbon"], default_values["oxidation"],
+        )
+        self._bind_fuel_aliases(self._fuel_rows[0] if self._fuel_rows else None)
+        self._refresh_source_cards()
 
     def _build_process_section(self, parent_layout: QVBoxLayout, title: str, prefix: str, fields: tuple[str, ...]) -> None:
         self._process_sections[prefix] = (title, fields)
@@ -2375,6 +3641,7 @@ class CarbonMaterialAccountingPage(BasePage):
             "widget": host,
             "title": title_label,
             "display_title": display_title,
+            "remove_button": remove_button,
             "fields": {},
             "components": [],
             "materials": [],
@@ -2401,24 +3668,35 @@ class CarbonMaterialAccountingPage(BasePage):
                 "graphitization": (("投入数据", ("gpm", "gpmfc", "gta", "gtafc", "gpmvar")), ("产出数据", ("gwt", "gp", "gpfc"))),
             }.get(prefix, (("活动数据", fields),))
             widgets: dict[str, QWidget] = {}
-            for group_name, group_fields in field_groups:
-                group = QWidget(host)
-                group_layout = QVBoxLayout(group)
-                group_layout.setContentsMargins(0, 0, 0, 0)
-                group_layout.addWidget(QLabel(group_name, group))
-                form_row = QWidget(group)
-                form = QFormLayout(form_row)
-                for field in group_fields:
+            if prefix == "fume":
+                responsive_fields = ResponsiveFieldGrid(host)
+                responsive_fields.setObjectName(f"{prefix}_{instance_id}_responsiveFields")
+                for field in fields:
                     spec = get_field_spec(f"{prefix}.{field}")
-                    edit = self._build_business_field(form_row, prefix, field, instance_id, first=first)
+                    edit = self._build_business_field(responsive_fields, prefix, field, instance_id, first=first)
                     widgets[field] = edit
-                    form.addRow(spec.label, edit)
-                group_layout.addWidget(form_row)
-                host_layout.addWidget(group)
-                if prefix in _PROCESS_MATERIAL_ROLES:
-                    # Kept hidden under their historical object names so old
-                    # Workspace form_state_json values remain readable.
-                    group.hide()
+                    responsive_fields.add_field(spec.label, edit)
+                host_layout.addWidget(responsive_fields)
+                row["responsive_fields"] = responsive_fields
+            else:
+                for group_name, group_fields in field_groups:
+                    group = QWidget(host)
+                    group_layout = QVBoxLayout(group)
+                    group_layout.setContentsMargins(0, 0, 0, 0)
+                    group_layout.addWidget(QLabel(group_name, group))
+                    form_row = QWidget(group)
+                    form = QFormLayout(form_row)
+                    for field in group_fields:
+                        spec = get_field_spec(f"{prefix}.{field}")
+                        edit = self._build_business_field(form_row, prefix, field, instance_id, first=first)
+                        widgets[field] = edit
+                        form.addRow(spec.label, edit)
+                    group_layout.addWidget(form_row)
+                    host_layout.addWidget(group)
+                    if prefix in _PROCESS_MATERIAL_ROLES:
+                        # Kept hidden under their historical object names so old
+                        # Workspace form_state_json values remain readable.
+                        group.hide()
             row["fields"] = widgets
             if prefix in _PROCESS_DEFAULT_PARAMETERS:
                 controls_key = f"{prefix}@{instance_id}"
@@ -2431,8 +3709,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 material_header = QHBoxLayout()
                 for label, stretch in (
                     ("物料类别", 2), ("物料名称", 2), ("数量（t）", 1),
-                    ("固定碳含量（%）", 1), ("数据来源", 1),
-                    ("挥发分（%）", 1), ("数据来源", 1), ("", 0),
+                    ("固定碳含量（%）", 1), ("挥发分（%）", 1), ("", 0),
                 ):
                     caption = QLabel(label, material_host)
                     caption.setWordWrap(True)
@@ -2487,7 +3764,9 @@ class CarbonMaterialAccountingPage(BasePage):
             row["flags"] = flags
         self._process_rows_layout[prefix].addWidget(host)
         rows.append(row)
+        remove_button.setVisible(len(rows) > 1)
         self._bind_process_aliases(prefix)
+        self._refresh_repeat_delete_controls()
         self._refresh_source_cards()
         return row
 
@@ -2543,12 +3822,13 @@ class CarbonMaterialAccountingPage(BasePage):
         remove = QPushButton("删除", container)
         remove.setObjectName(f"remove_{prefix}_material_{line_id}")
         remove.clicked.connect(lambda _checked=False, _row=process_row, _id=line_id: self._remove_material_line(_row, _id))
-        for widget, stretch in (
-            (role, 2), (name, 2), (mass, 1), (carbon, 1),
-            (carbon_source, 1), (volatile, 1), (volatile_source, 1), (remove, 0),
-        ):
+        carbon_source.hide()
+        volatile_source.hide()
+        for widget, stretch in ((role, 2), (name, 2), (mass, 1), (carbon, 1), (volatile, 1), (remove, 0)):
             row_layout.addWidget(widget, stretch)
             self._wire_dirty_tracking(widget)
+        self._wire_dirty_tracking(carbon_source)
+        self._wire_dirty_tracking(volatile_source)
         for widget in (name, mass, carbon, volatile):
             widget.textChanged.connect(lambda *_args, _row=process_row: self._refresh_material_summary(_row))
         for widget in (role, carbon_source, volatile_source):
@@ -2556,6 +3836,7 @@ class CarbonMaterialAccountingPage(BasePage):
         material = {
             "line_id": line_id,
             "widget": container,
+            "remove_button": remove,
             "role": role,
             "name": name,
             "mass": mass,
@@ -2566,6 +3847,7 @@ class CarbonMaterialAccountingPage(BasePage):
         }
         layout.addWidget(container)
         material_rows.append(material)
+        remove.setVisible(len(material_rows) > 1)
         for edit in (mass, carbon, volatile):
             edit.setValidator(QDoubleValidator(-1.0e15, 1.0e15, 12, edit))
             validator = edit.validator()
@@ -2585,7 +3867,9 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _remove_material_line(self, process_row: dict[str, object], line_id: str) -> None:
         materials = process_row.get("materials")
-        if not isinstance(materials, list):
+        if not isinstance(materials, list) or not materials:
+            return
+        if materials[0].get("line_id") == line_id:
             return
         for material in tuple(materials):
             if not isinstance(material, dict) or material.get("line_id") != line_id:
@@ -2595,6 +3879,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 widget.setParent(None)
                 widget.deleteLater()
             materials.remove(material)
+        for index, material in enumerate(materials):
+            button = material.get("remove_button") if isinstance(material, dict) else None
+            if isinstance(button, QWidget):
+                button.setVisible(index > 0)
         self._refresh_material_summary(process_row)
         self._refresh_source_cards()
 
@@ -2659,7 +3947,7 @@ class CarbonMaterialAccountingPage(BasePage):
             return
         values = dict(normalized.values)
         policy = self.calculator.policy
-        format_value = _display_compact_decimal
+        format_value = lambda value: self.calculator.policy.format_for_display(value, 2)
         if prefix == "calcination":
             text = (
                 f"原料 {format_value(values['gc'])} t · 固定碳 {format_value(policy.multiply(values['wfc'], Decimal('100')))}% · 挥发分 {format_value(policy.multiply(values['wvar'], Decimal('100')))}%；"
@@ -2681,58 +3969,178 @@ class CarbonMaterialAccountingPage(BasePage):
             )
         summary.setText("物料汇总（仅供查看）：\n" + text.replace("；", "\n"))
 
+    def _carbonate_options(self) -> tuple[object, ...]:
+        queries = self._uat03_parameter_queries
+        if queries is None:
+            return ()
+        try:
+            return tuple(queries.carbonate_options(self._period()))
+        except (AttributeError, DomainValidationError, KeyError, TypeError, ValueError):
+            return ()
+
+    @staticmethod
+    def _normalized_catalog_name(value: str) -> str:
+        return " ".join(value.strip().casefold().split())
+
+    def _carbonate_option_for_text(self, text: str):
+        wanted = self._normalized_catalog_name(text)
+        if not wanted:
+            return None
+        for option in self._carbonate_options():
+            names = (str(getattr(option, "label", "")), *(getattr(option, "aliases", ()) or ()))
+            if any(self._normalized_catalog_name(str(name)) == wanted for name in names):
+                return option
+        return None
+
+    def _populate_carbonate_selector(self, selector: QComboBox, *, text: str | None = None) -> None:
+        previous = selector.currentText() if text is None else text
+        blocker = QSignalBlocker(selector)
+        selector.setEditable(True)
+        selector.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        selector.clear()
+        selector.addItem("未选择碳酸盐种类", None)
+        seen: set[tuple[str, str]] = set()
+        for option in self._carbonate_options():
+            for label in (str(option.label), *(getattr(option, "aliases", ()) or ())):
+                label = str(label).strip()
+                key = (label.casefold(), str(option.subject_id))
+                if not label or key in seen:
+                    continue
+                seen.add(key)
+                selector.addItem(label, option)
+        selector.setCurrentIndex(0)
+        if previous and previous != "未选择碳酸盐种类":
+            index = selector.findText(previous, Qt.MatchFlag.MatchExactly)
+            if index >= 0:
+                selector.setCurrentIndex(index)
+            else:
+                selector.setEditText(previous)
+        selector.setPlaceholderText("搜索或输入碳酸盐名称/化学式")
+        selector.lineEdit().setMaxLength(120)
+        completer = selector.completer()
+        if completer is not None:
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        del blocker
+
+    def _on_fgd_carbonate_text_changed(self, component: dict[str, object]) -> None:
+        if self._restoring_workspace:
+            return
+        selector = component.get("carbonate_type")
+        factor_edit = component.get("ef1")
+        if not isinstance(selector, QComboBox) or not isinstance(factor_edit, QLineEdit):
+            return
+        option = self._carbonate_option_for_text(selector.currentText())
+        if option is None:
+            blocker = QSignalBlocker(factor_edit)
+            factor_edit.clear()
+            del blocker
+            component["factor_mode"] = None
+            component["catalog_factor_id"] = None
+            return
+        blocker = QSignalBlocker(factor_edit)
+        factor_edit.setText(str(option.factor.value))
+        del blocker
+        component["factor_mode"] = "CATALOG"
+        component["catalog_factor_id"] = option.factor.factor_id
+
+    @staticmethod
+    def _on_fgd_factor_value_changed(component: dict[str, object]) -> None:
+        if component.get("factor_mode") == "CATALOG":
+            component["factor_mode"] = "USER_DEFINED"
+            component["catalog_factor_id"] = None
+        elif component.get("factor_mode") not in {"MEASURED", "USER_DEFINED"}:
+            component["factor_mode"] = "USER_DEFINED"
+
+    def _refresh_carbonate_options(self) -> None:
+        for unit in self._process_rows.get("fgd", ()):
+            for component in unit.get("components", ()):
+                selector = component.get("carbonate_type") if isinstance(component, dict) else None
+                if isinstance(selector, QComboBox):
+                    self._populate_carbonate_selector(selector)
+
     def _add_fgd_component(self, unit: dict[str, object], *, component_id: str | None = None) -> dict[str, object]:
         component_id = component_id or uuid4().hex
         components = unit["components"]
         assert isinstance(components, list)
         first = not components and len(self._process_rows["fgd"]) == 0
-        unit_index = self._process_rows["fgd"].index(unit) + 1 if unit in self._process_rows["fgd"] else len(self._process_rows["fgd"]) + 1
         component_host = unit["component_host"]
         component_layout = unit["component_layout"]
         assert isinstance(component_host, QWidget) and isinstance(component_layout, QVBoxLayout)
         container = QWidget(component_host)
         container.setObjectName(f"fgdComponent{component_id}")
-        form = QFormLayout(container)
+        outer = QVBoxLayout(container)
+        outer.setContentsMargins(0, 4, 0, 4)
+        outer.setSpacing(3)
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(3)
         widgets: dict[str, QWidget] = {}
-        for field in ("cal", "i", "ef1", "tr"):
-            spec = get_field_spec(f"fgd.{field}")
-            name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
-            edit = create_typed_input(container, spec, name)
-            widgets[field] = edit
-            form.addRow(spec.label, edit)
-            self._wire_dirty_tracking(edit)
-        selector = QComboBox(container)
-        selector.setObjectName("fgdCarbonateTypeSelector" if first else f"fgd_{unit['instance_id']}_{component_id}_carbonateTypeSelector")
-        selector.setProperty("fieldSpecKey", "fgd.ef1")
-        selector.addItem("未选择碳酸盐种类", None)
-        for label, parameter_id in _C2_CARBONATES:
-            selector.addItem(label, parameter_id)
-        widgets["carbonate_type"] = selector
-        form.addRow("脱硫剂中的碳酸盐种类", selector)
-        self._wire_dirty_tracking(selector)
+        field_labels = {
+            "cal": "脱硫剂用量（t）",
+            "carbonate_type": "碳酸盐种类",
+            "i": "碳酸盐含量（%）",
+            "ef1": "排放因子（tCO₂/t）",
+            "tr": "转化率（%）",
+        }
+        for column, field in enumerate(("cal", "carbonate_type", "i", "ef1", "tr")):
+            label = QLabel(field_labels[field], container)
+            label.setWordWrap(True)
+            grid.addWidget(label, 0, column)
+            if field == "carbonate_type":
+                selector = QComboBox(container)
+                selector.setObjectName("fgdCarbonateTypeSelector" if first else f"fgd_{unit['instance_id']}_{component_id}_carbonateTypeSelector")
+                selector.setProperty("fieldSpecKey", "fgd.ef1")
+                self._populate_carbonate_selector(selector, text="未选择碳酸盐种类")
+                widgets[field] = selector
+                self._wire_dirty_tracking(selector)
+            else:
+                spec = get_field_spec(f"fgd.{field}")
+                name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
+                edit = create_typed_input(container, spec, name)
+                widgets[field] = edit
+                self._wire_dirty_tracking(edit)
+            grid.addWidget(widgets[field], 1, column)
+            grid.setColumnStretch(column, (2, 2, 1, 1, 1)[column])
+        outer.addLayout(grid)
+        footer = QHBoxLayout()
         source_ref = create_typed_input(container, get_field_spec("fgd.factor_source_reference"), "fgdFactorSourceReferenceInput" if first else f"fgd_{unit['instance_id']}_{component_id}_factorSourceReference")
-        source_ref.setPlaceholderText("实测因子或手工参数的资料编号")
+        source_ref.setPlaceholderText("实测因子来源说明（可选）")
         widgets["factor_source_reference"] = source_ref
-        form.addRow("参数来源编号", source_ref)
         self._wire_dirty_tracking(source_ref)
+        source_ref.hide()
+        widgets["ef1"].textChanged.connect(lambda text, _ref=source_ref: _ref.setVisible(bool(text.strip())))
+        footer.addWidget(source_ref, 1)
         remove = QPushButton("删除组分", container)
         remove.setObjectName(f"remove_fgd_component_{unit['instance_id']}_{component_id}")
         remove.clicked.connect(lambda _checked=False, _unit=unit, _id=component_id: self._remove_fgd_component(_unit, _id))
-        form.addRow(remove)
+        footer.addWidget(remove)
+        outer.addLayout(footer)
         component_layout.addWidget(container)
         widgets["_widget"] = container
-        # The stable component ID is state, not an ordinary editable field.
+        widgets["remove_button"] = remove
         component_id_widget = QLineEdit(component_id, container)
         component_id_widget.hide()
         widgets["_component_id"] = component_id_widget
         widgets["component_id"] = component_id
+        widgets["factor_mode"] = None
+        widgets["catalog_factor_id"] = None
+        selector = widgets["carbonate_type"]
+        factor_edit = widgets["ef1"]
+        assert isinstance(selector, QComboBox) and isinstance(factor_edit, QLineEdit)
+        selector.currentTextChanged.connect(lambda _text, _component=widgets: self._on_fgd_carbonate_text_changed(_component))
+        factor_edit.textChanged.connect(lambda _text, _component=widgets: self._on_fgd_factor_value_changed(_component))
         components.append(widgets)
+        remove.setVisible(len(components) > 1)
         self._bind_process_aliases("fgd")
         return widgets
 
     def _remove_fgd_component(self, unit: dict[str, object], component_id: str) -> None:
         components = unit["components"]
         assert isinstance(components, list)
+        if not components or components[0].get("component_id") == component_id:
+            return
         for component in tuple(components):
             if component.get("component_id") == component_id:
                 widget = component.get("_widget")
@@ -2740,10 +4148,13 @@ class CarbonMaterialAccountingPage(BasePage):
                     widget.setParent(None)
                     widget.deleteLater()
                 components.remove(component)
+        self._refresh_repeat_delete_controls()
         self._refresh_source_cards()
 
     def _remove_process_row(self, prefix: str, instance_id: str) -> None:
         rows = self._process_rows[prefix]
+        if not rows or str(rows[0].get("instance_id")) == instance_id:
+            return
         for row in tuple(rows):
             if row.get("instance_id") == instance_id:
                 widget = row.get("widget")
@@ -2756,8 +4167,33 @@ class CarbonMaterialAccountingPage(BasePage):
             display_title = row.get("display_title")
             if isinstance(title, QLabel) and isinstance(display_title, str):
                 title.setText(f"{display_title} {index}")
+        self._refresh_repeat_delete_controls()
         self._bind_process_aliases(prefix)
         self._refresh_source_cards()
+
+    def _refresh_repeat_delete_controls(self) -> None:
+        for index, row in enumerate(getattr(self, "_fuel_rows", ())):
+            row.remove_button.setVisible(index > 0)
+        for rows in getattr(self, "_energy_family_rows", {}).values():
+            for index, row in enumerate(rows):
+                row.remove_button.setVisible(index > 0)
+        for rows in self._process_rows.values():
+            for index, row in enumerate(rows):
+                button = row.get("remove_button")
+                if isinstance(button, QWidget):
+                    button.setVisible(index > 0)
+                materials = row.get("materials", [])
+                if isinstance(materials, list):
+                    for material_index, material in enumerate(materials):
+                        remove = material.get("remove_button") if isinstance(material, dict) else None
+                        if isinstance(remove, QWidget):
+                            remove.setVisible(material_index > 0)
+                components = row.get("components", [])
+                if isinstance(components, list):
+                    for component_index, component in enumerate(components):
+                        remove = component.get("remove_button") if isinstance(component, dict) else None
+                        if isinstance(remove, QWidget):
+                            remove.setVisible(component_index > 0)
 
     def _bind_process_aliases(self, prefix: str) -> None:
         rows = self._process_rows[prefix]
@@ -2786,6 +4222,9 @@ class CarbonMaterialAccountingPage(BasePage):
         elif isinstance(widget, QComboBox):
             widget.currentIndexChanged.connect(self._mark_input_dirty)
             widget.currentIndexChanged.connect(lambda *_args: self._refresh_source_cards())
+            if widget.isEditable():
+                widget.editTextChanged.connect(self._mark_input_dirty)
+                widget.editTextChanged.connect(lambda *_args: self._refresh_source_cards())
         elif isinstance(widget, QSpinBox):
             widget.valueChanged.connect(self._mark_input_dirty)
             widget.valueChanged.connect(lambda *_args: self._refresh_source_cards())
@@ -2949,6 +4388,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self._wire_dirty_tracking(widget)
         self._register_professional_details(professional_details)
         parent_layout.addWidget(metadata)
+        metadata.hide()
         self._refresh_material_basis_display(controls_key)
 
     @staticmethod
@@ -3742,13 +5182,16 @@ class CarbonMaterialAccountingPage(BasePage):
         self.heat_factor_edit_button.setText("收起参数选择" if visible else "更改参数")
 
     def _on_period_choice_changed(self, index: int) -> None:
-        self.custom_period_row.setVisible(index == 13)
+        is_custom = index == 13
+        self.custom_period_row.setVisible(is_custom)
+        self.custom_period_label.setVisible(is_custom)
         if 1 <= index <= 12:
             blocker = QSignalBlocker(self.period_month)
             self.period_month.setValue(index)
             del blocker
         self._refresh_heat_factor_details()
         self._refresh_fuel_defaults()
+        self._refresh_energy_parameters()
 
     def _sync_period_choice_from_month(self, month: int) -> None:
         if 1 <= month <= 12:
@@ -3756,8 +5199,10 @@ class CarbonMaterialAccountingPage(BasePage):
             self.period_type.setCurrentIndex(month)
             del blocker
             self.custom_period_row.setVisible(False)
+            self.custom_period_label.setVisible(False)
         self._refresh_heat_factor_details()
         self._refresh_fuel_defaults()
+        self._refresh_energy_parameters()
 
     def _period(self) -> AccountingPeriod:
         year = self.period_year.value()
@@ -3775,7 +5220,60 @@ class CarbonMaterialAccountingPage(BasePage):
         )
 
     def _source_states(self) -> tuple[EmissionSourceState, ...]:
-        return tuple(EmissionSourceState(source_id, _enum(combo.currentData(), EmissionSourceStatus)) for source_id, combo in self._source_statuses.items())
+        statuses = {
+            source_id: _enum(combo.currentData(), EmissionSourceStatus)
+            for source_id, combo in self._source_statuses.items()
+        }
+        direction_sources = {
+            ("electricity", "purchased_electricity"): "CAR-SRC-PURCHASED-ELECTRICITY-001",
+            ("electricity", "exported_electricity"): "CAR-SRC-EXPORTED-ELECTRICITY-001",
+            ("heat", "purchased_heat"): "CAR-SRC-PURCHASED-HEAT-001",
+            ("heat", "exported_heat"): "CAR-SRC-EXPORTED-HEAT-001",
+        }
+        active_directions: set[tuple[str, str]] = set()
+        for family, rows in self._energy_family_rows.items():
+            for row in rows:
+                if family == "electricity":
+                    kind = str(row.kind.currentData())
+                    attribute = row.attribute.currentData()
+                    if kind == "purchased_electricity" and attribute == "SELF_CONSUMED_EXCLUDED":
+                        continue
+                    has_partial_input = (
+                        bool(row.amount.text().strip())
+                        or kind == "exported_electricity"
+                        or attribute != ElectricityAttribute.ORDINARY
+                        or row.factor_mode.currentData() == "MANUAL"
+                        or bool(row.manual_factor.text().strip())
+                        or bool(row.electricity_source.text().strip())
+                    )
+                else:
+                    kind = str(row.kind.currentData())
+                    try:
+                        steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
+                    except (TypeError, ValueError):
+                        steam_kind = SteamKind.SATURATED
+                    try:
+                        factor_mode = _enum(row.heat_factor_mode.currentData(), HeatFactorMode)
+                    except (TypeError, ValueError):
+                        factor_mode = HeatFactorMode.STANDARD_DEFAULT
+                    has_partial_input = (
+                        bool(row.amount.text().strip())
+                        or kind == "exported_heat"
+                        or bool(row.pressure.text().strip())
+                        or bool(row.temperature.text().strip())
+                        or bool(row.enthalpy.text().strip())
+                        or row.enthalpy_mode.currentData() == "MANUAL"
+                        or steam_kind is SteamKind.SUPERHEATED
+                        or factor_mode is HeatFactorMode.MEASURED
+                        or bool(row.measured_heat_factor.text().strip())
+                        or bool(row.heat_source.text().strip())
+                    )
+                if has_partial_input:
+                    active_directions.add((family, kind))
+        for direction, source_id in direction_sources.items():
+            if statuses.get(source_id) is EmissionSourceStatus.INVOLVED and direction not in active_directions:
+                statuses[source_id] = EmissionSourceStatus.NOT_INVOLVED
+        return tuple(EmissionSourceState(source_id, status) for source_id, status in statuses.items())
 
     def _source_is_enabled(self, source_id: str) -> bool:
         combo = self._source_statuses[source_id]
@@ -3810,6 +5308,19 @@ class CarbonMaterialAccountingPage(BasePage):
                 instance_id = str(row.get("instance_id", ""))
                 if instance_id and instance_id in field_id:
                     return source_id
+        for row in self._energy_rows:
+            line_id = row.line_id.text().strip()
+            if not line_id:
+                continue
+            kind = row.kind.currentData()
+            if kind == "exported_electricity":
+                dynamic_field_owners[line_id] = "CAR-SRC-EXPORTED-ELECTRICITY-001"
+            elif kind == "exported_heat":
+                dynamic_field_owners[line_id] = "CAR-SRC-EXPORTED-HEAT-001"
+            elif row.family == "heat":
+                dynamic_field_owners[line_id] = "CAR-SRC-PURCHASED-HEAT-001"
+            else:
+                dynamic_field_owners[line_id] = "CAR-SRC-PURCHASED-ELECTRICITY-001"
         for row in self._electricity_rows:
             detail_id = row.detail_id.text().strip()
             if detail_id:
@@ -3888,6 +5399,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 active_components = [
                     component for component in components
                     if any(self._input_has_value(component.get(field)) for field in ("cal", "i", "ef1", "tr"))
+                    or (
+                        isinstance(component.get("carbonate_type"), QComboBox)
+                        and bool(component["carbonate_type"].currentText().strip())
+                        and component["carbonate_type"].currentText().strip() != "未选择碳酸盐种类"
+                    )
                 ]
                 if not active_components:
                     continue
@@ -3897,9 +5413,17 @@ class CarbonMaterialAccountingPage(BasePage):
                     factor = component.get("ef1")
                     selector = component.get("carbonate_type")
                     source_ref = component.get("factor_source_reference")
+                    carbonate_text = selector.currentText().strip() if isinstance(selector, QComboBox) else ""
+                    option = self._carbonate_option_for_text(carbonate_text)
+                    catalog_selected = (
+                        option is not None
+                        and component.get("factor_mode") == "CATALOG"
+                        and component.get("catalog_factor_id") == option.factor.factor_id
+                    )
                     type_or_factor = (
-                        isinstance(selector, QComboBox) and isinstance(selector.currentData(), str)
-                    ) or (self._input_has_value(factor) and self._input_has_value(source_ref))
+                        (option is not None and (catalog_selected or self._input_has_value(factor)))
+                        or bool(carbonate_text and self._input_has_value(factor))
+                    )
                     fields_complete = self._input_has_value(amount) and type_or_factor
                     fields_invalid = any(
                         isinstance(component.get(key), QLineEdit)
@@ -3971,13 +5495,30 @@ class CarbonMaterialAccountingPage(BasePage):
         if source_id == "CAR-SRC-FUEL-001":
             active_rows = [row for row in self._fuel_rows if row.activity.text().strip()]
             present = bool(active_rows)
-            complete = present and all(row.carbon.text().strip() and row.oxidation.text().strip() for row in active_rows)
-            invalid = any(
-                not row.activity.hasAcceptableInput()
-                or bool(row.carbon.text().strip() and not row.carbon.hasAcceptableInput())
-                or bool(row.oxidation.text().strip() and not row.oxidation.hasAcceptableInput())
-                for row in active_rows
-            )
+            row_ready: list[bool] = []
+            row_invalid: list[bool] = []
+            for row in active_rows:
+                direct = row.carbon_basis.currentData() == "DIRECT"
+                carbon_edit = row.carbon_direct if direct else row.carbon
+                carbon_ready = bool(carbon_edit.text().strip()) and carbon_edit.hasAcceptableInput()
+                try:
+                    path = _enum(row.path.currentData(), FuelPath)
+                except (TypeError, ValueError):
+                    path = FuelPath.MASS
+                if not direct and path is not FuelPath.HEAT:
+                    lhv_ready = bool(row.lower_heating_value.text().strip()) and row.lower_heating_value.hasAcceptableInput()
+                else:
+                    lhv_ready = True
+                oxidation_ready = bool(row.oxidation.text().strip()) and row.oxidation.hasAcceptableInput()
+                row_ready.append(bool(row.fuel_type.currentText().strip()) and carbon_ready and lhv_ready and oxidation_ready)
+                row_invalid.append(
+                    not row.activity.hasAcceptableInput()
+                    or bool(carbon_edit.text().strip() and not carbon_edit.hasAcceptableInput())
+                    or bool(row.lower_heating_value.text().strip() and not row.lower_heating_value.hasAcceptableInput())
+                    or bool(row.oxidation.text().strip() and not row.oxidation.hasAcceptableInput())
+                )
+            complete = present and all(row_ready)
+            invalid = any(row_invalid)
             summary = f"{len(active_rows)} 条燃料明细" if present else "尚未录入燃料"
         elif source_id in {
             "CAR-SRC-CALCINATION-001",
@@ -3997,54 +5538,110 @@ class CarbonMaterialAccountingPage(BasePage):
             present, complete, invalid = self._process_card_profile(prefix, fields)
             summary = f"{len(self._process_rows[prefix])} 条过程实例 · 已录入活动数据" if present else "尚未录入活动数据"
         elif source_id == "CAR-SRC-PURCHASED-ELECTRICITY-001":
-            active_rows = [row for row in self._electricity_rows if row.amount.text().strip()]
+            active_rows = [
+                row for row in self._energy_family_rows.get("electricity", ())
+                if row.kind.currentData() == "purchased_electricity"
+                and row.attribute.currentData() != "SELF_CONSUMED_EXCLUDED"
+                and (
+                    bool(row.amount.text().strip())
+                    or row.attribute.currentData() != ElectricityAttribute.ORDINARY
+                    or row.factor_mode.currentData() == "MANUAL"
+                    or bool(row.manual_factor.text().strip())
+                    or bool(row.electricity_source.text().strip())
+                )
+            ]
             present = bool(active_rows)
             complete = present and all(
-                row.detail_id.text().strip()
+                bool(row.amount.text().strip())
                 and row.amount.hasAcceptableInput()
-                and self._electricity_resolution_states.get(row.detail_id.text().strip()) == "RESOLVED"
+                and self._electricity_resolution_states.get(row.line_id.text().strip()) == "RESOLVED"
                 for row in active_rows
             )
             invalid = any(
-                row.amount.text().strip()
-                and (
-                    not row.amount.hasAcceptableInput()
-                    or self._electricity_resolution_states.get(row.detail_id.text().strip())
-                    in {"BLOCKED", "DELEGATED", "ERROR"}
-                )
+                (bool(row.amount.text().strip()) and not row.amount.hasAcceptableInput())
+                or self._electricity_resolution_states.get(row.line_id.text().strip()) in {"BLOCKED", "DELEGATED", "ERROR"}
                 for row in active_rows
             )
             summary = f"{len(active_rows)} 条电力明细" if active_rows else "尚未录入电力明细"
         elif source_id == "CAR-SRC-PURCHASED-HEAT-001":
-            active_rows = [row for row in self._heat_rows["heat"] if self._input_has_value(row.get("amount"))]
+            active_rows = [
+                row for row in self._energy_family_rows.get("heat", ())
+                if row.kind.currentData() == "purchased_heat"
+                and (
+                    bool(row.amount.text().strip())
+                    or bool(row.pressure.text().strip())
+                    or bool(row.temperature.text().strip())
+                    or bool(row.enthalpy.text().strip())
+                    or row.enthalpy_mode.currentData() == "MANUAL"
+                    or row.heat_kind.currentData() == SteamKind.SUPERHEATED
+                    or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED
+                    or bool(row.measured_heat_factor.text().strip())
+                    or bool(row.heat_source.text().strip())
+                )
+            ]
             present = bool(active_rows)
-            complete = present and all(self._heat_row_profile_complete(row) for row in active_rows)
+            complete = present and all(
+                bool(row.amount.text().strip())
+                and row.amount.hasAcceptableInput()
+                and self._unified_heat_row_profile_complete(row)
+                for row in active_rows
+            )
             invalid = any(
-                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+                (bool(row.amount.text().strip()) and not row.amount.hasAcceptableInput())
+                or not self._unified_heat_row_profile_complete(row)
                 for row in active_rows
             )
             summary = f"{len(active_rows)} 条热力来源" if present else "尚未录入热力活动数据"
         elif source_id == "CAR-SRC-EXPORTED-ELECTRICITY-001":
-            active_rows = [row for row in self._output_electricity_rows if self._input_has_value(row.get("amount"))]
+            active_rows = [
+                row for row in self._energy_family_rows.get("electricity", ())
+                if row.kind.currentData() == "exported_electricity"
+            ]
             present = bool(active_rows)
             complete = present and all(
-                not self._input_has_value(row.get("measured")) or self._input_has_value(row.get("source"))
+                bool(row.amount.text().strip())
+                and row.amount.hasAcceptableInput()
+                and (
+                    row.factor_mode.currentData() != "MANUAL"
+                    or (bool(row.manual_factor.text().strip()) and row.manual_factor.hasAcceptableInput())
+                )
                 for row in active_rows
             )
             invalid = any(
-                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+                (bool(row.amount.text().strip()) and not row.amount.hasAcceptableInput())
+                or (row.factor_mode.currentData() == "MANUAL" and bool(row.manual_factor.text().strip()) and not row.manual_factor.hasAcceptableInput())
                 for row in active_rows
             )
-            summary = f"{len(active_rows)} 条输出电力来源" if present else "尚未录入输出电力"
+            summary = f"{len(active_rows)} 条输出电力来源" if active_rows else "尚未录入输出电力"
         elif source_id == "CAR-SRC-EXPORTED-HEAT-001":
-            active_rows = [row for row in self._heat_rows["exported_heat"] if self._input_has_value(row.get("amount"))]
+            active_rows = [
+                row for row in self._energy_family_rows.get("heat", ())
+                if row.kind.currentData() == "exported_heat"
+                and (
+                    bool(row.amount.text().strip())
+                    or bool(row.pressure.text().strip())
+                    or bool(row.temperature.text().strip())
+                    or bool(row.enthalpy.text().strip())
+                    or row.enthalpy_mode.currentData() == "MANUAL"
+                    or row.heat_kind.currentData() == SteamKind.SUPERHEATED
+                    or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED
+                    or bool(row.measured_heat_factor.text().strip())
+                    or bool(row.heat_source.text().strip())
+                )
+            ]
             present = bool(active_rows)
-            complete = present and all(self._heat_row_profile_complete(row) for row in active_rows)
-            invalid = any(
-                isinstance(row.get("amount"), QLineEdit) and not row["amount"].hasAcceptableInput()
+            complete = present and all(
+                bool(row.amount.text().strip())
+                and row.amount.hasAcceptableInput()
+                and self._unified_heat_row_profile_complete(row)
                 for row in active_rows
             )
-            summary = f"{len(active_rows)} 条输出热力来源" if present else "尚未录入输出热力"
+            invalid = any(
+                (bool(row.amount.text().strip()) and not row.amount.hasAcceptableInput())
+                or not self._unified_heat_row_profile_complete(row)
+                for row in active_rows
+            )
+            summary = f"{len(active_rows)} 条输出热力来源" if active_rows else "尚未录入输出热力"
 
         # A card may only report completed after a real existing validation run
         # has stopped reporting a source-scoped error.  This deliberately
@@ -4056,6 +5653,26 @@ class CarbonMaterialAccountingPage(BasePage):
         if complete:
             return SourceCardPresentationState.COMPLETED, f"{summary} · 已完成"
         return SourceCardPresentationState.NEEDS_ATTENTION, f"{summary} · 需要处理"
+
+    @staticmethod
+    def _unified_heat_row_profile_complete(row: _UnifiedEnergyRow) -> bool:
+        manual_enthalpy = row.enthalpy_mode.currentData() == "MANUAL"
+        try:
+            steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
+            factor_mode = _enum(row.heat_factor_mode.currentData(), HeatFactorMode)
+        except (TypeError, ValueError):
+            return False
+        if manual_enthalpy:
+            enthalpy_ready = bool(row.enthalpy.text().strip()) and row.enthalpy.hasAcceptableInput()
+        else:
+            enthalpy_ready = bool(row.pressure.text().strip()) and row.pressure.hasAcceptableInput()
+            if steam_kind is SteamKind.SUPERHEATED:
+                enthalpy_ready = enthalpy_ready and bool(row.temperature.text().strip()) and row.temperature.hasAcceptableInput()
+        if factor_mode is HeatFactorMode.MEASURED:
+            factor_ready = bool(row.measured_heat_factor.text().strip()) and row.measured_heat_factor.hasAcceptableInput()
+        else:
+            factor_ready = True
+        return enthalpy_ready and factor_ready
 
     @staticmethod
     def _heat_row_profile_complete(row: dict[str, object]) -> bool:
@@ -4086,6 +5703,28 @@ class CarbonMaterialAccountingPage(BasePage):
         for source_id, card in self._source_cards.items():
             state, summary = self._derive_source_card_state(source_id)
             card.set_presentation_state(state, summary)
+            header = card.findChild(QWidget, f"sourceCardHeader_{source_id}")
+            if header is not None:
+                header.hide()
+            card.summary_label.hide()
+            card.check_result_label.hide()
+            is_energy_adapter = source_id in {
+                "CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001",
+                "CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001",
+            }
+            card.setVisible(
+                not is_energy_adapter
+                and _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
+            )
+        energy_families = {
+            "electricity": ("CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001"),
+            "heat": ("CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001"),
+        }
+        for family, source_ids in energy_families.items():
+            card = self._unified_energy_cards.get(family)
+            if card is not None:
+                card.setVisible(any(self._energy_source_is_enabled(source_id) for source_id in source_ids))
+        self._refresh_source_toggle_buttons()
         self._refresh_live_feedback()
         self._schedule_layout_refresh()
 
@@ -4142,25 +5781,35 @@ class CarbonMaterialAccountingPage(BasePage):
     def _fuel_parameter(
         *, row: _FuelRow, source: QComboBox, edit: QLineEdit, suffix: str,
         unit: str, factor: object | None, value: str | Decimal | None,
+        source_kind: str | None = None,
     ) -> ParameterValue | None:
-        source_kind = source.currentData()
+        source_kind = source_kind if source_kind is not None else source.currentData()
         if source_kind == "STANDARD_DEFAULT":
-            return CarbonMaterialAccountingPage._parameter_value_from_factor(
-                factor, "采用当前核算期适用的 GB/T 32151.34—2024 附录 C.1 标准缺省值。"
-            ) if factor is not None else None
-        if source_kind not in {"CALCULATED", "MEASURED"} or value is None:
+            reason = row._default_selection_reasons.get(suffix) or (
+                "采用当前核算期经参数解析器选出的 GB/T 32151.34—2024 附录 C.1 缺省值。"
+            )
+            return CarbonMaterialAccountingPage._parameter_value_from_factor(factor, reason) if factor is not None else None
+        if source_kind not in {"CALCULATED", "MEASURED", "USER_DEFINED"} or value is None:
             return None
         reference = row.source_reference.text().strip()
-        kind = ParameterSourceKind.CALCULATED if source_kind == "CALCULATED" else ParameterSourceKind.MEASURED
-        source_name = "计算依据" if kind is ParameterSourceKind.CALCULATED else "实测/检测资料"
+        kind = {
+            "CALCULATED": ParameterSourceKind.CALCULATED,
+            "MEASURED": ParameterSourceKind.MEASURED,
+            "USER_DEFINED": ParameterSourceKind.USER_DEFINED,
+        }[str(source_kind)]
+        source_name = {
+            ParameterSourceKind.CALCULATED: "计算依据",
+            ParameterSourceKind.MEASURED: "实测/检测资料",
+            ParameterSourceKind.USER_DEFINED: "用户指定来源",
+        }[kind]
         return ParameterValue(
             parameter_id=f"enterprise_fuel_{row.row_key}_{suffix}",
             value=value,
             unit=unit,
             source_kind=kind,
-            source_id=f"USER-FUEL-SOURCE-{row.row_key}" if reference else None,
-            source_version="user-input" if reference else None,
-            source_location=f"{source_name}编号：{reference}" if reference else None,
+            source_id=None,
+            source_version=None,
+            source_location=f"{source_name}：{reference}" if reference else None,
             selection_reason=f"用户选择{source_name}参数；来源编号：{reference or '未提供'}。",
         )
 
@@ -4169,31 +5818,48 @@ class CarbonMaterialAccountingPage(BasePage):
         for row in self._fuel_rows:
             activity = row.activity.text().strip()
             path = _enum(row.path.currentData(), FuelPath)
+            direct = row.carbon_basis.currentData() == "DIRECT"
             defaults = self._fuel_default_factors(row)
             lhv_factor, carbon_factor, oxidation_factor = defaults if defaults is not None else (None, None, None)
             lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
             lhv_value_num = row.lower_heating_value.text().strip() or None
-            carbon_value_num = row.carbon.text().strip() or None
+            carbon_edit = row.carbon_direct if direct else row.carbon
+            carbon_source = row.direct_carbon_source if direct else row.carbon_source
+            carbon_value_num = carbon_edit.text().strip() or None
             oxidation_value_num = _ui_value("fuel_oxidation", row.oxidation)
-            has_lhv = lhv_value_num is not None or (
-                row.lhv_source.currentData() == "STANDARD_DEFAULT" and lhv_factor is not None
-            )
-            carbon_unit = "tC/GJ" if has_lhv or path is FuelPath.HEAT else {
-                FuelPath.VOLUME: "tC/10^4Nm3", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"
-            }[path]
+            carbon_unit = {
+                FuelPath.VOLUME: "tC/10^4Nm3",
+                FuelPath.MASS: "tC/t",
+                FuelPath.HEAT: "tC/GJ",
+            }[path] if direct else "tC/GJ"
             lhv_value = self._fuel_parameter(
                 row=row, source=row.lhv_source, edit=row.lower_heating_value,
                 suffix="lhv", unit=lhv_unit, factor=lhv_factor, value=lhv_value_num,
-            ) if path is not FuelPath.HEAT else None
+                source_kind=self._fuel_source_mode(row, "lhv"),
+            ) if not direct and path is not FuelPath.HEAT else None
             carbon_value = self._fuel_parameter(
-                row=row, source=row.carbon_source, edit=row.carbon,
-                suffix="carbon", unit=carbon_unit, factor=carbon_factor, value=carbon_value_num,
+                row=row, source=carbon_source, edit=carbon_edit,
+                suffix="direct_carbon" if direct else "carbon",
+                unit=carbon_unit,
+                factor=None if direct else carbon_factor,
+                value=carbon_value_num,
+                source_kind=self._fuel_source_mode(row, "direct_carbon" if direct else "carbon"),
             )
             oxidation_value = self._fuel_parameter(
                 row=row, source=row.oxidation_source, edit=row.oxidation,
                 suffix="oxidation", unit="ratio", factor=oxidation_factor,
                 value=Decimal(str(oxidation_value_num)) if oxidation_value_num is not None else None,
+                source_kind=self._fuel_source_mode(row, "oxidation"),
             )
+            selected_option = self._fuel_option_for_row(row)
+            visible_name = row.fuel_type.currentText().strip()
+            legacy_name = row.custom_name.text().strip()
+            if selected_option is None:
+                fuel_type = FuelType.OTHER if visible_name or legacy_name else None
+                fuel_label = visible_name or legacy_name or None
+            else:
+                fuel_type = selected_option.fuel_type
+                fuel_label = selected_option.label if fuel_type is None else None
             fuels.append(FuelInput(
                 fuel_id=row.internal_id.text().strip() or f"fuel-{row.row_key}",
                 path=path,
@@ -4201,8 +5867,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 carbon_content=carbon_value,
                 oxidation_rate=oxidation_value,
                 lower_heating_value=lhv_value,
-                fuel_type=_enum(row.fuel_type.currentData(), FuelType),
-                fuel_label=row.custom_name.text().strip() or None,
+                fuel_type=fuel_type,
+                fuel_label=fuel_label,
             ))
         return tuple(fuels)
 
@@ -4221,24 +5887,30 @@ class CarbonMaterialAccountingPage(BasePage):
                 }
                 selector = component["carbonate_type"]
                 source_ref = _value(component["factor_source_reference"])
-                selected_parameter_id = selector.currentData()  # type: ignore[union-attr]
-                carbonate_type = selector.currentText() if selected_parameter_id else None  # type: ignore[union-attr]
+                carbonate_text = selector.currentText().strip() if isinstance(selector, QComboBox) else ""
+                option = self._carbonate_option_for_text(carbonate_text)
+                carbonate_type = option.label if option is not None else carbonate_text or None
                 ef_text = values["ef1"]
-                if ef_text is not None:
-                    factor_parameter_id = selected_parameter_id or "fgd_carbonate_emission_factor_measured"
+                factor_mode = component.get("factor_mode")
+                catalog_selected = (
+                    factor_mode == "CATALOG"
+                    and option is not None
+                    and component.get("catalog_factor_id") == option.factor.factor_id
+                )
+                if catalog_selected:
+                    factor_value = self._parameter_value_from_factor(option.factor, option.selection_reason)
+                elif ef_text is not None:
+                    source_kind = ParameterSourceKind.MEASURED if factor_mode == "MEASURED" else ParameterSourceKind.USER_DEFINED
                     factor_value = ParameterValue(
-                        factor_parameter_id,
-                        ef_text,
-                        "tCO2/t",
-                        ParameterSourceKind.MEASURED,
-                        "USER-FGD-SOURCE" if source_ref else None,
-                        "user-input",
-                        f"企业检测/技术资料编号：{source_ref}" if source_ref else None,
-                        f"企业提供可追溯因子；资料编号：{source_ref}" if source_ref else "企业提供的实测因子。",
+                        parameter_id="fgd_carbonate_emission_factor_user",
+                        value=ef_text,
+                        unit="tCO2/t",
+                        source_kind=source_kind,
+                        source_id=None,
+                        source_version=None,
+                        source_location=f"用户来源说明：{source_ref}" if source_ref else None,
+                        selection_reason="用户为本组分填写碳酸盐排放因子。",
                     )
-                elif isinstance(selected_parameter_id, str):
-                    factor = self._canonical_default_factor(selected_parameter_id, value_type=ValueType.STANDARD_SPECIFIED)
-                    factor_value = self._parameter_value_from_factor(factor, "按选择的碳酸盐种类采用GB/T 32151.34—2024附录C.2对应值。") if factor is not None else None
                 else:
                     factor_value = None
 
@@ -4246,12 +5918,18 @@ class CarbonMaterialAccountingPage(BasePage):
                     raw = values[field]
                     if raw is None:
                         factor = self._canonical_default_factor(parameter_id)
-                        return self._parameter_value_from_factor(factor, "未提供企业实测值，采用GB/T 32151.34—2024标准一般取值。") if factor is not None else None
+                        return self._parameter_value_from_factor(
+                            factor, "未提供企业实测值，采用经目录审核的标准一般取值。"
+                        ) if factor is not None else None
                     return ParameterValue(
-                        parameter_id, Decimal(str(raw)), "ratio", ParameterSourceKind.MEASURED,
-                        "USER-FGD-SOURCE" if source_ref else None, "user-input",
-                        f"企业检测/技术资料编号：{source_ref}" if source_ref else None,
-                        f"企业提供实测值；资料编号：{source_ref}" if source_ref else "企业提供的参数值。",
+                        parameter_id=parameter_id,
+                        value=Decimal(str(raw)),
+                        unit="ratio",
+                        source_kind=ParameterSourceKind.USER_DEFINED,
+                        source_id=None,
+                        source_version=None,
+                        source_location=f"用户来源说明：{source_ref}" if source_ref else None,
+                        selection_reason="用户为本组分提供比例参数。",
                     )
 
                 components.append(CarbonateComponent(
@@ -4349,10 +6027,55 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _electricity(self, enterprise_id: str, period: AccountingPeriod, *, render: bool = True) -> tuple[ElectricityConsumptionDetail, ...]:
         details: list[ElectricityConsumptionDetail] = []
-        for row in self._electricity_rows:
-            detail = row.build(enterprise_id, period)
-            if detail is not None:
-                details.append(detail)
+        for row in self._energy_family_rows.get("electricity", ()):
+            kind = row.kind.currentData()
+            if kind != "purchased_electricity":
+                continue
+            if row.legacy_acquisition_mode is None and row.attribute.currentData() == "SELF_CONSUMED_EXCLUDED":
+                continue
+            amount = _value(row.amount)
+            if amount is None:
+                continue
+            acquisition = row.legacy_acquisition_mode or ElectricityAcquisitionMode.PURCHASED
+            attribute = row.legacy_attribute or _enum(row.attribute.currentData(), ElectricityAttribute)
+            region = row.region.currentData() if acquisition is ElectricityAcquisitionMode.PURCHASED and attribute is ElectricityAttribute.ORDINARY else None
+            selected_factor_id = None
+            selection_reason = None
+            factor_override = None
+            if acquisition is ElectricityAcquisitionMode.PURCHASED and attribute is ElectricityAttribute.ORDINARY:
+                if row.factor_mode.currentData() == "MANUAL":
+                    value = row.manual_factor.text().strip()
+                    if not value:
+                        raise DomainValidationError("请填写本条普通购入电力的手动排放因子，或切换为参数库候选。")
+                    parameter_id, unit = self._energy_electricity_parameter_unit(region)
+                    factor_override = UserProvidedParameterValue(
+                        value=value,
+                        unit=unit,
+                        source_reference=row.electricity_source.text().strip() or None,
+                        selection_reason="在统一本次购电明细中手动填写并采用电力因子。",
+                    )
+                else:
+                    option = row.factor_selector.currentData()
+                    factor = getattr(option, "factor", None)
+                    if factor is not None:
+                        selected_factor_id = factor.factor_id
+                        selection_reason = option.selection_reason
+            details.append(ElectricityConsumptionDetail(
+                detail_id=row.line_id.text().strip(),
+                enterprise_id=enterprise_id,
+                standard_id=STANDARD_ID,
+                accounting_period=period,
+                electricity_amount=amount,
+                electricity_unit="MWh",
+                acquisition_mode=acquisition,
+                attribute=attribute,
+                proof_type=row.legacy_proof_type or ElectricityProofType.NONE,
+                proof_status=row.legacy_proof_status or ElectricityProofStatus.NOT_PROVIDED,
+                region=region,
+                selected_factor_id=selected_factor_id,
+                factor_selection_reason=selection_reason,
+                factor_override=factor_override,
+            ))
         result = tuple(details)
         if render:
             self._render_electricity_parameter_states(result)
@@ -4361,43 +6084,30 @@ class CarbonMaterialAccountingPage(BasePage):
     def _refresh_electricity_rows(self) -> None:
         try:
             self._electricity("enterprise.current", self._period())
-        except (DomainValidationError, InvalidOperation, ValueError):
+        except (DomainValidationError, InvalidOperation, ValueError) as exc:
             self._electricity_resolution_states.clear()
-            for row in self._electricity_rows:
-                if row.amount.text().strip():
-                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
-                row.show_parameter_state(
-                    "电力因子：等待完整明细",
-                    "电力因子：尚未确定",
-                    "来源说明：尚未确定",
-                    "采用依据：请补齐本条明细后重新检查。",
-                )
+            for row in self._energy_family_rows.get("electricity", ()):
+                if row.kind.currentData() == "purchased_electricity" and row.attribute.currentData() != "SELF_CONSUMED_EXCLUDED" and row.amount.text().strip():
+                    self._electricity_resolution_states[row.line_id.text().strip()] = "ERROR"
+                    row.status.setText(f"电力因子：需要处理 · {exc}")
             self._refresh_source_cards()
 
     def _render_electricity_parameter_states(self, details: tuple[ElectricityConsumptionDetail, ...]) -> None:
         self._electricity_resolution_states.clear()
-        waiting = (
-            "电力因子：待录入",
-            "电力因子：尚未确定",
-            "来源说明：尚未确定",
-            "采用依据：录入电量后按本条明细自动确定",
-        )
-        rows_by_id = {row.detail_id.text().strip(): row for row in self._electricity_rows}
-        for row in self._electricity_rows:
-            row.show_parameter_state(*waiting)
+        energy_rows = {
+            row.line_id.text().strip(): row for row in self._energy_family_rows.get("electricity", ())
+            if row.kind.currentData() == "purchased_electricity" and row.attribute.currentData() != "SELF_CONSUMED_EXCLUDED"
+        }
+        for row in energy_rows.values():
+            row.status.setText("电力因子：待录入")
         if not details:
             return
         if self._parameter_resolver is None:
-            for row in self._electricity_rows:
-                if row.amount.text().strip():
-                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
-                row.show_parameter_state(
-                    "电力因子：暂不可用",
-                    "电力因子：尚未确定",
-                    "来源说明：暂未取得标准参数",
-                    "采用依据：当前无法取得适用的标准参数。",
-                    "专业说明：参数服务暂不可用；未形成参数快照。",
-                )
+            for detail in details:
+                row = energy_rows.get(detail.detail_id)
+                self._electricity_resolution_states[detail.detail_id] = "ERROR"
+                if row is not None:
+                    row.status.setText("电力因子：当前参数服务不可用")
             return
         try:
             resolutions = self._parameter_resolver.resolve_electricity_details(
@@ -4405,68 +6115,42 @@ class CarbonMaterialAccountingPage(BasePage):
                 snapshot_at=datetime.now(timezone.utc),
             )
         except (DomainValidationError, InvalidOperation, KeyError, ValueError) as exc:
-            for row in self._electricity_rows:
-                if row.amount.text().strip():
-                    self._electricity_resolution_states[row.detail_id.text().strip()] = "ERROR"
-                row.show_parameter_state(
-                    "电力因子：暂未确定",
-                    "电力因子：尚未确定",
-                    "来源说明：暂不可用",
-                    "采用依据：当前明细信息不足，无法确定适用参数。",
-                    f"专业说明：{exc}",
-                )
+            for detail in details:
+                row = energy_rows.get(detail.detail_id)
+                self._electricity_resolution_states[detail.detail_id] = "ERROR"
+                if row is not None:
+                    row.status.setText(f"电力因子：暂未确定 · {exc}")
             return
         for resolution in resolutions:
-            row = rows_by_id.get(resolution.detail.detail_id)
-            if row is None:
-                continue
+            detail_id = resolution.detail.detail_id
+            row = energy_rows.get(detail_id)
             if resolution.route.value == "DELEGATE_DIRECT_FUEL_PATH":
-                self._electricity_resolution_states[resolution.detail.detail_id] = "DELEGATED"
-                reason = resolution.problems[0].message if resolution.problems else "转交直接燃料排放路径"
-                row.show_parameter_state(
-                    "电力因子：不适用",
-                    "电力因子：不进入购电路径",
-                    "来源说明：本明细按直接排放路径处理",
-                    "采用依据：自发自用化石能源电力不重复计入购入电力。",
-                    f"专业说明：{reason}",
-                )
+                self._electricity_resolution_states[detail_id] = "DELEGATED"
+                if row is not None:
+                    row.status.setText("电力因子：自发自用化石能源电力转入直接燃料排放路径")
                 continue
             selected = resolution.parameter_resolution.recommended if resolution.parameter_resolution else None
             snapshot = resolution.snapshot
             if selected is not None and snapshot is not None:
-                self._electricity_resolution_states[resolution.detail.detail_id] = "RESOLVED"
-                factor = selected.factor
-                category = self.catalog_service.value_category_label(selected.category)
-                review = self.catalog_service.review_status_label(factor.review_status)
-                row.show_parameter_state(
-                    "电力因子：已确定",
-                    f"电力因子：{factor.value} {factor.unit} · {category}",
-                    f"来源说明：{review} · 已按当前标准规则确定",
-                    "采用依据：按核算期间、取得方式和电力属性自动确定。",
-                    (
-                        "专业详情（只读）\n"
-                        f"参数 ID：{factor.parameter_id}\n"
-                        f"因子 ID：{factor.factor_id}\n"
-                        f"标准条款：B.8；电力参数规则\n"
-                        f"参数来源：{factor.source_id or '未提供'}；来源定位：{factor.source_location or '未提供'}\n"
-                        f"审核状态：{review}\n"
-                        f"选择理由：{resolution.parameter_resolution.selection_reason if resolution.parameter_resolution else '按当前规则确定'}"
-                    ),
-                )
+                self._electricity_resolution_states[detail_id] = "RESOLVED"
+                if row is not None:
+                    factor = selected.factor
+                    category_value = getattr(selected.category, "value", selected.category)
+                    is_user_provided = category_value == "USER_PROVIDED"
+                    category = "用户手动填写" if is_user_provided else self.catalog_service.value_category_label(selected.category)
+                    display_value = self.calculator.policy.format_for_display(Decimal(str(factor.value)), 2)
+                    source_summary = (
+                        factor.source_location or ("本次用户填写" if is_user_provided else "来源资料见记录快照")
+                    )
+                    row.status.setText(
+                        f"电力因子：已确定 {display_value} {factor.unit} · {category} · {source_summary}"
+                    )
                 continue
-            problems = resolution.problems
-            self._electricity_resolution_states[resolution.detail.detail_id] = "BLOCKED"
-            display_code = problems[0].code if problems else "GEN-PAR-NO-APPLICABLE-VALUE"
-            if display_code == "GEN-VAL-NONFOSSIL-EVIDENCE":
-                display_code = "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE"
-            reason = problems[0].message if problems else "当前明细未形成可用参数快照"
-            row.show_parameter_state(
-                "电力因子：需要处理",
-                "电力因子：未采用",
-                "来源说明：暂无可用的标准参数",
-                "采用依据：请检查取得方式、电力属性和相应材料状态。",
-                f"专业说明：校验代码 {display_code}；{reason}",
-            )
+            self._electricity_resolution_states[detail_id] = "BLOCKED"
+            if row is not None:
+                problem = resolution.problems[0] if resolution.problems else None
+                message = getattr(problem, "message", "当前明细未形成可用参数快照")
+                row.status.setText(f"电力因子：需要处理 · {message}")
 
     def _selected_heat_parameter_value_for(self, selector: QComboBox, reason_widget: QWidget, *, energy_direction: str) -> ParameterValue | None:
         factor_id = selector.currentData()
@@ -4526,74 +6210,96 @@ class CarbonMaterialAccountingPage(BasePage):
         )
 
     def _heat(self, prefix: str) -> tuple[HeatInput, ...]:
+        expected_kind = "purchased_heat" if prefix == "heat" else "exported_heat"
+        direction = expected_kind
         result: list[HeatInput] = []
-        direction = "purchased_heat" if prefix == "heat" else "exported_heat"
-        for row in self._heat_rows[prefix]:
-            amount = _value(row["amount"])
-            measured = _value(row["measured"])
-            source_note = _value(row["source"])
-            factor_mode_widget = row.get("factor_mode")
-            factor_mode = (
-                _enum(factor_mode_widget.currentData(), HeatFactorMode)
-                if isinstance(factor_mode_widget, QComboBox)
-                else HeatFactorMode.STANDARD_DEFAULT
-            )
-            if factor_mode is HeatFactorMode.MEASURED and measured is not None:
+        for row in self._energy_family_rows.get("heat", ()):
+            if row.kind.currentData() != expected_kind:
+                continue
+            amount = _value(row.amount)
+            if amount is None:
+                continue
+            factor_mode = _enum(row.heat_factor_mode.currentData(), HeatFactorMode)
+            source_note = row.heat_source.text().strip() or None
+            factor: ParameterValue | None = None
+            if factor_mode is HeatFactorMode.MEASURED:
+                measured = row.measured_heat_factor.text().strip()
+                if not measured:
+                    raise DomainValidationError("请填写本条热力来源的实测排放因子，或选择标准缺省因子。")
                 factor = ParameterValue(
-                    "heat_emission_factor_measured", measured, "tCO2/GJ", ParameterSourceKind.MEASURED,
-                    "USER-HEAT-SOURCE" if source_note else None,
-                    "user-input",
-                    f"实测热力因子来源说明：{source_note}" if source_note else None,
-                    f"{direction}逐来源实测热力因子。",
+                    "heat_emission_factor_measured",
+                    measured,
+                    "tCO2/GJ",
+                    ParameterSourceKind.MEASURED,
+                    source_id=None,
+                    source_version=None,
+                    source_location=f"实测来源说明：{source_note}" if source_note else None,
+                    selection_reason="用户为本条热力来源填写实测排放因子。",
                 )
-            else:
-                factor = None
-                if row.get("legacy_factor_override"):
-                    selector, reason = row.get("factor"), row.get("reason")
-                    if isinstance(selector, QComboBox) and isinstance(reason, QWidget):
-                        factor = self._selected_heat_parameter_value_for(
-                            selector, reason, energy_direction=direction,
-                        )
-            enthalpy_mode_widget = row.get("enthalpy_mode")
-            manual_enthalpy = isinstance(enthalpy_mode_widget, QComboBox) and enthalpy_mode_widget.currentData() == "MANUAL"
+            manual_enthalpy = row.enthalpy_mode.currentData() == "MANUAL"
+            steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
             result.append(HeatInput(
-                _value(row["id"]) or str(row["default_line_id"]),
-                amount,
-                _value(row["enthalpy"]) if manual_enthalpy else None,
-                factor,
+                line_id=row.line_id.text().strip(),
+                amount=amount,
+                enthalpy=_value(row.enthalpy) if manual_enthalpy else None,
+                factor=factor,
                 unit="t",
-                steam_kind=_enum(row["steam"].currentData(), SteamKind),  # type: ignore[union-attr]
-                pressure_mpa=_value(row["pressure"]),
-                temperature_c=_value(row["temperature"]),
+                steam_kind=steam_kind,
+                pressure_mpa=_value(row.pressure) if not manual_enthalpy else None,
+                temperature_c=_value(row.temperature) if steam_kind is SteamKind.SUPERHEATED and not manual_enthalpy else None,
                 manual_enthalpy=manual_enthalpy,
-                factor_mode=_enum(factor_mode, HeatFactorMode),
+                factor_mode=factor_mode,
                 factor_source_note=source_note,
-                steam_amount_t=InputValue(amount, "t") if amount is not None else None,
+                steam_amount_t=InputValue(amount, "t"),
             ))
         return tuple(result)
 
     def _exported_electricity(self) -> tuple[ElectricityOutputLine, ...]:
         result: list[ElectricityOutputLine] = []
-        for row in self._output_electricity_rows:
-            amount = _value(row["amount"])
-            selected_factor_id = row["factor"].currentData()  # type: ignore[union-attr]
-            measured = _value(row["measured"])
-            source_reference = _value(row["source"])
+        for row in self._energy_family_rows.get("electricity", ()):
+            if row.kind.currentData() != "exported_electricity":
+                continue
+            amount = _value(row.amount)
+            if amount is None:
+                continue
+            region = row.region.currentData()
             factor_value: ParameterValue | None = None
-            if measured is not None:
-                factor_value = ParameterValue(
-                    "electricity_emission_factor_measured", measured, "tCO2/MWh",
-                    ParameterSourceKind.MEASURED,
-                    "USER-EXPORTED-ELECTRICITY-SOURCE" if source_reference else None,
-                    "user-input" if source_reference else None,
-                    f"企业实测/检测资料编号：{source_reference}" if source_reference else None,
-                    f"逐来源实测排放因子；来源编号：{source_reference or '未提供'}。",
-                )
-            elif isinstance(selected_factor_id, str):
-                factor = self._electricity_factor_records.get(selected_factor_id)
-                factor_value = self._parameter_value_from_factor(factor, "输出电力来源采用已核验目录因子。") if factor is not None else None
+            if row.factor_mode.currentData() == "MANUAL":
+                raw = row.manual_factor.text().strip()
+                if not raw:
+                    raise DomainValidationError("请填写本条输出电力的手动排放因子，或切换为参数库候选。")
+                source_reference = row.electricity_source.text().strip()
+                if row.legacy_measured_factor:
+                    factor_value = ParameterValue(
+                        parameter_id="electricity_emission_factor_measured",
+                        value=raw,
+                        unit="tCO2/MWh",
+                        source_kind=ParameterSourceKind.MEASURED,
+                        source_id="USER-EXPORTED-ELECTRICITY-SOURCE" if source_reference else None,
+                        source_version="user-input" if source_reference else None,
+                        source_location=f"企业实测/检测资料编号：{source_reference}" if source_reference else None,
+                        selection_reason=f"逐来源实测排放因子；来源编号：{source_reference or '未提供'}。",
+                    )
+                else:
+                    parameter_id, unit = self._energy_electricity_parameter_unit(region)
+                    factor_value = ParameterValue(
+                        parameter_id=parameter_id,
+                        value=raw,
+                        unit=_domain_unit(unit),
+                        source_kind=ParameterSourceKind.USER_DEFINED,
+                        source_id=None,
+                        source_version=None,
+                        source_location=source_reference or None,
+                        selection_reason="用户手动填写并采用本条输出电力因子。",
+                    )
+            else:
+                option = row.factor_selector.currentData()
+                factor = getattr(option, "factor", None)
+                if factor is not None:
+                    factor_value = self._parameter_value_from_factor(factor, option.selection_reason)
             result.append(ElectricityOutputLine(
-                _value(row["id"]) or str(row["default_line_id"]), amount, factor_value,
+                line_id=row.line_id.text().strip(), amount=amount, factor=factor_value,
+                region=region,
             ))
         return tuple(result)
 
@@ -4601,7 +6307,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if increment:
             self._calculation_index += 1
         period = self._period()
-        enterprise_name = self.enterprise_name.text().strip()
+        enterprise_name = self.enterprise_name.currentText().strip()
         enterprise_id = "enterprise.current"
         return CarbonMaterialInput(
             input_id=f"input.{self._calculation_index}" if increment else "fingerprint",
@@ -4701,6 +6407,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self.report_changes_status.setText("报告资料已修改，需重新计算生成正式记录才能固化这些变化。")
         if calculation_stale and hasattr(self, "report_changes_status"):
             self.report_changes_status.clear()
+        self._sync_report_export_gate()
         self._refresh_unit_result_summary()
         self._refresh_live_feedback()
 
@@ -4708,7 +6415,8 @@ class CarbonMaterialAccountingPage(BasePage):
         """Restore every G06 control to the initial new-accounting state."""
 
         self._calculation_index = 0
-        self.enterprise_name.clear()
+        self.enterprise_name.setText("")
+        self._refresh_enterprise_candidates()
         self.period_type.setCurrentIndex(0)
         self.period_year.setValue(2025)
         self.period_month.setValue(1)
@@ -4792,14 +6500,19 @@ class CarbonMaterialAccountingPage(BasePage):
         for row in tuple(self._electricity_rows):
             self._remove_electricity_row(row)
         self._add_electricity_row()
+        self._restore_unified_energy_rows(self._default_form_state.get("energy_rows", []))
         self.custom_period_row.setVisible(False)
+        self.custom_period_label.setVisible(False)
         self._refresh_heat_factor_details()
         self.validation_list.clear()
         self.quality_card.setVisible(False)
         self.process_card.setVisible(False)
         self.result_card.setVisible(False)
         self._latest_record_id = None
+        self._latest_record = None
+        self._latest_record_fingerprint = None
         self.view_record_button.setEnabled(False)
+        self.export_report_button.setEnabled(False)
         self.result_total.setText("未计算")
         self.result_status.setText("核算状态：尚未计算")
         self.report_qualification_status.setText("年度报告资格：尚未计算")
@@ -4860,7 +6573,6 @@ class CarbonMaterialAccountingPage(BasePage):
             "CAR-VAL-MATERIAL-COMPONENT-KIND": "固定碳或挥发分字段性质与标准要求不一致，请检查对应字段。",
             "CAR-VAL-BOUNDARY-UNCONFIRMED": "核算边界尚未确认，请确认本次核算边界。",
             "CAR-VAL-OTHER-STANDARD": "发现当前标准未覆盖的其他活动或上下游运输，请改用适用标准核算。",
-            "CAR-VAL-GREEN-ELECTRICITY-EVIDENCE": "非化石电力明细缺少有效证明材料，无法采用相应参数。",
             "CAR-VAL-STEAM-STATE": "购入热力的蒸汽状态资料不完整，请补充焓值或压力等必要数据。",
             "CAR-VAL-PARAMETER-RESOLVER-MISSING": "暂时无法取得适用的标准参数，请检查参数数据后重试。",
             "GEN-PAR-STANDARD-DEFAULT-MISSING": "当前无法取得适用的标准缺省参数，请检查标准参数目录后重试。",
@@ -4871,7 +6583,6 @@ class CarbonMaterialAccountingPage(BasePage):
             "GEN-VAL-FACTOR-SOURCE": "参数来源资料不完整，请补充来源说明或资料编号。",
             "GEN-VAL-UNIT-INCOMPATIBLE": "录入数值的单位与所需单位不一致，请核对后重试。",
             "CAR-VAL-PERCENT-RANGE": "比例须在0%到100%之间，请核对录入值。",
-            "GEN-VAL-NONFOSSIL-EVIDENCE": "非化石电力明细缺少有效证明材料，请补充证明信息。",
             "CAR-VAL-FUEL-LHV-NOT-APPLICABLE": "热量路径的活动量已经是热量，不需要低位发热量；请清空低位发热量后重试。",
             "GEN-PAR-NO-APPLICABLE-VALUE": "当前明细没有可用的适用参数，请补充或检查参数资料。",
             "GEN-VAL-REQUIRED-MISSING": "必填信息不完整，请补充后再试。",
@@ -5006,7 +6717,7 @@ class CarbonMaterialAccountingPage(BasePage):
             if fuel_id and fuel_id in field_id:
                 for suffix, widget in (
                     ("ACTIVITY", row.activity), ("LHV", row.lower_heating_value),
-                    ("CARBON", row.carbon), ("FOX", row.oxidation),
+                    ("CARBON", row.carbon_direct if row.carbon_basis.currentData() == "DIRECT" else row.carbon), ("FOX", row.oxidation),
                     ("FUEL-NAME", row.custom_name),
                 ):
                     if upper.endswith(suffix):
@@ -5134,7 +6845,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self._validation_count_override = None
         self._calculation_has_result = False
         self._latest_record_id = None
+        self._latest_record = None
+        self._latest_record_fingerprint = None
         self.view_record_button.setEnabled(False)
+        self.export_report_button.setEnabled(False)
         self.result_card.setVisible(False)
         self.process_card.setVisible(False)
         self.quality_card.setVisible(False)
@@ -5281,7 +6995,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if outcome.record is not None:
             self._input_dirty = False
             self._latest_record_id = outcome.record.record_id
+            self._latest_record = outcome.record
+            self._latest_record_fingerprint = self._fingerprint_business_input(outcome.input)
             self.view_record_button.setEnabled(True)
+            self._refresh_enterprise_candidates()
+            self._sync_report_export_gate()
             self.record_created.emit(outcome.record.record_id)
         trace_lines = [
             f"{trace.formula_id}：{trace.substitution} = {_display_amount(trace.amount, 'tCO2')}"
