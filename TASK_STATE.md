@@ -5,7 +5,7 @@
 
 已确认 origin 指向 canonical GHGTOOL 仓库。PR35/36/37/38均已合并；本分支以 main@708f78a455790946b4a728029bba768d8fb295fc 为初始基线，最新 origin/main 为 a51afbcf684e3845369977e42adc938866726d0b。当前唯一工作包仍为 GHG-EXB01。原 checkout 及用户修改/参考文件保留。
 
-PR #38 的 GHG-UI-P3-AB 已合并；其测试和原生验收边界见 docs/ui/p3-ab/ACCEPTANCE.md。AB 后 Phase 3 暂停，不启动 P3-C/D/E/F。
+PR #38 的 GHG-UI-P3-AB 已合并；其测试和原生验收边界见 docs/ui/p3-ab/ACCEPTANCE.md。AB 后 Phase 3 暂停，不启动 P3-C/D/E/F。 本次合入后的G03定向回归本地11/11通过（`python -m unittest tests.test_g03_shell -v`，8.082s）；不代表完整回归。
 
 母版可访问，原SHA c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4。发现21个指定结果公式，按授权仅清理受控副本；新资源SHA e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d。原文件未改。模板服务已实现精确字节复制；独立只读核对九表/布局/合并/验证/样式/其他值无差异。
 

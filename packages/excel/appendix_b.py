@@ -973,6 +973,7 @@ class AppendixBWorkbookImporter:
                     f"B.7!C{row}", "碳酸盐组分",
                 ))
 
+        carbonate_content_default = self._default_factor("CAR-PAR-P04B-I", context.period)
         ratio_tr_default = self._default_factor("CAR-PAR-P04B-TR", context.period)
         for ordinal, (start, end, _merged) in enumerate(groups, 1):
             batch_name = reader.text(workbook, "B.7", f"A{start}", errors, field_label="碳酸盐批次名称")
@@ -986,15 +987,45 @@ class AppendixBWorkbookImporter:
                 if not row_active:
                     continue
                 active = True
-                fraction_pct = reader.number(workbook, "B.7", f"D{row}", errors, required=True, field_label="碳酸盐组分含量")
+                fraction_pct = reader.number(workbook, "B.7", f"D{row}", errors, field_label="碳酸盐组分含量")
                 factor_value = reader.number(workbook, "B.7", f"E{row}", errors, field_label="碳酸盐排放因子")
                 conversion_pct = reader.number(workbook, "B.7", f"F{row}", errors, field_label="转化率")
                 if not label:
                     errors.append(ImportMessage("EXB01_CARBONATE_LABEL_REQUIRED", "请明确碳酸盐组分名称。", f"B.7!C{row}", "碳酸盐组分"))
                     continue
+                fraction_location = f"B.7!D{row}"
                 if fraction_pct is not None:
-                    fraction_value = _user_parameter(self.policy.divide(fraction_pct, Decimal("100")), "carbonate_fraction", "ratio", f"B.7!D{row}", ParameterSourceKind.MEASURED)
+                    normalized_fraction = self.policy.divide(fraction_pct, Decimal("100"))
+                    if carbonate_content_default is not None and normalized_fraction == _factor_value(carbonate_content_default):
+                        fraction_value = self._parameter_value(
+                            carbonate_content_default, "填报值与当前 Resolver 核验的碳酸盐含量缺省值完全一致。"
+                        )
+                    else:
+                        self._warn_missing_source(warnings, fraction_location, "碳酸盐组分含量")
+                        fraction_value = _user_parameter(
+                            normalized_fraction, "carbonate_fraction", "ratio", fraction_location,
+                            ParameterSourceKind.MEASURED,
+                        )
+                elif not _has_value(ws[f"D{row}"]):
+                    if carbonate_content_default is None:
+                        errors.append(ImportMessage(
+                            "EXB01_CARBONATE_CONTENT_UNRESOLVED",
+                            "碳酸盐组分含量为空，且当前 Resolver 没有可用的标准缺省参数。",
+                            fraction_location, "碳酸盐组分含量",
+                        ))
+                        fraction_value = None
+                    else:
+                        fraction_value = self._parameter_value(
+                            carbonate_content_default, "碳酸盐组分含量留空，采用当前期间 Resolver 核验的标准缺省值。"
+                        )
+                        warnings.append(ImportMessage(
+                            "EXB01_STANDARD_DEFAULT_APPLIED",
+                            f"碳酸盐组分含量留空；已采用并记录 Resolver 核验的标准缺省参数 {carbonate_content_default.parameter_id}。",
+                            fraction_location, "碳酸盐组分含量",
+                        ))
                 else:
+                    # A present but invalid cell already has a blocking reader diagnostic;
+                    # do not disguise it as a Resolver default.
                     fraction_value = None
                 option = None if label == "其他" else self._carbonate_option(label, context.period)
                 if label != "其他" and option is None and factor_value is None:
@@ -1009,10 +1040,38 @@ class AppendixBWorkbookImporter:
                     factor = self._parameter_value(option.factor, option.selection_reason) if option else None
                 if label == "其他" and factor is None:
                     errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_FACTOR_REQUIRED", "“其他”碳酸盐需要填写对应排放因子。", f"B.7!E{row}", "碳酸盐排放因子"))
+                conversion_location = f"B.7!F{row}"
                 if conversion_pct is not None:
-                    conversion = _user_parameter(self.policy.divide(conversion_pct, Decimal("100")), "CAR-PAR-P04B-TR", "ratio", f"B.7!F{row}")
+                    normalized_conversion = self.policy.divide(conversion_pct, Decimal("100"))
+                    if ratio_tr_default is not None and normalized_conversion == _factor_value(ratio_tr_default):
+                        conversion = self._parameter_value(
+                            ratio_tr_default, "填报值与当前 Resolver 核验的转化率缺省值完全一致。"
+                        )
+                    else:
+                        self._warn_missing_source(warnings, conversion_location, "脱硫转化率")
+                        conversion = _user_parameter(
+                            normalized_conversion, "CAR-PAR-P04B-TR", "ratio", conversion_location,
+                            ParameterSourceKind.MEASURED,
+                        )
+                elif not _has_value(ws[f"F{row}"]):
+                    if ratio_tr_default is None:
+                        errors.append(ImportMessage(
+                            "EXB01_CARBONATE_CONVERSION_UNRESOLVED",
+                            "脱硫转化率为空，且当前 Resolver 没有可用的标准缺省参数。",
+                            conversion_location, "脱硫转化率",
+                        ))
+                        conversion = None
+                    else:
+                        conversion = self._parameter_value(
+                            ratio_tr_default, "脱硫转化率留空，采用当前期间 Resolver 核验的标准缺省值。"
+                        )
+                        warnings.append(ImportMessage(
+                            "EXB01_STANDARD_DEFAULT_APPLIED",
+                            f"脱硫转化率留空；已采用并记录 Resolver 核验的标准缺省参数 {ratio_tr_default.parameter_id}。",
+                            conversion_location, "脱硫转化率",
+                        ))
                 else:
-                    conversion = self._parameter_value(ratio_tr_default, "采用当前期间 Resolver 核验的标准转化率。") if ratio_tr_default else None
+                    conversion = None
                 component = CarbonateComponent(
                     amount=InputValue(amount, "t", source_reference=f"B.7!B{start}") if amount is not None else None,
                     carbonate_fraction=fraction_value,

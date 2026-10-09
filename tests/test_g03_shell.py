@@ -35,6 +35,7 @@ from packages.persistence.in_memory_records import InMemoryRecordRepository
 
 class G03ShellTest(unittest.TestCase):
     @classmethod
+
     def setUpClass(cls) -> None:
         cls.application = QApplication.instance() or QApplication([])
 
@@ -85,6 +86,7 @@ class G03ShellTest(unittest.TestCase):
         settings_y = shell.navigation_buttons[AppRoute.SETTINGS].mapTo(sidebar, QPoint(0, 0)).y()
         factors_y = shell.navigation_buttons[AppRoute.FACTORS].mapTo(sidebar, QPoint(0, 0)).y()
         self.assertGreater(settings_y, factors_y)
+
     def test_home_is_a_safe_empty_workbench(self) -> None:
         home = self.shell.pages[AppRoute.HOME]
         self.assertEqual(home.findChild(QLabel, "pageTitle").text(), "温室气体排放核算")
@@ -106,6 +108,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
         self.assertNotIn("最近使用标准", all_text)
+
     def test_home_actions_follow_the_five_entry_order_with_settings_separate(self) -> None:
         home = self.shell.pages[AppRoute.HOME]
         self.assertEqual(
@@ -125,6 +128,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertNotIn(AppRoute.SETTINGS, home.entry_buttons)
         for button in home.entry_buttons.values():
             self.assertFalse(button.icon().isNull())
+
     def test_shell_scopes_light_sidebar_styling_without_changing_global_tokens(self) -> None:
         shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
         self.assertIn("BRAND_AREA_HEIGHT", shell_source)
@@ -138,6 +142,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(brand_area.height(), BRAND_AREA_HEIGHT)
         sidebar = self.shell.findChild(QWidget, "sidebar")
         self.assertIn("#EAF3FB", sidebar.styleSheet())
+
     def test_all_routes_are_reachable_and_home_actions_share_routes(self) -> None:
         shell = self.shell
         page_instances = dict(shell.pages)
@@ -191,6 +196,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(page.findChild(QPushButton, "formalCalculateButton"))
         self.assertIsNotNone(page.findChild(QPushButton, "openUnitRecordButton"))
         self.assertIsNone(page.findChild(QPushButton, "importButton"))
+
     def test_home_recent_work_lists_only_saved_projects_and_keeps_existing_project_manager(self) -> None:
         workspace = ProjectWorkspaceService.new_workspace("已保存的真实项目")
         self.project_service.save(workspace)

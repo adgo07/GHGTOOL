@@ -2,7 +2,7 @@
 
 ## 范围与平台 / Contract 预检查
 
-本包沿 REFERENCE_STANDARD_ROADMAP.md 的 RS03 实施：唯一正式 Excel 输入改为用户批准的附录B母版；不实施 P3-C/D/E/F、不改 Word 模型、数据库结构、正式 Calculator 公式或标准范围。开始检查业务仓 origin 为 adgo07/GHGTOOL，基线 main 为 708f78a455790946b4a728029bba768d8fb295fc，独立分支 codex/exb01-appendix-b-ingress。原工作区用户文件保留。
+本包沿 REFERENCE_STANDARD_ROADMAP.md 的 RS03 实施：唯一正式 Excel 输入改为用户批准的附录B母版；不实施 P3-C/D/E/F、不改 Word 模型、数据库结构、正式 Calculator 公式或标准范围。开始检查业务仓 origin 为 adgo07/GHGTOOL，基线 main 为 708f78a455790946b4a728029bba768d8fb295fc；续跑已同步PR38/main@a51afbcf684e3845369977e42adc938866726d0b，保留首页/Shell/标准库已合并成果，独立分支 codex/exb01-appendix-b-ingress。原工作区用户文件保留。
 
 locked central SHA：ee5feb0cc34dbd99790500fadd0c4c932e202a20。已按该 SHA 读取 Architecture V2.1、Numeric Contract v1、Numeric Profiles v1（FROZEN）。适用 MUST / MUST NOT：GUI/Excel 共享 Canonical→Application→Domain；Excel 数值入口声明原始词法到 Decimal 的路径；禁止二进制 float 成为未声明业务权威；Carbon p40/HALF_UP 为本项目 Profile；显示修约不回流；不自动重算历史 Record；Qt 控件状态不充当业务 Contract。项目 / Record 公共 Contract 仍为 DRAFT，不新增公共规则、不升级锁。
 
@@ -28,10 +28,10 @@ locked central SHA：ee5feb0cc34dbd99790500fadd0c4c932e202a20。已按该 SHA �
 母版没有独立的期间、企业、地区字段。必要期间由导入页面明确提供；企业名称可选；地区只在选择地区因子时使用。不得从B.1占位标题猜测企业或年份。核算边界沿现有正式输入语义确认。
 
 - B.2：计算/实测含碳量由D列区分。实测路径不使用E/G；计算路径不使用C展示值。未参与计算的已有数据可留词法证据并提醒。正式C.1登记单位可唯一确定质量/体积时使用该单位；自定义燃料单位缺失时要求明确选择并定位B列，不借其他燃料缺省值。用户提供数值不伪造实测或标准因子身份；缺少可选来源只提醒。
-- 正文过程缺省参数：K1/K2/K3沿已有核验的5.2.2/5.2.3/5.2.4来源绑定接入现有Catalog→Resolver桥接，禁止Adapter硬编码或绕开选参；值、来源和正式公式不变。
+- 正文过程缺省参数：K1/K2/K3及脱硫含量/转化率沿已有核验的5.2.2/5.2.3/5.2.4/5.2.5.2来源绑定接入现有Catalog→Resolver桥接，禁止Adapter硬编码或绕开选参；值、来源和正式公式不变。
 - B.3～B.5：碳与挥发分行按明确角色和物料名称配对；同物料重复质量必须一致，不能累加两次。正文新增行可读取；没有实例边界的数据不猜分成多台设备。重复名称、角色或配对无法确定时定位单元格。
 - B.6：活动数据进入正式烟气焚烧输入；Excel结果格无权威作用。
-- B.7：实际物料/质量合并区或明确新批次段界定同一批次；各碳酸盐组分只算一次。具体C.2名称可从正式注册库和Resolver选因子；“其他”不得借用任意C.2值。
+- B.7：实际物料/质量合并区或明确新批次段界定同一批次；各碳酸盐组分只算一次。具体C.2名称可从正式注册库和Resolver选因子；“其他”不得借用任意C.2值。已激活组分的含量/转化率留空时，按既有Mapping通过Resolver读取90%/100%并保存提醒和快照；多个组分缺省后总和超过100%必须阻断，不猜测组分分配。
 - B.8：方向与电力属性沿PR37正式语义，非化石购入不新增证明前置；输出方向不适用购入属性，不因B列填写非化石而自动采用零因子，仍按正式输出适用因子扣减，并保留原始属性和提醒；地区因子走已有库和Resolver。手填因子保留单元格来源，不能伪称地区默认。
 - B.9：仅支持现行饱和/过热蒸汽路径；热水/其他热力明确提示不支持。F列按模板只读自动焓路径处理，不能把自行填入的展示焓变成正式依据。默认排放因子走正式Resolver；实填覆盖值保留用户提供来源。
 

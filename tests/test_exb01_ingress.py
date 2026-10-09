@@ -276,6 +276,77 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertEqual(by_source[SOURCE_PURCHASED_ELECTRICITY], Decimal("0"))
         self.assertEqual(by_source[SOURCE_EXPORTED_ELECTRICITY], Decimal("1.0"))
 
+    def test_output_without_attribute_uses_resolved_default_factor_and_keeps_the_row(self) -> None:
+        path = self._workbook("output-default-factor.xlsx")
+        self._set_cells(path, {"B.8": {"B4": None, "C4": 2, "D4": None}})
+        preview = self.importer.import_preview(path, context=self._context())
+        unit = preview.units[0]
+
+        self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
+        self.assertEqual(len(unit.input_value.exported_electricity), 1)
+        exported = unit.input_value.exported_electricity[0]
+        self.assertEqual(exported.amount.value, Decimal("2"))
+        self.assertEqual(exported.factor.parameter_id, "electricity_emission_factor_national")
+        self.assertEqual(exported.factor.value, Decimal("0.5306"))
+        snapshots = [
+            item for item in unit.calculation.parameter_snapshots
+            if item.parameter_id == "electricity_emission_factor_national"
+        ]
+        self.assertTrue(snapshots)
+        self.assertEqual(snapshots[0].value_used, Decimal("0.5306"))
+        self.assertEqual(unit.source_breakdown[SOURCE_EXPORTED_ELECTRICITY], Decimal("1.0612"))
+
+    def test_process_activity_without_first_group_label_is_a_located_fatal(self) -> None:
+        path = self._workbook("missing-first-process-group.xlsx", all_sources=True)
+        self._set_cells(path, {"B.3": {"A4": None}})
+        preview = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME))
+        unit = preview.units[0]
+
+        self.assertFalse(unit.can_calculate)
+        self.assertIsNone(unit.calculation)
+        self.assertIn(
+            ("EXB01_PROCESS_GROUP_REQUIRED", "B.3!A4"),
+            {(item.code, item.location) for item in unit.errors},
+        )
+
+    def test_fgd_blank_resolver_defaults_are_snapshotted_and_excess_defaults_block(self) -> None:
+        path = self._workbook("fgd-resolved-defaults.xlsx", all_sources=True)
+        self._set_cells(path, {"B.7": {
+            "D3": None, "E3": 0.440, "F3": None,
+            "D4": None, "E4": None, "F4": None,
+        }})
+        unit = self.importer.import_preview(
+            path, context=self._context(fuel_path=FuelPath.VOLUME)
+        ).units[0]
+
+        self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
+        components = unit.input_value.fgd_units[0].components
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0].carbonate_fraction.value, Decimal("0.90"))
+        self.assertEqual(components[0].conversion_rate.value, Decimal("1.00"))
+        snapshots = {item.parameter_id: item for item in unit.calculation.parameter_snapshots}
+        self.assertEqual(snapshots["car-par-p04b-i"].value_used, Decimal("0.90"))
+        self.assertEqual(snapshots["car-par-p04b-tr"].value_used, Decimal("1.00"))
+        # 2 t × 90% × 0.440 tCO₂/t × 100% conversion.
+        self.assertEqual(unit.source_breakdown[SOURCE_FGD], Decimal("0.79200"))
+
+        over_path = self._workbook("fgd-excess-default-fractions.xlsx", all_sources=True)
+        self._set_cells(over_path, {"B.7": {
+            "D3": None, "E3": 0.440, "F3": None,
+            "D4": None, "E4": 0.522, "F4": None,
+        }})
+        blocked = self.importer.import_preview(
+            over_path, context=self._context(fuel_path=FuelPath.VOLUME)
+        ).units[0]
+
+        self.assertFalse(blocked.can_calculate)
+        self.assertIsNotNone(blocked.calculation)
+        self.assertIsNone(blocked.calculation.result)
+        self.assertEqual(
+            [item.carbonate_fraction.value for item in blocked.input_value.fgd_units[0].components],
+            [Decimal("0.90"), Decimal("0.90")],
+        )
+        self.assertIn("CAR-VAL-CARBONATE-SUM", {item.code for item in blocked.errors})
     def test_saturated_steam_default_is_resolved_and_uses_the_reference_enthalpy(self) -> None:
         path = self._workbook("default-steam.xlsx")
         self._set_cells(path, {"B.9": {"B3": "饱和蒸汽", "C3": 1000, "D3": 1}})

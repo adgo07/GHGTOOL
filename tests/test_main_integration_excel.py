@@ -51,16 +51,17 @@ class MainIntegrationExcelTests(unittest.TestCase):
         path = write_valid_appendix_b_workbook(self.root / "all-sources.xlsx", all_sources=True)
         workbook = load_workbook(path)
         process = workbook["B.3"]
+        # Remove data-region merges before inserting rows. openpyxl does not
+        # update merged-range internals when insert_rows() shifts the sheet.
+        for area in list(process.merged_cells.ranges):
+            if area.min_row >= 4:
+                process.unmerge_cells(str(area))
         process.insert_rows(5)
         process["B5"], process["C5"], process["D5"] = "新增待煅烧原料", 20, 88
         process.insert_rows(7)
         process["B7"], process["C7"], process["D7"] = "新增待煅烧原料", 20, 2
-        # openpyxl does not repair body merges after insert_rows(); remove only
-        # those data-region merges in this test copy and make group boundaries
-        # explicit so role inference remains driven by the approved group labels.
-        for area in list(process.merged_cells.ranges):
-            if area.min_row >= 4:
-                process.unmerge_cells(str(area))
+        # Make group boundaries explicit so role inference remains driven by
+        # the approved labels after the test-only row insertions.
         group_labels = {
             4: "进入煅烧炉的碳", 5: "进入煅烧炉的碳",
             6: "进入煅烧炉的挥发分", 7: "进入煅烧炉的挥发分",

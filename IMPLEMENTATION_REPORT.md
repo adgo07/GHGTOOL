@@ -24,6 +24,8 @@ PR #38 的 GHG-UI-P3-AB 已合并，历史实现与测试证据见 `docs/ui/p3-a
 `python -m unittest discover -s tests -p test_exb01_template_acceptance.py -v`
 结果：2 tests，2 passed。独立QA首次有测试list/tuple断言差异，修正测试后通过；不隐藏失败历史。
 
+本次合入PR38断言后的本地G03定向回归：`python -m unittest tests.test_g03_shell -v`，11 tests，11 passed，8.082s。此结果只覆盖G03，不代表EXB01完整回归或专项验收完成。
+
 Astra 6/low 原生 Excel/WPS 保存共三次尝试，最近一次为 2026-10-10 01:13:20～21（北京时间）；均因 trusted Node process exited unexpectedly 未能启动工具，未操作任何文件，无保存产物。不得将 openpyxl 或离屏测试描述为原生验证。
 
 Importer、UI闭环、R2删除与旧测试迁移正在实施。最终完整回归、Windows构建/发布审计、ZIP审计、最终head CI与最终独立专项验收尚未执行。完成后重写本报告为最终实际结果，不沿用PR37或旧head的通过证据。本包新PR不得自动合并。
