@@ -20,7 +20,7 @@ ReportModel不依赖Qt、SQLite、python-docx或openpyxl，只消费该Record冻
 
 ## Excel输入
 
-R2负责输入模板、严格校验、OOXML原始词法证据、Decimal及逐单元预览；预览与正式入口使用同一Calculator配置，不持有Record Repository。用户明确保存有效单元后再由CarbonAccountingUseCase正式核算；致命错误零Record、重复成功新增Record，不建立Excel算法或冻结公共Numeric交换。
+附录B输入Adapter负责批准母版的精确复制、整工作簿严格校验、OOXML原始词法证据和Decimal预览；不持有Record Repository。用户明确保存Canonical项目后再由CarbonAccountingUseCase正式核算；致命错误零Record、重复成功新增Record，不建立Excel算法或冻结公共Numeric交换。历史EXCEL_R2来源证据原样保留；新身份为EXCEL_APPENDIX_B。
 
 projects迁移003保存可选Canonical Input及ingress_provenance；Qt form_state仍仅是Presentation State。allowlist codec保留Decimal、日期、枚举和嵌套输入，拒绝float、非有限数、未知类型/版本，不是公共Workspace Contract或.qzproj。项目通过Excel专用页面恢复，不静默映射为空GUI表单。
 

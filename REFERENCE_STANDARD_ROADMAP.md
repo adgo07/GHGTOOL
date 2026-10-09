@@ -183,7 +183,7 @@ RS02内部工作包（不是新产品阶段）：
 
 一句话目标：让 Excel 成为**同一个业务内核的输入 Adapter（含输入模板导出）**，而不是第二套算法。
 
-RPT01的R2输入模板与严格逐单元预览已合入main；PR #34的Application UseCase收口也已获用户接受并合并。当前用户授权执行RS03正式闭环：有效单元明确保存为Canonical本地项目、跨启动恢复、明确正式核算追加Record，并查看已保存Record和既有Word报告（核算结果Excel导出已取消）。用户已批准projects.sqlite可空字段增量迁移003；旧GUI项目兼容，不改变records.sqlite Schema或公式。当前候选等待独立验收；公共Excel Decimal交换规则仍OPEN / PARTIAL。PR #27继续CLOSED / UNMERGED、只读，不移植旧V1实现。
+PR35正式闭环与PR37新建核算V2已合入main。当前用户授权GHG-EXB01：以批准的附录B九表母版替代R2正式输入模板，整本工作簿形成一次完整核算；保留OOXML词法、Decimal、Canonical项目恢复、共享Application正式核算与不可变Record，历史EXCEL_R2身份不改。移除R2下载和新解析路径，不改数据库结构、Calculator公式或Word版式。模板细节和验收证据见当前TASK_STATE/HANDOFF/IMPLEMENTATION_REPORT。公共Excel Decimal交换规则仍OPEN / PARTIAL，专项验收未完成不得宣布正式标准SUPPORTED；PR27继续CLOSED / UNMERGED，不移植旧V1实现。
 
 Excel 设计、实现、GUI↔Excel Conformance 属于**同一产品阶段内部工作包**，不拆成独立产品阶段。
 
@@ -345,7 +345,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
 | Windows | `DONE` | G08 已建立 Windows 离线交付基线；RS05 仍需按正式版 Gate 复核 |
-| Excel | `PARTIAL` | RS03候选已实现严格R2预览、有效Canonical项目保存/恢复、同UseCase正式核算追加Record与记录查看；Excel结果导出已取消，保留Word报告；用户批准迁移003，旧项目兼容；独立验收待完成，中央Excel Numeric交换仍OPEN / PARTIAL |
+| Excel | `PARTIAL` | EXB01以批准附录B九表母版替换R2新输入路径，保留Canonical项目恢复、同UseCase正式核算和历史来源；专项最终验收待完成，中央Excel Numeric交换仍OPEN / PARTIAL；结果Excel导出已取消 |
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
@@ -383,14 +383,14 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 当前延期与取消事项
 
-- Excel输入模板改版延期，现有严格导入和项目链保留；影响输入语义或正式结果的错误仍须修正。
+- Excel输入模板改版已由用户专项启动EXB01；保留严格数值入口和项目/Record闭环，按最终diff/head独立验收。
 - Word版式、分页与展示内容完善延期；影响正式结果或读取错误记录的缺陷仍须修正。冻结Record导出保留，不宣称视觉验收完成。
-- 新建核算V2需求已获用户批准，以GHG-UAT03内部工作包实施；输入模板和Word排版仍延期。
+- 新建核算V2已由GHG-UAT03/PR37合并；后续核算界面家族改造单独推进，本包不实施P3-C/D/E/F；Word排版仍延期。
 - 核算结果Excel导出已取消，不是待开发项或RS03出口条件。
 
 PR36先合并后，PR35已完成整合、完整回归及CI176并按用户授权合并；这些是历史依赖证据，不替代UAT03验证。
 
-### GHG-UAT03 当前内部工作包
+### GHG-UAT03 已合并内部工作包
 
 用户已批准《新建核算页面改造最终方案V2》及三图；基于已合并PR35/36的main实施，归属于RS01/RS02的录入和生命周期改进，不开第二条产品路线。范围和实施出口以HANDOFF及V2需求副本为准。省级电力选择及取消自动证明前置属于本轮明确授权的软件决定，按标准问题台账/规则版本/来源快照追踪；其余计算与历史兼容保留。
 

@@ -60,7 +60,7 @@ git status --short                 # 工作区状态
 ### 2.1 产品与交付边界
 
 - Windows-first：本仓当前只开发 Windows V1 桌面产品。
-- Excel R2负责输入模板、严格校验和逐核算单元预览；预览不写Record。用户明确保存Canonical项目后，再由共享Application正式核算、追加Record。按用户决定取消核算结果Excel导出，只保留消费冻结Record的Word报告；输入模板改版与Word排版完善延期。Excel输入Adapter必须与GUI共用同一Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法；模块内词法策略不冻结中央Excel Numeric交换规则。
+- Excel正式输入使用经批准的GB/T 32151.34—2024附录B九表母版；下载逐字节复制受控资源，不重绘或重新保存。一份工作簿形成一个完整Canonical Input；预览不写Record。用户明确保存Canonical项目后，再由共享Application正式核算、追加Record。旧EXCEL_R2项目、Record及来源证据保持可读，不保留R2模板下载或新的R2文件导入。按用户决定取消核算结果Excel导出，只保留消费冻结Record的Word报告；Word排版完善延期。Excel输入Adapter必须与GUI共用同一Canonical Input / Application / Domain / Calculator / Result，不得形成第二套算法；模块内词法策略不冻结中央Excel Numeric交换规则。
 - 必要导出按中央 Policy 单独规划，不得顺手实现。
 - 标准全文不得复制或打包进软件；“打开标准原文”只能调用官方网址。
 - `GB/T 32151.34` 遇其他行业活动或上下游运输只提示需要其他标准，不得猜算、套算或并入当前结果。

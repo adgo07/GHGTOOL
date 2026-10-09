@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-09（PR35/36已合并；UAT03 V2实施收口、待验收）
+最后更新：2026-10-09（PR37已合并；EXB01实施中）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,14 +29,13 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- PR #35（RS03收口）和PR #36（2023电力因子地区目录）已合并；PR35本地344/344、独立62/62、CI176双jobs属于前序证据，不冒充本包验证。
-- 当前工作包：**GHG-UAT03 新建核算页面V2改造**，用户已提供最终V2与三图。需求副本见docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md；沿既有路线内部实施，不启动第二标准/新产品阶段。
-- 正式核算仍由显式Repository的CarbonAccountingUseCase保存不可变Record；预览无Repository，GUI/Excel共用同一Domain Calculator。可变Canonical项目保存/恢复隔离projects.sqlite，旧Qt state兼容；Excel结果导出已取消，仅Word保留。
-- 本轮8卡片和紧凑表单重组、企业历史与周期、统一重复明细、燃料双路径/自定义、过程/烟气/电力/热力、直接Word入口按V2实施。停用保留项目输入但过滤正式输入，修改后结果过期，首条ID保留。
-- 用户明确取消非化石电力自动证明前置，并要求从已补库地区因子选择；新增软件决定与必要规则/输入版本追溯，不改冻结Mapping或声称佐证已验证。库/Resolver仍是默认参数唯一入口，适用期间与实际来源保持。
-- PF01来源分层及既有Standard Issue001～006有效；标准实施日期保留为提醒，具体因子只有独立适用期才参与筛选；不修改挥发分K、44/12、Numeric或历史Record。
-- Excel输入模板/Word版式完善、首页/导航/记录家族UI重构和其他标准本轮不做。当前UI依据为中央ACTIVE v0.2、家族规格及清单的任务适用部分，不自动adopt Frozen。
-- 本包独立重点复核已通过；当前head完整CI/候选审计后交用户实际操作验收，未预先授权合并。验证证据与限制见本包IMPLEMENTATION_REPORT/TASK_STATE；原生视觉不能以离屏替代，标准仍PARTIAL / NOT SUPPORTED。
+- PR35/36/37已合并，当前包为 **GHG-EXB01 附录B正式Excel模板与输入**，从执行时最新main创建独立分支。具体预检查、批准母版与去公式授权差异见docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
+- 批准九表母版成为唯一正式输入模板；原样保留布局，仅按授权移除指定结果公式。软件下载复制受控文件字节；轻量模板注册不引入数据库或通用DSL。
+- B.2～B.9形成一次完整核算，仍共享Canonical/Application/Domain。预览零Record；用户明确保存项目后正式核算，成功持久化才提示完成。
+- 删除R2专属模板生成/下载/新解析路径；保留OOXML原始词法、Decimal、来源证据、Canonical项目保存恢复和历史EXCEL_R2项目/Record读取。
+- 期间、地区与自定义燃料单位不能从静态表头猜测；多物料配对不重复质量，无法唯一表达多实例或批次时定位错误。默认因子只来自正式Catalog/Resolver，不伪造用户提供值来源。
+- 不改正式Calculator公式、Numeric、历史Record、数据库结构、Word模型/版式、标准范围；不执行P3-C/D/E/F。当前UI指南只用于Excel页面必要接线。
+- 必须专项独立AI按最终diff/head验收；Windows构建/审计、完整回归、CI和原生Excel/WPS保存证据分开。新PR不得自动合并。
 
 PF01范围约束：
 
@@ -105,9 +104,9 @@ PF01范围约束：
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：Excel R2先严格校验与逐单元预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
+- **当前状态**：附录B工作簿先严格校验与整体预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
 - **最终定位**：Excel是输入 Adapter（含输入模板导出），与GUI共用Canonical Input → Application → Domain / Calculator → Result；报告输出只消费已保存Record的冻结ReportModel。
-- 完整RS03当前候选待独立验收；R2词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
+- EXB01当前候选待专项独立验收；Excel词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
 
 ### 3.6 架构与分层
 
@@ -186,18 +185,6 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应GHG-UAT03 V2；详见当前阶段和V2执行范围。旧PR35/36已完成合并，旧报告仅历史。当前任务允许本轮必需最小规则/输入调整，须有台账、来源、版本与测试；不得扩大标准、主要依赖、数据库或Frozen基线。新PR须先独立验收再交用户实测，不能沿用前一任务的合并批准。
+当前只实施GHG-EXB01。PR35/36/37的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与Record安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
 
-## PR35收口与合并顺序
-
-用户授权取消核算结果Excel导出，保留导入、Canonical项目保存/恢复、正式核算与记录查看。输入模板、Word分页/版式、新建核算重设计延期，不作为本包核心验收前提，不宣称已完成。
-
-PR36已由其任务合并；本包已整合main@9955ee8，完整回归和精确head CI通过后按用户授权合并PR35。Catalog003和Projects003属于不同数据库，须同时保留；构建清单、Catalog数据版本与交付测试须与实际一致，旧head的CI不是整合证据。
-
-## UAT03 V2当前执行范围
-
-PR35/36已合并；本包从最新main实施用户批准的V2及三张参考图，需求副本见docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md。它属于现有路线内录入/生命周期业务改进，不新增产品阶段。8选择卡片、企业与周期、紧凑燃料双路径/过程/烟气/统一电力热力、首条保留与启停保留数据、成功且未过期Record直接Word导出属于本包。
-
-非化石自动证明前置取消及省级地区选择按用户明确决定，经台账与版本化规则实现；原文/冻结Mapping保留，来源快照反映实际采用方式，不冒充资料已验证。新可选地区字段须兼容旧输入，不放宽无适用因子、单位或致命缺失校验。
-
-不改Excel模板/Word排版、不另录因子公告、不扩标准/数据库/依赖/Frozen基线。新版ACTIVE UI指南v0.2/家族规格/轻量验收清单只应用本任务部分，不扩其他页面。完整命令/数量/未执行项以本包IMPLEMENTATION_REPORT/TASK_STATE为准，旧CI176不冒充本包。完成独立验收后交用户实际操作验收，未授权合并本包PR。
+Word报告版式/分页继续延期，核算结果Excel导出已取消；不执行P3-C/D/E/F，不新增标准、数据库结构、主要依赖或Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入IMPLEMENTATION_REPORT.md；当前断点写入TASK_STATE.md。完成后提交独立PR等待验收，不自动合并。
