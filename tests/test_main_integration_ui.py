@@ -6,6 +6,7 @@ from contextlib import closing
 from dataclasses import asdict
 from datetime import date
 from io import BytesIO
+import gc
 import os
 from pathlib import Path
 import sqlite3
@@ -15,6 +16,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QLabel
 from PySide6.QtTest import QSignalSpy
 from docx import Document
@@ -76,6 +78,9 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.window.close()
         self.window.deleteLater()
         self.app.processEvents()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        # Release deferred Qt/Python resources before Windows removes SQLite files.
+        gc.collect()
         self.directory.cleanup()
 
     def test_formal_calculation_and_browsing_reject_different_repositories(self) -> None:
