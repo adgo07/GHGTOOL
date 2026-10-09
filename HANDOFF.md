@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-09（PR37已合并；EXB01实施中）
+最后更新：2026-10-10（PR35/36/37/38已合并；GHG-EXB01实施中）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,7 +29,7 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- PR35/36/37已合并，当前包为 **GHG-EXB01 附录B正式Excel模板与输入**，从执行时最新main创建独立分支。具体预检查、批准母版与去公式授权差异见docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
+- PR35/36/37/38已合并；当前包为 **GHG-EXB01 附录B正式Excel模板与输入**。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，正在纳入最新 `origin/main@a51afbcf684e3845369977e42adc938866726d0b`。具体预检查、批准母版与去公式授权差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 - 批准九表母版成为唯一正式输入模板；原样保留布局，仅按授权移除指定结果公式。软件下载复制受控文件字节；轻量模板注册不引入数据库或通用DSL。
 - B.2～B.9形成一次完整核算，仍共享Canonical/Application/Domain。预览零Record；用户明确保存项目后正式核算，成功持久化才提示完成。
 - 删除R2专属模板生成/下载/新解析路径；保留OOXML原始词法、Decimal、来源证据、Canonical项目保存恢复和历史EXCEL_R2项目/Record读取。
@@ -185,6 +185,12 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-当前只实施GHG-EXB01。PR35/36/37的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与Record安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
+当前只实施 GHG-EXB01。PR35/36/37/38 的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与 Record 安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 
-Word报告版式/分页继续延期，核算结果Excel导出已取消；不执行P3-C/D/E/F，不新增标准、数据库结构、主要依赖或Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入IMPLEMENTATION_REPORT.md；当前断点写入TASK_STATE.md。完成后提交独立PR等待验收，不自动合并。
+Word 报告版式/分页继续延期，核算结果 Excel 导出已取消；不执行 P3-C/D/E/F，不新增标准、数据库结构、主要依赖或 Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入 `IMPLEMENTATION_REPORT.md`；当前断点写入 `TASK_STATE.md`。完成后提交独立 PR 等待验收，不自动合并。
+
+### 已合并基线（非当前包）
+
+PR35/36与PR37的业务实现和验收属于历史基线。GHG-UAT03 V2 的需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`；省级电力选择及取消非化石自动证明前置等既有决定，继续按标准问题台账、规则版本与来源快照追踪，不改变冻结 Mapping。
+
+PR #38 的 GHG-UI-P3-AB 已合并。其实现、测试、截图证据及原生人工验收仍为 OPEN 的边界见 `docs/ui/p3-ab/ACCEPTANCE.md`。AB 合并后 Phase 3 暂停；本包不启动 P3-C/D/E/F。

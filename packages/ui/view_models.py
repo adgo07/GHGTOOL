@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class AppRoute(str, Enum):
-    """The seven public G03 routes in their frozen navigation order."""
+    """The stable route identifiers used by the desktop presentation layer."""
 
     HOME = "home"
     STANDARDS = "standards"
@@ -52,9 +52,9 @@ class ShellViewModel:
     status_summary: str = "成功核算后可在“核算记录”查看结果与来源依据。"
     primary_action_label: str = "＋ 新建核算"
     standards_action_label: str = "查看标准库"
-    excel_action_label: str = "Excel 导入与核算"
+    excel_action_label: str = "表格导入"
 
     def __post_init__(self) -> None:
         routes = tuple(item.route for item in self.navigation)
-        if routes != tuple(AppRoute):
-            raise ValueError("navigation must contain the seven G03 routes in order")
+        if len(routes) != len(AppRoute) or set(routes) != set(AppRoute):
+            raise ValueError("navigation must contain each of the seven public routes exactly once")

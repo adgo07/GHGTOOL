@@ -1,13 +1,15 @@
 # GHG-EXB01 实施报告（进行中）
 
-日期：2026-10-09。当前仅模板资源与服务断点完成，不代表专项端到端验收通过。
+日期：2026-10-10。GHG-EXB01仍在实施中；本报告记录阶段证据，不代表专项端到端验收通过。
 
 ## 平台 / Contract 预检查
 
-业务基线：GHGTOOL main@708f78a455790946b4a728029bba768d8fb295fc，origin实核adgo07/GHGTOOL；独立任务分支codex/exb01-appendix-b-ingress。原工作区保留。
+业务仓 origin 已核验为 adgo07/GHGTOOL；分支 `codex/exb01-appendix-b-ingress` 以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，当前纳入最新 `origin/main@a51afbcf684e3845369977e42adc938866726d0b`。原工作区保留。
 locked central：ee5feb0cc34dbd99790500fadd0c4c932e202a20；已按锁读取Architecture V2.1、Numeric Contract v1、Numeric Profiles v1。保持Decimal正式链、声明Profile、原始数值入口证据、显示不反馈、历史Record不漂移和分层；无中央Contract修改/锁升级。项目/Record公共Contract仍DRAFT。当前ACTIVE UI指南只应用本页必要接线。详见docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
 
-已有Standard Issue001～008保持；无新标准原文解释或公式变化。表式映射不明确时定位问题，不猜测。
+已有 Standard Issue 001～008 保持；无新标准原文解释或公式变化。表式映射不明确时定位问题，不猜测。
+
+PR #38 的 GHG-UI-P3-AB 已合并，历史实现与测试证据见 `docs/ui/p3-ab/ACCEPTANCE.md`；原生人工验收仍 OPEN，AB 后 Phase 3 暂停，本任务不启动 P3-C/D/E/F。
 
 ## 已完成
 
@@ -22,6 +24,6 @@ locked central：ee5feb0cc34dbd99790500fadd0c4c932e202a20；已按锁读取Archi
 `python -m unittest discover -s tests -p test_exb01_template_acceptance.py -v`
 结果：2 tests，2 passed。独立QA首次有测试list/tuple断言差异，修正测试后通过；不隐藏失败历史。
 
-Astra 6/low原生保存尝试：2026-10-09 15:36:01北京时间，支持的computer-use工具初始化失败，返回trusted Node process exited unexpectedly; kernel reset, rerun your request。未启动/操作Excel/WPS，无保存产物，未改用户文件。不得将openpyxl或离屏测试描述为原生验证。
+Astra 6/low 原生 Excel/WPS 保存共三次尝试，最近一次为 2026-10-10 01:13:20～21（北京时间）；均因 trusted Node process exited unexpectedly 未能启动工具，未操作任何文件，无保存产物。不得将 openpyxl 或离屏测试描述为原生验证。
 
 Importer、UI闭环、R2删除与旧测试迁移正在实施。最终完整回归、Windows构建/发布审计、ZIP审计、最终head CI与最终独立专项验收尚未执行。完成后重写本报告为最终实际结果，不沿用PR37或旧head的通过证据。本包新PR不得自动合并。

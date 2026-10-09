@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from decimal import Decimal
 from enum import Enum
 
-from PySide6.QtCore import QUrl, Qt, Signal
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QTimer, QUrl, Qt, Signal
+from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -18,7 +18,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -30,9 +32,11 @@ from packages.core.models import ParameterType, ReviewStatus
 from packages.core.models import ValueType
 from packages.standards.carbon_material import ALGORITHM_VERSION, STANDARD_ID, steam_reference_table_rows
 from packages.standards.catalog import (
+    CatalogStandardType,
     CatalogStatus,
     ParameterFactorResult,
     ParameterViewMode,
+    StandardCatalogRecord,
     StandardDetail,
 )
 
@@ -119,7 +123,7 @@ def _enum_data(value: object, enum_type: type[Enum]) -> Enum | None:
 
 
 class StandardLibraryPage(BasePage):
-    """Searchable standard list with a safe, vertically readable detail view."""
+    """Searchable standard list and independent, read-only detail view."""
 
     accounting_requested = Signal(str)
 
@@ -131,24 +135,30 @@ class StandardLibraryPage(BasePage):
     ) -> None:
         super().__init__(AppRoute.STANDARDS, parent)
         self._service = service
-        self._navigate = navigate
         self.selected_standard_id: str | None = None
-        self._standards_by_id: dict[str, object] = {}
+        self._standards_by_id: dict[str, StandardCatalogRecord] = {}
+        self._saved_list_scroll: tuple[int | None, int, int] | None = None
         self._build_page()
         self._refresh()
 
     def _build_page(self) -> None:
         self.add_header("标准库", "查看 GB/T 32151 系列标准及核算要求")
 
-        filters, filters_layout = _card("搜索和筛选", self)
+        self.view_stack = QStackedWidget(self)
+        self.view_stack.setObjectName("standardViewStack")
+
+        self.list_view = QWidget(self.view_stack)
+        self.list_view.setObjectName("standardListView")
+        list_layout = QVBoxLayout(self.list_view)
+        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setSpacing(16)
+
+        filters, filters_layout = _card("搜索和筛选", self.list_view)
         search = QLineEdit(filters)
         search.setObjectName("standardSearch")
-        search.setPlaceholderText("按标准编号、名称、行业、企业类型或排放源搜索")
+        search.setPlaceholderText("按标准编号、名称或适用对象搜索")
         filters_layout.addWidget(search)
         self.search_input = search
-
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(12)
 
         self.status_filter = QComboBox(filters)
         self.status_filter.setObjectName("standardStatusFilter")
@@ -160,65 +170,66 @@ class StandardLibraryPage(BasePage):
             (CatalogStatus.UNKNOWN, "待核对"),
         ):
             self.status_filter.addItem(label, status)
-        filter_row.addWidget(self.status_filter)
+        filters_layout.addWidget(self.status_filter)
+        list_layout.addWidget(filters)
 
-        self.industry_filter = QComboBox(filters)
-        self.industry_filter.setObjectName("standardIndustryFilter")
-        for industry in self._service.industry_options():
-            self.industry_filter.addItem(industry, industry)
-        filter_row.addWidget(self.industry_filter)
-
-        self.year_filter = QComboBox(filters)
-        self.year_filter.setObjectName("standardYearFilter")
-        self.year_filter.addItem("全部年份", None)
-        for year in self._service.publication_years():
-            self.year_filter.addItem(str(year), year)
-        filter_row.addWidget(self.year_filter)
-        filter_row.addStretch(1)
-        filters_layout.addLayout(filter_row)
-        self.body_layout.addWidget(filters)
-
-        list_card, list_layout = _card("标准列表", self)
+        list_card, list_card_layout = _card("标准列表", self.list_view)
         self.result_summary = QLabel(list_card)
         self.result_summary.setObjectName("secondaryText")
-        list_layout.addWidget(self.result_summary)
+        list_card_layout.addWidget(self.result_summary)
         self.standard_table = QTableWidget(list_card)
         _configure_table(
             self.standard_table,
-            ("标准编号", "标准名称", "状态", "发布日期", "实施日期"),
+            ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"),
         )
+        self.standard_table.setAccessibleName("标准列表")
+        self.standard_table.setAccessibleDescription("选择标准编号或名称，再按 Enter 键打开标准详情。")
+        self.standard_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.standard_table.setMinimumHeight(250)
-        list_layout.addWidget(self.standard_table)
-        self.body_layout.addWidget(list_card)
+        list_card_layout.addWidget(self.standard_table)
+        list_layout.addWidget(list_card)
+        list_layout.addStretch(1)
+        self.view_stack.addWidget(self.list_view)
 
-        detail_card, detail_layout = _card("标准详情", self)
-        detail_layout.setContentsMargins(0, 0, 0, 0)
-        self.detail_host = QWidget(detail_card)
+        self.detail_host = QWidget(self.view_stack)
         self.detail_host.setObjectName("standardDetailHost")
         self.detail_layout = QVBoxLayout(self.detail_host)
-        self.detail_layout.setContentsMargins(20, 20, 20, 20)
+        self.detail_layout.setContentsMargins(0, 0, 0, 0)
         self.detail_layout.setSpacing(16)
-        detail_layout.addWidget(self.detail_host)
-        self.body_layout.addWidget(detail_card)
+        self.view_stack.addWidget(self.detail_host)
+        self.view_stack.setCurrentWidget(self.list_view)
+        self.body_layout.addWidget(self.view_stack)
         self.body_layout.addStretch(1)
 
         search.textChanged.connect(self._refresh)
         self.status_filter.currentIndexChanged.connect(self._refresh)
-        self.industry_filter.currentIndexChanged.connect(self._refresh)
-        self.year_filter.currentIndexChanged.connect(self._refresh)
-        self.standard_table.itemSelectionChanged.connect(self._show_selected_detail)
+        self.standard_table.cellClicked.connect(self._open_detail_from_cell)
+        self.standard_table.cellActivated.connect(self._open_detail_from_cell)
+
+    @staticmethod
+    def _software_support_label(standard: StandardCatalogRecord) -> str:
+        if (
+            standard.standard_id == "gbt_32151_34_2024"
+            and standard.calculation_status == "IMPLEMENTED"
+        ):
+            return "已实现核算（未正式支持）"
+        if (
+            standard.calculation_status == "COMMON_RULES_ONLY"
+            and standard.standard_type is CatalogStandardType.COMMON_RULES
+        ):
+            return "配套通则"
+        return "核算未开放"
 
     def _refresh(self) -> None:
         status = _enum_data(self.status_filter.currentData(), CatalogStatus)
-        industry = self.industry_filter.currentData()
-        year = self.year_filter.currentData()
         results = self._service.search_standards(
             self.search_input.text(),
             status=status if isinstance(status, CatalogStatus) else CatalogStatus.ALL,
-            industry=industry if isinstance(industry, str) else "全部",
-            publication_year=year if isinstance(year, int) else None,
         )
-        self._standards_by_id = {standard.standard_id: standard for standard, _, _ in results}
+        self._standards_by_id = {
+            standard.standard_id: standard for standard, _, _ in results
+        }
+        self.selected_standard_id = None
         self.standard_table.setRowCount(0)
         for row_number, (standard, visible_status, _) in enumerate(results):
             self.standard_table.insertRow(row_number)
@@ -226,88 +237,180 @@ class StandardLibraryPage(BasePage):
                 standard.standard_number,
                 standard.standard_name,
                 self._service.status_label(visible_status),
-                _date_text(standard.publication_date),
                 _date_text(standard.implementation_date),
+                self._software_support_label(standard),
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
-                if column == 0:
+                if column in (0, 1):
                     item.setData(Qt.ItemDataRole.UserRole, standard.standard_id)
+                    item.setData(
+                        Qt.ItemDataRole.AccessibleTextRole,
+                        f"{value}，按 Enter 键打开标准详情",
+                    )
+                    font = item.font()
+                    font.setUnderline(True)
+                    item.setFont(font)
+                    item.setForeground(QColor("#12618D"))
+                    item.setToolTip("打开标准详情")
                 self.standard_table.setItem(row_number, column, item)
         self.standard_table.resizeRowsToContents()
-        self.result_summary.setText(f"共 {len(results)} 项标准")
-        if results:
-            self.standard_table.selectRow(0)
-            self._show_selected_detail()
-        else:
-            self._clear_detail("没有找到匹配的标准。")
+        self.result_summary.setText(
+            f"共 {len(results)} 项标准" if results else "没有找到匹配的标准。"
+        )
+        self.standard_table.clearSelection()
 
-    def _show_selected_detail(self) -> None:
-        row = self.standard_table.currentRow()
-        if row < 0:
-            self._clear_detail("请选择一项标准查看详情。")
+    def _open_detail_from_cell(self, row: int, column: int) -> None:
+        if column not in (0, 1):
             return
-        item = self.standard_table.item(row, 0)
+        item = self.standard_table.item(row, column)
         standard_id = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
         if not isinstance(standard_id, str):
-            self._clear_detail("请选择一项标准查看详情。")
             return
         detail = self._service.get_standard_detail(standard_id)
         if detail is None:
-            self._clear_detail("该标准详情暂不可用。")
             return
         self.selected_standard_id = standard_id
+        self._saved_list_scroll = self._capture_list_scroll()
         self._render_detail(detail)
+        self.view_stack.setCurrentWidget(self.detail_host)
+        self._schedule_scroll_restore(main_value=0)
 
-    def _clear_detail(self, message: str) -> None:
-        self.selected_standard_id = None
-        _replace_layout_contents(self.detail_layout)
-        label = QLabel(message, self.detail_host)
-        label.setObjectName("emptyStateDescription")
-        label.setWordWrap(True)
-        self.detail_layout.addWidget(label)
-        self.detail_layout.addStretch(1)
+    def _main_scroll_area(self) -> QScrollArea | None:
+        return self.window().findChild(QScrollArea, "mainScrollArea")
+
+    def _capture_list_scroll(self) -> tuple[int | None, int, int]:
+        scroll_area = self._main_scroll_area()
+        main_value = (
+            scroll_area.verticalScrollBar().value()
+            if scroll_area is not None
+            else None
+        )
+        return (
+            main_value,
+            self.standard_table.verticalScrollBar().value(),
+            self.standard_table.horizontalScrollBar().value(),
+        )
+
+    def _schedule_scroll_restore(
+        self,
+        *,
+        main_value: int | None,
+        table_vertical_value: int | None = None,
+        table_horizontal_value: int | None = None,
+    ) -> None:
+        def restore() -> None:
+            scroll_area = self._main_scroll_area()
+            if scroll_area is not None and main_value is not None:
+                scroll_bar = scroll_area.verticalScrollBar()
+                scroll_bar.setValue(min(main_value, scroll_bar.maximum()))
+            if table_vertical_value is not None:
+                scroll_bar = self.standard_table.verticalScrollBar()
+                scroll_bar.setValue(min(table_vertical_value, scroll_bar.maximum()))
+            if table_horizontal_value is not None:
+                scroll_bar = self.standard_table.horizontalScrollBar()
+                scroll_bar.setValue(min(table_horizontal_value, scroll_bar.maximum()))
+
+        # Let the stacked view and its ancestors process LayoutRequest events first.
+        QTimer.singleShot(0, self, lambda: QTimer.singleShot(0, self, restore))
+
+    def _return_to_list(self) -> None:
+        self.view_stack.setCurrentWidget(self.list_view)
+        saved = self._saved_list_scroll
+        self._schedule_scroll_restore(
+            main_value=saved[0] if saved is not None else 0,
+            table_vertical_value=saved[1] if saved is not None else 0,
+            table_horizontal_value=saved[2] if saved is not None else 0,
+        )
+
+    def _add_basic_information(self, detail: StandardDetail) -> None:
+        standard = detail.standard
+        card, layout = _card("基本信息", self.detail_host)
+        rows = (
+            ("标准编号", standard.standard_number, "standardDetailNumber"),
+            ("标准名称", standard.standard_name, "standardDetailName"),
+            ("版本", standard.version, "standardDetailVersion"),
+            ("标准状态", self._service.status_label(detail.status), "standardDetailStatus"),
+            ("发布日期", _date_text(standard.publication_date), "standardPublicationDate"),
+            ("实施日期", _date_text(standard.implementation_date), "standardImplementationDate"),
+            ("废止日期", _date_text(standard.abolition_date), "standardAbolitionDate"),
+        )
+        for label_text, value_text, object_name in rows:
+            row = QWidget(card)
+            row_layout = QGridLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setHorizontalSpacing(20)
+            row_layout.setVerticalSpacing(8)
+            label = QLabel(label_text, row)
+            label.setObjectName("detailFieldLabel")
+            value = QLabel(value_text or "—", row)
+            value.setObjectName(object_name)
+            value.setWordWrap(True)
+            row_layout.addWidget(label, 0, 0)
+            row_layout.addWidget(value, 0, 1)
+            row_layout.setColumnStretch(1, 1)
+            layout.addWidget(row)
+        self.detail_layout.addWidget(card)
 
     def _render_detail(self, detail: StandardDetail) -> None:
         _replace_layout_contents(self.detail_layout)
         standard = detail.standard
-        header = QWidget(self.detail_host)
-        header_layout = QVBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(8)
-        number_label = QLabel(standard.standard_number, header)
-        number_label.setObjectName("standardDetailNumber")
-        header_layout.addWidget(number_label)
-        name_label = QLabel(standard.standard_name, header)
-        name_label.setObjectName("standardDetailName")
-        name_label.setWordWrap(True)
-        header_layout.addWidget(name_label)
-        status_label = QLabel(self._service.status_label(detail.status), header)
-        status_label.setObjectName("statusBadge")
-        status_label.setProperty("catalogStatus", detail.status.value)
-        header_layout.addWidget(status_label)
 
-        action_row = QHBoxLayout()
-        source_button = QPushButton("查看标准原文", header)
+        navigation_host = QWidget(self.detail_host)
+        navigation_host.setObjectName("standardDetailActions")
+        navigation_row = QHBoxLayout(navigation_host)
+        navigation_row.setContentsMargins(0, 0, 0, 0)
+        back_button = QPushButton("返回标准列表", navigation_host)
+        back_button.setObjectName("backToStandardListButton")
+        back_button.setMinimumHeight(36)
+        back_button.setStyleSheet(
+            "QPushButton#backToStandardListButton { border: 1px solid #C8D3DB; border-radius: 8px; padding: 7px 14px; background: #FFFFFF; color: #17445D; }"
+            "QPushButton#backToStandardListButton:hover { background: #F2F7FA; }"
+            "QPushButton#backToStandardListButton:focus { border: 2px solid #12618D; }"
+        )
+        back_button.clicked.connect(self._return_to_list)
+        navigation_row.addWidget(back_button)
+
+        source_button = QPushButton("查看标准原文", navigation_host)
         source_button.setObjectName("viewOfficialSourceButton")
         source_button.setProperty("officialSourceUrl", standard.official_source_url or "")
         source_button.setEnabled(bool(standard.official_source_url))
         if standard.official_source_url:
             source_button.clicked.connect(
-                lambda: QDesktopServices.openUrl(QUrl(standard.official_source_url))
+                lambda _checked=False, url=standard.official_source_url: QDesktopServices.openUrl(QUrl(url))
             )
         else:
-            source_button.setToolTip("尚未配置标准官方页面。")
-        action_row.addWidget(source_button)
+            source_button.setToolTip("当前目录未配置标准官方页面，暂不能打开原文。")
+        navigation_row.addWidget(source_button)
+        if not standard.official_source_url:
+            source_unavailable = QLabel(
+                "当前目录未配置标准官方页面，暂不能打开原文。",
+                navigation_host,
+            )
+            source_unavailable.setObjectName("officialSourceUnavailable")
+            source_unavailable.setWordWrap(True)
+            navigation_row.addWidget(source_unavailable, 1)
 
         can_start = (
             standard.standard_id == "gbt_32151_34_2024"
             and detail.status is CatalogStatus.CURRENT
         )
-        accounting_button = QPushButton(
-            "按此标准核算" if can_start else "核算模块待开发",
-            header,
-        )
+        if can_start:
+            accounting_label = "按此标准核算"
+            accounting_tooltip = ""
+        elif (
+            standard.calculation_status == "COMMON_RULES_ONLY"
+            and standard.standard_type is CatalogStandardType.COMMON_RULES
+        ):
+            accounting_label = "配套通则，不单独核算"
+            accounting_tooltip = "通则作为配套规则使用，不单独发起核算。"
+        elif standard.calculation_status == "IMPLEMENTED":
+            accounting_label = "当前状态下不可新建核算"
+            accounting_tooltip = "当前标准状态不满足新建核算条件。"
+        else:
+            accounting_label = "核算模块待开发"
+            accounting_tooltip = "当前版本尚未开放该标准的核算模块。"
+        accounting_button = QPushButton(accounting_label, navigation_host)
         accounting_button.setObjectName("startAccountingButton")
         accounting_button.setEnabled(can_start)
         accounting_button.setProperty("standardId", standard.standard_id)
@@ -316,58 +419,16 @@ class StandardLibraryPage(BasePage):
                 lambda: self.accounting_requested.emit(standard.standard_id)
             )
         else:
-            accounting_button.setToolTip("当前版本仅开放已实现的首个行业核算标准。")
-        action_row.addWidget(accounting_button)
-        action_row.addStretch(1)
-        header_layout.addLayout(action_row)
-        self.detail_layout.addWidget(header)
-
-        self.detail_layout.addWidget(
-            _detail_section(
-                "基本信息与官方来源",
-                self.detail_host,
-                (
-                    ("标准编号", standard.standard_number),
-                    ("标准名称", standard.standard_name),
-                    ("当前状态", self._service.status_label(detail.status)),
-                    ("发布日期", _date_text(standard.publication_date)),
-                    ("实施日期", _date_text(standard.implementation_date)),
-                    ("废止日期", _date_text(standard.abolition_date)),
-                    ("发布单位", standard.issuing_authority),
-                ),
-            )
-        )
-
-        verified_placeholder = "暂无已核对的结构化数据。"
-        relation_rows = [
-            (
-                "基础标准 / 通则",
-                (
-                    "\n".join(
-                        f"{item.standard_number} {item.standard_name}"
-                        for item in detail.base_standards
-                    )
-                    if detail.base_standards
-                    else verified_placeholder
-                ),
-            ),
-            (
-                "替代关系",
-                verified_placeholder,
-            ),
-            (
-                "规范性引用文件",
-                verified_placeholder,
-            ),
-        ]
-        self.detail_layout.addWidget(
-            _detail_section("标准关系", self.detail_host, relation_rows)
-        )
+            accounting_button.setToolTip(accounting_tooltip)
+        navigation_row.addWidget(accounting_button)
+        navigation_row.addStretch(1)
+        self.detail_layout.addWidget(navigation_host)
+        self._add_basic_information(detail)
 
         scope_text = (
             standard.notes
             if standard.notes.strip().startswith("适用于")
-            else "当前目录尚未录入可追溯的范围原文。"
+            else "当前目录尚未录入可核验的适用范围信息。"
         )
         self.detail_layout.addWidget(
             _text_section(
@@ -376,47 +437,14 @@ class StandardLibraryPage(BasePage):
                 scope_text,
             )
         )
-
-        self._add_parameter_section(detail)
+        self.detail_layout.addWidget(
+            _text_section(
+                "标准要求",
+                self.detail_host,
+                "当前目录尚未录入可核验的结构化标准要求。",
+            )
+        )
         self.detail_layout.addStretch(1)
-
-    def _add_parameter_section(self, detail: StandardDetail) -> None:
-        card, layout = _card("参数与因子", self.detail_host)
-        if not detail.parameters:
-            empty = QLabel("该标准当前没有已核对的参数引用。", card)
-            empty.setObjectName("emptyStateDescription")
-            empty.setWordWrap(True)
-            layout.addWidget(empty)
-        else:
-            source_by_id = {source.source_id: source for source in self._service.list_sources()}
-            factors_by_parameter: dict[str, list[object]] = {}
-            for factor in detail.factors:
-                factors_by_parameter.setdefault(factor.parameter_id, []).append(factor)
-            table = QTableWidget(card)
-            _configure_table(table, ("参数/因子", "类型", "数值", "单位", "来源", "依据"))
-            for parameter in detail.parameters:
-                factors = factors_by_parameter.get(parameter.parameter_id) or [None]
-                for factor in factors:
-                    row = table.rowCount()
-                    table.insertRow(row)
-                    source = source_by_id.get(factor.source_id if factor else parameter.source_id)
-                    values = (
-                        parameter.name,
-                        self._service.parameter_type_label(parameter.parameter_type),
-                        _decimal_text(factor.value if factor else None),
-                        factor.unit if factor else parameter.canonical_unit,
-                        source.document_no if source else "—",
-                        factor.source_location if factor else parameter.source_location,
-                    )
-                    for column, value in enumerate(values):
-                        table.setItem(row, column, QTableWidgetItem(value))
-            table.resizeRowsToContents()
-            layout.addWidget(table)
-        view_button = QPushButton("查看参数与因子库", card)
-        view_button.setObjectName("viewFactorsButton")
-        view_button.clicked.connect(lambda: self._navigate(AppRoute.FACTORS))
-        layout.addWidget(view_button)
-        self.detail_layout.addWidget(card)
 
 
 class ParameterFactorLibraryPage(BasePage):
