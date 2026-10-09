@@ -29,7 +29,7 @@ def carbon_accounting_view_model() -> ShellViewModel:
             NavigationItemViewModel(AppRoute.NEW_ACCOUNTING, "新建核算", "new"),
             NavigationItemViewModel(
                 AppRoute.EXCEL_IMPORT,
-                "Excel 导入预览",
+                "表格导入",
                 "excel",
             ),
             NavigationItemViewModel(AppRoute.RECORDS, "核算记录", "records"),
