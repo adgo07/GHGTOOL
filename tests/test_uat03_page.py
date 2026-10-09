@@ -493,6 +493,43 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         restored_controls = self.page._material_controls[str(self.page._process_rows["calcination"][0]["controls_key"])]
         self.assertEqual(restored_controls["evidence_reference"].text(), "旧工作区检测报告 2025-01")
 
+    def test_editing_migrated_output_factor_drops_legacy_measured_provenance(self) -> None:
+        legacy = self.page._output_electricity_rows[0]
+        legacy["id"].setText("old-output-line")
+        legacy["amount"].setText("2")
+        legacy["measured"].setText("0.6")
+        legacy["source"].setText("LAB-OUT-01")
+        self.page._migrate_legacy_energy_rows()
+        saved_state = self.page._capture_form_state()
+
+        # An untouched restored legacy measurement retains its original provenance.
+        self.page._restore_form_state(saved_state)
+        unchanged = self.page._exported_electricity()[0].factor
+        self.assertIs(unchanged.source_kind, ParameterSourceKind.MEASURED)
+        self.assertEqual(unchanged.source_id, "USER-EXPORTED-ELECTRICITY-SOURCE")
+        self.assertEqual(unchanged.source_version, "user-input")
+
+        # Switching away from the old measurement path and back makes the value a
+        # new V2 user entry, with no stale legacy source identity.
+        self.page._restore_form_state(saved_state)
+        row = next(item for item in self.page._energy_family_rows["electricity"] if item.kind.currentData() == "exported_electricity")
+        row.factor_mode.setCurrentIndex(row.factor_mode.findData("LIBRARY"))
+        row.factor_mode.setCurrentIndex(row.factor_mode.findData("MANUAL"))
+        changed_mode = self.page._exported_electricity()[0].factor
+        self.assertIs(changed_mode.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIsNone(changed_mode.source_id)
+        self.assertIsNone(changed_mode.source_version)
+
+        # Directly changing the value has the same effect even if the mode remains manual.
+        self.page._restore_form_state(saved_state)
+        row = next(item for item in self.page._energy_family_rows["electricity"] if item.kind.currentData() == "exported_electricity")
+        row.manual_factor.setText("0.7")
+        changed_value = self.page._exported_electricity()[0].factor
+        self.assertEqual(changed_value.value, Decimal("0.7"))
+        self.assertIs(changed_value.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIsNone(changed_value.source_id)
+        self.assertIsNone(changed_value.source_version)
+
     def test_legacy_v1_self_consumed_fossil_electricity_keeps_canonical_semantics(self) -> None:
         legacy = self.page._electricity_rows[0]
         legacy.amount.setText("15")

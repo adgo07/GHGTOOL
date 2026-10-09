@@ -1613,7 +1613,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 row.legacy_acquisition_mode = ElectricityAcquisitionMode(raw_acquisition) if raw_acquisition is not None else None
             except (TypeError, ValueError):
                 row.legacy_acquisition_mode = None
-            row.legacy_measured_factor = saved.get("legacy_measured_factor") is True
+            legacy_measured_factor = saved.get("legacy_measured_factor") is True
             for key, enum_type, attr_name in (
                 ("proof_type", ElectricityProofType, "legacy_proof_type"),
                 ("proof_status", ElectricityProofStatus, "legacy_proof_status"),
@@ -1664,6 +1664,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 pass
             row.measured_heat_factor.setText(str(saved.get("measured_heat_factor", "")))
             row.heat_source.setText(str(saved.get("heat_source", "")))
+            # Restore programmatic edits first, then reinstate the migration marker.
+            # User edits after restoration clear it through the connected signals.
+            row.legacy_measured_factor = legacy_measured_factor
             self._refresh_energy_factor_options(row)
             self._refresh_unified_energy_row(row)
         self._refresh_repeat_delete_controls()
@@ -2908,7 +2911,9 @@ class CarbonMaterialAccountingPage(BasePage):
         row.kind.currentIndexChanged.connect(self._refresh_source_cards)
         row.region.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_energy_factor_options(_row))
         row.attribute.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._clear_legacy_measured_factor_on_edit(_row))
         row.factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.manual_factor.textChanged.connect(lambda *_args, _row=row: self._clear_legacy_measured_factor_on_edit(_row))
         row.heat_kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.enthalpy_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.heat_factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
@@ -2988,6 +2993,10 @@ class CarbonMaterialAccountingPage(BasePage):
         selector.setEnabled(bool(options))
         del blocker
         self._refresh_unified_energy_row(row)
+
+    @staticmethod
+    def _clear_legacy_measured_factor_on_edit(row: _UnifiedEnergyRow) -> None:
+        row.legacy_measured_factor = False
 
     def _clear_legacy_energy_attribute(self, row: _UnifiedEnergyRow) -> None:
         if row.legacy_attribute is None:
