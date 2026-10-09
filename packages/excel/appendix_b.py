@@ -71,6 +71,16 @@ _PROCESS_META = {
     "B.4": (SOURCE_BAKING, BakingInput, "car-par-k2", "k2", 1),
     "B.5": (SOURCE_GRAPHITIZATION, GraphitizationInput, "car-par-k3", "k3", 2),
 }
+_APPENDIX_TABLE_WIDTHS = {
+    "B.2": 10,
+    "B.3": 5,
+    "B.4": 5,
+    "B.5": 5,
+    "B.6": 7,
+    "B.7": 7,
+    "B.8": 5,
+    "B.9": 7,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +119,45 @@ def _stable_id(prefix: str, *parts: object) -> str:
 
 def _has_value(cell) -> bool:
     return cell.value is not None and cell.value != ""
+
+
+def _is_appendix_footer_row(worksheet, row: int) -> bool:
+    """Recognize only marked footer rows whose merges span the whole table.
+
+    Activity labels are user-editable in several Appendix B tables. Prefix-only
+    checks can therefore mistake valid names such as "A Sample Batch" or a
+    fuel beginning with "使用提示" for a footer and silently discard activity.
+    The approved master marks footer rows with a full-width merge; preserve that
+    structure and require one of its known footnote/prompt markers as evidence.
+    """
+    value = worksheet[f"A{row}"].value
+    if not isinstance(value, str):
+        return False
+    table_width = _APPENDIX_TABLE_WIDTHS.get(worksheet.title)
+    if table_width is None:
+        return False
+
+    spans = sorted(
+        (area.min_col, area.max_col)
+        for area in worksheet.merged_cells.ranges
+        if area.min_row == row and area.max_row == row
+    )
+    covered_through = 0
+    for first, last in spans:
+        if first > covered_through + 1:
+            break
+        covered_through = max(covered_through, last)
+        if covered_through >= table_width:
+            break
+    if covered_through < table_width:
+        return False
+
+    text = value.strip()
+    if text.startswith(("使用提示：", "数据提示：", "备注：", "数据来源：")):
+        return True
+    if text == "排放量（tCO₂）" or text.startswith("排放量自动计算并只读"):
+        return True
+    return re.match(r"^[ab]\s{2,}(?:若|对于|填写|报告主体)", text) is not None
 
 
 def _factor_value(factor):
@@ -388,8 +437,7 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
         sheet = workbook["B.2"]
         stop = next(
-            (r for r in range(4, sheet.max_row + 1)
-             if isinstance(sheet[f"A{r}"].value, str) and sheet[f"A{r}"].value.strip().startswith("使用提示")),
+            (r for r in range(4, sheet.max_row + 1) if _is_appendix_footer_row(sheet, r)),
             sheet.max_row + 1,
         )
         for row in range(4, stop):
@@ -521,7 +569,7 @@ class AppendixBWorkbookImporter:
     def _parse_power(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id, enterprise_id):
         ws = workbook["B.8"]
         stop = next((r for r in range(3, ws.max_row + 1)
-                     if isinstance(ws[f"A{r}"].value, str) and ws[f"A{r}"].value.strip().startswith("注")), ws.max_row + 1)
+                     if _is_appendix_footer_row(ws, r)), ws.max_row + 1)
         for row in range(3, stop):
             if not any(_has_value(ws[f"{col}{row}"]) for col in "BCD"):
                 continue
@@ -666,7 +714,7 @@ class AppendixBWorkbookImporter:
     def _parse_heat(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id):
         ws = workbook["B.9"]
         stop = next((r for r in range(3, ws.max_row + 1)
-                     if isinstance(ws[f"A{r}"].value, str) and ws[f"A{r}"].value.strip().startswith("注")), ws.max_row + 1)
+                     if _is_appendix_footer_row(ws, r)), ws.max_row + 1)
         for row in range(3, stop):
             if _has_value(ws[f"F{row}"]):
                 reader.observe_unused(workbook, "B.9", f"F{row}", warnings, field_label="蒸汽焓值", reason="焓值为模板只读/自动路径；工作簿内容不作为正式焓值。")
@@ -743,8 +791,7 @@ class AppendixBWorkbookImporter:
             source_id, model_type, default_parameter_id, parameter_name, index = meta
             ws = workbook[sheet_name]
             stop = next((r for r in range(4, ws.max_row + 1)
-                         if isinstance(ws[f"A{r}"].value, str)
-                         and (ws[f"A{r}"].value.strip().startswith(("排放量", "备注", "数据来源：")))), ws.max_row + 1)
+                         if _is_appendix_footer_row(ws, r)), ws.max_row + 1)
             active_by_group = {}
             current_group = None
             group_positions = {}
@@ -904,8 +951,7 @@ class AppendixBWorkbookImporter:
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
         ws = workbook["B.7"]
         stop = next((row for row in range(3, ws.max_row + 1)
-                     if isinstance(ws[f"A{row}"].value, str)
-                     and ws[f"A{row}"].value.strip().lower().startswith("a ")), ws.max_row + 1)
+                     if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}
         for area in ws.merged_cells.ranges:
             if area.min_col in merge_rows and area.min_row >= 3 and area.max_row < stop:

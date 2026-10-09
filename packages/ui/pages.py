@@ -1598,9 +1598,11 @@ class ExcelImportPage(BasePage):
                 lines.append(f"  需要修正：{self._format_import_message(message)}")
             for message in unit.warnings:
                 lines.append(f"  提醒：{self._format_import_message(message)}")
-        if preview.warnings:
+        unit_warnings = tuple(message for unit in preview.units for message in unit.warnings)
+        workbook_warnings = tuple(message for message in preview.warnings if message not in unit_warnings)
+        if workbook_warnings:
             lines.append("\n工作簿提醒")
-            lines.extend(f"- {self._format_import_message(message)}" for message in preview.warnings)
+            lines.extend(f"- {self._format_import_message(message)}" for message in workbook_warnings)
         lines.append("\n预览本身不写入项目或正式记录；请使用上方按钮保存有效单元。")
         self.preview_text.setPlainText("\n".join(lines))
 

@@ -245,6 +245,36 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             expected,
         )
 
+    def test_fgd_custom_batch_name_does_not_collide_with_footnote_and_real_footer_stops(self) -> None:
+        path = self._workbook("fgd-a-prefix-batch.xlsx")
+        self._set_cells(path, {"B.7": {
+            "A3": "A Sample Batch", "B3": 2,
+            "D3": None, "E3": 0.440, "F3": None,
+            # This activity-looking row is below the approved merged footnote.
+            # The parser must stop at the real footer and ignore it.
+            "A7": "Ignored after footer", "B7": 99, "C7": "CaCO₃",
+            "D7": 100, "E7": 0.440, "F7": 100,
+        }})
+        unit = self.importer.import_preview(
+            path, context=self._context(fuel_path=FuelPath.VOLUME)
+        ).units[0]
+
+        self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
+        self.assertEqual(len(unit.input_value.fgd_units), 1)
+        self.assertEqual(unit.input_value.fgd_units[0].components[0].amount.value, Decimal("2"))
+        self.assertEqual(unit.source_breakdown[SOURCE_FGD], Decimal("0.79200"))
+
+    def test_fuel_name_starting_with_usage_prompt_is_not_a_footer(self) -> None:
+        path = self._custom_fuel("fuel-usage-prompt-prefix.xlsx")
+        self._set_cells(path, {"B.2": {"A4": "使用提示型煤"}})
+        unit = self.importer.import_preview(
+            path, context=self._context(fuel_path=FuelPath.MASS)
+        ).units[0]
+
+        self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
+        self.assertEqual(len(unit.input_value.fuel_inputs), 1)
+        self.assertEqual(unit.input_value.fuel_inputs[0].fuel_label, "使用提示型煤")
+
     def test_nonfossil_purchase_is_zero_and_export_row_uses_its_applicable_factor(self) -> None:
         path = self._workbook("nonfossil-power.xlsx")
         self._set_cells(path, {
