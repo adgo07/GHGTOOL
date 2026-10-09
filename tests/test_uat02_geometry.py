@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -53,10 +54,26 @@ class UAT02GeometryTests(unittest.TestCase):
         self.window.close()
         self.application.processEvents()
 
-    def _process_layout_events(self) -> None:
+    def _process_layout_events(self, *, timeout_ms: int = 100) -> None:
+        """Wait briefly for queued Qt layout requests, then keep exact geometry checks."""
         self.application.processEvents()
         QTest.qWait(5)
+        deadline = time.monotonic() + timeout_ms / 1000
+        stable_matches = 0
+        while stable_matches < 2 and time.monotonic() < deadline:
+            self.application.processEvents()
+            expected_height = max(
+                self.shell.main_scroll_area.viewport().height(),
+                self.shell.page_stack.sizeHint().height(),
+            )
+            if self.shell.scroll_host.height() == expected_height:
+                stable_matches += 1
+            else:
+                stable_matches = 0
+            if stable_matches < 2:
+                QTest.qWait(1)
         self.application.processEvents()
+        self._assert_scroll_geometry_matches_page()
 
     def _assert_scroll_geometry_matches_page(self) -> None:
         expected_height = max(
@@ -91,6 +108,7 @@ class UAT02GeometryTests(unittest.TestCase):
             previous_height = self.shell.scroll_host.height()
 
         self.page._fuel_rows[0].activity.setText("123.45")
+        self._process_layout_events()
         expanded_height = self.shell.scroll_host.height()
         expanded_scroll_range = scrollbar.maximum()
         self.page._remove_fuel_row(self.page._fuel_rows[10])
