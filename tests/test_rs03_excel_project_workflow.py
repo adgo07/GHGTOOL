@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import closing
 from dataclasses import replace
+from decimal import Decimal
 from io import BytesIO
 import hashlib
 import json
@@ -25,7 +26,7 @@ from packages.application import ProjectWorkspaceService
 from packages.application.carbon_accounting import CarbonAccountingUseCase
 from packages.application.canonical_input_codec import encode_canonical_input
 from packages.core.models import RecordStatus
-from packages.excel.r2 import create_template_bytes
+from packages.excel.templates import ExcelTemplateService
 from packages.persistence import (
     InMemoryRecordRepository,
     SQLiteProjectWorkspaceRepository,
@@ -67,7 +68,8 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         self.window.show()
         self.shell = self.window.centralWidget()
         self.page = self.shell.pages[AppRoute.EXCEL_IMPORT]
-        self.workbook_path = self._workbook_with_valid_and_invalid_units()
+        self._set_import_context()
+        self.workbook_path = self._appendix_b_workbook()
 
     def tearDown(self) -> None:
         self.window.close()
@@ -75,81 +77,58 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         self.app.processEvents()
         self.directory.cleanup()
 
-    def _workbook_with_valid_and_invalid_units(self) -> Path:
-        workbook = load_workbook(BytesIO(create_template_bytes()))
-        basic = workbook["基本信息"]
-        basic["B3"] = "RS03 项目工作流企业"
-        basic["B4"] = "年度"
-        basic["B5"] = "2025-01-01"
-        basic["B6"] = "2025-12-31"
-        basic["B7"] = "是"
-        basic["A13"], basic["B13"], basic["C13"] = "全厂", "全厂", "是"
-        basic["A14"], basic["B14"], basic["C14"] = "无效单元", "未知类型", "是"
+    def _set_import_context(self, *, enterprise_name: str = "RS03 项目工作流企业") -> None:
+        self.page.import_enterprise_name.setText(enterprise_name)
+        self.page.import_period_type.setCurrentIndex(self.page.import_period_type.findData("ANNUAL"))
+        self.page.import_period_start.setText("2025-01-01")
+        self.page.import_period_end.setText("2025-12-31")
+        self.page.import_boundary_confirmed.setChecked(True)
 
-        fuel = workbook["B.2 化石燃料"]
-        fuel["A6"], fuel["B6"], fuel["C6"], fuel["D6"] = "全厂", "天然气", "体积", 1.25
-        fuel["E6"], fuel["F6"] = "生产/能源台账", "工艺台账-A1"
-
+    def _appendix_b_workbook(self) -> Path:
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        fuel = workbook["B.2"]
+        fuel["A14"], fuel["B14"] = "天然气", 1.25
+        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
         destination = self.root / "导入源.xlsx"
         workbook.save(destination)
         workbook.close()
         return destination
 
-    def test_two_valid_units_keep_their_original_cell_lexicals_after_source_changes(self) -> None:
-        workbook = load_workbook(BytesIO(create_template_bytes()))
-        basic = workbook["基本信息"]
-        basic["B3"] = "RS03 双单元证据企业"
-        basic["B4"] = "年度"
-        basic["B5"] = "2025-01-01"
-        basic["B6"] = "2025-12-31"
-        basic["B7"] = "是"
-        basic["A13"], basic["B13"], basic["C13"] = "一号单元", "全厂", "是"
-        basic["A14"], basic["B14"], basic["C14"] = "二号单元", "工序", "是"
-        fuel = workbook["B.2 化石燃料"]
-        fuel["A6"], fuel["B6"], fuel["C6"], fuel["D6"] = "一号单元", "天然气", "体积", 1.25
-        fuel["E6"], fuel["F6"] = "生产/能源台账", "来源-A"
-        fuel["A7"], fuel["B7"], fuel["C7"], fuel["D7"] = "二号单元", "天然气", "体积", 2.75
-        fuel["E7"], fuel["F7"] = "生产/能源台账", "来源-B"
-        workbook.save(self.workbook_path)
-        workbook.close()
-
+    def test_single_unit_keeps_its_original_cell_lexical_after_source_changes(self) -> None:
         original_bytes = self.workbook_path.read_bytes()
-        original_digest = hashlib.sha256(original_bytes).hexdigest().upper()
+        original_digest = hashlib.sha256(original_bytes).hexdigest()
         self.page._preview_workbook(self.workbook_path)
         preview = self.page._last_preview
         self.assertEqual(preview.provenance.workbook_sha256, original_digest)
-        self.assertEqual(len(preview.units), 2)
-        self.assertTrue(all(unit.can_calculate for unit in preview.units))
+        self.assertEqual(len(preview.units), 1)
+        self.assertTrue(preview.units[0].can_calculate, preview.units[0].errors)
 
-        original_unit_ids = {unit.name: unit.unit_id for unit in preview.units}
-        original_input_values = {unit.name: unit.input_value for unit in preview.units}
+        imported_unit_id = preview.units[0].unit_id
+        imported_input = preview.units[0].input_value
+        self.assertEqual(imported_input.fuel_inputs[0].activity.value, Decimal("1.25"))
         changed = load_workbook(self.workbook_path)
-        changed["B.2 化石燃料"]["D6"] = 99
-        changed["B.2 化石燃料"]["D7"] = 88
+        changed["B.2"]["B14"] = 99
         changed.save(self.workbook_path)
         changed.close()
-        self.assertNotEqual(hashlib.sha256(self.workbook_path.read_bytes()).hexdigest().upper(), original_digest)
+        self.assertNotEqual(hashlib.sha256(self.workbook_path.read_bytes()).hexdigest(), original_digest)
         self.workbook_path.unlink()
 
-        self.page.project_name.setText("双单元导入证据")
+        self.page.project_name.setText("附录B导入证据")
         self.page.save_project_button.click()
         self.app.processEvents()
         saved = self.projects.list_all()[0]
-        self.assertEqual(len(saved.units), 2)
-        self.assertEqual({unit.name: unit.canonical_input for unit in saved.units}, original_input_values)
+        self.assertEqual(len(saved.units), 1)
+        unit = saved.units[0]
+        self.assertEqual(unit.canonical_input, imported_input)
         self.assertEqual(self.records.list_all(), ())
-
-        for unit in saved.units:
-            self.assertEqual(unit.ingress_provenance["workbook"]["sha256"], original_digest)
-            self.assertEqual(unit.ingress_provenance["accounting_unit"]["importer_unit_id"], original_unit_ids[unit.name])
-            entries = unit.ingress_provenance["numeric_cell_evidence"]
-            self.assertEqual(len(entries), 1)
-            entry = entries[0]
-            expected_cell, expected_lexical = ("D6", "1.25") if unit.name == "一号单元" else ("D7", "2.75")
-            self.assertEqual(entry["cell"], expected_cell)
-            self.assertEqual(entry["accounting_unit_id"], original_unit_ids[unit.name])
-            self.assertEqual(entry["raw_numeric_lexical"], expected_lexical)
-            self.assertEqual(entry["normalized_decimal_lexical"], expected_lexical)
+        provenance = unit.ingress_provenance
+        self.assertEqual(provenance["source"], "EXCEL_APPENDIX_B")
+        self.assertEqual(provenance["workbook"]["sha256"], original_digest)
+        self.assertEqual(provenance["accounting_unit"]["importer_unit_id"], imported_unit_id)
+        evidence = provenance["numeric_cell_evidence"]
+        activity = next(item for item in evidence if item["sheet"] == "B.2" and item["cell"] == "B14")
+        self.assertEqual(activity["raw_numeric_lexical"], "1.25")
+        self.assertEqual(activity["normalized_decimal_lexical"], "1.25")
 
     def _preview_and_save(self) -> tuple[str, object]:
         with patch("packages.ui.pages.QMessageBox.warning"):
@@ -158,7 +137,8 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         imported_input = self.page._last_preview.units[0].input_value
         self.imported_unit_id = self.page._last_preview.units[0].unit_id
         self.assertEqual(self.records.list_all(), ())
-        self.assertIn("无效，未保存", self.page.preview_text.toPlainText())
+        self.assertEqual(len(self.page._last_preview.units), 1)
+        self.assertTrue(self.page._last_preview.units[0].can_calculate)
 
         self.page.project_name.setText("RS03 有效核算单元项目")
         self.page.save_project_button.click()
@@ -187,14 +167,14 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
 
         provenance = unit.ingress_provenance
         self.assertIsNotNone(provenance)
-        self.assertEqual(provenance["source"], "EXCEL_R2")
+        self.assertEqual(provenance["source"], "EXCEL_APPENDIX_B")
         numeric = provenance["numeric_cell_evidence"]
-        activity_cell = next(item for item in numeric if item["sheet"] == "B.2 化石燃料" and item["cell"] == "D6")
+        activity_cell = next(item for item in numeric if item["sheet"] == "B.2" and item["cell"] == "B14")
         self.assertEqual(activity_cell["raw_numeric_lexical"], "1.25")
         self.assertEqual(activity_cell["normalized_decimal_lexical"], "1.25")
         encoded_provenance = json.dumps(provenance, ensure_ascii=False)
-        self.assertIn("工艺台账-A1", encoded_provenance)
-        self.assertIn("生产/能源台账", encoded_provenance)
+        self.assertIn("EXCEL_APPENDIX_B", encoded_provenance)
+        self.assertIn("template_id", encoded_provenance)
 
         self.workbook_path.unlink()
         restarted_projects = ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(self.projects_path))
@@ -245,7 +225,7 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         for record in records:
             raw = self.records.get_raw_input_snapshot(record.record_id)
             self.assertIn("ingress_provenance", raw)
-            self.assertEqual(raw["ingress_provenance"]["source"], "EXCEL_R2")
+            self.assertEqual(raw["ingress_provenance"]["source"], "EXCEL_APPENDIX_B")
             self.assertEqual(
                 raw["ingress_provenance"]["numeric_cell_evidence"][0]["raw_numeric_lexical"],
                 "1.25",
@@ -340,6 +320,30 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         self.assertEqual(self.page._workspace.project_id, project_id)
         self.assertIsNotNone(self.page._selected_unit().canonical_input)
         self.assertEqual(self.page._selected_unit().record_ids, ())
+
+    def test_failed_new_import_disables_the_previously_open_project_calculation(self) -> None:
+        project_id, _ = self._preview_and_save()
+        self.assertTrue(self.page.open_project(project_id))
+        self.assertTrue(self.page.calculate_button.isEnabled())
+        self.assertEqual(self.records.list_all(), ())
+
+        bad_path = self.root / "坏工作簿.xlsx"
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        workbook["B.2"]["B14"] = "=1+1"
+        workbook.save(bad_path)
+        workbook.close()
+        self.page._preview_workbook(bad_path)
+
+        self.assertIsNone(self.page._workspace)
+        self.assertIsNotNone(self.page._last_preview)
+        self.assertFalse(self.page._last_preview.units[0].can_calculate)
+        self.assertFalse(self.page.calculate_button.isEnabled())
+        self.assertFalse(self.page.save_project_button.isEnabled())
+        self.assertEqual(self.records.list_all(), ())
+        self.assertIsNotNone(self.projects.get(project_id))
+        self.assertTrue(self.page.open_project(project_id))
+        self.assertTrue(self.page.calculate_button.isEnabled())
+        self.assertEqual(self.records.list_all(), ())
 
     def test_formal_calculation_is_disabled_when_dependencies_are_missing(self) -> None:
         unconfigured = ExcelImportPage()

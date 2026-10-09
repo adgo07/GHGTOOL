@@ -6,16 +6,12 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from zipfile import ZIP_DEFLATED, ZipFile
-import xml.etree.ElementTree as ET
 
 from docx import Document
-from openpyxl import load_workbook
 
 from packages.application.reporting import build_saved_record_report
 from packages.application.carbon_accounting import CarbonAccountingUseCase
 from packages.application.reporting.model import build_report_model
-from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.core.models import (
     ActivityDataSource,
     AccountingInput,
@@ -29,11 +25,7 @@ from packages.core.models import (
     RecordStatus,
 )
 from packages.core.errors import IssueLevel, ValidationProblem
-from packages.excel.r2 import ExcelWorkbookImporter, WorkbookFatalError, INITIAL_ROWS, METADATA_SHEET, VISIBLE_SHEETS, create_template_bytes
 from packages.infrastructure.reporting import render_report_docx
-from packages.persistence.catalog_builder import build_catalog_database
-from packages.persistence.catalog_repository import SQLiteCatalogRepository
-from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.persistence.records_repository import SQLiteRecordRepository
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
@@ -110,25 +102,6 @@ def _record(
     )
 
 
-def _rewrite_numeric_lexeme(source: bytes, destination: Path, cell_reference: str, lexical_value: str) -> None:
-    namespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-    import io
-
-    output = BytesIO()
-    with ZipFile(BytesIO(source), "r") as original, ZipFile(output, "w", ZIP_DEFLATED) as rewritten:
-        for info in original.infolist():
-            data = original.read(info.filename)
-            if info.filename == "xl/worksheets/sheet3.xml":
-                root = ET.fromstring(data)
-                target = root.find(f".//{{{namespace}}}c[@r='{cell_reference}']/{{{namespace}}}v")
-                if target is None:
-                    raise AssertionError(f"test fixture did not contain serialized numeric {cell_reference}")
-                target.text = lexical_value
-                data = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-            rewritten.writestr(info, data)
-    destination.write_bytes(output.getvalue())
-
-
 def _material(line_id: str, role: MaterialRole, name: str, mass: str, fixed: str, volatile: str | None) -> MaterialInputLine:
     return MaterialInputLine(
         line_id, role, name, mass, fixed, MaterialDataSource.MEASURED,
@@ -137,26 +110,6 @@ def _material(line_id: str, role: MaterialRole, name: str, mass: str, fixed: str
 
 
 class RPT01ReportAndExcelTests(unittest.TestCase):
-    def test_r2_accepts_wps_saved_b4_sheet_alias_without_ambiguity(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            workbook_path = Path(directory) / "wps-saved.xlsx"
-            workbook_path.write_bytes(create_template_bytes())
-            workbook = load_workbook(workbook_path)
-            workbook["B.4 焙烧／炭化"].title = "B.4 焙烧_炭化"
-            workbook.save(workbook_path)
-            workbook.close()
-
-            preview = ExcelWorkbookImporter().import_preview(workbook_path)
-            self.assertEqual(preview.units, ())
-            self.assertEqual({warning.code for warning in preview.warnings}, {"EXCEL-UNIT-NONE"})
-
-            workbook = load_workbook(workbook_path)
-            workbook.create_sheet("B.4 焙烧／炭化")
-            workbook.save(workbook_path)
-            workbook.close()
-            with self.assertRaisesRegex(WorkbookFatalError, "重复的“B.4 焙烧／炭化”工作表"):
-                ExcelWorkbookImporter().import_preview(workbook_path)
-
     def test_word_report_uses_saved_snapshots_and_export_history_is_additive(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = SQLiteRecordRepository(Path(directory) / "records.sqlite")
@@ -368,119 +321,6 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
             self.assertTrue(any("年度报告资格" in item for item in report.notices))
             self.assertTrue(any("历史记录" in item for item in report.notices))
 
-    def test_r2_defaults_dynamic_material_rows_and_zero_use_shared_calculator(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            catalog_path = Path(directory) / "catalog.sqlite"
-            build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path)
-            resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
-            workbook_path = Path(directory) / "r2-dynamic.xlsx"
-            workbook_path.write_bytes(create_template_bytes())
-            workbook = load_workbook(workbook_path)
-            basic = workbook["基本信息"]
-            basic["B4"], basic["B5"], basic["B6"], basic["B7"] = "年度", "2025-01-01", "2025-12-31", "是"
-            basic["A13"], basic["B13"], basic["C13"] = "炭素单元", "全厂", "是"
-            fuel = workbook["B.2 化石燃料"]
-            row = 6 + INITIAL_ROWS + 7
-            for column, value in enumerate(("炭素单元", "天然气", "体积", 0), start=1):
-                fuel.cell(row, column, value)
-            materials = workbook["B.3 原料煅烧"]
-            material_values = (
-                ("炭素单元", "煅烧单元甲", "待煅烧原料", "原料甲", 100, 95, "实测值", 10, "化学计算"),
-                ("炭素单元", "煅烧单元甲", "待煅烧原料", "原料乙", 20, 80, "实测值", 5, "实测值"),
-                ("炭素单元", "煅烧单元甲", "煅后料", "煅后料", 90, 98, "实测值", 1, "实测值"),
-            )
-            for material_row, values in enumerate(material_values, start=6):
-                for column, value in enumerate(values, start=1):
-                    materials.cell(material_row, column, value)
-            workbook.save(workbook_path)
-            workbook.close()
-            preview = ExcelWorkbookImporter(resolver).import_preview(workbook_path)
-            self.assertEqual(len(preview.units), 1)
-            unit = preview.units[0]
-            self.assertTrue(unit.can_calculate, unit.errors)
-            self.assertEqual(len(unit.input_value.fuel_inputs), 1)
-            fuel_input = unit.input_value.fuel_inputs[0]
-            self.assertEqual(fuel_input.activity.value, 0)
-            self.assertIs(fuel_input.lower_heating_value.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
-            self.assertIs(fuel_input.carbon_content.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
-            self.assertIs(fuel_input.oxidation_rate.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
-            self.assertEqual(len(unit.input_value.calcinations), 1)
-            self.assertEqual(len(unit.input_value.calcinations[0].material_rows), 3)
-            self.assertTrue(any(item.sheet == "B.2 化石燃料" and item.cell == f"D{row}" and item.normalized_decimal == 0 for item in preview.numeric_evidence))
-            self.assertIsNone(unit.calculation.record)
-
-    def test_r2_rejects_formulas_text_numbers_and_overprecision(self) -> None:
-        variants = (
-            ("formula", "=1+1", "EXCEL-FORMULA-REJECTED"),
-            ("text-number", "1.25", "EXCEL-NUMBER-CELL-REQUIRED"),
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            for name, value, expected_code in variants:
-                workbook_path = Path(directory) / f"{name}.xlsx"
-                workbook_path.write_bytes(create_template_bytes())
-                workbook = load_workbook(workbook_path)
-                basic = workbook["基本信息"]
-                basic["B4"], basic["B5"], basic["B6"], basic["B7"] = "年度", "2025-01-01", "2025-12-31", "是"
-                basic["A13"], basic["B13"], basic["C13"] = "单元", "全厂", "是"
-                sheet = workbook["B.2 化石燃料"]
-                for column, cell_value in enumerate(("单元", "天然气", "体积", value), start=1):
-                    sheet.cell(6, column, cell_value)
-                workbook.save(workbook_path)
-                workbook.close()
-                unit = ExcelWorkbookImporter().import_preview(workbook_path).units[0]
-                self.assertIn(expected_code, {error.code for error in unit.errors})
-
-            workbook_path = Path(directory) / "overprecision.xlsx"
-            workbook_path.write_bytes(create_template_bytes())
-            workbook = load_workbook(workbook_path)
-            basic = workbook["基本信息"]
-            basic["B4"], basic["B5"], basic["B6"], basic["B7"] = "年度", "2025-01-01", "2025-12-31", "是"
-            basic["A13"], basic["B13"], basic["C13"] = "单元", "全厂", "是"
-            sheet = workbook["B.2 化石燃料"]
-            for column, cell_value in enumerate(("单元", "天然气", "体积", 1), start=1):
-                sheet.cell(6, column, cell_value)
-            workbook.save(workbook_path)
-            workbook.close()
-            source = workbook_path.read_bytes()
-            _rewrite_numeric_lexeme(source, workbook_path, "D6", "1234567890123456")
-            unit = ExcelWorkbookImporter().import_preview(workbook_path).units[0]
-            self.assertIn("EXCEL-NUMBER-SIGNIFICANT-DIGITS", {error.code for error in unit.errors})
-
-    def test_r2_template_and_per_unit_preview_do_not_create_records(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            workbook_path = Path(directory) / "r2.xlsx"
-            workbook_path.write_bytes(create_template_bytes())
-            workbook = load_workbook(workbook_path)
-            self.assertEqual(tuple(name for name in workbook.sheetnames if name != METADATA_SHEET), VISIBLE_SHEETS)
-            self.assertEqual(workbook[METADATA_SHEET].sheet_state, "hidden")
-
-            basic = workbook["基本信息"]
-            basic["B4"] = "年度"
-            basic["B5"] = "2025-01-01"
-            basic["B6"] = "2025-12-31"
-            basic["B7"] = "是"
-            basic["A13"] = "有效单元"
-            basic["B13"] = "全厂"
-            basic["C13"] = "是"
-            basic["A14"] = "有错单元"
-            basic["B14"] = "全厂"
-            basic["C14"] = "是"
-            fuel = workbook["B.2 化石燃料"]
-            fuel["A6"] = "有错单元"
-            fuel["B6"] = "煤"
-            fuel["C6"] = "质量"
-            fuel["D6"] = 1
-            workbook.save(workbook_path)
-            workbook.close()
-
-            preview = ExcelWorkbookImporter().import_preview(workbook_path)
-            self.assertEqual(len(preview.units), 2)
-            by_name = {unit.name: unit for unit in preview.units}
-            self.assertTrue(by_name["有效单元"].can_calculate)
-            self.assertEqual(by_name["有效单元"].result.total_amount, 0)
-            self.assertIsNone(by_name["有效单元"].calculation.record)
-            self.assertTrue(by_name["有错单元"].errors)
-            self.assertIsNone(by_name["有错单元"].result)
 
 
 if __name__ == "__main__":

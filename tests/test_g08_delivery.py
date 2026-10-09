@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import closing
 import os
 import json
+from hashlib import sha256
 import sqlite3
 import sys
 import tempfile
@@ -25,8 +26,12 @@ from packages.persistence import (
 )
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.ui.view_models import AppRoute
-from scripts.build_standalone import _remove_unpacked_docx_template, _write_manifest
-from scripts.inspect_release import inspect_release
+from scripts.build_standalone import (
+    _remove_unpacked_docx_template,
+    _validate_approved_template_inputs,
+    _write_manifest,
+)
+from scripts.inspect_release import APPROVED_TEMPLATE_PATH, APPROVED_TEMPLATE_SHA256, inspect_release
 from scripts.verify_release_archive import verify_release_archive
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +145,73 @@ class G08DeliveryTests(unittest.TestCase):
             self.assertTrue(any("user-report.docx" in issue for issue in forbidden_documents))
             self.assertFalse(any("docx/templates/default.docx" in issue for issue in forbidden_documents))
 
+    def test_build_accepts_only_the_exact_approved_template_resource(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            template = source / "resources" / APPROVED_TEMPLATE_PATH.relative_to("resources")
+            template.parent.mkdir(parents=True)
+            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            _validate_approved_template_inputs(source)
+            self.assertEqual(
+                sha256(template.read_bytes()).hexdigest(),
+                APPROVED_TEMPLATE_SHA256,
+            )
+            (template.parent / "user-template.xlsx").write_bytes(b"user content")
+            with self.assertRaisesRegex(RuntimeError, "only the approved template"):
+                _validate_approved_template_inputs(source)
+            (template.parent / "user-template.xlsx").unlink()
+            (template.parent / "user-template.xlsm").write_bytes(b"user macro workbook")
+            with self.assertRaisesRegex(RuntimeError, "only the approved template"):
+                _validate_approved_template_inputs(source)
+            (template.parent / "user-template.xlsm").unlink()
+            template.write_bytes(b"tampered approved template")
+            with self.assertRaisesRegex(RuntimeError, "unexpected hash"):
+                _validate_approved_template_inputs(source)
+
+    def test_office_documents_and_unapproved_resources_are_not_packaged(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            template = source / APPROVED_TEMPLATE_PATH
+            template.parent.mkdir(parents=True)
+            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            for filename in ("user.docm", "user.odt", "user.ods", "user.bin"):
+                with self.subTest(filename=filename):
+                    unexpected = source / "resources" / filename
+                    unexpected.write_bytes(b"user data")
+                    with self.assertRaises(RuntimeError):
+                        _validate_approved_template_inputs(source)
+                    self.assertIn(f"unexpected resource file: resources/{filename}", inspect_release(source))
+                    unexpected.unlink()
+
+    def test_release_audit_rejects_template_hash_and_path_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory)
+            (artifact / "QingzhouCarbonAccounting.exe").write_bytes(b"standalone-stub")
+            build_catalog_database(DEFAULT_SOURCE_PATH, artifact / "databases" / "catalog.sqlite")
+            template = artifact / APPROVED_TEMPLATE_PATH
+            template.parent.mkdir(parents=True)
+            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            template.write_bytes(b"tampered approved template")
+            issues = inspect_release(artifact)
+            self.assertIn(
+                f"approved Excel template hash mismatch: {APPROVED_TEMPLATE_PATH.as_posix()}",
+                issues,
+            )
+            unexpected = artifact / "resources" / "user-template.xlsx"
+            unexpected.write_bytes(b"user workbook")
+            issues = inspect_release(artifact)
+            self.assertIn(
+                "unexpected Excel workbook file: resources/user-template.xlsx",
+                issues,
+            )
+            macro_workbook = artifact / "resources" / "user-template.xlsm"
+            macro_workbook.write_bytes(b"user macro workbook")
+            issues = inspect_release(artifact)
+            self.assertIn(
+                "unexpected Excel workbook file: resources/user-template.xlsm",
+                issues,
+            )
+
     def test_uploaded_archive_preserves_manifest_file_set(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory)
@@ -150,6 +222,9 @@ class G08DeliveryTests(unittest.TestCase):
             (artifact / "migrations" / ".gitkeep").write_text("", encoding="utf-8")
             (artifact / "resources" / "icons").mkdir(parents=True)
             (artifact / "resources" / "icons" / ".gitkeep").write_text("", encoding="utf-8")
+            approved_template = artifact / APPROVED_TEMPLATE_PATH
+            approved_template.parent.mkdir(parents=True, exist_ok=True)
+            approved_template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
             templates = artifact / "docx" / "templates"
             templates.mkdir(parents=True)
             (templates / "default.docx").write_bytes(b"runtime-template")
@@ -172,6 +247,12 @@ class G08DeliveryTests(unittest.TestCase):
             manifest_paths = {entry["path"] for entry in manifest["files"]}
             self.assertNotIn("migrations/.gitkeep", manifest_paths)
             self.assertNotIn("resources/icons/.gitkeep", manifest_paths)
+            self.assertIn(APPROVED_TEMPLATE_PATH.as_posix(), manifest_paths)
+            template_entry = next(
+                entry for entry in manifest["files"]
+                if entry["path"] == APPROVED_TEMPLATE_PATH.as_posix()
+            )
+            self.assertEqual(template_entry["sha256"], APPROVED_TEMPLATE_SHA256)
             self.assertEqual(manifest["source_commit"], "checkout-sha")
             self.assertEqual(manifest["pr_head_sha"], "pr-head-sha")
             self.assertEqual(manifest["tested_merge_sha"], "tested-merge-sha")

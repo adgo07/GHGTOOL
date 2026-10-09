@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from types import SimpleNamespace
 import unittest
 from pathlib import Path
 
@@ -9,6 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QLineEdit,
     QLabel,
@@ -22,6 +24,8 @@ from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
 import packages.ui.shell as shell_module
 from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
 from packages.ui.shell import AppShell
+from packages.core.models import PeriodType
+from packages.standards.carbon_material import FuelPath
 from packages.ui.view_models import AppRoute
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 
@@ -132,18 +136,68 @@ class G03ShellTest(unittest.TestCase):
         home.findChild(QPushButton, "reservedButton").click()
         self.assertEqual(shell.current_route, AppRoute.EXCEL_IMPORT)
 
-    def test_excel_r2_page_exposes_template_preview_and_explicit_workflow_controls(self) -> None:
+    def test_excel_appendix_b_page_exposes_required_context_and_explicit_workflow_controls(self) -> None:
         shell = self.shell
         shell.navigate(AppRoute.EXCEL_IMPORT)
         page = shell.pages[AppRoute.EXCEL_IMPORT]
         self.assertIn("模板与预览", page.findChild(QLabel, "cardTitle").text())
         self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
+        self.assertIn("附录 B", page.findChild(QPushButton, "templateButton").text())
+        self.assertNotIn("R2", page.findChild(QPushButton, "templateButton").text())
         self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
         self.assertTrue(page.findChild(QTextEdit, "excelImportPreview").isReadOnly())
+        self.assertIsNotNone(page.findChild(QComboBox, "importPeriodType"))
+        self.assertIsNotNone(page.findChild(QLineEdit, "importPeriodStart"))
+        self.assertIsNotNone(page.findChild(QLineEdit, "importPeriodEnd"))
+        self.assertIsNotNone(page.findChild(QComboBox, "importRegion"))
+        self.assertFalse(page.findChild(QCheckBox, "importBoundaryConfirmed").isChecked())
         self.assertIsNotNone(page.findChild(QPushButton, "saveExcelProjectButton"))
         self.assertIsNotNone(page.findChild(QPushButton, "formalCalculateButton"))
         self.assertIsNotNone(page.findChild(QPushButton, "openUnitRecordButton"))
         self.assertIsNone(page.findChild(QPushButton, "importButton"))
+
+    def test_import_context_is_explicit_and_context_edits_invalidate_old_preview(self) -> None:
+        self.shell.navigate(AppRoute.EXCEL_IMPORT)
+        page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+        self.assertIsNone(page.import_period_type.currentData())
+        self.assertEqual(page.import_period_start.text(), "")
+        self.assertEqual(page.import_period_end.text(), "")
+        self.assertFalse(page.import_boundary_confirmed.isChecked())
+
+        page.import_period_type.setCurrentIndex(page.import_period_type.findData(PeriodType.ANNUAL))
+        page.import_period_start.setText("2025-01-01")
+        page.import_period_end.setText("2025-12-31")
+        page.import_boundary_confirmed.setChecked(True)
+        page._last_preview = object()
+        page._preview_context_key = page._import_context_key()
+        self.assertIsNotNone(page._preview_context_key)
+
+        page.import_region.setCurrentIndex(0)
+        page.import_boundary_confirmed.setChecked(False)
+        self.assertIsNone(page._last_preview)
+        self.assertIsNone(page._preview_context_key)
+        self.assertIn("重新预览", page.preview_text.toPlainText())
+
+    def test_ambiguous_fuel_path_has_no_default_and_requires_a_user_choice(self) -> None:
+        self.shell.navigate(AppRoute.EXCEL_IMPORT)
+        page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+        error = SimpleNamespace(
+            code="EXB01_FUEL_PATH_REQUIRED",
+            location="B.2!B4",
+            field_label="燃料“其他能源品种”的消耗量单位",
+        )
+        page._show_fuel_path_choices(
+            SimpleNamespace(units=(SimpleNamespace(errors=(error,)),))
+        )
+
+        selector = page.fuel_override_panel.findChild(QComboBox, "fuelPathOverride_B_2_B4")
+        self.assertIsNotNone(selector)
+        self.assertIsNone(selector.currentData())
+        retry = page.fuel_override_panel.findChild(QPushButton, "retryFuelPathPreviewButton")
+        self.assertFalse(retry.isEnabled())
+        selector.setCurrentIndex(selector.findData(FuelPath.MASS))
+        self.assertIs(page._fuel_path_from_widget(selector.currentData()), FuelPath.MASS)
+        self.assertTrue(retry.isEnabled())
 
     def test_logo_and_main_content_resize_rules(self) -> None:
         shell = self.shell

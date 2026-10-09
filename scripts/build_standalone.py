@@ -20,7 +20,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from packages.persistence import build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from scripts.inspect_release import inspect_release
+from scripts.inspect_release import (
+    ALLOWED_RESOURCE_FILES,
+    APPROVED_TEMPLATE_PATH,
+    APPROVED_TEMPLATE_SHA256,
+    EXCEL_SUFFIXES,
+    inspect_release,
+)
 from scripts.verify_release_archive import verify_release_archive
 
 
@@ -147,11 +153,38 @@ def _remove_unpacked_docx_template(artifact: Path) -> None:
             shutil.rmtree(candidate_resolved)
 
 
+def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> None:
+    resource_root = project_root / "resources"
+    expected = resource_root / APPROVED_TEMPLATE_PATH.relative_to("resources")
+    workbook_files = tuple(
+        sorted(
+            path.relative_to(resource_root).as_posix()
+            for path in resource_root.rglob("*")
+            if path.is_file() and path.suffix.lower() in EXCEL_SUFFIXES
+        )
+    )
+    expected_relative = APPROVED_TEMPLATE_PATH.relative_to("resources").as_posix()
+    if workbook_files != (expected_relative,):
+        raise RuntimeError(
+            "Excel build inputs must contain only the approved template at "
+            f"{expected_relative}; found {workbook_files!r}"
+        )
+    for path in resource_root.rglob("*"):
+        if not path.is_file() or "__pycache__" in path.parts or path.name in {"__init__.py", ".gitkeep"}:
+            continue
+        relative = path.relative_to(project_root).as_posix()
+        if relative not in ALLOWED_RESOURCE_FILES or path.is_symlink():
+            raise RuntimeError(f"unapproved build resource: {relative}")
+    if expected.is_symlink() or _sha256(expected) != APPROVED_TEMPLATE_SHA256:
+        raise RuntimeError(f"approved Excel template is missing or has an unexpected hash: {expected}")
+
+
 def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -> Path:
     """Build and audit an onedir Windows artifact."""
 
     if os.name != "nt":
         raise RuntimeError("G08 standalone build must run on Windows")
+    _validate_approved_template_inputs()
     output_directory = Path(output_root)
     artifact = output_directory / APP_NAME
     if artifact.exists():
@@ -190,14 +223,16 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             str(temp_root / "pyinstaller-spec"),
             "--paths",
             str(PROJECT_ROOT),
-            "--add-data",
-            f"{PROJECT_ROOT / 'resources'}{os.pathsep}resources",
+            *(argument for relative in sorted(ALLOWED_RESOURCE_FILES)
+              for argument in ("--add-data", f"{PROJECT_ROOT / relative}{os.pathsep}{Path(relative).parent}")),
             "--add-data",
             f"{PROJECT_ROOT / 'migrations'}{os.pathsep}migrations",
             "--add-data",
             f"{catalog_path}{os.pathsep}databases",
             "--hidden-import",
             "PySide6.QtSvg",
+            "--hidden-import",
+            "resources",
             str(ENTRY_POINT),
         ]
         subprocess.run(pyinstaller_args, cwd=PROJECT_ROOT, check=True)

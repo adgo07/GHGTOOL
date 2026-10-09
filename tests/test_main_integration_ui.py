@@ -1,4 +1,4 @@
-"""Integration checks for the real GUI ingress, SQLite records and R2 preview."""
+"""Integration checks for the real GUI ingress, SQLite records and Appendix B preview."""
 
 from __future__ import annotations
 
@@ -24,9 +24,10 @@ from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application.carbon_accounting import CarbonAccountingUseCase, RecordRepositoryConfigurationError
 from packages.application.reporting import build_saved_record_report
-from packages.application.carbon_accounting import create_g06_parameter_resolver
-from packages.excel.r2 import ExcelWorkbookImporter, create_template_bytes
-from packages.persistence import SQLiteCatalogRepository, SQLiteRecordRepository, build_catalog_database
+from packages.core.models import AccountingPeriod, PeriodType
+from packages.excel.appendix_b import AppendixBImportContext, AppendixBWorkbookImporter
+from packages.excel.templates import ExcelTemplateService
+from packages.persistence import SQLiteRecordRepository, build_catalog_database
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, FuelType
@@ -102,14 +103,18 @@ class MainIntegrationUiTests(unittest.TestCase):
         derived.deleteLater()
         self.app.processEvents()
 
+    def _set_import_context(self, page) -> None:
+        page.import_enterprise_name.setText("集成验收企业")
+        page.import_period_type.setCurrentIndex(page.import_period_type.findData("ANNUAL"))
+        page.import_period_start.setText("2025-01-01")
+        page.import_period_end.setText("2025-12-31")
+        page.import_boundary_confirmed.setChecked(True)
+
     def _workbook(self) -> Path:
-        workbook = load_workbook(BytesIO(create_template_bytes()))
-        basic = workbook["基本信息"]
-        basic["B3"] = "集成验收企业"
-        basic["B4"], basic["B5"], basic["B6"], basic["B7"] = "年度", "2025-01-01", "2025-12-31", "是"
-        basic["A13"], basic["B13"], basic["C13"] = "全厂", "全厂", "是"
-        fuel = workbook["B.2 化石燃料"]
-        fuel["A6"], fuel["B6"], fuel["C6"], fuel["D6"] = "全厂", "天然气", "体积", 1.25
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        fuel = workbook["B.2"]
+        fuel["A14"], fuel["B14"] = "天然气", 1.25
+        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
         destination = self.root / "输入.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -119,9 +124,18 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.page.quick_calculate_button.click()
         self.app.processEvents()
         record = self.repository.list_all()[0]
-        preview = ExcelWorkbookImporter(
-            create_g06_parameter_resolver(SQLiteCatalogRepository(self.catalog)),
-        ).import_preview(self._workbook())
+        excel_page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+        preview = AppendixBWorkbookImporter(
+            preview_use_case=excel_page.preview_use_case,
+            catalog_service=excel_page.catalog_service,
+        ).import_preview(
+            self._workbook(),
+            context=AppendixBImportContext(
+                period=AccountingPeriod(PeriodType.ANNUAL, date(2025, 1, 1), date(2025, 12, 31)),
+                enterprise_name="集成验收企业",
+                boundary_confirmed=True,
+            ),
+        )
         unit = preview.units[0]
         self.assertTrue(unit.can_calculate, unit.errors)
         self.assertEqual(record.calculation_result.total_amount, unit.result.total_amount)
@@ -132,6 +146,7 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.assertIsNone(unit.calculation.record)
         self.assertEqual(len(self.repository.list_all()), 1)
         excel_page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+        self._set_import_context(excel_page)
         with patch("packages.ui.pages.QFileDialog.getOpenFileName", return_value=(str(self._workbook()), "")):
             excel_page.selectFileButton.click()
         text = excel_page.preview_text.toPlainText()

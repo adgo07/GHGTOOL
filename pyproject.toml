@@ -26,5 +26,10 @@ where = ["."]
 include = ["apps*", "packages*", "resources*"]
 
 [tool.setuptools.package-data]
-resources = ["branding/*.png", "icons/*"]
+resources = [
+    "branding/qingzhou_logo.png",
+    "icons/factors.svg", "icons/excel.svg", "icons/home.svg", "icons/records.svg",
+    "icons/new.svg", "icons/settings.svg", "icons/standards.svg",
+    "excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx",
+]
 

@@ -16,11 +16,13 @@ from uuid import uuid4
 
 from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
+    QVBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -41,7 +43,7 @@ from packages.application.project_workspaces import (
     ProjectWorkspace,
     ProjectWorkspaceService,
 )
-from packages.core.models import AccountingRecord, RecordStatus
+from packages.core.models import AccountingPeriod, AccountingRecord, PeriodType, RecordStatus
 from packages.core.repositories import RecordRepository
 from packages.application.carbon_accounting import (
     CarbonAccountingPreviewUseCase,
@@ -50,7 +52,7 @@ from packages.application.carbon_accounting import (
     create_g06_parameter_resolver,
     resolve_formal_record_repository,
 )
-from packages.standards.carbon_material import CarbonMaterialCalculator, STANDARD_ID, STANDARD_VERSION
+from packages.standards.carbon_material import CarbonMaterialCalculator, FuelPath, STANDARD_ID, STANDARD_VERSION
 from .report_export import export_saved_record_report, report_supplementary_dialog
 from .record_experience import (
     SnapshotState,
@@ -814,7 +816,7 @@ class RecordLibraryPage(BasePage):
         )
 
 class ExcelImportPage(BasePage):
-    """R2 import, saved canonical projects, explicit formal calculation and record access."""
+    """Appendix B import, saved canonical projects, formal calculation and record access."""
 
     record_created = Signal(str)
     record_requested = Signal(str)
@@ -836,6 +838,9 @@ class ExcelImportPage(BasePage):
         self._last_workbook_path: Path | None = None
         self._workspace: ProjectWorkspace | None = None
         self._selected_unit_id: str | None = None
+        self._fuel_path_overrides: dict[str, FuelPath] = {}
+        self._fuel_override_combos: dict[str, QComboBox] = {}
+        self._preview_context_key: tuple[object, ...] | None = None
 
         if calculation_use_case is not None:
             self.preview_use_case = CarbonAccountingPreviewUseCase(calculation_use_case.calculator)
@@ -858,12 +863,12 @@ class ExcelImportPage(BasePage):
 
         self.add_header(
             "Excel 导入与核算",
-            "选择 R2 工作簿后先预览，再将有效核算单元保存为项目；正式核算由你明确启动，每次成功都会新增一条记录。",
+            "填写核算期间并确认边界后，选择附录 B 工作簿预览；预览不写入项目或正式记录。保存项目后可明确启动正式核算。",
         )
 
         import_card, import_layout = _card("模板与预览", self)
         import_row = QHBoxLayout()
-        self.templateButton = QPushButton("下载 R2 模板", import_card)
+        self.templateButton = QPushButton("下载附录 B 模板", import_card)
         self.templateButton.setObjectName("templateButton")
         self.templateButton.clicked.connect(self._download_template)
         import_row.addWidget(self.templateButton)
@@ -873,6 +878,64 @@ class ExcelImportPage(BasePage):
         import_row.addWidget(self.selectFileButton)
         import_row.addStretch(1)
         import_layout.addLayout(import_row)
+
+        import_layout.addWidget(QLabel("以下信息用于新工作簿导入；已保存项目使用项目中的核算信息。", import_card))
+        context_row = QHBoxLayout()
+        context_row.addWidget(QLabel("企业名称（可选）", import_card))
+        self.import_enterprise_name = QLineEdit(import_card)
+        self.import_enterprise_name.setObjectName("importEnterpriseName")
+        self.import_enterprise_name.setPlaceholderText("可留空")
+        context_row.addWidget(self.import_enterprise_name, 2)
+        context_row.addWidget(QLabel("期间类型", import_card))
+        self.import_period_type = QComboBox(import_card)
+        self.import_period_type.setObjectName("importPeriodType")
+        self.import_period_type.addItem("请选择", None)
+        self.import_period_type.addItem("年度", PeriodType.ANNUAL.value)
+        self.import_period_type.addItem("月度", PeriodType.MONTHLY.value)
+        self.import_period_type.addItem("自定义期间", PeriodType.CUSTOM.value)
+        context_row.addWidget(self.import_period_type)
+        context_row.addWidget(QLabel("开始日期", import_card))
+        self.import_period_start = QLineEdit(import_card)
+        self.import_period_start.setObjectName("importPeriodStart")
+        self.import_period_start.setPlaceholderText("YYYY-MM-DD")
+        self.import_period_start.setMaximumWidth(120)
+        context_row.addWidget(self.import_period_start)
+        context_row.addWidget(QLabel("结束日期", import_card))
+        self.import_period_end = QLineEdit(import_card)
+        self.import_period_end.setObjectName("importPeriodEnd")
+        self.import_period_end.setPlaceholderText("YYYY-MM-DD")
+        self.import_period_end.setMaximumWidth(120)
+        context_row.addWidget(self.import_period_end)
+        import_layout.addLayout(context_row)
+
+        context_row_two = QHBoxLayout()
+        context_row_two.addWidget(QLabel("电力地区", import_card))
+        self.import_region = QComboBox(import_card)
+        self.import_region.setObjectName("importRegion")
+        self.import_region.addItem("全国（使用全国路径）", None)
+        context_row_two.addWidget(self.import_region)
+        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", import_card)
+        self.import_boundary_confirmed.setObjectName("importBoundaryConfirmed")
+        context_row_two.addWidget(self.import_boundary_confirmed)
+        context_row_two.addStretch(1)
+        import_layout.addLayout(context_row_two)
+
+        self.fuel_override_panel = QFrame(import_card)
+        self.fuel_override_panel.setObjectName("fuelPathOverridePanel")
+        self.fuel_override_layout = QVBoxLayout(self.fuel_override_panel)
+        self.fuel_override_layout.setContentsMargins(0, 0, 0, 0)
+        self.fuel_override_panel.hide()
+        import_layout.addWidget(self.fuel_override_panel)
+
+        self.import_period_type.currentIndexChanged.connect(self._refresh_import_regions)
+        self.import_period_type.currentIndexChanged.connect(self._import_context_changed)
+        self.import_period_start.editingFinished.connect(self._refresh_import_regions)
+        self.import_period_end.editingFinished.connect(self._refresh_import_regions)
+        self.import_period_start.textChanged.connect(self._import_context_changed)
+        self.import_period_end.textChanged.connect(self._import_context_changed)
+        self.import_enterprise_name.textChanged.connect(self._import_context_changed)
+        self.import_region.currentIndexChanged.connect(self._import_context_changed)
+        self.import_boundary_confirmed.stateChanged.connect(self._import_context_changed)
 
         self.preview_text = QTextEdit(import_card)
         self.preview_text.setObjectName("excelImportPreview")
@@ -945,38 +1008,253 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("暂无已保存的 Excel 项目；保存项目后可在此处重新打开。")
 
     def _download_template(self) -> None:
-        from packages.excel.r2 import write_template
+        from packages.excel.templates import ExcelTemplateService
 
-        target, _ = QFileDialog.getSaveFileName(self, "保存 Excel R2 模板", "GB_T_32151_34_2024_R2.xlsx", "Excel 工作簿 (*.xlsx)")
+        service = ExcelTemplateService.default()
+        template = service.get(STANDARD_ID)
+        target, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存 GB/T 32151.34—2024 附录 B 模板",
+            "GB_T_32151_34_2024_Appendix_B.xlsx",
+            "Excel 工作簿 (*.xlsx)",
+        )
         if not target:
             return
         path = Path(target)
         if path.suffix.lower() != ".xlsx":
             path = path.with_suffix(".xlsx")
         try:
-            write_template(path)
+            service.copy_to(path, standard_id=STANDARD_ID)
         except Exception:
-            _LOGGER.exception("Unable to write Excel R2 template to %s", path)
+            _LOGGER.exception("Unable to copy approved Appendix B template to %s", path)
             QMessageBox.critical(
                 self,
                 "模板未保存",
-                f"无法保存 Excel R2 模板。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
+                f"无法保存附录 B 模板。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
             )
             return
-        QMessageBox.information(self, "模板已保存", f"Excel R2 模板已保存到：\n{path}")
+        QMessageBox.information(
+            self,
+            "模板已保存",
+            f"{template.standard_version} 附录 B 模板已保存到：\n{path}",
+        )
 
     def _choose_workbook(self) -> None:
-        target, _ = QFileDialog.getOpenFileName(self, "选择 Excel R2 工作簿", "", "Excel 工作簿 (*.xlsx)")
+        target, _ = QFileDialog.getOpenFileName(self, "选择附录 B 工作簿", "", "Excel 工作簿 (*.xlsx)")
         if target:
             self._preview_workbook(Path(target))
 
-    def _preview_workbook(self, path: Path) -> None:
+    def _period_for_import(self) -> AccountingPeriod:
+        period_value = self.import_period_type.currentData()
         try:
-            from packages.excel.r2 import ExcelWorkbookImporter
+            period_type = PeriodType(period_value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("请选择核算期间类型。") from exc
+        try:
+            start = date.fromisoformat(self.import_period_start.text().strip())
+            end = date.fromisoformat(self.import_period_end.text().strip())
+        except ValueError as exc:
+            raise ValueError("请按 YYYY-MM-DD 填写开始日期和结束日期。") from exc
+        try:
+            return AccountingPeriod(period_type=period_type, start=start, end=end)
+        except ValueError as exc:
+            period_labels = {
+                PeriodType.ANNUAL: "年度期间应覆盖同一自然年的 1 月 1 日至 12 月 31 日。",
+                PeriodType.MONTHLY: "月度期间应覆盖同一自然月的首日至末日。",
+                PeriodType.CUSTOM: "自定义期间的结束日期不能早于开始日期。",
+            }
+            raise ValueError(period_labels.get(period_type, "核算期间无效。")) from exc
 
-            preview = ExcelWorkbookImporter(preview_use_case=self.preview_use_case).import_preview(path)
+    def _refresh_import_regions(self, *_args) -> None:
+        selected = self.import_region.currentData()
+        regions: tuple[str, ...] = ()
+        try:
+            period = self._period_for_import()
+            resolver = self.preview_use_case.calculator.parameter_resolver
+            if resolver is not None:
+                from packages.application.uat03_parameter_queries import UAT03ParameterQueries
+
+                regions = UAT03ParameterQueries(self.catalog_service, resolver).electricity_regions(period)
+        except (AttributeError, TypeError, ValueError):
+            regions = ()
+        blocker = QSignalBlocker(self.import_region)
+        self.import_region.clear()
+        self.import_region.addItem("全国（使用全国路径）", None)
+        for region in regions:
+            self.import_region.addItem(region, region)
+        selected_index = self.import_region.findData(selected)
+        self.import_region.setCurrentIndex(max(0, selected_index))
+        del blocker
+
+    def _build_import_context(self):
+        from packages.excel.appendix_b import AppendixBImportContext
+
+        enterprise_name = self.import_enterprise_name.text().strip() or None
+        return AppendixBImportContext(
+            period=self._period_for_import(),
+            enterprise_name=enterprise_name,
+            region=self.import_region.currentData(),
+            boundary_confirmed=self.import_boundary_confirmed.isChecked(),
+            fuel_path_overrides=dict(self._fuel_path_overrides),
+        )
+
+    def _clear_fuel_override_panel(self) -> None:
+        self._fuel_override_combos.clear()
+        self.repreview_with_fuel_paths_button = None
+        while self.fuel_override_layout.count():
+            item = self.fuel_override_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            nested = item.layout()
+            if nested is not None:
+                while nested.count():
+                    child_item = nested.takeAt(0)
+                    child_widget = child_item.widget()
+                    if child_widget is not None:
+                        child_widget.deleteLater()
+                nested.deleteLater()
+        self.fuel_override_panel.hide()
+
+    def _show_fuel_path_choices(self, preview) -> None:
+        self._clear_fuel_override_panel()
+        if not preview.units:
+            return
+        errors = [
+            item
+            for item in preview.units[0].errors
+            if item.code == "EXB01_FUEL_PATH_REQUIRED"
+        ]
+        if not errors:
+            return
+        heading = QLabel(
+            "有燃料的计量路径需要说明。请选择体积或质量计量，再重新预览。",
+            self.fuel_override_panel,
+        )
+        heading.setWordWrap(True)
+        self.fuel_override_layout.addWidget(heading)
+        path_labels = {
+            FuelPath.VOLUME: "体积计量",
+            FuelPath.MASS: "质量计量",
+        }
+        for error in errors:
+            row = QHBoxLayout()
+            label = QLabel(error.field_label or "燃料计量路径", self.fuel_override_panel)
+            label.setWordWrap(True)
+            row.addWidget(label, 1)
+            selector = QComboBox(self.fuel_override_panel)
+            selector.setObjectName(f"fuelPathOverride_{error.location.replace('!', '_').replace('.', '_')}")
+            selector.addItem("请选择", None)
+            for fuel_path, display in path_labels.items():
+                selector.addItem(display, fuel_path.value)
+            selected = self._fuel_path_overrides.get(error.location)
+            selector.setCurrentIndex(max(0, selector.findData(selected)))
+            selector.currentIndexChanged.connect(self._update_fuel_override_button)
+            self._fuel_override_combos[error.location] = selector
+            row.addWidget(selector)
+            self.fuel_override_layout.addLayout(row)
+        self.repreview_with_fuel_paths_button = QPushButton(
+            "按所选路径重新预览",
+            self.fuel_override_panel,
+        )
+        self.repreview_with_fuel_paths_button.setObjectName("retryFuelPathPreviewButton")
+        self.repreview_with_fuel_paths_button.clicked.connect(self._repreview_with_fuel_paths)
+        self.fuel_override_layout.addWidget(self.repreview_with_fuel_paths_button)
+        self.fuel_override_panel.show()
+        self._update_fuel_override_button()
+
+    @staticmethod
+    def _fuel_path_from_widget(value) -> FuelPath | None:
+        try:
+            return value if isinstance(value, FuelPath) else FuelPath(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _update_fuel_override_button(self, *_args) -> None:
+        button = getattr(self, "repreview_with_fuel_paths_button", None)
+        if button is not None:
+            button.setEnabled(
+                bool(self._fuel_override_combos)
+                and all(
+                    self._fuel_path_from_widget(combo.currentData()) is not None
+                    for combo in self._fuel_override_combos.values()
+                )
+            )
+
+    def _repreview_with_fuel_paths(self) -> None:
+        if self._last_workbook_path is None:
+            return
+        self._fuel_path_overrides = {
+            location: fuel_path
+            for location, combo in self._fuel_override_combos.items()
+            if (fuel_path := self._fuel_path_from_widget(combo.currentData())) is not None
+        }
+        self._preview_workbook(self._last_workbook_path, preserve_overrides=True)
+
+    def _import_context_key(self) -> tuple[object, ...] | None:
+        try:
+            period = self._period_for_import()
+        except ValueError:
+            return None
+        overrides = tuple(
+            sorted((location, path.value) for location, path in self._fuel_path_overrides.items())
+        )
+        return (
+            period.period_type.value,
+            period.start.isoformat(),
+            period.end.isoformat(),
+            self.import_enterprise_name.text().strip() or None,
+            self.import_region.currentData(),
+            self.import_boundary_confirmed.isChecked(),
+            overrides,
+        )
+
+    def _import_context_changed(self, *_args) -> None:
+        if self._last_preview is None or self._preview_context_key is None:
+            return
+        if self._import_context_key() == self._preview_context_key:
+            return
+        self._last_preview = None
+        self._preview_context_key = None
+        self.preview_text.setPlainText(
+            "核算期间、企业、地区或边界信息已修改，请重新预览工作簿。"
+        )
+        self.status_label.setText("导入信息已修改；请重新预览后再保存项目。")
+        self._update_controls()
+
+    def _detach_active_project_for_import(self) -> None:
+        self._workspace = None
+        self._selected_unit_id = None
+        self._last_preview = None
+        self._last_workbook_path = None
+        self._preview_context_key = None
+        self.project_name.setReadOnly(False)
+        blocker = QSignalBlocker(self.unit_selector)
+        self.unit_selector.clear()
+        del blocker
+        self.unit_record_selector.clear()
+        self._clear_fuel_override_panel()
+        self._update_controls()
+
+    def _preview_workbook(self, path: Path, *, preserve_overrides: bool = False) -> None:
+        same_source = path == self._last_workbook_path
+        if not preserve_overrides or not same_source:
+            self._fuel_path_overrides.clear()
+            self._clear_fuel_override_panel()
+        self._detach_active_project_for_import()
+        self.project_name.setText(path.stem)
+        try:
+            from packages.excel.appendix_b import AppendixBWorkbookImporter
+
+            context = self._build_import_context()
+            preview = AppendixBWorkbookImporter(
+                preview_use_case=self.preview_use_case,
+                catalog_service=self.catalog_service,
+            ).import_preview(path, context=context)
+            preview_context_key = self._import_context_key()
         except Exception as exc:
             self._last_preview = None
+            self._preview_context_key = None
             self._last_workbook_path = None
             self.preview_text.setPlainText(f"无法预览该工作簿：{exc}")
             self.status_label.setText(f"工作簿无法预览：{exc}")
@@ -986,6 +1264,8 @@ class ExcelImportPage(BasePage):
 
         self._last_preview = preview
         self._last_workbook_path = path
+        self._preview_context_key = preview_context_key
+        self._show_fuel_path_choices(preview)
         self._workspace = None
         self._selected_unit_id = None
         self.project_name.setReadOnly(False)
@@ -1010,6 +1290,14 @@ class ExcelImportPage(BasePage):
 
         return re.sub(r"(?:CAR|GEN)-(?:FLD|VAL|PAR|FML|SRC|RULE)-[A-Z0-9_.-]+", "对应数据项", message)
 
+    @classmethod
+    def _format_import_message(cls, message) -> str:
+        display = cls._friendly_import_message(message.message)
+        location = getattr(message, "location", None)
+        if location and location not in message.message:
+            return f"{location}：{display}"
+        return display
+
     def _render_import_preview(self, preview) -> None:
         unit_type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
         lines = [
@@ -1025,12 +1313,12 @@ class ExcelImportPage(BasePage):
             else:
                 lines.append("  状态：无效，未保存")
             for message in unit.errors:
-                lines.append(f"  需要修正：{self._friendly_import_message(message.message)}")
+                lines.append(f"  需要修正：{self._format_import_message(message)}")
             for message in unit.warnings:
-                lines.append(f"  提醒：{self._friendly_import_message(message.message)}")
+                lines.append(f"  提醒：{self._format_import_message(message)}")
         if preview.warnings:
             lines.append("\n工作簿提醒")
-            lines.extend(f"- {self._friendly_import_message(message.message)}" for message in preview.warnings)
+            lines.extend(f"- {self._format_import_message(message)}" for message in preview.warnings)
         lines.append("\n预览本身不写入项目或正式记录；请使用上方按钮保存有效单元。")
         self.preview_text.setPlainText("\n".join(lines))
 
@@ -1101,7 +1389,7 @@ class ExcelImportPage(BasePage):
     def _build_ingress_provenance(self, preview, unit) -> dict[str, object]:
         source_path = self._last_workbook_path
         return {
-            "source": "EXCEL_R2",
+            "source": "EXCEL_APPENDIX_B",
             "workbook": {
                 "sha256": preview.provenance.workbook_sha256,
                 "file_name": source_path.name if source_path is not None else None,
@@ -1111,6 +1399,11 @@ class ExcelImportPage(BasePage):
                 "standard_version": preview.provenance.standard_version,
                 "ingress_policy_id": preview.provenance.ingress_policy_id,
                 "imported_at": preview.provenance.imported_at.isoformat(),
+                **(
+                    {"canonical_path": preview.provenance.canonical_path}
+                    if getattr(preview.provenance, "canonical_path", None) is not None
+                    else {}
+                ),
             },
             "accounting_unit": {
                 "importer_unit_id": unit.unit_id,
@@ -1130,6 +1423,10 @@ class ExcelImportPage(BasePage):
         preview = self._last_preview
         if preview is None:
             self.status_label.setText("请先选择并预览工作簿。")
+            return
+        if self._preview_context_key is None or self._import_context_key() != self._preview_context_key:
+            self._import_context_changed()
+            self.status_label.setText("导入信息已修改；请重新预览后再保存项目。")
             return
         valid_units = [unit for unit in preview.units if unit.can_calculate and unit.input_value is not None]
         if not valid_units:
@@ -1166,6 +1463,7 @@ class ExcelImportPage(BasePage):
             QMessageBox.warning(self, "项目保存失败", str(exc))
             return
         self._last_preview = None
+        self._preview_context_key = None
         self._workspace = workspace
         self._refresh_saved_projects(workspace.project_id)
         self.open_project(workspace.project_id)
@@ -1220,6 +1518,8 @@ class ExcelImportPage(BasePage):
         self._workspace = workspace
         self._last_preview = None
         self._last_workbook_path = None
+        self._preview_context_key = None
+        self._clear_fuel_override_panel()
         self.project_name.setText(workspace.name)
         self.project_name.setReadOnly(True)
         self._selected_unit_id = workspace.active_unit_id if any(unit.unit_id == workspace.active_unit_id for unit in canonical_units) else canonical_units[0].unit_id
@@ -1263,6 +1563,10 @@ class ExcelImportPage(BasePage):
         lines = [
             f"已保存项目：{self._workspace.name}",
             f"核算单元：{unit.name}",
+            f"企业：{unit.canonical_input.enterprise_name or '未填写'}",
+            "核算期间：" + {"ANNUAL": "年度", "MONTHLY": "月度", "CUSTOM": "自定义期间"}.get(
+                unit.canonical_input.period.period_type.value, "核算期间"
+            ) + f" · {unit.canonical_input.period.start.isoformat()} 至 {unit.canonical_input.period.end.isoformat()}",
             "当前展示为同一计算器生成的预览值；预览不生成正式核算记录。",
         ]
         if outcome.successful and outcome.result is not None:
@@ -1279,6 +1583,12 @@ class ExcelImportPage(BasePage):
         self.preview_text.setPlainText("\n".join(lines))
 
     def _update_controls(self) -> None:
+        for control in (
+            self.import_enterprise_name, self.import_period_type,
+            self.import_period_start, self.import_period_end,
+            self.import_region, self.import_boundary_confirmed,
+        ):
+            control.setEnabled(self._workspace is None)
         valid_import = self._last_preview is not None and any(unit.can_calculate for unit in self._last_preview.units)
         self.save_project_button.setEnabled(self.project_service is not None and valid_import)
         unit = self._selected_unit()
