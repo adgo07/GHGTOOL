@@ -190,6 +190,8 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             str(temp_root / "pyinstaller-spec"),
             "--paths",
             str(PROJECT_ROOT),
+            "--collect-data",
+            "packages.application.reporting",
             "--add-data",
             f"{PROJECT_ROOT / 'resources'}{os.pathsep}resources",
             "--add-data",
