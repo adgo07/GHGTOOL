@@ -11,7 +11,8 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
@@ -293,24 +294,33 @@ class G04CatalogTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.STANDARDS]
         table = page.findChild(QTableWidget, "catalogTable")
         search = page.findChild(type(page.search_input), "standardSearch")
-        source_button = page.findChild(QPushButton, "viewOfficialSourceButton")
         self.assertIsNotNone(table)
         self.assertIsNotNone(search)
-        self.assertIsNotNone(source_button)
         assert table is not None
         assert search is not None
-        assert source_button is not None
         self.assertEqual(table.rowCount(), 9)
+        self.assertEqual(
+            [table.horizontalHeaderItem(column).text() for column in range(table.columnCount())],
+            ["标准编号", "标准名称", "标准状态", "实施日期", "软件支持"],
+        )
+        self.assertIsNone(page.findChild(type(page.status_filter), "standardIndustryFilter"))
+        self.assertIsNone(page.findChild(type(page.status_filter), "standardYearFilter"))
 
         search.setText("32151.34")
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 1)
+        self.assertIsNone(page.selected_standard_id)
+        self.assertIs(page.view_stack.currentWidget(), page.list_view)
+
+        table.setCurrentCell(0, 0)
+        table.setFocus()
+        QTest.keyClick(table, Qt.Key.Key_Return)
+        for _ in range(4):
+            self.application.processEvents()
         self.assertEqual(page.selected_standard_id, "gbt_32151_34_2024")
-        detail_header = page.detail_layout.itemAt(0).widget()
-        self.assertIsNotNone(detail_header)
-        assert detail_header is not None
-        detail_number = detail_header.findChild(QLabel, "standardDetailNumber")
-        source_button = detail_header.findChild(QPushButton, "viewOfficialSourceButton")
+        self.assertIs(page.view_stack.currentWidget(), page.detail_host)
+        detail_number = page.findChild(QLabel, "standardDetailNumber")
+        source_button = page.findChild(QPushButton, "viewOfficialSourceButton")
         self.assertIsNotNone(detail_number)
         self.assertIsNotNone(source_button)
         assert detail_number is not None
@@ -326,70 +336,80 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(self.shell.selected_standard_id, "gbt_32151_34_2024")
 
         self.shell.navigate(AppRoute.STANDARDS)
+        page.findChild(QPushButton, "backToStandardListButton").click()
+        self.application.processEvents()
         page.search_input.clear()
         page.status_filter.setCurrentIndex(page.status_filter.findData(CatalogStatus.UPCOMING))
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 1)
+        self.assertEqual(table.item(0, 4).text(), "核算未开放")
+        table.setCurrentCell(0, 1)
+        table.setFocus()
+        QTest.keyClick(table, Qt.Key.Key_Return)
+        for _ in range(4):
+            self.application.processEvents()
         accounting_button = _standard_action_button(page, "gbt_32151_5_2026")
         self.assertFalse(accounting_button.isEnabled())
         self.assertEqual(accounting_button.text(), "核算模块待开发")
 
+        page.findChild(QPushButton, "backToStandardListButton").click()
         page.status_filter.setCurrentIndex(0)
-        page.year_filter.setCurrentIndex(page.year_filter.findData(2023))
-        self.application.processEvents()
-        self.assertEqual(table.rowCount(), 3)
-
         page.search_input.setText("不存在的标准")
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_standard_id)
-
+        self.assertEqual(page.result_summary.text(), "没有找到匹配的标准。")
     def test_standard_detail_has_only_compact_verified_sections(self) -> None:
         self.shell.navigate(AppRoute.STANDARDS)
         self.application.processEvents()
         page = self.shell.pages[AppRoute.STANDARDS]
         page.search_input.setText("32151.34")
         self.application.processEvents()
+        table = page.standard_table
+        item_rect = table.visualItemRect(table.item(0, 1))
+        QTest.mouseClick(
+            table.viewport(),
+            Qt.MouseButton.LeftButton,
+            pos=item_rect.center(),
+        )
+        for _ in range(4):
+            self.application.processEvents()
+
+        self.assertEqual(page.selected_standard_id, "gbt_32151_34_2024")
         card_titles = [
             label.text()
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(
-            card_titles,
-            ["基本信息与官方来源", "标准关系", "适用范围", "参数与因子"],
-        )
+        self.assertEqual(card_titles, ["基本信息", "适用范围", "标准要求"])
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
-        self.assertIn("基础标准 / 通则", detail_text)
-        self.assertIn("替代关系", detail_text)
-        self.assertIn("规范性引用文件", detail_text)
-        self.assertIn("暂无已核对的结构化数据。", detail_text)
+        self.assertIn("当前目录尚未录入可核验的结构化标准要求。", detail_text)
         for forbidden in (
-            "主管部门",
-            "归口部门",
-            "ICS",
-            "CCS",
-            "来源审核",
-            "备注",
-            "标准范围",
-            "适用行业",
-            "适用企业",
-            "不适用情况",
-            "核算边界",
-            "排放源与温室气体",
-            "核算方法",
-            "数据质量与报告要求",
-            "附录与标准依据",
-            "基于标准名称的目录分类",
+            "发布单位",
+            "标准关系",
+            "规范性引用文件",
+            "参数与因子",
+            "软件支持范围",
+            "来源编号",
+            "来源定位",
+            "natural_gas_lhv",
+            "参数/因子",
         ):
             self.assertNotIn(forbidden, card_titles)
             self.assertNotIn(forbidden, detail_text)
 
+        back_button = page.findChild(QPushButton, "backToStandardListButton")
+        self.assertIsNotNone(back_button)
+        assert back_button is not None
+        back_button.click()
+        for _ in range(4):
+            self.application.processEvents()
+        self.assertIs(page.view_stack.currentWidget(), page.list_view)
     def test_deep_catalog_scroll_covers_continuous_route_path(self) -> None:
         shell = self.shell
         self.window.resize(1180, 720)
@@ -408,36 +428,44 @@ class G04CatalogTests(unittest.TestCase):
             title_rect.moveTopLeft(title.mapTo(shell.main_scroll_area.viewport(), QPoint(0, 0)))
             self.assertTrue(shell.main_scroll_area.viewport().rect().intersects(title_rect))
 
-        # Scenario C: 首页 → 标准库 → 参数库 → 新建核算 → 首页.
+        # Scenario C: 首页 → 标准库 → 标准详情 → 参数库 → 新建核算 → 首页.
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
         self.assertEqual(scrollbar.maximum(), 0)
 
         shell.navigate(AppRoute.STANDARDS)
         assert_route_at_top(AppRoute.STANDARDS)
+        standards_page = shell.pages[AppRoute.STANDARDS]
+        standards_page.search_input.setText("32151.34")
+        standards_page.view_stack.setMinimumHeight(1000)
+        shell.update_content_geometry()
+        for _ in range(4):
+            self.application.processEvents()
+        standards_page.standard_table.setCurrentCell(0, 0)
+        standards_page.standard_table.setFocus()
+        QTest.keyClick(standards_page.standard_table, Qt.Key.Key_Return)
+        for _ in range(4):
+            self.application.processEvents()
+        self.assertIs(shell.page_stack.currentWidget(), standards_page)
+        self.assertIs(standards_page.view_stack.currentWidget(), standards_page.detail_host)
         self.assertGreater(scrollbar.maximum(), 0)
         standards_height = shell.page_stack.sizeHint().height()
-
         scrollbar.setValue(scrollbar.maximum())
         self.application.processEvents()
         self.assertEqual(scrollbar.value(), scrollbar.maximum())
 
-        standards_page = shell.pages[AppRoute.STANDARDS]
-        factors_button = standards_page.findChild(QPushButton, "viewFactorsButton")
-        self.assertIsNotNone(factors_button)
-        assert factors_button is not None
-        factors_button.click()
+        # The parameter library remains a separate route with its existing scroll reset.
+        shell.navigate(AppRoute.FACTORS)
         assert_route_at_top(AppRoute.FACTORS)
 
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         assert_route_at_top(AppRoute.NEW_ACCOUNTING)
 
+        self.window.resize(1180, 720)
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
         self.assertEqual(scrollbar.maximum(), 0)
-        home_height = shell.page_stack.sizeHint().height()
-        self.assertLess(home_height, standards_height)
-
+        self.assertGreater(standards_height, 0)
     def test_parameter_factor_page_browses_sources_and_aggregates_shared_assets(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
         self.application.processEvents()

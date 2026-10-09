@@ -20,9 +20,9 @@ def carbon_accounting_view_model() -> ShellViewModel:
     """Return the stable shell model; catalog data is queried separately."""
 
     return ShellViewModel(
-        product_name="温室气体排放核算",
+        product_name="温室气体排放核算软件",
         home_title="温室气体排放核算",
-        home_description="基于 GB/T 32151 系列标准开展企业温室气体排放核算",
+        home_description="查看标准资料，按已开放的标准开展核算",
         navigation=(
             NavigationItemViewModel(AppRoute.HOME, "首页", "home"),
             NavigationItemViewModel(AppRoute.STANDARDS, "标准库", "standards"),
