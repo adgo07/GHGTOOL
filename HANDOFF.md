@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-09（PR35收口；等待PR36主线整合）
+最后更新：2026-10-09（PR35/36已合并；UAT03 V2实施收口、待验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -36,7 +36,7 @@ Module ID：`qz.carbon_accounting`
 - 用户明确取消非化石电力自动证明前置，并要求从已补库地区因子选择；新增软件决定与必要规则/输入版本追溯，不改冻结Mapping或声称佐证已验证。库/Resolver仍是默认参数唯一入口，适用期间与实际来源保持。
 - PF01来源分层及既有Standard Issue001～006有效；标准实施日期保留为提醒，具体因子只有独立适用期才参与筛选；不修改挥发分K、44/12、Numeric或历史Record。
 - Excel输入模板/Word版式完善、首页/导航/记录家族UI重构和其他标准本轮不做。当前UI依据为中央ACTIVE v0.2、家族规格及清单的任务适用部分，不自动adopt Frozen。
-- 本包完成独立复核后交用户实际操作验收，未预先授权合并。验证证据与限制见本包IMPLEMENTATION_REPORT/TASK_STATE；原生视觉不能以离屏替代，标准仍PARTIAL / NOT SUPPORTED。
+- 本包独立重点复核已通过；当前head完整CI/候选审计后交用户实际操作验收，未预先授权合并。验证证据与限制见本包IMPLEMENTATION_REPORT/TASK_STATE；原生视觉不能以离屏替代，标准仍PARTIAL / NOT SUPPORTED。
 
 PF01范围约束：
 
