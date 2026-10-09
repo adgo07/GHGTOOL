@@ -122,7 +122,7 @@ def _frozen_step(record, trace, source, iid, *, single_instance=False):
     return step
 
 
-def _energy_parameter(record, item, iid, explicit_key, unit, variable, step):
+def _energy_parameter(record, item, iid, explicit_key, unit, variable, step, *, ambiguous_detail_ids=()):
     # detail IDs can coincide between purchased power and heat. Match quantity kind too.
     candidates = [snap for snap in record.parameter_snapshots
                   if snap.detail_id in (iid, explicit_key) and snap.unit_used.replace("₂", "2") == unit]
@@ -130,8 +130,14 @@ def _energy_parameter(record, item, iid, explicit_key, unit, variable, step):
     if explicit:
         candidates = explicit
     frozen_value = _mapping(_variables(step).get(variable)).get("value")
-    if len(candidates) > 1 and frozen_value is not None:
+    ambiguous_single = len(candidates) == 1 and candidates[0].detail_id in ambiguous_detail_ids
+    had_candidates = bool(candidates)
+    if frozen_value is not None:
         candidates = [snap for snap in candidates if Decimal(str(snap.value_used)) == Decimal(str(frozen_value))]
+    if had_candidates and not candidates:
+        return ReportCell(_text(frozen_value), source="历史来源快照与冻结采用值不一致")
+    if ambiguous_single:
+        return ReportCell(_text(frozen_value) or "历史未记录", source="历史来源快照无法唯一关联")
     unique = {tuple(sorted((key, str(value)) for key, value in _snapshot_mapping(snap).items())): snap for snap in candidates}
     if len(unique) == 1:
         snapshot = _snapshot_mapping(next(iter(unique.values())))
@@ -327,6 +333,10 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
     sections.append(ReportSection('b7','B.7 烟气脱硫净化',(_table('b7',rows,source=SOURCE_FGD,raw=raw,merges=merges),), ('排放量合并单元格列示该设施/批次的冻结合计；历史快照未保存逐组分排放量时不重新计算。',)))
 
     rows = []
+    purchased_ids = {_text(item.get('detail_id')) for item in _entries(raw, 'electricity_details')
+                     if not (item.get('acquisition_mode') == 'SELF_CONSUMED' and item.get('attribute') == 'FOSSIL')}
+    exported_ids = {_text(item.get('line_id')) for item in _entries(raw, 'exported_electricity')}
+    exported_keys = {f'CAR-FLD-POWER-EXPORTED-EF.{iid}' for iid in exported_ids}
     for collection,direction,source in (('electricity_details','购入',SOURCE_PURCHASED_ELECTRICITY),('exported_electricity','输出',SOURCE_EXPORTED_ELECTRICITY)):
         for item in _entries(raw,collection):
             iid = _text(item.get('detail_id') or item.get('line_id'))
@@ -337,7 +347,13 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
             unit = _text(_mapping(amount).get('unit')) or _text(item.get('electricity_unit') or item.get('unit')) or 'MWh'
             quantity = ReportCell(_units(_text(amount),unit,'MWh') or '未填写',source=_activity_source(amount))
             factor_key = f'CAR-FLD-POWER-EXPORTED-EF.{iid}' if direction == '输出' else iid
-            factor = _energy_parameter(record,item,iid,factor_key,'tCO2/MWh','EF2',step)
+            ambiguous_ids = purchased_ids & (exported_ids | exported_keys)
+            if direction == '购入':
+                export_key = f'CAR-FLD-POWER-EXPORTED-EF.{iid}'
+                if export_key not in purchased_ids and any(s.detail_id == export_key for s in record.parameter_snapshots):
+                    ambiguous_ids = ambiguous_ids - {iid}
+            factor = _energy_parameter(record,item,iid,factor_key,'tCO2/MWh','EF2',step,
+                                       ambiguous_detail_ids=ambiguous_ids)
             rows.append((direction, _enum(item.get('attribute'),{'ORDINARY':'常规电力','NONFOSSIL':'非化石电力','FOSSIL':'化石能源电力'}) or '历史未记录', quantity, factor, _signed(step,direction=='输出')))
     for collection,direction,source in (('electricity_details','购入',SOURCE_PURCHASED_ELECTRICITY),('exported_electricity','输出',SOURCE_EXPORTED_ELECTRICITY)):
         if not _entries(raw,collection):

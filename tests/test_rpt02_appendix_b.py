@@ -18,7 +18,7 @@ from openpyxl import load_workbook
 from packages.application.reporting import build_saved_record_report
 from packages.application.reporting.model import build_report_model, frozen_totals
 from packages.application.reporting.appendix_b import _energy_parameter, _frozen_step
-from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT
+from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT, SOURCE_PURCHASED_ELECTRICITY, SOURCE_EXPORTED_ELECTRICITY
 from packages.core.models import CalculationLine
 from packages.infrastructure.reporting import render_report_docx
 from packages.persistence.catalog_repository import SQLiteCatalogRepository
@@ -224,6 +224,37 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertIn("购电合同来源", rows[0].cells[3].source)
         self.assertNotIn("输电合同来源", rows[0].cells[3].source)
         self.assertIn("输电合同来源", rows[1].cells[3].source)
+
+    def test_incomplete_colliding_power_snapshots_do_not_invent_direction_or_value(self):
+        record, raw, trace, *_ = build_acceptance_case("GUI")
+        seed = record.parameter_snapshots[0]
+        purchase = replace(seed, detail_id="shared", value_used="0.7", unit_used="tCO2/MWh", source_location="购电合同来源")
+        record = replace(record, parameter_snapshots=(purchase,))
+        raw = deepcopy(raw)
+        raw["electricity_details"] = [{"detail_id": "shared", "electricity_amount": "1", "electricity_unit": "MWh"}]
+        raw["exported_electricity"] = [{"line_id": "shared", "amount": "1", "unit": "MWh"}]
+        trace = {"formula_steps": [
+            {"emission_source_id": source, "process_instance_id": "shared", "intermediate_result": "0.7",
+             "input_variables": [{"name": "EF2", "value": "0.7"}]}
+            for source in (SOURCE_PURCHASED_ELECTRICITY, SOURCE_EXPORTED_ELECTRICITY)
+        ]}
+        rows = _section(build_report_model(record, raw, trace, {}, {}, {}), "b8").tables[0].rows
+        for row in rows:
+            self.assertEqual(row.cells[3].value, "0.7")
+            self.assertEqual(row.cells[3].source, "历史来源快照无法唯一关联")
+        # A non-purchased self-consumed fossil row cannot make output provenance ambiguous.
+        raw["electricity_details"][0].update(acquisition_mode="SELF_CONSUMED", attribute="FOSSIL")
+        output = replace(purchase, source_location="自动输出冻结来源")
+        record = replace(record, parameter_snapshots=(output,))
+        rows = _section(build_report_model(record, raw, trace, {}, {}, {}), "b8").tables[0].rows
+        self.assertEqual(len(rows), 1)
+        self.assertIn("自动输出冻结来源", rows[0].cells[3].source)
+        # A single prefixed candidate also must agree with the frozen adopted value.
+        record = replace(record, parameter_snapshots=(replace(purchase, detail_id="CAR-FLD-POWER-EXPORTED-EF.shared"),))
+        step = {"input_variables": [{"name": "EF2", "value": "0.5"}]}
+        cell = _energy_parameter(record, {}, "shared", "CAR-FLD-POWER-EXPORTED-EF.shared", "tCO2/MWh", "EF2", step)
+        self.assertEqual(cell.value, "0.5")
+        self.assertEqual(cell.source, "历史来源快照与冻结采用值不一致")
 
     def test_missing_trace_uses_exact_frozen_line_without_sharing_aggregate(self):
         record, *_ = build_acceptance_case("GUI")
