@@ -86,3 +86,16 @@ Qt scale 模拟增加截图物理像素，不等价于在对应物理分辨率�
 ## 独立验收与暂停点
 
 交付一份独立 PR，原生实机项目保持 OPEN，等待独立验收。不得自行合并；AB 完成并合并后 Phase 3 暂停，C/D/E/F 按后续任务和 EXB01、RPT02 实际状态独立开展。当前标准支持状态、RS04 / RS05 出口和 Frozen 基线均不因本包改变。
+
+
+## 最终证据追溯修正（合并前）
+
+GitHub Code Review 指出第一版六组离屏截图 JSON 记录的 `packages/ui/pages.py`、`packages/ui/catalog_pages.py` SHA256 与所审 PR head 不一致。该问题属于截图证据版本不一致，不能引用旧证据冒充最终代码。
+
+已通过 GitHub-hosted Windows / Python 3.12 从最新实际 PR 源文件重新运行 `scripts/p3_ab_ui_acceptance.py` 六组（1366×768、1920×1080，各 100% / 125% / 150% Qt scale），更新 24 张 PNG 和六个 JSON；每组 15/15，总计 **90/90 PASS**。六份 JSON 的五个源码哈希完全一致，其中：
+- `packages/ui/pages.py`: `0a453c571a04879a2a1c8067973fa848d9eea103fd4283afe47bceeb33b51a4f`
+- `packages/ui/catalog_pages.py`: `e8c98cadb7477fe5ed481b620b56bae2b4cdac5bb7fb91e8ebcb3b22550689aa`
+
+执行与校验时检查了 manifest 声明的源码与磁盘文件 SHA256 一致。修正未修改业务生产代码，不改变 UAT03、Catalog / Calculator / Record 语义。
+
+**证据结论：** 新版离屏检查 PASS；不是原生 Windows 鼠标人工操作的替代证据。原生人工验证的证据出处应由独立验收结论提供，不能仅凭六组离屏截图宣布原生 DPI PASS。
