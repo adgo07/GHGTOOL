@@ -83,10 +83,11 @@ def _merge_cells(table, merges, offset=0):
         merged.text = origin_text
 
 
-def _add_table(document: Document, table_model: ReportTable) -> None:
+def _add_table(document: Document, table_model: ReportTable, *, page_before: bool = False) -> None:
     if table_model.context_label:
         context = document.add_paragraph(table_model.context_label)
         context.paragraph_format.keep_with_next = True
+        context.paragraph_format.page_break_before = page_before
         for run in context.runs:
             _set_run_font(run, size=10, bold=True)
     heading = document.add_paragraph()
@@ -143,14 +144,18 @@ def _add_table(document: Document, table_model: ReportTable) -> None:
                 _shade(cell, "F2F2F2")
             for paragraph in cell.paragraphs:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if is_header else WD_ALIGN_PARAGRAPH.LEFT
+                if row_index >= len(headers) + len(table_model.rows) - (2 if table_model.context_label else 1) and table_model.footnotes:
+                    paragraph.paragraph_format.keep_with_next = True
                 paragraph.paragraph_format.space_after = Pt(1)
                 paragraph.paragraph_format.space_before = Pt(1)
                 paragraph.paragraph_format.line_spacing = 1.05
                 for run in paragraph.runs:
                     _set_run_font(run, size=9.5, bold=is_header, color="000000")
-    for note in (*table_model.footnotes, *(row.note for row in table_model.rows if row.note)):
+    notes = (*table_model.footnotes, *(row.note for row in table_model.rows if row.note))
+    for note_index, note in enumerate(notes):
         paragraph = document.add_paragraph(note)
         paragraph.paragraph_format.space_after = Pt(3)
+        paragraph.paragraph_format.keep_with_next = note_index < len(notes) - 1
         for run in paragraph.runs:
             _set_run_font(run, size=9, color="000000")
 
@@ -194,7 +199,7 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
         heading.paragraph_format.space_before = Pt(13)
         run = heading.add_run(report_section.title)
         _set_run_font(run, size=14, bold=True, color="000000")
-        for table_model in report_section.tables:
+        for table_index, table_model in enumerate(report_section.tables):
             if not table_model.rows:
                 empty = document.add_paragraph("该记录未保存此项明细。")
                 for run in empty.runs:
@@ -204,7 +209,7 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
                 section = document.add_section()
                 _format_section(section, table_model.landscape)
                 current_landscape = table_model.landscape
-            _add_table(document, table_model)
+            _add_table(document, table_model, page_before=table_index > 0 and bool(table_model.context_label))
         for note in report_section.notes:
             paragraph = document.add_paragraph(note)
             for run in paragraph.runs:

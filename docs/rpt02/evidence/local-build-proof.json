@@ -1,0 +1,26 @@
+{
+  "source_commit": "554f7fdbf86b1fc284b4d7373d022d359b6aa9cd",
+  "pr_head_sha": "554f7fdbf86b1fc284b4d7373d022d359b6aa9cd",
+  "tested_merge_sha": "554f7fdbf86b1fc284b4d7373d022d359b6aa9cd",
+  "app_version": "1.1.0",
+  "local_execution": true,
+  "commands": [
+    {
+      "command": "python scripts/build_standalone.py --output-root build/rpt02-integrated-dist",
+      "exit_code": 0
+    },
+    {
+      "command": "python scripts/inspect_release.py build/rpt02-integrated-dist/QingzhouCarbonAccounting",
+      "output": "release-audit: PASS (265 files; catalog, manifest, and scope checks passed)"
+    },
+    {
+      "command": "python scripts/verify_release_archive.py build/rpt02-integrated-dist/QingzhouCarbonAccounting",
+      "output": "release-archive: PASS (266 visible files; manifest survives ZIP round-trip)"
+    },
+    {
+      "command": "python scripts/smoke_standalone.py build/rpt02-integrated-dist/QingzhouCarbonAccounting",
+      "output": "standalone-smoke: PASS (2 isolated starts)"
+    }
+  ],
+  "scope_note": "本地集成候选构建绑定554f7fd；后续报告分页显示改动由最终PR-head CI再构建，不能把本候选冒充最终Head产物。"
+}

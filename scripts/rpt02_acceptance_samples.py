@@ -669,7 +669,7 @@ def write_acceptance_samples(
                 "notice": "以下为两个可交付Word样例对应的正式不可变Record与创建时冻结快照。所有活动数据为软件验收演示输入，不是企业业务数据或企业凭证。",
                 "records": frozen_record_exports,
             }
-            stage_frozen_records.write_text(json.dumps(frozen_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            stage_frozen_records.write_text(json.dumps(frozen_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
             manifest = {
                 "task": "GHG-RPT02",
@@ -698,7 +698,7 @@ def write_acceptance_samples(
                 },
                 "report_export_history_note": "验收样例由build_saved_record_report和现有DOCX renderer直接从已保存Record生成；文件保存及导出审计业务仍由PR #37共享Word导出入口负责。",
             }
-            stage_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            stage_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
             payloads = (
                 (gui_path, stage_gui.read_bytes()),
@@ -716,6 +716,292 @@ def write_acceptance_samples(
         raise
     return gui_path, excel_path
 
+
+
+def _multi_source_canonical_input():
+    """Repeat validated demo sources as distinct canonical rows/process units."""
+    from packages.standards.carbon_material import (
+        BakingInput,
+        CalcinationInput,
+        FGDInput,
+        FuelType,
+        GraphitizationInput,
+    )
+    from packages.standards.carbon_material_normalization import (
+        MaterialDataSource,
+        MaterialInputLine,
+        MaterialRole,
+    )
+
+    base = _gui_canonical_input()
+
+    # These material values and roles match the passing multi-row normalization
+    # fixture in tests/test_uat01b_material_steam.py. Each facility receives
+    # unique process and material IDs; no equation or calculator behavior is
+    # introduced here.
+    material_examples = {
+        "calcination": (
+            ("feed-a", MaterialRole.CALCINATION_FEED, "待煅烧原料甲", "100", "95", "10"),
+            ("feed-b", MaterialRole.CALCINATION_FEED, "待煅烧原料乙", "200", "75", "5"),
+            ("product-a", MaterialRole.CALCINED_PRODUCT, "煅后料甲", "250", "80", "2"),
+            ("underburn-a", MaterialRole.UNDERBURN_RECOVERED, "欠烧煅料", "20", "50", None),
+            ("dust-a", MaterialRole.CARBON_DUST, "炭粉尘", "10", "25", None),
+        ),
+        "baking": (
+            ("filler-a", MaterialRole.BAKING_FILLER, "焙烧填充料甲", "20", "90", "1"),
+            ("green-a", MaterialRole.GREEN_BAKING_PRODUCT, "待焙烧品甲", "100", "80", "2"),
+            ("green-b", MaterialRole.GREEN_BAKING_PRODUCT, "待焙烧品乙", "50", "60", "4"),
+            ("baked-a", MaterialRole.BAKED_PRODUCT, "焙烧产品", "100", "98", None),
+            ("byproduct-a", MaterialRole.BAKING_BYPRODUCT, "粉尘", "4", "50", None),
+            ("byproduct-b", MaterialRole.BAKING_BYPRODUCT, "碎屑", "1", "30", None),
+        ),
+        "graphitization": (
+            ("packing-a", MaterialRole.GRAPHITIZATION_PACKING, "石墨化保温料", "15", "75", "1"),
+            ("green-a", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT, "待石墨化品甲", "80", "80", None),
+            ("green-b", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT, "待石墨化品乙", "40", "60", None),
+            ("graphitized-a", MaterialRole.GRAPHITIZED_PRODUCT, "石墨化产品", "90", "90", None),
+            ("dust-a", MaterialRole.GRAPHITIZATION_BYPRODUCT, "石墨化粉尘", "3", "50", None),
+            ("residue-a", MaterialRole.GRAPHITIZATION_BYPRODUCT, "石墨化残块", "2", "25", None),
+        ),
+    }
+
+    def material_rows(process: str, instance: str):
+        return tuple(
+            MaterialInputLine(
+                f"rpt02-multi.{instance}.{line_id}", role, name, mass, fixed,
+                MaterialDataSource.MEASURED, volatile, MaterialDataSource.MEASURED,
+            )
+            for line_id, role, name, mass, fixed, volatile in material_examples[process]
+        )
+
+    calcinations = tuple(
+        CalcinationInput(k1=base.calcination.k1, instance_id=f"rpt02-multi-calc-{suffix}", material_rows=material_rows("calcination", f"calc-{suffix}"))
+        for suffix in ("a", "b")
+    )
+    bakings = tuple(
+        BakingInput(k2=base.baking.k2, instance_id=f"rpt02-multi-bake-{suffix}", material_rows=material_rows("baking", f"bake-{suffix}"))
+        for suffix in ("a", "b")
+    )
+    graphitizations = tuple(
+        GraphitizationInput(k3=base.graphitization.k3, instance_id=f"rpt02-multi-graph-{suffix}", material_rows=material_rows("graphitization", f"graph-{suffix}"))
+        for suffix in ("a", "b")
+    )
+
+    base_fuel = base.fuel_inputs[0]
+    fuels = (
+        replace(base_fuel, fuel_id="rpt02-multi-natural-gas", fuel_type=FuelType.NATURAL_GAS, fuel_label="天然气（验收演示）"),
+        replace(base_fuel, fuel_id="rpt02-multi-coke-oven-gas", fuel_type=FuelType.COKE_OVEN_GAS, fuel_label="焦炉煤气（验收演示）"),
+    )
+    fume_base = base.fume_incineration
+    fume_units = tuple(replace(fume_base, instance_id=f"rpt02-multi-fume-{suffix}") for suffix in ("a", "b"))
+    fgd_base = base.fgd
+    fgd_units = tuple(replace(fgd_base, instance_id=f"rpt02-multi-fgd-{suffix}") for suffix in ("a", "b"))
+
+    electricity_base = base.electricity_details[0]
+    electricity_details = (
+        electricity_base,
+        replace(electricity_base, detail_id="rpt02-multi-purchased-electricity-b", electricity_amount="40"),
+    )
+    exported_power_base = base.exported_electricity[0]
+    exported_electricity = (
+        exported_power_base,
+        replace(exported_power_base, line_id="rpt02-multi-exported-electricity-b"),
+    )
+
+    def demo_amount(original: InputValue, value: str) -> InputValue:
+        return InputValue(
+            value, original.unit, original.source_type, original.source_level,
+            _DEMO_SOURCE_NOTE, original.evidence_ref_ids,
+        )
+
+    purchased_heat_base = base.purchased_heat[0]
+    purchased_heat = (
+        purchased_heat_base,
+        replace(
+            purchased_heat_base,
+            line_id="rpt02-multi-purchased-heat-b",
+            amount=demo_amount(purchased_heat_base.amount, "500"),
+        ),
+    )
+    exported_heat_base = base.exported_heat[0]
+    exported_heat = (
+        exported_heat_base,
+        replace(
+            exported_heat_base,
+            line_id="rpt02-multi-exported-heat-b",
+            amount=demo_amount(exported_heat_base.amount, "500"),
+        ),
+    )
+    exported_electricity = (
+        exported_power_base,
+        replace(
+            exported_power_base,
+            line_id="rpt02-multi-exported-electricity-b",
+            amount=demo_amount(exported_power_base.amount, "1"),
+        ),
+    )
+
+    return replace(
+        base,
+        input_id="input.rpt02.multi-source-demo",
+        fuel_inputs=fuels,
+        calcination=None,
+        calcinations=calcinations,
+        baking=None,
+        bakings=bakings,
+        graphitization=None,
+        graphitizations=graphitizations,
+        fume_incineration=None,
+        fume_incinerations=fume_units,
+        fgd=None,
+        fgd_units=fgd_units,
+        electricity_details=electricity_details,
+        exported_electricity=exported_electricity,
+        purchased_heat=purchased_heat,
+        exported_heat=exported_heat,
+    )
+
+
+def write_multi_source_acceptance_sample(
+    output_dir: Path,
+    evidence_dir: Path,
+) -> tuple[Path, Path, Path, Path]:
+    """Create one multi-row Word sample from a separate formal frozen Record."""
+    output_dir, evidence_dir = Path(output_dir), Path(evidence_dir)
+    docx_path = output_dir / "GHG-RPT02_MultiSource_Record_Appendix_B.docx"
+    snapshots_path = output_dir / "GHG-RPT02_MultiSource_Record_Snapshots.json"
+    records_path = evidence_dir / "records.sqlite"
+    evidence_path = evidence_dir / "multisource-evidence.json"
+    targets = (docx_path, snapshots_path, records_path, evidence_path)
+    existing = tuple(path for path in targets if path.exists())
+    if existing:
+        raise FileExistsError("为避免覆盖前两份样例或其他用户文件，多源样例目标已存在：" + "、".join(str(path) for path in existing))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    created: list[Path] = []
+    try:
+        with tempfile.TemporaryDirectory(prefix="rpt02-multisource-") as temporary:
+            stage = Path(temporary)
+            stage_docx = stage / docx_path.name
+            stage_snapshots = stage / snapshots_path.name
+            stage_records = stage / "records.sqlite"
+            stage_evidence = stage / evidence_path.name
+            catalog_path = stage / "catalog.sqlite"
+
+            build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path)
+            resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
+            repository = SQLiteRecordRepository(stage_records)
+            use_case = CarbonAccountingUseCase(CarbonMaterialCalculator(parameter_resolver=resolver), repository)
+            input_value = _multi_source_canonical_input()
+            record = _formal_record(use_case, input_value)
+            saved = repository.get(record.record_id)
+            if saved is None:
+                raise RuntimeError("多源Canonical输入核算后未从独立records.sqlite读取到正式Record。")
+
+            report = build_saved_record_report(
+                repository,
+                saved,
+                supplementary_info={
+                    "enterprise_name": saved.input_snapshot.enterprise_name,
+                    "prepared_on": _SAMPLE_DATE.isoformat(),
+                    "supplementary_note": "多燃料、多设施、多物料及多条购入/输出能源行的版式验收演示输入；不代表企业业务数据或企业凭证。",
+                },
+            )
+            raw = repository.get_raw_input_snapshot(saved.record_id)
+            if not isinstance(raw, dict):
+                raise AssertionError("正式多源Record缺少原始输入冻结快照。")
+            required_counts = {
+                "fuel_inputs": len(raw.get("fuel_inputs", ())),
+                "calcination_processes": len(raw.get("calcinations", ())),
+                "calcination_material_rows": sum(len(item.get("material_rows", ())) for item in raw.get("calcinations", ())),
+                "baking_processes": len(raw.get("bakings", ())),
+                "baking_material_rows": sum(len(item.get("material_rows", ())) for item in raw.get("bakings", ())),
+                "graphitization_processes": len(raw.get("graphitizations", ())),
+                "graphitization_material_rows": sum(len(item.get("material_rows", ())) for item in raw.get("graphitizations", ())),
+                "fume_facilities": len(raw.get("fume_incinerations", ())),
+                "fgd_facilities": len(raw.get("fgd_units", ())),
+                "purchased_electricity_lines": len(raw.get("electricity_details", ())),
+                "exported_electricity_lines": len(raw.get("exported_electricity", ())),
+                "purchased_heat_lines": len(raw.get("purchased_heat", ())),
+                "exported_heat_lines": len(raw.get("exported_heat", ())),
+            }
+            if any(value < 2 for value in required_counts.values()):
+                raise AssertionError(f"多源样例未达到每类至少两条/两个实例：{required_counts}")
+            sections = {section.section_id: section for section in report.sections}
+            for section_id in ("b3", "b4", "b5"):
+                tables = sections[section_id].tables
+                if len(tables) != 2 or any(len(table.rows) < 8 for table in tables):
+                    raise AssertionError(f"{section_id}必须展示两个含多物料明细的独立过程表。")
+            if len(sections["b2"].tables[0].rows) < 2:
+                raise AssertionError("B.2未展示两条燃料明细。")
+            for section_id, minimum_rows in (("b6", 2), ("b7", 2), ("b8", 4), ("b9", 4)):
+                if len(sections[section_id].tables[0].rows) < minimum_rows:
+                    raise AssertionError(f"{section_id}未展示预期的多设施/购入输出明细。")
+
+            b1 = sections["b1"].tables[0]
+            totals = frozen_totals(saved, repository.get_trace_snapshot(saved.record_id))
+            if (b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value) != (totals["ES"], totals["ET"]):
+                raise AssertionError("多源样例B.1总量未来自正式Record冻结ES/ET。")
+            render_report_docx(report, stage_docx)
+            frozen_payload = _frozen_record_payload(repository, saved)
+            record_hash = sha256(json.dumps(frozen_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+            snapshot_bundle = {
+                "task": "GHG-RPT02_MULTI_SOURCE_ACCEPTANCE",
+                "notice": "单条由Canonical输入及正式CarbonAccountingUseCase生成的多源验收演示Record；输入值及实测类别为版式验收示例，不代表实际企业业务或凭证。",
+                "record_and_snapshots_sha256": record_hash,
+                **frozen_payload,
+            }
+            stage_snapshots.write_text(json.dumps(snapshot_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            evidence = {
+                "task": "GHG-RPT02_MULTI_SOURCE_ACCEPTANCE",
+                "status": "FORMAL_RECORD_FROM_APPLICATION_USE_CASE",
+                "notice": snapshot_bundle["notice"],
+                "record_id": saved.record_id,
+                "standard_id": saved.standard_id,
+                "algorithm_version": saved.algorithm_version,
+                "standard_version": saved.standard_version,
+                "record_status": saved.status.value,
+                "input_source": "_gui_canonical_input plus uniquely identified repeats of tested fuel/process/facility/electricity/heat rows; multi-row material values reuse tests.test_uat01b_material_steam fixture.",
+                "multi_source_counts": required_counts,
+                "appendix_table_structure": {
+                    section_id: {
+                        "table_count": len(sections[section_id].tables),
+                        "body_row_counts": [len(table.rows) for table in sections[section_id].tables],
+                        "material_row_counts": [sum(1 for row in table.rows if row.cells[1].value not in ("", "排放量（tCO₂）")) for table in sections[section_id].tables],
+                    }
+                    for section_id in ("b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9")
+                },
+                "frozen_es_ei_et": totals,
+                "report_b1_es": b1.rows[-2].cells[2].value,
+                "report_b1_et": b1.rows[-1].cells[2].value,
+                "report_layout_id": report.layout_id,
+                "approved_template_sha256": report.template_sha256,
+                "canonical_reference_data_source": DEFAULT_SOURCE_PATH.resolve().relative_to(REPOSITORY_ROOT.resolve()).as_posix(),
+                "record_and_snapshots_sha256": record_hash,
+                "files": {
+                    docx_path.name: {"sha256": sha256(stage_docx.read_bytes()).hexdigest()},
+                    snapshots_path.name: {"sha256": sha256(stage_snapshots.read_bytes()).hexdigest()},
+                    "records.sqlite": {"sha256": sha256(stage_records.read_bytes()).hexdigest()},
+                },
+                "frozen_record_snapshot_json": snapshots_path.name,
+                "word_source": "build_saved_record_report(SQLiteRecordRepository.get(record_id)) then existing render_report_docx; no calculator/catalog reads occur during report generation.",
+            }
+            stage_evidence.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+            for destination, content in (
+                (docx_path, stage_docx.read_bytes()),
+                (snapshots_path, stage_snapshots.read_bytes()),
+                (records_path, stage_records.read_bytes()),
+                (evidence_path, stage_evidence.read_bytes()),
+            ):
+                _write_new_file(destination, content)
+                created.append(destination)
+    except Exception:
+        for path in reversed(created):
+            path.unlink(missing_ok=True)
+        raise
+    return docx_path, snapshots_path, records_path, evidence_path
 
 
 def refresh_acceptance_samples_from_saved_records(
@@ -875,7 +1161,7 @@ def refresh_acceptance_samples_from_saved_records(
             "records": frozen_record_exports,
         }
         staged_bundle = docs_stage / bundle_path.name
-        staged_bundle.write_text(json.dumps(frozen_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        staged_bundle.write_text(json.dumps(frozen_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
         refreshed_manifest = dict(manifest)
         refreshed_manifest["canonical_reference_data_source"] = DEFAULT_SOURCE_PATH.resolve().relative_to(REPOSITORY_ROOT.resolve()).as_posix()
@@ -888,7 +1174,7 @@ def refresh_acceptance_samples_from_saved_records(
             bundle_path.name: {"sha256": sha256(staged_bundle.read_bytes()).hexdigest()},
         }
         staged_manifest = evidence_stage / manifest_path.name
-        staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
         # Replace only the two named sample DOCX, their frozen JSON bundle, and
         # their build evidence manifest; the formal records.sqlite stays byte-for-byte unchanged.
@@ -909,7 +1195,13 @@ def main() -> None:
     )
     parser.add_argument("--evidence-dir", type=Path, default=repository_root / "build" / "rpt02", help="独立Record数据库与验收证明JSON目录")
     parser.add_argument("--refresh-from-saved-records", action="store_true", help="只从既有正式Record和冻结快照重渲染样例，不重算样例Record")
+    parser.add_argument("--multi-source-sample", action="store_true", help="生成独立的真实多源Canonical Record及Appendix B Word样例")
+    parser.add_argument("--multi-evidence-dir", type=Path, default=repository_root / "build" / "rpt02-multi", help="多源正式Record与验收证明目录")
     args = parser.parse_args()
+    if args.multi_source_sample:
+        for path in write_multi_source_acceptance_sample(args.output_dir, args.multi_evidence_dir):
+            print(path.resolve())
+        return
     if args.refresh_from_saved_records:
         for path in refresh_acceptance_samples_from_saved_records(args.output_dir, args.evidence_dir):
             print(path.resolve())

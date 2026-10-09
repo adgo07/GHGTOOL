@@ -71,16 +71,16 @@
   ],
   "files": {
     "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx": {
-      "sha256": "c97e706f979f8fdcd957ad988b17b84ff285061722f98c6371b5e8d6ad814543"
+      "sha256": "05acb33fa9f398d09524eae5c7e535dac3d50aa0069f4ee5212bee77b1ded4d9"
     },
     "GHG-RPT02_Excel_R2_Record_Appendix_B.docx": {
-      "sha256": "68a066517c1ef6f2bc273653a9318ab4e62d0819bd4a66cc165c2f652117cca3"
+      "sha256": "4de6c3225ed4531520ea273426f92107cf138682c538deca252e534f69e91e7a"
     },
     "records.sqlite": {
       "sha256": "9940eae194a31cdb99a62d9add744df48e15964051a8e457a4b9bf4c8b810b11"
     },
     "records-and-snapshots.json": {
-      "sha256": "aeb2899213779bfdf1f4963baef7bf65cfec78f30f91f1469ba9c128bd610041"
+      "sha256": "8650fc3e734d7bf13149a078dbfa2c5139eaf7898b5c8be82789e7ec58a9e58f"
     }
   },
   "report_export_history_note": "验收样例由build_saved_record_report和现有DOCX renderer直接从已保存Record生成；文件保存及导出审计业务仍由PR #37共享Word导出入口负责。",
@@ -88,7 +88,7 @@
     "same_canonical_input": true,
     "input_comparison": "Excel unit.input_value matched the saved raw input after removing ingress_provenance and normalizing importer-generated input_id; the Canonical/Application copy omits ingress metadata.",
     "source_excel_record_id": "record.input-e8aab5dba75188534a93.fddae46741f84460954c167a14118ea7",
-    "canonical_path_record_id": "record.input.rpt02.saved-record-parity.b0ebe4e8825b457eaf036a47abfbbd1a",
+    "canonical_path_record_id": "record.input.rpt02.saved-record-parity.f691f8e542a84359944e49dde119a549",
     "compared_section_ids": [
       "b1",
       "b2",
