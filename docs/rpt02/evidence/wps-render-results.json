@@ -1,0 +1,26 @@
+[
+  {
+    "filename": "GHG-RPT02_Excel_R2_Record_Appendix_B.docx",
+    "docx_sha256": "4de6c3225ed4531520ea273426f92107cf138682c538deca252e534f69e91e7a",
+    "pages": 10,
+    "tables": 11,
+    "wps_version": "12.0",
+    "pdf_filename": "GHG-RPT02_Excel_R2_Record_Appendix_B.pdf"
+  },
+  {
+    "filename": "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx",
+    "docx_sha256": "05acb33fa9f398d09524eae5c7e535dac3d50aa0069f4ee5212bee77b1ded4d9",
+    "pages": 11,
+    "tables": 10,
+    "wps_version": "12.0",
+    "pdf_filename": "GHG-RPT02_GUI_Canonical_Record_Appendix_B.pdf"
+  },
+  {
+    "filename": "GHG-RPT02_MultiSource_Record_Appendix_B.docx",
+    "docx_sha256": "cff6dc1470998581f847ab20db897c912b69b0ebcc93aec9441c780050656e96",
+    "pages": 14,
+    "tables": 13,
+    "wps_version": "12.0",
+    "pdf_filename": "GHG-RPT02_MultiSource_Record_Appendix_B.pdf"
+  }
+]

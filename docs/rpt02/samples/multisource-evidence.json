@@ -1,0 +1,130 @@
+{
+  "task": "GHG-RPT02_MULTI_SOURCE_ACCEPTANCE",
+  "status": "FORMAL_RECORD_FROM_APPLICATION_USE_CASE",
+  "notice": "单条由Canonical输入及正式CarbonAccountingUseCase生成的多源验收演示Record；输入值及实测类别为版式验收示例，不代表实际企业业务或凭证。",
+  "record_id": "record.input.rpt02.multi-source-demo.e18d2b7e569f401d819576ab01839698",
+  "standard_id": "gbt_32151_34_2024",
+  "algorithm_version": "CAR-SM01-2026-10-09-G06.2-N01C-R1.1",
+  "standard_version": "2024",
+  "record_status": "COMPLETED",
+  "input_source": "_gui_canonical_input plus uniquely identified repeats of tested fuel/process/facility/electricity/heat rows; multi-row material values reuse tests.test_uat01b_material_steam fixture.",
+  "multi_source_counts": {
+    "fuel_inputs": 2,
+    "calcination_processes": 2,
+    "calcination_material_rows": 10,
+    "baking_processes": 2,
+    "baking_material_rows": 12,
+    "graphitization_processes": 2,
+    "graphitization_material_rows": 12,
+    "fume_facilities": 2,
+    "fgd_facilities": 2,
+    "purchased_electricity_lines": 2,
+    "exported_electricity_lines": 2,
+    "purchased_heat_lines": 2,
+    "exported_heat_lines": 2
+  },
+  "appendix_table_structure": {
+    "b2": {
+      "table_count": 1,
+      "body_row_counts": [
+        2
+      ],
+      "material_row_counts": [
+        2
+      ]
+    },
+    "b3": {
+      "table_count": 2,
+      "body_row_counts": [
+        9,
+        9
+      ],
+      "material_row_counts": [
+        8,
+        8
+      ]
+    },
+    "b4": {
+      "table_count": 2,
+      "body_row_counts": [
+        10,
+        10
+      ],
+      "material_row_counts": [
+        9,
+        9
+      ]
+    },
+    "b5": {
+      "table_count": 2,
+      "body_row_counts": [
+        8,
+        8
+      ],
+      "material_row_counts": [
+        7,
+        7
+      ]
+    },
+    "b6": {
+      "table_count": 1,
+      "body_row_counts": [
+        2
+      ],
+      "material_row_counts": [
+        2
+      ]
+    },
+    "b7": {
+      "table_count": 1,
+      "body_row_counts": [
+        2
+      ],
+      "material_row_counts": [
+        2
+      ]
+    },
+    "b8": {
+      "table_count": 1,
+      "body_row_counts": [
+        4
+      ],
+      "material_row_counts": [
+        4
+      ]
+    },
+    "b9": {
+      "table_count": 1,
+      "body_row_counts": [
+        4
+      ],
+      "material_row_counts": [
+        4
+      ]
+    }
+  },
+  "frozen_es_ei_et": {
+    "ES": "606.02",
+    "EI": "73.06",
+    "ET": "679.08"
+  },
+  "report_b1_es": "606.02",
+  "report_b1_et": "679.08",
+  "report_layout_id": "gbt-32151-34-2024-appendix-b",
+  "approved_template_sha256": "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",
+  "canonical_reference_data_source": "data-source/carbon_accounting/catalog.json",
+  "record_and_snapshots_sha256": "08d709213361884dc578a9756577421fe88d03dec08f9b251fdbd652c507d6b5",
+  "files": {
+    "GHG-RPT02_MultiSource_Record_Appendix_B.docx": {
+      "sha256": "cff6dc1470998581f847ab20db897c912b69b0ebcc93aec9441c780050656e96"
+    },
+    "GHG-RPT02_MultiSource_Record_Snapshots.json": {
+      "sha256": "897f5a7594e461c71797988f48fbb42c852238c4e9260749f6ec454ad8b43eda"
+    },
+    "records.sqlite": {
+      "sha256": "e054cd727b093485363d4a84fa6d89eb0a62bc0c14d7a23d5566b7d37c88a4db"
+    }
+  },
+  "frozen_record_snapshot_json": "GHG-RPT02_MultiSource_Record_Snapshots.json",
+  "word_source": "build_saved_record_report(SQLiteRecordRepository.get(record_id)) then existing render_report_docx; no calculator/catalog reads occur during report generation."
+}

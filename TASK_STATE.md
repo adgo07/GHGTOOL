@@ -1,14 +1,14 @@
 # 当前任务状态
 
-状态：WAIT_INDEPENDENT_ACCEPTANCE — GHG-UI-P3-AB（Shell + 标准库联合改造）
-最后更新：2026-10-09
+状态：WAIT_INDEPENDENT_ACCEPTANCE — GHG-RPT02 附录B Word报告收口
+最后更新：2026-10-10
 
-PR #37 已合并，最新 main baseline 为 `708f78a455790946b4a728029bba768d8fb295fc`；独立分支 `codex/ghg-ui-p3-ab`。A、B 实施及独立复核完成，交付单一 PR，不自行合并。最终 head 与 Windows CI 结果以 PR body / checks 为准；本状态提交时 CI 待运行，需完成最终 head 验证后交付。
+从启动时最新origin/main@708f78a创建独立分支codex/ghg-rpt02，包含已合并PR37；不依赖EXB01或P3-AB未合并分支。原checkout用户修改保留。交付时P3-AB已由PR38正式合并，已接收origin/main，仅解决共享治理文档冲突；不引入任何未合并分支。
 
-A 定向9/9后进入B，保护回归68/68，B最终22/22。AB代码快照全量404项：403通过、1临时SQLite文件清理错误；补充DeferredDelete/gc严格清理后相关模块5/5。不得描述为本地全量通过。Canonical、编译、依赖、四库初始化、自动五场景、三档Qt缩放、standalone构建/审计/ZIP/两次启动通过；六组离屏90/90、24PNG+6JSON。命令、数量、前序失败及证据来源见 IMPLEMENTATION_REPORT.md 与 docs/ui/p3-ab/ACCEPTANCE.md。
+已盘点现有ReportModel/renderer/公共Word入口。批准模板可访问，分支副本仅移除指定21个公式，表式布局及原始SHA256登记于appendix_b_layout.json。实现九表、多层表头/合并/脚注、ES与ET、输出扣减及历史缺失显示；不改Calculator或Record。
 
-修改限定于Presentation、相关测试、截图和治理记录；RecordLibraryPage及因子库类不变，ExcelImportPage仅标题。正式业务输入、项目保存恢复、Calculator、Record、解析、报告、Canonical和Frozen基线不变。locked central仍为 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。
+平台/Contract预检查：locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20；读取Architecture V2.1与Numeric v1，保持分层、历史不可变、Decimal显示不回流正式结果。当前中央ACTIVE UI指南仅读适用措辞要求，不升级Frozen。无Contract冲突/升级；相关Standard Issue 004及既有007/008解释保持，不新增或改变软件标准解释。
 
-RPT02开工时BLOCKED，交付前已在独立codex/ghg-rpt02工作树恢复；当前业务文件无交集，TASK_STATE等治理文件可能冲突，不取未合并代码。EXB01未找到启动证据。用户参考文件及其他工作树保留。
+验证进行中，尚未宣称通过正式验收。最终定向29项通过，本地续跑全量404项通过（非最终Head一致性证据）；三条真实Application正式Record（Canonical全源、现有R2导入）及冻结快照/Word样例已生成。同业务输入两路径B.1～B.9一致。WPS最终样例11/10/14页，空白页问题已修；可编辑副本已保存。源码619b527本地Windows构建、265文件审计、266文件ZIP往返及两次隔离启动通过；PR39已提交，候选554f7fd CI两项通过；最终Head本地全量及CI提交后复跑，最终SHA/真实数量/链接以PR39正文与checks留证，不以旧Head绿色代替最终。无自动合并授权。
 
-原生Windows两种分辨率、100%/125%/150%系统DPI的人工操作验收仍OPEN：工具初始化失败；Qt离屏不替代原生。AB完成并合并后Phase3暂停，C/D/E/F按新任务及EXB01/RPT02真实状态另行开展，本轮不实施。
+独立复核补充（2026-10-10）：最终冻结前收口历史电力来源安全边界。单个候选也须与冻结EF精确匹配；购入/输出同编号且仅剩一个无方向证据的快照时标记无法唯一关联；已转交直接燃料路径的自用化石电力不参与购电来源碰撞判断。新增回归连同定向套件30项通过（tmp/rpt02-focused-30.log）；cbaba59全量因本次安全修正主动停止、无完整summary，不计为通过。修正后重新冻结Head并执行全量、构建与CI，最终结果记于PR39正文。
