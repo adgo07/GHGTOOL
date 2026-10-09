@@ -10,9 +10,9 @@
   "source_files_sha256": {
     "apps/carbon_accounting_desktop/product.py": "4e4dd9247762a42bab95e16634b037d5bef902c7f86e0c7c30a49804b692e423",
     "packages/ui/shell.py": "51998e0915ba76cbf654ee75a3e5086155312f5890c8c29372354560401113e7",
-    "packages/ui/pages.py": "b76400674d788ca6d4f7488f3211ebfd1f1402d2882c115343b48c4d78a1fede",
+    "packages/ui/pages.py": "0a453c571a04879a2a1c8067973fa848d9eea103fd4283afe47bceeb33b51a4f",
     "packages/ui/view_models.py": "cfc74b73f1a6ae9b84e1bf4386601dcc63ae1660a2a6d3193f8d584f14f8b891",
-    "packages/ui/catalog_pages.py": "8d58ccbc7f7f52619155580a369999d1b23bce7a1af6ad23053dae8e9ccdaffa"
+    "packages/ui/catalog_pages.py": "e8c98cadb7477fe5ed481b620b56bae2b4cdac5bb7fb91e8ebcb3b22550689aa"
   },
   "captures": [
     {
