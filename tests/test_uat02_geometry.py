@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -53,10 +54,26 @@ class UAT02GeometryTests(unittest.TestCase):
         self.window.close()
         self.application.processEvents()
 
-    def _process_layout_events(self) -> None:
+    def _process_layout_events(self, *, timeout_ms: int = 100) -> None:
+        """Wait briefly for queued Qt layout requests, then keep exact geometry checks."""
         self.application.processEvents()
         QTest.qWait(5)
+        deadline = time.monotonic() + timeout_ms / 1000
+        stable_matches = 0
+        while stable_matches < 2 and time.monotonic() < deadline:
+            self.application.processEvents()
+            expected_height = max(
+                self.shell.main_scroll_area.viewport().height(),
+                self.shell.page_stack.sizeHint().height(),
+            )
+            if self.shell.scroll_host.height() == expected_height:
+                stable_matches += 1
+            else:
+                stable_matches = 0
+            if stable_matches < 2:
+                QTest.qWait(1)
         self.application.processEvents()
+        self._assert_scroll_geometry_matches_page()
 
     def _assert_scroll_geometry_matches_page(self) -> None:
         expected_height = max(
@@ -65,14 +82,17 @@ class UAT02GeometryTests(unittest.TestCase):
         )
         self.assertEqual(self.shell.scroll_host.height(), expected_height)
 
-    def test_dynamic_fuel_rows_resize_scroll_host_across_expand_collapse(self) -> None:
-        status = self.page._source_statuses["CAR-SRC-FUEL-001"]
-        status.setCurrentIndex(status.findData(EmissionSourceStatus.INVOLVED))
+    def test_dynamic_fuel_rows_resize_scroll_host_across_source_toggle(self) -> None:
+        toggle = self.page.findChild(type(self.page._source_toggle_buttons["fuel"]), "sourceToggle_fuel")
+        self.assertIsNotNone(toggle)
+        assert toggle is not None
+        toggle.click()
         self._process_layout_events()
 
         card = self.page._source_cards["CAR-SRC-FUEL-001"]
         scrollbar = self.shell.main_scroll_area.verticalScrollBar()
-        self.assertTrue(card.is_expanded)
+        self.assertIn("已启用", toggle.text())
+        self.assertTrue(card.isVisible())
         self.assertEqual(len(self.page._fuel_rows), 1)
         self._assert_scroll_geometry_matches_page()
 
@@ -87,6 +107,8 @@ class UAT02GeometryTests(unittest.TestCase):
             self.assertGreater(scrollbar.maximum(), 0)
             previous_height = self.shell.scroll_host.height()
 
+        self.page._fuel_rows[0].activity.setText("123.45")
+        self._process_layout_events()
         expanded_height = self.shell.scroll_host.height()
         expanded_scroll_range = scrollbar.maximum()
         self.page._remove_fuel_row(self.page._fuel_rows[10])
@@ -96,15 +118,18 @@ class UAT02GeometryTests(unittest.TestCase):
         self.assertLess(self.shell.scroll_host.height(), expanded_height)
         self.assertGreater(scrollbar.maximum(), 0)
 
-        card.set_expanded(False)
+        toggle.click()
         self._process_layout_events()
         collapsed_height = self.shell.scroll_host.height()
         collapsed_scroll_range = scrollbar.maximum()
+        self.assertFalse(card.isVisible())
         self.assertLess(collapsed_height, expanded_height)
         self.assertLess(collapsed_scroll_range, expanded_scroll_range)
 
-        card.set_expanded(True)
+        toggle.click()
         self._process_layout_events()
+        self.assertTrue(card.isVisible())
+        self.assertEqual(self.page._fuel_rows[0].activity.text(), "123.45")
         self._assert_scroll_geometry_matches_page()
         self.assertGreater(self.shell.scroll_host.height(), collapsed_height)
         self.assertGreater(scrollbar.maximum(), collapsed_scroll_range)
@@ -113,7 +138,6 @@ class UAT02GeometryTests(unittest.TestCase):
         self._process_layout_events()
         self.assertEqual(scrollbar.value(), scrollbar.maximum())
         self.assertLessEqual(self.shell.scroll_host.y(), -scrollbar.maximum())
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # 报告输出架构
 
-状态：RPT01 + RS03 实施口径；PR35收口候选等待PR36整合与验收。
+状态：RPT01 + RS03 实施口径；PR35/36已合并，UAT03复用Word导出流程。
 
 ## 数据流
 
@@ -29,3 +29,7 @@ projects迁移003保存可选Canonical Input及ingress_provenance；Qt form_stat
 关联失败不重算、不撤销Record。分别反馈恢复标记写入失败、已保存标记后的关联失败、关联已保存后的标记清理失败；未保存标记时不能承诺重启自动恢复。
 
 R2的B.1不是输入表；模板保留填写说明、基本信息和B.2～B.9，B.4使用全角斜线页签。本文是开发资料，不打包为运行资源。
+
+## UAT03复用入口
+
+新建核算结果区与记录页共用Presentation导出流程，仍由Application模型与Infrastructure DOCX renderer完成相同输出。新建页只有本次正式Record已保存且输入指纹未过期时可导出；修改后必须重算，不能读取未保存表单替代该Record。UI helper只编排对话框、文件写入和审计，不改公式或报告排版。

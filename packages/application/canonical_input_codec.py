@@ -23,7 +23,7 @@ from packages.core.models import (
     ElectricityProofType,
     PeriodType,
 )
-from packages.core.parameter_resolution import ElectricityConsumptionDetail
+from packages.core.parameter_resolution import ElectricityConsumptionDetail, UserProvidedParameterValue
 from packages.standards.carbon_material import (
     ActivityDataEvidence,
     BakingInput,
@@ -74,6 +74,7 @@ _DATACLASSES: dict[str, type[Any]] = {
     "carbonate_component": CarbonateComponent,
     "calcination_input": CalcinationInput,
     "electricity_consumption_detail": ElectricityConsumptionDetail,
+    "user_provided_parameter_value": UserProvidedParameterValue,
     "emission_source_state": EmissionSourceState,
     "electricity_output_line": ElectricityOutputLine,
     "fgd_input": FGDInput,
@@ -219,11 +220,19 @@ def _decode_value(value: object) -> object:
         if dataclass_type is None or not isinstance(node["fields"], dict):
             raise CanonicalInputCodecError("unknown dataclass type or invalid fields")
         declared_fields = {field.name for field in fields(dataclass_type)}
-        if set(node["fields"]) != declared_fields:
+        encoded_fields = dict(node["fields"])
+        compatible_optional_fields = {
+            "electricity_consumption_detail": {"region", "selected_factor_id", "factor_selection_reason", "factor_override"},
+            "electricity_output_line": {"region"},
+        }.get(node["type"], set())
+        missing_fields = declared_fields.difference(encoded_fields)
+        if set(encoded_fields).difference(declared_fields) or not missing_fields.issubset(compatible_optional_fields):
             raise CanonicalInputCodecError(f"fields do not match {node['type']} schema")
+        for name in missing_fields:
+            encoded_fields[name] = None
         decoded = {
             name: _decode_value(field_value)
-            for name, field_value in node["fields"].items()
+            for name, field_value in encoded_fields.items()
         }
         try:
             return dataclass_type(**decoded)

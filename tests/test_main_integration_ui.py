@@ -195,9 +195,9 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.catalog.rename(self.root / "catalog-unavailable.sqlite")
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value={"prepared_on": date(2026, 10, 7).isoformat()}),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.QMessageBox.information") as success,
-            patch("packages.ui.pages.QMessageBox.critical") as failure,
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()
         failure.assert_not_called()

@@ -1,6 +1,7 @@
 """Application services that orchestrate catalog and carbon-accounting workflows."""
 
 from .catalog_queries import CatalogQueryService
+from .enterprise_history import list_enterprise_name_candidates
 from .carbon_accounting import (
     CarbonAccountingPreviewUseCase,
     CarbonAccountingUseCase,
@@ -22,6 +23,7 @@ __all__ = [
     "CarbonAccountingUseCase",
     "resolve_formal_record_repository",
     "CatalogQueryService",
+    "list_enterprise_name_candidates",
     "ProjectWorkspace",
     "ProjectWorkspaceService",
     "RecordPersistenceError",

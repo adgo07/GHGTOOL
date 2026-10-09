@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Protocol
 from uuid import uuid4
@@ -94,6 +95,12 @@ class ProjectWorkspaceRepository(Protocol):
     def delete(self, project_id: str) -> bool: ...
 
 
+class ProjectWorkspaceTimestampRepository(Protocol):
+    """Optional read-only timestamp query for repositories that expose one."""
+
+    def list_updated_at_by_project_id(self) -> dict[str, datetime]: ...
+
+
 class ProjectWorkspaceService:
     """Thin application service; project saves never write accounting records."""
 
@@ -124,6 +131,17 @@ class ProjectWorkspaceService:
 
     def list_all(self) -> tuple[ProjectWorkspace, ...]:
         return self.repository.list_all()
+
+    def list_updated_at_by_project_id(self) -> dict[str, datetime]:
+        """Return saved project update times when the repository supports them.
+
+        The optional capability keeps older repository test doubles and adapters
+        usable while exposing existing persistence timestamps to Application.
+        """
+        reader = getattr(self.repository, "list_updated_at_by_project_id", None)
+        if not callable(reader):
+            return {}
+        return reader()
 
     def delete(self, project_id: str) -> bool:
         return self.repository.delete(project_id)

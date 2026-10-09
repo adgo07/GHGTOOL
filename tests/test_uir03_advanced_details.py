@@ -18,11 +18,13 @@ from packages.core import ElectricityAcquisitionMode, ElectricityAttribute
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.standards.carbon_material import (
+    CalcinationInput,
     EmissionSourceStatus,
     HeatFactorMode,
     MaterialBasis,
     MaterialComponentKind,
 )
+from packages.standards.carbon_material_normalization import MaterialRole
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard
@@ -69,26 +71,39 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.application.processEvents()
 
     def _set_involved(self, source_id: str) -> None:
-        combo = self.page._source_statuses[source_id]
-        combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
+        groups = {
+            "CAR-SRC-FUEL-001": "fuel",
+            "CAR-SRC-CALCINATION-001": "calcination",
+            "CAR-SRC-BAKING-001": "baking",
+            "CAR-SRC-GRAPHITIZATION-001": "graphitization",
+            "CAR-SRC-FUME-INCINERATION-001": "fume",
+            "CAR-SRC-FGD-001": "fgd",
+            "CAR-SRC-PURCHASED-ELECTRICITY-001": "electricity",
+            "CAR-SRC-EXPORTED-ELECTRICITY-001": "electricity",
+            "CAR-SRC-PURCHASED-HEAT-001": "heat",
+            "CAR-SRC-EXPORTED-HEAT-001": "heat",
+        }
+        group = groups[source_id]
+        if not self.page._source_is_enabled(source_id):
+            self.page._source_toggle_buttons[group].click()
         self.application.processEvents()
-
     def _fill_calcination(self) -> None:
         self.page.enterprise_name.setText("UIR03 测试企业")
         self.page.boundary_confirmed.setChecked(True)
         self._set_involved(CALCINATION_SOURCE)
-        for field, value in {
-            "gc": "100",
-            "wfc": "50",
-            "cc": "70",
-            "ucc": "5",
-            "du": "1",
-            "wfc_c": "25",
-            "wvar": "10",
-            "wvar_c": "2",
-        }.items():
-            self.page._fields[f"calcination.{field}"].setText(value)
-
+        process = self.page._process_rows["calcination"][0]
+        feed, = process["materials"]
+        feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+        feed["name"].setText("煅烧原料")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("50")
+        feed["volatile_matter"].setText("10")
+        product = self.page._add_material_line(process)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("70")
+        product["fixed_carbon"].setText("25")
+        product["volatile_matter"].setText("2")
     def _set_basis(self, mass: str, composition: str, normalized: str = "RECEIVED") -> None:
         controls = self.page._material_controls["calcination"]
         for key, value in (
@@ -102,14 +117,21 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
     def test_received_basis_hides_advanced_fields_and_technical_terms(self) -> None:
         self._set_involved(CALCINATION_SOURCE)
         controls = self.page._material_controls["calcination"]
-        self.assertEqual(controls["basis_summary"].text(), "数据口径：收到基")
+        self.assertFalse(controls["basis_summary"].isVisible())
         self.assertFalse(controls["basis_editor"].isVisible())
         for key in (
+            "mass_basis",
+            "composition_basis",
             "normalized_basis",
             "fixed_carbon_component_kind",
             "volatile_matter_component_kind",
         ):
             self.assertFalse(controls[key].isVisible())
+        value = self.page._process("calcination", CalcinationInput)
+        self.assertIsNotNone(value)
+        assert value is not None
+        self.assertIs(value.mass_basis, MaterialBasis.RECEIVED)
+        self.assertIs(value.composition_basis, MaterialBasis.RECEIVED)
         self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
 
         visible_widgets = [
@@ -140,57 +162,68 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         for source_id, prefix, parameter_id in process_sources:
             self._set_involved(source_id)
             summary = self.page._material_controls[prefix]["parameter_summary"]
-            self.assertTrue(summary.isVisible())
-            self.assertIn("挥发分折算系数：0.35（标准一般取值", summary.text())
-            self.assertNotIn(parameter_id, summary.text())
+            self.assertFalse(summary.isVisible())
 
+        visible_text = "\n".join(
+            widget.text()
+            for widget in self.page.findChildren(QLabel)
+            if widget.isVisible()
+        )
+        self.assertNotIn("挥发分折算系数", visible_text)
+        self.assertNotIn("0.35", visible_text)
         for _, prefix, parameter_id in process_sources:
             details = self.page._material_controls[prefix]["professional_details"]
-            self.assertIn("标准默认参数：0.35（比例）", details.text())
             self.assertIn(f"参数 ID：{parameter_id}", details.text())
             self.assertFalse(details.isVisible())
 
-    def test_basis_mismatch_expands_and_explains_required_action(self) -> None:
-        self._set_involved(CALCINATION_SOURCE)
-        self._set_basis("DRY", "RECEIVED")
+    def test_legacy_basis_rows_remain_blocked_without_conversion_evidence(self) -> None:
+        self._fill_calcination()
+        self._set_basis("DRY", "DRY")
         controls = self.page._material_controls["calcination"]
-        self.assertTrue(controls["basis_editor"].isVisible())
-        self.assertIn("不一致", controls["basis_summary"].text())
-        warning = controls["basis_warning"].text()
-        self.assertIn("干燥基", warning)
-        self.assertIn("收到基", warning)
-        self.assertIn("不能直接计算", warning)
-        self.assertIn("换算依据", warning)
-        self.assertIn("报告/台账编号或来源说明", warning)
+        current_input = self.page._input()
+        current_process = current_input.calcinations[0]
+        self.assertIs(current_process.mass_basis, MaterialBasis.DRY)
+        self.assertIs(current_process.composition_basis, MaterialBasis.DRY)
+        self.assertIs(current_process.normalized_basis, MaterialBasis.RECEIVED)
+        self.assertFalse(current_process.moisture_evidence)
+        self.assertFalse(current_process.conversion_evidence)
+        self.assertIsNotNone(current_process.material_rows)
+        self.assertTrue(controls["basis_warning"].text())
 
-        self._set_basis("OTHER_DOCUMENTED", "OTHER_DOCUMENTED")
-        self.assertIn("其他有证基准", controls["basis_summary"].text())
-        self.assertIn("不能静默换算", controls["basis_warning"].text())
+        outcome = self.page.calculator.calculate(current_input)
+        self.assertTrue(outcome.blocked)
+        self.assertTrue(any(problem.code == "CAR-VAL-MATERIAL-BASIS-CONVERSION" for problem in outcome.problems))
+        self.assertIsNone(outcome.record)
 
-    def test_documented_conversion_maps_domain_basis_and_calculates(self) -> None:
+    def test_documented_legacy_conversion_remains_supported_through_ui_mapping(self) -> None:
         self._fill_calcination()
         self._set_basis("DRY", "DRY")
         controls = self.page._material_controls["calcination"]
         controls["moisture_evidence"].setChecked(True)
         controls["conversion_evidence"].setChecked(True)
-        controls["evidence_reference"].setText("台账-UIR03-001")
-        self.application.processEvents()
+        controls["evidence_reference"].setText("历史项目换算依据")
+        current_input = self.page._input()
+        current_process = current_input.calcinations[0]
+        self.assertIs(current_process.mass_basis, MaterialBasis.DRY)
+        self.assertIs(current_process.composition_basis, MaterialBasis.DRY)
+        self.assertIs(current_process.normalized_basis, MaterialBasis.RECEIVED)
+        self.assertTrue(current_process.moisture_evidence)
+        self.assertTrue(current_process.conversion_evidence)
+        self.assertIsNotNone(current_process.material_rows)
+        self.assertEqual(
+            current_process.fixed_carbon_component_kind,
+            MaterialComponentKind.FIXED_CARBON,
+        )
+        self.assertEqual(
+            current_process.volatile_matter_component_kind,
+            MaterialComponentKind.VOLATILE_MATTER,
+        )
 
-        value = self.page._input()
-        assert value.calcination is not None
-        self.assertIs(value.calcination.mass_basis, MaterialBasis.DRY)
-        self.assertIs(value.calcination.composition_basis, MaterialBasis.DRY)
-        self.assertIs(value.calcination.normalized_basis, MaterialBasis.RECEIVED)
-        self.assertTrue(value.calcination.moisture_evidence)
-        self.assertTrue(value.calcination.conversion_evidence)
-        outcome = self.page.calculator.calculate(value)
+        outcome = self.page.calculator.calculate(current_input)
         self.assertTrue(outcome.successful, outcome.problems)
         self.assertFalse(any(problem.code == "CAR-VAL-MATERIAL-BASIS-CONVERSION" for problem in outcome.problems))
-
     def test_component_kinds_are_automatic_and_domain_values_remain_explicit(self) -> None:
-        self._set_involved(CALCINATION_SOURCE)
-        self.page.enterprise_name.setText("字段性质自动识别企业")
-        self.page._fields["calcination.gc"].setText("10")
+        self._fill_calcination()
         controls = self.page._material_controls["calcination"]
         value = self.page._input()
         assert value.calcination is not None
@@ -198,7 +231,6 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
         self.assertIs(value.calcination.volatile_matter_component_kind, MaterialComponentKind.VOLATILE_MATTER)
         self.assertFalse(controls["fixed_carbon_component_kind"].isVisible())
         self.assertFalse(controls["volatile_matter_component_kind"].isVisible())
-
     def test_ordinary_page_has_no_professional_details_toggle_or_visible_internal_ids(self) -> None:
         self._set_involved(CALCINATION_SOURCE)
         self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
@@ -216,36 +248,32 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
 
     def test_power_and_heat_use_business_summary_with_simple_measured_factor_selection(self) -> None:
         self._set_involved(ELECTRICITY_SOURCE)
-        row = self.page._electricity_rows[0]
+        row = self.page._energy_family_rows["electricity"][0]
         row.amount.setText("10")
-        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
-        row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
         self.page._electricity("enterprise.current", self.page._period())
-        for text in (row.parameter_status.text(), row.parameter_factor.text(), row.parameter_source.text(), row.parameter_reason.text()):
+        for text in (row.status.text(),):
             self.assertNotIn("CAR-", text)
             self.assertNotIn("resolver", text)
             self.assertNotIn("candidate", text)
+
         self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
-        self.assertIn("推荐热力因子", self.page.heat_factor_metadata.text())
-        self.assertNotIn("heat_default_2025", self.page.heat_factor_metadata.text())
-        heat_row = self.page._heat_rows["heat"][0]
-        factor_mode = heat_row["factor_mode"]
+        heat_row = self.page._energy_family_rows["heat"][0]
+        factor_mode = heat_row.heat_factor_mode
         self.assertEqual(factor_mode.currentData(), HeatFactorMode.STANDARD_DEFAULT)
-        self.assertFalse(heat_row["measured"].isVisible())
-        self.assertFalse(heat_row["source"].isVisible())
+        self.assertFalse(heat_row.measured_heat_factor.isVisible())
+        self.assertFalse(heat_row.heat_source.isVisible())
         factor_mode.setCurrentIndex(factor_mode.findData(HeatFactorMode.MEASURED))
         self.application.processEvents()
-        self.assertTrue(heat_row["measured"].isVisible())
-        self.assertTrue(heat_row["source"].isVisible())
-
-    def test_default_and_explicit_received_input_have_equal_domain_and_result(self) -> None:
+        self.assertTrue(heat_row.measured_heat_factor.isVisible())
+        self.assertTrue(heat_row.heat_source.isVisible())
+    def test_default_received_material_rows_ignore_legacy_hidden_basis_state(self) -> None:
         self._fill_calcination()
-        controls = self.page._material_controls["calcination"]
         default_value = self.page._input()
         default_outcome = self.page.calculator.calculate(default_value)
         self.assertTrue(default_outcome.successful, default_outcome.problems)
 
         self._set_basis("RECEIVED", "RECEIVED", "RECEIVED")
+        controls = self.page._material_controls["calcination"]
         controls["fixed_carbon_component_kind"].setCurrentIndex(
             controls["fixed_carbon_component_kind"].findData("FIXED_CARBON")
         )
@@ -279,51 +307,44 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
             [snapshot_signature(snapshot) for snapshot in default_outcome.parameter_snapshots],
             [snapshot_signature(snapshot) for snapshot in explicit_outcome.parameter_snapshots],
         )
-
-    def test_validation_errors_are_business_facing_without_technical_detail_panel(self) -> None:
+    def test_material_row_validation_is_business_facing_without_technical_detail_panel(self) -> None:
         self._fill_calcination()
-        self._set_basis("DRY", "DRY")
+        self.page._process_rows["calcination"][0]["materials"][0]["name"].clear()
         self.page._run_calculation()
         self.application.processEvents()
 
         ordinary_text = "\n".join(tree_texts(self.page.validation_list))
-        self.assertIn("不能直接计算", ordinary_text)
-        self.assertIn("换算依据", ordinary_text)
-        self.assertNotIn("证据", ordinary_text)
+        self.assertIn("必填信息不完整", ordinary_text)
+        self.assertIn("物料名称", ordinary_text)
+        self.assertNotIn("换算依据", ordinary_text)
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)
         self.assertIsNone(self.page.findChild(QWidget, "calculationValidationProfessionalDetails"))
-
     def test_parameter_service_error_is_business_facing_without_technical_detail_panel(self) -> None:
-        self._set_involved("CAR-SRC-PURCHASED-HEAT-001")
+        self._set_involved(ELECTRICITY_SOURCE)
         self.page.enterprise_name.setText("参数服务异常企业")
         self.page.boundary_confirmed.setChecked(True)
         self.page.period_year.setValue(2026)
-        self.page._fields["heat_amount"].setText("1000")
+        row = self.page._energy_family_rows["electricity"][0]
+        row.amount.setText("10")
         self.page.calculator.parameter_resolver = None
         self.page._parameter_resolver = None
-        self.page._heat_factor_records.clear()
-        self.page.heat_factor_selector.clear()
         self.page._run_calculation()
         self.application.processEvents()
 
         ordinary_text = "\n".join(tree_texts(self.page.validation_list))
-        self.assertIn("蒸汽状态资料不完整", ordinary_text)
-        self.assertIn("标准缺省值 0.11", ordinary_text)
+        self.assertIn("暂时无法取得适用的标准参数", ordinary_text)
+        self.assertIn("必须修正", ordinary_text)
         roots = [
             self.page.validation_list.topLevelItem(index).text(0).split("（", 1)[0]
             for index in range(self.page.validation_list.topLevelItemCount())
         ]
-        # The standard implementation-date notice is non-blocking and remains
-        # visible alongside the Domain errors for unavailable inputs.
         self.assertEqual(roots, ["提醒", "必须修正"])
         self.assertNotIn("CAR-VAL-", ordinary_text)
         self.assertNotIn("G05", ordinary_text)
         self.assertNotIn("resolver", ordinary_text)
-
         self.assertIsNone(self.page.findChild(QWidget, "calculationValidationProfessionalDetails"))
-
 
 if __name__ == "__main__":
     unittest.main()

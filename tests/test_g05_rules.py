@@ -593,7 +593,9 @@ class G05RuleTests(unittest.TestCase):
         self.assertEqual(nonfossil.parameter_id, "electricity_emission_factor_nonfossil")
         self.assertEqual(nonfossil.required_factor_ids, ("electricity_nonfossil_zero_gbt32151_34_2024",))
         self.assertEqual(nonfossil.applicability.conditions, (("electricity_attribute", "NONFOSSIL"),))
-        self.assertEqual(nonfossil.source_location, "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22")
+        self.assertEqual(nonfossil.source_location, "GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22；GHG-STD-32151-34-007（软件核验边界）")
+        self.assertEqual(nonfossil.origin, RuleOrigin.SOFTWARE_DERIVED)
+        self.assertIn(("decision", "GHG-STD-32151-34-007"), nonfossil.payload)
         self.assertEqual(industry_by_id["CAR-RULE-FUEL-001"].source_location,
             "GB/T 32151.34—2024 第5.2.1条；附录C；PDF12；印刷页4")
         self.assertEqual(industry_by_id["CAR-RULE-PROCESS-001"].source_location,

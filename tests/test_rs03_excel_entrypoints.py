@@ -219,10 +219,10 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.QMessageBox.information") as success,
-            patch("packages.ui.pages.QMessageBox.critical") as failure,
-            patch("packages.ui.pages.QMessageBox.warning") as warning,
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+            patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
             self.app.processEvents()
@@ -266,6 +266,33 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         self.assertEqual(json.loads(audit[0][1])["document_sha256"], digest)
         self.assertEqual(self._frozen_state(record.record_id), record_before)
 
+    def test_supplementary_read_failure_stops_before_file_dialog_and_audit(self) -> None:
+        record = self._create_record()
+        before = self._frozen_state(record.record_id)
+        page = self._record_page(record.record_id)
+
+        with (
+            patch.object(
+                page,
+                "_report_supplementary_dialog",
+                side_effect=RuntimeError("private supplementary metadata detail"),
+            ),
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName") as file_dialog,
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+            patch.object(self.repository, "record_report_export") as audit,
+        ):
+            page.export_word_button.click()
+            self.app.processEvents()
+
+        failure.assert_called_once()
+        message = failure.call_args.args[2]
+        self.assertIn("报告补充信息", message)
+        self.assertIn("未生成或保存", message)
+        self.assertNotIn("private supplementary metadata detail", message)
+        file_dialog.assert_not_called()
+        audit.assert_not_called()
+        self.assertEqual(self._frozen_state(record.record_id), before)
+
     def test_word_generation_failure_preserves_existing_file_and_record(self) -> None:
         record = self._create_record()
         before = self._frozen_state(record.record_id)
@@ -276,11 +303,11 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.render_report_docx", side_effect=RuntimeError("private renderer detail")),
-            patch("packages.ui.pages.QMessageBox.critical") as failure,
-            patch("packages.ui.pages.QMessageBox.information") as success,
-            patch("packages.ui.pages.QMessageBox.warning") as warning,
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.render_report_docx", side_effect=RuntimeError("private renderer detail")),
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
             self.app.processEvents()
@@ -316,11 +343,11 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.os.replace", side_effect=OSError("private filesystem detail")),
-            patch("packages.ui.pages.QMessageBox.critical") as failure,
-            patch("packages.ui.pages.QMessageBox.information") as success,
-            patch("packages.ui.pages.QMessageBox.warning") as warning,
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.os.replace", side_effect=OSError("private filesystem detail")),
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
             self.app.processEvents()
@@ -355,11 +382,11 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
             patch.object(self.repository, "record_report_export", side_effect=RuntimeError("private audit detail")),
-            patch("packages.ui.pages.QMessageBox.warning") as warning,
-            patch("packages.ui.pages.QMessageBox.information") as success,
-            patch("packages.ui.pages.QMessageBox.critical") as failure,
+            patch("packages.ui.report_export.QMessageBox.warning") as warning,
+            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             page.export_word_button.click()
             self.app.processEvents()
@@ -402,12 +429,12 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(selected), "")),
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(selected), "")),
             patch(
-                "packages.ui.pages.QMessageBox.question",
+                "packages.ui.report_export.QMessageBox.question",
                 return_value=QMessageBox.StandardButton.No,
             ) as question,
-            patch("packages.ui.pages.render_report_docx") as renderer,
+            patch("packages.ui.report_export.render_report_docx") as renderer,
         ):
             page.export_word_button.click()
             self.app.processEvents()

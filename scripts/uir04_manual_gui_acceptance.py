@@ -41,6 +41,7 @@ from packages.standards.carbon_material import (  # noqa: E402
     FuelType,
     MaterialBasis,
 )
+from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.view_models import AppRoute  # noqa: E402
 
 
@@ -80,10 +81,16 @@ def _close_page(application: QApplication, window) -> None:
 
 
 def _involve(page, source_id: str) -> None:
-    combo = page._source_statuses[source_id]
-    combo.setCurrentIndex(combo.findData(EmissionSourceStatus.INVOLVED))
-
-
+    groups = {
+        F01: "fuel",
+        P01: "calcination",
+        I01: "electricity",
+        "CAR-SRC-EXPORTED-ELECTRICITY-001": "electricity",
+        "CAR-SRC-PURCHASED-HEAT-001": "heat",
+        "CAR-SRC-EXPORTED-HEAT-001": "heat",
+    }
+    if not page._source_is_enabled(source_id):
+        page._source_toggle_buttons[groups[source_id]].click()
 def _validation_text(page) -> str:
     """Collect all user-facing validation labels from the grouped tree."""
 
@@ -108,14 +115,22 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         page.boundary_confirmed.setChecked(True)
         _involve(page, F01)
         fuel = page._fuel_rows[0]
-        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
-        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.HEAT))
+        natural_gas = fuel.fuel_type.findData(FuelType.NATURAL_GAS)
+        if natural_gas >= 0:
+            fuel.fuel_type.setCurrentIndex(natural_gas)
+        else:
+            fuel.fuel_type.setEditText("天然气")
+        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.MASS))
+        fuel.carbon_basis.setCurrentIndex(fuel.carbon_basis.findData("DIRECT"))
         fuel.activity.setText("10")
+        fuel.carbon_direct.setText("0.0153")
+        fuel.direct_carbon_source.setCurrentIndex(fuel.direct_carbon_source.findData("MEASURED"))
+        fuel.oxidation.setText("94")
+        fuel.oxidation_source.setCurrentIndex(fuel.oxidation_source.findData("USER_DEFINED"))
         _involve(page, I01)
-        row = page._electricity_rows[0]
-        row.detail_id.setText("grid-ordinary")
+        row = next(row for row in page._energy_family_rows["electricity"] if row.kind.currentData() == "purchased_electricity")
+        row.line_id.setText("grid-ordinary")
         row.amount.setText("20")
-        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
         row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
         page._run_calculation()
         assert page.result_card.isVisible(), {
@@ -124,70 +139,82 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         }
         assert len(repository.list_all()) == 1
         return (
-            f"场景A PASS：燃料+购入常规电力完成计算；结果={page.result_total.text()}；"
+            f"场景A PASS：燃料直接含碳量+购入常规电力完成计算；结果={page.result_total.text()}；"
             f"记录数={len(repository.list_all())}；状态={page.result_status.text()}"
         )
     finally:
         _close_page(application, window)
-
-
 def _scenario_b(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
     window, page, repository = _open_page(application, catalog_service, catalog_path)
     try:
         page.enterprise_name.setText("场景B收到基企业")
         page.boundary_confirmed.setChecked(True)
         _involve(page, P01)
-        for field, value in {
-            "gc": "100",
-            "wfc": "50",
-            "cc": "70",
-            "ucc": "5",
-            "du": "1",
-            "wfc_c": "25",
-            "wvar": "10",
-            "wvar_c": "2",
-        }.items():
-            page._fields[f"calcination.{field}"].setText(value)
+        process = page._process_rows["calcination"][0]
+        feed, = process["materials"]
+        feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+        feed["name"].setText("煅烧原料")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("50")
+        feed["volatile_matter"].setText("10")
+        product = page._add_material_line(process)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("70")
+        product["fixed_carbon"].setText("25")
+        product["volatile_matter"].setText("2")
         page._run_calculation()
-        assert page.result_card.isVisible()
+        assert page.result_card.isVisible(), _validation_text(page)
         assert len(repository.list_all()) == 1
-        return f"场景B PASS：原料煅烧收到基默认口径完成；{page.result_status.text()}"
+        return f"场景B PASS：原料煅烧物料行按收到基默认口径完成；{page.result_status.text()}"
     finally:
         _close_page(application, window)
-
-
 def _scenario_c(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
     window, page, repository = _open_page(application, catalog_service, catalog_path)
     try:
-        page.enterprise_name.setText("场景C基准差异企业")
+        page.enterprise_name.setText("场景C历史口径兼容企业")
         page.boundary_confirmed.setChecked(True)
         _involve(page, P01)
-        for field, value in {
-            "gc": "100",
-            "wfc": "50",
-            "cc": "70",
-            "ucc": "5",
-            "du": "1",
-            "wfc_c": "25",
-            "wvar": "10",
-            "wvar_c": "2",
-        }.items():
-            page._fields[f"calcination.{field}"].setText(value)
+        process = page._process_rows["calcination"][0]
+        feed, = process["materials"]
+        feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+        feed["name"].setText("煅烧原料")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("50")
+        feed["volatile_matter"].setText("10")
+        product = page._add_material_line(process)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("70")
+        product["fixed_carbon"].setText("25")
+        product["volatile_matter"].setText("2")
+
+        # Simulate a saved legacy project carrying non-received-basis rows.
+        # Preserve those values; missing conversion evidence must block by the
+        # Domain rule instead of relabeling the rows as received-basis inputs.
         controls = page._material_controls["calcination"]
-        controls["mass_basis"].setCurrentIndex(controls["mass_basis"].findData(MaterialBasis.DRY))
-        controls["composition_basis"].setCurrentIndex(
-            controls["composition_basis"].findData(MaterialBasis.RECEIVED)
+        for key in ("mass_basis", "composition_basis"):
+            controls[key].setCurrentIndex(controls[key].findData(MaterialBasis.DRY))
+        controls["normalized_basis"].setCurrentIndex(
+            controls["normalized_basis"].findData(MaterialBasis.RECEIVED)
         )
+        current = page._input().calcinations[0]
+        assert current.mass_basis is MaterialBasis.DRY
+        assert current.composition_basis is MaterialBasis.DRY
+        assert current.normalized_basis is MaterialBasis.RECEIVED
+        assert not current.moisture_evidence
+        assert not current.conversion_evidence
+        assert current.material_rows
+
         page._run_calculation()
-        text = _validation_text(page)
-        assert "不能直接计算" in text
-        assert not page.result_card.isVisible()
+        messages = _validation_text(page)
+        assert page.result_card.isHidden(), messages
+        assert page.quality_card.isVisible(), messages
+        assert "换算依据" in messages, messages
         assert len(repository.list_all()) == 0
-        return f"场景C PASS：干基/收到基差异被阻断；实际提示={text}"
+        return "场景C PASS：旧DRY物料及归一口径原值保留；缺少换算证据时按规则阻断且不生成记录。"
     finally:
         _close_page(application, window)
-
-
 def _scenario_d(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
     window, page, repository = _open_page(application, catalog_service, catalog_path)
     try:
@@ -195,48 +222,29 @@ def _scenario_d(application: QApplication, catalog_service: CatalogQueryService,
         page.period_year.setValue(2026)
         page.boundary_confirmed.setChecked(True)
         _involve(page, I01)
-        row = page._electricity_rows[0]
-        row.detail_id.setText("purchased-nonfossil")
+        row = next(row for row in page._energy_family_rows["electricity"] if row.kind.currentData() == "purchased_electricity")
+        row.line_id.setText("purchased-nonfossil")
         row.amount.setText("20")
-        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
         row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.NONFOSSIL))
-        row.proof_type.setCurrentIndex(
-            row.proof_type.findData(ElectricityProofType.CONTRACT_AND_SETTLEMENT)
-        )
-        row.proof_status.setCurrentIndex(row.proof_status.findData(ElectricityProofStatus.VALID))
-        page._run_calculation()
-        assert page.result_card.isVisible()
-        assert "已确定" in row.parameter_status.text()
-        assert len(repository.list_all()) == 1
-        return f"场景D PASS：有效非化石电力证明通过；{row.parameter_status.text()}；{page.result_status.text()}"
-    finally:
-        _close_page(application, window)
-
-
-def _scenario_e(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
-    window, page, repository = _open_page(application, catalog_service, catalog_path)
-    try:
-        page.period_year.setValue(2026)
-        page.boundary_confirmed.setChecked(True)
-        _involve(page, F01)
-        fuel = page._fuel_rows[0]
-        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
-        fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.HEAT))
-        fuel.activity.setText("10")
-        _involve(page, I01)
-        row = page._electricity_rows[0]
-        row.detail_id.setText("grid-ordinary-empty-enterprise")
-        row.amount.setText("20")
-        row.acquisition.setCurrentIndex(row.acquisition.findData(ElectricityAcquisitionMode.PURCHASED))
-        row.attribute.setCurrentIndex(row.attribute.findData(ElectricityAttribute.ORDINARY))
+        assert not hasattr(row, "proof_type")
+        assert not hasattr(row, "proof_status")
         page._run_calculation()
         assert page.result_card.isVisible(), _validation_text(page)
         assert len(repository.list_all()) == 1
-        return f"场景E PASS：企业名称留空仍可完成核算；记录数={len(repository.list_all())}；状态={page.result_status.text()}"
+        return f"场景D PASS：非化石购电无需证明字段仍可完成核算；{row.status.text()}；{page.result_status.text()}"
     finally:
         _close_page(application, window)
-
-
+def _scenario_e(application: QApplication, catalog_service: CatalogQueryService, catalog_path: Path) -> str:
+    window, page, repository = _open_page(application, catalog_service, catalog_path)
+    try:
+        page.boundary_confirmed.setChecked(True)
+        page._run_calculation()
+        assert page.result_card.isVisible(), _validation_text(page)
+        assert len(repository.list_all()) == 1
+        assert repository.list_all()[0].input_snapshot.enterprise_name is None
+        return f"场景E PASS：企业名称留空仍可成功核算；记录数={len(repository.list_all())}；状态={page.result_status.text()}"
+    finally:
+        _close_page(application, window)
 def main() -> int:
     _configure_console_encoding()
     application = QApplication.instance() or QApplication([])

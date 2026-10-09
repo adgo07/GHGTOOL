@@ -13,7 +13,7 @@
   "numeric_profile": {
     "numeric_profile_id": "GHGTOOL_CARBON_DECIMAL40_CURRENT",
     "numeric_contract_version": "v1",
-    "calculator_version": "CAR-SM01-2026-09-30-N01C-R1.1",
+    "calculator_version": "CAR-SM01-2026-10-09-G06.2-N01C-R1.1",
     "representation": "decimal",
     "working_precision": 40,
     "rounding_mode": "ROUND_HALF_UP",

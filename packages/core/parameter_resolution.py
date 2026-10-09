@@ -8,6 +8,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 
+from .decimal_policy import DecimalPolicy
 from .errors import DomainValidationError, IssueLevel, ValidationProblem
 from .models import (
     AccountingPeriod,
@@ -53,6 +54,7 @@ class ParameterValueCategory(str, Enum):
     OTHER_APPLICABLE = "OTHER_APPLICABLE"
     HISTORICAL = "HISTORICAL"
     ENTERPRISE_MEASURED = "ENTERPRISE_MEASURED"
+    USER_PROVIDED = "USER_PROVIDED"
 
 
 class FactorRelationType(str, Enum):
@@ -71,6 +73,7 @@ def _require_id(value: str, field_name: str) -> str:
     return value
 
 NATIONAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_national"
+PROVINCIAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_provincial_average"
 NONFOSSIL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_nonfossil"
 NONFOSSIL_ZERO_FACTOR_ID = "electricity_nonfossil_zero_gbt32151_34_2024"
 
@@ -164,6 +167,50 @@ class FactorRelation:
             raise DomainValidationError("factor relation reason is required")
 
 
+@dataclass(frozen=True, slots=True)
+class UserProvidedResolvedFactor:
+    """Ephemeral resolver result for a manually entered, non-catalog value."""
+
+    factor_id: str | None
+    parameter_id: str
+    subject_id: str
+    parameter_type: ParameterType
+    value: Decimal
+    unit: str
+    source_id: str | None = None
+    version: str | None = None
+    source_location: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class UserProvidedParameterValue:
+    """An explicit user-entered parameter value with honest, optional provenance."""
+
+    value: str | Decimal | int
+    unit: str
+    source_reference: str | None = None
+    selection_reason: str = "用户手动修改并采用本次电力因子。"
+
+    def __post_init__(self) -> None:
+        try:
+            parsed = DecimalPolicy().parse(self.value)
+        except ValueError as exc:
+            raise DomainValidationError("user-provided parameter value is invalid") from exc
+        if parsed < 0:
+            raise DomainValidationError("user-provided emission factor cannot be negative")
+        object.__setattr__(self, "value", parsed)
+        if not isinstance(self.unit, str) or not self.unit.strip() or "\n" in self.unit or "\r" in self.unit:
+            raise DomainValidationError("user-provided parameter unit is required")
+        object.__setattr__(self, "unit", self.unit.strip())
+        if self.source_reference is not None:
+            if not isinstance(self.source_reference, str) or not self.source_reference.strip():
+                raise DomainValidationError("source_reference cannot be blank")
+            object.__setattr__(self, "source_reference", self.source_reference.strip())
+        if not isinstance(self.selection_reason, str) or not self.selection_reason.strip():
+            raise DomainValidationError("selection_reason is required")
+        object.__setattr__(self, "selection_reason", self.selection_reason.strip())
+
+
 def _legacy_electricity_dimensions(electricity_type: str | None, accounting_mode: str | None) -> tuple[ElectricityAcquisitionMode | None, ElectricityAttribute | None]:
     """Translate legacy aliases only at the per-detail context boundary."""
     if electricity_type is None:
@@ -213,6 +260,7 @@ class ParameterResolutionContext:
     measured_factor: Factor | None = None
     confirmed_factor_id: str | None = None
     confirmation_reason: str | None = None
+    user_provided_value: UserProvidedParameterValue | None = None
     extra_context: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
@@ -244,6 +292,10 @@ class ParameterResolutionContext:
             _require_id(self.confirmed_factor_id, "confirmed_factor_id")
         if self.confirmation_reason is not None and not self.confirmation_reason.strip():
             raise DomainValidationError("confirmation_reason cannot be blank")
+        if self.user_provided_value is not None and not isinstance(self.user_provided_value, UserProvidedParameterValue):
+            raise DomainValidationError("user_provided_value must be a UserProvidedParameterValue")
+        if self.user_provided_value is not None and self.confirmed_factor_id is not None:
+            raise DomainValidationError("a user-entered value and a selected catalog factor are mutually exclusive")
         object.__setattr__(self, "extra_context", tuple(self.extra_context))
 
     def to_rule_context(self) -> RuleContext:
@@ -267,14 +319,14 @@ class ParameterResolutionContext:
 
 @dataclass(frozen=True, slots=True)
 class ResolvedParameterValue:
-    factor: Factor
+    factor: Factor | UserProvidedResolvedFactor
     category: ParameterValueCategory
     priority: int
     match_reasons: tuple[str, ...] = ()
     evidence_requirements: tuple[str, ...] = ()
 
     @property
-    def factor_id(self) -> str:
+    def factor_id(self) -> str | None:
         return self.factor.factor_id
 
     @property
@@ -293,6 +345,7 @@ class ParameterResolution:
     warnings: tuple[ValidationProblem, ...]
     effective_rules: EffectiveRuleSet
     requires_confirmation: bool = False
+    user_provided_value: UserProvidedParameterValue | None = None
 
     @property
     def blocked(self) -> bool:
@@ -309,21 +362,22 @@ class ParameterResolution:
         factor = self.recommended.factor
         if self.context.standard_id is None:
             raise DomainValidationError("snapshot requires a standard_id in the resolution context")
+        override = self.user_provided_value
         return ParameterSnapshot(
             snapshot_id=snapshot_id,
             parameter_id=factor.parameter_id,
-            factor_id=factor.factor_id,
-            value_used=factor.value,
-            unit_used=factor.unit,
-            source_id=factor.source_id,
-            source_version=factor.version,
+            factor_id=None if override is not None else factor.factor_id,
+            value_used=override.value if override is not None else factor.value,
+            unit_used=override.unit if override is not None else factor.unit,
+            source_id=None if override is not None else factor.source_id,
+            source_version=None if override is not None else factor.version,
             selection_method=self.selection_method,
             selection_reason=self.selection_reason,
             standard_id=self.context.standard_id,
             snapshot_at=snapshot_at,
-            factor_version=factor.version,
-            source_location=factor.source_location,
-            factor_year=factor.factor_year,
+            factor_version=None if override is not None else factor.version,
+            source_location=override.source_reference if override is not None else factor.source_location,
+            factor_year=None if override is not None else factor.factor_year,
             detail_id=detail_id,
         )
 
@@ -351,6 +405,10 @@ class ElectricityConsumptionDetail:
     attribute: ElectricityAttribute
     proof_type: ElectricityProofType = ElectricityProofType.NONE
     proof_status: ElectricityProofStatus = ElectricityProofStatus.NOT_PROVIDED
+    region: str | None = None
+    selected_factor_id: str | None = None
+    factor_selection_reason: str | None = None
+    factor_override: UserProvidedParameterValue | None = None
 
     def __post_init__(self) -> None:
         _require_id(self.detail_id, "detail_id")
@@ -376,6 +434,24 @@ class ElectricityConsumptionDetail:
             raise DomainValidationError("electricity_amount cannot be negative")
         object.__setattr__(self, "electricity_amount", amount)
         object.__setattr__(self, "electricity_unit", self.electricity_unit.strip())
+        if self.region is not None:
+            if not isinstance(self.region, str):
+                raise DomainValidationError("region must be text")
+            normalized_region = self.region.strip()
+            object.__setattr__(self, "region", normalized_region or None)
+        if self.selected_factor_id is not None:
+            _require_id(self.selected_factor_id, "selected_factor_id")
+        if self.factor_selection_reason is not None:
+            if not isinstance(self.factor_selection_reason, str) or not self.factor_selection_reason.strip():
+                raise DomainValidationError("factor_selection_reason cannot be blank")
+            object.__setattr__(self, "factor_selection_reason", self.factor_selection_reason.strip())
+        if self.factor_override is not None and not isinstance(self.factor_override, UserProvidedParameterValue):
+            raise DomainValidationError("factor_override must be a UserProvidedParameterValue")
+        if self.selected_factor_id is not None and self.factor_override is not None:
+            raise DomainValidationError("a catalog factor and a manually entered factor are mutually exclusive")
+        if self.selected_factor_id is not None or self.factor_override is not None:
+            if self.acquisition_mode is not ElectricityAcquisitionMode.PURCHASED or self.attribute is not ElectricityAttribute.ORDINARY:
+                raise DomainValidationError("factor selection and manual factor overrides apply only to ordinary purchased electricity")
 
     @property
     def electricity_acquisition_mode(self) -> ElectricityAcquisitionMode:
@@ -390,7 +466,7 @@ class ElectricityConsumptionDetail:
         if self.attribute is ElectricityAttribute.NONFOSSIL:
             return NONFOSSIL_ELECTRICITY_PARAMETER_ID
         if self.attribute is ElectricityAttribute.ORDINARY and self.acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
-            return NATIONAL_ELECTRICITY_PARAMETER_ID
+            return PROVINCIAL_ELECTRICITY_PARAMETER_ID if self.region is not None else NATIONAL_ELECTRICITY_PARAMETER_ID
         return None
 
     @property
@@ -415,10 +491,17 @@ class ElectricityConsumptionDetail:
             parameter_id=parameter_id,
             standard_id=self.standard_id,
             accounting_period=self.accounting_period,
+            region=self.region,
             subject_id="purchased_electricity",
             parameter_type=parameter_type,
             electricity_acquisition_mode=self.acquisition_mode,
             electricity_attribute=self.attribute,
+            confirmed_factor_id=self.selected_factor_id,
+            confirmation_reason=(
+                self.factor_selection_reason or "用户选择了目录中的其他适用电力因子。"
+                if self.selected_factor_id is not None else None
+            ),
+            user_provided_value=self.factor_override,
             extra_context=(
                 ("electricity_detail_id", self.detail_id),
                 ("nonfossil_proof", self.nonfossil_proof_value),
@@ -479,16 +562,6 @@ def _is_self_consumed_fossil_context(context: ParameterResolutionContext) -> boo
     )
 
 
-def _has_nonfossil_proof(context: ParameterResolutionContext) -> bool:
-    values = dict(context.extra_context)
-    proof = values.get("nonfossil_proof") or values.get("green_power_proof")
-    if context.electricity_acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
-        return proof in {"contract_and_settlement", "gec"}
-    if context.electricity_acquisition_mode is ElectricityAcquisitionMode.SELF_CONSUMED:
-        return proof == "self_consumption_monthly_record"
-    return False
-
-
 def _is_nonfossil_zero_factor(factor: Factor) -> bool:
     return (
         factor.factor_id == NONFOSSIL_ZERO_FACTOR_ID
@@ -509,6 +582,7 @@ class ParameterResolver:
         common_rules: Sequence[RuleDefinition] = (),
         industry_rules: Sequence[RuleDefinition] = (),
         applicability: Sequence[FactorApplicability] = (),
+        required_applicability_parameter_ids: Sequence[str] = (),
         relations: Sequence[FactorRelation] = (),
         rule_resolver: EffectiveRuleResolver | None = None,
     ) -> None:
@@ -516,6 +590,10 @@ class ParameterResolver:
         self._common_rules = tuple(common_rules)
         self._industry_rules = tuple(industry_rules)
         self._applicability = {item.factor_id: item for item in applicability}
+        self._required_applicability_parameter_ids = frozenset(
+            _require_id(item, "required_applicability_parameter_id")
+            for item in required_applicability_parameter_ids
+        )
         self._relations = tuple(relations)
         self._rule_resolver = rule_resolver or EffectiveRuleResolver()
 
@@ -560,6 +638,8 @@ class ParameterResolver:
         if context.standard_id and factor.applicable_standard_ids and context.standard_id not in factor.applicable_standard_ids:
             return False
         applicability = self._applicability.get(factor.factor_id)
+        if context.parameter_id in self._required_applicability_parameter_ids and applicability is None:
+            return False
         if applicability is not None and not applicability.matches(context):
             return False
         period = context.accounting_period
@@ -656,9 +736,98 @@ class ParameterResolver:
     def _problem(self, code: str, level: IssueLevel, message: str, field_id: str) -> ValidationProblem:
         return ValidationProblem(code, level, message, field_id)
 
+    def _resolve_user_provided_value(
+        self,
+        context: ParameterResolutionContext,
+        effective: EffectiveRuleSet,
+        problems: list[ValidationProblem],
+    ) -> ParameterResolution:
+        override = context.user_provided_value
+        assert override is not None
+        expected_parameter_id = (
+            PROVINCIAL_ELECTRICITY_PARAMETER_ID if context.region is not None
+            else NATIONAL_ELECTRICITY_PARAMETER_ID
+        )
+        if (
+            context.parameter_id not in {NATIONAL_ELECTRICITY_PARAMETER_ID, PROVINCIAL_ELECTRICITY_PARAMETER_ID}
+            or context.parameter_id != expected_parameter_id
+            or context.parameter_type is not ParameterType.ELECTRICITY_EMISSION_FACTOR
+            or context.electricity_acquisition_mode is not ElectricityAcquisitionMode.PURCHASED
+            or context.electricity_attribute is not ElectricityAttribute.ORDINARY
+        ):
+            problems.append(self._problem(
+                "GEN-VAL-USER-OVERRIDE-ROUTE",
+                IssueLevel.ERROR,
+                "用户填报的电力因子只适用于地区对应的普通购入电力路径。",
+                context.parameter_id,
+            ))
+        parameter = self._repository.get_parameter(context.parameter_id)
+        if parameter is None:
+            problems.append(self._problem(
+                "GEN-VAL-USER-OVERRIDE-PARAMETER",
+                IssueLevel.ERROR,
+                "当前参数目录中不存在用户填报因子对应的参数。",
+                context.parameter_id,
+            ))
+        elif override.unit != parameter.default_unit:
+            problems.append(self._problem(
+                "GEN-VAL-USER-OVERRIDE-UNIT",
+                IssueLevel.ERROR,
+                f"用户填报因子单位必须为 {parameter.default_unit}。",
+                context.parameter_id,
+            ))
+        if effective.blocked:
+            problems.append(self._problem(
+                "GEN-PAR-CONFLICT-BLOCKED",
+                IssueLevel.ERROR,
+                "当前规则集存在未解决冲突，不能形成用户填报因子的正式快照。",
+                context.parameter_id,
+            ))
+        if override.source_reference is None:
+            problems.append(self._problem(
+                "GEN-VAL-USER-OVERRIDE-SOURCE-MISSING",
+                IssueLevel.WARNING,
+                "用户填报的电力因子未记录来源说明；本次按输入值计算并保留为手动覆盖。",
+                context.parameter_id,
+            ))
+        if any(problem.level is IssueLevel.ERROR for problem in problems):
+            return ParameterResolution(
+                context=context, recommended=None, alternatives=(), historical=(),
+                selection_method=None, selection_reason=override.selection_reason,
+                warnings=tuple(problems), effective_rules=effective,
+                user_provided_value=override,
+            )
+        assert parameter is not None
+        factor = UserProvidedResolvedFactor(
+            factor_id=None,
+            parameter_id=context.parameter_id,
+            subject_id=context.subject_id or parameter.subject_id,
+            parameter_type=parameter.parameter_type,
+            value=override.value,
+            unit=override.unit,
+            source_id=None,
+            version=None,
+            source_location=override.source_reference,
+        )
+        selected = ResolvedParameterValue(
+            factor=factor,
+            category=ParameterValueCategory.USER_PROVIDED,
+            priority=0,
+            match_reasons=("用户填报的普通购入电力因子",),
+        )
+        return ParameterResolution(
+            context=context, recommended=selected, alternatives=(), historical=(),
+            selection_method=ParameterSelectionMethod.MANUAL_OVERRIDE,
+            selection_reason=override.selection_reason,
+            warnings=tuple(problems), effective_rules=effective,
+            user_provided_value=override,
+        )
+
     def resolve(self, context: ParameterResolutionContext) -> ParameterResolution:
         effective = self._effective_rules(context)
         problems = list(effective.problems)
+        if context.user_provided_value is not None:
+            return self._resolve_user_provided_value(context, effective, problems)
         rules = effective.rules_for_parameter(context.parameter_id)
         # Coverage/specialization rules may cover several parameter paths without
         # carrying a selection policy of their own.  Keep the explicit parameter
@@ -697,16 +866,6 @@ class ParameterResolver:
                     )
                 )
                 factors = ()
-            elif not _has_nonfossil_proof(context):
-                problems.append(
-                    self._problem(
-                        "GEN-VAL-NONFOSSIL-EVIDENCE",
-                        IssueLevel.ERROR,
-                        "采用非化石电力零因子前必须提供 GB/T 32151.34—2024 附录 D.2 适用证明。",
-                        context.parameter_id,
-                    )
-                )
-                factors = ()
             else:
                 factors = tuple(factor for factor in factors if _is_nonfossil_zero_factor(factor))
                 if not factors:
@@ -714,7 +873,7 @@ class ParameterResolver:
                         self._problem(
                             "GEN-VAL-NONFOSSIL-ZERO-FACTOR-MISSING",
                             IssueLevel.ERROR,
-                            "非化石电力证明已提供，但当前 Canonical 因子库没有批准的独立零因子。",
+                            "当前 Canonical 因子库没有登记适用的独立非化石电力零因子。",
                             context.parameter_id,
                         )
                     )
@@ -1173,7 +1332,7 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
         _frozen_rule("GEN-RULE-FACTOR-PRIORITY-001", "parameter_selection", RuleRelation.BASE, "因子适用优先级。",
             standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="factor.priority",
             source_location="GB/T 32150—2025 第7.4条；PDF14～15；印刷页8～9", evidence_source_id=common_source),
-        _parameter_rule("GEN-RULE-ELECTRICITY-001", ("electricity_emission_factor_national",),
+        _parameter_rule("GEN-RULE-ELECTRICITY-001", ("electricity_emission_factor_national", PROVINCIAL_ELECTRICITY_PARAMETER_ID),
             ParameterSelectionPolicy.OFFICIAL_LATEST, relation=RuleRelation.BASE, standard_id="gbt_32150_2025",
             applicable_standard_ids=common_ids, parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
             target_id="electricity_emission_factor_national", description="最新适用官方电力因子。",
@@ -1242,14 +1401,17 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
             source_location="GB/T 32151.34—2024 第4.2、5.2条；SM01-DECISION-001",
             evidence_source_id="SM01-DECISION-001", confirmation_id="SM01-DECISION-001"),
         _frozen_rule("CAR-RULE-NONFOSSIL-POWER-001", "parameter_selection", RuleRelation.OVERRIDE,
-            "非化石能源电力使用独立零因子；附录D.2证明是使用零因子的前置条件。",
+            "非化石能源电力使用标准指定的独立零因子；本软件不自动核验佐证资料。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids,
             target_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID, parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID,
             parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
             selection_policy=ParameterSelectionPolicy.STANDARD_REQUIRED, required_factor_ids=(NONFOSSIL_ZERO_FACTOR_ID,), priority=300,
             supersedes_rule_ids=("GEN-RULE-ELECTRICITY-001",),
+            origin=RuleOrigin.SOFTWARE_DERIVED,
+            payload=(("decision", "GHG-STD-32151-34-007"),),
             conditions=(("electricity_attribute", ElectricityAttribute.NONFOSSIL.value),),
-            source_location="GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22", evidence_source_id=carbon_source),
+            source_location="GB/T 32151.34—2024 第5.2.6.1条、附录D.1.1；PDF第30页；印刷页22；GHG-STD-32151-34-007（软件核验边界）",
+            evidence_source_id=carbon_source, confirmation_id="GHG-STD-32151-34-007"),
         _frozen_rule("CAR-RULE-QA-001", "quality", RuleRelation.EXTEND, "炭素材料质量要求补充。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="quality.assurance",
             source_location="GB/T 32151.34—2024 第6条；PDF16～18；印刷页8～10", evidence_source_id=carbon_source),

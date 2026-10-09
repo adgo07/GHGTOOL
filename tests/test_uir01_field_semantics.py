@@ -25,6 +25,7 @@ from packages.standards.carbon_material import (
     MaterialBasis,
     MaterialComponentKind,
 )
+from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage, SOURCE_LABELS
 from packages.ui.field_specs import (
     CURRENT_UI_INPUT_KEYS,
@@ -259,57 +260,61 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
         )
         page.enterprise_name.setText("UIR01 等价企业")
         page.boundary_confirmed.setChecked(True)
-        source = page._source_statuses["CAR-SRC-CALCINATION-001"]
-        source.setCurrentIndex(source.findData(EmissionSourceStatus.INVOLVED))
-        values = {
-            "gc": "100",
-            "wfc": "50",
-            "cc": "70",
-            "ucc": "5",
-            "du": "1",
-            "wfc_c": "25",
-            "wvar": "10",
-            "wvar_c": "2",
-        }
-        for field, value in values.items():
-            page._fields[f"calcination.{field}"].setText(value)
-        controls = page._material_controls["calcination"]
-        for key in ("mass_basis", "composition_basis", "normalized_basis"):
-            controls[key].setCurrentIndex(controls[key].findData(MaterialBasis.RECEIVED))
-        controls["fixed_carbon_component_kind"].setCurrentIndex(
-            controls["fixed_carbon_component_kind"].findData(MaterialComponentKind.FIXED_CARBON)
-        )
-        controls["volatile_matter_component_kind"].setCurrentIndex(
-            controls["volatile_matter_component_kind"].findData(MaterialComponentKind.VOLATILE_MATTER)
-        )
+        page._source_toggle_buttons["calcination"].click()
+        process_row = page._process_rows["calcination"][0]
+        feed, = process_row["materials"]
+        feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
+        feed["name"].setText("煅烧原料")
+        feed["mass"].setText("100")
+        feed["fixed_carbon"].setText("50")
+        feed["volatile_matter"].setText("10")
+        product = page._add_material_line(process_row)
+        product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
+        product["name"].setText("煅后料")
+        product["mass"].setText("70")
+        product["fixed_carbon"].setText("25")
+        product["volatile_matter"].setText("2")
 
         ui_input = page._input()
+        actual_process = ui_input.calcinations[0]
+        self.assertEqual(actual_process.gc.value, Decimal("100"))
+        self.assertEqual(actual_process.wfc.value, Decimal("0.5"))
+        self.assertEqual(actual_process.cc.value, Decimal("70"))
+        self.assertEqual(actual_process.ucc.value, Decimal("0"))
+        self.assertEqual(actual_process.du.value, Decimal("0"))
+        self.assertEqual(actual_process.wfc_c.value, Decimal("0.25"))
+        self.assertEqual(actual_process.wvar.value, Decimal("0.1"))
+        self.assertEqual(actual_process.wvar_c.value, Decimal("0.02"))
+
         expected_process = CalcinationInput(
             gc="100",
             wfc=InputValue("0.5", "ratio"),
             cc="70",
-            ucc="5",
-            du="1",
+            ucc="0",
+            du="0",
             wfc_c=InputValue("0.25", "ratio"),
             wvar=InputValue("0.1", "ratio"),
             wvar_c=InputValue("0.02", "ratio"),
-            k1=ui_input.calcination.k1,
+            k1=actual_process.k1,
             mass_basis=MaterialBasis.RECEIVED,
             composition_basis=MaterialBasis.RECEIVED,
             normalized_basis=MaterialBasis.RECEIVED,
             fixed_carbon_component_kind=MaterialComponentKind.FIXED_CARBON,
             volatile_matter_component_kind=MaterialComponentKind.VOLATILE_MATTER,
+            instance_id=actual_process.instance_id,
         )
-        self.assertEqual(ui_input.calcination, expected_process)
-
-        direct_input = replace(ui_input, input_id="input.uir01.expected", calcination=expected_process)
+        direct_input = replace(
+            ui_input,
+            input_id="input.uir01.expected",
+            calcination=expected_process,
+            calcinations=(expected_process,),
+        )
         ui_outcome = page.calculator.calculate(ui_input)
         expected_outcome = CarbonMaterialCalculator().calculate(direct_input)
         self.assertTrue(ui_outcome.successful, ui_outcome.problems)
         self.assertTrue(expected_outcome.successful, expected_outcome.problems)
         self.assertEqual(ui_outcome.result.total_amount, expected_outcome.result.total_amount)
         page.deleteLater()
-
 
 if __name__ == "__main__":
     unittest.main()
