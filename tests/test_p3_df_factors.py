@@ -77,6 +77,7 @@ class P3DFFactorTests(unittest.TestCase):
         for expected in ("0.11", result.unit, "7.5.6", "来源有效期", "数据类型", "原始值"):
             self.assertIn(expected, text)
         self.assertTrue(page.factor_detail_scroll.widgetResizable())
+        self.assertGreaterEqual(page.factor_detail_scroll.width(), 320)
 
     def test_source_filter_and_empty_search_do_not_leave_stale_detail(self):
         page = self.page

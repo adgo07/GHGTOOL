@@ -123,6 +123,7 @@ from .source_cards import SourceCard, SourceCardPresentationState
 from .responsive_fields import ResponsiveFieldGrid
 from .typed_inputs import NumericLineEdit, create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
+from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -1018,15 +1019,21 @@ class CarbonMaterialAccountingPage(BasePage):
             self._refresh_heat_factor_details()
 
     def _build_page(self) -> None:
+        self.body_layout.setSpacing(16)
         self.add_header("新建核算", "")
         page_description = self.findChild(QLabel, "pageDescription")
         if page_description is not None:
             page_description.hide()
 
-        identity, identity_layout = _card("01 核算信息与核算边界", self)
+        identity, identity_layout = _card("核算信息与边界", self)
         form = QFormLayout()
+        form.setHorizontalSpacing(20)
+        form.setVerticalSpacing(10)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.standard_id_label = QLabel("GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》", identity)
         self.standard_id_label.setObjectName("accountingStandardId")
+        self.standard_id_label.setWordWrap(True)
         form.addRow("核算标准", self.standard_id_label)
         self.enterprise_name = _SearchableEnterpriseCombo(identity)
         self.enterprise_name.setObjectName("enterpriseNameInput")
@@ -1047,6 +1054,7 @@ class CarbonMaterialAccountingPage(BasePage):
         period_row = QWidget(identity)
         period_layout = QHBoxLayout(period_row)
         period_layout.setContentsMargins(0, 0, 0, 0)
+        period_layout.setSpacing(10)
         self.period_year = QSpinBox(period_row)
         self.period_year.setObjectName("accountingPeriodYear")
         self.period_year.setProperty("fieldSpecKey", "period_year")
@@ -1225,7 +1233,9 @@ class CarbonMaterialAccountingPage(BasePage):
 
         self._build_project_unit_controls()
 
-        source_activity, source_activity_layout = _card("02 排放源与活动数据", self)
+        source_activity, source_activity_layout = _card("排放源与活动数据", self)
+        source_activity.setProperty("dfActivityRegion", True)
+        source_activity_layout.setSpacing(12)
         source_navigation_row = QHBoxLayout()
         self.source_navigation = QComboBox(source_activity)
         self.source_navigation.setObjectName("accountingSourceNavigation")
@@ -1242,7 +1252,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.source_navigation.currentIndexChanged.connect(self._jump_to_source)
         self.body_layout.addWidget(source_activity)
 
-        process_card, process_layout = _card("06 计算过程", self)
+        process_card, process_layout = _card("计算依据", self)
         self.process_card = process_card
         self.trace_output = QLabel("点击“计算排放量”后显示分项计算结果。", process_card)
         self.trace_output.setObjectName("calculationTrace")
@@ -1259,10 +1269,11 @@ class CarbonMaterialAccountingPage(BasePage):
         process_card.setVisible(False)
         self.body_layout.addWidget(process_card)
 
-        result_card, result_layout = _card("07 核算结果", self)
+        result_card, result_layout = _card("核算结果", self)
         self.result_card = result_card
         self.result_total = QLabel("未计算", result_card)
         self.result_total.setObjectName("calculationTotal")
+        self.result_total.setWordWrap(True)
         result_layout.addWidget(self.result_total)
         self.result_status = QLabel("状态：尚未计算", result_card)
         self.result_status.setObjectName("calculationStatus")
@@ -1300,7 +1311,7 @@ class CarbonMaterialAccountingPage(BasePage):
         result_actions.addStretch(1)
         result_layout.addLayout(result_actions)
         result_card.setVisible(False)
-        self.body_layout.addWidget(result_card)
+        self.body_layout.insertWidget(self.body_layout.indexOf(process_card), result_card)
 
         quality_card, quality_layout = _card("问题汇总", self)
         self.quality_card = quality_card
@@ -1316,9 +1327,11 @@ class CarbonMaterialAccountingPage(BasePage):
 
         status_bar = QFrame(self)
         status_bar.setObjectName("calculationStatusBar")
-        status_layout = QHBoxLayout(status_bar)
+        status_layout = QGridLayout(status_bar)
         status_layout.setContentsMargins(16, 10, 16, 10)
-        status_layout.setSpacing(12)
+        status_layout.setHorizontalSpacing(16)
+        status_layout.setVerticalSpacing(4)
+        status_layout.setColumnStretch(3, 1)
         self.confirmed_source_count = QLabel("已确认排放源：0", status_bar)
         self.confirmed_source_count.setObjectName("confirmedSourceCount")
         self.error_count = QLabel("错误：0", status_bar)
@@ -1328,19 +1341,82 @@ class CarbonMaterialAccountingPage(BasePage):
         self.calculation_status_hint = QLabel("填写完成后点击“计算排放量”，软件会集中检查并反馈问题。", status_bar)
         self.calculation_status_hint.setObjectName("calculationStatusHint")
         self.calculation_status_hint.setWordWrap(True)
-        status_layout.addWidget(self.confirmed_source_count)
-        status_layout.addWidget(self.error_count)
-        status_layout.addWidget(self.reminder_count)
-        status_layout.addWidget(self.calculation_status_hint, 1)
+        status_layout.addWidget(self.confirmed_source_count, 0, 0)
+        status_layout.addWidget(self.error_count, 0, 1)
+        status_layout.addWidget(self.reminder_count, 0, 2)
+        status_layout.addWidget(self.calculation_status_hint, 1, 0, 1, 4)
 
         self.calculate_button = QPushButton("计算排放量", self)
         self.calculate_button.setObjectName("calculateAccountingButton")
         self.calculate_button.setProperty("primary", True)
         self.calculate_button.clicked.connect(self._run_calculation)
-        status_layout.addWidget(self.calculate_button)
+        status_layout.addWidget(self.calculate_button, 0, 4, 2, 1)
         self.body_layout.addWidget(status_bar)
         self.body_layout.addStretch(1)
+        self._apply_accounting_style()
         self._refresh_source_cards()
+
+    def _apply_accounting_style(self) -> None:
+        """Page-local visuals; exclude optional report fields and export controls."""
+        self.setStyleSheet(f"""
+            QFrame[dfActivityRegion="true"] QLineEdit,
+            QFrame[dfActivityRegion="true"] QComboBox,
+            QComboBox#enterpriseNameInput, QComboBox#accountingPeriodType,
+            QSpinBox#accountingPeriodYear, QDateEdit#accountingPeriodStart,
+            QDateEdit#accountingPeriodEnd {{
+                min-height: 28px; padding: 3px 8px;
+                border: 1px solid {BORDER}; border-radius: 6px;
+                background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
+            }}
+            QComboBox#enterpriseNameInput QLineEdit {{
+                border: none; padding: 0; background: transparent;
+            }}
+            QFrame[dfActivityRegion="true"] QLineEdit:focus,
+            QFrame[dfActivityRegion="true"] QComboBox:focus,
+            QComboBox#enterpriseNameInput:focus, QComboBox#accountingPeriodType:focus,
+            QSpinBox#accountingPeriodYear:focus, QDateEdit#accountingPeriodStart:focus,
+            QDateEdit#accountingPeriodEnd:focus {{ border-color: {PRIMARY_BRAND}; }}
+            QFrame[dfActivityRegion="true"] QLineEdit:read-only {{
+                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
+            }}
+            QFrame[dfActivityRegion="true"] QLineEdit:disabled,
+            QFrame[dfActivityRegion="true"] QComboBox:disabled {{
+                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton {{
+                min-height: 32px; padding: 2px 12px;
+                border: 1px solid {BORDER}; border-radius: 6px;
+                background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton:hover,
+            QFrame[dfActivityRegion="true"] QPushButton:focus {{
+                border-color: {PRIMARY_BRAND}; background: {SURFACE_MUTED};
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="已启用"] {{
+                border-color: {PRIMARY_BRAND}; background: #E6F4FB;
+                color: #075985; font-weight: 600;
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="部分启用"] {{
+                border-color: #B54708; background: #FFFAEB; color: #92400E;
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton:disabled {{
+                color: {SECONDARY_TEXT}; background: {SURFACE_MUTED};
+            }}
+            QPushButton#quickCalculateAccountingButton {{
+                border-color: {PRIMARY_BRAND}; color: {PRIMARY_BRAND}; font-weight: 600;
+            }}
+            QFrame#unifiedElectricityCard, QFrame#unifiedHeatCard {{
+                border: 1px solid {BORDER}; border-radius: 8px; background: {SURFACE_MUTED};
+            }}
+            QLabel#unifiedElectricityTitle, QLabel#unifiedHeatTitle {{
+                font-size: 16px; font-weight: 600; color: {PRIMARY_TEXT};
+            }}
+            QLabel#unifiedEnergyHelp, QLabel#parameterSnapshotSummary {{
+                color: {SECONDARY_TEXT}; font-size: 13px;
+            }}
+            QLabel#calculationTotal {{ font-size: 24px; font-weight: 600; color: {PRIMARY_BRAND}; }}
+            QLabel#calculationTrace, QLabel#calculationBreakdown {{ font-size: 14px; }}
+        """)
 
     def _build_project_unit_controls(self) -> None:
         toggle = QPushButton("展开项目与核算单元", self)
