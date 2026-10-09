@@ -1,18 +1,18 @@
 # 当前任务状态
 
-状态：IN_PROGRESS — GHG-EXB01 附录B正式Excel模板与输入
+状态：IN_PROGRESS — GHG-EXB01，实现完成、最终本地428/428及Windows构建/审计通过；PR #40 Draft，等待原生保存及最终Head CI/独立验收
 最后更新：2026-10-10
 
-已确认 origin 指向 canonical GHGTOOL 仓库。PR35/36/37/38均已合并；本分支以 main@708f78a455790946b4a728029bba768d8fb295fc 为初始基线，最新 origin/main 为 a51afbcf684e3845369977e42adc938866726d0b。当前唯一工作包仍为 GHG-EXB01。原 checkout 及用户修改/参考文件保留。
+仓库origin实核adgo07/GHGTOOL；独立分支codex/exb01-appendix-b-ingress。初始main708f78a，已合最新main a51afbc(PR38)，保留首页/Shell/标准库成果。当前实现head 84071c2；原checkout和用户资料不改。
 
-PR #38 的 GHG-UI-P3-AB 已合并；其测试和原生验收边界见 docs/ui/p3-ab/ACCEPTANCE.md。AB 后 Phase 3 暂停，不启动 P3-C/D/E/F。 本次合入后的G03定向回归本地11/11通过（`python -m unittest tests.test_g03_shell -v`，8.082s）；不代表完整回归。
+附录B正式资源/精确复制、B.2～B.9整本Canonical导入、R2新入口删除、旧EXCEL_R2项目/Record证据兼容、显式保存项目/正式追加Record、资源白名单已实现。电力映射按PR37：购入非化石零因子，输出不使用购入属性且按适用输出因子扣减；组标签缺失但有活动值定位fatal。K1～K3/I/TR经已有核验绑定接正式Resolver，缺省组分总和超100%仍阻断。
 
-母版可访问，原SHA c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4。发现21个指定结果公式，按授权仅清理受控副本；新资源SHA e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d。原文件未改。模板服务已实现精确字节复制；独立只读核对九表/布局/合并/验证/样式/其他值无差异。
+最新本地canonical/compileall/pip check/隔离四库初始化PASS；合main后的G03 11/11，Resolver2/2。最终全量日志build/exb01/full-regression-84071c2.log；Windows重建日志build/exb01/windows-build-84071c2.log，输出build/exb01/windows-final。前轮efc构建/发布审计/ZIP/两次隔离启动PASS，不能代替脚注修复后的最终验证。
 
-R2专属生成/解析模块已删除，附录B整工作簿Adapter和OOXML词法读取已落盘，保留Canonical项目/Record闭环及旧EXCEL_R2证据。期间/地区/自定义燃料单位缺口不猜测；无法归组时定位单元格。Luna 6/max分担Importer、迁移测试与独立审查。补齐K1～K3已有正文核验绑定到正式Resolver的桥接，不改数值或公式。
+独立复核发现并修复B.7 `A Sample Batch`与B.2“使用提示”名称误判脚注漏读，采用全宽合并结构与受限脚注标记识别；专项17/17、主集成组合23/23 PASS。预览重复提醒已去重。
 
-已修复独立审查发现的项目上下文误导与资源打包边界：打开项目时锁定新导入字段并显示保存期间；Windows资源及setuptools数据精确文件清单。已有GUI五场景、125%/150%缩放通过；canonical校验、compileall、pip check通过。当前集中修正电力不同入口的单位表示兼容并补专项测试，尚未宣告完整回归通过。
+原母版SHA c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4保持；授权删除21结果公式后的资源SHA e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d。
 
-原生 Excel/WPS 保存由 Astra 6/low 三次尝试（最新 2026-10-10 01:13:20～21，北京时间），均因 trusted Node process exited unexpectedly 未能启动工具；未操作任何文件，无原生保存产物。该验收项未通过，不能用 openpyxl/离屏验证替代。
+原生保存最新Astra重试2026-10-10 01:13:20～21仍在@oai/sky初始化trustedNode失败，无文件操作/产物，本项未验收。84071c2 Windows构建、263文件发布审计、264可见文件ZIP验证、两次隔离启动均PASS；包内唯一批准模板SHA匹配。84071c2完整回归428/428，0 fail、0 error、0 skip，1194.369s；最终文档Head CI待完成；独立AI实现代码复核无新增阻断、17/17和模板2/2独立通过，最终文档由独立AI复核；交付仍因原生保存与最终CI未闭合保持Draft。locked central不变；不改Domain公式/DB/Word模型，不执行P3CDEF。禁止自动合并。
 
-预检查与映射边界见docs/exb01/APPENDIX_B_INPUT_DESIGN.md。locked central不变；不改数据库、Calculator公式、Word版式或P3-C/D/E/F。尚未运行最终完整回归、Windows构建、原生保存验证或最终Head CI，不声明验收完成。下一稳定断点更新结果；新PR不得自动合并。
+详细实现/命令与真实结果见IMPLEMENTATION_REPORT.md；设计与预检查见docs/exb01/APPENDIX_B_INPUT_DESIGN.md。
