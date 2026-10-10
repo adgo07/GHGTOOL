@@ -949,6 +949,7 @@ class ParameterFactorLibraryPage(BasePage):
             rows = (
                 ("参数", parameter.name if parameter else "—"),
                 ("适用对象", subject.name if subject else "—"),
+                *((("地区", "、".join(dict.fromkeys(binding.region for binding in result.bindings if binding.region))),) if any(binding.region for binding in result.bindings) else ()),
                 ("数值", format(asset.value, "f")),
                 ("单位", asset.unit),
                 ("适用条件", self._asset_condition_text(result)),
