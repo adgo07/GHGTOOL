@@ -154,6 +154,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         self._set_import_context(excel_page)
         with patch("packages.ui.pages.QFileDialog.getOpenFileName", return_value=(str(self._workbook()), "")):
             excel_page.selectFileButton.click()
+            self.assertIsNone(excel_page._last_preview)
+            excel_page.preview_button.click()
         text = excel_page.preview_text.toPlainText()
         self.assertIn("预览排放总量：", text)
         self.assertIn("tCO₂", text)

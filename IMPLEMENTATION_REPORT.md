@@ -1,41 +1,29 @@
-# GHG-UI-P3-C 核算记录与报告界面统一实施报告
+# GHG-UI-P3-E 实施报告
 
-日期：2026-10-10。当前状态：整合最新main后验证中；不自动合并、不实施P3-E。
+日期：2026-10-10。范围：附录B表格导入页Presentation统一；PR #43已通过独立验收，并与已合并P3-C进行无业务语义变更的分支整合。
 
-## 平台 / Contract 预检查
+## 基线与平台 / Contract 预检查
 
-仓库origin已确认是`https://github.com/adgo07/GHGTOOL.git`。任务启动时最新main为`029ebe6fa6081e3d742ba3900e641e4c4f6aecf0`；PR40/41在执行期间进入main，本分支已整合到最终验证基线`4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813`。已合并P3-AB PR38、RPT02 PR39、EXB01 PR40、P3-DF PR41。
+从已核实的Canonical origin `https://github.com/adgo07/GHGTOOL.git`最新 `origin/main@4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813` 创建 `codex/ghg-ui-p3-e-table-import`。该基线包含P3-AB #38、RPT02 #39、EXB01 #40和P3-DF #41。页面/测试实现提交为 `15b5cfb284ad85461490e7da78b99b9bf571a2c3`。
 
-中央Frozen SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`保持不变；已读中央Phase 2 UI规范及当前ACTIVE UI指南。本任务不涉及中央公共Contract，不修改Frozen、Numeric或baseline。相关Standard Issue：无；本任务不改变既有软件解释或正式核算结果。
+本仓锁定中央Frozen baseline `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。本任务仅调整UI和专属Presentation组件，不涉及中央公共Contract；不改变Architecture、Numeric、标准支持范围或正式规则。Standard Issues Register 8项全部RESOLVED，本任务无新增Issue且不改变已有软件解释。
 
-## 改动与边界
+## 实现
 
-- `packages/ui/pages.py`：记录页拆分列表与独立详情；完整搜索/状态筛选/行操作；两个且仅两个指定页签；第二页签连续呈现报告汇总、活动/来源、参数来源、质量提示与可读计算依据；移除普通审计详情弹窗；导出/删除绑定已打开Record，避免隐藏列表选中项改变操作对象。
-- `packages/ui/record_experience.py`：为连续计算依据提供面向人的说明；收紧第一屏结果摘要；明确ES/ET/EI语义。历史输入缺失或快照损坏按已保存证据展示，不从Catalog或Calculator补造。
-- `tests/test_p3_c_records_ui.py`及相关记录/UAT测试：列表访问、搜索筛选、独立详情、审计入口、导出绑定、删除确认与历史快照回归。
-- `scripts/p3_c_ui_acceptance.py`及`docs/ui/p3-c/evidence/`：Windows原生Qt自动场景、截图、正式Application演示Record Word和证据JSON。
-- `HANDOFF.md`、路线、状态与本报告：更新当前包范围和验收状态。
+ExcelImportPage现在以一个页面的四个紧凑区域表达模板、文件/核算信息、检查预览、项目保存/正式计算/结果。文件选择与预览成为两个明确动作。结果表对每个单元显示状态和展示用总量；选择单元后可读具体单元格、字段和工作簿提醒。致命工作簿检查错误以页面内文字呈现，不使用阻断式弹窗。
 
-未改Calculator、Canonical、Record模型/Schema、数据库、历史快照、Excel导入、新建核算、参数因子库、Shell或RPT02报告实现。RPT02一致性证据应以保护文件哈希和同Record公共Word导出对照为准。
+新增 `packages/ui/excel_import_components.py` 作为页面专属展示组件，不引入业务/数据访问规则。选择/预览、有效单元保存、打开项目、主动正式核算、Record关联均沿用EXB01已合并业务路径。无结果Excel导出入口。
 
-## 本地验证结果
+代码保护比对确认只触及ExcelImportPage、新增页面组件、界面相关测试、截图和状态记录；Excel Adapter、Canonical、Decimal、Calculator、Projects/Records、数据库、模板、Word报告和正式导出语义均无差异。
 
-所有Python验证均使用项目Python 3.12.14环境；以下为本地执行结果，不是GitHub Actions结果。
+## 验证与证据
 
-| 验证 | 命令/证据 | 实际结果 |
-|---|---|---|
-| 定向回归 | python -m unittest tests.test_p3_c_records_ui tests.test_g07_records tests.test_g08_delivery tests.test_uat02_usability tests.test_main_integration_ui tests.test_rs03_excel_entrypoints tests.test_rpt02_appendix_b -v | 69项通过；0失败、0错误、0跳过；233.247秒。日志：tmp/p3c-final-focused-py312.log。 |
-| 全量回归 | QT_QPA_PLATFORM=offscreen；python -m unittest discover -s tests -t . -v | 456项通过；0失败、0错误、0跳过；1572.595秒。日志：tmp/p3c-full-tests-py312.log；摘要Ran 456 tests ... OK。 |
-| Windows原生Qt | python scripts/p3_c_ui_acceptance.py --platform windows；1366×768及1920×1080，Qt缩放100%、125%、150% | 六组均PASS，共115项检查（20+19×5）；Windows 10、PySide6 windows平台。自动脚本，不是人工操作系统DPI验收。 |
-| 截图与样例 | docs/ui/p3-c/evidence/ | 30张最终PNG、6份配置JSON、1份范围/RPT02证明JSON、1份正式Application Record Word样例。公共导出与直接RPT02建模/渲染的Word body XML一致；导出前后Record快照相同且Record数量不增加。 |
-| 范围证明 | evidence/scope-and-rpt02-proof.json | 基线4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813；12项报告、Shell、计算、Schema/Frozen保护文件均未变；pages.py中RecordLibraryPage以外的4个页面AST均未变。 |
-| 编译 | python -m compileall -q apps packages resources scripts tests | Python 3.12.14，退出码0。 |
-| 依赖检查 | uv pip check --python（项目Python 3.12环境） | 17个已安装包兼容。 |
-| Windows独立构建 | python scripts/build_standalone.py --output-root tmp/p3c-build-6ad85af | Windows 10 / Python 3.12.14 / PyInstaller 6.22.3，exit 0；manifest source_commit=6ad85afc123dc3e09e8f0cd87147f885ad65155f，264个文件。 |
-| 发布审计 | python scripts/inspect_release.py；python scripts/verify_release_archive.py | 264文件审计PASS；265可见文件ZIP往返PASS。 |
-| 独立启动 | python scripts/smoke_standalone.py | 2次隔离启动PASS。 |
-| GitHub CI | PR #42 Windows CI run 198 | merge-ref 456项全量通过；UIR04场景/缩放通过；PR-head 14项G08、exact-head standalone构建、provenance、269文件审计、270文件ZIP往返和2次smoke均通过。head=7023b279624fbc75a1a41ba7d01320b3cc8e15a0，构建source_commit与head一致。当前PR head检查以PR正文/Checks为准。 |
+本地Python 3.12完整回归453/453通过；定向回归34/34；P3-E专项5/5。GUI与Excel的正式结果在既有集成测试中按未修约Decimal逐项等值比较。完整命令、业务保护测试、截图哈希及OPEN项见 `docs/ui/p3-e/ACCEPTANCE.md`。
 
-## 待完成验收项
+Windows独立版从已提交源码重建成功；发布目录审计267文件PASS；上传式ZIP往返268可见文件PASS；独立程序两次启动PASS。此为本机Windows结果，不是GitHub Actions结果；GitHub Windows CI须对最终PR head再验证。
 
-本地定向/全量、六组Windows原生Qt、Word一致性和Windows standalone构建/审计/smoke已通过。剩余：创建并推送独立PR、等待GitHub当前head CI及独立验收。
+## 未完成项与交付
+
+截图为Windows Qt离屏生成，不冒充原生鼠标/键盘/DPI人工验收。原生Windows交互和系统缩放仍OPEN；EXB01既有Excel/WPS原生保存后回导缺项仍OPEN。该包不改业务语义，也不改变行业标准支持状态。
+
+PR #43：https://github.com/adgo07/GHGTOOL/pull/43。独立验收已通过；分支整合在PR #42合并之后完成，当前Head CI及最终合并状态以GitHub Checks和PR页面为准。

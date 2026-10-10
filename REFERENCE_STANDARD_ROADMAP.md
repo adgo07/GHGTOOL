@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-10（PR41已合并；当前GHG-UI-P3-C）
+最后更新：2026-10-10（P3-C PR #42与P3-E PR #43均已独立验收，完成集成）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -353,11 +353,10 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- P3-AB（PR #38）、RPT02（PR #39）、EXB01（PR #40）及P3-DF（PR #41）已进入当前main。正式附录B输入与冻结Record Word报告保持原有能力。
-- 当前执行独立的 `GHG-UI-P3-C`：统一核算记录列表和详情Presentation，保留完整列表搜索/筛选/操作、两个指定详情页签、连续输入与计算依据、删除审计及既有Word导出。
-- 本包不修改正式Record、Calculator、Canonical、Schema、历史快照、报告模型/模板/renderer/export语义、新建核算、参数因子库、表格导入或公共Shell。
-- P3-E尚未授权；本包完成后等待独立验收，不自行合并或启动其他阶段。原生人工系统DPI/鼠标/键盘及Excel/WPS往返验收缺项继续按既有证据记录，不由自动Qt结果替代。
-- RS04 Golden和RS05正式Release Gate尚未完成，不将GB/T 32151.34—2024提升为SUPPORTED。PR #27保持CLOSED / UNMERGED。
+- P3-AB PR #38、RPT02 PR #39、EXB01 PR #40、P3-DF PR #41、P3-C PR #42及P3-E PR #43均已通过对应验收，按独立PR整合到main。
+- P3-C只改核算记录列表与两个详情页签；P3-E只改附录B表格导入页面，后者与前者共同保留，均不改正式Calculator、Record、Excel Adapter、Word正式报告或数据库。
+- 原生Windows人工鼠标/键盘/系统DPI及Excel/WPS保存后回导仍为明确OPEN证据，不以自动测试结果替代。
+- 下一阶段需单独授权与正式Gate：RS04 Golden/正式标准支持候选、RS05 Windows Release；当前GB/T 32151.34—2024仍不得宣布SUPPORTED。PR #27维持CLOSED / UNMERGED。
 
 ## 9. 相关治理登记项的归属
 
@@ -373,7 +372,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 本路线不自行授权新的产品阶段；当前仅按用户明确授权执行GHG-UI-P3-C记录页Presentation收口。P3-E及RS04～RS06+仍需各自授权并通过正式阶段门禁。
+- 本路线不自行授权新的产品阶段；P3-C/P3-E已完成独立验收与整合，RS04～RS06+仍需按各自Gate授权。
 - EXB01附录B九表正式输入与RPT02 Word报告已合并；继续共享正式Application/Calculator及冻结Record，预览不能隐式写Record，报告不可重算历史。
 - 不修改中央Frozen Contract、platform-lock、Numeric或Schema，不宣布GB/T 32151.34—2024已SUPPORTED。
 - PR #27继续CLOSED/UNMERGED，不恢复旧V1和旧R2新下载路径。

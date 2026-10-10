@@ -167,6 +167,9 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         ):
             page.selectFileButton.click()
             self.app.processEvents()
+            self.assertIsNone(page._last_preview)
+            page.preview_button.click()
+            self.app.processEvents()
 
         preview = page._last_preview
         self.assertIsNotNone(preview)

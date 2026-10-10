@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR35～PR41已合并；当前GHG-UI-P3-C）
+最后更新：2026-10-10（P3-C PR #42 与 P3-E PR #43 已独立验收；先后集成入main）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -30,11 +30,11 @@ Module ID：`qz.carbon_accounting`
 ## 2. 当前阶段
 
 - **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40、P3-DF PR41均已进入`main`。附录B输入与RPT02冻结Record Word报告继续作为正式能力；P3-DF只影响新建核算与参数因子库Presentation。
-- **当前工作包：** 用户明确授权 `GHG-UI-P3-C 核算记录与报告界面统一`。任务分支从启动时最新main `029ebe6`建立，已整合随后合并的最新main `4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813`；P3-C与P3-DF保持独立改动。
+- **已完成的Phase 3界面包：** P3-C PR #42 统一核算记录列表和双页签详情；P3-E PR #43 统一EXB01附录B导入页面的四个操作区域。两者由同一main基线独立开发，本次整合时保留双方Presentation改动。
 - **仅限Presentation：** 记录列表可搜索、状态筛选并可完整访问；独立详情只有“基本信息与结果”“输入数据与计算依据”两个页签，第二页签连续展示；普通界面移除审计详情入口，继续保留底层Trace、Provenance及审计证据。
 - **操作与报告：** 删除仍二次确认并审计保留；Word复用已合并PR37/RPT02公共入口，报告模型、模板、渲染器及导出语义不变。
-- **禁止范围：** 不改正式Record、Calculator、Canonical、数据库Schema或历史快照；不改新建核算、参数因子库、表格导入及公共Shell。
-- **门禁：** 仅报告工作树实际测试与GitHub当前head结果。Windows自动Qt检查不冒充人工DPI/鼠标/键盘验收；完成独立PR后等待验收，不自动合并或开始P3-E。
+- **保护边界：** 不改正式Record、Calculator、Canonical、数据库Schema及历史快照，不改EXB01业务导入器、RPT02报告模型/renderer、参数因子库或中央Frozen规则。
+- **验证边界：** 两PR原Head各自Windows CI通过；合并集成后的PR #43以新Head CI为准。原生鼠标/键盘/系统DPI人工验证及Excel/WPS保存回导的既有OPEN事项不因本次整合自动关闭。
 
 既有PF01、RS03与UAT03软件决定继续有效，相关007/008解释不变。以下长期产品决定继续适用。
 
@@ -186,12 +186,6 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应用户授权的 **GHG-UI-P3-C**。仅处理核算记录列表与记录详情Presentation及复用既有Word导出入口；新建核算、参数因子库、表格导入、公共Shell、计算和报告实现均不在范围内。
+P3-C（PR #42）与P3-E（PR #43）均已完成独立验收；本次整合在同一main内同时保留RecordLibraryPage双页签业务展示与ExcelImportPage四区操作路径。记录页面只做Presentation，Excel页面继续使用EXB01的安全解析、Preview、显式项目保存和正式UseCase。Word导出仍复用公共服务，不重算历史。
 
-记录列表保留真实搜索、状态筛选、完整访问及操作；记录详情独立显示，只有两个指定页签，依据页签内容连续。普通审计详情入口移除，底层Trace、Provenance与审计证据及删除二次确认机制保留。以独立PR交付，等待验收，不自行合并、不实施P3-E。
-
-### 已合并基线（非当前包）
-
-PR35/36与PR37的业务实现和验收属于历史基线。GHG-UAT03 V2 的需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`；省级电力选择及取消非化石自动证明前置等既有决定，继续按标准问题台账、规则版本与来源快照追踪，不改变冻结 Mapping。
-
-PR #38 的 GHG-UI-P3-AB 和 PR #41 的 GHG-UI-P3-DF 均已合并。其原生人工验收OPEN边界分别见对应验收文档；当前P3-C按独立授权执行，不扩展至P3-E。
+完整代码和验证证据分别见 `docs/ui/p3-c/ACCEPTANCE.md`、`docs/ui/p3-e/ACCEPTANCE.md` 及各自PR的Checks。本阶段不宣称已完成原生Windows人工DPI验收、Excel/WPS回导验收或RS04/RS05门禁。
