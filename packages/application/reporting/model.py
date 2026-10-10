@@ -23,7 +23,7 @@ from packages.standards.carbon_material import (
     SOURCE_PURCHASED_HEAT,
 )
 
-REPORT_SCHEMA_VERSION = "1.0.0"
+REPORT_SCHEMA_VERSION = "2.0.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +46,12 @@ class ReportTable:
     columns: tuple[str, ...]
     rows: tuple[ReportRow, ...]
     landscape: bool = False
+    header_rows: tuple[ReportRow, ...] = ()
+    header_merges: tuple[tuple[int, int, int, int], ...] = ()
+    body_merges: tuple[tuple[int, int, int, int], ...] = ()
+    footnotes: tuple[str, ...] = ()
+    column_weights: tuple[float, ...] = ()
+    context_label: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +74,8 @@ class ReportModel:
     sections: tuple[ReportSection, ...]
     notices: tuple[str, ...]
     supplementary_note: str | None = None
+    layout_id: str = ""
+    template_sha256: str = ""
 
 
 _SOURCE_NAMES = {
@@ -84,6 +92,7 @@ _SOURCE_NAMES = {
     "DERIVED": "依据输入数据计算",
     "CALCULATED": "计算值",
     "USER_DEFINED": "用户提供值",
+    "USER_PROVIDED": "用户提供值",
     "CHEMICAL_CALCULATION": "化学计算",
     "METER": "计量器具",
     "PRODUCTION_LEDGER": "生产台账",
@@ -106,31 +115,11 @@ _FUEL_NAMES = {
     "OTHER": "其他燃料",
 }
 
-_PATH_NAMES = {"VOLUME": "体积", "MASS": "质量", "HEAT": "热量"}
-_MATERIAL_NAMES = {
-    "calcination_feed": "待煅烧原料", "calcined_product": "煅后料",
-    "underburn_recovered": "欠烧煅料", "carbon_dust": "碳粉尘",
-    "baking_filler": "填充料", "green_baking_product": "待焙烧/炭化品",
-    "baked_product": "焙烧/炭化产品", "baking_byproduct": "粉尘/碎屑/副产品",
-    "graphitization_packing": "保温料/电阻料", "green_graphitization_product": "待石墨化品",
-    "graphitized_product": "石墨化产品", "graphitization_byproduct": "粉尘/碎屑/残块/副产品",
-}
 _BUSINESS_SOURCE_NAMES = {
     SOURCE_FUEL: "化石燃料燃烧", SOURCE_CALCINATION: "原料煅烧", SOURCE_BAKING: "焙烧/炭化",
     SOURCE_GRAPHITIZATION: "石墨化", SOURCE_FUME: "烟气焚烧", SOURCE_FGD: "烟气脱硫",
     SOURCE_PURCHASED_ELECTRICITY: "购入电力", SOURCE_EXPORTED_ELECTRICITY: "输出电力",
     SOURCE_PURCHASED_HEAT: "购入热力", SOURCE_EXPORTED_HEAT: "输出热力",
-}
-_VARIABLE_NAMES = {
-    "gc": "待煅烧原料数量", "wfc": "待煅烧原料固定碳含量", "cc": "煅后料数量",
-    "ucc": "欠烧煅料数量", "du": "碳粉尘数量", "wfc_c": "输出物料固定碳含量",
-    "wvar": "待煅烧原料挥发分", "wvar_c": "煅后料挥发分", "k1": "煅烧系数",
-    "bpm": "填充料数量", "bpmfc": "填充料固定碳含量", "bg": "待焙烧/炭化品数量",
-    "bgfc": "待焙烧/炭化品固定碳含量", "bwt": "粉尘/副产品碳量", "bp": "焙烧/炭化产品数量",
-    "bpfc": "焙烧/炭化产品固定碳含量", "bpmvar": "填充料挥发分", "bgvar": "待焙烧/炭化品挥发分", "k2": "焙烧系数",
-    "gpm": "保温料/电阻料数量", "gpmfc": "保温料/电阻料固定碳含量", "gta": "待石墨化品数量",
-    "gtafc": "待石墨化品固定碳含量", "gwt": "粉尘/副产品碳量", "gp": "石墨化产品数量",
-    "gpfc": "石墨化产品固定碳含量", "gpmvar": "保温料/电阻料挥发分", "k3": "石墨化系数",
 }
 
 
@@ -152,7 +141,7 @@ def _entries(raw: object, key: str, legacy: str | None = None) -> tuple[Mapping[
 def _text(value: object) -> str:
     if value is None:
         return ""
-    if isinstance(value, Mapping) and "value" in value:
+    if isinstance(value, Mapping):
         return _text(value.get("value"))
     if isinstance(value, Decimal):
         return str(value)
@@ -242,10 +231,6 @@ def _table(table_id: str, title: str, columns: Sequence[str], values: Sequence[S
     return ReportTable(table_id, title, tuple(columns), rows, landscape)
 
 
-def _source_description(snapshot: Mapping[str, Any] | None) -> str | None:
-    return _snapshot_source(snapshot)
-
-
 def _activity_source(value: object) -> str | None:
     activity = _mapping(value)
     parts = [
@@ -253,6 +238,30 @@ def _activity_source(value: object) -> str | None:
         _text(activity.get("source_reference")),
     ]
     return "；".join(part for part in parts if part) or None
+
+
+def frozen_totals(record: AccountingRecord, trace: object) -> dict[str, str]:
+    """Display the recorded ES/EI/ET; never derive a missing historical total."""
+    aggregate = _mapping(_mapping(trace).get("aggregations"))
+    lines = {line.line_id: line.amount for line in record.calculation_result.lines}
+    result = {}
+    for key, identifier in (("ES", "CAR-FLD-DIRECT-RESULT"), ("EI", "CAR-FLD-INDIRECT-RESULT"), ("ET", "CAR-FLD-TOTAL-RESULT")):
+        value = aggregate.get(key)
+        if value is None:
+            value = lines.get(identifier)
+        if value is None and key == "ET":
+            value = record.calculation_result.total_amount
+        result[key] = _display_amount(value)
+    return result
+
+
+def _snapshot_mapping(item) -> dict[str, Any]:
+    return {
+        "value_used": item.value_used, "unit_used": item.unit_used,
+        "selection_method": item.selection_method.value, "source_location": item.source_location,
+        "source_version": item.source_version, "source_id": item.source_id,
+        "factor_year": item.factor_year,
+    }
 
 
 def build_report_model(
@@ -276,11 +285,7 @@ def build_report_model(
     parameter_snapshots: dict[str, Mapping[str, Any]] = {}
     for item in record.parameter_snapshots:
         if item.detail_id:
-            parameter_snapshots[item.detail_id] = {
-                "value_used": item.value_used, "unit_used": item.unit_used,
-                "selection_method": item.selection_method.value, "source_location": item.source_location,
-                "source_version": item.source_version, "source_id": item.source_id, "factor_year": item.factor_year,
-            }
+            parameter_snapshots[item.detail_id] = _snapshot_mapping(item)
     period = record.input_snapshot.period
     period_text = f"{period.start.isoformat()} 至 {period.end.isoformat()}"
     chosen = lambda key, fallback=None: _text(supplementary[key]) if key in supplementary else _text(fallback)
@@ -306,145 +311,12 @@ def build_report_model(
         ("其他说明", chosen("supplementary_note", reporting.get("other_report_information"))),
     )
 
-    line_by_id = {line.line_id: line for line in record.calculation_result.lines}
-    aggregations = _mapping(trace.get("aggregations"))
-    subtotals = _mapping(trace.get("source_subtotals"))
-    def result_line(identifier: str) -> str:
-        line = line_by_id.get(identifier)
-        return _display_amount(line.amount) if line else ""
+    from .appendix_b import build_appendix_b_sections, APPROVED_TEMPLATE_SHA256, LAYOUT_ID
 
-    def aggregation_or_line(key: str, identifier: str) -> str:
-        value = aggregations.get(key)
-        return _display_amount(value if value is not None else result_line(identifier))
-
-    b1_values = [
-        ("直接排放量", ReportCell(aggregation_or_line("ES", "CAR-FLD-DIRECT-RESULT"), "tCO₂")),
-        ("净间接排放量", ReportCell(aggregation_or_line("EI", "CAR-FLD-INDIRECT-RESULT"), "tCO₂")),
-        ("温室气体排放总量", ReportCell(_display_amount(aggregations.get("ET") if aggregations.get("ET") is not None else record.calculation_result.total_amount), "tCO₂")),
-    ]
-    source_names = (
-        ("fuel", "化石燃料燃烧"), ("calcination", "原料煅烧"), ("baking", "焙烧/炭化"),
-        ("graphitization", "石墨化"), ("gas_control", "烟气治理"),
-        ("purchased_electricity", "购入电力"), ("exported_electricity", "输出电力抵扣"),
-        ("purchased_heat", "购入热力"), ("exported_heat", "输出热力抵扣"),
-    )
-    b1_values.extend((label, ReportCell(_display_amount(subtotals.get(key)), "tCO₂")) for key, label in source_names if key in subtotals)
     sections: list[ReportSection] = [
         ReportSection("basic", "企业及核算基本情况", (_table("basic-info", "报告基本信息", ("项目", "内容"), basic_rows),)),
-        ReportSection("b1", "B.1 温室气体排放量汇总", (_table("b1-summary", "排放量汇总", ("项目", "排放量"), b1_values),)),
+        *build_appendix_b_sections(record, raw, trace, parameter_snapshots, enterprise_name=enterprise_name),
     ]
-
-    fuel_rows: list[Sequence[ReportCell | str]] = []
-    for item in _entries(raw, "fuel_inputs"):
-        fuel_id = _text(item.get("fuel_id"))
-        activity = _mapping(item.get("activity"))
-        lhv = _parameter_cell(item.get("lower_heating_value"), parameter_snapshots, f"CAR-FLD-F01-{fuel_id}-LHV")
-        carbon = _parameter_cell(item.get("carbon_content"), parameter_snapshots, f"CAR-FLD-F01-{fuel_id}-CARBON")
-        oxidation = _parameter_cell(item.get("oxidation_rate"), parameter_snapshots, f"CAR-FLD-F01-{fuel_id}-FOX")
-        fuel_name = _enum(item.get("fuel_type"), _FUEL_NAMES)
-        if item.get("fuel_label"):
-            fuel_name = _text(item.get("fuel_label"))
-        emission = next((line.amount for line in record.calculation_result.lines if line.emission_source_id == SOURCE_FUEL and line.line_id == f"{SOURCE_FUEL}.{fuel_id}"), None)
-        if emission is None:
-            emission = next((step.get("intermediate_result") for step in _trace_steps(trace) if step.get("emission_source_id") == SOURCE_FUEL and step.get("process_instance_id") == fuel_id), "")
-        fuel_rows.append((
-            ReportCell(fuel_name), ReportCell(_enum(item.get("path"), _PATH_NAMES)),
-            ReportCell(_text(activity.get("value")), _text(activity.get("unit")) or None, _activity_source(activity)),
-            lhv, carbon, oxidation, ReportCell(_display_amount(emission), "tCO₂" if emission != "" else None),
-        ))
-    sections.append(ReportSection("b2", "B.2 化石燃料活动数据和排放因子", (_table(
-        "b2-fuels", "燃料明细", ("燃料品种", "计量方式", "活动量", "低位发热量/来源", "单位热值含碳量/来源", "碳氧化率/来源", "排放量"), fuel_rows, landscape=True,
-    ),)))
-
-    process_specs = (
-        ("b3", "B.3 原料煅烧", "calcinations", "calcination", SOURCE_CALCINATION, "calcination"),
-        ("b4", "B.4 焙烧/炭化", "bakings", "baking", SOURCE_BAKING, "baking"),
-        ("b5", "B.5 石墨化", "graphitizations", "graphitization", SOURCE_GRAPHITIZATION, "graphitization"),
-    )
-    for section_id, title, collection, process_name, source_id, _trace_source in process_specs:
-        tables: list[ReportTable] = []
-        for ordinal, process in enumerate(_entries(raw, collection, process_name), 1):
-            instance_id = process.get("instance_id")
-            materials = process.get("material_rows", ())
-            rows: list[Sequence[ReportCell | str]] = []
-            for material in materials if isinstance(materials, (list, tuple)) else ():
-                mat = _mapping(material)
-                rows.append((
-                    ReportCell(_enum(mat.get("role"), _MATERIAL_NAMES)), ReportCell(_text(mat.get("name"))),
-                    ReportCell(_text(mat.get("mass_t")), "t"), ReportCell(_text(mat.get("fixed_carbon_percent")), "%", _enum(mat.get("fixed_carbon_source"), _SOURCE_NAMES)),
-                    ReportCell(_text(mat.get("volatile_matter_percent")), "%", _enum(mat.get("volatile_matter_source"), _SOURCE_NAMES)),
-                ))
-            instance_step = _step_for_instance(trace, source_id, instance_id)
-            if instance_step is None:
-                instance_step = next((step for step in _trace_steps(trace) if _text(step.get("process_instance_id")) == _text(instance_id)), None)
-            tables.append(_table(f"{section_id}-{ordinal}-materials", f"过程单元{ordinal}实际物料", ("物料类别", "物料名称", "数量", "固定碳含量/来源", "挥发分/来源"), rows))
-            variables = _mapping(instance_step)
-            variable_rows = []
-            inputs = variables.get("input_variables", ())
-            for value in inputs if isinstance(inputs, (list, tuple)) else ():
-                if not isinstance(value, Mapping):
-                    continue
-                name = _text(value.get("name"))
-                variable_rows.append((ReportCell(_VARIABLE_NAMES.get(name, "其他核算参数")), ReportCell(_text(value.get("value")), _text(value.get("unit")) or None)))
-            variable_rows.append((ReportCell("本过程排放量"), ReportCell(_step_result(instance_step), "tCO₂")))
-            tables.append(_table(f"{section_id}-{ordinal}-summary", f"过程单元{ordinal}汇总及结果", ("项目", "值"), variable_rows))
-        sections.append(ReportSection(section_id, title, tuple(tables), ("排放量按Record及Trace中已保存的过程结果列示。",)))
-
-    fume_rows: list[Sequence[ReportCell | str]] = []
-    for item in _entries(raw, "fume_incinerations", "fume_incineration"):
-        iid = item.get("instance_id")
-        step = _step_for_instance(trace, SOURCE_FUME, iid)
-        fch = _parameter_cell(item.get("fch"), parameter_snapshots, f"CAR-FLD-P04A-{_text(iid)}-FCH")
-        fume_rows.append((ReportCell(f"设施{len(fume_rows) + 1}"), ReportCell(_text(_mapping(item.get("q")).get("value")), "Nm³/h"), ReportCell(_text(_mapping(item.get("qvar")).get("value")), "mg/Nm³"), ReportCell(_text(_mapping(item.get("hm")).get("value")), "GJ/t"), fch, ReportCell(_text(_mapping(item.get("fox")).get("value"))), ReportCell(_text(_mapping(item.get("duration")).get("value")), "d"), ReportCell(_step_result(step), "tCO₂")))
-    sections.append(ReportSection("b6", "B.6 烟气焚烧治理", (_table("b6-fume", "烟气焚烧设施", ("设施", "烟气流量", "焦油含量", "低位发热量", "单位热值含碳量/来源", "碳氧化率", "运行时间", "排放量"), fume_rows, landscape=True),)))
-
-    fgd_rows: list[Sequence[ReportCell | str]] = []
-    for unit_ordinal, unit in enumerate(_entries(raw, "fgd_units", "fgd"), 1):
-        iid = unit.get("instance_id")
-        step = next((item for item in _trace_steps(trace) if item.get("emission_source_id") == SOURCE_FGD and _text(item.get("process_instance_id")) == _text(iid)), None)
-        for component_index, component in enumerate(unit.get("components", ()) if isinstance(unit.get("components"), (list, tuple)) else ()):
-            comp = _mapping(component)
-            detail_prefix = f"CAR-FLD-P04B-{_text(iid)}-{component_index}"
-            fgd_rows.append((ReportCell(f"设施{unit_ordinal}"), ReportCell(_text(comp.get("carbonate_type"))), ReportCell(_text(_mapping(comp.get("amount")).get("value")), "t"), _parameter_cell(comp.get("carbonate_fraction"), parameter_snapshots, f"{detail_prefix}-I"), _parameter_cell(comp.get("emission_factor"), parameter_snapshots, f"{detail_prefix}-EF1"), _parameter_cell(comp.get("conversion_rate"), parameter_snapshots, f"{detail_prefix}-TR"), ReportCell(_step_result(step) if component_index == 0 else "", "tCO₂" if component_index == 0 else None)))
-    sections.append(ReportSection("b7", "B.7 烟气脱硫净化", (_table("b7-fgd", "脱硫剂及碳酸盐组分", ("设施/批次", "碳酸盐种类", "消耗量", "组分含量/来源", "排放因子/来源", "转化率/来源", "设施排放量"), fgd_rows, landscape=True),)))
-
-    electricity_rows: list[Sequence[ReportCell | str]] = []
-    for collection, direction, source_id in (("electricity_details", "购入", SOURCE_PURCHASED_ELECTRICITY), ("exported_electricity", "输出", SOURCE_EXPORTED_ELECTRICITY)):
-        for item in _entries(raw, collection):
-            identity = _text(item.get("detail_id") or item.get("line_id"))
-            step = _step_for_instance(trace, source_id, identity)
-            amount = item.get("electricity_amount", item.get("amount"))
-            factor = _parameter_cell(item.get("factor"), parameter_snapshots, f"CAR-FLD-POWER-EXPORTED-EF.{identity}")
-            snapshot = next((snap for snap in record.parameter_snapshots if snap.detail_id == identity), None)
-            if snapshot is not None and collection == "electricity_details":
-                factor = ReportCell(_text(snapshot.value_used), snapshot.unit_used, _snapshot_source(parameter_snapshots.get(identity)))
-            electricity_kind = _enum(item.get("attribute"), {"ORDINARY": "常规电力", "NONFOSSIL": "非化石电力", "FOSSIL": "化石能源电力"})
-            activity_source = _activity_source(item.get("electricity_amount"))
-            electricity_rows.append((ReportCell(direction), ReportCell(electricity_kind), ReportCell(_text(amount), _text(item.get("electricity_unit") or item.get("unit") or "MWh"), activity_source), factor, ReportCell(_step_result(step), "tCO₂")))
-    sections.append(ReportSection("b8", "B.8 购入和输出电力", (_table("b8-electricity", "电力来源明细", ("方向", "电力属性", "电量/来源", "排放因子/来源", "对应排放量"), electricity_rows),)))
-
-    heat_rows: list[Sequence[ReportCell | str]] = []
-    for collection, direction, source_id in (("purchased_heat", "购入", SOURCE_PURCHASED_HEAT), ("exported_heat", "输出", SOURCE_EXPORTED_HEAT)):
-        for item in _entries(raw, collection):
-            iid = _text(item.get("line_id"))
-            step = _step_for_instance(trace, source_id, iid)
-            provenance = _mapping(_mapping(step).get("calculation_provenance"))
-            amount = item.get("steam_amount_t") if item.get("steam_amount_t") is not None else item.get("amount")
-            heat_factor = next((snap for snap in record.parameter_snapshots if snap.detail_id == f"CAR-FLD-HEAT-{iid}-EF3"), None)
-            heat_source = _snapshot_source(parameter_snapshots.get(f"CAR-FLD-HEAT-{iid}-EF3")) if heat_factor else None
-            enthalpy = _mapping(item.get("enthalpy"))
-            used_enthalpy = _text(provenance.get("enthalpy_used_kj_per_kg")) or _text(enthalpy.get("value"))
-            enthalpy_source = _text(provenance.get("enthalpy_source"))
-            table_name = _text(provenance.get("table"))
-            if table_name:
-                enthalpy_source = f"{enthalpy_source}；GB/T 32151.34—2024 附录{table_name}"
-            heat_rows.append((
-                ReportCell(direction), ReportCell(_text(amount), "t", _activity_source(item.get("amount"))), ReportCell(_enum(item.get("steam_kind"), {"SATURATED": "饱和蒸汽", "SUPERHEATED": "过热蒸汽"})),
-                ReportCell(_text(_mapping(item.get("pressure_mpa")).get("value")), "MPa（绝压）"), ReportCell(_text(_mapping(item.get("temperature_c")).get("value")), "℃"),
-                ReportCell(used_enthalpy, "kJ/kg", enthalpy_source), ReportCell(_text(provenance.get("automatic_reference_enthalpy_kj_per_kg")), "kJ/kg" if provenance.get("automatic_reference_enthalpy_kj_per_kg") else None, "自动参考值" if provenance.get("automatic_reference_enthalpy_kj_per_kg") else None),
-                ReportCell(_text(heat_factor.value_used) if heat_factor else "", "tCO₂/GJ", heat_source), ReportCell(_step_result(step), "tCO₂"),
-            ))
-    sections.append(ReportSection("b9", "B.9 购入和输出热力", (_table("b9-heat", "热力来源明细", ("方向", "蒸汽量", "蒸汽类型", "压力", "温度", "采用焓值/来源", "自动参考焓值", "排放因子/来源", "对应排放量"), heat_rows, landscape=True),)))
 
     evidence_rows: list[Sequence[ReportCell | str]] = []
     for evidence_type, collection in (("活动数据", "activity_evidence"), ("实测因子", "measured_factor_evidence")):
@@ -500,6 +372,8 @@ def build_report_model(
         sections=tuple(sections),
         notices=tuple(notices),
         supplementary_note=_text(supplementary.get("supplementary_note")) or None,
+        template_sha256=APPROVED_TEMPLATE_SHA256,
+        layout_id=LAYOUT_ID,
     )
 
 

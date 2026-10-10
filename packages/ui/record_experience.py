@@ -8,6 +8,7 @@ from enum import Enum
 import re
 from typing import Any
 
+from packages.application.reporting.model import frozen_totals
 from packages.core.models import AccountingRecord, PeriodType, RecordStatus
 from packages.standards.carbon_material import (
     SOURCE_BAKING,
@@ -437,13 +438,6 @@ def _format_components(item: Mapping[str, Any], evidence_names: Mapping[str, str
     return lines
 
 
-def _trace_aggregation(trace: object) -> Mapping[str, Any]:
-    if not isinstance(trace, Mapping):
-        return {}
-    values = trace.get("aggregations", {})
-    return values if isinstance(values, Mapping) else {}
-
-
 def _trace_source_subtotals(trace: object) -> Mapping[str, Any]:
     if not isinstance(trace, Mapping):
         return {}
@@ -451,17 +445,13 @@ def _trace_source_subtotals(trace: object) -> Mapping[str, Any]:
     return values if isinstance(values, Mapping) else {}
 
 
-def _stored_result(record: AccountingRecord, line_id: str) -> object | None:
-    return next((line.amount for line in record.calculation_result.lines if line.line_id == line_id), None)
-
-
 def _b1_report(record: AccountingRecord, raw: object, trace: object) -> list[str]:
-    aggregations = _trace_aggregation(trace)
     subtotals = _trace_source_subtotals(trace)
     lines = ["B.1 排放量汇总与主要排放源分项"]
-    direct = aggregations.get("ES", _stored_result(record, "CAR-FLD-DIRECT-RESULT"))
-    indirect = aggregations.get("EI", _stored_result(record, "CAR-FLD-INDIRECT-RESULT"))
-    total = aggregations.get("ET", record.calculation_result.total_amount)
+    totals = frozen_totals(record, trace)
+    direct = totals.get("ES") or None
+    indirect = totals.get("EI") or None
+    total = totals.get("ET") or None
     lines.extend((
         f"- 不包括购入和输出电力、热力影响的直接排放量：{format_amount(direct)}",
         f"- 购入/输出能源对应的净间接排放量：{format_amount(indirect)}",
@@ -791,10 +781,10 @@ def build_record_summary(
         f"已启用排放源：{source_text}",
         "\n核算结果",
     ]
-    aggregations = _trace_aggregation(trace)
-    total = aggregations.get("ET", record.calculation_result.total_amount)
-    direct = aggregations.get("ES", _stored_result(record, "CAR-FLD-DIRECT-RESULT"))
-    indirect = aggregations.get("EI", _stored_result(record, "CAR-FLD-INDIRECT-RESULT"))
+    totals = frozen_totals(record, trace)
+    total = totals.get("ET") or None
+    direct = totals.get("ES") or None
+    indirect = totals.get("EI") or None
     output.extend((
         f"温室气体排放总量：{format_amount(total)}",
         f"直接排放量：{format_amount(direct)}",

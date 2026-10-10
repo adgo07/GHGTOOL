@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-10（PR35/36/37/38已合并；RS03 内 GHG-EXB01 实施中）
+最后更新：2026-10-10（PR35/36/37/38/39已合并；RS03 内 GHG-EXB01 实施中）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -340,7 +340,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Calculator | `DONE` | 核心单组公式一致；燃料质量/体积换热、C.4/C.5查表与插值由版本化Calculator执行。此DONE只指已审计计算路径，不等于多过程UI覆盖或标准完整支持 |
 | 分项排放 | `DONE` | 包含各排放源/分项结果与 trace |
 | 总排放 | `DONE` | 多实例直接排放与多来源间接排放按标准逐项汇总并写入不可编辑记录；Record详情展示直接、净间接及含间接排放总量 |
-| 结果解释 | `DONE` | Record详情以已保存快照呈现标准报告数据、逐项结果和来源依据；RPT01（PR #32）已合入main，增加基于同一不可变Record快照的Word报告导出；不重算、不查询当前Catalog，不等同于标准SUPPORTED |
+| 结果解释 | `DONE` | Record详情以已保存快照呈现标准报告数据、逐项结果和来源依据；RPT01（PR #32）与RPT02（PR #39）已合入main，基于同一不可变Record快照导出批准附录B表式Word；不重算、不查询当前Catalog，不等同于标准SUPPORTED |
 | 普通核算录入与错误反馈 | `PARTIAL` | UAT01-A/B及UAT02已合并进入main（PR #28/#29/#31）；UAT02收口滚轮、动态布局、失败定位、来源提醒和结果查看；不改变正式公式或Record生命周期 |
 | 正式记录 | `DONE` | 新核算继续新增不可编辑Record；新增Record含Trace/Provenance/报告与资格快照，致命失败不生成Record；本地扩展不代表中央DRAFT Contract |
 | 历史记录 | `DONE` | 只读展示Record自身输入、参数、结果、报告和Trace快照；旧记录缺失、空值及损坏状态有明确提示，不查询当前Catalog补历史值 |
@@ -349,12 +349,15 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。既有11条Gap中10条已关闭，GAP-009仍为非阻塞provenance debt。PR #33/#34已获用户批准合入main；当前执行用户授权的RS03 Excel正式闭环，候选验证见IMPLEMENTATION_REPORT与TASK_STATE，等待独立验收。原生鼠标视觉、Excel/WPS打印、Word分页和长标题可读性仍待独立验收；Golden/正式标准支持及Release门禁留在RS04/RS05。PR #27保持CLOSED / UNMERGED。既有6条RESOLVED标准解释不变；GB/T 32151.34—2024仍为NOT SUPPORTED。
+参考标准总体状态：**`PARTIAL`**。既有11条Gap中10条已关闭，GAP-009仍为非阻塞provenance debt。PR #33/#34已获用户批准合入main；当前执行用户授权的RS03 Excel正式闭环，候选验证见IMPLEMENTATION_REPORT与TASK_STATE，等待独立验收。RPT02批准Word表式、分页及长标题已有PR39验收证据；原生鼠标视觉、EXB01工作簿经原生Excel/WPS保存后回导仍有独立验收缺项。历史验收不替代PR40联合验证；Golden/正式标准支持及Release门禁留在RS04/RS05。PR #27保持CLOSED / UNMERGED。既有6条RESOLVED标准解释不变；GB/T 32151.34—2024仍为NOT SUPPORTED。
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-EXB01 附录B正式Excel模板与输入**，属于 RS03 内部工作包。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，正在纳入最新 `origin/main@a51afbcf684e3845369977e42adc938866726d0b`。PR35/36/37/38均已合并；历史合并证据不替代本包验证。
-- 以批准的附录B九表母版替代R2新输入路径；整本工作簿形成一次完整核算。保留OOXML词法、Decimal、Canonical项目保存/恢复、共享Application正式核算与不可变Record，历史EXCEL_R2项目和Record继续读取；不改数据库结构、Calculator公式、标准范围或Word模型/版式。具体设计见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
+PR39（RPT02）已合入main：保留Record → ReportModel → DOCX renderer唯一报告链、B.1～B.9批准表式、ES/ET冻结值、双Word入口一致性、原子保存与导出审计。当前仅在原PR #40分支整合EXB01：打包同时包含报告布局JSON与唯一批准Excel资源；联合验证完整工作簿→项目→正式Record→Word。两套能力及其历史证据分别保留，不重算历史Record。原生Excel/WPS保存回导仍OPEN；P3-C/D/E/F、公式、数据库与Frozen Contract均不变。不自行合并。
+
+
+- 当前工作包：**GHG-EXB01 附录B正式Excel模板与输入**，属于 RS03 内部工作包。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，现整合最新 `origin/main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0`（PR39 RPT02）。PR35/36/37/38/39均已合并；历史合并证据不替代本包验证。
+- 以批准的附录B九表母版替代R2新输入路径；整本工作簿形成一次完整核算。保留OOXML词法、Decimal、Canonical项目保存/恢复、共享Application正式核算与不可变Record，历史EXCEL_R2项目和Record继续读取；不改数据库结构、Calculator公式、标准范围或已合并RPT02 Word模型/版式。具体设计见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 - PR #38 的 GHG-UI-P3-AB 已合并；测试和验收边界见 `docs/ui/p3-ab/ACCEPTANCE.md`。原生人工验收仍 OPEN；AB 后 Phase 3 暂停，C/D/E/F 未启动且需独立授权。本包不执行 P3 工作。
 - EXB01候选仍待专项独立验收；完整回归、Windows构建/发布审计、原生Excel/WPS保存及最终head CI均须按真实执行分别记录。不得据此宣布标准 `SUPPORTED`；RS04～RS06+未启动。
 - PR #27保持CLOSED / UNMERGED且只读；旧V1 runtime和四页规范不移植。核算结果Excel导出已取消，中央Excel Numeric交换仍OPEN / PARTIAL。
@@ -384,7 +387,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 ## 当前延期与取消事项
 
 - Excel输入模板改版已由用户专项启动GHG-EXB01；按最终diff/head独立验收，保留严格数值入口、Canonical项目恢复和正式Record闭环。
-- Word报告版式、分页与展示内容完善不属于EXB01，由独立RPT02工作包处理；冻结Record导出保留，结果Excel导出已取消。
+- Word报告版式、分页与展示内容已通过PR39 RPT02合并；本次只做与EXB01的整合验证；冻结Record导出保留，结果Excel导出已取消。
 - GHG-UAT03 V2已随PR37合并，是RS01/RS02既有业务基线，不是当前工作包。需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`。
 - PR #38 的 GHG-UI-P3-AB 已合并，属于历史UI工作包；测试、截图与原生验收边界见 `docs/ui/p3-ab/ACCEPTANCE.md`。AB合并后Phase 3暂停；C/D/E/F不属于当前包，也未因此获得授权。
 - PR35/36/37/38的历史验证不替代EXB01专项验收；验证结论须绑定各自head和证据来源。

@@ -1,0 +1,9 @@
+{
+  "synthetic_pagination_only": true,
+  "rows": 80,
+  "pages": 22,
+  "table_pages": 21,
+  "repeated_headers_on_every_table_page": true,
+  "all_80_rows_present": true,
+  "docx_sha256": "183ba85bfc6855994901106c43f23c7e0a2f3aa328ca2f54915e25ff1caedadf"
+}

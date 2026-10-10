@@ -33,3 +33,5 @@ resources = [
     "excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx",
 ]
 
+
+"packages.application.reporting" = ["*.json"]

@@ -1,0 +1,31 @@
+{
+  "local_execution": true,
+  "old_log": {
+    "file": "tmp/full-tests.log",
+    "ran": 395,
+    "pass": 390,
+    "fail": 4,
+    "error": 1,
+    "skip": 0,
+    "seconds": 1476.509
+  },
+  "continuation_full": {
+    "file": "tmp/full-tests-verified.log",
+    "ran": 404,
+    "pass": 404,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "seconds": 1799.496,
+    "final_head_proof": false
+  },
+  "final_focused": {
+    "file": "tmp/rpt02-focused-29.log",
+    "ran": 29,
+    "pass": 29,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "seconds": 25.413
+  }
+}

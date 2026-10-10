@@ -225,6 +225,8 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             str(PROJECT_ROOT),
             *(argument for relative in sorted(ALLOWED_RESOURCE_FILES)
               for argument in ("--add-data", f"{PROJECT_ROOT / relative}{os.pathsep}{Path(relative).parent}")),
+            "--collect-data",
+            "packages.application.reporting",
             "--add-data",
             f"{PROJECT_ROOT / 'migrations'}{os.pathsep}migrations",
             "--add-data",

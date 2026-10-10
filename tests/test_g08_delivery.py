@@ -31,7 +31,12 @@ from scripts.build_standalone import (
     _validate_approved_template_inputs,
     _write_manifest,
 )
-from scripts.inspect_release import APPROVED_TEMPLATE_PATH, APPROVED_TEMPLATE_SHA256, inspect_release
+from scripts.inspect_release import (
+    APPROVED_TEMPLATE_PATH,
+    APPROVED_TEMPLATE_SHA256,
+    REPORT_LAYOUT_PATH,
+    inspect_release,
+)
 from scripts.verify_release_archive import verify_release_archive
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -212,6 +217,83 @@ class G08DeliveryTests(unittest.TestCase):
                 issues,
             )
 
+    def test_release_artifact_keeps_rpt02_layout_with_exact_exb01_template(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory)
+            (artifact / "QingzhouCarbonAccounting.exe").write_bytes(b"standalone-stub")
+            build_catalog_database(
+                DEFAULT_SOURCE_PATH,
+                artifact / "databases" / "catalog.sqlite",
+            )
+            template = artifact / APPROVED_TEMPLATE_PATH
+            template.parent.mkdir(parents=True)
+            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            layout_path = artifact / REPORT_LAYOUT_PATH
+            layout_path.parent.mkdir(parents=True)
+            source_layout_path = PROJECT_ROOT / REPORT_LAYOUT_PATH
+            layout_path.write_bytes(source_layout_path.read_bytes())
+
+            with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
+                package_data = tomllib.load(stream)["tool"]["setuptools"]["package-data"]
+            self.assertIn("*.json", package_data["packages.application.reporting"])
+
+            layout = json.loads(layout_path.read_text(encoding="utf-8"))
+            source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
+            self.assertEqual(layout, source_layout)
+            self.assertEqual(layout["version"], "2.0.0")
+            self.assertEqual(
+                layout["approved_sha256"],
+                "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",
+            )
+            self.assertEqual(
+                layout["formula_free_sha256"],
+                "78042e02b57701cfcb3b4a3fb86dbb6ec8e4fa66ec74cfed768433153d5fdc7e",
+            )
+            self.assertEqual(set(layout["tables"]), {f"b{index}" for index in range(1, 10)})
+            self.assertEqual(
+                sha256(template.read_bytes()).hexdigest(),
+                APPROVED_TEMPLATE_SHA256,
+            )
+
+            _write_manifest(
+                artifact,
+                app_version="1.1.0",
+                catalog_meta={
+                    "schema_version": "1.1.0",
+                    "data_version": "2026.10.08-electricity2023.1",
+                },
+            )
+            manifest = json.loads((artifact / "build-manifest.json").read_text(encoding="utf-8"))
+            manifest_paths = {entry["path"] for entry in manifest["files"]}
+            self.assertIn(REPORT_LAYOUT_PATH.as_posix(), manifest_paths)
+            self.assertIn(APPROVED_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertEqual(inspect_release(artifact), ())
+            self.assertFalse((artifact / "docs").exists())
+
+            original_workbook = artifact / "docs" / layout["approved_template"]
+            original_workbook.parent.mkdir(parents=True)
+            original_workbook.write_bytes(b"RPT02 original approved workbook")
+            sample_report = artifact / "docs" / "rpt02" / "samples" / "sample.docx"
+            sample_report.parent.mkdir(parents=True)
+            sample_report.write_bytes(b"RPT02 acceptance sample")
+            _write_manifest(
+                artifact,
+                app_version="1.1.0",
+                catalog_meta={
+                    "schema_version": "1.1.0",
+                    "data_version": "2026.10.08-electricity2023.1",
+                },
+            )
+            issues = inspect_release(artifact)
+            self.assertIn(
+                f"unexpected Excel workbook file: docs/{layout['approved_template']}",
+                issues,
+            )
+            self.assertIn(
+                "forbidden source/document/secret file: docs/rpt02/samples/sample.docx",
+                issues,
+            )
+
     def test_uploaded_archive_preserves_manifest_file_set(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory)
@@ -225,6 +307,9 @@ class G08DeliveryTests(unittest.TestCase):
             approved_template = artifact / APPROVED_TEMPLATE_PATH
             approved_template.parent.mkdir(parents=True, exist_ok=True)
             approved_template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            reporting_layout = artifact / REPORT_LAYOUT_PATH
+            reporting_layout.parent.mkdir(parents=True, exist_ok=True)
+            reporting_layout.write_bytes((PROJECT_ROOT / REPORT_LAYOUT_PATH).read_bytes())
             templates = artifact / "docx" / "templates"
             templates.mkdir(parents=True)
             (templates / "default.docx").write_bytes(b"runtime-template")
@@ -248,6 +333,7 @@ class G08DeliveryTests(unittest.TestCase):
             self.assertNotIn("migrations/.gitkeep", manifest_paths)
             self.assertNotIn("resources/icons/.gitkeep", manifest_paths)
             self.assertIn(APPROVED_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertIn(REPORT_LAYOUT_PATH.as_posix(), manifest_paths)
             template_entry = next(
                 entry for entry in manifest["files"]
                 if entry["path"] == APPROVED_TEMPLATE_PATH.as_posix()

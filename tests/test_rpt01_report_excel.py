@@ -137,7 +137,8 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
             self.assertIn("导出时企业名称", visible_text)
             self.assertIn("B.1 温室气体排放量汇总", visible_text)
             self.assertIn("B.9 购入和输出热力", visible_text)
-            self.assertIn("5.00 tCO₂", visible_text)
+            self.assertEqual(parsed.tables[1].rows[0].cells[2].text, "排放量ᵇ\ntCO₂")
+            self.assertEqual(parsed.tables[1].rows[-1].cells[2].text, "5.00")
             self.assertEqual(repository.get(record.record_id), original)
 
             repository.record_report_export(
@@ -215,10 +216,10 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
             self.assertEqual(b2.rows[0].cells[0].value, "天然气")
             # Presentation rounds saved emissions; the original Record remains exact.
             exact_amount = record.calculation_result.lines[0].amount
-            self.assertEqual(b2.rows[0].cells[6].value, "19.72")
+            self.assertEqual(b2.rows[0].cells[9].value, "19.72")
             self.assertEqual(repository.get(record.record_id).calculation_result.lines[0].amount, exact_amount)
-            self.assertEqual(b2.rows[0].cells[4].value, "0.0153")
-            self.assertEqual(b2.rows[0].cells[3].source.split("；", 1)[0], "企业实测值")
+            self.assertEqual(b2.rows[0].cells[6].value, "0.0153")
+            self.assertEqual(b2.rows[0].cells[5].value, "企业实测值；燃料化验单第2页；2025")
             evidence = next(section for section in report.sections if section.section_id == "evidence")
             self.assertIn("年度燃气计量台账", evidence.tables[0].rows[0].cells[2].value)
 
@@ -299,11 +300,13 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
         sections = {section.section_id: section for section in report.sections}
         fuel_rows = sections["b2"].tables[0].rows
         self.assertEqual(len(fuel_rows), 1)
-        self.assertEqual([fuel_rows[0].cells[index].source.split("；", 1)[0] for index in (3, 4, 5)], ["企业实测值", "标准规定值", "软件按标准推荐"])
-        self.assertEqual(len(sections["b3"].tables), 6)
-        self.assertEqual(len(sections["b3"].tables[0].rows), 3)
-        self.assertEqual(len(sections["b4"].tables[0].rows), 2)
-        self.assertEqual(len(sections["b5"].tables[0].rows), 2)
+        self.assertEqual(fuel_rows[0].cells[5].value, "企业实测值；燃料检测报告；2024")
+        self.assertEqual(fuel_rows[0].cells[6].value, "0.028")
+        self.assertEqual(fuel_rows[0].cells[8].value, "软件按标准推荐；附录C.1；2024")
+        self.assertEqual(len(sections["b3"].tables), 3)
+        self.assertEqual(len(sections["b3"].tables[0].rows), 9)
+        self.assertEqual(len(sections["b4"].tables[0].rows), 9)
+        self.assertEqual(len(sections["b5"].tables[0].rows), 7)
         self.assertEqual(len(sections["b8"].tables[0].rows), 3)
         self.assertEqual(len(sections["b9"].tables[0].rows), 2)
         self.assertTrue(any("来源说明未填写" in notice for notice in report.notices))

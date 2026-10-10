@@ -203,6 +203,57 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.assertEqual(created.count(), 0)
         self.assertEqual(requested.count(), 0)
 
+    def test_both_word_entrypoints_export_identical_business_content_for_same_record(self) -> None:
+        self.page.quick_calculate_button.click()
+        record = self.repository.list_all()[0]
+        before = asdict(record)
+        first, second = self.root / "新建页报告.docx", self.root / "记录页报告.docx"
+        supplementary = {"prepared_on": "2026-10-10"}
+        with (
+            patch("packages.ui.report_export.report_supplementary_dialog", return_value=supplementary),
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(first), "")),
+            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+        ):
+            self.page.export_report_button.click()
+            failure.assert_not_called()
+        self.shell.navigate(AppRoute.RECORDS)
+        record_page = self.shell.pages[AppRoute.RECORDS]
+        self.assertTrue(record_page.open_record(record.record_id))
+        with (
+            patch.object(record_page, "_report_supplementary_dialog", return_value=supplementary),
+            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(second), "")),
+            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.QMessageBox.critical") as failure,
+        ):
+            record_page.export_word_button.click()
+            failure.assert_not_called()
+        self.assertTrue(first.is_file())
+        self.assertTrue(second.is_file())
+        first_document, second_document = Document(first), Document(second)
+        self.assertEqual(first_document._element.body.xml, second_document._element.body.xml)
+        report = build_saved_record_report(
+            self.repository,
+            self.repository.get(record.record_id),
+            supplementary_info=supplementary,
+        )
+        report_headings = {paragraph.text for paragraph in first_document.paragraphs}
+        appendix_sections = tuple(
+            section for section in report.sections
+            if section.section_id in {f"b{number}" for number in range(1, 10)}
+        )
+        self.assertEqual(tuple(section.section_id for section in appendix_sections), tuple(f"b{number}" for number in range(1, 10)))
+        for section in appendix_sections:
+            self.assertIn(section.title, report_headings)
+        b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
+        self.assertEqual(first_document.tables[1].rows[0].cells[2].text, "排放量ᵇ\ntCO₂")
+        self.assertEqual(first_document.tables[1].rows[-2].cells[2].text, b1.rows[-2].cells[2].value)
+        self.assertEqual(first_document.tables[1].rows[-1].cells[2].text, b1.rows[-1].cells[2].value)
+        self.assertEqual(len(self.repository.list_all()), 1)
+        self.assertEqual(asdict(self.repository.get(record.record_id)), before)
+        with closing(sqlite3.connect(self.records_path)) as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM report_export_history").fetchone()[0], 2)
+
     def test_word_export_after_catalog_change_uses_frozen_record(self) -> None:
         self.page.quick_calculate_button.click()
         record = self.repository.list_all()[0]

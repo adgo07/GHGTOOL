@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR35/36/37/38已合并；GHG-EXB01实施中）
+最后更新：2026-10-10（PR35/36/37/38/39已合并；GHG-EXB01实施中）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,12 +29,15 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- PR35/36/37/38已合并；当前包为 **GHG-EXB01 附录B正式Excel模板与输入**。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，正在纳入最新 `origin/main@a51afbcf684e3845369977e42adc938866726d0b`。具体预检查、批准母版与去公式授权差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
+PR39（RPT02）已合入main：保留Record → ReportModel → DOCX renderer唯一报告链、B.1～B.9批准表式、ES/ET冻结值、双Word入口一致性、原子保存与导出审计。当前仅在原PR #40分支整合EXB01：打包同时包含报告布局JSON与唯一批准Excel资源；联合验证完整工作簿→项目→正式Record→Word。两套能力及其历史证据分别保留，不重算历史Record。原生Excel/WPS保存回导仍OPEN；P3-C/D/E/F、公式、数据库与Frozen Contract均不变。不自行合并。
+
+
+- PR35/36/37/38/39已合并；当前包为 **GHG-EXB01 附录B正式Excel模板与输入**。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，现整合最新 `origin/main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0`（PR39 RPT02）。具体预检查、批准母版与去公式授权差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 - 批准九表母版成为唯一正式输入模板；原样保留布局，仅按授权移除指定结果公式。软件下载复制受控文件字节；轻量模板注册不引入数据库或通用DSL。
 - B.2～B.9形成一次完整核算，仍共享Canonical/Application/Domain。预览零Record；用户明确保存项目后正式核算，成功持久化才提示完成。
 - 删除R2专属模板生成/下载/新解析路径；保留OOXML原始词法、Decimal、来源证据、Canonical项目保存恢复和历史EXCEL_R2项目/Record读取。
 - 期间、地区与自定义燃料单位不能从静态表头猜测；多物料配对不重复质量，无法唯一表达多实例或批次时定位错误。默认因子只来自正式Catalog/Resolver，不伪造用户提供值来源。
-- 不改正式Calculator公式、Numeric、历史Record、数据库结构、Word模型/版式、标准范围；不执行P3-C/D/E/F。当前UI指南只用于Excel页面必要接线。
+- 不改正式Calculator公式、Numeric、历史Record、数据库结构、已合并RPT02 Word模型/版式、标准范围；不执行P3-C/D/E/F。当前UI指南只用于Excel页面必要接线。
 - 必须专项独立AI按最终diff/head验收；Windows构建/审计、完整回归、CI和原生Excel/WPS保存证据分开。新PR不得自动合并。
 
 PF01范围约束：
@@ -187,7 +190,7 @@ PF01范围约束：
 
 当前只实施 GHG-EXB01。PR35/36/37/38 的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与 Record 安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 
-Word 报告版式/分页继续延期，核算结果 Excel 导出已取消；不执行 P3-C/D/E/F，不新增标准、数据库结构、主要依赖或 Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入 `IMPLEMENTATION_REPORT.md`；当前断点写入 `TASK_STATE.md`。完成后提交独立 PR 等待验收，不自动合并。
+Word 报告版式/分页已由PR39 RPT02实现，核算结果 Excel 导出已取消；不执行 P3-C/D/E/F，不新增标准、数据库结构、主要依赖或 Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入 `IMPLEMENTATION_REPORT.md`；当前断点写入 `TASK_STATE.md`。完成后更新原PR #40等待最终检查，不自动合并。
 
 ### 已合并基线（非当前包）
 
