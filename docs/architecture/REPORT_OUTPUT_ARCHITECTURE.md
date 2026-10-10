@@ -1,6 +1,6 @@
 # 报告输出架构
 
-状态：GHG-RPT02 实施口径；复用已合并PR37公共Word导出入口，待独立验收。
+状态：GHG-RPT02已通过PR39合并；PR40整合附录B正式Excel输入，继续复用PR37公共Word导出入口。
 
 ## 数据流
 
@@ -20,7 +20,7 @@ ReportModel不依赖Qt、SQLite、python-docx或openpyxl，只消费该Record冻
 
 ## Excel输入
 
-R2负责输入模板、严格校验、OOXML原始词法证据、Decimal及逐单元预览；预览与正式入口使用同一Calculator配置，不持有Record Repository。用户明确保存有效单元后再由CarbonAccountingUseCase正式核算；致命错误零Record、重复成功新增Record，不建立Excel算法或冻结公共Numeric交换。
+附录B输入Adapter负责批准母版的精确复制、整工作簿严格校验、OOXML原始词法证据和Decimal预览；不持有Record Repository。用户明确保存Canonical项目后再由CarbonAccountingUseCase正式核算；致命错误零Record、重复成功新增Record，不建立Excel算法或冻结公共Numeric交换。历史EXCEL_R2来源证据原样保留；新身份为EXCEL_APPENDIX_B。
 
 projects迁移003保存可选Canonical Input及ingress_provenance；Qt form_state仍仅是Presentation State。allowlist codec保留Decimal、日期、枚举和嵌套输入，拒绝float、非有限数、未知类型/版本，不是公共Workspace Contract或.qzproj。项目通过Excel专用页面恢复，不静默映射为空GUI表单。
 
@@ -28,7 +28,7 @@ projects迁移003保存可选Canonical Input及ingress_provenance；Qt form_stat
 
 关联失败不重算、不撤销Record。分别反馈恢复标记写入失败、已保存标记后的关联失败、关联已保存后的标记清理失败；未保存标记时不能承诺重启自动恢复。
 
-R2的B.1不是输入表；模板保留填写说明、基本信息和B.2～B.9，B.4使用全角斜线页签。本文是开发资料，不打包为运行资源。
+新正式模板为批准的B.1～B.9九表，B.1只读且不参与输入；不含R2说明/基本信息/隐藏metadata页。旧EXCEL_R2仅作为项目与Record历史来源身份保留，不恢复新文件导入。本文是开发资料，不打包为运行资源。
 
 ## UAT03复用入口
 

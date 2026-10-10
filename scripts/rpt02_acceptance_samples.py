@@ -7,12 +7,14 @@ Word samples are generated from persisted CarbonAccountingUseCase Records.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 from dataclasses import fields, is_dataclass, replace
 from decimal import Decimal
 from enum import Enum
 from hashlib import sha256
 from io import BytesIO
 import json
+import sqlite3
 import tempfile
 import sys
 from datetime import date, datetime, timezone
@@ -26,14 +28,17 @@ from typing import Any
 
 from openpyxl import load_workbook
 
+from packages.application import CarbonAccountingPreviewUseCase
 from packages.application.carbon_accounting import CarbonAccountingUseCase, create_g06_parameter_resolver
+from packages.application.catalog_queries import CatalogQueryService
 from packages.application.reporting import build_saved_record_report
-from packages.excel.r2 import ExcelWorkbookImporter, create_template_bytes
+from packages.excel.appendix_b import AppendixBImportContext, AppendixBWorkbookImporter
+from packages.excel.templates import ExcelTemplateService
 from packages.persistence.catalog_builder import build_catalog_database
 from packages.persistence.catalog_repository import SQLiteCatalogRepository
 from packages.persistence.records_repository import SQLiteRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import CarbonMaterialCalculator, InputValue, ParameterSourceKind, ParameterValue
+from packages.standards.carbon_material import CarbonMaterialCalculator, FuelPath, InputValue, ParameterSourceKind, ParameterValue
 
 from packages.application.reporting.model import build_report_model, frozen_totals
 from packages.core.models import (
@@ -374,16 +379,14 @@ def _gui_canonical_input():
     )
 
 
-def _write_excel_r2_input(path: Path) -> None:
-    workbook = load_workbook(BytesIO(create_template_bytes()))
+def _write_appendix_b_input(path: Path, template_service: ExcelTemplateService) -> None:
+    # Start from the approved nine-sheet resource and preserve its authored layout.
+    template_service.copy_to(path)
+    workbook = load_workbook(path)
     try:
-        basic = workbook["基本信息"]
-        basic["B3"] = "验收演示输入（Excel R2）"
-        basic["B4"], basic["B5"], basic["B6"], basic["B7"] = "年度", "2025-01-01", "2025-12-31", "是"
-        basic["A13"], basic["B13"], basic["C13"] = "全厂", "全厂", "是"
-        fuel = workbook["B.2 化石燃料"]
-        fuel["A6"], fuel["B6"], fuel["C6"], fuel["D6"] = "全厂", "天然气", "体积", 1.25
-        fuel["E6"], fuel["F6"] = "计量/仪表记录", _DEMO_SOURCE_NOTE
+        fuel = workbook["B.2"]
+        fuel["A4"], fuel["B4"], fuel["C4"], fuel["D4"] = "天然气", 1, 0.5, "实测值"
+        fuel["H4"], fuel["I4"] = 98, "实测值"
         workbook.save(path)
     finally:
         workbook.close()
@@ -411,9 +414,9 @@ def _source_evidence(value: object, path: str = "input") -> list[dict[str, objec
     return found
 
 
-def _excel_ingress_provenance(preview, unit, workbook_path: Path) -> dict[str, object]:
+def _appendix_b_ingress_provenance(preview, unit, workbook_path: Path) -> dict[str, object]:
     return {
-        "source": "EXCEL_R2",
+        "source": preview.provenance.source or "EXCEL_APPENDIX_B",
         "workbook": {
             "sha256": preview.provenance.workbook_sha256,
             "file_name": workbook_path.name,
@@ -525,7 +528,7 @@ def write_acceptance_samples(
     output_dir = Path(output_dir)
     evidence_dir = Path(evidence_dir) if evidence_dir is not None else REPOSITORY_ROOT / "build" / "rpt02"
     gui_path = output_dir / "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx"
-    excel_path = output_dir / "GHG-RPT02_Excel_R2_Record_Appendix_B.docx"
+    excel_path = output_dir / "GHG-RPT02_Excel_Appendix_B_Record_Appendix_B.docx"
     records_path = evidence_dir / "records.sqlite"
     manifest_path = evidence_dir / "acceptance-evidence.json"
     frozen_records_path = output_dir / "records-and-snapshots.json"
@@ -548,9 +551,18 @@ def write_acceptance_samples(
             catalog_path = stage / "catalog.sqlite"
 
             build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path)
-            resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
+            catalog_repository = SQLiteCatalogRepository(catalog_path)
+            catalog_service = CatalogQueryService(catalog_repository)
+            resolver = create_g06_parameter_resolver(catalog_repository)
             repository = SQLiteRecordRepository(stage_records)
             calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
+            preview_use_case = CarbonAccountingPreviewUseCase(calculator)
+            template_service = ExcelTemplateService.default()
+            importer = AppendixBWorkbookImporter(
+                preview_use_case=preview_use_case,
+                catalog_service=catalog_service,
+                template_service=template_service,
+            )
             use_case = CarbonAccountingUseCase(calculator, repository)
 
             gui_input = _gui_canonical_input()
@@ -559,26 +571,34 @@ def write_acceptance_samples(
             if gui_saved is None:
                 raise RuntimeError("Canonical输入核算后未从独立records.sqlite读取到正式Record。")
 
-            workbook_path = stage / "GHG-RPT02_Excel_R2_demo.xlsx"
-            _write_excel_r2_input(workbook_path)
-            preview = ExcelWorkbookImporter(resolver).import_preview(workbook_path)
+            workbook_path = stage / "GHG-RPT02_Excel_Appendix_B_demo.xlsx"
+            _write_appendix_b_input(workbook_path, template_service)
+            preview = importer.import_preview(
+                workbook_path,
+                context=AppendixBImportContext(
+                    period=_SAMPLE_PERIOD,
+                    boundary_confirmed=True,
+                    enterprise_name="验收演示输入（附录B工作簿）",
+                    fuel_path_overrides={"B.2!B4": FuelPath.VOLUME},
+                ),
+            )
             valid_units = [unit for unit in preview.units if unit.can_calculate and unit.input_value is not None]
             if len(valid_units) != 1:
                 problem_text = "；".join(error.message for unit in preview.units for error in unit.errors)
-                raise RuntimeError(f"Excel R2验收输入必须产生一个可正式核算单元；现有{len(valid_units)}个。{problem_text}")
+                raise RuntimeError(f"附录B验收输入必须产生一个可正式核算单元；现有{len(valid_units)}个。{problem_text}")
             unit = valid_units[0]
             if unit.result is None:
-                raise RuntimeError("Excel R2导入器未返回可计算预览结果。")
+                raise RuntimeError("AppendixBWorkbookImporter未返回可计算预览结果。")
             excel_record = _formal_record(
                 use_case,
                 unit.input_value,
-                ingress_provenance=_excel_ingress_provenance(preview, unit, workbook_path),
+                ingress_provenance=_appendix_b_ingress_provenance(preview, unit, workbook_path),
             )
             excel_saved = repository.get(excel_record.record_id)
             if excel_saved is None:
-                raise RuntimeError("Excel R2正式核算后未从独立records.sqlite读取到正式Record。")
+                raise RuntimeError("附录B Excel正式核算后未从独立records.sqlite读取到正式Record。")
             if excel_saved.calculation_result.total_amount != unit.result.total_amount:
-                raise AssertionError("Excel R2预览与正式Record结果不一致。")
+                raise AssertionError("附录B Excel预览与正式Record结果不一致。")
 
             # Exercise the same frozen Canonical input through the GUI/Application
             # path by removing only the Excel ingress envelope; compare B.1-B.9
@@ -605,9 +625,9 @@ def write_acceptance_samples(
                 (
                     excel_saved,
                     stage_excel,
-                    "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE",
-                    "R2工作簿由ExcelWorkbookImporter真实预览，unit.can_calculate为真后将unit.input_value传入正式CarbonAccountingUseCase并写入Record。",
-                    "验收演示输入；Excel R2预览单元经正式核算用例写入不可变Record；活动数据来源为演示值，不是企业凭证。",
+                    "EXCEL_APPENDIX_B_PREVIEW_TO_FORMAL_USE_CASE",
+                    "批准的附录B九表工作簿由AppendixBWorkbookImporter真实预览，unit.can_calculate为真后将Canonical输入传入正式CarbonAccountingUseCase并写入Record。",
+                    "验收演示输入；附录B Excel预览单元经正式核算用例写入不可变Record；活动数据来源为演示值，不是企业凭证。",
                 ),
             ):
                 report = build_saved_record_report(
@@ -638,10 +658,10 @@ def write_acceptance_samples(
                 supplementary_info={
                     "enterprise_name": excel_saved.input_snapshot.enterprise_name,
                     "prepared_on": _SAMPLE_DATE.isoformat(),
-                    "supplementary_note": "验收演示输入；Excel R2预览单元经正式核算用例写入不可变Record；活动数据来源为演示值，不是企业凭证。",
+                    "supplementary_note": "验收演示输入；附录B Excel预览单元经正式核算用例写入不可变Record；活动数据来源为演示值，不是企业凭证。",
                 },
             )
-            excel_report = business_reports["EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE"]
+            excel_report = business_reports["EXCEL_APPENDIX_B_PREVIEW_TO_FORMAL_USE_CASE"]
             business_section_ids = {f"b{number}" for number in range(1, 10)}
             excel_business_sections = [
                 _json_value(section) for section in excel_report.sections
@@ -652,10 +672,10 @@ def write_acceptance_samples(
                 if section.section_id in business_section_ids
             ]
             if excel_business_sections != canonical_business_sections:
-                raise AssertionError("同一Excel R2 Canonical输入的GUI/Application与Excel来源报告B.1-B.9业务内容不一致。")
+                raise AssertionError("同一附录B Excel Canonical输入的GUI/Application与Excel来源报告B.1-B.9业务内容不一致。")
             parity_evidence = {
                 "same_canonical_input": True,
-                "input_comparison": "Excel unit.input_value copied with only input_id changed; ingress_provenance omitted from the Canonical/Application path.",
+                "input_comparison": "AppendixBWorkbookImporter的Canonical unit.input_value仅变更input_id；Canonical/Application路径不传入ingress_provenance。",
                 "source_excel_record_id": excel_saved.record_id,
                 "canonical_path_record_id": parity_saved.record_id,
                 "compared_section_ids": [f"b{number}" for number in range(1, 10)],
@@ -678,7 +698,7 @@ def write_acceptance_samples(
                 "notice": "验收演示输入，不是实际企业业务Record或企业凭证；系统选用的标准参数来源按每条Record冻结快照保留。",
                 "canonical_reference_data_source": DEFAULT_SOURCE_PATH.resolve().relative_to(REPOSITORY_ROOT.resolve()).as_posix(),
                 "catalog_database": "由本仓Canonical reference-data源临时构建，仅用于正式计算；Word生成时只读取records.sqlite中的冻结Record和快照。",
-                "excel_r2_preview": {
+                "excel_appendix_b_preview": {
                     "can_calculate": unit.can_calculate,
                     "preview_total_amount": str(unit.result.total_amount),
                     "preview_total_unit": unit.result.total_unit,
@@ -686,10 +706,10 @@ def write_acceptance_samples(
                     "template_id": preview.provenance.template_id,
                     "template_version": preview.provenance.template_version,
                     "ingress_policy_id": preview.provenance.ingress_policy_id,
-                    "numeric_cell_evidence": _excel_ingress_provenance(preview, unit, workbook_path)["numeric_cell_evidence"],
+                    "numeric_cell_evidence": _appendix_b_ingress_provenance(preview, unit, workbook_path)["numeric_cell_evidence"],
                 },
                 "records": manifest_records,
-                "same_input_gui_canonical_vs_excel_r2": parity_evidence,
+                "same_input_gui_canonical_vs_excel_appendix_b": parity_evidence,
                 "files": {
                     gui_path.name: {"sha256": sha256(stage_gui.read_bytes()).hexdigest()},
                     excel_path.name: {"sha256": sha256(stage_excel.read_bytes()).hexdigest()},
@@ -1008,10 +1028,10 @@ def refresh_acceptance_samples_from_saved_records(
     output_dir: Path,
     evidence_dir: Path,
 ) -> tuple[Path, Path]:
-    """Re-render existing samples from frozen Records without recalculating them.
+    """Re-render the historical RPT02 Records from their frozen DB and bundle.
 
-    The only fresh calculation is a separate, temporary same-input parity copy
-    made from the R2 preview; it is not added to the deliverable records DB.
+    The original R2 source identity and parity evidence are preserved. This path
+    does not import workbooks, run a calculator, or rewrite the frozen bundle.
     """
     output_dir = Path(output_dir)
     evidence_dir = Path(evidence_dir)
@@ -1020,7 +1040,7 @@ def refresh_acceptance_samples_from_saved_records(
     records_path = evidence_dir / "records.sqlite"
     manifest_path = evidence_dir / "acceptance-evidence.json"
     bundle_path = output_dir / "records-and-snapshots.json"
-    required = (gui_path, excel_path, records_path, manifest_path)
+    required = (gui_path, excel_path, records_path, manifest_path, bundle_path)
     missing = tuple(path for path in required if not path.is_file())
     if missing:
         raise FileNotFoundError("saved-record刷新缺少既有验收文件：" + "、".join(str(path) for path in missing))
@@ -1034,154 +1054,95 @@ def refresh_acceptance_samples_from_saved_records(
     if set(record_by_origin) != set(expected_origins):
         raise ValueError("existing acceptance manifest does not identify both expected sample Records")
 
-    repository = SQLiteRecordRepository(records_path)
-    saved_by_origin = {}
-    for origin in expected_origins:
-        saved = repository.get(record_by_origin[origin]["record_id"])
-        if saved is None:
-            raise RuntimeError(f"records.sqlite缺少既有样例Record：{origin}")
-        saved_by_origin[origin] = saved
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle_records = bundle.get("records")
+    if bundle.get("task") != "GHG-RPT02" or not isinstance(bundle_records, list):
+        raise ValueError("existing frozen Record bundle is not a GHG-RPT02 bundle")
+    bundle_by_origin = {item.get("origin"): item for item in bundle_records if isinstance(item, dict)}
+    if set(bundle_by_origin) != set(expected_origins):
+        raise ValueError("existing frozen Record bundle does not preserve both historical sample identities")
 
-    prepared_on = str(manifest.get("generated_at", _SAMPLE_AT.isoformat()))[:10]
-    notes = {
-        "GUI_CANONICAL_INPUT": "验收演示输入；Canonical表单数据经正式核算用例写入不可变Record；不代表真实企业核算或企业凭证。",
-        "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE": "验收演示输入；Excel R2预览单元经正式核算用例写入不可变Record；活动数据来源为演示值，不是企业凭证。",
-    }
-    descriptions = {origin: record_by_origin[origin].get("input_description", "") for origin in expected_origins}
-    refreshed_summaries = []
-    frozen_record_exports = []
-    with tempfile.TemporaryDirectory(prefix="rpt02-saved-docs-", dir=output_dir) as docs_temp, tempfile.TemporaryDirectory(prefix="rpt02-saved-evidence-", dir=evidence_dir) as evidence_temp:
-        docs_stage = Path(docs_temp)
-        evidence_stage = Path(evidence_temp)
-        for origin, destination in ((expected_origins[0], gui_path), (expected_origins[1], excel_path)):
-            saved = saved_by_origin[origin]
-            report = build_saved_record_report(
-                repository,
-                saved,
-                supplementary_info={
-                    "enterprise_name": saved.input_snapshot.enterprise_name,
-                    "prepared_on": prepared_on,
-                    "supplementary_note": notes[origin],
-                },
+    # Repository initialization may update schema metadata. Use a SQLite backup
+    # from a read-only connection so the original evidence DB is never opened
+    # through the mutable repository initializer.
+    with tempfile.TemporaryDirectory(prefix="rpt02-db-copy-", dir=evidence_dir) as database_temp:
+        database_copy = Path(database_temp) / "records.sqlite"
+        with closing(sqlite3.connect(records_path.resolve().as_uri() + "?mode=ro", uri=True)) as source:
+            with closing(sqlite3.connect(database_copy)) as destination:
+                source.backup(destination)
+        repository = SQLiteRecordRepository(database_copy)
+        saved_by_origin = {}
+        for origin in expected_origins:
+            manifest_record = record_by_origin[origin]
+            frozen_item = bundle_by_origin[origin]
+            saved = repository.get(str(manifest_record["record_id"]))
+            if saved is None:
+                raise RuntimeError(f"records.sqlite缺少既有样例Record：{origin}")
+            bundle_record = frozen_item.get("record")
+            bundle_snapshots = frozen_item.get("snapshots")
+            if not isinstance(bundle_record, dict) or not isinstance(bundle_snapshots, dict):
+                raise ValueError(f"冻结bundle缺少Record或快照内容：{origin}")
+            frozen_payload = {"record": bundle_record, "snapshots": bundle_snapshots}
+            stored_hash = str(frozen_item.get("record_and_snapshots_sha256", ""))
+            frozen_hash = sha256(
+                json.dumps(frozen_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            if saved.record_id != bundle_record.get("record_id"):
+                raise AssertionError(f"冻结bundle与records.sqlite的Record身份不一致：{origin}")
+            if stored_hash != frozen_hash or _frozen_record_payload(repository, saved) != frozen_payload:
+                raise AssertionError(f"冻结bundle与records.sqlite的Record/快照内容不一致：{origin}")
+            saved_by_origin[origin] = saved
+
+        prepared_on = str(manifest.get("generated_at", _SAMPLE_AT.isoformat()))[:10]
+        notes = {
+            "GUI_CANONICAL_INPUT": "验收演示输入；Canonical表单数据经正式核算用例写入不可变Record；不代表真实企业核算或企业凭证。",
+            "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE": "历史R2验收演示输入；重渲染读取冻结Record，不重新导入工作簿或计算；活动数据不是企业凭证。",
+        }
+        descriptions = {origin: record_by_origin[origin].get("input_description", "") for origin in expected_origins}
+        refreshed_summaries = []
+        with tempfile.TemporaryDirectory(prefix="rpt02-saved-docs-", dir=output_dir) as docs_temp, tempfile.TemporaryDirectory(prefix="rpt02-saved-evidence-", dir=evidence_dir) as evidence_temp:
+            docs_stage = Path(docs_temp)
+            evidence_stage = Path(evidence_temp)
+            for origin, destination in ((expected_origins[0], gui_path), (expected_origins[1], excel_path)):
+                saved = saved_by_origin[origin]
+                report = build_saved_record_report(
+                    repository,
+                    saved,
+                    supplementary_info={
+                        "enterprise_name": saved.input_snapshot.enterprise_name,
+                        "prepared_on": prepared_on,
+                        "supplementary_note": notes[origin],
+                    },
+                )
+                b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
+                totals = frozen_totals(saved, repository.get_trace_snapshot(saved.record_id))
+                if (b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value) != (totals["ES"], totals["ET"]):
+                    raise AssertionError("saved-record渲染未保留冻结的ES和ET。")
+                staged_docx = docs_stage / destination.name
+                render_report_docx(report, staged_docx)
+                refreshed_summaries.append(_record_evidence(
+                    repository, saved, report, origin=origin, input_description=descriptions[origin],
+                ))
+
+            refreshed_manifest = dict(manifest)
+            refreshed_manifest["records"] = refreshed_summaries
+            refreshed_manifest["historical_refresh_note"] = (
+                "Word仅从已冻结RPT02 Record及快照重渲染；历史EXCEL_R2身份与既有同输入对照证据保留，本次未重新导入或计算。"
             )
-            b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
-            totals = frozen_totals(saved, repository.get_trace_snapshot(saved.record_id))
-            if (b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value) != (totals["ES"], totals["ET"]):
-                raise AssertionError("saved-record渲染未保留冻结的ES和ET。")
-            staged_docx = docs_stage / destination.name
-            render_report_docx(report, staged_docx)
-            refreshed_summaries.append(_record_evidence(
-                repository, saved, report, origin=origin, input_description=descriptions[origin],
-            ))
-            frozen_record_exports.append({
-                "origin": origin,
-                "record_and_snapshots_sha256": refreshed_summaries[-1]["record_and_snapshot_sha256"],
-                **_frozen_record_payload(repository, saved),
-            })
+            refreshed_files = dict(manifest.get("files", {}))
+            refreshed_files[gui_path.name] = {"sha256": sha256((docs_stage / gui_path.name).read_bytes()).hexdigest()}
+            refreshed_files[excel_path.name] = {"sha256": sha256((docs_stage / excel_path.name).read_bytes()).hexdigest()}
+            refreshed_files["records.sqlite"] = {"sha256": sha256(records_path.read_bytes()).hexdigest()}
+            refreshed_files[bundle_path.name] = {"sha256": sha256(bundle_path.read_bytes()).hexdigest()}
+            refreshed_manifest["files"] = refreshed_files
+            staged_manifest = evidence_stage / manifest_path.name
+            staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
-        # Recreate the exact one-row R2 demo workbook and prove that its typed
-        # Canonical input matches the frozen sample input (input_id is generated
-        # by the importer and therefore normalized to the saved value).
-        parity_stage = docs_stage / "parity"
-        parity_stage.mkdir()
-        catalog_path = parity_stage / "catalog.sqlite"
-        build_catalog_database(DEFAULT_SOURCE_PATH, catalog_path)
-        resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(catalog_path))
-        workbook_path = parity_stage / "GHG-RPT02_Excel_R2_demo.xlsx"
-        _write_excel_r2_input(workbook_path)
-        preview = ExcelWorkbookImporter(resolver).import_preview(workbook_path)
-        valid_units = [unit for unit in preview.units if unit.can_calculate and unit.input_value is not None]
-        if len(valid_units) != 1:
-            raise RuntimeError("saved-record parity要求R2预览产生唯一可计算单元。")
-        unit = valid_units[0]
-        if unit.result is None:
-            raise RuntimeError("saved-record parity的R2预览缺少结果。")
-        excel_saved = saved_by_origin[expected_origins[1]]
-        frozen_raw = repository.get_raw_input_snapshot(excel_saved.record_id)
-        if not isinstance(frozen_raw, dict):
-            raise RuntimeError("saved Excel Record缺少可比较的冻结输入快照。")
-        canonical_raw = dict(frozen_raw)
-        canonical_raw.pop("ingress_provenance", None)
-        current_canonical = _json_value(unit.input_value)
-        current_canonical["input_id"] = canonical_raw.get("input_id")
-        if canonical_raw != current_canonical:
-            raise AssertionError("重建的Excel R2 unit.input_value与既有Record冻结输入不一致。")
-        parity_input = replace(unit.input_value, input_id="input.rpt02.saved-record-parity")
-        parity_repository = SQLiteRecordRepository(parity_stage / "parity-records.sqlite")
-        parity_use_case = CarbonAccountingUseCase(
-            CarbonMaterialCalculator(parameter_resolver=resolver), parity_repository,
-        )
-        parity_record = _formal_record(parity_use_case, parity_input)
-        parity_saved = parity_repository.get(parity_record.record_id)
-        if parity_saved is None:
-            raise RuntimeError("临时Canonical parity Record未能保存。")
-        parity_report = build_saved_record_report(
-            parity_repository,
-            parity_saved,
-            supplementary_info={
-                "enterprise_name": excel_saved.input_snapshot.enterprise_name,
-                "prepared_on": prepared_on,
-                "supplementary_note": notes[expected_origins[1]],
-            },
-        )
-        saved_excel_report = build_saved_record_report(
-            repository,
-            excel_saved,
-            supplementary_info={
-                "enterprise_name": excel_saved.input_snapshot.enterprise_name,
-                "prepared_on": prepared_on,
-                "supplementary_note": notes[expected_origins[1]],
-            },
-        )
-        excel_business_sections = [
-            _json_value(section) for section in saved_excel_report.sections
-            if section.section_id in {f"b{number}" for number in range(1, 10)}
-        ]
-        canonical_business_sections = [
-            _json_value(section) for section in parity_report.sections
-            if section.section_id in {f"b{number}" for number in range(1, 10)}
-        ]
-        if excel_business_sections != canonical_business_sections:
-            raise AssertionError("同一冻结Canonical输入的Excel R2与GUI/Application报告业务内容不一致。")
-
-        parity_evidence = {
-            "same_canonical_input": True,
-            "input_comparison": "Excel unit.input_value matched the saved raw input after removing ingress_provenance and normalizing importer-generated input_id; the Canonical/Application copy omits ingress metadata.",
-            "source_excel_record_id": excel_saved.record_id,
-            "canonical_path_record_id": parity_saved.record_id,
-            "compared_section_ids": [f"b{number}" for number in range(1, 10)],
-            "business_sections_equal": True,
-            "excel_business_sections_sha256": sha256(json.dumps(excel_business_sections, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
-            "canonical_business_sections_sha256": sha256(json.dumps(canonical_business_sections, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
-            "parity_record_persisted_in_deliverable_database": False,
-        }
-        frozen_bundle = {
-            "task": "GHG-RPT02",
-            "notice": "以下为两个可交付Word样例对应的正式不可变Record与创建时冻结快照。所有活动数据为软件验收演示输入，不是企业业务数据或企业凭证。",
-            "records": frozen_record_exports,
-        }
-        staged_bundle = docs_stage / bundle_path.name
-        staged_bundle.write_text(json.dumps(frozen_bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-
-        refreshed_manifest = dict(manifest)
-        refreshed_manifest["canonical_reference_data_source"] = DEFAULT_SOURCE_PATH.resolve().relative_to(REPOSITORY_ROOT.resolve()).as_posix()
-        refreshed_manifest["records"] = refreshed_summaries
-        refreshed_manifest["same_input_gui_canonical_vs_excel_r2"] = parity_evidence
-        refreshed_manifest["files"] = {
-            gui_path.name: {"sha256": sha256((docs_stage / gui_path.name).read_bytes()).hexdigest()},
-            excel_path.name: {"sha256": sha256((docs_stage / excel_path.name).read_bytes()).hexdigest()},
-            "records.sqlite": {"sha256": sha256(records_path.read_bytes()).hexdigest()},
-            bundle_path.name: {"sha256": sha256(staged_bundle.read_bytes()).hexdigest()},
-        }
-        staged_manifest = evidence_stage / manifest_path.name
-        staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-
-        # Replace only the two named sample DOCX, their frozen JSON bundle, and
-        # their build evidence manifest; the formal records.sqlite stays byte-for-byte unchanged.
-        for destination in (gui_path, excel_path, bundle_path):
-            (docs_stage / destination.name).replace(destination)
-        staged_manifest.replace(manifest_path)
-    return gui_path, excel_path
+            # Keep the frozen Record bundle and PDF samples byte-for-byte unchanged.
+            for destination in (gui_path, excel_path):
+                (docs_stage / destination.name).replace(destination)
+            staged_manifest.replace(manifest_path)
+        return gui_path, excel_path
 
 
 def main() -> None:

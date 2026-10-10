@@ -1,6 +1,6 @@
 # GHG-UI-P3-DF 实施报告
 
-日期：2026-10-10。范围：参数与因子库（D）及新建核算视觉收敛（F）。交付单一独立 PR，等待验收，不自行合并或开始 C/E。
+日期：2026-10-10。范围：参数与因子库（D）及新建核算视觉收敛（F）。交付单一独立 PR #41；已通过独立验收，接收最新main后完成最终CI再合并，不在本包开始 C/E。
 
 ## 基线与平台 / Contract 预检查
 
@@ -35,3 +35,10 @@ EXB01 `codex/exb01-appendix-b-ingress` 和 RPT02 `codex/ghg-rpt02` 开工时均�
 交付同步：PR创建后主线合入RPT02 #39；接收已合并main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，只整合四份共享治理文档。RPT02业务保持主线原样，证据见docs/rpt02/ACCEPTANCE.md。初始DF base不变，最终head与merge-ref CI以PR41为准。本地同名用户Excel原始文件先保护到忽略目录，合并提交后恢复原路径，不作为DF改动提交。
 
 合并后专项：在工作树直接运行21项时，RPT02模板哈希一项因用户原Excel与主线批准副本不同而失败（20通过/1失败，16.227秒），没有修改原文件或弱化断言。随后git archive 3207998隔离运行相同命令：python -m unittest tests.test_electricity_2023_catalog tests.test_p3_df_factors tests.test_p3_df_accounting tests.test_rpt02_appendix_b -v：21项、12.942秒、OK。合并后六组Qt检查再次390/390通过，48图及6份JSON已更新并核对源码hash。完整CI需验证最终head的421项与独立构建。
+
+
+## PR #40 EXB01 合并后的本次最终整合
+
+已验收并合并的EXB01（PR #40）在 `main@242b535178dcf98ad69b025f14c9f5ed5bd03557`；此前RPT02（PR #39）已合并。PR #40已完成其附录B整工作簿输入与RPT02 Word报告联合回归（Windows CI 442/442、standalone审计PASS），历史原生Excel/WPS保存后回导仍明确OPEN。EXB01完整合并报告可由Git历史 `242b535178dcf98ad69b025f14c9f5ed5bd03557` 的 `IMPLEMENTATION_REPORT.md` 及原PR #40查看，本报告不覆盖其证据真值。
+
+本DF PR #41原head `942f16e682c03d6f9b1e05bf4ecba8fef1b42bbd` 的新建核算与因子库生产源码并未与EXB01文件交叠；本次只保留两包已验收的各自变更，整合四份当前治理文档，未重构RPT02/EXB01业务。后续两项Windows CI应绑定新增的PR #41最终head，准确记录全量测试与独立安装包审计结果；旧head的421项CI成功只作历史证据。原生Windows人工输入和缩放仍OPEN，不用Qt离屏模拟冒充。

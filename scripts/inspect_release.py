@@ -20,8 +20,20 @@ APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx")
+APPROVED_TEMPLATE_SHA256 = "e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d"
+REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
+ALLOWED_RESOURCE_FILES = frozenset({
+    APPROVED_TEMPLATE_PATH.as_posix(),
+    "resources/branding/qingzhou_logo.png",
+    *(f"resources/icons/{name}.svg" for name in
+      ("factors", "excel", "home", "records", "new", "settings", "standards")),
+})
+EXCEL_SUFFIXES = frozenset(
+    {".xls", ".xlsx", ".xlsm", ".xlsb", ".xltx", ".xltm", ".xlam", ".xla", ".ods", ".ots", ".fods", ".et", ".ett"}
+)
 FORBIDDEN_SUFFIXES = frozenset(
-    {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".pem", ".key", ".p12"}
+    {".pdf", ".doc", ".docx", ".docm", ".dotx", ".dotm", ".odt", ".rtf", ".xls", ".xlsx", ".csv", ".pem", ".key", ".p12"}
 )
 FORBIDDEN_PARTS = frozenset(
     {"tests", "test", "计算表", ".venv", "tmp", "data-source", ".git", ".github"}
@@ -112,14 +124,25 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         issues.append(f"missing {APP_EXECUTABLE}")
 
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
+    if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
+        issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / REPORT_LAYOUT_PATH).is_file():
+        issues.append(f"missing packaged Word report layout: {REPORT_LAYOUT_PATH.as_posix()}")
     for path in _relative_files(artifact):
         relative = Path(path)
         normalized = relative.as_posix()
         lower = normalized.lower()
+        if normalized.startswith("resources/") and normalized not in ALLOWED_RESOURCE_FILES:
+            issues.append(f"unexpected resource file: {normalized}")
         parts = {part.lower() for part in relative.parts}
         if parts & {part.lower() for part in FORBIDDEN_PARTS}:
             issues.append(f"forbidden development or user-data path: {normalized}")
-        if relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
+        if relative.suffix.lower() in EXCEL_SUFFIXES:
+            if relative.suffix.lower() != ".xlsx" or relative != APPROVED_TEMPLATE_PATH:
+                issues.append(f"unexpected Excel workbook file: {normalized}")
+            elif _sha256(artifact / relative) != APPROVED_TEMPLATE_SHA256:
+                issues.append(f"approved Excel template hash mismatch: {normalized}")
+        elif relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
             relative.suffix.lower() == ".docx"
             and normalized.lower() == PYTHON_DOCX_DEFAULT_TEMPLATE
         ):

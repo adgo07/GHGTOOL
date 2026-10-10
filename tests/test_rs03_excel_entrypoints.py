@@ -23,16 +23,13 @@ from openpyxl import load_workbook
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
-from packages.application.carbon_accounting import (
-    CarbonAccountingPreviewUseCase,
-    create_g06_parameter_resolver,
-)
 from packages.application.reporting import build_saved_record_report
 from packages.application.project_workspaces import ProjectWorkspaceService
-from packages.excel.r2 import METADATA_SHEET, VISIBLE_SHEETS, ExcelWorkbookImporter, create_template_bytes
+from packages.core.models import AccountingPeriod, PeriodType
+from packages.excel.appendix_b import AppendixBImportContext, AppendixBWorkbookImporter
+from packages.excel.templates import APPROVED_TEMPLATE_SHA256, ExcelTemplateService
 from packages.persistence.projects_repository import ProjectRecordAssociationError, SQLiteProjectWorkspaceRepository
 from packages.persistence import (
-    SQLiteCatalogRepository,
     SQLiteRecordRepository,
     build_catalog_database,
 )
@@ -97,17 +94,34 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         self.app.processEvents()
         self.directory.cleanup()
 
+    @staticmethod
+    def _set_import_context(page, year: int, enterprise_name: str = "RS03 集成验收企业") -> None:
+        page.import_enterprise_name.setText(enterprise_name)
+        page.import_period_type.setCurrentIndex(page.import_period_type.findData("ANNUAL"))
+        page.import_period_start.setText(f"{year}-01-01")
+        page.import_period_end.setText(f"{year}-12-31")
+        page.import_boundary_confirmed.setChecked(True)
+
+    @staticmethod
+    def _context(year: int, enterprise_name: str = "RS03 集成验收企业") -> AppendixBImportContext:
+        return AppendixBImportContext(
+            period=AccountingPeriod(
+                PeriodType.ANNUAL,
+                date(year, 1, 1),
+                date(year, 12, 31),
+            ),
+            enterprise_name=enterprise_name,
+            boundary_confirmed=True,
+        )
+
     def _workbook(self, year: int = 2025) -> Path:
-        workbook = load_workbook(BytesIO(create_template_bytes()))
-        basic = workbook["基本信息"]
-        basic["B3"] = "RS03 集成验收企业"
-        basic["B4"] = "年度"
-        basic["B5"] = f"{year}-01-01"
-        basic["B6"] = f"{year}-12-31"
-        basic["B7"] = "是"
-        basic["A13"], basic["B13"], basic["C13"] = "全厂", "全厂", "是"
-        fuel = workbook["B.2 化石燃料"]
-        fuel["A6"], fuel["B6"], fuel["C6"], fuel["D6"] = "全厂", "天然气", "体积", 1.25
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        fuel = workbook["B.2"]
+        fuel["A14"] = "天然气"
+        fuel["B14"] = 1.25
+        fuel["D14"] = "计算值"
+        fuel["F14"] = "缺省值"
+        fuel["I14"] = "缺省值"
         destination = self.root / f"输入-{year}.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -145,9 +159,10 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.EXCEL_IMPORT]
         self.assertIs(page.calculation_use_case, self.page.calculation_use_case)
         self.assertIs(page.calculation_use_case.calculator, self.page.calculation_use_case.calculator)
+        self._set_import_context(page, 2024)
 
         with (
-            patch("packages.excel.r2.datetime", _FixedDateTime),
+            patch("packages.excel.appendix_b.datetime", _FixedDateTime),
             patch("packages.ui.pages.QFileDialog.getOpenFileName", return_value=(str(workbook), "")),
         ):
             page.selectFileButton.click()
@@ -180,24 +195,29 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         self.assertEqual(provenance["reference_data"], {"status": "CAPTURED", **expected_identity})
         self.assertEqual(self.repository.list_all(), ())
 
-    def test_r2_importer_uses_preview_calculators_resolver_and_rejects_a_different_one(self) -> None:
+    def test_appendix_b_importer_uses_the_page_preview_calculator_and_context(self) -> None:
+        self.shell.navigate(AppRoute.EXCEL_IMPORT)
+        self.app.processEvents()
+        page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+        preview_use_case = page.preview_use_case
         calculator = self.page.calculation_use_case.calculator
-        preview_use_case = CarbonAccountingPreviewUseCase(calculator)
-        resolver = calculator.parameter_resolver
-        importer = ExcelWorkbookImporter(resolver, preview_use_case=preview_use_case)
+        self.assertIs(preview_use_case.calculator, calculator)
+        importer = AppendixBWorkbookImporter(
+            preview_use_case=preview_use_case,
+            catalog_service=page.catalog_service,
+        )
         self.assertIs(importer.preview_use_case, preview_use_case)
-        self.assertIs(importer.parameter_resolver, resolver)
-        self.assertIs(importer.preview_use_case.calculator.parameter_resolver, resolver)
+        self.assertIs(importer.resolver, calculator.parameter_resolver)
 
-        preview = importer.import_preview(self._workbook())
+        preview = importer.import_preview(
+            self._workbook(),
+            context=self._context(2025),
+        )
+        self.assertEqual(len(preview.units), 1)
         self.assertTrue(preview.units[0].can_calculate, preview.units[0].errors)
         self.assertTrue(preview.units[0].calculation.parameter_snapshots)
+        self.assertIsNone(preview.units[0].calculation.record)
         self.assertEqual(self.repository.list_all(), ())
-
-        different_resolver = create_g06_parameter_resolver(SQLiteCatalogRepository(self.catalog))
-        self.assertIsNot(different_resolver, resolver)
-        with self.assertRaisesRegex(ValueError, "必须使用同一参数选择服务"):
-            ExcelWorkbookImporter(different_resolver, preview_use_case=preview_use_case)
 
     def test_word_export_reads_only_frozen_record_after_catalog_is_unavailable(self) -> None:
         record = self._create_record()
@@ -241,7 +261,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         self.assertIn("B.1 温室气体排放量汇总", visible_text)
         self.assertIn("B.9 购入和输出热力", visible_text)
         self.assertEqual(parsed.tables[1].rows[-1].cells[2].text, "27.03")
-        self.assertIn("tCO₂", parsed.tables[1].rows[0].cells[2].text)
+        self.assertEqual(parsed.tables[1].rows[0].cells[2].text, "排放量ᵇ\ntCO₂")
         report_after = build_saved_record_report(
             self.repository,
             self.repository.get(record.record_id),
@@ -445,7 +465,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         renderer.assert_not_called()
         self.assertEqual(final_path.read_bytes(), original)
 
-    def test_record_page_has_no_excel_result_export_and_r2_template_still_exports(self) -> None:
+    def test_record_page_has_no_excel_result_export_and_approved_template_still_exports(self) -> None:
         record = self._create_record()
         record_page = self._record_page(record.record_id)
         self.assertTrue(record_page.export_word_button.isEnabled())
@@ -455,7 +475,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         self.shell.navigate(AppRoute.EXCEL_IMPORT)
         self.app.processEvents()
         page = self.shell.pages[AppRoute.EXCEL_IMPORT]
-        destination = self.root / "exported-R2-template.xlsx"
+        destination = self.root / "exported-Appendix-B-template.xlsx"
         with (
             patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
             patch("packages.ui.pages.QMessageBox.information") as success,
@@ -464,10 +484,10 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
             self.app.processEvents()
         success.assert_called_once()
         self.assertTrue(destination.is_file())
-        workbook = load_workbook(destination, read_only=False)
-        self.assertEqual(tuple(name for name in workbook.sheetnames if name != METADATA_SHEET), VISIBLE_SHEETS)
-        self.assertEqual(workbook[METADATA_SHEET].sheet_state, "hidden")
-        workbook.close()
+        content = destination.read_bytes()
+        self.assertEqual(content, ExcelTemplateService.default().read_bytes())
+        self.assertEqual(sha256(content).hexdigest(), APPROVED_TEMPLATE_SHA256)
+
 
 
     def test_project_association_failures_explain_recovery_state_without_technical_details(self) -> None:
@@ -478,6 +498,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
             SQLiteProjectWorkspaceRepository(self.root / "projects.sqlite")
         )
         page._refresh_saved_projects()
+        self._set_import_context(page, 2025)
         page._preview_workbook(self._workbook())
         page.project_name.setText("关联恢复状态测试")
         page.save_project_button.click()
