@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR #38～#41均已合并；GHG-UI-P3-E独立PR待创建/独立验收）
+最后更新：2026-10-10（PR #38～#41均已合并；GHG-UI-P3-E PR #43已创建，待独立验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -185,7 +185,7 @@ PF01范围约束：
 
 当前工作包为 P3-E：在 `codex/ghg-ui-p3-e-table-import` 将附录B表格导入整理为四个紧凑区域，明确区分选择工作簿、检查预览、保存项目和主动正式核算。只修改ExcelImportPage及专属组件；EXB01 Adapter、Canonical、Decimal、Calculator、项目/Record语义、数据库、Word报告及标准范围均保持主线原样。
 
-本地完整回归与Windows独立版构建/审计已通过。PR创建后等待最终PR-head Windows CI及独立验收；不自行合并。原生Windows鼠标/键盘/系统DPI及EXB01原生Excel/WPS保存回导缺项继续单独保持OPEN。
+本地完整回归与Windows独立版构建/审计已通过。PR #43等待最终PR-head Windows CI及独立验收；不自行合并。原生Windows鼠标/键盘/系统DPI及EXB01原生Excel/WPS保存回导缺项继续单独保持OPEN。
 
 ### 已合并基线（非当前包）
 

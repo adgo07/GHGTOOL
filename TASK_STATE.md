@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：GHG-UI-P3-E — 实现、本地完整回归及Windows独立版验证完成；PR准备中，待创建后等待独立验收
+状态：GHG-UI-P3-E — PR #43已创建，等待最终head GitHub CI及独立验收；不自动合并
 最后更新：2026-10-10
 
 仓库已在隔离工作树确认：origin 为 `https://github.com/adgo07/GHGTOOL.git`，分支 `codex/ghg-ui-p3-e-table-import`，从执行时最新 `origin/main@4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813` 创建。主线已包含 P3-AB PR38、RPT02 PR39、EXB01 PR40 与 P3-DF PR41。原始 G 工作目录保持未修改。
@@ -11,4 +11,4 @@ P3-E 只统一 EXB01 附录B导入页面的呈现为四个紧凑区域：获取�
 
 本地验证：新增P3-E专项5/5；相关定向回归34/34；完整Python 3.12回归453/453。标准目录验证9 standards / 12 sources / 102 parameters / 138 factors；源码编译及环境依赖检查通过。Windows独立版以实现提交 `15b5cfb284ad85461490e7da78b99b9bf571a2c3` 构建成功，发布目录审计267文件PASS，ZIP往返268可见文件PASS，程序隔离启动2次PASS。详细命令和截图哈希见 `docs/ui/p3-e/ACCEPTANCE.md`。
 
-截图为Windows Qt离屏证据，不等同于原生鼠标/键盘/DPI人工验收。GitHub最终PR head Windows CI及原生交互人工验收仍OPEN。提交独立PR，不自动合并；随后等待独立验收。
+截图为Windows Qt离屏证据，不等同于原生鼠标/键盘/DPI人工验收。PR #43最终head Windows CI及原生交互人工验收仍OPEN；不自动合并，等待独立验收。

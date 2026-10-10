@@ -1,6 +1,6 @@
 # GHG-UI-P3-E 验收记录
 
-状态：实现与本地验收完成；PR待创建，等待独立验收。不得自动合并。
+状态：PR #43 已创建，等待独立验收。不得自动合并。链接：[GHG-UI-P3-E #43](https://github.com/adgo07/GHGTOOL/pull/43)。
 
 ## 基线与平台 / Contract 预检查
 
@@ -44,7 +44,7 @@
 | 上传式归档往返 | `.\.venv\Scripts\python.exe scripts\verify_release_archive.py build\p3e-standalone\QingzhouCarbonAccounting` | PASS；268 visible files，manifest经ZIP往返仍可验证 |
 | Windows启动 | `.\.venv\Scripts\python.exe scripts\smoke_standalone.py build\p3e-standalone\QingzhouCarbonAccounting --starts 2` | 两次隔离启动均PASS |
 
-GitHub Windows CI在PR创建后绑定最终PR head复核；当前尚无此CI结果。
+PR #43已创建；GitHub Windows CI需绑定推送后的最新head复核。该检查结果以GitHub Actions实际状态为准。
 
 ## Windows截图
 

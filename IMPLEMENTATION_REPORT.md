@@ -1,6 +1,6 @@
 # GHG-UI-P3-E 实施报告
 
-日期：2026-10-10。范围：附录B表格导入页Presentation统一；提交独立PR，等待独立验收，不自动合并。
+日期：2026-10-10。范围：附录B表格导入页Presentation统一；已创建独立PR #43，等待独立验收，不自动合并。
 
 ## 基线与平台 / Contract 预检查
 
@@ -26,4 +26,4 @@ Windows独立版从已提交源码重建成功；发布目录审计267文件PASS
 
 截图为Windows Qt离屏生成，不冒充原生鼠标/键盘/DPI人工验收。原生Windows交互和系统缩放仍OPEN；EXB01既有Excel/WPS原生保存后回导缺项仍OPEN。该包不改业务语义，也不改变行业标准支持状态。
 
-PR创建后将等待独立验收，不合并。
+PR #43：https://github.com/adgo07/GHGTOOL/pull/43。等待独立验收，不合并。
