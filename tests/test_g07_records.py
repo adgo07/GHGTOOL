@@ -290,9 +290,10 @@ class G07UiTests(unittest.TestCase):
         self.records_page.status_filter.setCurrentIndex(2)
         self.application.processEvents()
         self.assertEqual(self.records_page.record_list.count(), 1)
-        self.assertTrue(self.records_page.detail_text.isReadOnly())
-        self.assertIn("record.ui.two", self.records_page.detail_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.records_page.parameter_text.toPlainText())
+        self.records_page.open_detail_button.click()
+        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
+        self.assertIn("G07 示例企业", self.records_page.summary_text.toPlainText())
+        self.assertIn("G07 测试选择理由", self.records_page.input_basis_text.toPlainText())
         self.assertIsNotNone(self.home_page.findChild(QLabel, "bodyText"))
 
     def test_leaving_uncomputed_page_preserves_every_input_without_confirmation(self) -> None:
@@ -355,8 +356,9 @@ class G07UiTests(unittest.TestCase):
         )
         self.records_page.search_input.setText("record.ui.snapshot")
         self.application.processEvents()
-        detail = self.records_page.detail_text.toPlainText()
-        self.assertIn("标准编号（稳定 ID）：gbt_32151_34_2024", detail)
+        self.records_page.open_detail_button.click()
+        detail = self.records_page.input_basis_text.toPlainText()
+        self.assertIn("核算标准：GB/T 32151.34—2024", detail)
         self.assertIn("标准版本：2024", detail)
         self.assertIn("【活动数据】", detail)
         self.assertIn("【排放源】", detail)
@@ -368,11 +370,11 @@ class G07UiTests(unittest.TestCase):
         self.assertIn("常规电力", detail)
         self.assertIn("未提供", detail)
         self.assertIn("PROOF-X", detail)
-        self.assertIn("electricity-detail-1", detail)
+        self.assertNotIn("electricity-detail-1", detail)
         self.assertNotIn('"electricity_details"', detail)
         self.assertNotIn('"activity_amount"', detail)
         self.assertNotIn("原始输入快照字段：", detail)
-        self.assertTrue(self.records_page.detail_text.isReadOnly())
+        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
 
     def test_legacy_record_explicitly_reports_missing_trace_without_catalog_lookup(self) -> None:
         legacy = _record("record.ui.legacy-trace")
@@ -385,10 +387,11 @@ class G07UiTests(unittest.TestCase):
         ):
             self.records_page.refresh_records()
             self.application.processEvents()
-        detail = self.records_page.detail_text.toPlainText()
+        self.records_page.open_detail_button.click()
+        detail = self.records_page.input_basis_text.toPlainText()
         self.assertIn("该记录生成时未保存完整计算过程快照。", detail)
         self.assertIn("历史记录未保存该信息。", detail)
-        self.assertTrue(self.records_page.detail_text.isReadOnly())
+        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
 
     def test_historical_snapshot_stays_stable_after_catalog_parameter_change(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -423,8 +426,9 @@ class G07UiTests(unittest.TestCase):
             )
             self.records_page.search_input.setText(record.record_id)
             self.application.processEvents()
-            before = self.records_page.detail_text.toPlainText()
-            self.assertIn(current_parameter.parameter_id, before)
+            self.records_page.open_detail_button.click()
+            before = self.records_page.input_basis_text.toPlainText()
+            self.assertIn("G07 测试选择理由", before)
             self.assertIn("12345.678", before)
 
             connection = sqlite3.connect(catalog_path)
@@ -446,7 +450,7 @@ class G07UiTests(unittest.TestCase):
 
             self.records_page.refresh_records()
             self.application.processEvents()
-            after = self.records_page.detail_text.toPlainText()
+            after = self.records_page.input_basis_text.toPlainText()
             self.assertEqual(after, before)
             self.assertIn("12345.678", after)
             self.assertNotIn("已变更的当前 Catalog 参数", after)
@@ -483,8 +487,9 @@ class G07UiTests(unittest.TestCase):
             second_records = second_shell.pages[AppRoute.RECORDS]
             self.assertIsInstance(second_shell.record_repository, SQLiteRecordRepository)
             self.assertEqual(second_records.record_list.count(), 1)
-            self.assertIn("默认持久化企业", second_records.detail_text.toPlainText())
-            self.assertIn("标准版本：2024", second_records.detail_text.toPlainText())
+            second_records.open_detail_button.click()
+            self.assertIn("默认持久化企业", second_records.input_basis_text.toPlainText())
+            self.assertIn("标准版本：2024", second_records.input_basis_text.toPlainText())
             second_window.close()
             second_window.deleteLater()
             self.application.processEvents()
@@ -503,6 +508,7 @@ class G07UiTests(unittest.TestCase):
         self.records_page.search_input.clear()
         self.records_page.record_list.setCurrentRow(0)
         selected_id = self.records_page._records[0].record_id
+        self.records_page.open_detail_button.click()
         with patch(
             "packages.ui.pages.QMessageBox.question",
             return_value=int(QMessageBox.StandardButton.Yes),
