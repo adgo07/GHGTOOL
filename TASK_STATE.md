@@ -11,4 +11,4 @@
 
 保护边界：不改正式Record、Calculator、Canonical、Schema、历史快照、RPT02报告模型/模板/renderer/export helper、新建核算、参数因子库、表格导入和公共Shell。整合主线后重新检查保护文件哈希及非目标页面AST，证据位于`docs/ui/p3-c/evidence/scope-and-rpt02-proof.json`。
 
-最新主线验证：定向回归69/69、完整回归456/456通过，均0失败/错误/跳过；六组Windows原生Qt共115项通过，30张截图和正式Record Word样例已生成；Python3.12.14 compileall退出码0，项目依赖17包兼容。Windows构建与提交后PR head CI尚待执行。自动Qt验证不等同于人工鼠标/键盘/操作系统DPI验收；本PR不得自动合并，不启动P3-E。
+最新主线验证：定向回归69/69、完整回归456/456通过，均0失败/错误/跳过；六组Windows原生Qt共115项通过，30张截图和正式Record Word样例已生成；Python3.12.14 compileall退出码0，项目依赖17包兼容。Windows standalone由提交6ad85af构建通过（264文件审计、ZIP往返及2次隔离启动均PASS）；GitHub PR head CI尚待执行。自动Qt验证不等同于人工鼠标/键盘/操作系统DPI验收；本PR不得自动合并，不启动P3-E。

@@ -31,8 +31,11 @@
 | 范围证明 | evidence/scope-and-rpt02-proof.json | 基线4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813；12项报告、Shell、计算、Schema/Frozen保护文件均未变；pages.py中RecordLibraryPage以外的4个页面AST均未变。 |
 | 编译 | python -m compileall -q apps packages resources scripts tests | Python 3.12.14，退出码0。 |
 | 依赖检查 | uv pip check --python（项目Python 3.12环境） | 17个已安装包兼容。 |
-| Windows独立构建与GitHub CI | 以提交后的P3-C PR head运行 | 待提交后执行/等待最新PR head结果；最终证据在PR正文。 |
+| Windows独立构建 | python scripts/build_standalone.py --output-root tmp/p3c-build-6ad85af | Windows 10 / Python 3.12.14 / PyInstaller 6.22.3，exit 0；manifest source_commit=6ad85afc123dc3e09e8f0cd87147f885ad65155f，264个文件。 |
+| 发布审计 | python scripts/inspect_release.py；python scripts/verify_release_archive.py | 264文件审计PASS；265可见文件ZIP往返PASS。 |
+| 独立启动 | python scripts/smoke_standalone.py | 2次隔离启动PASS。 |
+| GitHub CI | 当前P3-C PR head | PR创建后待检查；最终结果以GitHub当前head状态为准。 |
 
 ## 待完成验收项
 
-本地定向/全量、六组Windows原生Qt截图和Word一致性已通过。剩余：提交后运行Windows standalone构建、smoke与GitHub当前PR head CI；更新PR最终base/head/diff/结果并等待独立验收。
+本地定向/全量、六组Windows原生Qt、Word一致性和Windows standalone构建/审计/smoke已通过。剩余：创建并推送独立PR、等待GitHub当前head CI及独立验收。

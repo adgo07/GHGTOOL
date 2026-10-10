@@ -1,6 +1,6 @@
 # GHG-UI-P3-C 验收记录
 
-状态：本地验证通过；等待提交后的Windows构建、PR head CI与独立验收。
+状态：本地验证与Windows构建通过；等待PR head CI与独立验收。
 
 ## 基线与范围
 
@@ -18,7 +18,7 @@
 | 审计与删除 | 普通界面无审计详情入口；取消删除不变；确认删除保留审计 | 已通过 |
 | 快照与Word | 展示冻结依据；复用RPT02公共Word入口；不回算/不改快照 | 已通过 |
 | Windows界面 | 六组尺寸/缩放原生Qt自动检查，截图与Word样例 | 115项通过；人工作业系统DPI仍需独立确认 |
-| 全量与打包 | 全量456/456通过；Windows standalone构建及当前PR CI待提交后执行 |
+| 全量与打包 | 全量456/456通过；Windows standalone、审计、ZIP往返、2次smoke均通过；当前PR CI待执行 |
 
 ## 屏幕与文档证据
 
@@ -26,4 +26,4 @@
 
 ## 遗留验收边界
 
-原生人工鼠标/键盘操作与Windows系统DPI切换未由自动脚本完成；PR38/39既有独立验收中的OPEN事项不冒充本包已关闭。本地定向回归69/69通过，全量回归456/456通过（均0失败/错误/跳过），Python3.12.14；项目环境17包依赖兼容，compileall退出码0。Windows standalone构建与GitHub当前PR head CI仍待完成，结果随最终PR更新。
+原生人工鼠标/键盘操作与Windows系统DPI切换未由自动脚本完成；PR38/39既有独立验收中的OPEN事项不冒充本包已关闭。本地定向回归69/69通过，全量回归456/456通过（均0失败/错误/跳过），Python3.12.14；项目环境17包依赖兼容，compileall退出码0。Windows standalone构建来源提交6ad85afc123dc3e09e8f0cd87147f885ad65155f：PyInstaller 6.22.3，264文件构建PASS，审计PASS，265文件ZIP往返PASS，2次隔离启动PASS。GitHub当前PR head CI仍待完成，结果随PR更新。
