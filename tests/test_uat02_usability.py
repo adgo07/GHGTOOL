@@ -184,13 +184,11 @@ class UAT02UsabilityTests(unittest.TestCase):
 
     def test_record_audit_is_not_part_of_ordinary_layout(self) -> None:
         records = self.shell.pages[AppRoute.RECORDS]
-        self.assertTrue(records.audit_dialog.isHidden())
-        self.assertIs(records.detail_text.parentWidget(), records.audit_dialog)
-        self.assertIsNotNone(records.audit_button)
-        records.audit_button.click()
-        self.application.processEvents()
-        self.assertTrue(records.audit_dialog.isVisible())
-        records.audit_dialog.close()
+        self.assertFalse(hasattr(records, "audit_dialog"))
+        self.assertFalse(hasattr(records, "audit_button"))
+        self.assertIsNone(records.findChild(QPushButton, "openRecordAuditButton"))
+        self.assertEqual(records.detail_tabs.count(), 2)
+        self.assertTrue(records.input_basis_text.isReadOnly())
 
 
 if __name__ == "__main__":

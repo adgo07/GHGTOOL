@@ -1,14 +1,13 @@
 # 当前任务状态
 
-状态：GHG-UI-P3-E — PR #43已创建，等待最终head GitHub CI及独立验收；不自动合并
-最后更新：2026-10-10
+状态：Phase 3 业务仓界面收口 — P3-C PR #42与P3-E PR #43均通过独立验收，完成冲突整合与合并。
 
-仓库已在隔离工作树确认：origin 为 `https://github.com/adgo07/GHGTOOL.git`，分支 `codex/ghg-ui-p3-e-table-import`，从执行时最新 `origin/main@4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813` 创建。主线已包含 P3-AB PR38、RPT02 PR39、EXB01 PR40 与 P3-DF PR41。原始 G 工作目录保持未修改。
+最后更新：2026-10-10。仓库：`adgo07/GHGTOOL`。本轮整合基于P3-C合并提交 `00da563b63ad9a981ab49258641ab12ac6dbe3ab`，保留P3-E最终验收原Head `4ed291e0bb3eed4e9352ed96d98ea2d9b5ea2121`的Excel页面实现。完整差异见PR #42/#43。
 
-平台 / Contract 预检查：锁定中央基线 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；相关 Architecture V2.1 与 Numeric v1 保持锁定。本任务仅改表格导入页面呈现、页面专属组件和测试，不涉及中央公共 Contract、标准解释或业务规则；Standard Issues Register 的8项均为RESOLVED，本任务不改变其中决定。
+- P3-C：核算记录可搜索、状态筛选、独立详情双页签；Trace、Provenance、审计数据及Word公共出口保留。
+- P3-E：附录B导入四区操作；选择与预览分离、逐单元校验、仅用户显式保存项目并正式核算后追加Record。
+- 计算内核、Decimal、Canonical、Record Schema、Excel Adapter/模板、Word报告模型及renderer均未在本轮修改。
+- 两PR原Head Windows CI均成功。合并后的最终验证以集成Head Actions为准。
+- 后续OPEN：原生Windows人工DPI/键鼠、EXB01 WPS保存回导、RS04 Golden/正式支持与RS05 Release Gate。不自动将行业标准标记SUPPORTED。
 
-P3-E 只统一 EXB01 附录B导入页面的呈现为四个紧凑区域：获取模板、选择文件与核算信息、数据检查与预览、保存项目/正式核算/结果。预览与选择文件分开操作，逐单元状态及错误单元格可查看；保存仍只保留有效单元，正式核算仍通过现有项目与Application路径追加不可变Record。未修改 Excel Adapter、Canonical、Decimal、Calculator、Project/Record语义、数据库结构、Word报告或导出能力。
-
-本地验证：新增P3-E专项5/5；相关定向回归34/34；完整Python 3.12回归453/453。标准目录验证9 standards / 12 sources / 102 parameters / 138 factors；源码编译及环境依赖检查通过。Windows独立版以实现提交 `15b5cfb284ad85461490e7da78b99b9bf571a2c3` 构建成功，发布目录审计267文件PASS，ZIP往返268可见文件PASS，程序隔离启动2次PASS。详细命令和截图哈希见 `docs/ui/p3-e/ACCEPTANCE.md`。
-
-截图为Windows Qt离屏证据，不等同于原生鼠标/键盘/DPI人工验收。PR #43最终head Windows CI及原生交互人工验收仍OPEN；不自动合并，等待独立验收。
+中央Frozen基线 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`继续锁定。

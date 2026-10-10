@@ -1,0 +1,98 @@
+{
+  "base": "4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813",
+  "scope": "GHG-UI-P3-C Presentation",
+  "protected_files": [
+    {
+      "path": "packages/application/reporting/model.py",
+      "unchanged": true,
+      "baseline_sha256": "c5e9fe2bff417141b34a5203bf96d1b622f5e59c9305eba5074a19406e9906b5",
+      "current_sha256": "c5e9fe2bff417141b34a5203bf96d1b622f5e59c9305eba5074a19406e9906b5"
+    },
+    {
+      "path": "packages/application/reporting/appendix_b.py",
+      "unchanged": true,
+      "baseline_sha256": "c7f6a7c3776c0a8077a716b17ef3df98eb1711ed05a605eac0e69278f09240c5",
+      "current_sha256": "c7f6a7c3776c0a8077a716b17ef3df98eb1711ed05a605eac0e69278f09240c5"
+    },
+    {
+      "path": "packages/application/reporting/appendix_b_layout.json",
+      "unchanged": true,
+      "baseline_sha256": "fe212e5f7f238802683e834ea249f14b6ca3ee572a7c60c750c1258f96135358",
+      "current_sha256": "fe212e5f7f238802683e834ea249f14b6ca3ee572a7c60c750c1258f96135358"
+    },
+    {
+      "path": "packages/application/reporting/service.py",
+      "unchanged": true,
+      "baseline_sha256": "4827955c8fcda1285377cf9da54df0ea150eaf2e079472b7d73e12aeb9381bbe",
+      "current_sha256": "4827955c8fcda1285377cf9da54df0ea150eaf2e079472b7d73e12aeb9381bbe"
+    },
+    {
+      "path": "packages/infrastructure/reporting/word_renderer.py",
+      "unchanged": true,
+      "baseline_sha256": "5e182719c113de6e16fcd0ba6373f9c511fcc0b58190bba7a30db81509eee746",
+      "current_sha256": "5e182719c113de6e16fcd0ba6373f9c511fcc0b58190bba7a30db81509eee746"
+    },
+    {
+      "path": "packages/ui/report_export.py",
+      "unchanged": true,
+      "baseline_sha256": "e9504debb2f0df391f0f9bcf5f6be7c8e4cd66ddfcb8c199b45b92f50819ebc4",
+      "current_sha256": "e9504debb2f0df391f0f9bcf5f6be7c8e4cd66ddfcb8c199b45b92f50819ebc4"
+    },
+    {
+      "path": "packages/ui/shell.py",
+      "unchanged": true,
+      "baseline_sha256": "51998e0915ba76cbf654ee75a3e5086155312f5890c8c29372354560401113e7",
+      "current_sha256": "51998e0915ba76cbf654ee75a3e5086155312f5890c8c29372354560401113e7"
+    },
+    {
+      "path": "packages/ui/carbon_material_page.py",
+      "unchanged": true,
+      "baseline_sha256": "4942af1a605ed306beba7523e354d8fb525b3e86249e7cc10e68e53ff49695aa",
+      "current_sha256": "4942af1a605ed306beba7523e354d8fb525b3e86249e7cc10e68e53ff49695aa"
+    },
+    {
+      "path": "packages/ui/catalog_pages.py",
+      "unchanged": true,
+      "baseline_sha256": "5c2ac05c780bfe3a97207d6ce27baeb83a4ca28070eeef663b9a8869b8f80fc7",
+      "current_sha256": "5c2ac05c780bfe3a97207d6ce27baeb83a4ca28070eeef663b9a8869b8f80fc7"
+    },
+    {
+      "path": "packages/standards/carbon_material.py",
+      "unchanged": true,
+      "baseline_sha256": "e287ced1384e3027dfc5c9cd7301becc749040cd303d232495194ed7a86a0353",
+      "current_sha256": "e287ced1384e3027dfc5c9cd7301becc749040cd303d232495194ed7a86a0353"
+    },
+    {
+      "path": "packages/core/models.py",
+      "unchanged": true,
+      "baseline_sha256": "38f8e391161d32e7e7610b45a6190f44fd48ecdfc3981ec2ae9b46a710c7fa05",
+      "current_sha256": "38f8e391161d32e7e7610b45a6190f44fd48ecdfc3981ec2ae9b46a710c7fa05"
+    },
+    {
+      "path": "platform-lock.json",
+      "unchanged": true,
+      "baseline_sha256": "be9052155bbcae94c782e2c7bdbaa384358cc605c27e81c5bf62a2957247fdd0",
+      "current_sha256": "be9052155bbcae94c782e2c7bdbaa384358cc605c27e81c5bf62a2957247fdd0"
+    }
+  ],
+  "unchanged_other_page_classes": [
+    {
+      "class": "BasePage",
+      "unchanged_ast": true
+    },
+    {
+      "class": "ExcelImportPage",
+      "unchanged_ast": true
+    },
+    {
+      "class": "HomePage",
+      "unchanged_ast": true
+    },
+    {
+      "class": "PlaceholderPage",
+      "unchanged_ast": true
+    }
+  ],
+  "word_sample": "P3-C_FormalRecord_Appendix_B.docx",
+  "word_sample_sha256": "eca4b4ab1772b026ef68b32c6a43bdfb4c3aad50bb5070bd7692269a3fff09bc"
+}
