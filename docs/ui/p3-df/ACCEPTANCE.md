@@ -16,7 +16,7 @@
 
 已核实中央origin并fetch，只读取正式合并 `854b544563260f9e79c73e714c85f6589e0f19b3` 的UI v0.2、家族规格、验收清单、Phase2 INTERACTION_SPEC / VISUAL_SPEC / PYSIDE6_REFERENCE。ACTIVE / EVOLVING不作为Frozen adoption；旧原型截图/HTML及其历史产品基线不替代当前源码。
 
-EXB01已在独立 `codex/exb01-appendix-b-ingress` 工作树实施（相对当前main有33个变更路径，未合并），RPT02独立 `codex/ghg-rpt02` 有37个变更路径，未合并。只核对状态和路径，不取未合并实现。前者UI交集候选为pages.py，后者为record_experience.py，本DF均不修改；catalog_pages.py/carbon_material_page.py未见其改动，但F仍避开报告按钮及组件。四份共享治理文件需后续按真实工作包状态整合，不覆盖其他工作树的修改。
+开工检查时，EXB01已在独立 `codex/exb01-appendix-b-ingress` 工作树实施（相对当前main有33个变更路径，未合并），RPT02独立 `codex/ghg-rpt02` 有37个变更路径，未合并。只核对状态和路径，不取未合并实现。前者UI交集候选为pages.py，后者为record_experience.py，本DF均不修改；catalog_pages.py/carbon_material_page.py未见其改动，但F仍避开报告按钮及组件。四份共享治理文件需后续按真实工作包状态整合，不覆盖其他工作树的修改。
 
 本仓HANDOFF/路线仍称AB当前，是已合并阶段的文档滞后；用户已明确授权DF，属于本地阶段记录更新，不是Frozen冲突。无实质Contract冲突，无需中央变更；不升级正式支持状态或启动RS04/05。
 
@@ -73,3 +73,7 @@ F 新增 `tests.test_p3_df_accounting -v`：3项、8.262秒、OK。覆盖长标�
 补充离屏查看：1366×768/100%多燃料/电力明细可滚动至底部并操作新增、删除和计算；燃料多列的长单位标签仍较密集。保留UAT03既有表单布局，原生验收须继续核对字体、缩放及长标签可读性；本包未因此重做燃料业务录入。
 
 修复后专项：python -m unittest tests.test_electricity_2023_catalog tests.test_g04_catalog tests.test_p3_df_factors -v：22项、88.366秒、OK。未修改已有测试期待来绕过失败。六组离屏证据已按a267881修正源码重新执行，所有JSON源码hash需一致后才提交。
+
+交付集成更新：PR39于2026-10-09T22:49:20Z正式合并，main为029ebe6fa6081e3d742ba3900e641e4c4f6aecf0。PR41首次创建时因四份共享治理文档冲突未启动CI；随后仅接收已合并main并整合文档，RPT02业务文件相对main零改动。初始base仍为a51afbc。用户原同名Excel blob5816962f710c2bb3384165d5dc2abc74d25ca97b与主线不同，已先保护再恢复原路径，保留为用户未提交差异且不加入PR。合并后六组Qt证据重新生成；最终head的CI包括已合并RPT02回归。
+
+合并后专项：在工作树直接运行21项时，RPT02模板哈希一项因用户原Excel与主线批准副本不同而失败（20通过/1失败，16.227秒），没有修改原文件或弱化断言。随后git archive 3207998隔离运行相同命令：python -m unittest tests.test_electricity_2023_catalog tests.test_p3_df_factors tests.test_p3_df_accounting tests.test_rpt02_appendix_b -v：21项、12.942秒、OK。合并后六组Qt检查再次390/390通过，48图及6份JSON已更新并核对源码hash。完整CI需验证最终head的421项与独立构建。

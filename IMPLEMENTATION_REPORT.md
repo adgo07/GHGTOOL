@@ -27,9 +27,11 @@ Standard Issue 台账现有 8 项均 RESOLVED；本包不改变标准解释、�
 
 ## 并行兼容与未解决项
 
-EXB01 `codex/exb01-appendix-b-ingress` 和 RPT02 `codex/ghg-rpt02` 均未合并。只核对状态与路径，不取未合并实现；其 UI 改动分别涉及 pages.py、record_experience.py，DF不改这两文件。F避开报告相关组件与按钮。四份共享治理文档存在后续合并冲突，应按交付时事实整合。
+EXB01 `codex/exb01-appendix-b-ingress` 和 RPT02 `codex/ghg-rpt02` 开工时均未合并；交付时RPT02已通过PR39合并并接收已合并main。只核对未合并分支状态与路径，不取未合并实现；其 UI 改动分别涉及 pages.py、record_experience.py，DF不改这两文件。F避开报告相关组件与按钮。四份共享治理文档存在后续合并冲突，应按交付时事实整合。
 
 原生 Windows 两种分辨率、系统 100%/125%/150% DPI 的鼠标、键盘和滚动验收 **OPEN**：正式 Computer Use 入口初始化失败，错误为 `windows sandbox failed: helper_unknown_error: setup refresh had errors`。离屏自动化不代替实机验收，不声称全部 UI 验收通过。窄屏八类选择条和长表格保留横向滚动，详情保留独立纵向滚动。
 
 本次未扩展业务修复。待独立验收后再决定后续任务；不自行合并，不开始 C/E，不修改中央 UI 规范。
 交付同步：PR创建后主线合入RPT02 #39；接收已合并main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，只整合四份共享治理文档。RPT02业务保持主线原样，证据见docs/rpt02/ACCEPTANCE.md。初始DF base不变，最终head与merge-ref CI以PR41为准。本地同名用户Excel原始文件先保护到忽略目录，合并提交后恢复原路径，不作为DF改动提交。
+
+合并后专项：在工作树直接运行21项时，RPT02模板哈希一项因用户原Excel与主线批准副本不同而失败（20通过/1失败，16.227秒），没有修改原文件或弱化断言。随后git archive 3207998隔离运行相同命令：python -m unittest tests.test_electricity_2023_catalog tests.test_p3_df_factors tests.test_p3_df_accounting tests.test_rpt02_appendix_b -v：21项、12.942秒、OK。合并后六组Qt检查再次390/390通过，48图及6份JSON已更新并核对源码hash。完整CI需验证最终head的421项与独立构建。
