@@ -54,4 +54,3 @@ class AppendixBResolverDefaultsTests(unittest.TestCase):
                     for binding in bindings)
         rules = _catalog_parameter_rules(UnverifiedBindings())
         self.assertFalse(any(rule.parameter_id in {"car-par-k1", "car-par-k2", "car-par-k3"} for rule in rules))
-

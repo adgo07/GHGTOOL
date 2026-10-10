@@ -55,3 +55,11 @@ origin已确认adgo07/GHGTOOL。整合前head6c9280b70e1575ca0a5d9cca5af1645ef9c
 额外处理RPT02验收样例脚本对已删除R2导入器的依赖：新样例走正式附录B入口；历史样例只读冻结Record，不恢复旧R2新导入。历史docs/rpt02样例、证据和布局JSON与main一致，不重写历史验收结论。
 
 两份受控派生文件不能混同：EXB下载ZIP手术副本SHA为e6a070…c389c3d；RPT02既有布局JSON记录的formula_free_sha256为78042e02b57701cfcb3b4a3fb86dbb6ec8e4fa66ec74cfed768433153d5fdc7e。两者均追溯相同原母版c805e4…c1d9e4；本次不强改既有RPT02布局版本/历史元数据。
+
+## 整合独立复核后的修正
+
+实现合并提交032a5aca2252b55856330df8bae6f239a077b1a3已保留两套能力。独立AI发现历史样例refresh构造SQLiteRepository会初始化数据库元数据，因此修为只读连接备份到临时副本，再在副本上初始化/读快照；原证据数据库与冻结bundle不写入、不重算。
+
+新增HistoricalReportRefreshSafetyTests，从已跟踪冻结bundle恢复临时历史夹具（不是原生Excel验证），验证旧EXCEL_R2身份/历史parity保留、DB和bundle字节不变，并禁止Calculator/Resolver/Importer调用。首轮1 test/1 error为Windows源连接未显式关闭导致临时文件锁；改为contextlib.closing后联合`python -m unittest tests.test_exb01_rpt02_integration tests.test_rpt02_appendix_b -v`为12/12、0 fail/error。历史docs/rpt02文件未改。
+
+032a5ac全量已主动中断，不作为通过证据；日志rpt02-integration-full-pre-fix.log，待修正代码提交后重新全量。该Head本地Windows构建exit0、目录审计264 files、ZIP265 visible files、2次隔离启动PASS仅作修正前证据；最终代码Head须重建。两个EOF空白行一并清理，不改运行逻辑。

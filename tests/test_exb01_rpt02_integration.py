@@ -5,7 +5,9 @@ from dataclasses import asdict
 from hashlib import sha256
 from io import BytesIO
 import gc
+import json
 import os
+import shutil
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -266,6 +268,64 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
                 connection.execute("SELECT COUNT(*) FROM report_export_history WHERE record_id = ?", (record.record_id,)).fetchone()[0],
                 1,
             )
+
+
+class HistoricalReportRefreshSafetyTests(unittest.TestCase):
+    def test_historical_refresh_preserves_database_bundle_and_legacy_identity(self) -> None:
+        from packages.persistence.records_repository import _record_from_payload
+        from scripts.rpt02_acceptance_samples import refresh_acceptance_samples_from_saved_records
+
+        # Restore the tracked frozen fixture into a temporary evidence DB; this
+        # does not rerun its calculator or alter the historical deliverables.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            docs, evidence = root / "docs", root / "evidence"
+            docs.mkdir()
+            evidence.mkdir()
+            historical = ROOT / "docs" / "rpt02" / "samples"
+            for name in (
+                "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx",
+                "GHG-RPT02_Excel_R2_Record_Appendix_B.docx",
+                "records-and-snapshots.json",
+            ):
+                shutil.copy2(historical / name, docs / name)
+            shutil.copy2(historical / "acceptance-evidence.json", evidence / "acceptance-evidence.json")
+            bundle_path = docs / "records-and-snapshots.json"
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            database = evidence / "records.sqlite"
+            repository = SQLiteRecordRepository(database)
+            for item in bundle["records"]:
+                snapshots = item["snapshots"]
+                repository.create_with_details(
+                    _record_from_payload(item["record"]),
+                    raw_input=snapshots["raw_input"],
+                    effective_rule_set=snapshots["effective_rule_set"]["rule_ids"],
+                    trace_snapshot=snapshots["trace"],
+                    provenance_snapshot=snapshots["provenance"],
+                    reporting_snapshot=snapshots["reporting"],
+                    report_qualification=snapshots["qualification"],
+                )
+            before_database = database.read_bytes()
+            before_bundle = bundle_path.read_bytes()
+            before_records = tuple(asdict(record) for record in repository.list_all())
+            before_manifest = json.loads((evidence / "acceptance-evidence.json").read_text(encoding="utf-8"))
+            with (
+                patch("scripts.rpt02_acceptance_samples.CarbonMaterialCalculator", side_effect=AssertionError("must not recalculate")),
+                patch("scripts.rpt02_acceptance_samples.create_g06_parameter_resolver", side_effect=AssertionError("must not resolve current factors")),
+                patch("scripts.rpt02_acceptance_samples.AppendixBWorkbookImporter", side_effect=AssertionError("must not import a workbook")),
+            ):
+                refreshed = refresh_acceptance_samples_from_saved_records(docs, evidence)
+            self.assertEqual(tuple(path.name for path in refreshed), (
+                "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx",
+                "GHG-RPT02_Excel_R2_Record_Appendix_B.docx",
+            ))
+            self.assertEqual(database.read_bytes(), before_database)
+            self.assertEqual(bundle_path.read_bytes(), before_bundle)
+            self.assertEqual(tuple(asdict(record) for record in repository.list_all()), before_records)
+            after_manifest = json.loads((evidence / "acceptance-evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(after_manifest["same_input_gui_canonical_vs_excel_r2"], before_manifest["same_input_gui_canonical_vs_excel_r2"])
+            self.assertEqual({item["origin"] for item in after_manifest["records"]}, {"GUI_CANONICAL_INPUT", "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE"})
+            self.assertEqual(after_manifest["files"]["records.sqlite"]["sha256"], sha256(before_database).hexdigest())
 
 
 if __name__ == "__main__":

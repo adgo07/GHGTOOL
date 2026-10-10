@@ -7,12 +7,14 @@ Word samples are generated from persisted CarbonAccountingUseCase Records.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 from dataclasses import fields, is_dataclass, replace
 from decimal import Decimal
 from enum import Enum
 from hashlib import sha256
 from io import BytesIO
 import json
+import sqlite3
 import tempfile
 import sys
 from datetime import date, datetime, timezone
@@ -1060,79 +1062,87 @@ def refresh_acceptance_samples_from_saved_records(
     if set(bundle_by_origin) != set(expected_origins):
         raise ValueError("existing frozen Record bundle does not preserve both historical sample identities")
 
-    repository = SQLiteRecordRepository(records_path)
-    saved_by_origin = {}
-    for origin in expected_origins:
-        manifest_record = record_by_origin[origin]
-        frozen_item = bundle_by_origin[origin]
-        saved = repository.get(str(manifest_record["record_id"]))
-        if saved is None:
-            raise RuntimeError(f"records.sqlite缺少既有样例Record：{origin}")
-        bundle_record = frozen_item.get("record")
-        bundle_snapshots = frozen_item.get("snapshots")
-        if not isinstance(bundle_record, dict) or not isinstance(bundle_snapshots, dict):
-            raise ValueError(f"冻结bundle缺少Record或快照内容：{origin}")
-        frozen_payload = {"record": bundle_record, "snapshots": bundle_snapshots}
-        stored_hash = str(frozen_item.get("record_and_snapshots_sha256", ""))
-        frozen_hash = sha256(
-            json.dumps(frozen_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
-        if saved.record_id != bundle_record.get("record_id"):
-            raise AssertionError(f"冻结bundle与records.sqlite的Record身份不一致：{origin}")
-        if stored_hash != frozen_hash or _frozen_record_payload(repository, saved) != frozen_payload:
-            raise AssertionError(f"冻结bundle与records.sqlite的Record/快照内容不一致：{origin}")
-        saved_by_origin[origin] = saved
+    # Repository initialization may update schema metadata. Use a SQLite backup
+    # from a read-only connection so the original evidence DB is never opened
+    # through the mutable repository initializer.
+    with tempfile.TemporaryDirectory(prefix="rpt02-db-copy-", dir=evidence_dir) as database_temp:
+        database_copy = Path(database_temp) / "records.sqlite"
+        with closing(sqlite3.connect(records_path.resolve().as_uri() + "?mode=ro", uri=True)) as source:
+            with closing(sqlite3.connect(database_copy)) as destination:
+                source.backup(destination)
+        repository = SQLiteRecordRepository(database_copy)
+        saved_by_origin = {}
+        for origin in expected_origins:
+            manifest_record = record_by_origin[origin]
+            frozen_item = bundle_by_origin[origin]
+            saved = repository.get(str(manifest_record["record_id"]))
+            if saved is None:
+                raise RuntimeError(f"records.sqlite缺少既有样例Record：{origin}")
+            bundle_record = frozen_item.get("record")
+            bundle_snapshots = frozen_item.get("snapshots")
+            if not isinstance(bundle_record, dict) or not isinstance(bundle_snapshots, dict):
+                raise ValueError(f"冻结bundle缺少Record或快照内容：{origin}")
+            frozen_payload = {"record": bundle_record, "snapshots": bundle_snapshots}
+            stored_hash = str(frozen_item.get("record_and_snapshots_sha256", ""))
+            frozen_hash = sha256(
+                json.dumps(frozen_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            if saved.record_id != bundle_record.get("record_id"):
+                raise AssertionError(f"冻结bundle与records.sqlite的Record身份不一致：{origin}")
+            if stored_hash != frozen_hash or _frozen_record_payload(repository, saved) != frozen_payload:
+                raise AssertionError(f"冻结bundle与records.sqlite的Record/快照内容不一致：{origin}")
+            saved_by_origin[origin] = saved
 
-    prepared_on = str(manifest.get("generated_at", _SAMPLE_AT.isoformat()))[:10]
-    notes = {
-        "GUI_CANONICAL_INPUT": "验收演示输入；Canonical表单数据经正式核算用例写入不可变Record；不代表真实企业核算或企业凭证。",
-        "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE": "历史R2验收演示输入；重渲染读取冻结Record，不重新导入工作簿或计算；活动数据不是企业凭证。",
-    }
-    descriptions = {origin: record_by_origin[origin].get("input_description", "") for origin in expected_origins}
-    refreshed_summaries = []
-    with tempfile.TemporaryDirectory(prefix="rpt02-saved-docs-", dir=output_dir) as docs_temp, tempfile.TemporaryDirectory(prefix="rpt02-saved-evidence-", dir=evidence_dir) as evidence_temp:
-        docs_stage = Path(docs_temp)
-        evidence_stage = Path(evidence_temp)
-        for origin, destination in ((expected_origins[0], gui_path), (expected_origins[1], excel_path)):
-            saved = saved_by_origin[origin]
-            report = build_saved_record_report(
-                repository,
-                saved,
-                supplementary_info={
-                    "enterprise_name": saved.input_snapshot.enterprise_name,
-                    "prepared_on": prepared_on,
-                    "supplementary_note": notes[origin],
-                },
+        prepared_on = str(manifest.get("generated_at", _SAMPLE_AT.isoformat()))[:10]
+        notes = {
+            "GUI_CANONICAL_INPUT": "验收演示输入；Canonical表单数据经正式核算用例写入不可变Record；不代表真实企业核算或企业凭证。",
+            "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE": "历史R2验收演示输入；重渲染读取冻结Record，不重新导入工作簿或计算；活动数据不是企业凭证。",
+        }
+        descriptions = {origin: record_by_origin[origin].get("input_description", "") for origin in expected_origins}
+        refreshed_summaries = []
+        with tempfile.TemporaryDirectory(prefix="rpt02-saved-docs-", dir=output_dir) as docs_temp, tempfile.TemporaryDirectory(prefix="rpt02-saved-evidence-", dir=evidence_dir) as evidence_temp:
+            docs_stage = Path(docs_temp)
+            evidence_stage = Path(evidence_temp)
+            for origin, destination in ((expected_origins[0], gui_path), (expected_origins[1], excel_path)):
+                saved = saved_by_origin[origin]
+                report = build_saved_record_report(
+                    repository,
+                    saved,
+                    supplementary_info={
+                        "enterprise_name": saved.input_snapshot.enterprise_name,
+                        "prepared_on": prepared_on,
+                        "supplementary_note": notes[origin],
+                    },
+                )
+                b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
+                totals = frozen_totals(saved, repository.get_trace_snapshot(saved.record_id))
+                if (b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value) != (totals["ES"], totals["ET"]):
+                    raise AssertionError("saved-record渲染未保留冻结的ES和ET。")
+                staged_docx = docs_stage / destination.name
+                render_report_docx(report, staged_docx)
+                refreshed_summaries.append(_record_evidence(
+                    repository, saved, report, origin=origin, input_description=descriptions[origin],
+                ))
+
+            refreshed_manifest = dict(manifest)
+            refreshed_manifest["records"] = refreshed_summaries
+            refreshed_manifest["historical_refresh_note"] = (
+                "Word仅从已冻结RPT02 Record及快照重渲染；历史EXCEL_R2身份与既有同输入对照证据保留，本次未重新导入或计算。"
             )
-            b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
-            totals = frozen_totals(saved, repository.get_trace_snapshot(saved.record_id))
-            if (b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value) != (totals["ES"], totals["ET"]):
-                raise AssertionError("saved-record渲染未保留冻结的ES和ET。")
-            staged_docx = docs_stage / destination.name
-            render_report_docx(report, staged_docx)
-            refreshed_summaries.append(_record_evidence(
-                repository, saved, report, origin=origin, input_description=descriptions[origin],
-            ))
+            refreshed_files = dict(manifest.get("files", {}))
+            refreshed_files[gui_path.name] = {"sha256": sha256((docs_stage / gui_path.name).read_bytes()).hexdigest()}
+            refreshed_files[excel_path.name] = {"sha256": sha256((docs_stage / excel_path.name).read_bytes()).hexdigest()}
+            refreshed_files["records.sqlite"] = {"sha256": sha256(records_path.read_bytes()).hexdigest()}
+            refreshed_files[bundle_path.name] = {"sha256": sha256(bundle_path.read_bytes()).hexdigest()}
+            refreshed_manifest["files"] = refreshed_files
+            staged_manifest = evidence_stage / manifest_path.name
+            staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
-        refreshed_manifest = dict(manifest)
-        refreshed_manifest["records"] = refreshed_summaries
-        refreshed_manifest["historical_refresh_note"] = (
-            "Word仅从已冻结RPT02 Record及快照重渲染；历史EXCEL_R2身份与既有同输入对照证据保留，本次未重新导入或计算。"
-        )
-        refreshed_files = dict(manifest.get("files", {}))
-        refreshed_files[gui_path.name] = {"sha256": sha256((docs_stage / gui_path.name).read_bytes()).hexdigest()}
-        refreshed_files[excel_path.name] = {"sha256": sha256((docs_stage / excel_path.name).read_bytes()).hexdigest()}
-        refreshed_files["records.sqlite"] = {"sha256": sha256(records_path.read_bytes()).hexdigest()}
-        refreshed_files[bundle_path.name] = {"sha256": sha256(bundle_path.read_bytes()).hexdigest()}
-        refreshed_manifest["files"] = refreshed_files
-        staged_manifest = evidence_stage / manifest_path.name
-        staged_manifest.write_text(json.dumps(refreshed_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-
-        # Keep the frozen Record bundle and PDF samples byte-for-byte unchanged.
-        for destination in (gui_path, excel_path):
-            (docs_stage / destination.name).replace(destination)
-        staged_manifest.replace(manifest_path)
-    return gui_path, excel_path
+            # Keep the frozen Record bundle and PDF samples byte-for-byte unchanged.
+            for destination in (gui_path, excel_path):
+                (docs_stage / destination.name).replace(destination)
+            staged_manifest.replace(manifest_path)
+        return gui_path, excel_path
 
 
 def main() -> None:
