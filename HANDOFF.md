@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR35/36/37/38/39已合并；GHG-EXB01实施中）
+最后更新：2026-10-10（PR35～PR40均已合并；GHG-UI-P3-DF 待最新主线CI收口）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,16 +29,11 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-PR39（RPT02）已合入main：保留Record → ReportModel → DOCX renderer唯一报告链、B.1～B.9批准表式、ES/ET冻结值、双Word入口一致性、原子保存与导出审计。当前仅在原PR #40分支整合EXB01：打包同时包含报告布局JSON与唯一批准Excel资源；联合验证完整工作簿→项目→正式Record→Word。两套能力及其历史证据分别保留，不重算历史Record。原生Excel/WPS保存回导仍OPEN；P3-C/D/E/F、公式、数据库与Frozen Contract均不变。不自行合并。
-
-
-- PR35/36/37/38/39已合并；当前包为 **GHG-EXB01 附录B正式Excel模板与输入**。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，现整合最新 `origin/main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0`（PR39 RPT02）。具体预检查、批准母版与去公式授权差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
-- 批准九表母版成为唯一正式输入模板；原样保留布局，仅按授权移除指定结果公式。软件下载复制受控文件字节；轻量模板注册不引入数据库或通用DSL。
-- B.2～B.9形成一次完整核算，仍共享Canonical/Application/Domain。预览零Record；用户明确保存项目后正式核算，成功持久化才提示完成。
-- 删除R2专属模板生成/下载/新解析路径；保留OOXML原始词法、Decimal、来源证据、Canonical项目保存恢复和历史EXCEL_R2项目/Record读取。
-- 期间、地区与自定义燃料单位不能从静态表头猜测；多物料配对不重复质量，无法唯一表达多实例或批次时定位错误。默认因子只来自正式Catalog/Resolver，不伪造用户提供值来源。
-- 不改正式Calculator公式、Numeric、历史Record、数据库结构、已合并RPT02 Word模型/版式、标准范围；不执行P3-C/D/E/F。当前UI指南只用于Excel页面必要接线。
-- 必须专项独立AI按最终diff/head验收；Windows构建/审计、完整回归、CI和原生Excel/WPS保存证据分开。新PR不得自动合并。
+- **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40 均已进入 `main`。EXB01合并提交 `242b535178dcf98ad69b025f14c9f5ed5bd03557`，附录B九表正式工作簿 → 预览零Record → Canonical项目 → 主动正式核算 → 不可变Record，以及冻结Record → Word附录B报告均保留。旧EXCEL_R2的项目、Record及来源证据仍可读取，不恢复旧R2新导入。
+- **当前工作包：** `GHG-UI-P3-DF`（PR #41），只统一参数与因子库的查询/详情和UAT03新建核算的Presentation视觉、紧凑检查计算及动态布局。其业务实现只改 `catalog_pages.py` 的 ParameterFactorLibraryPage、`carbon_material_page.py` 的页面搭建与局部样式，专属测试和截图另行提交。
+- **并行整合：** DF源头在AB之后，已接收RPT02；本次接收已合并EXB01的新main，两个包没有相同的生产源码文件，四份治理文件经独立整合。绝不从EXB01旧未合并分支取代码。
+- **证据门禁：** DF旧head Qt离屏六组390项/48图与Windows CI 421项全量成功，均属于原head；整合EXB01后的最新head必须重新跑GitHub Windows两项必需检查，不冒用旧结果。原生Windows人工操作及EXB01原生Excel/WPS保存后回导仍为OPEN，不以离屏测试代替。
+- 不变更中央Frozen Contract、Numerics、Calculator、Canonical、Resolver、Catalog来源、项目/Record生命周期、EXB01解析或RPT02 Word渲染。后续C核算记录与E表格导入各自独立PR，不在DF中实施。
 
 PF01范围约束：
 
@@ -109,7 +104,7 @@ PF01范围约束：
 
 - **当前状态**：附录B工作簿先严格校验与整体预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
 - **最终定位**：Excel是输入 Adapter（含输入模板导出），与GUI共用Canonical Input → Application → Domain / Calculator → Result；报告输出只消费已保存Record的冻结ReportModel。
-- EXB01当前候选待专项独立验收；Excel词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
+- EXB01已通过PR #40合并并完成代码及发布自动验证；其原生Excel/WPS保存回导仍OPEN；Excel词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
 
 ### 3.6 架构与分层
 
@@ -188,9 +183,9 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-当前只实施 GHG-EXB01。PR35/36/37/38 的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与 Record 安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
+当前唯一在途工作为 P3-DF PR #41：只允许参数与因子库及新建核算Presentation更新、专项测试和截图证据，复用已合并AB统一Shell。EXB01正式表格输入与RPT02 Word报告已经合入main，不得重构或覆盖；原生Excel/WPS与Windows DPI人工缺项继续单独保留。
 
-Word 报告版式/分页已由PR39 RPT02实现，核算结果 Excel 导出已取消；不执行 P3-C/D/E/F，不新增标准、数据库结构、主要依赖或 Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入 `IMPLEMENTATION_REPORT.md`；当前断点写入 `TASK_STATE.md`。完成后更新原PR #40等待最终检查，不自动合并。
+本阶段不开始P3-C/E，不改变标准支持等级、Numeric、Frozen Contract、Schema或正式核算语义。最新提交与两项Windows CI以PR #41为准；合并后可分别开展C/E，与DF旧分支互不依赖。
 
 ### 已合并基线（非当前包）
 
