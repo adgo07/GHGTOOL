@@ -1,10 +1,12 @@
 # 当前任务状态
 
-状态：IN_PROGRESS — GHG-UI-P3-DF（参数与因子库 + 新建核算视觉收敛）
+状态：IMPLEMENTED — GHG-UI-P3-DF，等待独立验收
 最后更新：2026-10-10
 
-已全文读取本次DF任务要求。GitHub认证核实PR37与PR38均已合并；执行时最新origin/main为 a51afbcf684e3845369977e42adc938866726d0b，从其新建独立codex/ghg-ui-p3-df。开工tracked工作树干净，既存未跟踪Office文档、.worktrees/、.codex-run/及临时参考目录保留。
+从执行时最新origin/main a51afbcf684e3845369977e42adc938866726d0b新建codex/ghg-ui-p3-df，PR37/38均已核实合并。D专项17/17通过后进入F，F新增3/3、既有定向102/102通过。仅两个Presentation页面、相关测试、截图脚本和治理记录；不改AB/C/E、业务语义、Catalog/Resolver、Calculator/Numeric、Project/Record或中央Frozen。
 
-先D参数与因子库，再D专项通过后F新建核算视觉收敛。仅允许Presentation、必要资源、相关测试与任务说明；不重做AB，不改C/E及EXB01/RPT02业务，不改变Catalog、Resolver、计算候选、Numeric、Calculator、Canonical、Project或Record。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20保持不变。
+本地隔离全量410项，409通过/1项地区标签展示兼容失败；已恢复独立地区字段，修复后电力2023+G04+D专项22/22通过。六组离屏390检查/48图与当前修正源码对应；本地独立构建/审计/2次启动通过，来源b8fc4bc（修正前），最终head完整回归和独立构建以PR Windows CI为准。不得把本地首次失败写成全量通过。
 
-D已完成，D专项命令 `.venv/Scripts/python.exe -m unittest tests.test_g04_catalog tests.test_p3_df_factors -v`：17项通过（63.953秒）。现在进入F视觉收敛；联合测试、截图及CI尚未完成。原生Windows检查OPEN。最终提交单一PR，等待独立验收，不自行合并、不启动C/E。
+本包提交唯一PR，最终head、Windows CI结论和链接记录在PR正文。本次原生Windows实机操作OPEN（Computer Use初始化失败），不能由离屏Qt或模拟scale替代。详细命令、真实数量、兼容边界见IMPLEMENTATION_REPORT.md与docs/ui/p3-df/ACCEPTANCE.md。
+
+用户未跟踪Office文档、其他工作树与临时目录保留。EXB01/RPT02未合并实现不取用，报告相关组件避让。完成后停止，不自行合并、不开始C/E、不修改中央规范。

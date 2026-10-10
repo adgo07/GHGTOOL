@@ -1,0 +1,403 @@
+{
+  "evidence_type": "Windows PySide6 offscreen automated",
+  "native_human_acceptance": "OPEN",
+  "native_evidence_boundary": "离屏 Qt 截图和模拟缩放不能替代原生 Windows 鼠标、键盘、DPI 与窗口验收。",
+  "requested_logical_window": [
+    1920,
+    1080
+  ],
+  "qt_scale_factor": "1.0",
+  "font": "Microsoft YaHei primary with Segoe UI regular/bold registered for offscreen Unicode-subscript fallback",
+  "fixture": {
+    "name": "P3-DF-real-calculation-fuel-and-electricity",
+    "catalog": "DEFAULT_SOURCE_PATH copied to an isolated temporary catalog.sqlite",
+    "record_repository": "InMemoryRecordRepository",
+    "calculation": "真实 CarbonAccountingUseCase/CarbonMaterialCalculator 路径，非 mock、非预置结果",
+    "user_data_impact": "zero; projects.sqlite/catalog.sqlite/records.sqlite all remain temporary or in-memory"
+  },
+  "source_files_sha256_lf": {
+    "scripts/p3_df_ui_acceptance.py": "67d3de473be479afb64b0e06612c8db94c4a14a05392b3ebea72c034950c4695",
+    "apps/carbon_accounting_desktop/app.py": "ee03b19a3628caaa9008d604fcf34ef8fd7ef0c4004fe3cc70ac68192ff383fc",
+    "packages/ui/catalog_pages.py": "5c2ac05c780bfe3a97207d6ce27baeb83a4ca28070eeef663b9a8869b8f80fc7",
+    "packages/ui/carbon_material_page.py": "4942af1a605ed306beba7523e354d8fb525b3e86249e7cc10e68e53ff49695aa",
+    "packages/ui/shell.py": "51998e0915ba76cbf654ee75a3e5086155312f5890c8c29372354560401113e7",
+    "packages/ui/view_models.py": "cfc74b73f1a6ae9b84e1bf4386601dcc63ae1660a2a6d3193f8d584f14f8b891",
+    "packages/ui/design_tokens.py": "3908e6ffbba9f382b78dc93002d5ba6a572c0981c40c81b9b5ab10c215d29af0"
+  },
+  "captures": [
+    {
+      "file": "1920x1080-100-d-source-browse.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-d-search-detail.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-d-source-trace.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-d-search-empty.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-f-empty.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-f-multiple-details.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-f-real-result.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    },
+    {
+      "file": "1920x1080-100-f-real-result-details.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0,
+      "logical_ratio": 1.77777778,
+      "image_ratio": 1.77777778
+    }
+  ],
+  "checks": [
+    {
+      "name": "D：真实 GB/T 32151.34 来源文件存在",
+      "passed": true
+    },
+    {
+      "name": "D：真实来源表 C.1 存在",
+      "passed": true
+    },
+    {
+      "name": "D：来源表真实多行数据显示",
+      "passed": true
+    },
+    {
+      "name": "D：来源表列结构真实显示",
+      "passed": true
+    },
+    {
+      "name": "D：来源表第一列有真实值",
+      "passed": true
+    },
+    {
+      "name": "D：来源表只读",
+      "passed": true
+    },
+    {
+      "name": "D：来源表单元格不可编辑",
+      "passed": true
+    },
+    {
+      "name": "D：长来源表可滚动",
+      "passed": true
+    },
+    {
+      "name": "D：长来源表滚动位置可访问",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-d-source-browse.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-d-source-browse.png",
+      "passed": true
+    },
+    {
+      "name": "D：全库搜索返回真实结果",
+      "passed": true
+    },
+    {
+      "name": "D：全库搜索表只读",
+      "passed": true
+    },
+    {
+      "name": "D：参数只读详情容器存在",
+      "passed": true
+    },
+    {
+      "name": "D：完整来源追溯可展开",
+      "passed": true
+    },
+    {
+      "name": "D：详情显示真实数值和单位",
+      "passed": true
+    },
+    {
+      "name": "D：详情显示真实来源定位",
+      "passed": true
+    },
+    {
+      "name": "D：详情没有可编辑输入框",
+      "passed": true
+    },
+    {
+      "name": "D：详情长内容滚动容器存在",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-d-search-detail.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-d-search-detail.png",
+      "passed": true
+    },
+    {
+      "name": "D：完整来源追溯滚动位置可访问",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-d-source-trace.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-d-source-trace.png",
+      "passed": true
+    },
+    {
+      "name": "D：全库搜索真实空状态",
+      "passed": true
+    },
+    {
+      "name": "D：空状态使用业务化反馈",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-d-search-empty.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-d-search-empty.png",
+      "passed": true
+    },
+    {
+      "name": "F：未计算时结果区域为空态",
+      "passed": true
+    },
+    {
+      "name": "F：未计算时过程区域隐藏",
+      "passed": true
+    },
+    {
+      "name": "F：未计算时问题区域隐藏",
+      "passed": true
+    },
+    {
+      "name": "F：未计算时状态栏可见",
+      "passed": true
+    },
+    {
+      "name": "F：未计算时操作提示真实可见",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-f-empty.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-f-empty.png",
+      "passed": true
+    },
+    {
+      "name": "F：切换业务页面保留未完成输入状态",
+      "passed": true
+    },
+    {
+      "name": "F：新增电力明细入口存在",
+      "passed": true
+    },
+    {
+      "name": "F：多个燃料明细真实生成",
+      "passed": true
+    },
+    {
+      "name": "F：多个电力明细真实生成",
+      "passed": true
+    },
+    {
+      "name": "F：次级燃料明细具备删除控制",
+      "passed": true
+    },
+    {
+      "name": "F：长核算表单可滚动",
+      "passed": true
+    },
+    {
+      "name": "F：长核算表单滚动位置可访问",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-f-multiple-details.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-f-multiple-details.png",
+      "passed": true
+    },
+    {
+      "name": "F：测试fixture可重置",
+      "passed": true
+    },
+    {
+      "name": "F：正式计算前隔离记录库为空",
+      "passed": true
+    },
+    {
+      "name": "F：真实计算fixture可选用目录燃料",
+      "passed": true
+    },
+    {
+      "name": "F：明确fixture由真实Calculator成功计算",
+      "passed": true
+    },
+    {
+      "name": "F：正式计算新增一条隔离Record",
+      "passed": true
+    },
+    {
+      "name": "F：正式结果等于真实Calculator结果",
+      "passed": true
+    },
+    {
+      "name": "F：真实计算结果卡片可见",
+      "passed": true
+    },
+    {
+      "name": "F：结果显示真实两位小数",
+      "passed": true
+    },
+    {
+      "name": "F：结果显示业务化总量",
+      "passed": true
+    },
+    {
+      "name": "F：结果显示正式完成状态",
+      "passed": true
+    },
+    {
+      "name": "F：Record状态合法",
+      "passed": true
+    },
+    {
+      "name": "F：正式Record查看入口可用",
+      "passed": true
+    },
+    {
+      "name": "F：正式结果总量不可编辑",
+      "passed": true
+    },
+    {
+      "name": "F：结果卡定位接口存在",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-f-real-result.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-f-real-result.png",
+      "passed": true
+    },
+    {
+      "name": "F：正式结果可展开分项",
+      "passed": true
+    },
+    {
+      "name": "F：分项结果业务内容真实显示",
+      "passed": true
+    },
+    {
+      "name": "截图写入：1920x1080-100-f-real-result-details.png",
+      "passed": true
+    },
+    {
+      "name": "截图宽高比：1920x1080-100-f-real-result-details.png",
+      "passed": true
+    },
+    {
+      "name": "D/F：至少六组离屏原图已生成",
+      "passed": true
+    }
+  ]
+}

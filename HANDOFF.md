@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-09（PR35/36及PR37已合并；当前包为GHG-UI-P3-AB）
+最后更新：2026-10-10（PR35/36/37/38已合并；当前包为GHG-UI-P3-DF）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,14 +29,12 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- PR #35、PR #36及PR #37均已合并。当前实施基线为 `708f78a455790946b4a728029bba768d8fb295fc`；PR35/36及旧UAT03的测试、验收材料属于既有基线证据，不替代本包验证。
-- 当前工作包：**GHG-UI-P3-AB**，仅限 Presentation 层的首页/导航（A）与标准库列表/详情（B）调整。PR37合并后的既有GHG-UAT03 V2属于业务基线，不是当前包。
-- A范围：首页不显示侧栏；业务页使用淡蓝侧栏及真实LOGO；五个入口依次为标准库、新建核算、表格导入、核算记录、参数与因子库；设置独立。保留七项路由，以及新建核算的页面实例、输入和项目语义。
-- B范围：标准库仅提供关键字与状态筛选；列表列为标准编号、标准名称、标准状态、实施日期、软件支持；编号和名称均可用鼠标或键盘打开同一标准详情；详情仅含基本信息、适用范围、标准要求三个连续区。保留标准原文URL和现有核算入口门禁。
-- 本包不改Application、Domain、Repository、Canonical、数据库、正式业务语义、Excel、Word、因子库页面或P3-C/D/E/F；不改变标准正式支持状态、计算、校验、项目及Record行为。
-- 原生Windows验收为 **OPEN**。测试命令、数量、未执行项和证据来源见 `IMPLEMENTATION_REPORT.md` 与 `docs/ui/p3-ab/ACCEPTANCE.md`；Qt离屏证据不能替代原生验收。
-- 本包完成后提交独立PR并等待验收，不自行合并。AB合并后Phase 3暂停；C/D/E/F均须独立授权，并结合届时EXB01/RPT02真实状态安排。
-- 交付前检查时，EXB01未见已启动的实现；RPT02在本包开工时曾为BLOCKED，随后已在隔离分支 `codex/ghg-rpt02` 启动。其源码与本包无交集；`TASK_STATE.md`、`HANDOFF.md`、`IMPLEMENTATION_REPORT.md`存在潜在共享治理文件冲突，状态以各工作包交付前事实为准。
+- PR #35、PR #36、PR #37及PR #38均已合并。当前DF基线为 `a51afbcf684e3845369977e42adc938866726d0b`；PR37/38及旧UAT03的测试、验收材料属于既有基线证据，不替代本包验证。
+- 当前工作包：**GHG-UI-P3-DF**，仅限 Presentation 层的参数与因子库（D）及新建核算（F）视觉与交互收敛；执行顺序为 **D → D专项验证 → F → 联合验收**。D与F实现完成，先D专项17/17通过再实施F，F新增3/3通过；联合回归与最终PR验收见本包证据。PR38合并的A/B Shell与标准库调整是既有基线，本包不重做AB。
+- 本包不改Application、Domain、Repository、Canonical、数据库、正式业务语义、Excel、Word、C/E或EXB01/RPT02业务实现；不改变标准正式支持状态、计算、校验、项目及Record行为。
+- 原生Windows验收为 **OPEN**。D/F验收证据见 `IMPLEMENTATION_REPORT.md` 与 `docs/ui/p3-df/ACCEPTANCE.md`；不重复旧AB测试数量，不以离屏证据或既有材料声称全部通过。
+- 当前授权顺序为 D → D专项验证 → F → 联合验收；完成后提交独立PR并等待验收，不自行合并。
+- EXB01与RPT02分别在独立分支且均未合并；当前D/F目标文件无直接代码交集。F须避让RPT02负责的报告相关按钮和组件；`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`存在并行治理文档合并冲突，更新时以各工作包交付前事实为准。
 
 PF01范围约束：
 
@@ -186,11 +184,11 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应 **GHG-UI-P3-AB**，仅限Presentation改动。不得借此调整正式业务规则、标准支持状态、数据模型或其他页面家族；PR37合并批准不授权本包合并。原生验收OPEN，完成后提交独立PR并等待验收；AB合并后Phase 3暂停，C/D/E/F须分别获得后续授权。
+本文件当前对应 **GHG-UI-P3-DF**，仅限Presentation改动。不得借此调整正式业务规则、标准支持状态、数据模型或其他页面家族；PR38合并基线不授权重做AB、启动C/E或改变业务实现。当前按D→D专项验证→F→联合验收执行，原生验收OPEN，完成后提交独立PR并等待验收。
 
 ## PR35/36与UAT03合并基线（历史范围）
 
-以下为已合并业务基线，不属于当前GHG-UI-P3-AB执行范围：核算结果Excel导出已取消，保留导入、Canonical项目保存/恢复、正式核算与记录查看；输入模板改版不属于本包，Word分页/版式完善由独立RPT02任务处理。
+以下为已合并业务基线，不属于当前GHG-UI-P3-DF执行范围：核算结果Excel导出已取消，保留导入、Canonical项目保存/恢复、正式核算与记录查看；输入模板改版不属于本包，Word分页/版式完善由独立RPT02任务处理。
 
 PR35/36及UAT03已进入既有合并基线。Catalog003与Projects003属于不同数据库，继续分别保留；历史测试/CI不作为当前包的验证证据。
 
@@ -200,4 +198,4 @@ GHG-UAT03 V2已作为既有业务基线合并；当前基线为PR37 merge commit
 
 既有业务决定继续有效：非化石自动证明前置已取消，省级地区选择按既有授权及其软件决定/规则版本/来源快照处理；不改冻结Mapping，也不声称佐证已验证。新可选地区字段须兼容旧输入，不放宽无适用因子、单位或致命缺失校验。
 
-UAT03历史验证证据以对应报告和状态文件为准，不能替代本包的独立PR验收。当前P3-AB只应用中央ACTIVE UI指南、家族规格及验收清单的适用部分，不自动adopt Frozen，也不扩展到C/D/E/F。
+UAT03历史验证证据以对应报告和状态文件为准，不能替代本包的独立PR验收。当前P3-DF只应用中央ACTIVE UI指南、家族规格及验收清单的适用部分，不自动adopt Frozen，也不扩展到C/E；F须避让RPT02负责的报告相关UI。
