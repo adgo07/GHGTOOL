@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR35～PR40均已合并；GHG-UI-P3-DF 待最新主线CI收口）
+最后更新：2026-10-10（PR35～PR41已合并；当前GHG-UI-P3-C）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,11 +29,14 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40 均已进入 `main`。EXB01合并提交 `242b535178dcf98ad69b025f14c9f5ed5bd03557`，附录B九表正式工作簿 → 预览零Record → Canonical项目 → 主动正式核算 → 不可变Record，以及冻结Record → Word附录B报告均保留。旧EXCEL_R2的项目、Record及来源证据仍可读取，不恢复旧R2新导入。
-- **当前工作包：** `GHG-UI-P3-DF`（PR #41），只统一参数与因子库的查询/详情和UAT03新建核算的Presentation视觉、紧凑检查计算及动态布局。其业务实现只改 `catalog_pages.py` 的 ParameterFactorLibraryPage、`carbon_material_page.py` 的页面搭建与局部样式，专属测试和截图另行提交。
-- **并行整合：** DF源头在AB之后，已接收RPT02；本次接收已合并EXB01的新main，两个包没有相同的生产源码文件，四份治理文件经独立整合。绝不从EXB01旧未合并分支取代码。
-- **证据门禁：** DF旧head Qt离屏六组390项/48图与Windows CI 421项全量成功，均属于原head；整合EXB01后的最新head必须重新跑GitHub Windows两项必需检查，不冒用旧结果。原生Windows人工操作及EXB01原生Excel/WPS保存后回导仍为OPEN，不以离屏测试代替。
-- 不变更中央Frozen Contract、Numerics、Calculator、Canonical、Resolver、Catalog来源、项目/Record生命周期、EXB01解析或RPT02 Word渲染。后续C核算记录与E表格导入各自独立PR，不在DF中实施。
+- **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40、P3-DF PR41均已进入`main`。附录B输入与RPT02冻结Record Word报告继续作为正式能力；P3-DF只影响新建核算与参数因子库Presentation。
+- **当前工作包：** 用户明确授权 `GHG-UI-P3-C 核算记录与报告界面统一`。任务分支从启动时最新main `029ebe6`建立，已整合随后合并的最新main `4792d30bf0f31a7bb55d5cb5c13e0cae86bd7813`；P3-C与P3-DF保持独立改动。
+- **仅限Presentation：** 记录列表可搜索、状态筛选并可完整访问；独立详情只有“基本信息与结果”“输入数据与计算依据”两个页签，第二页签连续展示；普通界面移除审计详情入口，继续保留底层Trace、Provenance及审计证据。
+- **操作与报告：** 删除仍二次确认并审计保留；Word复用已合并PR37/RPT02公共入口，报告模型、模板、渲染器及导出语义不变。
+- **禁止范围：** 不改正式Record、Calculator、Canonical、数据库Schema或历史快照；不改新建核算、参数因子库、表格导入及公共Shell。
+- **门禁：** 仅报告工作树实际测试与GitHub当前head结果。Windows自动Qt检查不冒充人工DPI/鼠标/键盘验收；完成独立PR后等待验收，不自动合并或开始P3-E。
+
+既有PF01、RS03与UAT03软件决定继续有效，相关007/008解释不变。以下长期产品决定继续适用。
 
 PF01范围约束：
 
@@ -183,12 +186,12 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-当前唯一在途工作为 P3-DF PR #41：只允许参数与因子库及新建核算Presentation更新、专项测试和截图证据，复用已合并AB统一Shell。EXB01正式表格输入与RPT02 Word报告已经合入main，不得重构或覆盖；原生Excel/WPS与Windows DPI人工缺项继续单独保留。
+本文件当前对应用户授权的 **GHG-UI-P3-C**。仅处理核算记录列表与记录详情Presentation及复用既有Word导出入口；新建核算、参数因子库、表格导入、公共Shell、计算和报告实现均不在范围内。
 
-本阶段不开始P3-C/E，不改变标准支持等级、Numeric、Frozen Contract、Schema或正式核算语义。最新提交与两项Windows CI以PR #41为准；合并后可分别开展C/E，与DF旧分支互不依赖。
+记录列表保留真实搜索、状态筛选、完整访问及操作；记录详情独立显示，只有两个指定页签，依据页签内容连续。普通审计详情入口移除，底层Trace、Provenance与审计证据及删除二次确认机制保留。以独立PR交付，等待验收，不自行合并、不实施P3-E。
 
 ### 已合并基线（非当前包）
 
 PR35/36与PR37的业务实现和验收属于历史基线。GHG-UAT03 V2 的需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`；省级电力选择及取消非化石自动证明前置等既有决定，继续按标准问题台账、规则版本与来源快照追踪，不改变冻结 Mapping。
 
-PR #38 的 GHG-UI-P3-AB 已合并。其实现、测试、截图证据及原生人工验收仍为 OPEN 的边界见 `docs/ui/p3-ab/ACCEPTANCE.md`。AB 合并后 Phase 3 暂停；本包不启动 P3-C/D/E/F。
+PR #38 的 GHG-UI-P3-AB 和 PR #41 的 GHG-UI-P3-DF 均已合并。其原生人工验收OPEN边界分别见对应验收文档；当前P3-C按独立授权执行，不扩展至P3-E。

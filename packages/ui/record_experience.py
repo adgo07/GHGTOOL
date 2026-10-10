@@ -581,7 +581,7 @@ def _reporting_value(value: object) -> str:
 
 
 def build_activity_evidence_view(raw: object, reporting: object, reporting_state: SnapshotState) -> str:
-    output = ["活动数据与来源证据", "各业务活动数据按 B.2—B.9 分类展示在“标准报告数据”页；此处集中显示本次记录固定的证据块，避免重复展开。"]
+    output = ["活动数据与来源证据", "活动数据见本页 B.2—B.9；以下为本次记录固定的来源证据。"]
     if reporting_state is SnapshotState.LEGACY:
         return "\n".join((*output, SNAPSHOT_STATE_LABELS[SnapshotState.LEGACY]))
     if reporting_state is SnapshotState.CORRUPT:
@@ -655,7 +655,7 @@ def build_parameter_view(record: AccountingRecord, evidence_names: Mapping[str, 
         if snapshot.selection_reason:
             lines.append(f"  采用说明：{snapshot.selection_reason}")
         if snapshot.source_id or snapshot.factor_id:
-            lines.append("  详细来源编号见专业信息。")
+            lines.append(f"  来源版本：{snapshot.source_version or '未记录'}；因子年份：{snapshot.factor_year or '未记录'}")
         names = [evidence_names[item] for item in snapshot.evidence_ref_ids if item in evidence_names]
         if names:
             lines.append("  关联证据：" + "、".join(dict.fromkeys(names)))
@@ -754,6 +754,67 @@ def build_professional_view(
     return "\n".join(output)
 
 
+
+def build_calculation_basis_view(
+    record: AccountingRecord, *, trace: object, provenance: object,
+    states: Mapping[str, SnapshotState],
+) -> str:
+    """Readable professional basis from frozen evidence; no audit-log UI."""
+    output = [
+        f"核算标准：{standard_label(record.standard_id)}",
+        f"标准版本：{record.standard_version or '未记录'}",
+        f"核算时间：{record.created_at.isoformat(timespec='seconds')}",
+        f"算法版本：{record.algorithm_version}",
+    ]
+    for name, title in (("Trace 快照", "计算过程"), ("Provenance 快照", "来源链")):
+        output.append(f"{title}：{SNAPSHOT_STATE_LABELS[states.get(name, SnapshotState.LEGACY)]}")
+    for index, step in enumerate(_trace_steps(trace), 1):
+        output.append(f"\n计算步骤 {index} · {SOURCE_LABELS.get(str(step.get('emission_source_id')), '排放量汇总与换算')}")
+        for key, label in (("calculation_step", "冻结计算式"), ("standard_location", "标准依据"), ("mapping_location", "软件映射依据")):
+            if step.get(key):
+                output.append(f"{label}：{step[key]}")
+        if step.get("intermediate_result") is not None:
+            output.append(f"冻结结果：{step['intermediate_result']} {step.get('unit') or ''}".strip())
+        for variable in step.get("input_variables") or ():
+            if isinstance(variable, Mapping):
+                name = str(variable.get("name") or "采用值")
+                label = REPORT_FIELD_LABELS.get(name.lower(), name)
+                output.append(f"  {label}：{variable.get('value', '未记录')} {variable.get('unit') or ''}".strip())
+        evidence = step.get("calculation_provenance")
+        if isinstance(evidence, Mapping) and evidence:
+            for key, label in (
+                ("enthalpy_used_kj_per_kg", "实际采用焓值（kJ/kg）"),
+                ("automatic_reference_enthalpy_kj_per_kg", "冻结自动参考焓值（kJ/kg）"),
+                ("table", "参考表"), ("method", "取值方法"),
+                ("standard_location", "来源定位"),
+            ):
+                if evidence.get(key) is not None:
+                    output.append(f"  {label}：{evidence[key]}")
+    if isinstance(provenance, Mapping):
+        rule_set = provenance.get("effective_rule_set")
+        rules = rule_set.get("rules", ()) if isinstance(rule_set, Mapping) else ()
+        output.append("\n冻结规则与来源依据")
+        seen = set()
+        for rule in rules:
+            if not isinstance(rule, Mapping):
+                continue
+            text = "；".join(str(rule[key]) for key in ("description", "source_location") if rule.get(key))
+            if text and text not in seen:
+                output.append(f"- {text}")
+                seen.add(text)
+        if not seen:
+            output.append("该历史记录未保存可读的规则来源说明。")
+        mapping = provenance.get("mapping")
+        if isinstance(mapping, Mapping):
+            for key in ("mapping_version", "version"):
+                if mapping.get(key):
+                    output.append(f"映射版本：{mapping[key]}")
+        elif provenance.get("mapping_version"):
+            output.append(f"映射版本：{provenance['mapping_version']}")
+    output.append("\n上述内容来自该记录保存的快照；原始计算过程、来源链和审计证据继续保留。")
+    return "\n".join(output)
+
+
 def build_record_summary(
     record: AccountingRecord,
     qualification: object,
@@ -763,22 +824,16 @@ def build_record_summary(
     association: str = "当前无工作区关联",
 ) -> str:
     period = record.input_snapshot.period
-    boundary = "已记录核算边界分项" if record.input_snapshot.boundary_component_ids else "历史记录未保存边界分项"
-    source_lines = []
-    for item in record.input_snapshot.emission_sources:
-        if item.included:
-            source_lines.append(f"- {SOURCE_LABELS.get(item.source_id, '其他已记录排放源')}")
-    source_text = "、".join(line.removeprefix("- ") for line in source_lines) if source_lines else "无已启用排放源"
+    boundary = "已保存边界分项" if record.input_snapshot.boundary_component_ids else "边界分项未单独记录；边界确认和说明见输入数据"
     output = [
         "基本信息",
         f"企业：{record.input_snapshot.enterprise_name or '未填写企业'}",
         f"核算期间：{period_label(record)}（{period.start.isoformat()} 至 {period.end.isoformat()}）",
         f"核算边界：{boundary}",
-        f"核算标准：{standard_label(record.standard_id)} {record.standard_version or ''}".strip(),
+        f"核算标准：{standard_label(record.standard_id)}",
         f"核算状态：{status_label(record.status)}",
         f"年度报告资格：{_qualification_label(qualification, qualification_state)}",
-        f"所属工作区：{association}（当前工作区关系，不属于不可变 Record 快照）",
-        f"已启用排放源：{source_text}",
+        f"所属工作区（当前关联）：{association}",
         "\n核算结果",
     ]
     totals = frozen_totals(record, trace)
@@ -786,20 +841,13 @@ def build_record_summary(
     direct = totals.get("ES") or None
     indirect = totals.get("EI") or None
     output.extend((
-        f"温室气体排放总量：{format_amount(total)}",
-        f"直接排放量：{format_amount(direct)}",
+        f"温室气体排放总量：{format_amount(total)}（ET，含购入和输出电力、热力影响）",
+        f"不含购入和输出电力、热力影响的总排放量（ES）：{format_amount(direct)}",
         f"购入/输出能源对应的净间接排放量：{format_amount(indirect)}",
-        "标准报告数据 B.1—B.9 及逐项依据见“标准报告数据”页。",
+        "标准报告数据 B.1—B.9 及逐项依据见“输入数据与计算依据”。",
     ))
-    component_lines = [
-        f"- {SOURCE_LABELS.get(line.emission_source_id, '其他排放源')}：{format_amount(line.amount, line.unit)}"
-        for line in record.calculation_result.lines
-        if line.line_id not in {"CAR-FLD-DIRECT-RESULT", "CAR-FLD-INDIRECT-RESULT", "CAR-FLD-TOTAL-RESULT"}
-    ]
-    if component_lines:
-        output.extend(("\n排放源构成", *component_lines))
     if record.status is RecordStatus.COMPLETED_WITH_WARNINGS:
-        output.append("\n关键提醒：本次核算含非致命提醒，详见“数据质量与提醒”。")
+        output.append("\n关键提醒：本次核算含非致命提醒，详见“输入数据与计算依据”中的数据质量与提醒。")
     return "\n".join(output)
 
 

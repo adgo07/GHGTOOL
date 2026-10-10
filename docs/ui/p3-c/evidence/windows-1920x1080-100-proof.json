@@ -1,0 +1,154 @@
+{
+  "evidence_type": "Windows PySide6 windows automated",
+  "human_acceptance": "NOT_PERFORMED",
+  "os": "Windows-10-10.0.19045-SP0",
+  "scale": "1.0",
+  "requested_logical_size": [
+    1920,
+    1080
+  ],
+  "checks": [
+    {
+      "name": "使用指定 Qt 平台",
+      "passed": true
+    },
+    {
+      "name": "完整126条记录",
+      "passed": true
+    },
+    {
+      "name": "初始独立列表",
+      "passed": true
+    },
+    {
+      "name": "保存截图 list",
+      "passed": true
+    },
+    {
+      "name": "键盘访问列表尾项",
+      "passed": true
+    },
+    {
+      "name": "Enter进入独立详情",
+      "passed": true
+    },
+    {
+      "name": "末尾记录真实检索",
+      "passed": true
+    },
+    {
+      "name": "保存截图 search",
+      "passed": true
+    },
+    {
+      "name": "打开正式Application记录",
+      "passed": true
+    },
+    {
+      "name": "恰好两个页签且无嵌套",
+      "passed": true
+    },
+    {
+      "name": "页签标签",
+      "passed": true
+    },
+    {
+      "name": "保存截图 basic-results",
+      "passed": true
+    },
+    {
+      "name": "保存截图 input-basis",
+      "passed": true
+    },
+    {
+      "name": "保存截图 basis-end",
+      "passed": true
+    },
+    {
+      "name": "页面无横向溢出",
+      "passed": true
+    },
+    {
+      "name": "无外层横向滚动",
+      "passed": true
+    },
+    {
+      "name": "没有审计详情入口",
+      "passed": true
+    },
+    {
+      "name": "查看和导出不修改历史Record与快照",
+      "passed": true
+    },
+    {
+      "name": "导出不新增Record",
+      "passed": true
+    }
+  ],
+  "captures": [
+    {
+      "file": "windows-1920x1080-100-list.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "windows-1920x1080-100-search.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "windows-1920x1080-100-basic-results.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "windows-1920x1080-100-input-basis.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "windows-1920x1080-100-basis-end.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "physical_image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    }
+  ],
+  "source_sha256": {
+    "packages/ui/pages.py": "37270ec6770a76b2b8353f37c1738492f3a7da448cd230e31d724004f8e91b52",
+    "packages/ui/record_experience.py": "ebf8223ebbe5c8f9a0c24af5629fa65f5076f6a68e371ac9fdcda6bb9489da16"
+  }
+}
