@@ -12,6 +12,7 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFrame,
     QComboBox,
     QLineEdit,
     QLabel,
@@ -181,11 +182,19 @@ class G03ShellTest(unittest.TestCase):
         page = shell.pages[AppRoute.EXCEL_IMPORT]
         self.assertEqual(page.findChild(QLabel, "pageTitle").text(), "表格导入")
         self.assertEqual(AppRoute.EXCEL_IMPORT.value, "excel_import")
-        self.assertIn("模板与预览", page.findChild(QLabel, "cardTitle").text())
+        self.assertEqual(page.findChild(QLabel, "excelImportSectionTitle").text(), "01 获取模板")
+        for section_name in (
+            "excelImportTemplateSection",
+            "excelImportFileSection",
+            "excelImportCheckSection",
+            "excelImportActionSection",
+        ):
+            self.assertIsNotNone(page.findChild(QFrame, section_name))
         self.assertTrue(page.findChild(QPushButton, "templateButton").isEnabled())
         self.assertIn("附录 B", page.findChild(QPushButton, "templateButton").text())
         self.assertNotIn("R2", page.findChild(QPushButton, "templateButton").text())
         self.assertTrue(page.findChild(QPushButton, "selectFileButton").isEnabled())
+        self.assertFalse(page.findChild(QPushButton, "previewExcelWorkbookButton").isEnabled())
         self.assertTrue(page.findChild(QTextEdit, "excelImportPreview").isReadOnly())
         self.assertIsNotNone(page.findChild(QComboBox, "importPeriodType"))
         self.assertIsNotNone(page.findChild(QLineEdit, "importPeriodStart"))
@@ -230,7 +239,7 @@ class G03ShellTest(unittest.TestCase):
         page.import_boundary_confirmed.setChecked(False)
         self.assertIsNone(page._last_preview)
         self.assertIsNone(page._preview_context_key)
-        self.assertIn("重新预览", page.preview_text.toPlainText())
+        self.assertIn("重新检查并预览", page.preview_text.toPlainText())
 
     def test_ambiguous_fuel_path_has_no_default_and_requires_a_user_choice(self) -> None:
         self.shell.navigate(AppRoute.EXCEL_IMPORT)

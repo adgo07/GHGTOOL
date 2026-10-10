@@ -72,6 +72,7 @@ from .record_experience import (
 )
 
 from .design_tokens import WIDE_PAGE_MARGIN
+from .excel_import_components import ExcelImportPreviewPanel, create_excel_import_section
 from .icons import load_tinted_icon
 from .view_models import AppRoute, ShellViewModel
 
@@ -1118,6 +1119,9 @@ class ExcelImportPage(BasePage):
         self.catalog_service = catalog_service or CatalogQueryService.empty()
         self._last_preview = None
         self._last_workbook_path: Path | None = None
+        self._chosen_workbook_path: Path | None = None
+        self._preview_units: tuple[object, ...] = ()
+        self._preview_workbook_warnings: tuple[object, ...] = ()
         self._workspace: ProjectWorkspace | None = None
         self._selected_unit_id: str | None = None
         self._fuel_path_overrides: dict[str, FuelPath] = {}
@@ -1145,69 +1149,94 @@ class ExcelImportPage(BasePage):
 
         self.add_header(
             "表格导入",
-            "填写核算期间并确认边界后，选择附录 B 工作簿预览；预览不写入项目或正式记录。保存项目后可明确启动正式核算。",
+            "下载模板并选择工作簿，检查预览后保存为项目，再主动进行正式核算；预览不会生成正式记录。",
         )
 
-        import_card, import_layout = _card("模板与预览", self)
-        import_row = QHBoxLayout()
-        self.templateButton = QPushButton("下载附录 B 模板", import_card)
+        self.body_layout.setSpacing(12)
+
+        template_section, template_layout = create_excel_import_section(
+            "excelImportTemplateSection", "01 获取模板", self
+        )
+        template_row = QHBoxLayout()
+        self.templateButton = QPushButton("下载附录 B 填报模板", template_section)
         self.templateButton.setObjectName("templateButton")
         self.templateButton.clicked.connect(self._download_template)
-        import_row.addWidget(self.templateButton)
-        self.selectFileButton = QPushButton("选择并预览工作簿", import_card)
+        template_row.addWidget(self.templateButton)
+        template_row.addWidget(
+            QLabel("使用 GB/T 32151.34—2024 附录 B 模板，填写 B.2～B.9 活动数据。", template_section),
+            1,
+        )
+        template_layout.addLayout(template_row)
+        self.body_layout.addWidget(template_section)
+
+        file_section, file_layout = create_excel_import_section(
+            "excelImportFileSection", "02 选择文件与核算信息", self
+        )
+        file_row = QHBoxLayout()
+        self.selectFileButton = QPushButton("选择 Excel 文件", file_section)
         self.selectFileButton.setObjectName("selectFileButton")
         self.selectFileButton.clicked.connect(self._choose_workbook)
-        import_row.addWidget(self.selectFileButton)
-        import_row.addStretch(1)
-        import_layout.addLayout(import_row)
+        file_row.addWidget(self.selectFileButton)
+        self.selected_file_label = QLabel("尚未选择工作簿", file_section)
+        self.selected_file_label.setObjectName("selectedExcelFile")
+        self.selected_file_label.setWordWrap(True)
+        self.selected_file_label.setAccessibleName("已选择的 Excel 工作簿")
+        file_row.addWidget(self.selected_file_label, 1)
+        self.preview_button = QPushButton("检查并预览", file_section)
+        self.preview_button.setObjectName("previewExcelWorkbookButton")
+        self.preview_button.clicked.connect(self._run_selected_workbook_preview)
+        file_row.addWidget(self.preview_button)
+        file_layout.addLayout(file_row)
+        file_layout.addWidget(
+            QLabel("以下信息用于新工作簿导入；打开已保存项目时，以项目中保存的信息为准。", file_section)
+        )
 
-        import_layout.addWidget(QLabel("以下信息用于新工作簿导入；已保存项目使用项目中的核算信息。", import_card))
         context_row = QHBoxLayout()
-        context_row.addWidget(QLabel("企业名称（可选）", import_card))
-        self.import_enterprise_name = QLineEdit(import_card)
+        context_row.addWidget(QLabel("企业名称（可选）", file_section))
+        self.import_enterprise_name = QLineEdit(file_section)
         self.import_enterprise_name.setObjectName("importEnterpriseName")
         self.import_enterprise_name.setPlaceholderText("可留空")
         context_row.addWidget(self.import_enterprise_name, 2)
-        context_row.addWidget(QLabel("期间类型", import_card))
-        self.import_period_type = QComboBox(import_card)
+        context_row.addWidget(QLabel("期间类型", file_section))
+        self.import_period_type = QComboBox(file_section)
         self.import_period_type.setObjectName("importPeriodType")
         self.import_period_type.addItem("请选择", None)
         self.import_period_type.addItem("年度", PeriodType.ANNUAL.value)
         self.import_period_type.addItem("月度", PeriodType.MONTHLY.value)
         self.import_period_type.addItem("自定义期间", PeriodType.CUSTOM.value)
         context_row.addWidget(self.import_period_type)
-        context_row.addWidget(QLabel("开始日期", import_card))
-        self.import_period_start = QLineEdit(import_card)
+        context_row.addWidget(QLabel("开始日期", file_section))
+        self.import_period_start = QLineEdit(file_section)
         self.import_period_start.setObjectName("importPeriodStart")
         self.import_period_start.setPlaceholderText("YYYY-MM-DD")
         self.import_period_start.setMaximumWidth(120)
         context_row.addWidget(self.import_period_start)
-        context_row.addWidget(QLabel("结束日期", import_card))
-        self.import_period_end = QLineEdit(import_card)
+        context_row.addWidget(QLabel("结束日期", file_section))
+        self.import_period_end = QLineEdit(file_section)
         self.import_period_end.setObjectName("importPeriodEnd")
         self.import_period_end.setPlaceholderText("YYYY-MM-DD")
         self.import_period_end.setMaximumWidth(120)
         context_row.addWidget(self.import_period_end)
-        import_layout.addLayout(context_row)
+        file_layout.addLayout(context_row)
 
         context_row_two = QHBoxLayout()
-        context_row_two.addWidget(QLabel("电力地区", import_card))
-        self.import_region = QComboBox(import_card)
+        context_row_two.addWidget(QLabel("电力地区", file_section))
+        self.import_region = QComboBox(file_section)
         self.import_region.setObjectName("importRegion")
         self.import_region.addItem("全国（使用全国路径）", None)
         context_row_two.addWidget(self.import_region)
-        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", import_card)
+        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", file_section)
         self.import_boundary_confirmed.setObjectName("importBoundaryConfirmed")
         context_row_two.addWidget(self.import_boundary_confirmed)
         context_row_two.addStretch(1)
-        import_layout.addLayout(context_row_two)
+        file_layout.addLayout(context_row_two)
 
-        self.fuel_override_panel = QFrame(import_card)
+        self.fuel_override_panel = QFrame(file_section)
         self.fuel_override_panel.setObjectName("fuelPathOverridePanel")
         self.fuel_override_layout = QVBoxLayout(self.fuel_override_panel)
         self.fuel_override_layout.setContentsMargins(0, 0, 0, 0)
         self.fuel_override_panel.hide()
-        import_layout.addWidget(self.fuel_override_panel)
+        file_layout.addWidget(self.fuel_override_panel)
 
         self.import_period_type.currentIndexChanged.connect(self._refresh_import_regions)
         self.import_period_type.currentIndexChanged.connect(self._import_context_changed)
@@ -1218,66 +1247,78 @@ class ExcelImportPage(BasePage):
         self.import_enterprise_name.textChanged.connect(self._import_context_changed)
         self.import_region.currentIndexChanged.connect(self._import_context_changed)
         self.import_boundary_confirmed.stateChanged.connect(self._import_context_changed)
+        self.body_layout.addWidget(file_section)
 
-        self.preview_text = QTextEdit(import_card)
-        self.preview_text.setObjectName("excelImportPreview")
-        self.preview_text.setReadOnly(True)
-        self.preview_text.setMinimumHeight(250)
-        self.preview_text.setPlainText("尚未选择工作簿。")
-        import_layout.addWidget(self.preview_text)
-        self.body_layout.addWidget(import_card)
+        preview_section, preview_layout = create_excel_import_section(
+            "excelImportCheckSection", "03 数据检查与预览", self
+        )
+        self.preview_panel = ExcelImportPreviewPanel(preview_section)
+        self.preview_panel.units.currentCellChanged.connect(self._preview_unit_selection_changed)
+        self.preview_panel.set_details(
+            "选择工作簿并检查后，这里会显示核算单元状态、需要修正的单元格位置和导入提醒。"
+        )
+        self.preview_text = self.preview_panel.details
+        preview_layout.addWidget(self.preview_panel)
+        self.body_layout.addWidget(preview_section)
 
-        project_card, project_layout = _card("已保存的 Excel 项目", self)
+        action_section, project_layout = create_excel_import_section(
+            "excelImportActionSection", "04 保存项目、正式核算与结果", self
+        )
+        project_layout.addWidget(
+            QLabel("预览不会生成正式记录。先保存有效核算单元为项目，再主动执行正式核算。", action_section)
+        )
         name_row = QHBoxLayout()
-        name_row.addWidget(QLabel("项目名称", project_card))
-        self.project_name = QLineEdit(project_card)
+        name_row.addWidget(QLabel("项目名称", action_section))
+        self.project_name = QLineEdit(action_section)
         self.project_name.setObjectName("excelProjectName")
         self.project_name.setPlaceholderText("可为导入项目填写名称")
         name_row.addWidget(self.project_name, 1)
-        self.save_project_button = QPushButton("保存有效核算单元", project_card)
+        self.save_project_button = QPushButton("保存有效核算单元为项目", action_section)
         self.save_project_button.setObjectName("saveExcelProjectButton")
         self.save_project_button.clicked.connect(self._save_preview_as_project)
         name_row.addWidget(self.save_project_button)
         project_layout.addLayout(name_row)
 
         saved_row = QHBoxLayout()
-        self.saved_projects = QComboBox(project_card)
+        saved_row.addWidget(QLabel("已保存项目", action_section))
+        self.saved_projects = QComboBox(action_section)
         self.saved_projects.setObjectName("savedExcelProjects")
         saved_row.addWidget(self.saved_projects, 1)
-        self.open_project_button = QPushButton("打开项目", project_card)
+        self.open_project_button = QPushButton("打开项目", action_section)
         self.open_project_button.setObjectName("openExcelProjectButton")
         self.open_project_button.clicked.connect(self._open_selected_project)
         saved_row.addWidget(self.open_project_button)
         project_layout.addLayout(saved_row)
 
         unit_row = QHBoxLayout()
-        unit_row.addWidget(QLabel("核算单元", project_card))
-        self.unit_selector = QComboBox(project_card)
+        unit_row.addWidget(QLabel("核算单元", action_section))
+        self.unit_selector = QComboBox(action_section)
         self.unit_selector.setObjectName("canonicalUnitSelector")
         self.unit_selector.currentIndexChanged.connect(self._selected_unit_changed)
         unit_row.addWidget(self.unit_selector, 1)
-        self.calculate_button = QPushButton("正式计算排放量", project_card)
+        self.calculate_button = QPushButton("正式计算排放量", action_section)
         self.calculate_button.setObjectName("formalCalculateButton")
         self.calculate_button.clicked.connect(self._calculate_selected_unit)
         unit_row.addWidget(self.calculate_button)
         project_layout.addLayout(unit_row)
 
         record_row = QHBoxLayout()
-        record_row.addWidget(QLabel("本单元正式记录", project_card))
-        self.unit_record_selector = QComboBox(project_card)
+        record_row.addWidget(QLabel("本单元正式记录", action_section))
+        self.unit_record_selector = QComboBox(action_section)
         self.unit_record_selector.setObjectName("unitRecordSelector")
         record_row.addWidget(self.unit_record_selector, 1)
-        self.open_record_button = QPushButton("查看核算记录", project_card)
+        self.open_record_button = QPushButton("查看核算记录", action_section)
         self.open_record_button.setObjectName("openUnitRecordButton")
         self.open_record_button.clicked.connect(self._open_selected_record)
         record_row.addWidget(self.open_record_button)
         project_layout.addLayout(record_row)
 
-        self.status_label = QLabel(project_card)
+        self.status_label = QLabel(action_section)
         self.status_label.setObjectName("excelWorkflowStatus")
         self.status_label.setWordWrap(True)
+        self.status_label.setAccessibleName("表格导入操作结果")
         project_layout.addWidget(self.status_label)
-        self.body_layout.addWidget(project_card)
+        self.body_layout.addWidget(action_section)
         self.body_layout.addStretch(1)
 
         self._refresh_saved_projects()
@@ -1322,9 +1363,32 @@ class ExcelImportPage(BasePage):
         )
 
     def _choose_workbook(self) -> None:
-        target, _ = QFileDialog.getOpenFileName(self, "选择附录 B 工作簿", "", "Excel 工作簿 (*.xlsx)")
+        target, _ = QFileDialog.getOpenFileName(
+            self, "选择附录 B 工作簿", "", "Excel 工作簿 (*.xlsx)"
+        )
         if target:
-            self._preview_workbook(Path(target))
+            self._select_workbook(Path(target))
+
+    def _select_workbook(self, path: Path) -> None:
+        self._detach_active_project_for_import()
+        self._chosen_workbook_path = path
+        self.selected_file_label.setText(path.name)
+        self.selected_file_label.setToolTip(str(path))
+        self.project_name.setText(path.stem)
+        self.preview_panel.set_summary("已选择工作簿，请检查并预览。")
+        self.preview_panel.set_units(())
+        self.preview_panel.set_details(
+            "尚未检查该工作簿。点击“检查并预览”后，会显示可保存单元、需修正项目和具体单元格位置。"
+        )
+        self.status_label.setText("工作簿已选择；尚未导入预览，也未生成项目或正式记录。")
+        self._update_controls()
+
+    def _run_selected_workbook_preview(self) -> None:
+        if self._chosen_workbook_path is None:
+            self.status_label.setText("请先选择 Excel 工作簿。")
+            self.preview_panel.set_summary("尚未选择工作簿。", state="warning")
+            return
+        self._preview_workbook(self._chosen_workbook_path)
 
     def _period_for_import(self) -> AccountingPeriod:
         period_value = self.import_period_type.currentData()
@@ -1498,10 +1562,14 @@ class ExcelImportPage(BasePage):
             return
         self._last_preview = None
         self._preview_context_key = None
-        self.preview_text.setPlainText(
-            "核算期间、企业、地区或边界信息已修改，请重新预览工作簿。"
+        self._preview_units = ()
+        self._preview_workbook_warnings = ()
+        self.preview_panel.set_summary("导入信息已变化，需要重新检查工作簿。", state="warning")
+        self.preview_panel.set_units(())
+        self.preview_panel.set_details(
+            "核算期间、企业、地区或边界信息已修改；请重新检查并预览后再保存项目。"
         )
-        self.status_label.setText("导入信息已修改；请重新预览后再保存项目。")
+        self.status_label.setText("导入信息已修改；请重新检查并预览后再保存项目。")
         self._update_controls()
 
     def _detach_active_project_for_import(self) -> None:
@@ -1509,13 +1577,17 @@ class ExcelImportPage(BasePage):
         self._selected_unit_id = None
         self._last_preview = None
         self._last_workbook_path = None
+        self._chosen_workbook_path = None
         self._preview_context_key = None
+        self._preview_units = ()
+        self._preview_workbook_warnings = ()
         self.project_name.setReadOnly(False)
         blocker = QSignalBlocker(self.unit_selector)
         self.unit_selector.clear()
         del blocker
         self.unit_record_selector.clear()
         self._clear_fuel_override_panel()
+        self.preview_panel.set_units(())
         self._update_controls()
 
     def _preview_workbook(self, path: Path, *, preserve_overrides: bool = False) -> None:
@@ -1524,6 +1596,9 @@ class ExcelImportPage(BasePage):
             self._fuel_path_overrides.clear()
             self._clear_fuel_override_panel()
         self._detach_active_project_for_import()
+        self._chosen_workbook_path = path
+        self.selected_file_label.setText(path.name)
+        self.selected_file_label.setToolTip(str(path))
         self.project_name.setText(path.stem)
         try:
             from packages.excel.appendix_b import AppendixBWorkbookImporter
@@ -1538,15 +1613,24 @@ class ExcelImportPage(BasePage):
             self._last_preview = None
             self._preview_context_key = None
             self._last_workbook_path = None
-            self.preview_text.setPlainText(f"无法预览该工作簿：{exc}")
+            self._chosen_workbook_path = path
+            self._preview_units = ()
+            self._preview_workbook_warnings = ()
+            self.preview_panel.set_summary("工作簿检查未完成。", state="error")
+            self.preview_panel.set_units(())
+            self.preview_panel.set_details(f"无法预览该工作簿：{exc}")
+            self.selected_file_label.setText(path.name)
+            self.selected_file_label.setToolTip(str(path))
             self.status_label.setText(f"工作簿无法预览：{exc}")
-            QMessageBox.warning(self, "工作簿无法预览", str(exc))
             self._update_controls()
             return
 
         self._last_preview = preview
         self._last_workbook_path = path
+        self._chosen_workbook_path = path
         self._preview_context_key = preview_context_key
+        self.selected_file_label.setText(path.name)
+        self.selected_file_label.setToolTip(str(path))
         self._show_fuel_path_choices(preview)
         self._workspace = None
         self._selected_unit_id = None
@@ -1576,35 +1660,77 @@ class ExcelImportPage(BasePage):
     def _format_import_message(cls, message) -> str:
         display = cls._friendly_import_message(message.message)
         location = getattr(message, "location", None)
-        if location and location not in message.message:
-            return f"{location}：{display}"
+        field_label = getattr(message, "field_label", None)
+        parts = [str(part) for part in (location, field_label) if part]
+        if parts and not all(part in display for part in parts):
+            return f"{' · '.join(parts)}：{display}"
         return display
 
     def _render_import_preview(self, preview) -> None:
-        unit_type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
-        lines = [
-            f"模板版本：{preview.provenance.template_version}",
-            f"独立核算单元：{len(preview.units)}",
-            "",
-        ]
-        for unit in preview.units:
-            lines.append(f"{unit.name}（{unit_type_names.get(unit.unit_type.value, '核算单元')}）")
-            if unit.can_calculate and unit.result is not None:
-                lines.append(f"  预览排放总量：{format_amount(unit.result.total_amount, unit.result.total_unit)}")
-                lines.append("  状态：有效，可保存为项目")
-            else:
-                lines.append("  状态：无效，未保存")
-            for message in unit.errors:
-                lines.append(f"  需要修正：{self._format_import_message(message)}")
-            for message in unit.warnings:
-                lines.append(f"  提醒：{self._format_import_message(message)}")
+        self._preview_units = tuple(preview.units)
         unit_warnings = tuple(message for unit in preview.units for message in unit.warnings)
-        workbook_warnings = tuple(message for message in preview.warnings if message not in unit_warnings)
-        if workbook_warnings:
+        self._preview_workbook_warnings = tuple(
+            message for message in preview.warnings if message not in unit_warnings
+        )
+        valid_count = sum(
+            1 for unit in preview.units if unit.can_calculate and unit.input_value is not None
+        )
+        invalid_count = len(preview.units) - valid_count
+        reminder_count = len(unit_warnings) + len(self._preview_workbook_warnings)
+        self.preview_panel.set_summary(
+            f"检查完成：{len(preview.units)} 个核算单元，{valid_count} 个可保存"
+            f" · {invalid_count} 个需修正 · {reminder_count} 条提醒。",
+            state="error" if invalid_count and not valid_count else (
+                "warning" if invalid_count or reminder_count else "success"
+            ),
+        )
+        type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
+        rows = []
+        for unit in self._preview_units:
+            unit_type = type_names.get(unit.unit_type.value, "核算单元")
+            valid = unit.can_calculate and unit.input_value is not None
+            total = (
+                format_amount(unit.result.total_amount, unit.result.total_unit)
+                if valid and unit.result is not None
+                else "—"
+            )
+            rows.append((f"{unit.name}（{unit_type}）", "可保存" if valid else "需修正", total))
+        self.preview_panel.set_units(rows, selectable=True)
+        self._preview_unit_selection_changed(self.preview_panel.units.currentRow(), 0, -1, -1)
+
+    def _preview_unit_selection_changed(self, current_row: int, *_args) -> None:
+        if not self._preview_units:
+            return
+        row = current_row if 0 <= current_row < len(self._preview_units) else 0
+        unit = self._preview_units[row]
+        type_names = {"WHOLE_SITE": "全厂", "PROCESS": "工序", "OTHER": "其他"}
+        lines = [
+            f"核算单元：{unit.name}（{type_names.get(unit.unit_type.value, '核算单元')}）",
+            f"模板版本：{self._last_preview.provenance.template_version if self._last_preview else '附录 B'}",
+            f"本工作簿共 {len(self._preview_units)} 个核算单元。",
+        ]
+        valid = unit.can_calculate and unit.input_value is not None
+        if valid and unit.result is not None:
+            lines.append(
+                "状态：有效，可保存为项目。预览排放总量："
+                f"{format_amount(unit.result.total_amount, unit.result.total_unit)}"
+            )
+        else:
+            lines.append("状态：需要修正；该单元不会保存到项目。")
+        if unit.errors:
+            lines.append("\n需要修正")
+            lines.extend(f"- {self._format_import_message(item)}" for item in unit.errors)
+        if unit.warnings:
+            lines.append("\n单元提醒")
+            lines.extend(f"- {self._format_import_message(item)}" for item in unit.warnings)
+        if self._preview_workbook_warnings:
             lines.append("\n工作簿提醒")
-            lines.extend(f"- {self._format_import_message(message)}" for message in workbook_warnings)
-        lines.append("\n预览本身不写入项目或正式记录；请使用上方按钮保存有效单元。")
-        self.preview_text.setPlainText("\n".join(lines))
+            lines.extend(
+                f"- {self._format_import_message(item)}"
+                for item in self._preview_workbook_warnings
+            )
+        lines.append("\n预览不会保存项目或生成正式记录。")
+        self.preview_panel.set_details("\n".join(lines))
 
     @staticmethod
     def _plain_json_value(value):
@@ -1802,7 +1928,12 @@ class ExcelImportPage(BasePage):
         self._workspace = workspace
         self._last_preview = None
         self._last_workbook_path = None
+        self._chosen_workbook_path = None
         self._preview_context_key = None
+        self._preview_units = ()
+        self._preview_workbook_warnings = ()
+        self.selected_file_label.setText("已打开已保存项目；无需重新选择源工作簿")
+        self.selected_file_label.setToolTip("")
         self._clear_fuel_override_panel()
         self.project_name.setText(workspace.name)
         self.project_name.setReadOnly(True)
@@ -1838,11 +1969,16 @@ class ExcelImportPage(BasePage):
         del blocker
         self._update_controls()
         if unit is None or unit.canonical_input is None:
+            self.preview_panel.set_summary("请先打开包含核算单元的已保存项目。")
+            self.preview_panel.set_units((), selectable=False)
+            self.preview_panel.set_details("项目中的核算单元预览和关联记录会显示在这里。")
             return
         try:
             outcome = self.preview_use_case.calculate(unit.canonical_input)
         except Exception as exc:
-            self.preview_text.setPlainText(f"已保存项目中的单元无法预览：{exc}")
+            self.preview_panel.set_summary("已保存项目中的单元暂时无法预览。", state="error")
+            self.preview_panel.set_units(((unit.name, "无法预览", "—"),), selectable=False)
+            self.preview_panel.set_details(f"已保存项目中的单元无法预览：{exc}")
             return
         lines = [
             f"已保存项目：{self._workspace.name}",
@@ -1854,8 +1990,16 @@ class ExcelImportPage(BasePage):
             "当前展示为同一计算器生成的预览值；预览不生成正式核算记录。",
         ]
         if outcome.successful and outcome.result is not None:
-            lines.append(f"预览排放总量：{format_amount(outcome.result.total_amount, outcome.result.total_unit)}")
+            total = format_amount(outcome.result.total_amount, outcome.result.total_unit)
+            self.preview_panel.set_summary(
+                "已保存项目 · 当前为非正式预览；正式记录仅在主动核算成功后新增。",
+                state="success",
+            )
+            self.preview_panel.set_units(((unit.name, "可正式核算", total),), selectable=False)
+            lines.append(f"预览排放总量：{total}")
         else:
+            self.preview_panel.set_summary("当前项目单元需要修正，尚未生成正式记录。", state="warning")
+            self.preview_panel.set_units(((unit.name, "需修正", "—"),), selectable=False)
             lines.append("当前输入未通过核算校验；本次预览没有生成正式记录。")
         for problem in outcome.problems:
             lines.append(f"- {self._friendly_import_message(problem.message)}")
@@ -1885,6 +2029,9 @@ class ExcelImportPage(BasePage):
         self.calculate_button.setEnabled(can_calculate)
         self.open_record_button.setEnabled(self.record_repository is not None and self.unit_record_selector.count() > 0)
         self.open_project_button.setEnabled(self.project_service is not None and self.saved_projects.count() > 0)
+        self.preview_button.setEnabled(
+            self._chosen_workbook_path is not None and self._workspace is None
+        )
 
     def _calculate_selected_unit(self) -> None:
         unit = self._selected_unit()

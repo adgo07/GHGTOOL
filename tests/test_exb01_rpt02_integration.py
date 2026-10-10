@@ -156,6 +156,9 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         ):
             self.page.selectFileButton.click()
             self.app.processEvents()
+            self.assertIsNone(self.page._last_preview)
+            self.page.preview_button.click()
+            self.app.processEvents()
 
         preview = self.page._last_preview
         self.assertIsNotNone(preview)
