@@ -34,7 +34,7 @@
 | Windows独立构建 | python scripts/build_standalone.py --output-root tmp/p3c-build-6ad85af | Windows 10 / Python 3.12.14 / PyInstaller 6.22.3，exit 0；manifest source_commit=6ad85afc123dc3e09e8f0cd87147f885ad65155f，264个文件。 |
 | 发布审计 | python scripts/inspect_release.py；python scripts/verify_release_archive.py | 264文件审计PASS；265可见文件ZIP往返PASS。 |
 | 独立启动 | python scripts/smoke_standalone.py | 2次隔离启动PASS。 |
-| GitHub CI | 当前P3-C PR head | PR创建后待检查；最终结果以GitHub当前head状态为准。 |
+| GitHub CI | PR #42 Windows CI run 198 | merge-ref 456项全量通过；UIR04场景/缩放通过；PR-head 14项G08、exact-head standalone构建、provenance、269文件审计、270文件ZIP往返和2次smoke均通过。head=7023b279624fbc75a1a41ba7d01320b3cc8e15a0，构建source_commit与head一致。当前PR head检查以PR正文/Checks为准。 |
 
 ## 待完成验收项
 
