@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR38已合并；GHG-RPT02实施）
+最后更新：2026-10-10（PR35/36/37/38/39已合并；GHG-EXB01实施中）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,13 +29,16 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-当前工作包为用户明确授权的**GHG-RPT02 附录B Word报告收口**，从最新main独立创建分支；不依赖EXB01/P3-AB未合并分支。PR37的共享Word导出入口复用。范围：批准模板B.1～B.9、冻结Record数据映射、ES/ET、报告业务取值最小去重、可编辑Word与分页检查、最小标准专属布局边界。禁止修改Calculator/历史Record/EXB01导入器或进行P3-C视觉重构。
+PR39（RPT02）已合入main：保留Record → ReportModel → DOCX renderer唯一报告链、B.1～B.9批准表式、ES/ET冻结值、双Word入口一致性、原子保存与导出审计。当前仅在原PR #40分支整合EXB01：打包同时包含报告布局JSON与唯一批准Excel资源；联合验证完整工作簿→项目→正式Record→Word。两套能力及其历史证据分别保留，不重算历史Record。原生Excel/WPS保存回导仍OPEN；P3-C/D/E/F、公式、数据库与Frozen Contract均不变。不自行合并。
 
-保留原子写入、覆盖确认、文件哈希与report_export_history，准确区分文件和审计失败。完成提交PR及样例、记录本地与最终head CI证据后等待独立验收，不自动合并。批准模板清理仅限指定21个公式，保留原工作目录文件。
 
-P3-AB已通过PR38合并，仅接收已合并main代码；其专项证据见docs/ui/p3-ab/ACCEPTANCE.md，原生验收仍OPEN。Phase3的C/D/E/F继续暂停，须独立授权，本包不执行。
-
-既有PF01、RS03与UAT03软件决定继续有效，相关007/008解释不变。以下长期产品决定继续适用。
+- PR35/36/37/38/39已合并；当前包为 **GHG-EXB01 附录B正式Excel模板与输入**。本分支以 `main@708f78a455790946b4a728029bba768d8fb295fc` 为初始基线，现整合最新 `origin/main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0`（PR39 RPT02）。具体预检查、批准母版与去公式授权差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
+- 批准九表母版成为唯一正式输入模板；原样保留布局，仅按授权移除指定结果公式。软件下载复制受控文件字节；轻量模板注册不引入数据库或通用DSL。
+- B.2～B.9形成一次完整核算，仍共享Canonical/Application/Domain。预览零Record；用户明确保存项目后正式核算，成功持久化才提示完成。
+- 删除R2专属模板生成/下载/新解析路径；保留OOXML原始词法、Decimal、来源证据、Canonical项目保存恢复和历史EXCEL_R2项目/Record读取。
+- 期间、地区与自定义燃料单位不能从静态表头猜测；多物料配对不重复质量，无法唯一表达多实例或批次时定位错误。默认因子只来自正式Catalog/Resolver，不伪造用户提供值来源。
+- 不改正式Calculator公式、Numeric、历史Record、数据库结构、已合并RPT02 Word模型/版式、标准范围；不执行P3-C/D/E/F。当前UI指南只用于Excel页面必要接线。
+- 必须专项独立AI按最终diff/head验收；Windows构建/审计、完整回归、CI和原生Excel/WPS保存证据分开。新PR不得自动合并。
 
 PF01范围约束：
 
@@ -104,9 +107,9 @@ PF01范围约束：
 
 ### 3.5 Excel 的当前状态与最终定位
 
-- **当前状态**：Excel R2先严格校验与逐单元预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
+- **当前状态**：附录B工作簿先严格校验与整体预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
 - **最终定位**：Excel是输入 Adapter（含输入模板导出），与GUI共用Canonical Input → Application → Domain / Calculator → Result；报告输出只消费已保存Record的冻结ReportModel。
-- 完整RS03当前候选待独立验收；R2词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
+- EXB01当前候选待专项独立验收；Excel词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
 
 ### 3.6 架构与分层
 
@@ -185,18 +188,12 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应GHG-RPT02；详见当前阶段。以下UAT03内容为已合并PR37的历史范围，不限制本次用户明确授权的Word表式收口。旧PR35/36已完成合并，旧报告仅历史。当前任务允许本轮必需最小规则/输入调整，须有台账、来源、版本与测试；不得扩大标准、主要依赖、数据库或Frozen基线。新PR须先独立验收再交用户实测，不能沿用前一任务的合并批准。
+当前只实施 GHG-EXB01。PR35/36/37/38 的合并属于历史依赖，不替代本包验证；不得沿用旧任务合并授权。必要模板/数值入口与 Record 安全采用专项独立验收，未通过不得宣告支持完整。范围与停止条件见本文件第2节、AGENTS.md和 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。
 
-## PR35/36与UAT03合并基线（历史范围）
+Word 报告版式/分页已由PR39 RPT02实现，核算结果 Excel 导出已取消；不执行 P3-C/D/E/F，不新增标准、数据库结构、主要依赖或 Frozen adoption。完整实际命令、数量、失败闭环和未执行原因写入 `IMPLEMENTATION_REPORT.md`；当前断点写入 `TASK_STATE.md`。完成后更新原PR #40等待最终检查，不自动合并。
 
-以下为已合并业务基线，不属于当前GHG-UI-P3-AB执行范围：核算结果Excel导出已取消，保留导入、Canonical项目保存/恢复、正式核算与记录查看；输入模板改版不属于本包，Word分页/版式完善由独立RPT02任务处理。
+### 已合并基线（非当前包）
 
-PR35/36及UAT03已进入既有合并基线。Catalog003与Projects003属于不同数据库，继续分别保留；历史测试/CI不作为当前包的验证证据。
+PR35/36与PR37的业务实现和验收属于历史基线。GHG-UAT03 V2 的需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`；省级电力选择及取消非化石自动证明前置等既有决定，继续按标准问题台账、规则版本与来源快照追踪，不改变冻结 Mapping。
 
-## UAT03 V2历史实施范围（已合并PR37）
-
-GHG-UAT03 V2已作为既有业务基线合并；当前基线为PR37 merge commit `708f78a455790946b4a728029bba768d8fb295fc`。原需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`。历史实现范围包括8选择卡片、企业与周期、紧凑燃料双路径/过程/烟气/统一电力热力、首条保留与启停保留数据、成功且未过期Record直接Word导出；这些不是当前包的实施任务。
-
-既有业务决定继续有效：非化石自动证明前置已取消，省级地区选择按既有授权及其软件决定/规则版本/来源快照处理；不改冻结Mapping，也不声称佐证已验证。新可选地区字段须兼容旧输入，不放宽无适用因子、单位或致命缺失校验。
-
-UAT03历史验证证据以对应报告和状态文件为准，不能替代本包的独立PR验收。当前P3-AB只应用中央ACTIVE UI指南、家族规格及验收清单的适用部分，不自动adopt Frozen，也不扩展到C/D/E/F。
+PR #38 的 GHG-UI-P3-AB 已合并。其实现、测试、截图证据及原生人工验收仍为 OPEN 的边界见 `docs/ui/p3-ab/ACCEPTANCE.md`。AB 合并后 Phase 3 暂停；本包不启动 P3-C/D/E/F。

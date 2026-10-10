@@ -66,7 +66,7 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 - 计算链只覆盖 GB/T 32150—2025 通用规则和 GB/T 32151.34—2024 炭素材料生产企业模块。
 - 其余计划标准只有目录与状态信息，不实现计算规则。
-- Excel R2模板和预览已提供；PR35候选保留Canonical项目保存/恢复、正式核算与记录查看。核算结果Excel导出取消，Word报告保留，模板和Word排版完善延期。企业档案、层级、审批、.qzproj与云端不属于本包。
+- Excel正式资源仅允许 `resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx`，SHA256 `e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d`；批准原母版及去公式差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。下载复制受控字节，不重存。整工作簿经共享业务内核预览、明确保存Canonical项目、正式核算后追加Record；历史R2项目和记录可读，新R2文件导入取消。核算结果Excel导出取消，Word报告保留RPT02/PR39批准表式与分页，PR40联合验证。企业档案、层级、审批、.qzproj与云端不属于本包。
 - 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
 - 本机已在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
 

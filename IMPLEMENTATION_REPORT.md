@@ -1,71 +1,114 @@
-# GHG-RPT02 附录B Word报告实施报告
+# PR #40 — EXB01 / RPT02合并前整合报告
 
-日期：2026-10-10。状态：实现及样例交付候选，等待独立验收；不自动合并。PR：[#39](https://github.com/adgo07/GHGTOOL/pull/39)。最终Head和最终CI证据以该PR的head/checks及正文为准，本报告提交后的复跑结果不冒充提交前已通过。
+日期：2026-10-10。状态：代码整合、本地完整验证与独立审查完成；原PR40待最终检查，不自动合并。最终PR Head及线上CI以原PR实时验收记录核对；本提交只更新报告和TASK_STATE。
 
 ## 平台 / Contract预检查
 
-本仓origin已实际核验为adgo07/GHGTOOL，默认main；启动时从最新origin/main@708f78a独立创建codex/ghg-rpt02，复用已合并PR37，不取EXB01/P3-AB未合并代码。交付期间PR38已正式合并，接收其origin/main；冲突仅HANDOFF、路线与TASK_STATE，保留P3-AB成果、暂停C/D/E/F，本包不实施P3-C。原checkout用户修改和原批准模板未覆盖。
+origin已确认adgo07/GHGTOOL。整合前head6c9280b70e1575ca0a5d9cca5af1645ef9cabd2e；main029ebe6fa6081e3d742ba3900e641e4c4f6aecf0（PR39 RPT02）。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20，按既有锁定Architecture V2.1/Numeric v1/Profile v1执行：Decimal p40/HALF_UP、ambient independence、显示值不反馈、冻结Record不漂移、分层与唯一共享Calculator。无Frozen adoption或中央Contract变化，无新标准解释；相关Standard Issue001～008保持。
 
-中央Frozen锁定`ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变。已读相关Architecture V2.1 / Numeric v1：MUST保持分层、只消费冻结Record、显示转换显式采用Decimal策略；MUST NOT让UI/当前Catalog/重算改变历史结果，显示修约不得回流Calculator。本任务不修改中央公共Contract，无冲突、偏差升级或CENTRAL CONTRACT GAP。当前ACTIVE UI指南只用于已有中文说明，不当Frozen。相关Standard Issue004、007、008的既有解释保持，不新增/改变标准解释、公式、p40精度、适用范围或正式支持状态。
+## 整合要求及冲突
 
-## 实现与修改文件
+按PR40评论6090608221在原分支merge最新main。实际6个Git冲突：HANDOFF.md、IMPLEMENTATION_REPORT.md、REFERENCE_STANDARD_ROADMAP.md、TASK_STATE.md、scripts/build_standalone.py、specs/reporting/GB_T_32151_34_2024_REPORT_SCHEMA.md。治理整合已合并RPT02+待合EXB01事实；Schema保留RPT02 v2.0.0正式表式，说明新九表输入/B.1只读/旧R2仅历史兼容。打包冲突由专项核对同时保留布局JSON和唯一批准模板。
 
-| 文件 | 改动 |
+重叠但自动合并的docs/architecture/REPORT_OUTPUT_ARCHITECTURE.md、pyproject.toml及三个集成测试已逐项核对，不以Git自动合并代替业务验证。Word renderer/冻结映射保持已合并main实现；不删除报告测试或放松精确比对，不恢复R2新入口。
+
+## 验证与证据
+
+本轮已执行的本地定向验证（QT_QPA_PLATFORM=offscreen，Python 3.12）：
+
+| 命令 | 实际结果 |
 |---|---|
-| packages/application/reporting/model.py | 保留唯一ReportModel，新增通用布局字段；ES/EI/ET冻结总量共用读取；删除重复旧附录映射。 |
-| packages/application/reporting/appendix_b.py、appendix_b_layout.json | 当前标准专属映射/批准布局版本；九表列序、分组、合并、单位、脚注、扩行和冻结采用值。 |
-| packages/infrastructure/reporting/word_renderer.py | 原renderer扩展可编辑表格、多层重复表头、合并、字号/方向/分页、黑色边框、末行与脚注相邻；多过程独立起页。 |
-| packages/ui/record_experience.py | B.1和记录摘要复用冻结总量解释；审计查看保留，无视觉重构。 |
-| pyproject.toml、scripts/build_standalone.py | 打包静态报告布局JSON；Word运行时不依赖原Excel。 |
-| tests/test_rpt02_appendix_b.py、test_rpt01_report_excel.py、test_rs03_excel_entrypoints.py、test_main_integration_ui.py | 模板/原生表格/历史回退/来源碰撞/零值/比例/扣减/同Record双入口一致性及既有导出回归。 |
-| scripts/rpt02_acceptance_samples.py、rpt02_wps_acceptance.ps1 | 仅验收辅助：真实UseCase Record样例、冻结证据、现有R2导入及WPS只读PDF。合成builder明确只作映射单测/分页QA。 |
-| docs/批准模板xlsx、docs/rpt02/ | 清理21公式副本；3份DOCX及WPS PDF、完整正式Record快照、哈希与验收证据。JSON按仓库LF策略写入，避免Git换行导致哈希漂移。 |
-| REPORT_OUTPUT_ARCHITECTURE、REPORT_SCHEMA、HANDOFF、REFERENCE_STANDARD_ROADMAP、TASK_STATE、本报告 | 架构/Schema/当前状态同步；不建立第二套路线。 |
+| `python -m unittest tests.test_exb01_ingress tests.test_exb01_template_acceptance tests.test_exb01_resolver_defaults -q` | 21/21，0 fail/error |
+| `python -m unittest tests.test_main_integration_ui tests.test_rpt01_report_excel tests.test_rs03_excel_entrypoints tests.test_exb01_rpt02_integration` | 21/21，0 fail/error；新增联合用例单独1/1 |
+| `python -m unittest tests.test_rpt02_appendix_b` | 10/10，0 fail/error |
+| `python -m unittest discover -s tests -p test_g08_delivery.py -v` | 最终14/14，0 fail/error；首轮13 pass/1 error，旧归档夹具未包含新必需布局JSON，补齐夹具后通过 |
+| `python scripts/validate_canonical.py` | exit0；9标准/12来源/102参数/138因子 |
+| `python -m pip check` | exit0；无损坏依赖 |
+| `python scripts/initialize_databases.py --output-dir build/exb01/rpt02-integration-databases` | exit0；隔离四库 |
+| `python scripts/uir04_manual_gui_acceptance.py` | A～E五场景通过 |
+| `python scripts/uir04_scale_acceptance.py --scale 1.25` 和 `--scale 1.5` | 两种缩放通过；offscreen，不是原生Excel/WPS验证 |
 
-未修改Calculator、正式Record模型/数据库迁移、当前参数库、EXB01导入器、共享文件保存/确认/审计流程。原子写入、覆盖确认、文件哈希及report_export_history继续由PR37入口处理。
+最终代码Head本地完整回归442/442及Windows构建/审计/ZIP/两次冷启动已完成，见后文；最终PR Head线上CI由本报告提交后推送触发，实际终态补入原PR，不把旧CI当作新证据。先前EXB01 428/428及RPT02 415/415和两包原CI只作历史，不替代本次整合结果。最终命令、实际pass/fail/error与diff/head在收尾时补齐。
 
-## 九表与数值结论
+## 保留与未闭合项
 
-B.1分别列ES、ET，EI不替代第二总量；B.3～B.5按碳与挥发分投入/产出分组；B.9保持七列，冻结逐条排放量及参考焓值列于表后。多源真实Record含2燃料、各2过程/设施、34物料明细、购入/输出电热各2；ES/ET显示606.02/679.08，输出电力-1.00/-0.50、热力-0.03/-0.15。
+冻结Record只读Word报告、B.1～B.9布局JSON、双Word入口/原子保存/导出审计全部保留。附录B工作簿→预览零Record→Canonical项目→正式Application→不可变Record保留；Decimal/OOXML词法、来源与历史EXCEL_R2兼容不变。下载资源SHA e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d，原母版SHA c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4。
 
-ratio→percent、kg→t、kWh→MWh仅显示转换，零不变成空值。历史缺失字段、未启用、未填写与可选无物流分开；未冻结的派生燃料含碳量、逐碳酸盐排放不补算，不从今天Catalog推断来源。方向归属不足的同IID自动电力来源快照安全提示无法唯一关联，不能猜造。
+原生Excel/WPS保存后回导仍OPEN；旧Computer Use初始化失败不构成通过。本轮不扩大业务范围、不改Formula/Numeric/DB/历史Record/标准范围，不执行P3-C/D/E/F。完成等待最终检查，不自行合并。
 
-原始/清理后模板SHA256、列序/分组/单位/标准脚注与WPS逐页结论见[专项验收证据](docs/rpt02/ACCEPTANCE.md)。原模板对照：值差异仅21公式、样式0差异、合并0差异。
+## 11个重叠文件逐项处理
 
-## 本地命令与真实结果
-
-以下Python命令使用本仓Python3.12.14 venv；GUI设置QT_QPA_PLATFORM=offscreen。此节明确是本地执行，非GitHub Actions。
-
-| 命令/证据 | 实际结果 |
+| 文件 | 处理与保留 |
 |---|---|
-| python -m unittest discover -s tests -t . -v → tmp/full-tests.log（前轮） | 395项：390 pass、4 fail、1 error、0 skip；1476.509秒。旧列位置/数值单位断言和来源映射问题，不能写成全量通过。 |
-| 同命令 → tmp/full-tests-verified.log（续跑） | 404项：404 pass、0 fail、0 error、0 skip；1799.496秒。开跑时基于619b527；后续main整合、分页小修和新增双入口测试由最终Head另行复跑，此日志不冒充最终Head一致性证据。 |
-| python -m unittest tests.test_rpt02_appendix_b tests.test_rpt01_report_excel tests.test_uat03_rules tests.test_main_integration_ui.MainIntegrationUiTests.test_both_word_entrypoints_export_identical_business_content_for_same_record -q | 最终分页代码29项：29 pass、0 fail/error/skip；25.413秒，tmp/rpt02-focused-29.log。 |
-| python scripts/validate_canonical.py | 通过：9 standards、12 sources、102 parameters、138 factors。 |
-| python -m compileall -q apps packages resources scripts tests | exit0。 |
-| bundled python -m pip --python repo-venv-python check | No broken requirements found。 |
-| python scripts/initialize_databases.py --output-dir build/databases/rpt02-final-check | 四个隔离库初始化成功。 |
-| python scripts/uir04_manual_gui_acceptance.py | A～E五场景PASS；自动Qt检查，不冒充人工操作。 |
-| python scripts/uir04_scale_acceptance.py --scale 1.25 / --scale 1.5 | 两档均PASS，1366×768控件无横向滚动/重叠。 |
-| python scripts/build_standalone.py --output-root build/rpt02-integrated-dist | 本地集成候选554f7fd构建exit0；最终分页修正后须由最终Head构建再绑定。 |
-| inspect_release.py / verify_release_archive.py / smoke_standalone.py 对上述目录 | 265文件审计PASS、266可见文件ZIP往返PASS、2次隔离启动PASS。 |
-| python scripts/rpt02_acceptance_samples.py；--refresh-from-saved-records；--multi-source-sample | 3条演示输入生成正式不可变Record；后续仅由已有Record重渲染，原DB和快照业务值不变。 |
-| scripts/rpt02_wps_acceptance.ps1 | WPS COM12.0：3份最终Word为11/10/14页，35页已目视核对；原生可编辑表格、中文、合并及重复表头正常，无空白正文页。 |
-| 合成80燃料行压力QA；WPS编辑副本保存/复读 | 22页/21表格页均重复双层表头、80行完整；编辑副本成功，原交付文件哈希未改。 |
+| HANDOFF.md | 冲突；同时记录已合并RPT02和当前EXB01 |
+| IMPLEMENTATION_REPORT.md | 冲突；重写本次整合报告，旧证据不冒用 |
+| REFERENCE_STANDARD_ROADMAP.md | 冲突；唯一路线中同步两包状态 |
+| TASK_STATE.md | 冲突；当前整合状态与缺项 |
+| docs/architecture/REPORT_OUTPUT_ARCHITECTURE.md | 自动合并后核对；保留冻结Record只读映射，清理旧R2现行描述 |
+| pyproject.toml | 自动合并后核对；reporting JSON与批准Excel资源同时保留 |
+| scripts/build_standalone.py | 冲突；白名单/模板哈希与reporting JSON收集同时保留 |
+| specs/reporting/GB_T_32151_34_2024_REPORT_SCHEMA.md | 冲突；保留RPT02表式，新增EXB整工作簿边界 |
+| tests/test_main_integration_ui.py | 自动合并后核对；双Word入口内容相等、冻结Record不变；补B1-B9精确断言 |
+| tests/test_rpt01_report_excel.py | 自动合并后核对；保留全部Word测试；仅替换四个R2专属模板/解析测试，重要业务断言迁移EXB模块；来源/行数/结果精确核对 |
+| tests/test_rs03_excel_entrypoints.py | 自动合并后核对；新附录B入口与Word输出精确结果，项目/旧来源兼容继续覆盖 |
 
-两次中途全量运行因随后发现来源关联和分页问题而主动终止，没有最终summary，不计作pass或fail。Documents技能的LibreOffice渲染器因本机无soffice未执行；实际WPS PDF+Poppler页图完成替代检查。
+额外处理RPT02验收样例脚本对已删除R2导入器的依赖：新样例走正式附录B入口；历史样例只读冻结Record，不恢复旧R2新导入。历史docs/rpt02样例、证据和布局JSON与main一致，不重写历史验收结论。
 
-## CI及独立复核
+两份受控派生文件不能混同：EXB下载ZIP手术副本SHA为e6a070…c389c3d；RPT02既有布局JSON记录的formula_free_sha256为78042e02b57701cfcb3b4a3fb86dbb6ec8e4fa66ec74cfed768433153d5fdc7e。两者均追溯相同原母版c805e4…c1d9e4；本次不强改既有RPT02布局版本/历史元数据。
 
-集成候选554f7fd的[Actions 37967479912](https://github.com/adgo07/GHGTOOL/actions/runs/37967479912)两项job成功；它不是最终分页修正Head的证据。最终提交后重新等待PR #39全部checks：merge-ref全量、PR-head交付测试/Windows构建/清单溯源/ZIP审计/隔离启动。最终完整SHA、实际pass/fail/error/skip及运行链接记录于PR正文，不能把旧Head的绿色状态当最终通过。
+## 整合独立复核后的修正
 
-独立AI已对619b527实际diff、批准模板、正式Record和Word做只读复核，未发现阻断映射缺陷；识别同IID来源安全降级限制。最终Head仍须独立复核后签收；实现方不自行宣布正式验收通过。
+实现合并提交032a5aca2252b55856330df8bae6f239a077b1a3已保留两套能力。独立AI发现历史样例refresh构造SQLiteRepository会初始化数据库元数据，因此修为只读连接备份到临时副本，再在副本上初始化/读快照；原证据数据库与冻结bundle不写入、不重算。
 
-## 未闭合验收项
+新增HistoricalReportRefreshSafetyTests，从已跟踪冻结bundle恢复临时历史夹具（不是原生Excel验证），验证旧EXCEL_R2身份/历史parity保留、DB和bundle字节不变，并禁止Calculator/Resolver/Importer调用。首轮1 test/1 error为Windows源连接未显式关闭导致临时文件锁；改为contextlib.closing后联合`python -m unittest tests.test_exb01_rpt02_integration tests.test_rpt02_appendix_b -v`为12/12、0 fail/error。历史docs/rpt02文件未改。
 
-- 独立验收人在最终Head逐项签收及原生Windows系统DPI人工验收仍OPEN；不以离屏测试冒充人工验收。
-- 现有R2真实导入及同输入业务内容一致已覆盖；EXB01合并后的新导入链整合联测待其合并后补做。
-- 历史没有冻结的字段和无法唯一关联的来源保持明确缺失；本包不迁移/补造历史Record。
-- 本报告提交时最终Head本地全量及CI正在复跑，交付时以PR #39的最终Head结果留证；未绿前不能声明该项关闭。
+032a5ac全量已主动中断，不作为通过证据；日志rpt02-integration-full-pre-fix.log，待修正代码提交后重新全量。该Head本地Windows构建exit0、目录审计264 files、ZIP265 visible files、2次隔离启动PASS仅作修正前证据；最终代码Head已另行重建，见下表。两个EOF空白行一并清理，不改运行逻辑。
 
-独立复核补充（2026-10-10）：最终冻结前收口历史电力来源安全边界。单个候选也须与冻结EF精确匹配；购入/输出同编号且仅剩一个无方向证据的快照时标记无法唯一关联；已转交直接燃料路径的自用化石电力不参与购电来源碰撞判断。新增回归连同定向套件30项通过（tmp/rpt02-focused-30.log）；cbaba59全量因本次安全修正主动停止、无完整summary，不计为通过。修正后重新冻结Head并执行全量、构建与CI，最终结果记于PR39正文。
+## 最终代码Head本地Windows交付验证
+
+代码Head：0cc0dd378aed4b6f0a36b9fc91d6f3c52fad642f（后续若只有本报告和TASK_STATE更新，代码证据仍绑定此Head；最终PR Head由线上元数据与CI核对）。
+
+| 命令 | 本地实际结果 |
+|---|---|
+| `python -m compileall -q apps packages resources scripts tests` | exit0 |
+| `python scripts/build_standalone.py --output-root build/exb01/rpt02-final-windows` | exit0；build log：build/exb01/rpt02-final-build.log |
+| `python scripts/inspect_release.py build/exb01/rpt02-final-windows/QingzhouCarbonAccounting` | PASS，264 files |
+| `python scripts/verify_release_archive.py build/exb01/rpt02-final-windows/QingzhouCarbonAccounting` | PASS，265 visible files |
+| `python scripts/smoke_standalone.py build/exb01/rpt02-final-windows/QingzhouCarbonAccounting` | PASS，2 isolated starts |
+
+manifest的source_commit/pr_head_sha/tested_merge_sha均为0cc0dd378aed4b6f0a36b9fc91d6f3c52fad642f。reporting JSON字节与源码一致，SHA fe212e5f7f238802683e834ea249f14b6ca3ee572a7c60c750c1258f96135358；唯一XLSX为批准EXB模板，SHA e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d。没有docs/rpt02样例进入产物。
+
+临时样例CLI也已执行成功：`python scripts/rpt02_acceptance_samples.py --output-dir <临时目录>/docs --evidence-dir <临时目录>/evidence`，exit0，独立DB恰2条交付Record（GUI_CANONICAL_INPUT、EXCEL_APPENDIX_B_PREVIEW_TO_FORMAL_USE_CASE）；相同Canonical输入B1～B9的GUI/Application与Excel业务区段哈希均为f01f511ba0e88dfe1eb6c5c5490ffdcd76d0d8c6d2613664f806c7dd78262965，临时对照Record未加入交付DB。这是程序生成样例验证，不是原生Excel/WPS保存验证。真实命令临时根为系统Temp/rpt02-exb01-smoke-9237aa9cbad44dcc85220a531aec225e，未触碰已提交历史docs/rpt02。
+
+## EXB01专项14项覆盖与缺项
+
+| 项 | 验证落点 / 当前状态 |
+|---|---|
+| 1 下载字节一致 | template acceptance、入口精确哈希复制；受控去公式副本与原母版差异明确 |
+| 2 九表/表式/指定结果区无公式 | template acceptance与资源SHA校验 |
+| 3 原生Excel/WPS保存后读取 | **OPEN**，此前Computer Use初始化失败；无真实原生保存证据 |
+| 4 自定义燃料/双含碳路径 | EXB ingress、Resolver defaults、GUI parity |
+| 5 B.3～B.5不重复物料计量 | ingress按手算逐分项断言 |
+| 6 B.7多组分 | ingress多碳酸盐与词法/脚注回归 |
+| 7 电力方向/非化石/因子 | ingress与Resolver；输出不借用购入非化石零因子规则 |
+| 8 蒸汽与热力 | ingress与GUI parity |
+| 9 Excel/GUI正式结果相同 | GUI parity、新联合链路与样例B1～B9 parity |
+| 10 ES/ET | ingress逐分项手算、RPT02冻结总量及联合Word断言 |
+| 11 预览零Record/正式恰一条 | 新联合测试、project workflow、entrypoints |
+| 12 历史R2项目/Record/快照 | pending recovery、项目兼容；新只读refresh测试验证DB/bundle字节不变 |
+| 13 无可触达R2新下载/导入 | r2.py删除、UI入口/模板测试；仅历史身份保留 |
+| 14 Windows/发布/完整回归/最终CI | 本地构建/审计/启动已通过；全量442/442通过；最终PR Head线上CI由原PR实时验收核对（本报告提交时待推送） |
+
+独立AI已核对11重叠文件、报告核心/历史样例相对main无差异，并绑定0cc0dd3确认只读修正闭合。完整专项验收不能因代码检查通过而隐去第3项；保持Draft，等待最终检查，不自行合并。
+
+独立发布包审计也已按0cc0dd3执行上述目录与归档命令，分别exit0 / 264 files与exit0 / 265 visible files；复核manifest三项身份、两份资源哈希、仅catalog.sqlite、无历史样例/用户数据/旧R2工作簿，结论通过。
+
+## 最终完整回归及交付状态
+
+- 代码Head：0cc0dd378aed4b6f0a36b9fc91d6f3c52fad642f；基线main029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，推送前重新fetch确认未变化。
+- 实际命令：`QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -t . -v`（Windows PowerShell设置环境变量后调用项目Python 3.12）。
+- 实际结果：**Ran 442 tests in 814.593s / OK；442 pass、0 fail、0 error、0 skip；exit0**。外层实际耗时824.87s。日志：`build/exb01/rpt02-integration-full.log`。
+- 早期032a5ac全量是主动中断，日志单独保留为`rpt02-integration-full-pre-fix.log`；不计作通过。
+- 最终文档提交相对0cc0dd3只含IMPLEMENTATION_REPORT/TASK_STATE，不改已验证代码。线上Windows两项Job必须绑定最终文档Head，完成后在原PR追加实际run、merge-ref、exact-head及文件计数；不为记录CI再改变已通过Head。
+- 独立代码复核与独立包审计均通过，严格只读refresh问题闭合；无Numeric、Canonical正式算法、持久化结构或历史Record漂移。
+- 专项人工验收仍只有原生Excel/WPS保存后回导未闭合（OPEN）；当前继续Draft、等待最终检查，不自行合并。原有审查结论保留其旧Head绑定，不改写成新Head结论。

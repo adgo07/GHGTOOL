@@ -93,7 +93,7 @@ class CatalogParameterRepository(ParameterRepository):
 
 
 def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinition, ...]:
-    """Build standard-default rules only from verified C.1/C.2 source bindings."""
+    """Build default rules from verified appendix and process-clause bindings."""
 
     from packages.standards.carbon_material import STANDARD_ID
 
@@ -105,10 +105,17 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
     if standard is None:
         return ()
     standard_source_id = standard.official_source_id
+    process_clause_parameters = {
+        "5.2.2": {"car-par-k1"},
+        "5.2.3": {"car-par-k2"},
+        "5.2.4": {"car-par-k3"},
+        "5.2.5.2": {"car-par-p04b-i", "car-par-p04b-tr"},
+    }
     table_by_id = {
         item.source_table_id: item
         for item in tables
-        if item.source_id == standard_source_id and item.display_number in {"C.1", "C.2"}
+        if item.source_id == standard_source_id
+        and item.display_number in {"C.1", "C.2", *process_clause_parameters}
     }
     if not table_by_id:
         return ()
@@ -152,6 +159,11 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
             or factor.value_type not in {ValueType.STANDARD_DEFAULT, ValueType.STANDARD_SPECIFIED}
         ):
             continue
+        if (
+            table.display_number in process_clause_parameters
+            and factor.parameter_id not in process_clause_parameters[table.display_number]
+        ):
+            continue
         parameter = parameters.get(factor.parameter_id)
         if parameter is None or parameter.subject_id != factor.subject_id:
             continue
@@ -175,7 +187,7 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
                 rule_id=f"CAR-RULE-CATALOG-{table_number.replace('.', '')}-{parameter_id}",
                 rule_domain="parameter_selection",
                 relation=RuleRelation.BASE,
-                description=f"依据 GB/T 32151.34—2024 附录 {table_number} 的已核验目录绑定选择标准参数。",
+                description=f"依据 GB/T 32151.34—2024 {table_number} 的已核验目录绑定选择标准参数。",
                 standard_id=STANDARD_ID,
                 target_id=f"catalog.{parameter_id}",
                 applicability=RuleApplicability(
