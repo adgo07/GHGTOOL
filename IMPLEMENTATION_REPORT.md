@@ -32,3 +32,4 @@ EXB01 `codex/exb01-appendix-b-ingress` 和 RPT02 `codex/ghg-rpt02` 均未合并�
 原生 Windows 两种分辨率、系统 100%/125%/150% DPI 的鼠标、键盘和滚动验收 **OPEN**：正式 Computer Use 入口初始化失败，错误为 `windows sandbox failed: helper_unknown_error: setup refresh had errors`。离屏自动化不代替实机验收，不声称全部 UI 验收通过。窄屏八类选择条和长表格保留横向滚动，详情保留独立纵向滚动。
 
 本次未扩展业务修复。待独立验收后再决定后续任务；不自行合并，不开始 C/E，不修改中央 UI 规范。
+交付同步：PR创建后主线合入RPT02 #39；接收已合并main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，只整合四份共享治理文档。RPT02业务保持主线原样，证据见docs/rpt02/ACCEPTANCE.md。初始DF base不变，最终head与merge-ref CI以PR41为准。本地同名用户Excel原始文件先保护到忽略目录，合并提交后恢复原路径，不作为DF改动提交。

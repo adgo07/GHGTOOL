@@ -240,7 +240,8 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         )
         self.assertIn("B.1 温室气体排放量汇总", visible_text)
         self.assertIn("B.9 购入和输出热力", visible_text)
-        self.assertIn("27.03 tCO₂", visible_text)
+        self.assertEqual(parsed.tables[1].rows[-1].cells[2].text, "27.03")
+        self.assertIn("tCO₂", parsed.tables[1].rows[0].cells[2].text)
         report_after = build_saved_record_report(
             self.repository,
             self.repository.get(record.record_id),

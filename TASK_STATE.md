@@ -10,3 +10,4 @@
 本包提交唯一PR，最终head、Windows CI结论和链接记录在PR正文。本次原生Windows实机操作OPEN（Computer Use初始化失败），不能由离屏Qt或模拟scale替代。详细命令、真实数量、兼容边界见IMPLEMENTATION_REPORT.md与docs/ui/p3-df/ACCEPTANCE.md。
 
 用户未跟踪Office文档、其他工作树与临时目录保留。EXB01/RPT02未合并实现不取用，报告相关组件避让。完成后停止，不自行合并、不开始C/E、不修改中央规范。
+交付同步：PR创建后主线合入RPT02 #39；接收已合并main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，只整合四份共享治理文档。RPT02业务保持主线原样，证据见docs/rpt02/ACCEPTANCE.md。初始DF base不变，最终head与merge-ref CI以PR41为准。本地同名用户Excel原始文件先保护到忽略目录，合并提交后恢复原路径，不作为DF改动提交。

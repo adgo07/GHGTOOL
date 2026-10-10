@@ -1,0 +1,29 @@
+{
+  "original_sha256": "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",
+  "clean_sha256": "78042e02b57701cfcb3b4a3fb86dbb6ec8e4fa66ec74cfed768433153d5fdc7e",
+  "changed_values": [
+    "B.2!J4",
+    "B.2!J5",
+    "B.2!J6",
+    "B.2!J7",
+    "B.2!J8",
+    "B.2!J9",
+    "B.2!J10",
+    "B.2!J11",
+    "B.2!J12",
+    "B.2!J13",
+    "B.2!J14",
+    "B.2!J15",
+    "B.2!J16",
+    "B.2!J17",
+    "B.2!J18",
+    "B.6!G3",
+    "B.7!G3",
+    "B.7!G4",
+    "B.7!G5",
+    "B.8!E3",
+    "B.8!E4"
+  ],
+  "style_changes": [],
+  "merge_changes": []
+}

@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-10（PR35/36/37/38已合并；当前工作包GHG-UI-P3-DF）
+最后更新：2026-10-10（PR38已合并；GHG-RPT02实施）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -349,15 +349,16 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。既有11条Gap中10条已关闭，GAP-009仍为非阻塞provenance debt。PR #33/#34已合入main；RS03状态及证据仍以对应工作包报告为准。当前GHG-UI-P3-DF仅涉及Presentation，不改变正式核算、标准支持状态或RS04/RS05门禁；当前包的原生验收为OPEN，详见第8节。PR #27保持CLOSED / UNMERGED。既有6条RESOLVED标准解释不变；GB/T 32151.34—2024仍为NOT SUPPORTED。
+参考标准总体状态：**`PARTIAL`**。既有11条Gap中10条已关闭，GAP-009仍为非阻塞provenance debt。PR #33/#34已合入main；RS03状态及证据仍以对应工作包报告为准。GHG-UI-P3-AB已通过PR38合并，原生验收仍OPEN，专项证据见docs/ui/p3-ab/ACCEPTANCE.md；其变更不改变正式核算、标准支持状态或RS04/RS05门禁。PR #27保持CLOSED / UNMERGED。既有6条RESOLVED标准解释不变；GB/T 32151.34—2024仍为NOT SUPPORTED。
 
 ## 8. 当前阶段与下一步
 
-- 当前工作包：**GHG-UI-P3-DF**，仅限Presentation层参数与因子库（D）及新建核算（F）视觉/交互收敛；PR #38已合并，当前base为 `a51afbcf684e3845369977e42adc938866726d0b`。执行顺序为 **D → D专项验证 → F → 联合验收**；D与F实现完成，联合证据与独立验收见本包报告。本包不重做AB，不启动C/E。
-- PR #38的A/B Shell与标准库调整属于既有基线；本包不得改Application、Domain、Repository、Canonical、数据库、正式业务语义、Excel、Word或标准正式支持状态。
-- 原生Windows验收为 **OPEN**；D/F证据见 `IMPLEMENTATION_REPORT.md` 与 `docs/ui/p3-df/ACCEPTANCE.md`，不重复旧AB测试数量，不以既有材料或离屏证据声称全部通过。
-- EXB01与RPT02分别在独立分支且均未合并；当前D/F目标文件无直接代码交集。F须避让RPT02负责的报告相关按钮和组件；并行治理文档存在合并冲突，详见 `HANDOFF.md`。
-- 既有产品边界继续有效：正式核算/预览共用既有业务内核与Record规则；Word报告读取冻结ReportModel；Excel结果导出已取消，中央Numeric交换仍OPEN / PARTIAL。
+- P3-AB已通过PR38合并：首页/侧栏与标准库列表详情方案沿用已合并实现，专项证据见docs/ui/p3-ab/ACCEPTANCE.md。AB后的Phase3按独立授权开展；当前用户已授权D/F联合视觉改造，C/E未启动。
+
+- 当前工作包：**GHG-UI-P3-DF**，仅参数与因子库及新建核算视觉收敛；D专项通过后F实施，交付单一PR等待独立验收，不自行合并。开工base a51afbcf684e3845369977e42adc938866726d0b；交付接收已合并RPT02的main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，不改报告业务。RPT02证据继续见docs/rpt02/ACCEPTANCE.md与PR39。
+- GUI与Excel共用配置一致的Calculator / Preview UseCase / 正式UseCase；预览和项目保存零Record，正式成功追加不可变Record与导入来源快照。项目库增量迁移003，记录库Schema、公式、Numeric及Resolver不变。
+- 报告只通过冻结ReportModel输出Word；Excel结果导出已取消，输入模板及正式导入继续共用业务内核。中央Numeric交换规则仍OPEN / PARTIAL。
+- 验证见IMPLEMENTATION_REPORT与TASK_STATE；原生鼠标视觉、Excel/WPS打印、Word分页和长标题仍需独立验收。RS04～RS06+未启动，不宣布标准SUPPORTED。
 - PR #27保持CLOSED / UNMERGED且只读；其旧V1 runtime和四页规范不移植。
 
 ## 9. 相关治理登记项的归属
@@ -374,7 +375,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 路线不自行授权未来阶段；当前明确授权仅为GHG-UI-P3-DF的Presentation范围，按D→D专项验证→F→联合验收执行，不启动C/E或RS04～RS06+；EXB01/RPT02保持独立未合并状态并按`HANDOFF.md`处理治理文档冲突；
+- 路线不自行授权未来阶段；当前明确授权为GHG-UI-P3-DF的Presentation范围，不启动或推进RS04～RS06+；完成后暂停并等待独立验收，C/E仍需后续明确授权；
 - Excel预览保持无Record写入；明确保存项目和正式核算通过共享Application完成，Word报告读取冻结Record；当前候选待独立验收；
 - PR #27保留历史验收意图，保持CLOSED / UNMERGED且只读，不修改、重新打开或合并；旧V1 runtime/四页规范已被main中的R2替代，不移植为生产代码。R2既有6条集成测试为历史证据；
 - PF01的期间裁定及测试历史继续按其合入实现和`GHG-STD-32151-34-005/006`追溯；本次不改变正式公式、Resolver策略或历史Record；
@@ -385,14 +386,14 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 ## 当前延期与取消事项
 
 - Excel输入模板改版延期，现有严格导入和项目链保留；影响输入语义或正式结果的错误仍须修正。
-- Word版式、分页与展示内容完善不属于P3-DF，由独立RPT02任务处理；冻结Record导出保留，本包不宣称报告视觉验收完成。
-- 新建核算V2已作为GHG-UAT03合并基线；输入模板不在本包范围，Word排版另由RPT02处理，当前GHG-UI-P3-DF不重做该业务包。
+- Word附录B表式、分页及必要展示收口由用户明确启动的GHG-RPT02实施；冻结Record导出保留，独立验收状态以报告与PR为准。
+- 新建核算V2已由PR37合并；输入模板改版仍延期，P3-C记录页视觉重构不属于RPT02。
 - 核算结果Excel导出已取消，不是待开发项或RS03出口条件。
 
-PR35/36/37/38均已合并；历史整合、回归与CI证据不替代当前GHG-UI-P3-DF验证。当前基线为 `a51afbcf684e3845369977e42adc938866726d0b`。
+PR35～PR39均已合并；历史证据不替代DF验证。DF交付时合入已合并PR39主线，仅解决共享治理文档冲突；EXB01未合并代码不取用。
 
-### GHG-UAT03 已合并基线（非当前包）
+### GHG-UAT03 历史内部工作包（已合并PR37）
 
 GHG-UAT03 V2已进入PR37合并基线 `708f78a455790946b4a728029bba768d8fb295fc`，属于RS01/RS02既有录入和生命周期改进，不是当前工作包。历史授权的省级电力选择及取消自动证明前置继续按标准问题台账、规则版本和来源快照追踪；其余计算与历史兼容保持。
 
-当前GHG-UI-P3-DF不得改变上述正式业务行为或正式标准支持状态；其验收与历史UAT03/AB证据分开记录。
+RPT02不得改变上述正式业务行为或正式标准支持状态；其报告验收与历史UAT03、P3-AB证据分开记录。

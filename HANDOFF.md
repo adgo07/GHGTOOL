@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（PR35/36/37/38已合并；当前包为GHG-UI-P3-DF）
+最后更新：2026-10-10（PR37/38/39已合并；当前GHG-UI-P3-DF）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -34,7 +34,9 @@ Module ID：`qz.carbon_accounting`
 - 本包不改Application、Domain、Repository、Canonical、数据库、正式业务语义、Excel、Word、C/E或EXB01/RPT02业务实现；不改变标准正式支持状态、计算、校验、项目及Record行为。
 - 原生Windows验收为 **OPEN**。D/F验收证据见 `IMPLEMENTATION_REPORT.md` 与 `docs/ui/p3-df/ACCEPTANCE.md`；不重复旧AB测试数量，不以离屏证据或既有材料声称全部通过。
 - 当前授权顺序为 D → D专项验证 → F → 联合验收；完成后提交独立PR并等待验收，不自行合并。
-- EXB01与RPT02分别在独立分支且均未合并；当前D/F目标文件无直接代码交集。F须避让RPT02负责的报告相关按钮和组件；`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`存在并行治理文档合并冲突，更新时以各工作包交付前事实为准。
+- 开工时EXB01与RPT02分别在独立分支且均未合并；交付时RPT02已通过PR39合入main，本分支接收已合并主线；当前D/F目标文件无直接代码交集。F须避让RPT02负责的报告相关按钮和组件；`HANDOFF.md`、`TASK_STATE.md`、`IMPLEMENTATION_REPORT.md`、`REFERENCE_STANDARD_ROADMAP.md`存在并行治理文档合并冲突，更新时以各工作包交付前事实为准。
+
+RPT02已合并的附录B Word报告、原子写入、覆盖确认、哈希与导出审计继续有效，详见docs/rpt02/ACCEPTANCE.md和PR39。本DF不修改其业务实现。交付同步main@029ebe6fa6081e3d742ba3900e641e4c4f6aecf0，仅整合四份共享治理文档。
 
 PF01范围约束：
 
@@ -184,18 +186,18 @@ PF01范围约束：
 
 ## 7. 当前阶段范围声明
 
-本文件当前对应 **GHG-UI-P3-DF**，仅限Presentation改动。不得借此调整正式业务规则、标准支持状态、数据模型或其他页面家族；PR38合并基线不授权重做AB、启动C/E或改变业务实现。当前按D→D专项验证→F→联合验收执行，原生验收OPEN，完成后提交独立PR并等待验收。
+本文件当前对应GHG-RPT02；详见当前阶段。以下UAT03内容为已合并PR37的历史范围，不限制本次用户明确授权的Word表式收口。旧PR35/36已完成合并，旧报告仅历史。当前任务允许本轮必需最小规则/输入调整，须有台账、来源、版本与测试；不得扩大标准、主要依赖、数据库或Frozen基线。新PR须先独立验收再交用户实测，不能沿用前一任务的合并批准。
 
 ## PR35/36与UAT03合并基线（历史范围）
 
-以下为已合并业务基线，不属于当前GHG-UI-P3-DF执行范围：核算结果Excel导出已取消，保留导入、Canonical项目保存/恢复、正式核算与记录查看；输入模板改版不属于本包，Word分页/版式完善由独立RPT02任务处理。
+以下为已合并业务基线，不属于当前GHG-UI-P3-AB执行范围：核算结果Excel导出已取消，保留导入、Canonical项目保存/恢复、正式核算与记录查看；输入模板改版不属于本包，Word分页/版式完善由独立RPT02任务处理。
 
 PR35/36及UAT03已进入既有合并基线。Catalog003与Projects003属于不同数据库，继续分别保留；历史测试/CI不作为当前包的验证证据。
 
-## GHG-UAT03 V2已合并基线（非当前包）
+## UAT03 V2历史实施范围（已合并PR37）
 
 GHG-UAT03 V2已作为既有业务基线合并；当前基线为PR37 merge commit `708f78a455790946b4a728029bba768d8fb295fc`。原需求副本见 `docs/uat03/NEW_ACCOUNTING_V2_REQUIREMENTS.md`。历史实现范围包括8选择卡片、企业与周期、紧凑燃料双路径/过程/烟气/统一电力热力、首条保留与启停保留数据、成功且未过期Record直接Word导出；这些不是当前包的实施任务。
 
 既有业务决定继续有效：非化石自动证明前置已取消，省级地区选择按既有授权及其软件决定/规则版本/来源快照处理；不改冻结Mapping，也不声称佐证已验证。新可选地区字段须兼容旧输入，不放宽无适用因子、单位或致命缺失校验。
 
-UAT03历史验证证据以对应报告和状态文件为准，不能替代本包的独立PR验收。当前P3-DF只应用中央ACTIVE UI指南、家族规格及验收清单的适用部分，不自动adopt Frozen，也不扩展到C/E；F须避让RPT02负责的报告相关UI。
+UAT03历史验证证据以对应报告和状态文件为准，不能替代本包的独立PR验收。当前P3-AB只应用中央ACTIVE UI指南、家族规格及验收清单的适用部分，不自动adopt Frozen，也不扩展到C/D/E/F。

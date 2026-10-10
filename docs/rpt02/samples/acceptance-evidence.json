@@ -1,0 +1,108 @@
+{
+  "task": "GHG-RPT02",
+  "generated_at": "2026-10-09T17:22:54.762630+00:00",
+  "sample_status": "FORMAL_RECORDS_FROM_APPLICATION_USE_CASE",
+  "notice": "验收演示输入，不是实际企业业务Record或企业凭证；系统选用的标准参数来源按每条Record冻结快照保留。",
+  "canonical_reference_data_source": "data-source/carbon_accounting/catalog.json",
+  "catalog_database": "由本仓Canonical reference-data源临时构建，仅用于正式计算；Word生成时只读取records.sqlite中的冻结Record和快照。",
+  "excel_r2_preview": {
+    "can_calculate": true,
+    "preview_total_amount": "27.02736011250000000000000000000000000000",
+    "preview_total_unit": "tCO2",
+    "workbook_sha256": "FD940A2CB9CBA3FDD14BD9E0788F3DC7ADC058FA021DBA1BAECEDAADA3819F39",
+    "template_id": "GHGTOOL_GBT_32151_34_2024",
+    "template_version": "2.0.0",
+    "ingress_policy_id": "GHGTOOL_EXCEL_INGRESS_R2",
+    "numeric_cell_evidence": [
+      {
+        "sheet": "B.2 化石燃料",
+        "cell": "D6",
+        "raw_cell_type": "n",
+        "workbook_value_repr": "1.25",
+        "raw_numeric_lexical": "1.25",
+        "normalized_decimal_lexical": "1.25",
+        "accounting_unit_id": "unit-74581f3c6f8bb1ef5adf"
+      }
+    ]
+  },
+  "records": [
+    {
+      "origin": "GUI_CANONICAL_INPUT",
+      "input_description": "tests.test_g06_carbon_material._full_input经Canonical CarbonMaterialInput与正式CarbonAccountingUseCase核算；非原生GUI按钮交互实测。",
+      "native_gui_interaction_verified": false,
+      "record_id": "record.input.rpt02.gui-canonical-demo.65d953d9e6c046e7887e5c88fbb81feb",
+      "standard_id": "gbt_32151_34_2024",
+      "algorithm_version": "CAR-SM01-2026-10-09-G06.2-N01C-R1.1",
+      "standard_version": "2024",
+      "created_at": "2026-10-09T17:22:54.762630+00:00",
+      "status": "COMPLETED",
+      "frozen_es_ei_et": {
+        "CAR-FLD-DIRECT-RESULT": "19.52515077333333333333333333333333333334",
+        "CAR-FLD-INDIRECT-RESULT": "52.33720000",
+        "CAR-FLD-TOTAL-RESULT": "71.86235077333333333333333333333333333334"
+      },
+      "record_and_snapshot_sha256": "d4ecffa5538f3854f6a227e7dd56381caa30a6e7102e6acd786f0de5600b696e",
+      "report_layout_id": "gbt-32151-34-2024-appendix-b",
+      "report_b1_es": "19.53",
+      "report_b1_et": "71.86",
+      "approved_template_sha256": "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
+    },
+    {
+      "origin": "EXCEL_R2_PREVIEW_TO_FORMAL_USE_CASE",
+      "input_description": "R2工作簿由ExcelWorkbookImporter真实预览，unit.can_calculate为真后将unit.input_value传入正式CarbonAccountingUseCase并写入Record。",
+      "native_gui_interaction_verified": null,
+      "record_id": "record.input-e8aab5dba75188534a93.fddae46741f84460954c167a14118ea7",
+      "standard_id": "gbt_32151_34_2024",
+      "algorithm_version": "CAR-SM01-2026-10-09-G06.2-N01C-R1.1",
+      "standard_version": "2024",
+      "created_at": "2026-10-09T17:22:54.762630+00:00",
+      "status": "COMPLETED",
+      "frozen_es_ei_et": {
+        "CAR-FLD-DIRECT-RESULT": "27.02736011250000000000000000000000000000",
+        "CAR-FLD-INDIRECT-RESULT": "0",
+        "CAR-FLD-TOTAL-RESULT": "27.02736011250000000000000000000000000000"
+      },
+      "record_and_snapshot_sha256": "3cf016fa4b30b40bf1e34727dad294e0e121ff0fe54862a4d93f663c9ade75fa",
+      "report_layout_id": "gbt-32151-34-2024-appendix-b",
+      "report_b1_es": "27.03",
+      "report_b1_et": "27.03",
+      "approved_template_sha256": "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
+    }
+  ],
+  "files": {
+    "GHG-RPT02_GUI_Canonical_Record_Appendix_B.docx": {
+      "sha256": "05acb33fa9f398d09524eae5c7e535dac3d50aa0069f4ee5212bee77b1ded4d9"
+    },
+    "GHG-RPT02_Excel_R2_Record_Appendix_B.docx": {
+      "sha256": "4de6c3225ed4531520ea273426f92107cf138682c538deca252e534f69e91e7a"
+    },
+    "records.sqlite": {
+      "sha256": "9940eae194a31cdb99a62d9add744df48e15964051a8e457a4b9bf4c8b810b11"
+    },
+    "records-and-snapshots.json": {
+      "sha256": "8650fc3e734d7bf13149a078dbfa2c5139eaf7898b5c8be82789e7ec58a9e58f"
+    }
+  },
+  "report_export_history_note": "验收样例由build_saved_record_report和现有DOCX renderer直接从已保存Record生成；文件保存及导出审计业务仍由PR #37共享Word导出入口负责。",
+  "same_input_gui_canonical_vs_excel_r2": {
+    "same_canonical_input": true,
+    "input_comparison": "Excel unit.input_value matched the saved raw input after removing ingress_provenance and normalizing importer-generated input_id; the Canonical/Application copy omits ingress metadata.",
+    "source_excel_record_id": "record.input-e8aab5dba75188534a93.fddae46741f84460954c167a14118ea7",
+    "canonical_path_record_id": "record.input.rpt02.saved-record-parity.f691f8e542a84359944e49dde119a549",
+    "compared_section_ids": [
+      "b1",
+      "b2",
+      "b3",
+      "b4",
+      "b5",
+      "b6",
+      "b7",
+      "b8",
+      "b9"
+    ],
+    "business_sections_equal": true,
+    "excel_business_sections_sha256": "079ed51e08ade1af385b0c8e91e793fdab10fc5115afd9e4f153d6508ac3ae02",
+    "canonical_business_sections_sha256": "079ed51e08ade1af385b0c8e91e793fdab10fc5115afd9e4f153d6508ac3ae02",
+    "parity_record_persisted_in_deliverable_database": false
+  }
+}
