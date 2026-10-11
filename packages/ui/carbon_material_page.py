@@ -3709,9 +3709,16 @@ class CarbonMaterialAccountingPage(BasePage):
         row.carbon_source.setVisible(carbon_factor is not None and not direct)
         row.carbon_calc_cell.setVisible(not direct)
         row.carbon_direct_cell.setVisible(direct)
+        active_source_keys = ["oxidation"]
+        if direct:
+            active_source_keys.append("direct_carbon")
+        else:
+            active_source_keys.append("carbon")
+            if path is not FuelPath.HEAT:
+                active_source_keys.append("lhv")
         has_measured_parameter = any(
             self._fuel_source_mode(row, key) == "MEASURED"
-            for key in ("lhv", "direct_carbon", "oxidation")
+            for key in active_source_keys
         )
         row.source_reference_control.setVisible(has_measured_parameter)
         row.lower_heating_value.setEnabled(not direct and path is not FuelPath.HEAT)
@@ -3861,6 +3868,7 @@ class CarbonMaterialAccountingPage(BasePage):
             name_layout.addWidget(QLabel("碳酸盐种类", name_row))
             reagent_name = QLineEdit(name_row)
             reagent_name.setObjectName("fgdReagentNameInput" if first else f"fgd_{instance_id}_reagentName")
+            reagent_name.setProperty("fieldSpecKey", "fgd.reagent_name")
             reagent_name.setPlaceholderText("填写全厂实际使用的脱硫剂名称")
             reagent_name.setMaxLength(120)
             name_layout.addWidget(reagent_name, 1)

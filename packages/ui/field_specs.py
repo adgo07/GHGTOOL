@@ -390,6 +390,17 @@ _register_process_fields(
 )
 _register(
     _spec(
+        "fgd.reagent_name",
+        "脱硫剂种类",
+        FieldDataType.TEXT,
+        required=True,
+        help_text="填写全厂实际使用的脱硫剂名称；每个录入组对应一种配方和用量。",
+        standard_clause="B.7",
+        source_location=_STANDARD,
+    )
+)
+_register(
+    _spec(
         "fgd.factor_source_reference",
         "脱硫剂参数来源编号",
         FieldDataType.TEXT,

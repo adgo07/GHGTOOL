@@ -165,6 +165,7 @@ class G06PageTests(unittest.TestCase):
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         row.oxidation.setText("98")
         row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
+        self.assertFalse(row.source_reference_control.isHidden())
         row.source_reference.setText("燃料检测报告-UAT-01")
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
