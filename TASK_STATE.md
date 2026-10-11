@@ -1,13 +1,12 @@
 # 当前任务状态
 
-状态：Phase 3 业务仓界面收口 — P3-C PR #42与P3-E PR #43均通过独立验收，完成冲突整合与合并。
+状态：GHGTOOL HTML V4 正式落地 — PR1 必要业务适配进行中；PR2 等待 PR1 验收合并后再开始。
 
-最后更新：2026-10-10。仓库：`adgo07/GHGTOOL`。本轮整合基于P3-C合并提交 `00da563b63ad9a981ab49258641ab12ac6dbe3ab`，保留P3-E最终验收原Head `4ed291e0bb3eed4e9352ed96d98ea2d9b5ea2121`的Excel页面实现。完整差异见PR #42/#43。
+最后更新：2026-10-11。工作分支：`codex/ghg-html-v4-pr1`；基线为经 `git fetch origin` 核实的 `origin/main@408e29cbd0f42d88077534ef50c4d787f2fad3cc`。原 `codex/ghg-ui-p3-df` 脏工作区保持未动。
 
-- P3-C：核算记录可搜索、状态筛选、独立详情双页签；Trace、Provenance、审计数据及Word公共出口保留。
-- P3-E：附录B导入四区操作；选择与预览分离、逐单元校验、仅用户显式保存项目并正式核算后追加Record。
-- 计算内核、Decimal、Canonical、Record Schema、Excel Adapter/模板、Word报告模型及renderer均未在本轮修改。
-- 两PR原Head Windows CI均成功。合并后的最终验证以集成Head Actions为准。
-- 后续OPEN：原生Windows人工DPI/键鼠、EXB01 WPS保存回导、RS04 Golden/正式支持与RS05 Release Gate。不自动将行业标准标记SUPPORTED。
+- PR1 覆盖燃料碳氧化率实测证据、脱硫剂分组与多组分含量、名称从 GUI/Excel/项目/Canonical/Record 到 Word B.7 的传递及旧快照兼容。
+- Calculator 正式公式、历史 Record、数据库 Schema 和 migration 均未改；旧 USER_DEFINED 来源保留，旧记录/项目缺少的名称继续为空，不推断。
+- 本地定向回归通过；PR1 完整 Windows CI 与独立验收状态以 GitHub Checks 和 review 记录为准，不将本地运行描述为 CI。C.4 饱和温度来源仍 OPEN；不阻塞已确定范围。
+- PR2 仅在 PR1 验收合并后开始；首页样板截图需先由 Owner 确认。
 
-中央Frozen基线 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`继续锁定。
+中央 Frozen baseline 继续锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。

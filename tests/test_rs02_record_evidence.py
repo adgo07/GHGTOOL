@@ -19,6 +19,8 @@ from packages.standards.carbon_material import (
     CalcinationInput,
     EmissionSourceState,
     EmissionSourceStatus,
+    CarbonateComponent,
+    FGDInput,
     FuelInput,
     FuelPath,
     GraphitizationInput,
@@ -26,6 +28,7 @@ from packages.standards.carbon_material import (
     MeasuredFactorEvidence,
     ParameterSourceKind,
     ParameterValue,
+    SOURCE_FGD,
     SOURCE_FUEL,
     SOURCE_GRAPHITIZATION,
     verify_record_aggregation,
@@ -240,6 +243,34 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         self.assertNotIn("CAR-FLD-", report)
         self.assertIn("证据1：年度燃料计量", activity_view)
         self.assertEqual(activity_view.count("年度燃料计量"), 1)
+
+    def test_record_detail_b7_shows_reagent_group_and_group_usage_once(self) -> None:
+        repository = InMemoryRecordRepository()
+        fgd = FGDInput(
+            components=(
+                CarbonateComponent("2", "0.90", "0.440", "1.00", "CaCO3"),
+                CarbonateComponent("2", "0.10", "0.522", "1.00", "MgCO3"),
+            ),
+            instance_id="fgd-limestone-a",
+            reagent_name="石灰石甲",
+        )
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
+            _input(
+                source_states=(EmissionSourceState(SOURCE_FGD, EmissionSourceStatus.INVOLVED),),
+                fgd_units=(fgd,),
+            ),
+            calculated_at=NOW,
+        )
+        self.assertTrue(outcome.successful, outcome.problems)
+        report = _PRESENTATION["build_report_view"](
+            outcome.record,
+            repository.get_raw_input_snapshot(outcome.record.record_id),
+            repository.get_trace_snapshot(outcome.record.record_id),
+            repository.get_reporting_snapshot(outcome.record.record_id),
+        )
+        self.assertIn("- 本脱硫剂组：石灰石甲", report)
+        self.assertEqual(report.count("脱硫剂组用量"), 1)
+        self.assertNotIn("设施1", report)
 
     def test_snapshot_states_distinguish_present_empty_legacy_and_corrupt(self) -> None:
         snapshot_state = _PRESENTATION["snapshot_state"]

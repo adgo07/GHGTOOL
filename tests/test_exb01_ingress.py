@@ -229,7 +229,9 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
 
         self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
         self.assertEqual(len(unit.input_value.fgd_units), 1)
-        components = unit.input_value.fgd_units[0].components
+        fgd_unit = unit.input_value.fgd_units[0]
+        self.assertEqual(fgd_unit.reagent_name, "脱硫批次A")
+        components = fgd_unit.components
         self.assertEqual(len(components), 2)
         self.assertEqual([item.amount.value for item in components], [Decimal("2"), Decimal("2")])
         with localcontext() as context:
@@ -370,13 +372,11 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         ).units[0]
 
         self.assertFalse(blocked.can_calculate)
-        self.assertIsNotNone(blocked.calculation)
-        self.assertIsNone(blocked.calculation.result)
-        self.assertEqual(
-            [item.carbonate_fraction.value for item in blocked.input_value.fgd_units[0].components],
-            [Decimal("0.90"), Decimal("0.90")],
+        self.assertIsNone(blocked.calculation)
+        self.assertIn(
+            "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED",
+            {item.code for item in blocked.errors},
         )
-        self.assertIn("CAR-VAL-CARBONATE-SUM", {item.code for item in blocked.errors})
     def test_saturated_steam_default_is_resolved_and_uses_the_reference_enthalpy(self) -> None:
         path = self._workbook("default-steam.xlsx")
         self._set_cells(path, {"B.9": {"B3": "饱和蒸汽", "C3": 1000, "D3": 1}})

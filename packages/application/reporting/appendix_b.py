@@ -322,15 +322,15 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
         components = _entries(unit,'components')
         for index, comp in enumerate(components):
             prefix = f'CAR-FLD-P04B-{iid}-{index}'
-            rows.append((f'设施/批次{i}', _value(comp.get('amount'),unit='t'), comp.get('carbonate_type') or '历史未记录', _parameter(comp.get('carbonate_fraction'),snapshots,prefix+'-I',percent=True), _parameter(comp.get('emission_factor'),snapshots,prefix+'-EF1'), _parameter(comp.get('conversion_rate'),snapshots,prefix+'-TR',percent=True), _signed(_frozen_step(record,trace,SOURCE_FGD,iid,single_instance=len(_entries(raw,'fgd_units','fgd'))==1)) if index==0 else ''))
+            rows.append((unit.get('reagent_name') or '历史未记录', _value(comp.get('amount'),unit='t'), comp.get('carbonate_type') or '历史未记录', _parameter(comp.get('carbonate_fraction'),snapshots,prefix+'-I',percent=True), _parameter(comp.get('emission_factor'),snapshots,prefix+'-EF1'), _parameter(comp.get('conversion_rate'),snapshots,prefix+'-TR',percent=True), _signed(_frozen_step(record,trace,SOURCE_FGD,iid,single_instance=len(_entries(raw,'fgd_units','fgd'))==1)) if index==0 else ''))
         end = len(rows)-1
         if end > start:
             merges.extend(((start,0,end,0),(start,6,end,6)))
             if all(rows[j][1] == rows[start][1] for j in range(start,end+1)):
                 merges.append((start,1,end,1))
     if not rows:
-        rows = [(f'历史设施/批次{i}', *('历史未记录',)*5, _display_amount(line.amount)) for i,line in enumerate((line for line in record.calculation_result.lines if line.emission_source_id == SOURCE_FGD),1)]
-    sections.append(ReportSection('b7','B.7 烟气脱硫净化',(_table('b7',rows,source=SOURCE_FGD,raw=raw,merges=merges),), ('排放量合并单元格列示该设施/批次的冻结合计；历史快照未保存逐组分排放量时不重新计算。',)))
+        rows = [('历史未记录', *('历史未记录',)*5, _display_amount(line.amount)) for line in (line for line in record.calculation_result.lines if line.emission_source_id == SOURCE_FGD)]
+    sections.append(ReportSection('b7','B.7 烟气脱硫净化',(_table('b7',rows,source=SOURCE_FGD,raw=raw,merges=merges),), ('排放量合并单元格列示该脱硫剂组的冻结合计；历史快照未保存逐组分排放量时不重新计算。',)))
 
     rows = []
     purchased_ids = {_text(item.get('detail_id')) for item in _entries(raw, 'electricity_details')

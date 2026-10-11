@@ -115,6 +115,19 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertEqual(len(b9.tables[0].rows), 3)
         self.assertTrue(any("自动参考焓值" in note for note in b9.notes))
 
+    def test_b7_uses_frozen_reagent_name_and_marks_legacy_name_missing(self):
+        record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        raw = deepcopy(raw)
+        raw["fgd_units"][0]["reagent_name"] = "石灰石甲"
+        named = build_report_model(record, raw, trace, provenance, reporting, qualification, today=date(2026, 10, 11))
+        named_rows = _section(named, "b7").tables[0].rows
+        self.assertEqual(named_rows[0].cells[0].value, "石灰石甲")
+
+        raw["fgd_units"][0].pop("reagent_name")
+        legacy = build_report_model(record, raw, trace, provenance, reporting, qualification, today=date(2026, 10, 11))
+        legacy_rows = _section(legacy, "b7").tables[0].rows
+        self.assertEqual(legacy_rows[0].cells[0].value, "历史未记录")
+
     def test_zero_empty_disabled_and_legacy_missing_fields_stay_distinct(self):
         record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
         raw = deepcopy(raw)
