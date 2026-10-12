@@ -1,6 +1,6 @@
 # GHGTOOL HTML V4 — PR2 实施报告
 
-日期：2026-10-12。PR #45 已打开；等待 Windows CI 和 Owner 最终视觉确认，不自动合并。
+日期：2026-10-12。PR #45 已打开；代码 head `bbecb302f5611db40b1e30aed62d3221e107176f` 的 Windows CI 已通过，等待 Owner 最终视觉确认，不自动合并。
 
 ## 基线与平台 / Contract 预检查
 
@@ -21,12 +21,15 @@
 ## 验证
 
 - 定向命令 `python -B -m unittest tests.test_g03_shell tests.test_g04_catalog tests.test_g07_records.G07UiTests tests.test_g08_delivery tests.test_main_integration_ui tests.test_p3_c_records_ui tests.test_uat03_page tests.test_uat02_geometry`：84 项通过，0 失败，耗时 432.237 秒。
-- 按首页反馈移除页头副文案后复测 `test_home_is_a_safe_empty_workbench` 与 `test_home_recent_work_shows_saved_project_and_immutable_record`：2 项通过，0 失败，3.170 秒。
+- 按首页反馈移除页头副文案后复测 `test_home_is_a_safe_empty_workbench` 与 `test_home_recent_work_shows_saved_project_and_immutable_record`：2 项通过，0 失败，3.285 秒。
 - 相关复测命令覆盖首页空/有数据、标准搜索与白名单分发、发布资源白名单：6 项通过，0 失败，耗时 10.386 秒。
 - 14 个改动 Python 文件用内存 `compile()` 完成语法检查；`git diff --check` 通过。首次 `compileall` 在本机因沙箱不允许写入 worktree 的 `__pycache__` 失败，故改用不写缓存的内存语法检查；Windows CI 仍会按现有 workflow 执行 compileall。
 - Windows 原生 Qt 进程生成并目视检查了 1600×900 主要页面、1366×768 和 1920×1080 首页截图；Qt 报告 DPR 1.0 / 96 logical DPI。125% Windows 系统显示缩放未在本机切换，也未声称实测。截图夹具使用隔离临时 Catalog/Project 和合成冻结 Record。
-- PR 全量 Windows Python 3.12 测试、1.25/1.5 UI scale 检查及精确 head standalone build 尚未执行；创建 PR 后以 GitHub Actions 结果为准。
+- 本机 Python 3.13 的一次全量测试试跑在 125 项通过后由执行者手动中止，没有完整汇总，不计为全量通过；正式 Windows Python 3.12 CI 为验收依据。
+- GitHub Actions run [#211](https://github.com/adgo07/GHGTOOL/actions/runs/38254589528)，PR 代码 head `bbecb302f5611db40b1e30aed62d3221e107176f`：Windows/Python 3.12 全量测试 466 项通过，失败 0、错误 0、跳过 0，耗时 1762.270 秒，汇总 `OK`。规范校验、编译、依赖、数据库重建、UIR04 GUI 与 1.25/1.5 缩放步骤均成功。
+- 同一 run 的 exact-head standalone audit 成功：独立目录构建、发行目录和归档清单检查、provenance、启动 smoke test、上传均通过。
+- run #209 两次旧 30 分钟 job 尝试在时间上限处取消，日志中没有断言失败；仅将现有全量测试 job 的时间上限调整至 40 分钟，未另建 CI。
 
 ## 等待事项
 
-PR 需等待完整 Windows CI、Owner 最终视觉确认和独立验收。PR2 不自动合并。PR1 既有 C.4 饱和温度来源 OPEN 项未在本轮处理。
+PR 需等待 Owner 最终视觉确认和独立验收；PR2 不自动合并。PR1 既有 C.4 饱和温度来源 OPEN 项未在本轮处理。
