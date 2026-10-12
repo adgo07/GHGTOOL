@@ -951,6 +951,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._unit_outcomes: dict[str, dict[str, object]] = {}
         self._geometry_refresh_pending = False
         self._build_page()
+        for combo in self.findChildren(QComboBox):
+            self._mark_search_combo_input(combo)
         self._default_form_state = self._capture_form_state()
         self._input_dirty = False
         self._project_dirty = False
@@ -965,22 +967,19 @@ class CarbonMaterialAccountingPage(BasePage):
         if not isinstance(watched, QWidget):
             return super().eventFilter(watched, event)
         if event.type() == QEvent.Type.MouseButtonRelease:
-            control = watched
+            if not isinstance(watched, QLineEdit) or watched.property("openComboPopupOnClick") is not True:
+                return super().eventFilter(watched, event)
+            control = watched.parentWidget()
             while control is not None and control is not self and not isinstance(control, QComboBox):
                 control = control.parentWidget()
             if (
                 isinstance(control, QComboBox)
                 and self.isAncestorOf(control)
+                and control.isEditable()
                 and control.isEnabled()
                 and not control.view().isVisible()
             ):
-                line_edit = control.lineEdit() if control.isEditable() else None
-                if (
-                    watched is control
-                    or watched is line_edit
-                    or (line_edit is not None and line_edit.isAncestorOf(watched))
-                ):
-                    QTimer.singleShot(0, control, control.showPopup)
+                QTimer.singleShot(0, control, control.showPopup)
             return super().eventFilter(watched, event)
         if event.type() != QEvent.Type.Wheel:
             return super().eventFilter(watched, event)
@@ -1023,6 +1022,14 @@ class CarbonMaterialAccountingPage(BasePage):
         refresh = getattr(shell, "update_content_geometry", None)
         if callable(refresh):
             refresh()
+
+    @staticmethod
+    def _mark_search_combo_input(combo: QComboBox) -> None:
+        if not combo.isEditable():
+            return
+        line_edit = combo.lineEdit()
+        if line_edit is not None:
+            line_edit.setProperty("openComboPopupOnClick", True)
 
     def _refresh_enterprise_candidates(self) -> None:
         combo = getattr(self, "enterprise_name", None)
@@ -3452,6 +3459,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self,
             fuel_options=self._fuel_catalog_options(),
         )
+        self._mark_search_combo_input(row.fuel_type)
         self._fuel_rows.append(row)
         self.fuel_rows_layout.addWidget(row)
         row.remove_button.setVisible(len(self._fuel_rows) > 1)
@@ -4336,6 +4344,7 @@ class CarbonMaterialAccountingPage(BasePage):
         previous = selector.currentText() if text is None else text
         blocker = QSignalBlocker(selector)
         selector.setEditable(True)
+        self._mark_search_combo_input(selector)
         selector.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         selector.clear()
         selector.addItem("未选择碳酸盐种类", None)
