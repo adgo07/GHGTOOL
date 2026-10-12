@@ -1,6 +1,6 @@
 # GHGTOOL HTML V4 — PR2 实施报告
 
-日期：2026-10-12。状态：实现与定向验收完成，等待 PR Windows CI 和 Owner 最终视觉确认；不自动合并。
+日期：2026-10-12。PR #45 已打开；等待 Windows CI 和 Owner 最终视觉确认，不自动合并。
 
 ## 基线与平台 / Contract 预检查
 

@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：GHGTOOL HTML V4 正式落地 — PR1 已合并（PR #44）；PR2 实现及定向验收完成，正在创建独立 PR 并等待 Windows CI 与最终视觉验收。
+状态：GHGTOOL HTML V4 正式落地 — PR1 已合并（PR #44）；PR2 独立 PR #45 已创建，等待 Windows CI 与最终视觉验收。
 
 最后更新：2026-10-12。工作分支：`codex/ghg-html-v4-pr2`；基线为 `origin/main@204dded5d03853617f79a1f05693e89b619df9d1`。原 `codex/ghg-ui-p3-df` 脏工作区保持未动。
 
