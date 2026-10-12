@@ -21,6 +21,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import ReviewStatus, ValueType
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
+from packages.standards.carbon_material import STANDARD_ID
 from packages.standards.catalog import (
     CatalogStatus,
     CatalogValueCategory,
@@ -359,6 +360,21 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_standard_id)
         self.assertEqual(page.result_summary.text(), "没有找到匹配的标准。")
+
+    def test_unsupported_standard_cannot_enter_carbon_material_accounting_page(self) -> None:
+        shell = self.shell
+        shell.navigate(AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting("gbt_32151_1_2015")
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting(STANDARD_ID)
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
+        self.assertEqual(shell.selected_standard_id, STANDARD_ID)
     def test_standard_detail_has_only_compact_verified_sections(self) -> None:
         self.shell.navigate(AppRoute.STANDARDS)
         self.application.processEvents()
@@ -431,7 +447,14 @@ class G04CatalogTests(unittest.TestCase):
         # Scenario C: 首页 → 标准库 → 标准详情 → 参数库 → 新建核算 → 首页.
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        # A compact V4 home may scroll; verify the scrollbar can reach and return from its end.
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
 
         shell.navigate(AppRoute.STANDARDS)
         assert_route_at_top(AppRoute.STANDARDS)
@@ -464,7 +487,13 @@ class G04CatalogTests(unittest.TestCase):
         self.window.resize(1180, 720)
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
         self.assertGreater(standards_height, 0)
     def test_parameter_factor_page_browses_sources_and_aggregates_shared_assets(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)

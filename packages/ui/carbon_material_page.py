@@ -1396,6 +1396,16 @@ class CarbonMaterialAccountingPage(BasePage):
                 border: 1px solid {BORDER}; border-radius: 6px;
                 background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
             }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
+                min-height: 62px; padding: 10px 12px;
+                border: 1px solid #DBE8F0; border-radius: 10px;
+                background: #FFFFFF; color: #697E91; text-align: left;
+                font-size: 13px; font-weight: 650;
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="已启用"],
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="部分启用"] {{
+                border-color: #9DCCE8; background: #ECF7FF; color: #155C88;
+            }}
             QFrame[dfActivityRegion="true"] QPushButton:hover,
             QFrame[dfActivityRegion="true"] QPushButton:focus {{
                 border-color: {PRIMARY_BRAND}; background: {SURFACE_MUTED};
@@ -2525,6 +2535,23 @@ class CarbonMaterialAccountingPage(BasePage):
         self._project_dirty = False
         self.project_save_status.setText("已打开已保存项目。")
 
+    def open_project_from_home(self, project_id: str) -> bool:
+        """Open a saved project selected from the standard-neutral home page."""
+
+        self._refresh_saved_projects()
+        index = self.saved_projects.findData(project_id)
+        if index < 0:
+            self.project_save_status.setText("未找到所选项目；请刷新项目列表后重试。")
+            return False
+        self.saved_projects.setCurrentIndex(index)
+        self._open_selected_project()
+        return True
+
+    def show_project_manager(self) -> None:
+        """Expand the existing project controls for the home-page shortcut."""
+
+        self.project_unit_toggle.setChecked(True)
+
     def _delete_selected_project(self) -> None:
         if self.project_service is None:
             return
@@ -2904,32 +2931,25 @@ class CarbonMaterialAccountingPage(BasePage):
         self._mark_input_dirty()
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
-        """Build eight visible source selectors over the ten legacy Domain states."""
+        """Build the eight standard-specific source selectors in the V4 grid."""
 
-        selector_scroll = QScrollArea(self)
-        selector_scroll.setObjectName("accountingSourceToggleScroll")
-        selector_scroll.setWidgetResizable(True)
-        selector_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        selector_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        selector_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        selector_host = QWidget(selector_scroll)
-        selector_host.setObjectName("accountingSourceToggleRow")
+        selector_host = QWidget(self)
+        selector_host.setObjectName("accountingSourceToggleGrid")
         self.source_toggle_host = selector_host
-        self.source_toggle_scroll = selector_scroll
-        selector_layout = QHBoxLayout(selector_host)
+        selector_layout = QGridLayout(selector_host)
         selector_layout.setContentsMargins(0, 2, 0, 2)
-        selector_layout.setSpacing(8)
-        for group_id, label, _source_ids in self._source_toggle_groups:
+        selector_layout.setHorizontalSpacing(10)
+        selector_layout.setVerticalSpacing(10)
+        for index, (group_id, label, _source_ids) in enumerate(self._source_toggle_groups):
             button = QPushButton(selector_host)
             button.setObjectName(f"sourceToggle_{group_id}")
-            button.setMinimumHeight(36)
             button.setAccessibleName(label)
             button.clicked.connect(lambda _checked=False, _group=group_id: self._toggle_source_group(_group))
-            selector_layout.addWidget(button)
+            selector_layout.addWidget(button, index // 4, index % 4)
             self._source_toggle_buttons[group_id] = button
-        selector_layout.addStretch(1)
-        selector_scroll.setWidget(selector_host)
-        parent_layout.addWidget(selector_scroll)
+        for column in range(4):
+            selector_layout.setColumnStretch(column, 1)
+        parent_layout.addWidget(selector_host)
 
         source_definitions = (
             ("CAR-SRC-FUEL-001", lambda layout: self._build_fuel_section(layout)),
@@ -3301,7 +3321,6 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _refresh_source_toggle_buttons(self) -> None:
-        total_width = 0
         for group_id, label, source_ids in self._source_toggle_groups:
             button = self._source_toggle_buttons.get(group_id)
             if button is None:
@@ -3318,21 +3337,11 @@ class CarbonMaterialAccountingPage(BasePage):
             else:
                 state = "未启用"
             button.setText(f"{state} | {label}")
-            button.setMinimumWidth(max(118, button.fontMetrics().horizontalAdvance(button.text()) + 30))
-            total_width += button.minimumWidth()
             button.setProperty("sourceState", state)
             button.setAccessibleDescription(f"{label}排放源，当前{state}；点击切换。")
             button.setToolTip(f"{label}：{state}。点击切换。")
             button.style().unpolish(button)
             button.style().polish(button)
-        host = getattr(self, "source_toggle_host", None)
-        if isinstance(host, QWidget):
-            layout = host.layout()
-            spacing = layout.spacing() if layout is not None else 0
-            margins = layout.contentsMargins() if layout is not None else None
-            horizontal_margins = margins.left() + margins.right() if margins is not None else 0
-            button_count = len(self._source_toggle_groups)
-            host.setMinimumWidth(total_width + max(0, button_count - 1) * max(0, spacing) + horizontal_margins)
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
         self.fuel_rows_host = QWidget(self)

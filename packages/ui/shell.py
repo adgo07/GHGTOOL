@@ -23,13 +23,19 @@ from packages.application import CarbonAccountingUseCase, resolve_formal_record_
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.repositories import RecordRepository
 from packages.application.project_workspaces import ProjectWorkspaceService
+from packages.standards.carbon_material import STANDARD_ID
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
     COMPACT_PAGE_MARGIN,
+    COMPACT_HOME_PAGE_SIDE_MARGIN,
+    HOME_CANVAS_GRADIENT,
+    HOME_CONTENT_MAX_WIDTH,
+    HOME_PAGE_SIDE_MARGIN,
     MAIN_CONTENT_MAX_WIDTH,
     NAV_ITEM_HEIGHT,
     NAV_ITEM_RADIUS,
+    PAGE_BACKGROUND,
     SIDEBAR_WIDTH,
     WIDE_PAGE_MARGIN,
 )
@@ -161,6 +167,12 @@ class AppShell(QWidget):
             record_requested = getattr(page, "record_requested", None)
             if record_requested is not None:
                 record_requested.connect(self._request_record_view)
+            project_requested = getattr(page, "project_requested", None)
+            if project_requested is not None:
+                project_requested.connect(self._request_home_project)
+            project_manager_requested = getattr(page, "project_manager_requested", None)
+            if project_manager_requested is not None:
+                project_manager_requested.connect(self._request_home_project_manager)
             canonical_project_requested = getattr(page, "canonical_project_requested", None)
             if canonical_project_requested is not None:
                 canonical_project_requested.connect(self._request_canonical_project)
@@ -221,9 +233,35 @@ class AppShell(QWidget):
         if callable(open_project):
             open_project(project_id)
 
-    def _request_standard_accounting(self, standard_id: str) -> None:
-        """Keep the selected catalog version while routing to the future input page."""
+    def _request_home_project(self, project_id: str) -> None:
+        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        open_project = getattr(page, "open_project_from_home", None)
+        if not project_id or not callable(open_project):
+            return
+        self.navigate(AppRoute.NEW_ACCOUNTING)
+        open_project(project_id)
 
+    def _request_home_project_manager(self) -> None:
+        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        show_manager = getattr(page, "show_project_manager", None)
+        if not callable(show_manager):
+            return
+        self.navigate(AppRoute.NEW_ACCOUNTING)
+        show_manager()
+
+        card = getattr(page, "project_unit_card", None)
+        if card is not None:
+            QTimer.singleShot(
+                0,
+                self,
+                lambda: self.main_scroll_area.ensureWidgetVisible(card, 0, 18),
+            )
+
+    def _request_standard_accounting(self, standard_id: str) -> None:
+        """Route only the implemented industry standard to its dedicated page."""
+
+        if standard_id != STANDARD_ID:
+            return
         self.selected_standard_id = standard_id
         page = self._pages.get(AppRoute.NEW_ACCOUNTING)
         setter = getattr(page, "set_standard_id", None)
@@ -377,6 +415,14 @@ class AppShell(QWidget):
         page = self._pages.get(route)
         if page is None:
             return
+        background = (
+            HOME_CANVAS_GRADIENT
+            if route is AppRoute.HOME
+            else PAGE_BACKGROUND
+        )
+        self.scroll_host.setStyleSheet(
+            f"QWidget#scrollHost {{ background: {background}; }}"
+        )
         self._sidebar.setVisible(route is not AppRoute.HOME)
         self.page_stack.setCurrentWidget(page)
         for item_route, button in self._navigation_buttons.items():
@@ -430,13 +476,26 @@ class AppShell(QWidget):
         if not hasattr(self, "page_stack"):
             return
         available_width = max(0, self.main_scroll_area.viewport().width())
-        content_width = min(MAIN_CONTENT_MAX_WIDTH, available_width)
+        current_route = self.router.current_route
+        content_max_width = (
+            HOME_CONTENT_MAX_WIDTH
+            if current_route is AppRoute.HOME
+            else MAIN_CONTENT_MAX_WIDTH
+        )
+        content_width = min(content_max_width, available_width)
         self.page_stack.setFixedWidth(content_width)
-        page_margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
-        for page in self._pages.values():
+        for route, page in self._pages.items():
             setter = getattr(page, "set_page_margin", None)
             if setter is not None:
-                setter(page_margin)
+                if route is AppRoute.HOME:
+                    margin = (
+                        COMPACT_HOME_PAGE_SIDE_MARGIN
+                        if self.width() <= 1240
+                        else HOME_PAGE_SIDE_MARGIN
+                    )
+                else:
+                    margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
+                setter(margin)
         available_height = max(0, self.main_scroll_area.viewport().height())
         self.page_stack.setMinimumHeight(available_height)
         self.page_stack.adjustSize()

@@ -403,8 +403,8 @@ class G08DeliveryTests(unittest.TestCase):
                 application.processEvents()
                 second_shell = second_window.centralWidget()
                 records_page = second_shell.pages[AppRoute.RECORDS]
-                self.assertEqual(records_page.record_list.count(), 1)
-                records_page.open_detail_button.click()
+                self.assertEqual(records_page.record_list.rowCount(), 1)
+                records_page.record_list.cellWidget(0, 6).click()
                 self.assertIn("G08 集成企业", records_page.input_basis_text.toPlainText())
                 self.assertIn("标准版本：2024", records_page.input_basis_text.toPlainText())
                 second_window.close()

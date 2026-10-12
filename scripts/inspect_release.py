@@ -27,7 +27,7 @@ ALLOWED_RESOURCE_FILES = frozenset({
     APPROVED_TEMPLATE_PATH.as_posix(),
     "resources/branding/qingzhou_logo.png",
     *(f"resources/icons/{name}.svg" for name in
-      ("factors", "excel", "home", "records", "new", "settings", "standards")),
+      ("factors", "excel", "home", "records", "new", "settings", "standards", "chevron-down")),
 })
 EXCEL_SUFFIXES = frozenset(
     {".xls", ".xlsx", ".xlsm", ".xlsb", ".xltx", ".xltm", ".xlam", ".xla", ".ods", ".ots", ".fods", ".et", ".ett"}

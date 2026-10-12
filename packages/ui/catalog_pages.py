@@ -144,7 +144,7 @@ class StandardLibraryPage(BasePage):
         self._refresh()
 
     def _build_page(self) -> None:
-        self.add_header("标准库", "查看 GB/T 32151 系列标准及核算要求")
+        self.add_header("标准库", "查看已登记标准、适用范围与核算要求")
 
         self.view_stack = QStackedWidget(self)
         self.view_stack.setObjectName("standardViewStack")
@@ -211,7 +211,7 @@ class StandardLibraryPage(BasePage):
     @staticmethod
     def _software_support_label(standard: StandardCatalogRecord) -> str:
         if (
-            standard.standard_id == "gbt_32151_34_2024"
+            standard.standard_id == STANDARD_ID
             and standard.calculation_status == "IMPLEMENTED"
         ):
             return "已实现核算（未正式支持）"
@@ -394,7 +394,7 @@ class StandardLibraryPage(BasePage):
             navigation_row.addWidget(source_unavailable, 1)
 
         can_start = (
-            standard.standard_id == "gbt_32151_34_2024"
+            standard.standard_id == STANDARD_ID
             and detail.status is CatalogStatus.CURRENT
         )
         if can_start:
