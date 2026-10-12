@@ -317,23 +317,30 @@ class CarbonReportingData:
         object.__setattr__(self, "measured_factor_evidence", factors)
 
 
-def _attach_evidence_references(value: object, activity_ids: tuple[str, ...], factor_ids: tuple[str, ...]) -> object:
-    """Copy shared evidence references into source values without changing values."""
+def _attach_evidence_references(
+    value: object,
+    activity_ids: tuple[str, ...],
+    factor_ids: tuple[str, ...],
+    specific_factor_ids: tuple[str, ...] = (),
+) -> object:
+    """Copy shared evidence unless a parameter already has specific evidence."""
     if isinstance(value, InputValue) and activity_ids:
         return replace(value, evidence_ref_ids=tuple(dict.fromkeys((*value.evidence_ref_ids, *activity_ids))))
     if isinstance(value, ParameterValue) and value.source_kind in {
         ParameterSourceKind.MEASURED, ParameterSourceKind.USER_DEFINED,
     } and factor_ids:
+        if any(evidence_id in specific_factor_ids for evidence_id in value.evidence_ref_ids):
+            return value
         return replace(value, evidence_ref_ids=tuple(dict.fromkeys((*value.evidence_ref_ids, *factor_ids))))
     if isinstance(value, tuple):
-        return tuple(_attach_evidence_references(item, activity_ids, factor_ids) for item in value)
+        return tuple(_attach_evidence_references(item, activity_ids, factor_ids, specific_factor_ids) for item in value)
     if isinstance(value, list):
-        return [_attach_evidence_references(item, activity_ids, factor_ids) for item in value]
+        return [_attach_evidence_references(item, activity_ids, factor_ids, specific_factor_ids) for item in value]
     if isinstance(value, dict):
-        return {key: _attach_evidence_references(item, activity_ids, factor_ids) for key, item in value.items()}
+        return {key: _attach_evidence_references(item, activity_ids, factor_ids, specific_factor_ids) for key, item in value.items()}
     if is_dataclass(value) and not isinstance(value, type):
         updates = {
-            item.name: _attach_evidence_references(getattr(value, item.name), activity_ids, factor_ids)
+            item.name: _attach_evidence_references(getattr(value, item.name), activity_ids, factor_ids, specific_factor_ids)
             for item in dataclass_fields(value)
         }
         if any(updates[item.name] is not getattr(value, item.name) for item in dataclass_fields(value)):
@@ -653,6 +660,7 @@ class FGDInput:
     tr: object | None = None
     carbonate_type: str | None = None
     instance_id: str = "fgd-1"
+    reagent_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
@@ -670,6 +678,10 @@ class FGDInput:
                 ),
             )
         object.__setattr__(self, "components", components)
+        if self.reagent_name is not None and not isinstance(self.reagent_name, str):
+            raise DomainValidationError("reagent_name must be text")
+        reagent_name = self.reagent_name.strip() if self.reagent_name is not None else None
+        object.__setattr__(self, "reagent_name", reagent_name or None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -823,6 +835,10 @@ class CarbonMaterialInput:
             "purchased_heat": SOURCE_PURCHASED_HEAT,
             "exported_heat": SOURCE_EXPORTED_HEAT,
         }
+        specific_factor_ids = tuple(
+            item.evidence_id for item in self.reporting_data.measured_factor_evidence
+            if not item.source_ids
+        )
         for name, source_id in input_sources.items():
             activity_ids = tuple(
                 item.evidence_id for item in self.reporting_data.activity_evidence
@@ -839,7 +855,9 @@ class CarbonMaterialInput:
             object.__setattr__(
                 self,
                 name,
-                _attach_evidence_references(getattr(self, name), activity_ids, factor_ids),
+                _attach_evidence_references(
+                    getattr(self, name), activity_ids, factor_ids, specific_factor_ids,
+                ),
             )
         for plural_name, legacy_name in (
             ("calcinations", "calcination"), ("bakings", "baking"),

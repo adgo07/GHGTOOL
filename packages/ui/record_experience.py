@@ -425,15 +425,18 @@ def _format_components(item: Mapping[str, Any], evidence_names: Mapping[str, str
     components = item.get("components", ())
     if not isinstance(components, (tuple, list)) or not components:
         return ["  碳酸盐组分：本次未记录。"]
+    valid = [component for component in components if isinstance(component, Mapping)]
     lines = []
-    for index, component in enumerate(components, 1):
-        if not isinstance(component, Mapping):
-            continue
-        values = _format_report_item(
-            component,
-            ("carbonate_type", "amount", "carbonate_fraction", "emission_factor", "conversion_rate"),
-            evidence_names,
-        )
+    amounts = [component.get("amount") for component in valid]
+    same_group_amount = bool(amounts) and all(value == amounts[0] for value in amounts[1:])
+    if same_group_amount:
+        amount_values = _format_report_item({"amount": amounts[0]}, ("amount",), evidence_names)
+        lines.append("  脱硫剂组用量：" + "；".join(amount_values))
+    for index, component in enumerate(valid, 1):
+        fields = ("carbonate_type", "carbonate_fraction", "emission_factor", "conversion_rate")
+        if not same_group_amount:
+            fields = ("carbonate_type", "amount", "carbonate_fraction", "emission_factor", "conversion_rate")
+        values = _format_report_item(component, fields, evidence_names)
         lines.append(f"  组分{index}：" + "；".join(values))
     return lines
 
@@ -537,11 +540,12 @@ def build_report_view(record: AccountingRecord, raw: object, trace: object, repo
     output.extend(("", "B.7 烟气脱硫净化过程"))
     entries = _source_entries(raw, "fgd_units", "instance_id", "fgd")
     if entries:
-        output.append("脱硫设施")
+        output.append("脱硫剂组")
         steps = _steps_by_trace(trace)
         for index, item in enumerate(entries, 1):
-            label = f"设施{index}" if len(entries) > 1 else "本条设施"
-            output.append(f"- {label}")
+            label = f"脱硫剂组{index}" if len(entries) > 1 else "本脱硫剂组"
+            reagent_name = str(item.get("reagent_name") or "").strip() or "历史未记录"
+            output.append(f"- {label}：{reagent_name}")
             output.extend(_format_components(item, evidence_names))
             output.append(f"  对应排放结果：{_line_result_text(_line_for_instance(record, SOURCE_FGD, str(item.get('instance_id') or ''), steps))}")
         output.append("  标准依据：" + _standard_basis(trace, (SOURCE_FGD,), "GB/T 32151.34—2024 §5.2.5.2、附录C.2、附录B.7；冻结 Mapping §9.3、§13.1"))

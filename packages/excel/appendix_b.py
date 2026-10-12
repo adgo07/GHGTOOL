@@ -1022,14 +1022,19 @@ class AppendixBWorkbookImporter:
         carbonate_content_default = self._default_factor("CAR-PAR-P04B-I", context.period)
         ratio_tr_default = self._default_factor("CAR-PAR-P04B-TR", context.period)
         for ordinal, (start, end, _merged) in enumerate(groups, 1):
-            batch_name = reader.text(workbook, "B.7", f"A{start}", errors, field_label="碳酸盐批次名称")
-            amount = reader.number(workbook, "B.7", f"B{start}", errors, field_label="脱硫剂消耗量")
+            batch_name = reader.text(workbook, "B.7", f"A{start}", errors, field_label="脱硫剂名称")
+            amount = reader.number(workbook, "B.7", f"B{start}", errors, field_label="脱硫剂用量")
             component_rows = []
             active = amount is not None or batch_name is not None
+            active_component_rows = [
+                row for row in range(start, end + 1)
+                if any(_has_value(ws[f"{col}{row}"]) for col in "DEF")
+            ]
+            component_count = len(active_component_rows)
             for row in range(start, end + 1):
                 label = reader.text(workbook, "B.7", f"C{row}", errors, field_label="碳酸盐组分")
                 # The static labels CaCO₃/MgCO₃/其他 are catalog/UI defaults, not activity evidence.
-                row_active = any(_has_value(ws[f"{col}{row}"]) for col in "DEF")
+                row_active = row in active_component_rows
                 if not row_active:
                     continue
                 active = True
@@ -1042,31 +1047,33 @@ class AppendixBWorkbookImporter:
                 fraction_location = f"B.7!D{row}"
                 if fraction_pct is not None:
                     normalized_fraction = self.policy.divide(fraction_pct, Decimal("100"))
-                    if carbonate_content_default is not None and normalized_fraction == _factor_value(carbonate_content_default):
-                        fraction_value = self._parameter_value(
-                            carbonate_content_default, "填报值与当前 Resolver 核验的碳酸盐含量缺省值完全一致。"
-                        )
-                    else:
-                        self._warn_missing_source(warnings, fraction_location, "碳酸盐组分含量")
-                        fraction_value = _user_parameter(
-                            normalized_fraction, "carbonate_fraction", "ratio", fraction_location,
-                            ParameterSourceKind.MEASURED,
-                        )
+                    self._warn_missing_source(warnings, fraction_location, "碳酸盐组分含量")
+                    fraction_value = _user_parameter(
+                        normalized_fraction, "carbonate_fraction", "ratio", fraction_location,
+                        ParameterSourceKind.MEASURED,
+                    )
                 elif not _has_value(ws[f"D{row}"]):
-                    if carbonate_content_default is None:
+                    if component_count > 1:
+                        errors.append(ImportMessage(
+                            "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED",
+                            "同一脱硫剂含有多个碳酸盐组分时，必须为每个组分填写实测含量。",
+                            fraction_location, "碳酸盐组分含量",
+                        ))
+                        fraction_value = None
+                    elif carbonate_content_default is None:
                         errors.append(ImportMessage(
                             "EXB01_CARBONATE_CONTENT_UNRESOLVED",
-                            "碳酸盐组分含量为空，且当前 Resolver 没有可用的标准缺省参数。",
+                            "碳酸盐组分含量留空，且当前 Resolver 没有可用的90%标准缺省参数。",
                             fraction_location, "碳酸盐组分含量",
                         ))
                         fraction_value = None
                     else:
                         fraction_value = self._parameter_value(
-                            carbonate_content_default, "碳酸盐组分含量留空，采用当前期间 Resolver 核验的标准缺省值。"
+                            carbonate_content_default, "单组分含量留空，采用当前期间 Resolver 核验的90%标准缺省值。"
                         )
                         warnings.append(ImportMessage(
                             "EXB01_STANDARD_DEFAULT_APPLIED",
-                            f"碳酸盐组分含量留空；已采用并记录 Resolver 核验的标准缺省参数 {carbonate_content_default.parameter_id}。",
+                            f"单组分含量留空；已采用并记录 Resolver 核验的标准缺省参数 {carbonate_content_default.parameter_id}。",
                             fraction_location, "碳酸盐组分含量",
                         ))
                 else:
@@ -1077,28 +1084,34 @@ class AppendixBWorkbookImporter:
                 if label != "其他" and option is None and factor_value is None:
                     errors.append(ImportMessage("EXB01_CARBONATE_FACTOR_UNRESOLVED", f"“{label}”无法唯一匹配经核验的 C.2 碳酸盐因子；请提供因子或更正组分名称。", f"B.7!C{row}", "碳酸盐组分"))
                 if factor_value is not None:
-                    if option is not None and factor_value == _factor_value(option.factor):
-                        factor = self._parameter_value(option.factor, option.selection_reason)
+                    if option is not None:
+                        if factor_value == _factor_value(option.factor):
+                            factor = self._parameter_value(option.factor, option.selection_reason)
+                        else:
+                            errors.append(ImportMessage(
+                                "EXB01_CARBONATE_CATALOG_FACTOR_MISMATCH",
+                                f"“{label}”匹配附录C.2目录因子，不能改写目录值；请清空该因子单元格或更正组分名称。",
+                                f"B.7!E{row}", "碳酸盐排放因子",
+                            ))
+                            factor = None
                     else:
-                        self._warn_missing_source(warnings, f"B.7!E{row}", "碳酸盐排放因子")
-                        factor = _user_parameter(factor_value, "fgd_carbonate_emission_factor_user", "tCO2/t", f"B.7!E{row}")
+                        factor = _user_parameter(
+                            factor_value, "fgd_carbonate_emission_factor_calculated", "tCO2/t",
+                            f"B.7!E{row}", ParameterSourceKind.CALCULATED,
+                            selection_reason="自定义碳酸盐组分排放因子按化学组成计算后录入。",
+                        )
                 else:
                     factor = self._parameter_value(option.factor, option.selection_reason) if option else None
-                if label == "其他" and factor is None:
-                    errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_FACTOR_REQUIRED", "“其他”碳酸盐需要填写对应排放因子。", f"B.7!E{row}", "碳酸盐排放因子"))
+                if option is None and factor is None:
+                    errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_FACTOR_REQUIRED", "自定义碳酸盐组分需要填写化学计算所得排放因子。", f"B.7!E{row}", "碳酸盐排放因子"))
                 conversion_location = f"B.7!F{row}"
                 if conversion_pct is not None:
                     normalized_conversion = self.policy.divide(conversion_pct, Decimal("100"))
-                    if ratio_tr_default is not None and normalized_conversion == _factor_value(ratio_tr_default):
-                        conversion = self._parameter_value(
-                            ratio_tr_default, "填报值与当前 Resolver 核验的转化率缺省值完全一致。"
-                        )
-                    else:
-                        self._warn_missing_source(warnings, conversion_location, "脱硫转化率")
-                        conversion = _user_parameter(
-                            normalized_conversion, "CAR-PAR-P04B-TR", "ratio", conversion_location,
-                            ParameterSourceKind.MEASURED,
-                        )
+                    self._warn_missing_source(warnings, conversion_location, "脱硫转化率")
+                    conversion = _user_parameter(
+                        normalized_conversion, "CAR-PAR-P04B-TR", "ratio", conversion_location,
+                        ParameterSourceKind.MEASURED,
+                    )
                 elif not _has_value(ws[f"F{row}"]):
                     if ratio_tr_default is None:
                         errors.append(ImportMessage(
@@ -1140,5 +1153,6 @@ class AppendixBWorkbookImporter:
             output.append(FGDInput(
                 components=tuple(component_rows),
                 instance_id=_stable_id("fgd", unit_id, ordinal, batch_name),
+                reagent_name=batch_name,
             ))
             involved.add(SOURCE_FGD)

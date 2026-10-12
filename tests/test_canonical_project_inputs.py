@@ -310,6 +310,30 @@ class CanonicalProjectInputTests(unittest.TestCase):
         self.assertIn("evidence.activity.fuel", decoded.fuel_inputs[0].activity.evidence_ref_ids)
         self.assertIn("evidence.factor.fuel", decoded.purchased_heat[0].factor.evidence_ref_ids)
 
+    def test_older_canonical_fgd_snapshot_without_reagent_name_decodes_as_missing(self) -> None:
+        payload = json.loads(encode_canonical_input(_rich_input()))
+        removed = 0
+
+        def strip_reagent_name(value: object) -> None:
+            nonlocal removed
+            if isinstance(value, dict):
+                if value.get("type") == "fgd_input":
+                    fields = value.get("fields")
+                    if isinstance(fields, dict) and "reagent_name" in fields:
+                        fields.pop("reagent_name")
+                        removed += 1
+                for child in value.values():
+                    strip_reagent_name(child)
+            elif isinstance(value, list):
+                for child in value:
+                    strip_reagent_name(child)
+
+        strip_reagent_name(payload)
+        self.assertGreater(removed, 0)
+        decoded = decode_canonical_input(json.dumps(payload))
+        self.assertTrue(decoded.fgd_units)
+        self.assertIsNone(decoded.fgd_units[0].reagent_name)
+
     def test_codec_rejects_float_and_nonfinite_decimal_values(self) -> None:
         input_value = _rich_input()
         source_line = input_value.calcinations[0].material_rows[0]

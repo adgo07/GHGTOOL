@@ -33,6 +33,7 @@ from packages.standards.carbon_material import (
     FuelType,
     MaterialBasis,
     MaterialComponentKind,
+    MeasuredFactorEvidence,
     EmissionSourceStatus,
     ParameterSourceKind,
     SteamKind,
@@ -163,13 +164,73 @@ class G06PageTests(unittest.TestCase):
         row.carbon_direct.setText("0.02")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         row.oxidation.setText("98")
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
+        self.assertFalse(row.source_reference_control.isHidden())
         row.source_reference.setText("燃料检测报告-UAT-01")
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
         self.assertEqual(self.page._fuel()[0].fuel_label, "工艺回收混合燃料")
+        self.assertIs(self.page._fuel()[0].oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
         saved = self.page.record_repository.list_all()
         self.assertEqual(len(saved), 1)
+        raw_snapshot = self.page.record_repository.get_raw_input_snapshot(saved[0].record_id)
+        reporting_snapshot = self.page.record_repository.get_reporting_snapshot(saved[0].record_id)
+        assert raw_snapshot is not None and reporting_snapshot is not None
+        frozen_fuel = raw_snapshot["fuel_inputs"][0]
+        evidence_id = frozen_fuel["oxidation_rate"]["evidence_ref_ids"][0]
+        self.assertEqual(frozen_fuel["oxidation_rate"]["source_kind"], "MEASURED")
+        factor_evidence = next(
+            item for item in reporting_snapshot["measured_factor_evidence"]
+            if item["evidence_id"] == evidence_id
+        )
+        self.assertEqual(factor_evidence["source_reference"], "燃料检测报告-UAT-01")
+        self.assertIn("碳氧化率", factor_evidence["applies_to"])
+
+    def test_measured_oxidation_evidence_is_scoped_to_each_fuel(self) -> None:
+        self._set_source_involved("CAR-SRC-FUEL-001")
+        self.page._add_fuel_row()
+        rows = self.page._fuel_rows
+        for row, fuel_type, value, reference in (
+            (rows[0], FuelType.DIESEL, "98", "柴油检测报告第2页"),
+            (rows[1], FuelType.NATURAL_GAS, "99", "天然气检测报告第5页"),
+        ):
+            row.fuel_type.setCurrentIndex(row.fuel_type.findData(fuel_type))
+            row.activity.setText("1")
+            row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
+            row.oxidation.setText(value)
+            row.source_reference.setText(reference)
+
+        input_value = self.page._input()
+        shared_evidence = MeasuredFactorEvidence(
+            "evidence.factor.shared", "本次燃料实测因子", ("CAR-SRC-FUEL-001",),
+            source_reference="企业共用检测台账", reason="用户标记的燃料因子共用证据。",
+        )
+        input_value = replace(
+            input_value,
+            reporting_data=replace(
+                input_value.reporting_data,
+                measured_factor_evidence=(*input_value.reporting_data.measured_factor_evidence, shared_evidence),
+            ),
+        )
+        fuels = input_value.fuel_inputs
+        self.assertEqual(len(fuels), 2)
+        by_id = {item.evidence_id: item for item in input_value.reporting_data.measured_factor_evidence}
+        expected_ids = tuple(
+            f"evidence.factor.{row.internal_id.text().strip()}.oxidation"
+            for row in rows
+        )
+        self.assertEqual(
+            tuple(item.oxidation_rate.evidence_ref_ids for item in fuels),
+            tuple((item,) for item in expected_ids),
+        )
+        self.assertEqual(set(by_id), {*expected_ids, "evidence.factor.shared"})
+        self.assertTrue(all("evidence.factor.shared" not in item.oxidation_rate.evidence_ref_ids for item in fuels))
+        self.assertEqual(
+            tuple(by_id[item].source_reference for item in expected_ids),
+            ("柴油检测报告第2页", "天然气检测报告第5页"),
+        )
+        self.assertTrue(all(not by_id[item].source_ids for item in expected_ids))
+        self.assertTrue(all(item.oxidation_rate.source_kind is ParameterSourceKind.MEASURED for item in fuels))
 
     def test_blank_fuel_activity_is_distinct_from_explicit_zero(self) -> None:
         row = self.page._fuel_rows[0]
@@ -185,8 +246,10 @@ class G06PageTests(unittest.TestCase):
         self.page.enterprise_name.setText("碳酸盐UI企业")
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-FGD-001")
-        component = self.page._process_rows["fgd"][0]["components"][0]
-        component["cal"].setText("10")
+        fgd_unit = self.page._process_rows["fgd"][0]
+        fgd_unit["reagent_name"].setText("石灰石")
+        fgd_unit["group_amount"].setText("10")
+        component = fgd_unit["components"][0]
         expected = {
             "car-par-c2-caco3": "0.440",
             "car-par-c2-mgco3": "0.522",
@@ -241,14 +304,15 @@ class G06PageTests(unittest.TestCase):
         factor = manual.components[0].emission_factor
         self.assertIsNotNone(factor)
         assert factor is not None
-        self.assertIs(factor.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIs(factor.source_kind, ParameterSourceKind.CALCULATED)
         self.assertIsNone(factor.source_id)
+        self.assertIn("化学计算", factor.source_location)
         self.assertIn("脱硫剂检测报告-UI-01", factor.source_location)
         manual_outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(manual_outcome.successful, manual_outcome.problems)
         manual_snapshot = next(
             snapshot for snapshot in manual_outcome.parameter_snapshots
-            if snapshot.parameter_id == "fgd_carbonate_emission_factor_user"
+            if snapshot.parameter_id == "fgd_carbonate_emission_factor_calculated"
         )
         self.assertIsNone(manual_snapshot.source_id)
         self.assertIn("脱硫剂检测报告-UI-01", manual_snapshot.source_location)
@@ -484,20 +548,30 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-FGD-001")
         first_unit = self.page._process_rows["fgd"][0]
+        first_unit["reagent_name"].setText("石灰石")
+        first_unit["group_amount"].setText("10")
         first_component, = first_unit["components"]
-        first_component["cal"].setText("10")
         first_component["i"].setText("40")
         self._select_carbonate(first_component, "car-par-c2-caco3")
         second_component = self.page._add_fgd_component(first_unit)
-        second_component["cal"].setText("2")
         second_component["i"].setText("40")
         self._select_carbonate(second_component, "car-par-c2-mgco3")
+        self.assertEqual([component["i_source"].currentData() for component in first_unit["components"]], ["MEASURED", "MEASURED"])
         self.page._add_process_row("fgd")
         second_unit = self.page._process_rows["fgd"][1]
-        second_unit["components"][0]["cal"].setText("5")
+        second_unit["reagent_name"].setText("石灰石")
+        second_unit["group_amount"].setText("5")
         self._select_carbonate(second_unit["components"][0], "car-par-c2-na2co3")
         input_value = self.page._input()
         self.assertEqual([len(unit.components) for unit in input_value.fgd_units], [2, 1])
+        self.assertEqual([unit.reagent_name for unit in input_value.fgd_units], ["石灰石", "石灰石"])
+        self.assertNotEqual(input_value.fgd_units[0].instance_id, input_value.fgd_units[1].instance_id)
+        self.assertEqual(
+            [[component.amount.value for component in unit.components] for unit in input_value.fgd_units],
+            [[Decimal("10"), Decimal("10")], [Decimal("5")]],
+        )
+        self.assertTrue(all(component.carbonate_fraction.source_kind is ParameterSourceKind.MEASURED for component in input_value.fgd_units[0].components))
+        self.assertTrue(all(component.conversion_rate.source_kind is ParameterSourceKind.STANDARD_DEFAULT for component in input_value.fgd_units[0].components))
         reordered_fgd = replace(
             input_value,
             fgd=None,
@@ -512,6 +586,17 @@ class G06PageTests(unittest.TestCase):
         )
         outcome = self.page.calculator.calculate(input_value)
         self.assertTrue(outcome.successful, outcome.problems)
+        fgd_lines = [line for line in outcome.result.lines if line.emission_source_id == "CAR-SRC-FGD-001"]
+        expected_fgd = sum((
+            component.amount.value
+            * component.carbonate_fraction.value
+            * component.emission_factor.value
+            * component.conversion_rate.value
+            for unit in input_value.fgd_units
+            for component in unit.components
+        ), Decimal("0"))
+        self.assertEqual(len(fgd_lines), len(input_value.fgd_units))
+        self.assertEqual(sum((line.amount for line in fgd_lines), Decimal("0")), expected_fgd)
         self.assertTrue(any(line.line_id.endswith(input_value.fgd_units[0].instance_id) for line in outcome.result.lines))
         self.assertTrue(any(line.line_id.endswith(input_value.fgd_units[1].instance_id) for line in outcome.result.lines))
         self.assertEqual(
@@ -561,18 +646,18 @@ class G06PageTests(unittest.TestCase):
                         )
                 continue
             if prefix == "fgd":
+                first["reagent_name"].setText("石灰石")
+                first["group_amount"].setText("10")
                 component = first["components"][0]
-                component["cal"].setText("10")
                 component["i"].setText("45")
                 self._select_carbonate(component, "car-par-c2-caco3")
                 second_component = self.page._add_fgd_component(first)
-                second_component["cal"].setText("2")
                 second_component["i"].setText("45")
                 self._select_carbonate(second_component, "car-par-c2-mgco3")
                 second = self.page._add_process_row(prefix)
+                second["reagent_name"].setText("石灰石")
+                second["group_amount"].setText("5")
                 second_component = second["components"][0]
-                second_component["cal"].setText("5")
-                second_component["i"].setText("90")
                 self._select_carbonate(second_component, "car-par-c2-na2co3")
                 continue
             for key, value in {"q": "1000", "qvar": "10", "hm": "30", "fch": "0.02", "fox": "0.98", "duration": "1"}.items():

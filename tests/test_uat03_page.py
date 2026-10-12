@@ -303,9 +303,8 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             self.assertEqual(selected.carbon_content.value, Decimal("0.0153"))
             self.assertEqual(selected.carbon_content.unit, "tC/GJ")
             self.assertEqual(selected.oxidation_rate.value, Decimal("0.99"))
-            self.assertTrue(row.oxidation_source.isHidden())
-            self.assertTrue(row.source_reference.isHidden())
-            self.assertTrue(row.source_reference_label.isHidden())
+            self.assertFalse(row.oxidation_source.isHidden())
+            self.assertTrue(row.source_reference_control.isHidden())
 
             row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
             row.carbon_direct.setText("0.001234567890123")

@@ -690,7 +690,7 @@ class _FuelRow(QWidget):
         self.carbon_direct = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelMeasuredCarbonInput{index}")
         self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
         self.source_reference = create_typed_input(self, get_field_spec("fuel_source_reference"), f"fuelSourceReference{index}")
-        self.source_reference.setPlaceholderText("按需填写检测/台账来源说明")
+        self.source_reference.setPlaceholderText("填写本条燃料的检测报告编号、页码或来源定位")
 
         self.carbon_basis = QComboBox(self)
         self.carbon_basis.setObjectName(f"fuelCarbonBasis{index}")
@@ -698,18 +698,21 @@ class _FuelRow(QWidget):
         self.carbon_basis.addItem("直接实测", "DIRECT")
         self.lhv_source = self._source_combo(index, "lhv")
         self.lhv_source.clear()
-        self.lhv_source.addItem("标准缺省", "STANDARD_DEFAULT")
-        self.lhv_source.addItem("实测/检测", "MEASURED")
+        self.lhv_source.addItem("缺省值", "STANDARD_DEFAULT")
+        self.lhv_source.addItem("实测值", "MEASURED")
         self.carbon_source = self._source_combo(index, "carbon")
         self.carbon_source.clear()
-        self.carbon_source.addItem("标准缺省", "STANDARD_DEFAULT")
+        self.carbon_source.addItem("缺省值", "STANDARD_DEFAULT")
         self.direct_carbon_source = self._source_combo(index, "directCarbon")
         self.direct_carbon_source.clear()
-        self.direct_carbon_source.addItem("实测/检测", "MEASURED")
+        self.direct_carbon_source.addItem("实测值", "MEASURED")
         self.oxidation_source = self._source_combo(index, "oxidation")
         self.oxidation_source.clear()
-        self.oxidation_source.addItem("标准缺省", "STANDARD_DEFAULT")
-        self.oxidation_source.addItem("用户自填", "USER_DEFINED")
+        self.oxidation_source.addItem("缺省值", "STANDARD_DEFAULT")
+        self.oxidation_source.addItem("实测值", "MEASURED")
+        self._legacy_oxidation_source_index = self.oxidation_source.count()
+        self.oxidation_source.addItem("旧项目用户自定义值（保持原含义）", "USER_DEFINED")
+        self.oxidation_source.view().setRowHidden(self._legacy_oxidation_source_index, True)
         self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
         self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
         self.direct_carbon_control = self._parameter_control(self.direct_carbon_source, self.carbon_direct)
@@ -718,7 +721,14 @@ class _FuelRow(QWidget):
         self.carbon_label = QLabel("单位热值含碳量", self)
         self.direct_carbon_label = QLabel("实测单位含碳量", self)
         self.oxidation_label = QLabel("碳氧化率", self)
-        self.source_reference_label = QLabel("来源资料", self)
+        self.source_reference_label = QLabel("实测报告/来源定位", self)
+        self.source_reference_control = QWidget(self)
+        source_layout = QHBoxLayout(self.source_reference_control)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+        source_layout.setSpacing(5)
+        source_layout.addWidget(self.source_reference_label)
+        source_layout.addWidget(self.source_reference, 1)
+        self.source_reference_control.hide()
         self.calculated_carbon_label = QLabel("按热值计算：待录入", self)
         self.calculated_carbon_label.setObjectName(f"fuelCalculatedCarbon{index}")
         self.calculated_carbon_label.setAccessibleName("按低位发热量计算的单位活动量含碳量，仅供查看")
@@ -739,7 +749,6 @@ class _FuelRow(QWidget):
         carbon_value_layout.addWidget(self.carbon_direct_cell, 2)
         self.carbon_direct_cell.hide()
         self.carbon_basis_label.hide()
-        self.source_reference_label.hide()
 
         self.lhv_cell = self.lhv_control
         self.oxidation_cell = self.oxidation_control
@@ -752,8 +761,7 @@ class _FuelRow(QWidget):
             grid.addWidget(label, 0, column)
         for column, widget in enumerate((self.fuel_type, self.path, self.activity, self.lhv_control, self.carbon_control, carbon_value_cell, self.oxidation_control)):
             grid.addWidget(widget, 1, column)
-        self.source_reference.hide()
-        grid.addWidget(self.source_reference, 2, 0, 1, 3)
+        grid.addWidget(self.source_reference_control, 2, 0, 1, 3)
         grid.addWidget(self.lhv_source, 2, 3)
         grid.addWidget(self.carbon_source, 2, 4)
         grid.addWidget(self.oxidation_source, 2, 6)
@@ -1902,6 +1910,26 @@ class CarbonMaterialAccountingPage(BasePage):
             for component in unit.get("components", ())
             if isinstance(component, dict) and component.get("component_id")
         }
+        values["fgd_ratio_modes"] = {
+            str(component.get("component_id")): {
+                field: mode.currentData()
+                for field in ("i", "tr")
+                if isinstance((mode := component.get(f"{field}_source")), QComboBox)
+            }
+            for unit in self._process_rows.get("fgd", ())
+            for component in unit.get("components", ())
+            if isinstance(component, dict) and component.get("component_id")
+        }
+        values["fgd_legacy_amount_groups"] = [
+            str(unit.get("instance_id"))
+            for unit in self._process_rows.get("fgd", ())
+            if unit.get("legacy_component_amounts")
+        ]
+        values["fgd_legacy_missing_reagent_names"] = [
+            str(unit.get("instance_id"))
+            for unit in self._process_rows.get("fgd", ())
+            if unit.get("legacy_missing_reagent_name")
+        ]
         values["process_instances"] = {
             prefix: [
                 {
@@ -1936,6 +1964,85 @@ class CarbonMaterialAccountingPage(BasePage):
         values["business_fingerprint_version"] = 2
         values["steam_input_version"] = 2
         return values
+
+    def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
+        saved_modes = state.get("fgd_ratio_modes")
+        if not isinstance(saved_modes, dict):
+            saved_modes = {}
+        saved_legacy_amounts = state.get("fgd_legacy_amount_groups", [])
+        if not isinstance(saved_legacy_amounts, list):
+            saved_legacy_amounts = []
+        saved_legacy_names = state.get("fgd_legacy_missing_reagent_names", [])
+        if not isinstance(saved_legacy_names, list):
+            saved_legacy_names = []
+        legacy_project = bool(state and isinstance(state.get("process_instances"), dict))
+        for unit in self._process_rows.get("fgd", ()):
+            instance_id = str(unit.get("instance_id", ""))
+            group_amount = unit.get("group_amount")
+            name_widget = unit.get("reagent_name")
+            if instance_id in saved_legacy_names:
+                unit["legacy_missing_reagent_name"] = True
+            elif (
+                legacy_project
+                and isinstance(name_widget, QLineEdit)
+                and name_widget.objectName() not in state
+            ):
+                old_amounts = [
+                    component["cal"].text().strip()
+                    for component in unit.get("components", [])
+                    if isinstance(component, dict) and isinstance(component.get("cal"), QLineEdit)
+                ]
+                group_value = group_amount.text().strip() if isinstance(group_amount, QLineEdit) else ""
+                if group_value or any(old_amounts):
+                    unit["legacy_missing_reagent_name"] = True
+            if isinstance(group_amount, QLineEdit):
+                amount_key = group_amount.objectName()
+                if instance_id in saved_legacy_amounts:
+                    self._set_fgd_legacy_amounts(unit, True)
+                elif legacy_project and amount_key not in state:
+                    components = unit.get("components", [])
+                    amounts = [
+                        component["cal"].text().strip()
+                        for component in components
+                        if isinstance(component, dict) and isinstance(component.get("cal"), QLineEdit)
+                    ]
+                    present = [value for value in amounts if value]
+                    if present and (len(present) != len(amounts) or len(set(present)) > 1):
+                        self._set_fgd_legacy_amounts(unit, True)
+                    elif present and len(present) == len(amounts):
+                        group_amount.setText(present[0])
+            components = unit.get("components", [])
+            for component in components:
+                if not isinstance(component, dict):
+                    continue
+                component_id = str(component.get("component_id", ""))
+                saved = saved_modes.get(component_id)
+                for field in ("i", "tr"):
+                    mode_combo = component.get(f"{field}_source")
+                    edit = component.get(field)
+                    if not isinstance(mode_combo, QComboBox) or not isinstance(edit, QLineEdit):
+                        continue
+                    mode = saved.get(field) if isinstance(saved, dict) else None
+                    if mode not in {"STANDARD_DEFAULT", "MEASURED", "USER_DEFINED"}:
+                        if legacy_project and edit.text().strip():
+                            mode = "USER_DEFINED"
+                        elif field == "i" and len(components) > 1:
+                            mode = "MEASURED"
+                        else:
+                            mode = "STANDARD_DEFAULT"
+                    if field == "i" and len(components) > 1 and mode == "STANDARD_DEFAULT":
+                        _, default_text = self._fgd_default_ratio(field)
+                        if edit.text().strip() == default_text:
+                            edit.clear()
+                        mode = "MEASURED"
+                    mode_index = mode_combo.findData(mode)
+                    if mode_index >= 0:
+                        legacy_index = component.get(f"{field}_legacy_index")
+                        if isinstance(legacy_index, int):
+                            mode_combo.view().setRowHidden(legacy_index, mode != "USER_DEFINED")
+                        mode_combo.setCurrentIndex(mode_index)
+                        component[f"{field}_source_mode"] = mode
+                        self._refresh_fgd_ratio_control(component, field)
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
         self._restoring_workspace = True
@@ -2240,7 +2347,7 @@ class CarbonMaterialAccountingPage(BasePage):
                                 del blocker
                             component["factor_mode"] = None
                             component["catalog_factor_id"] = None
-                    elif mode in {"USER_DEFINED", "MEASURED"}:
+                    elif mode in {"USER_DEFINED", "MEASURED", "CALCULATED"}:
                         component["factor_mode"] = mode
                         component["catalog_factor_id"] = None
                     elif isinstance(factor_widget, QLineEdit) and factor_widget.text().strip():
@@ -2252,6 +2359,9 @@ class CarbonMaterialAccountingPage(BasePage):
                     else:
                         component["factor_mode"] = None
                         component["catalog_factor_id"] = None
+                    if isinstance(factor_widget, QLineEdit):
+                        factor_widget.setReadOnly(component.get("factor_mode") == "CATALOG")
+        self._restore_fgd_form_modes(state)
         if legacy_steam_state:
             self._convert_legacy_steam_amounts_to_tonnes()
             for prefix, rows in self._heat_rows.items():
@@ -2863,7 +2973,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "CAR-SRC-FGD-001",
                 lambda layout: self._build_process_section(
                     layout,
-                    "烟气脱硫净化（P04B）",
+                    "脱硫剂种类/配方（P04B）",
                     "fgd",
                     ("cal", "i", "ef1", "tr"),
                 ),
@@ -3340,6 +3450,8 @@ class CarbonMaterialAccountingPage(BasePage):
         }[source_key]
         index = combo.findData(mode)
         if index >= 0:
+            if source_key == "oxidation":
+                combo.view().setRowHidden(row._legacy_oxidation_source_index, mode != "USER_DEFINED")
             combo.setCurrentIndex(index)
             row._legacy_source_modes.pop(source_key, None)
         elif mode:
@@ -3349,6 +3461,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if self._restoring_workspace:
             return
         row._legacy_source_modes.pop(source_key, None)
+        if source_key == "oxidation":
+            row.oxidation_source.view().setRowHidden(
+                row._legacy_oxidation_source_index,
+                row.oxidation_source.currentData() != "USER_DEFINED",
+            )
         self._refresh_fuel_row(row)
 
     def _on_fuel_basis_changed(self, row: _FuelRow) -> None:
@@ -3563,7 +3680,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     previous_value = previous[("lhv", "carbon", "oxidation").index(key)]
                     if previous_value and edit.text().strip() == previous_value:
                         edit.clear()
-                    fallback = "MEASURED" if key == "lhv" else "USER_DEFINED" if key == "oxidation" else None
+                    fallback = "MEASURED" if key in {"lhv", "oxidation"} else None
                     if fallback is not None and row.fuel_type.currentText().strip():
                         index = source_combo.findData(fallback)
                         if index >= 0:
@@ -3577,9 +3694,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if direct_mode is None:
             direct_mode = "MEASURED"
         row.direct_carbon_source.hide()
-        row.oxidation_source.hide()
-        row.source_reference.hide()
-        row.source_reference_label.hide()
+        row.oxidation_source.setVisible(True)
         row.parameter_summary.hide()
         row.carbon_basis_label.hide()
 
@@ -3594,6 +3709,18 @@ class CarbonMaterialAccountingPage(BasePage):
         row.carbon_source.setVisible(carbon_factor is not None and not direct)
         row.carbon_calc_cell.setVisible(not direct)
         row.carbon_direct_cell.setVisible(direct)
+        active_source_keys = ["oxidation"]
+        if direct:
+            active_source_keys.append("direct_carbon")
+        else:
+            active_source_keys.append("carbon")
+            if path is not FuelPath.HEAT:
+                active_source_keys.append("lhv")
+        has_measured_parameter = any(
+            self._fuel_source_mode(row, key) == "MEASURED"
+            for key in active_source_keys
+        )
+        row.source_reference_control.setVisible(has_measured_parameter)
         row.lower_heating_value.setEnabled(not direct and path is not FuelPath.HEAT)
         row.activity_label.setText(f"活动量（{activity_unit}）")
         row.activity.setProperty("fieldUnit", activity_unit)
@@ -3732,6 +3859,46 @@ class CarbonMaterialAccountingPage(BasePage):
             "materials": [],
         }
         if prefix == "fgd":
+            group_fields = QWidget(host)
+            group_layout = QVBoxLayout(group_fields)
+            group_layout.setContentsMargins(0, 0, 0, 0)
+            name_row = QWidget(group_fields)
+            name_layout = QHBoxLayout(name_row)
+            name_layout.setContentsMargins(0, 0, 0, 0)
+            name_layout.addWidget(QLabel("碳酸盐种类", name_row))
+            reagent_name = QLineEdit(name_row)
+            reagent_name.setObjectName("fgdReagentNameInput" if first else f"fgd_{instance_id}_reagentName")
+            reagent_name.setProperty("fieldSpecKey", "fgd.reagent_name")
+            reagent_name.setPlaceholderText("填写全厂实际使用的脱硫剂名称")
+            reagent_name.setMaxLength(120)
+            name_layout.addWidget(reagent_name, 1)
+            self._wire_dirty_tracking(reagent_name)
+            group_layout.addWidget(name_row)
+            group_amount_row = QWidget(group_fields)
+            amount_layout = QHBoxLayout(group_amount_row)
+            amount_layout.setContentsMargins(0, 0, 0, 0)
+            amount_layout.addWidget(QLabel("脱硫剂用量（t）", group_amount_row))
+            group_amount = create_typed_input(
+                group_amount_row, get_field_spec("fgd.cal"),
+                "fgdGroupAmountInput" if first else f"fgd_{instance_id}_groupAmount",
+            )
+            amount_layout.addWidget(group_amount, 1)
+            self._wire_dirty_tracking(group_amount)
+            group_layout.addWidget(group_amount_row)
+            legacy_amount_notice = QLabel(
+                "旧项目各碳酸盐组分保存了不同用量，已按原值保留；确认统一用量后可填写上方组用量。",
+                group_fields,
+            )
+            legacy_amount_notice.setWordWrap(True)
+            legacy_amount_notice.hide()
+            group_layout.addWidget(legacy_amount_notice)
+            host_layout.addWidget(group_fields)
+            row["reagent_name"] = reagent_name
+            row["group_amount"] = group_amount
+            row["group_amount_row"] = group_amount_row
+            row["legacy_amount_notice"] = legacy_amount_notice
+            row["legacy_component_amounts"] = False
+            group_amount.textChanged.connect(lambda _text, _row=row: self._on_fgd_group_amount_changed(_row))
             component_host = QWidget(host)
             component_layout = QVBoxLayout(component_host)
             component_layout.setContentsMargins(0, 0, 0, 0)
@@ -4108,6 +4275,105 @@ class CarbonMaterialAccountingPage(BasePage):
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
         del blocker
 
+    def _on_fgd_group_amount_changed(self, unit: dict[str, object]) -> None:
+        if self._restoring_workspace:
+            return
+        self._set_fgd_legacy_amounts(unit, False)
+
+    @staticmethod
+    def _set_fgd_legacy_amounts(unit: dict[str, object], enabled: bool) -> None:
+        unit["legacy_component_amounts"] = enabled
+        amount_row = unit.get("group_amount_row")
+        notice = unit.get("legacy_amount_notice")
+        group_amount = unit.get("group_amount")
+        if isinstance(amount_row, QWidget):
+            amount_row.setVisible(True)
+        if isinstance(notice, QWidget):
+            notice.setVisible(enabled)
+        for component in unit.get("components", []):
+            if isinstance(component, dict):
+                amount_row = component.get("legacy_amount_row")
+                if isinstance(amount_row, QWidget):
+                    amount_row.setVisible(enabled)
+        if isinstance(group_amount, QWidget):
+            group_amount.setEnabled(True)
+
+    def _fgd_default_ratio(self, field: str) -> tuple[object | None, str]:
+        parameter_id = "CAR-PAR-P04B-I" if field == "i" else "CAR-PAR-P04B-TR"
+        factor = self._canonical_default_factor(parameter_id)
+        if factor is None:
+            return None, ""
+        try:
+            value = Decimal(str(getattr(factor, "value"))) * Decimal("100")
+        except (AttributeError, InvalidOperation, ValueError):
+            return factor, ""
+        rendered = format(value, "f")
+        if "." in rendered:
+            rendered = rendered.rstrip("0").rstrip(".")
+        return factor, rendered
+
+    def _refresh_fgd_ratio_control(
+        self,
+        component: dict[str, object],
+        field: str,
+        *,
+        clear_default_for_measured: bool = False,
+    ) -> None:
+        mode = component.get(f"{field}_mode")
+        edit = component.get(field)
+        if not isinstance(edit, QLineEdit):
+            return
+        mode_combo = component.get(f"{field}_source")
+        if isinstance(mode_combo, QComboBox):
+            mode = mode_combo.currentData()
+        if mode == "STANDARD_DEFAULT":
+            _, default_text = self._fgd_default_ratio(field)
+            if edit.text().strip() != default_text:
+                blocker = QSignalBlocker(edit)
+                edit.setText(default_text)
+                del blocker
+            edit.setReadOnly(True)
+        else:
+            if clear_default_for_measured and component.get(f"{field}_source_mode") == "STANDARD_DEFAULT":
+                _, default_text = self._fgd_default_ratio(field)
+                if edit.text().strip() == default_text:
+                    blocker = QSignalBlocker(edit)
+                    edit.clear()
+                    del blocker
+            edit.setReadOnly(False)
+        component[f"{field}_source_mode"] = mode
+
+    def _on_fgd_ratio_mode_changed(self, component: dict[str, object], field: str) -> None:
+        if self._restoring_workspace:
+            component[f"{field}_source_mode"] = component[f"{field}_source"].currentData()  # type: ignore[union-attr]
+            self._refresh_fgd_ratio_control(component, field)
+            return
+        mode_combo = component.get(f"{field}_source")
+        if not isinstance(mode_combo, QComboBox):
+            return
+        mode = mode_combo.currentData()
+        unit = component.get("unit")
+        siblings = unit.get("components", []) if isinstance(unit, dict) else []
+        if field == "i" and mode == "STANDARD_DEFAULT" and len(siblings) > 1:
+            measured_index = mode_combo.findData("MEASURED")
+            if measured_index >= 0:
+                blocker = QSignalBlocker(mode_combo)
+                mode_combo.setCurrentIndex(measured_index)
+                del blocker
+                mode = "MEASURED"
+        previous = component.get(f"{field}_source_mode")
+        component[f"{field}_source_mode"] = previous
+        self._refresh_fgd_ratio_control(
+            component,
+            field,
+            clear_default_for_measured=mode == "MEASURED" and previous == "STANDARD_DEFAULT",
+        )
+        if field == "i" and isinstance(unit, dict) and len(siblings) > 1:
+            unit["legacy_i_mode"] = False
+        legacy_index = component.get(f"{field}_legacy_index")
+        if isinstance(legacy_index, int):
+            mode_combo.view().setRowHidden(legacy_index, mode != "USER_DEFINED")
+
     def _on_fgd_carbonate_text_changed(self, component: dict[str, object]) -> None:
         if self._restoring_workspace:
             return
@@ -4122,20 +4388,21 @@ class CarbonMaterialAccountingPage(BasePage):
             del blocker
             component["factor_mode"] = None
             component["catalog_factor_id"] = None
+            factor_edit.setReadOnly(False)
             return
         blocker = QSignalBlocker(factor_edit)
         factor_edit.setText(str(option.factor.value))
         del blocker
         component["factor_mode"] = "CATALOG"
         component["catalog_factor_id"] = option.factor.factor_id
+        factor_edit.setReadOnly(True)
 
     @staticmethod
     def _on_fgd_factor_value_changed(component: dict[str, object]) -> None:
         if component.get("factor_mode") == "CATALOG":
-            component["factor_mode"] = "USER_DEFINED"
-            component["catalog_factor_id"] = None
-        elif component.get("factor_mode") not in {"MEASURED", "USER_DEFINED"}:
-            component["factor_mode"] = "USER_DEFINED"
+            return
+        if component.get("factor_mode") not in {"MEASURED", "USER_DEFINED", "CALCULATED"}:
+            component["factor_mode"] = "CALCULATED"
 
     def _refresh_carbonate_options(self) -> None:
         for unit in self._process_rows.get("fgd", ()):
@@ -4149,6 +4416,7 @@ class CarbonMaterialAccountingPage(BasePage):
         components = unit["components"]
         assert isinstance(components, list)
         first = not components and len(self._process_rows["fgd"]) == 0
+        first_in_group = not components
         component_host = unit["component_host"]
         component_layout = unit["component_layout"]
         assert isinstance(component_host, QWidget) and isinstance(component_layout, QVBoxLayout)
@@ -4161,15 +4429,14 @@ class CarbonMaterialAccountingPage(BasePage):
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(3)
-        widgets: dict[str, QWidget] = {}
+        widgets: dict[str, object] = {}
         field_labels = {
-            "cal": "脱硫剂用量（t）",
-            "carbonate_type": "碳酸盐种类",
+            "carbonate_type": "碳酸盐组分",
             "i": "碳酸盐含量（%）",
             "ef1": "排放因子（tCO₂/t）",
             "tr": "转化率（%）",
         }
-        for column, field in enumerate(("cal", "carbonate_type", "i", "ef1", "tr")):
+        for column, field in enumerate(("carbonate_type", "i", "ef1", "tr")):
             label = QLabel(field_labels[field], container)
             label.setWordWrap(True)
             grid.addWidget(label, 0, column)
@@ -4177,25 +4444,69 @@ class CarbonMaterialAccountingPage(BasePage):
                 selector = QComboBox(container)
                 selector.setObjectName("fgdCarbonateTypeSelector" if first else f"fgd_{unit['instance_id']}_{component_id}_carbonateTypeSelector")
                 selector.setProperty("fieldSpecKey", "fgd.ef1")
-                self._populate_carbonate_selector(selector, text="未选择碳酸盐种类")
+                self._populate_carbonate_selector(selector, text="未选择碳酸盐组分")
                 widgets[field] = selector
                 self._wire_dirty_tracking(selector)
+                grid.addWidget(selector, 1, column)
+            elif field in {"i", "tr"}:
+                spec = get_field_spec(f"fgd.{field}")
+                name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
+                edit = create_typed_input(container, spec, name)
+                edit.setPlaceholderText("含量" if field == "i" else "转化率")
+                mode = QComboBox(container)
+                mode.setObjectName(f"fgd_{unit['instance_id']}_{component_id}_{field}SourceMode")
+                mode.addItem("缺省值", "STANDARD_DEFAULT")
+                mode.addItem("实测值", "MEASURED")
+                legacy_index = mode.count()
+                mode.addItem("旧项目用户自定义值（保持原含义）", "USER_DEFINED")
+                mode.view().setRowHidden(legacy_index, True)
+                if field == "i" and not first_in_group:
+                    mode.setCurrentIndex(mode.findData("MEASURED"))
+                cell = QWidget(container)
+                cell_layout = QVBoxLayout(cell)
+                cell_layout.setContentsMargins(0, 0, 0, 0)
+                cell_layout.setSpacing(2)
+                cell_layout.addWidget(mode)
+                cell_layout.addWidget(edit)
+                widgets[field] = edit
+                widgets[f"{field}_source"] = mode
+                widgets[f"{field}_legacy_index"] = legacy_index
+                self._wire_dirty_tracking(edit)
+                self._wire_dirty_tracking(mode)
+                grid.addWidget(cell, 1, column)
             else:
                 spec = get_field_spec(f"fgd.{field}")
                 name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
                 edit = create_typed_input(container, spec, name)
+                if field == "ef1":
+                    edit.setPlaceholderText("化学计算所得值")
+                    edit.setToolTip("匹配附录 C.2 组分时使用已核验目录因子并锁定；自定义组分填入化学计算所得值。")
                 widgets[field] = edit
                 self._wire_dirty_tracking(edit)
-            grid.addWidget(widgets[field], 1, column)
-            grid.setColumnStretch(column, (2, 2, 1, 1, 1)[column])
+                grid.addWidget(edit, 1, column)
+            grid.setColumnStretch(column, (2, 2, 2, 2)[column])
+        # Keep the old per-component amount controls for project compatibility.
+        amount_spec = get_field_spec("fgd.cal")
+        amount_name = f"fgd_cal" if first else f"fgd_{unit['instance_id']}_{component_id}_cal"
+        old_amount = create_typed_input(container, amount_spec, amount_name)
+        legacy_amount_row = QWidget(container)
+        legacy_amount_layout = QHBoxLayout(legacy_amount_row)
+        legacy_amount_layout.setContentsMargins(0, 0, 0, 0)
+        legacy_amount_layout.addWidget(QLabel("旧项目组分用量（t）", legacy_amount_row))
+        legacy_amount_layout.addWidget(old_amount, 1)
+        legacy_amount_row.hide()
+        self._wire_dirty_tracking(old_amount)
+        widgets["cal"] = old_amount
+        widgets["legacy_amount_row"] = legacy_amount_row
         outer.addLayout(grid)
+        outer.addWidget(legacy_amount_row)
         footer = QHBoxLayout()
         source_ref = create_typed_input(container, get_field_spec("fgd.factor_source_reference"), "fgdFactorSourceReferenceInput" if first else f"fgd_{unit['instance_id']}_{component_id}_factorSourceReference")
-        source_ref.setPlaceholderText("实测因子来源说明（可选）")
+        source_ref.setPlaceholderText("实测来源或化学计算说明（选填）")
         widgets["factor_source_reference"] = source_ref
         self._wire_dirty_tracking(source_ref)
         source_ref.hide()
-        widgets["ef1"].textChanged.connect(lambda text, _ref=source_ref: _ref.setVisible(bool(text.strip())))
+        widgets["ef1"].textChanged.connect(lambda text, _ref=source_ref: _ref.setVisible(bool(text.strip())))  # type: ignore[union-attr]
         footer.addWidget(source_ref, 1)
         remove = QPushButton("删除组分", container)
         remove.setObjectName(f"remove_fgd_component_{unit['instance_id']}_{component_id}")
@@ -4209,15 +4520,40 @@ class CarbonMaterialAccountingPage(BasePage):
         component_id_widget.hide()
         widgets["_component_id"] = component_id_widget
         widgets["component_id"] = component_id
+        widgets["unit"] = unit
         widgets["factor_mode"] = None
         widgets["catalog_factor_id"] = None
+        for field in ("i", "tr"):
+            mode = widgets[f"{field}_source"]
+            assert isinstance(mode, QComboBox)
+            initial_mode = mode.currentData()
+            if initial_mode == "USER_DEFINED":
+                mode.view().setRowHidden(int(widgets[f"{field}_legacy_index"]), False)
+            widgets[f"{field}_source_mode"] = initial_mode
+            self._refresh_fgd_ratio_control(widgets, field)
+            mode.currentIndexChanged.connect(
+                lambda _index, _component=widgets, _field=field: self._on_fgd_ratio_mode_changed(_component, _field)
+            )
         selector = widgets["carbonate_type"]
         factor_edit = widgets["ef1"]
         assert isinstance(selector, QComboBox) and isinstance(factor_edit, QLineEdit)
         selector.currentTextChanged.connect(lambda _text, _component=widgets: self._on_fgd_carbonate_text_changed(_component))
         factor_edit.textChanged.connect(lambda _text, _component=widgets: self._on_fgd_factor_value_changed(_component))
         components.append(widgets)
-        remove.setVisible(len(components) > 1)
+        for field in ("i", "tr"):
+            mode = widgets[f"{field}_source"]
+            assert isinstance(mode, QComboBox)
+            if field == "i" and len(components) > 1:
+                for sibling in components:
+                    sibling_mode = sibling.get("i_source")
+                    if not isinstance(sibling_mode, QComboBox) or sibling_mode.currentData() != "STANDARD_DEFAULT":
+                        continue
+                    sibling_mode.setCurrentIndex(sibling_mode.findData("MEASURED"))
+        self._set_fgd_legacy_amounts(unit, bool(unit.get("legacy_component_amounts")))
+        for component_index, component in enumerate(components):
+            remove_button = component.get("remove_button")
+            if isinstance(remove_button, QWidget):
+                remove_button.setVisible(component_index > 0)
         self._bind_process_aliases("fgd")
         return widgets
 
@@ -4285,11 +4621,17 @@ class CarbonMaterialAccountingPage(BasePage):
         if not rows:
             return
         if prefix == "fgd":
+            group_amount = rows[0].get("group_amount")
             components = rows[0].get("components", [])
+            if isinstance(group_amount, QWidget):
+                self._fields["fgd.cal"] = group_amount
             if components:
-                for key in ("cal", "i", "ef1", "tr", "factor_source_reference"):
+                for key in ("i", "ef1", "tr", "factor_source_reference"):
                     self._fields[f"fgd.{key}"] = components[0][key]  # type: ignore[index]
                 self._carbonate_type_selector = components[0]["carbonate_type"]  # type: ignore[assignment,index]
+            reagent_name = rows[0].get("reagent_name")
+            if isinstance(reagent_name, QWidget):
+                self._fields["fgd.reagent_name"] = reagent_name
             return
         fields = rows[0].get("fields", {})
         for key, widget in fields.items():  # type: ignore[union-attr]
@@ -5493,11 +5835,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 if not active_components:
                     continue
                 active += 1
+                legacy_amounts = bool(row.get("legacy_component_amounts"))
                 for component in active_components:
-                    amount = component.get("cal")
+                    amount = component.get("cal") if legacy_amounts else row.get("group_amount")
                     factor = component.get("ef1")
                     selector = component.get("carbonate_type")
-                    source_ref = component.get("factor_source_reference")
                     carbonate_text = selector.currentText().strip() if isinstance(selector, QComboBox) else ""
                     option = self._carbonate_option_for_text(carbonate_text)
                     catalog_selected = (
@@ -5510,11 +5852,12 @@ class CarbonMaterialAccountingPage(BasePage):
                         or bool(carbonate_text and self._input_has_value(factor))
                     )
                     fields_complete = self._input_has_value(amount) and type_or_factor
+                    checked_fields = ("i", "ef1", "tr", "cal") if legacy_amounts else ("i", "ef1", "tr")
                     fields_invalid = any(
                         isinstance(component.get(key), QLineEdit)
                         and component[key].text().strip()
                         and not component[key].hasAcceptableInput()
-                        for key in ("cal", "i", "ef1", "tr")
+                        for key in checked_fields
                     )
                     all_complete = all_complete and fields_complete
                     any_invalid = any_invalid or fields_invalid
@@ -5887,6 +6230,14 @@ class CarbonMaterialAccountingPage(BasePage):
             ParameterSourceKind.MEASURED: "实测/检测资料",
             ParameterSourceKind.USER_DEFINED: "用户指定来源",
         }[kind]
+        if suffix == "oxidation" and kind is ParameterSourceKind.MEASURED and not reference:
+            fuel_name = row.fuel_type.currentText().strip() or "该燃料"
+            raise DomainValidationError(f"燃料“{fuel_name}”选择了实测碳氧化率，请填写本条燃料对应的检测报告或来源定位。")
+        evidence_ref_ids = (
+            (f"evidence.factor.{row.internal_id.text().strip()}.oxidation",)
+            if suffix == "oxidation" and kind is ParameterSourceKind.MEASURED and reference
+            else ()
+        )
         return ParameterValue(
             parameter_id=f"enterprise_fuel_{row.row_key}_{suffix}",
             value=value,
@@ -5896,6 +6247,7 @@ class CarbonMaterialAccountingPage(BasePage):
             source_version=None,
             source_location=f"{source_name}：{reference}" if reference else None,
             selection_reason=f"用户选择{source_name}参数；来源编号：{reference or '未提供'}。",
+            evidence_ref_ids=evidence_ref_ids,
         )
 
     def _fuel(self) -> tuple[FuelInput, ...]:
@@ -5963,12 +6315,23 @@ class CarbonMaterialAccountingPage(BasePage):
             return None
         instance_id = str(row["instance_id"])
         if prefix == "fgd":
+            reagent_name_widget = row.get("reagent_name")
+            reagent_name = reagent_name_widget.text().strip() if isinstance(reagent_name_widget, QLineEdit) else ""
+            if not reagent_name and not row.get("legacy_missing_reagent_name"):
+                raise DomainValidationError("请填写本组实际使用的脱硫剂名称。")
+            group_amount_widget = row.get("group_amount")
+            group_amount = _ui_value("fgd.cal", group_amount_widget) if isinstance(group_amount_widget, QWidget) else None
+            legacy_amounts = bool(row.get("legacy_component_amounts"))
             components: list[CarbonateComponent] = []
             for component in row.get("components", []):
                 assert isinstance(component, dict)
+                amount = (
+                    _ui_value("fgd.cal", component["cal"])
+                    if legacy_amounts else group_amount
+                )
                 values = {
                     field: _ui_value(f"fgd.{field}", component[field])
-                    for field in ("cal", "i", "ef1", "tr")
+                    for field in ("i", "ef1", "tr")
                 }
                 selector = component["carbonate_type"]
                 source_ref = _value(component["factor_source_reference"])
@@ -5985,46 +6348,73 @@ class CarbonMaterialAccountingPage(BasePage):
                 if catalog_selected:
                     factor_value = self._parameter_value_from_factor(option.factor, option.selection_reason)
                 elif ef_text is not None:
-                    source_kind = ParameterSourceKind.MEASURED if factor_mode == "MEASURED" else ParameterSourceKind.USER_DEFINED
+                    source_kind = {
+                        "MEASURED": ParameterSourceKind.MEASURED,
+                        "USER_DEFINED": ParameterSourceKind.USER_DEFINED,
+                        "CALCULATED": ParameterSourceKind.CALCULATED,
+                    }.get(str(factor_mode), ParameterSourceKind.CALCULATED)
                     factor_value = ParameterValue(
-                        parameter_id="fgd_carbonate_emission_factor_user",
+                        parameter_id="fgd_carbonate_emission_factor_calculated",
                         value=ef_text,
                         unit="tCO2/t",
                         source_kind=source_kind,
                         source_id=None,
                         source_version=None,
-                        source_location=f"用户来源说明：{source_ref}" if source_ref else None,
-                        selection_reason="用户为本组分填写碳酸盐排放因子。",
+                        source_location=f"化学计算；补充说明：{source_ref}" if source_ref else (
+                            "化学计算" if source_kind is ParameterSourceKind.CALCULATED else None
+                        ),
+                        selection_reason=(
+                            "自定义碳酸盐组分排放因子由用户按化学组成计算并录入。"
+                            if source_kind is ParameterSourceKind.CALCULATED
+                            else "保留旧项目保存的碳酸盐排放因子来源语义。"
+                        ),
                     )
                 else:
                     factor_value = None
 
                 def fgd_ratio(field: str, parameter_id: str) -> ParameterValue | None:
                     raw = values[field]
-                    if raw is None:
+                    mode_widget = component.get(f"{field}_source")
+                    mode = mode_widget.currentData() if isinstance(mode_widget, QComboBox) else component.get(f"{field}_source_mode")
+                    if mode == "STANDARD_DEFAULT" or (mode == "USER_DEFINED" and raw is None):
                         factor = self._canonical_default_factor(parameter_id)
                         return self._parameter_value_from_factor(
-                            factor, "未提供企业实测值，采用经目录审核的标准一般取值。"
+                            factor, "采用当前核算期间 Resolver 核验的标准缺省参数。"
                         ) if factor is not None else None
+                    if raw is None:
+                        return None
+                    source_kind = (
+                        ParameterSourceKind.MEASURED
+                        if mode == "MEASURED"
+                        else ParameterSourceKind.USER_DEFINED
+                    )
                     return ParameterValue(
                         parameter_id=parameter_id,
                         value=Decimal(str(raw)),
                         unit="ratio",
-                        source_kind=ParameterSourceKind.USER_DEFINED,
+                        source_kind=source_kind,
                         source_id=None,
                         source_version=None,
-                        source_location=f"用户来源说明：{source_ref}" if source_ref else None,
-                        selection_reason="用户为本组分提供比例参数。",
+                        source_location=f"实测来源说明：{source_ref}" if source_ref else None,
+                        selection_reason=(
+                            "采用企业实测比例参数。"
+                            if source_kind is ParameterSourceKind.MEASURED
+                            else "保留旧项目用户自定义比例参数的原有来源语义。"
+                        ),
                     )
 
                 components.append(CarbonateComponent(
-                    values["cal"],
+                    amount,
                     fgd_ratio("i", "CAR-PAR-P04B-I"),
                     factor_value,
                     fgd_ratio("tr", "CAR-PAR-P04B-TR"),
                     carbonate_type,
                 ))
-            return kind(components=tuple(components), instance_id=instance_id) if components else None
+            return kind(
+                components=tuple(components),
+                instance_id=instance_id,
+                reagent_name=reagent_name or None,
+            ) if components else None
 
         field_names = {
             "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),
@@ -6441,9 +6831,21 @@ class CarbonMaterialAccountingPage(BasePage):
                 acquisition_time=activity_values.get("acquisition_time"),
                 note=activity_values.get("note"),
             ),)
-        measured: tuple[MeasuredFactorEvidence, ...] = ()
+        measured_items: list[MeasuredFactorEvidence] = []
+        for row in self._fuel_rows:
+            reference = row.source_reference.text().strip()
+            if self._fuel_source_mode(row, "oxidation") != "MEASURED" or not reference:
+                continue
+            fuel_name = row.fuel_type.currentText().strip() or row.internal_id.text().strip()
+            evidence_id = f"evidence.factor.{row.internal_id.text().strip()}.oxidation"
+            measured_items.append(MeasuredFactorEvidence(
+                evidence_id=evidence_id,
+                applies_to=f"燃料“{fuel_name}”的碳氧化率",
+                source_reference=reference,
+                reason="该燃料碳氧化率的企业检测依据。",
+            ))
         if factor_has_evidence:
-            measured = (MeasuredFactorEvidence(
+            measured_items.append(MeasuredFactorEvidence(
                 evidence_id="evidence.factor.shared",
                 applies_to=factor_values.get("applies_to") or "本记录所选排放源的实测/用户指定因子",
                 source_ids=tuple(source_id for source_id, check in self.factor_evidence_sources.items() if check.isChecked()),
@@ -6454,7 +6856,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 testing_frequency=factor_values.get("testing_frequency"),
                 referenced_standard=factor_values.get("referenced_standard"),
                 reason=factor_values.get("reason"),
-            ),)
+            ))
+        measured = tuple(measured_items)
         return CarbonReportingData(
             **report_values,
             activity_evidence=activity,
@@ -6684,7 +7087,7 @@ class CarbonMaterialAccountingPage(BasePage):
             "baking": "焙烧/炭化过程",
             "graphitization": "石墨化过程",
             "fume": "烟气焚烧过程",
-            "fgd": "烟气脱硫设施",
+            "fgd": "脱硫剂组",
         }
         field_aliases = {
             "fume": {"Q": "q", "QVAR": "qvar", "HM": "hm", "FCH": "fch", "FOX": "fox", "T": "duration"},
@@ -6858,16 +7261,14 @@ class CarbonMaterialAccountingPage(BasePage):
                 if component_index < len(components) and isinstance(components[component_index], dict):
                     component = components[component_index]
                     field_name = suffix[-1].lower()
-                    field_map = {"cal": "cal", "i": "i", "ef1": "ef1", "tr": "tr"}
-                    widget_key = field_map.get(field_name)
                     selector = component.get("carbonate_type")
-                    source_reference = component.get("factor_source_reference")
-                    factor_edit = component.get("ef1")
+                    if field_name == "cal" and not row.get("legacy_component_amounts"):
+                        group_amount = row.get("group_amount")
+                        if isinstance(group_amount, QWidget):
+                            return group_amount.objectName()
                     if field_name == "ef1" and isinstance(selector, QComboBox) and selector.currentData() is None:
                         return selector.objectName()
-                    if field_name == "ef1" and isinstance(factor_edit, QLineEdit) and factor_edit.text().strip() and isinstance(source_reference, QLineEdit) and not source_reference.text().strip():
-                        return source_reference.objectName()
-                    widget = component.get(widget_key) if widget_key else None
+                    widget = component.get(field_name) if field_name in {"cal", "i", "ef1", "tr"} else None
                     if isinstance(widget, QWidget):
                         return widget.objectName()
                     if isinstance(selector, QWidget):

@@ -132,7 +132,10 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         fgd_status = self.page._source_statuses["CAR-SRC-FGD-001"]
         fgd_status.setCurrentIndex(fgd_status.findData(EmissionSourceStatus.INVOLVED))
-        self.page._fields["fgd.cal"].setText("10")
+        fgd_unit = self.page._process_rows["fgd"][0]
+        fgd_unit["group_amount"].setText("10")
+        second_component = self.page._add_fgd_component(fgd_unit)
+        second_component["cal"].setText("2")
         self.assertTrue(self.page._save_project())
 
         workspace = self.project_service.get(self.page._workspace.project_id)
@@ -142,6 +145,12 @@ class AccountingProjectUiTests(unittest.TestCase):
         legacy_state = dict(unit.form_state)
         self.assertIn("fgdCarbonateTypeSelector", legacy_state)
         legacy_state.pop("fgdCarbonateTypeSelector")
+        legacy_state["fgd_cal"] = "10"
+        legacy_component_ids = legacy_state["process_instances"]["fgd"][0]["component_ids"]
+        legacy_instance_id = legacy_state["process_instances"]["fgd"][0]["instance_id"]
+        legacy_state[f"fgd_{legacy_instance_id}_{legacy_component_ids[1]}_cal"] = "2"
+        legacy_state.pop("fgdGroupAmountInput", None)
+        legacy_state.pop("fgdReagentNameInput", None)
         legacy_unit = replace(unit, form_state=legacy_state)
         legacy_workspace = replace(workspace, units=(legacy_unit,))
         self.project_service.save(legacy_workspace)
@@ -155,13 +164,17 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.saved_projects.setCurrentIndex(saved_index)
         self.page._open_selected_project()
 
-        self.assertEqual(self.page._fields["fgd.cal"].text(), "10")
+        restored_unit = self.page._process_rows["fgd"][0]
+        self.assertEqual(restored_unit["group_amount"].text(), "")
+        self.assertTrue(restored_unit["legacy_component_amounts"])
+        self.assertFalse(restored_unit["group_amount_row"].isHidden())
         self.assertIsNone(self.page._carbonate_type_selector.currentData())
         restored = self.page._process("fgd", FGDInput)
         self.assertIsNotNone(restored)
         assert restored is not None
-        self.assertEqual(str(restored.components[0].amount.value), "10")
-        self.assertIsNone(restored.components[0].emission_factor)
+        self.assertEqual([str(item.amount.value) for item in restored.components], ["10", "2"])
+        self.assertIsNone(restored.reagent_name)
+        self.assertTrue(all(item.emission_factor is None for item in restored.components))
 
         self.page._run_calculation()
         validation_text = "\n".join(tree_texts(self.page.validation_list))
@@ -704,6 +717,7 @@ class AccountingProjectUiTests(unittest.TestCase):
     def test_project_can_be_saved_and_reopened_without_enterprise_name(self) -> None:
         self.page.project_name.setText("无企业名称项目")
         self.page.enterprise_name.clear()
+        self.page._process_rows["fgd"][0]["reagent_name"].setText("石灰石甲")
         self.assertTrue(self.page._save_project())
         project_id = self.page._workspace.project_id
         saved = self.project_service.get(project_id)
@@ -718,6 +732,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.saved_projects.setCurrentIndex(self.page.saved_projects.findData(project_id))
         self.page._open_selected_project()
         self.assertEqual(self.page.enterprise_name.text(), "")
+        self.assertEqual(self.page._process_rows["fgd"][0]["reagent_name"].text(), "石灰石甲")
 
     def test_measured_fuel_values_use_explicit_source_selection_and_remain_stable(self) -> None:
         self.page.project_name.setText("实测参数来源项目")
