@@ -151,7 +151,10 @@ def _scenario_b(application: QApplication, catalog_service: CatalogQueryService,
         page.boundary_confirmed.setChecked(True)
         _involve(page, P01)
         process = page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = next(
+            row for row in process["materials"]
+            if row["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")
@@ -176,7 +179,10 @@ def _scenario_c(application: QApplication, catalog_service: CatalogQueryService,
         page.boundary_confirmed.setChecked(True)
         _involve(page, P01)
         process = page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = next(
+            row for row in process["materials"]
+            if row["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")
