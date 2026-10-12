@@ -133,13 +133,19 @@ class SourceCard(QFrame):
         self,
         state: SourceCardPresentationState,
         summary: str,
+        *,
+        show_summary: bool = True,
     ) -> None:
         """Update only the UI-derived state and business summary."""
 
         self.presentation_state = state
-        self.presentation_state_label.setText(state.value)
-        self.summary_label.setText(summary)
-        self.summary_label.setVisible(state is not SourceCardPresentationState.NOT_INVOLVED)
+        if self.presentation_state_label.text() != state.value:
+            self.presentation_state_label.setText(state.value)
+        if self.summary_label.text() != summary:
+            self.summary_label.setText(summary)
+        summary_visible = show_summary and state is not SourceCardPresentationState.NOT_INVOLVED
+        if self.summary_label.isHidden() == summary_visible:
+            self.summary_label.setVisible(summary_visible)
         self._sync_controls()
 
     def _domain_status(self) -> object | None:
@@ -158,12 +164,15 @@ class SourceCard(QFrame):
 
     def _sync_controls(self) -> None:
         status = self._domain_status()
-        if status == self._not_involved_value:
-            self._action_button.setText("启用")
-        else:
-            self._action_button.setText("停用")
-        self._expand_button.setVisible(status == self._involved_value)
-        self._expand_button.setText("收起" if self._expanded else "展开")
+        action_text = "启用" if status == self._not_involved_value else "停用"
+        if self._action_button.text() != action_text:
+            self._action_button.setText(action_text)
+        expand_visible = status == self._involved_value
+        if self._expand_button.isHidden() == expand_visible:
+            self._expand_button.setVisible(expand_visible)
+        expand_text = "收起" if self._expanded else "展开"
+        if self._expand_button.text() != expand_text:
+            self._expand_button.setText(expand_text)
 
     def set_expanded(self, expanded: bool) -> None:
         status = self._domain_status()

@@ -63,7 +63,7 @@ class FieldSpec:
 SOURCE_LABELS = {
     "CAR-SRC-FUEL-001": "化石燃料燃烧",
     "CAR-SRC-CALCINATION-001": "原料煅烧",
-    "CAR-SRC-BAKING-001": "炭素制品焙烧/炭化",
+    "CAR-SRC-BAKING-001": "炭素制品焙烧（炭化）",
     "CAR-SRC-GRAPHITIZATION-001": "炭素制品石墨化",
     "CAR-SRC-FUME-INCINERATION-001": "烟气焚烧治理",
     "CAR-SRC-FGD-001": "烟气脱硫净化",

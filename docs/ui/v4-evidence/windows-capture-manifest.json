@@ -1,0 +1,192 @@
+{
+  "qt_platform": "windows",
+  "screen_geometry": [
+    0,
+    0,
+    2560,
+    1440
+  ],
+  "screen_dpi": 96.0,
+  "captures": [
+    {
+      "file": "home-1366x768.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "home-populated-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "home-1920x1080.png",
+      "logical_window": [
+        1920,
+        1080
+      ],
+      "image": [
+        1920,
+        1080
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "standards-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "standard-detail-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "factors-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "factors-search-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "accounting-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "accounting-fuel-active-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "accounting-material-rows-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "excel-import-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "records-list-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "record-summary-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "record-basis-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "settings-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    }
+  ]
+}

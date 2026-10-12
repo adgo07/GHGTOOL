@@ -27,7 +27,6 @@ from packages.standards.carbon_material import STANDARD_ID
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
-    COMPACT_PAGE_MARGIN,
     COMPACT_HOME_PAGE_SIDE_MARGIN,
     HOME_CANVAS_GRADIENT,
     HOME_CONTENT_MAX_WIDTH,
@@ -37,7 +36,7 @@ from .design_tokens import (
     NAV_ITEM_RADIUS,
     PAGE_BACKGROUND,
     SIDEBAR_WIDTH,
-    WIDE_PAGE_MARGIN,
+    responsive_page_margin,
 )
 from .icons import load_tinted_icon
 from .pages import create_page
@@ -51,11 +50,13 @@ PageFactory = Callable[
 ]
 
 
-_SIDEBAR_BACKGROUND = "#EAF3FB"
-_SIDEBAR_TEXT = "#182F43"
-_SIDEBAR_MUTED_TEXT = "#526A7D"
-_SIDEBAR_ACTIVE = "#12618D"
-_SIDEBAR_ACTIVE_BACKGROUND = "#E7F3F9"
+_SIDEBAR_BACKGROUND = (
+    "qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+    "stop:0 #E6F2FC, stop:0.48 #EDF6FD, stop:1 #E6F2FB)"
+)
+_SIDEBAR_MUTED_TEXT = "#516F86"
+_SIDEBAR_ACTIVE = "#116FAE"
+_SIDEBAR_ACTIVE_BACKGROUND = "#D6EBF9"
 
 
 class ContentScrollArea(QScrollArea):
@@ -277,42 +278,42 @@ class AppShell(QWidget):
             f"""
             QFrame#sidebar {{ background: {_SIDEBAR_BACKGROUND}; }}
             QWidget#brandArea, QLabel#brandLogo, QLabel#sidebarProductName {{ background: transparent; }}
-            QLabel#sidebarProductName {{ color: {_SIDEBAR_TEXT}; font-size: 16px; font-weight: 600; }}
+            QLabel#sidebarProductName {{ color: #537891; font-size: 11px; font-weight: 650; }}
             QPushButton#navButton {{
                 background: transparent; border: 1px solid transparent; border-radius: {NAV_ITEM_RADIUS}px;
-                color: {_SIDEBAR_MUTED_TEXT}; font-size: 14px; font-weight: 400;
-                padding: 0 12px; text-align: left;
+                color: {_SIDEBAR_MUTED_TEXT}; font-size: 13px; font-weight: 600;
+                padding: 0 13px; text-align: left;
             }}
-            QPushButton#navButton:hover {{ background: #F1F7FC; color: {_SIDEBAR_TEXT}; }}
+            QPushButton#navButton:hover {{ background: rgba(255, 255, 255, 0.78); color: #0F6DA7; }}
             QPushButton#navButton:checked {{
-                background: {_SIDEBAR_ACTIVE_BACKGROUND}; border-left: 3px solid {_SIDEBAR_ACTIVE};
-                color: {_SIDEBAR_ACTIVE}; font-weight: 600; padding-left: 9px;
+                background: {_SIDEBAR_ACTIVE_BACKGROUND}; border-left: 3px solid #298CCB;
+                color: {_SIDEBAR_ACTIVE}; font-weight: 700; padding-left: 10px;
             }}
             QPushButton#navButton:focus {{ border: 1px solid {_SIDEBAR_ACTIVE}; }}
             QPushButton#navButton[reserved="true"] {{ color: #98A2B3; }}
-            QPushButton#navButton[reserved="true"]:hover {{ background: #F1F7FC; color: #98A2B3; }}
+            QPushButton#navButton[reserved="true"]:hover {{ background: rgba(255, 255, 255, 0.45); color: #91A3B2; }}
             """
         )
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setContentsMargins(0, 24, 0, 18)
         sidebar_layout.setSpacing(0)
 
         brand_area = QWidget(sidebar)
         brand_area.setObjectName("brandArea")
         brand_area.setFixedHeight(BRAND_AREA_HEIGHT)
         brand_layout = QVBoxLayout(brand_area)
-        brand_layout.setContentsMargins(20, 16, 20, 12)
-        brand_layout.setSpacing(8)
+        brand_layout.setContentsMargins(7, 10, 7, 19)
+        brand_layout.setSpacing(6)
 
         logo_label = QLabel(brand_area)
         logo_label.setObjectName("brandLogo")
         logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        logo_label.setFixedHeight(44)
+        logo_label.setFixedSize(180, 46)
         logo = QPixmap(str(self._logo_path))
         if not logo.isNull():
             logo_label.setPixmap(
                 logo.scaled(
-                    QSize(176, 44),
+                    QSize(180, 46),
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
@@ -363,7 +364,8 @@ class AppShell(QWidget):
 
         settings_row = QWidget(sidebar)
         settings_layout = QVBoxLayout(settings_row)
-        settings_layout.setContentsMargins(12, 0, 12, 16)
+        settings_row.setStyleSheet("QWidget { border-top: 1px solid #D4E5F1; }")
+        settings_layout.setContentsMargins(12, 12, 12, 0)
         settings_layout.setSpacing(0)
         settings_button = self._navigation_buttons[AppRoute.SETTINGS]
         navigation_layout.removeWidget(settings_button)
@@ -494,7 +496,7 @@ class AppShell(QWidget):
                         else HOME_PAGE_SIDE_MARGIN
                     )
                 else:
-                    margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
+                    margin = responsive_page_margin(self.width())
                 setter(margin)
         available_height = max(0, self.main_scroll_area.viewport().height())
         self.page_stack.setMinimumHeight(available_height)

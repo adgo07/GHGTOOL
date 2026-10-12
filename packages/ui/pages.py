@@ -485,7 +485,7 @@ class BasePage(QWidget):
             WIDE_PAGE_MARGIN,
             WIDE_PAGE_MARGIN,
         )
-        self.body_layout.setSpacing(24)
+        self.body_layout.setSpacing(22)
 
     def set_page_margin(self, margin: int) -> None:
         self.body_layout.setContentsMargins(margin, margin, margin, margin)
@@ -514,7 +514,7 @@ def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
     card.setObjectName("card")
     card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
     layout = QVBoxLayout(card)
-    layout.setContentsMargins(20, 20, 20, 20)
+    layout.setContentsMargins(22, 19, 22, 19)
     layout.setSpacing(12)
     title_label = QLabel(title, card)
     title_label.setObjectName("cardTitle")
@@ -700,13 +700,19 @@ class HomePage(BasePage):
         title_group.setObjectName("homeTitleGroup")
         title_group_layout = QVBoxLayout(title_group)
         title_group_layout.setContentsMargins(0, 0, 0, 0)
+        title_group_layout.setSpacing(6)
         title = QLabel(view_model.home_title, title_group)
         title.setObjectName("pageTitle")
         title.setWordWrap(True)
         title.setStyleSheet("font-size: 30px; font-weight: 800; color: #183c57;")
         title.setFixedHeight(42)
         title_group_layout.addWidget(title)
-        title_group.setFixedHeight(42)
+        description = QLabel(view_model.home_description, title_group)
+        description.setObjectName("homeDescription")
+        description.setWordWrap(True)
+        description.setStyleSheet("color: #698198; font-size: 13px;")
+        title_group_layout.addWidget(description)
+        title_group.setFixedHeight(66)
         title_layout.addWidget(title_group, 1)
         header_layout.addWidget(title_row, 1)
         header_layout.addWidget(
@@ -725,7 +731,7 @@ class HomePage(BasePage):
         workspace.setObjectName("primaryWorkspace")
         layout = QHBoxLayout(workspace)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
         entries = [
             item
             for item in view_model.navigation
@@ -1146,9 +1152,16 @@ class HomePage(BasePage):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
         header.setMinimumSectionSize(62)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for column in (1, 2, 3, 4):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        for column, width in enumerate((190, 88, 94, 96, 78)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+            table.setColumnWidth(column, width)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        operation_header = table.horizontalHeaderItem(4)
+        if operation_header is not None:
+            operation_header.setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
+        table.setTextElideMode(Qt.TextElideMode.ElideRight)
         table.setStyleSheet("""
             QTableWidget#homeRecentTable {
                 border: none; background: transparent; color: #213a4f;
@@ -1213,7 +1226,8 @@ class HomePage(BasePage):
             action.setStyleSheet("""
                 QPushButton#openRecentRecordButton {
                     border: none; background: transparent; color: #12649a;
-                    padding: 4px 2px; font-size: 12px; font-weight: 600;
+                    min-height: 24px; max-height: 24px;
+                    padding: 2px; font-size: 12px; font-weight: 600;
                     text-align: left;
                 }
                 QPushButton#openRecentRecordButton:hover { text-decoration: underline; }
@@ -1225,8 +1239,18 @@ class HomePage(BasePage):
                 lambda _checked=False, record_id=record.record_id:
                     self.record_requested.emit(record_id)
             )
-            table.setCellWidget(row, 4, action)
+            action.setFixedHeight(28)
+            action_cell = QWidget(table)
+            action_layout = QHBoxLayout(action_cell)
+            action_layout.setContentsMargins(4, 0, 4, 0)
+            action_layout.setSpacing(0)
+            action_layout.addWidget(
+                action, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
+            table.setCellWidget(row, 4, action_cell)
         table.resizeRowsToContents()
+        for row in range(table.rowCount()):
+            table.setRowHeight(row, 44)
         return table
 
     def refresh_recent_records(self) -> None:
@@ -1319,6 +1343,91 @@ class PlaceholderPage(BasePage):
         message_label.setWordWrap(True)
         layout.addWidget(message_label)
         layout.addStretch(1)
+        self.body_layout.addWidget(card)
+        self.body_layout.addStretch(1)
+
+
+class SettingsPage(BasePage):
+    """Standard-neutral settings overview matching the V4 two-column layout."""
+
+    def __init__(
+        self,
+        view_model: ShellViewModel,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(AppRoute.SETTINGS, parent)
+        self.add_header(
+            "设置",
+            "当前主线只保留真实设置入口，暂无已实现的可调整业务设置项。",
+        )
+        card, card_layout = _card("当前版本", self)
+        columns = QWidget(card)
+        columns.setObjectName("settingsColumns")
+        columns_layout = QHBoxLayout(columns)
+        columns_layout.setContentsMargins(0, 0, 0, 0)
+        columns_layout.setSpacing(16)
+
+        info = QFrame(columns)
+        info.setObjectName("settingsSurface")
+        info_layout = QVBoxLayout(info)
+        info_layout.setContentsMargins(14, 14, 14, 14)
+        info_layout.setSpacing(12)
+        info_title = QLabel("软件信息", info)
+        info_title.setObjectName("cardTitle")
+        info_layout.addWidget(info_title)
+        facts = (
+            ("产品", view_model.product_name),
+            ("运行平台", "Windows 桌面版"),
+            ("界面技术", "PySide6 · Qt Widgets"),
+        )
+        for label_text, value_text in facts:
+            row = QWidget(info)
+            row_layout = QGridLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setHorizontalSpacing(14)
+            row_layout.setVerticalSpacing(8)
+            label = QLabel(label_text, row)
+            label.setObjectName("detailFieldLabel")
+            value = QLabel(value_text, row)
+            value.setObjectName("detailFieldValue")
+            value.setWordWrap(True)
+            row_layout.addWidget(label, 0, 0)
+            row_layout.addWidget(value, 0, 1)
+            row_layout.setColumnStretch(1, 1)
+            info_layout.addWidget(row)
+        info_layout.addStretch(1)
+
+        options = QFrame(columns)
+        options.setObjectName("settingsSurface")
+        options_layout = QVBoxLayout(options)
+        options_layout.setContentsMargins(14, 14, 14, 14)
+        options_layout.setSpacing(12)
+        options_title = QLabel("可调整项目", options)
+        options_title.setObjectName("cardTitle")
+        options_layout.addWidget(options_title)
+        empty_state = QWidget(options)
+        empty_layout = QVBoxLayout(empty_state)
+        empty_layout.setContentsMargins(8, 10, 8, 10)
+        empty_layout.setSpacing(8)
+        empty_title = QLabel("当前版本暂无可调整的设置项", empty_state)
+        empty_title.setObjectName("emptyStateTitle")
+        empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_description = QLabel(
+            "此处仅显示本版本已经开放的设置。",
+            empty_state,
+        )
+        empty_description.setObjectName("emptyStateDescription")
+        empty_description.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_description.setWordWrap(True)
+        empty_layout.addStretch(1)
+        empty_layout.addWidget(empty_title)
+        empty_layout.addWidget(empty_description)
+        empty_layout.addStretch(1)
+        options_layout.addWidget(empty_state, 1)
+
+        columns_layout.addWidget(info, 1)
+        columns_layout.addWidget(options, 1)
+        card_layout.addWidget(columns, 1)
         self.body_layout.addWidget(card)
         self.body_layout.addStretch(1)
 
@@ -2851,6 +2960,8 @@ def create_page(
             calculation_use_case=calculation_use_case,
             parent=parent,
         )
+    if route is AppRoute.SETTINGS:
+        return SettingsPage(view_model, parent)
 
     placeholders = {
         AppRoute.STANDARDS: (

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QComboBox,
+    QHeaderView,
     QLineEdit,
     QLabel,
     QPushButton,
@@ -28,7 +29,11 @@ from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
 from packages.application.project_workspaces import ProjectWorkspaceService
 from packages.persistence import SQLiteProjectWorkspaceRepository
 import packages.ui.shell as shell_module
-from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
+from packages.ui.design_tokens import (
+    BRAND_AREA_HEIGHT,
+    SIDEBAR_WIDTH,
+    responsive_page_margin,
+)
 from packages.ui.shell import AppShell
 from packages.core.models import (
     AccountingInput,
@@ -144,7 +149,9 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(home.findChild(QLabel, "pageTitle").text(), "温室气体排放核算")
         self.assertIsNotNone(home.findChild(QWidget, "primaryWorkspace"))
         self.assertIsNotNone(home.findChild(QWidget, "homeHeader"))
-        self.assertIsNone(home.findChild(QLabel, "homeDescription"))
+        home_description = home.findChild(QLabel, "homeDescription")
+        self.assertIsNotNone(home_description)
+        self.assertTrue(home_description.text().strip())
         self.assertIsNone(home.findChild(QWidget, "homeInfoChip"))
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentProjectsCard"))
@@ -184,7 +191,7 @@ class G03ShellTest(unittest.TestCase):
             self.assertIsNotNone(icon.pixmap())
             self.assertFalse(icon.pixmap().isNull())
 
-    def test_shell_scopes_light_sidebar_styling_without_changing_global_tokens(self) -> None:
+    def test_shell_uses_light_v4_sidebar_styling(self) -> None:
         shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
         self.assertIn("BRAND_AREA_HEIGHT", shell_source)
         self.assertIn("NAV_ITEM_RADIUS", shell_source)
@@ -196,7 +203,23 @@ class G03ShellTest(unittest.TestCase):
         assert brand_area is not None
         self.assertEqual(brand_area.height(), BRAND_AREA_HEIGHT)
         sidebar = self.shell.findChild(QWidget, "sidebar")
-        self.assertIn("#EAF3FB", sidebar.styleSheet())
+        self.assertIn("#E6F2FC", sidebar.styleSheet())
+        self.assertIn("font-size: 13px", sidebar.styleSheet())
+
+    def test_settings_overview_uses_real_product_info_and_v4_two_column_layout(self) -> None:
+        settings = self.shell.pages[AppRoute.SETTINGS]
+        self.assertEqual(settings.findChild(QLabel, "pageTitle").text(), "设置")
+        self.assertEqual(len(settings.findChildren(QFrame, "settingsSurface")), 2)
+        labels = [label.text() for label in settings.findChildren(QLabel)]
+        self.assertIn("软件信息", labels)
+        self.assertIn("可调整项目", labels)
+        self.assertIn("当前版本暂无可调整的设置项", labels)
+        self.assertFalse(any("GB/T 32151.34" in label for label in labels))
+
+    def test_page_margin_matches_v4_viewport_clamp(self) -> None:
+        self.assertEqual(responsive_page_margin(1366), 46)
+        self.assertEqual(responsive_page_margin(1600), 48)
+        self.assertEqual(responsive_page_margin(1920), 48)
 
     def test_all_routes_are_reachable_and_home_actions_share_routes(self) -> None:
         shell = self.shell
@@ -280,7 +303,21 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(recent_table.rowCount(), 1)
         self.assertEqual(recent_table.item(0, 0).text(), "首页记录展示测试企业")
         self.assertEqual(recent_table.item(0, 1).text(), "2025年度")
-        self.assertIsNotNone(recent_table.cellWidget(0, 4))
+        self.assertEqual(recent_table.columnWidth(0), 190)
+        self.assertEqual(
+            recent_table.horizontalHeader().sectionResizeMode(4),
+            QHeaderView.ResizeMode.Stretch,
+        )
+        self.assertEqual(recent_table.textElideMode(), Qt.TextElideMode.ElideRight)
+        action_cell = recent_table.cellWidget(0, 4)
+        self.assertIsNotNone(action_cell)
+        assert action_cell is not None
+        action = action_cell.findChild(QPushButton, "openRecentRecordButton")
+        self.assertIsNotNone(action)
+        assert action is not None
+        self.assertIs(action.parentWidget(), action_cell)
+        self.assertEqual(recent_table.rowHeight(0), 44)
+        self.assertEqual(action.height(), 28)
         self.assertIsNone(home.findChild(QWidget, "recentStandardsCard"))
 
     def test_import_context_is_explicit_and_context_edits_invalidate_old_preview(self) -> None:

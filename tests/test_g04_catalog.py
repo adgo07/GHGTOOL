@@ -293,7 +293,7 @@ class G04CatalogTests(unittest.TestCase):
 
     def test_standard_page_searches_and_routes_only_the_opened_standard(self) -> None:
         page = self.shell.pages[AppRoute.STANDARDS]
-        table = page.findChild(QTableWidget, "catalogTable")
+        table = page.findChild(QTableWidget, "standardLibraryTable")
         search = page.findChild(type(page.search_input), "standardSearch")
         self.assertIsNotNone(table)
         self.assertIsNotNone(search)
@@ -397,14 +397,14 @@ class G04CatalogTests(unittest.TestCase):
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(card_titles, ["基本信息", "适用范围", "标准要求"])
+        self.assertEqual(card_titles, ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"])
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
-        self.assertIn("当前目录尚未录入可核验的结构化标准要求。", detail_text)
+        self.assertIn("使用已实现的行业核算流程", detail_text)
         for forbidden in (
             "发布单位",
             "标准关系",
@@ -507,11 +507,19 @@ class G04CatalogTests(unittest.TestCase):
         self.assertIn("天然气", [page.factor_table.item(row, 0).text() for row in range(page.factor_table.rowCount())])
 
         page.view_mode_filter.setCurrentIndex(1)
+        self.assertTrue(page.search_mode_button.isChecked())
         page.search_input.setText("0.11")
+        page.search_category_filter.setCurrentIndex(
+            page.search_category_filter.findData("factor")
+        )
         self.application.processEvents()
+        self.assertTrue(all(
+            page.search_result_table.item(row, 0).text() == "排放因子"
+            for row in range(page.search_result_table.rowCount())
+        ))
         heat_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "参数值"
+            if page.search_result_table.item(row, 0).text() == "排放因子"
             and "外购热力" in page.search_result_table.item(row, 1).text()
         )
         page.search_result_table.selectRow(heat_row)
@@ -525,6 +533,15 @@ class G04CatalogTests(unittest.TestCase):
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
         self.assertNotIn("asset-heat_default", visible_text)
         self.assertNotIn("heat_default_gbt", visible_text)
+
+        page.search_category_filter.setCurrentIndex(0)
+        page.search_source_list.setCurrentRow(1)
+        self.application.processEvents()
+        self.assertEqual(
+            page.search_source_filter.currentData(),
+            page.search_source_list.item(1).data(Qt.ItemDataRole.UserRole),
+        )
+        page.search_source_list.setCurrentRow(0)
 
         page.search_input.setText("饱和蒸汽")
         self.application.processEvents()
@@ -662,7 +679,7 @@ class G04CatalogTests(unittest.TestCase):
             assert isinstance(shell, AppShell)
             standard_page = shell.pages[AppRoute.STANDARDS]
             factor_page = shell.pages[AppRoute.FACTORS]
-            self.assertEqual(standard_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
+            self.assertEqual(standard_page.findChild(QTableWidget, "standardLibraryTable").rowCount(), 0)
             shell.navigate(AppRoute.FACTORS)
             self.application.processEvents()
             self.assertEqual(factor_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
@@ -695,7 +712,7 @@ class G04CatalogTests(unittest.TestCase):
             self.application.processEvents()
             heat_row = next(
                 row for row in range(page.search_result_table.rowCount())
-                if page.search_result_table.item(row, 0).text() == "参数值"
+                if page.search_result_table.item(row, 0).text() == "排放因子"
                 and "外购热力" in page.search_result_table.item(row, 1).text()
             )
             page.search_result_table.selectRow(heat_row)

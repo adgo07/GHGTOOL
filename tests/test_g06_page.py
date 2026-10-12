@@ -108,6 +108,68 @@ class G06PageTests(unittest.TestCase):
             "calculationValidationList",
         ):
             self.assertIsNotNone(self.page.findChild(QWidget, object_name), object_name)
+
+    def test_quick_jump_matches_eight_source_groups_and_material_roles_are_preopened(self) -> None:
+        self.assertEqual(self.page._fuel_rows[0].fuel_type_label.text(), "燃料种类")
+        self.assertEqual(self.page.source_navigation.count(), 9)
+        self.assertEqual(
+            [self.page.source_navigation.itemText(index) for index in range(1, 9)],
+            [label for _group_id, label, _source_ids in self.page._source_toggle_groups],
+        )
+        self.assertEqual(
+            [self.page._source_toggle_buttons[group_id].accessibleName()
+             for group_id, _label, _source_ids in self.page._source_toggle_groups],
+            [label for _group_id, label, _source_ids in self.page._source_toggle_groups],
+        )
+        expected = {
+            "calcination": ["原料", "煅后料", "欠煅烧料", "碳粉尘"],
+            "baking": ["填充料", "待焙烧/炭化品", "焙烧/炭化产品", "粉尘/碎屑/副产品"],
+            "graphitization": ["保温料/电阻料", "待石墨化品", "石墨化产品", "粉尘/碎屑/残块/副产品"],
+        }
+        source_ids = {
+            "calcination": "CAR-SRC-CALCINATION-001",
+            "baking": "CAR-SRC-BAKING-001",
+            "graphitization": "CAR-SRC-GRAPHITIZATION-001",
+        }
+        for prefix, labels in expected.items():
+            with self.subTest(prefix=prefix):
+                self._set_source_involved(source_ids[prefix])
+                process = self.page._process_rows[prefix][0]
+                materials = process["materials"]
+                self.assertEqual([line["role"].currentText() for line in materials], labels)
+                self.assertTrue(all(not line["remove_button"].isHidden() for line in materials))
+                self.assertEqual(self.page._material_inputs(process), ())
+
+        calcination = self.page._process_rows["calcination"][0]
+        for material in tuple(calcination["materials"]):
+            self.page._remove_material_line(calcination, material["line_id"])
+        self.assertEqual(calcination["materials"], [])
+        saved = self.page._capture_form_state()
+        saved_rows = saved["process_instances"]["calcination"]
+        self.assertEqual(saved_rows[0]["material_ids"], [])
+        self.page._restore_form_state(saved)
+        self.assertEqual(self.page._process_rows["calcination"][0]["materials"], [])
+
+    def test_typing_does_not_relayout_the_active_source_or_input(self) -> None:
+        source_id = "CAR-SRC-FUEL-001"
+        self._set_source_involved(source_id)
+        row = self.page._fuel_rows[0]
+        row.activity.setText("1")
+        for _ in range(3):
+            self.application.processEvents()
+        card = self.page._source_cards[source_id]
+        field_geometry = row.activity.geometry()
+        card_geometry = card.geometry()
+        scroll_value = self.shell.main_scroll_area.verticalScrollBar().value()
+
+        row.activity.setText("12")
+        for _ in range(3):
+            self.application.processEvents()
+
+        self.assertEqual(row.activity.geometry(), field_geometry)
+        self.assertEqual(card.geometry(), card_geometry)
+        self.assertEqual(self.shell.main_scroll_area.verticalScrollBar().value(), scroll_value)
+
     def test_c1_specific_fuels_resolve_canonical_defaults_through_supported_paths(self) -> None:
         row = self.page._fuel_rows[0]
         self.assertEqual(row.lower_heating_value.property("fieldSpecKey"), "fuel_lhv")
@@ -350,12 +412,12 @@ class G06PageTests(unittest.TestCase):
             (MaterialRole.CALCINED_PRODUCT, "煅后料", "70", "90", "2"),
         )
         first = self.page._process_rows["calcination"][0]
-        for index, (role, label, mass, fc, vm) in enumerate(roles):
-            material = first["materials"][0] if index == 0 else self.page._add_material_line(first)
+        for role, label, mass, fc, vm in roles:
+            material = self._material_for_role(first, role)
             self._fill_material_line(material, role, f"{label}甲", mass, fc, vm)
         second = self.page._add_process_row("calcination")
         for index, (role, label, mass, fc, vm) in enumerate(roles):
-            material = second["materials"][0] if index == 0 else self.page._add_material_line(second)
+            material = self._material_for_role(second, role)
             self._fill_material_line(material, role, f"{label}乙", "240" if index == 0 else "180", "75" if index == 0 else "88", "8" if index == 0 else "1")
         input_value = self.page._input()
         self.assertEqual(len(input_value.calcinations), 2)
@@ -397,8 +459,8 @@ class G06PageTests(unittest.TestCase):
         rows = [self.page._process_rows["graphitization"][0]]
         rows.append(self.page._add_process_row("graphitization"))
         for row_index, row in enumerate(rows):
-            for index, (role, label, mass, fc, vm) in enumerate(roles):
-                material = row["materials"][0] if index == 0 else self.page._add_material_line(row)
+            for role, label, mass, fc, vm in roles:
+                material = self._material_for_role(row, role)
                 self._fill_material_line(material, role, f"{label}{row_index + 1}", mass, fc, vm)
         invalid_row = self.page._add_process_row("graphitization")
         invalid_row["materials"][0]["mass"].setText("1")
@@ -638,8 +700,8 @@ class G06PageTests(unittest.TestCase):
                 rows = (first, self.page._add_process_row(prefix))
                 for row_index, row in enumerate(rows):
                     scale = 1 if row_index == 0 else 2
-                    for index, (role, label, mass, fixed_carbon, volatile_matter) in enumerate(material_roles[prefix]):
-                        material = row["materials"][0] if index == 0 else self.page._add_material_line(row)
+                    for role, label, mass, fixed_carbon, volatile_matter in material_roles[prefix]:
+                        material = self._material_for_role(row, role)
                         self._fill_material_line(
                             material, role, f"{label}{row_index + 1}", str(Decimal(mass) * scale),
                             fixed_carbon, volatile_matter,
@@ -792,6 +854,18 @@ class G06PageTests(unittest.TestCase):
         row["fixed_carbon"].setText(fixed_carbon)
         row["volatile_matter"].setText(volatile_matter)
 
+    @staticmethod
+    def _material_for_role(process_row: dict[str, object], role: MaterialRole) -> dict[str, object]:
+        materials = process_row.get("materials", [])
+        if not isinstance(materials, list):
+            raise AssertionError("process row has no material rows")
+        return next(
+            line for line in materials
+            if isinstance(line, dict)
+            and isinstance(line.get("role"), QComboBox)
+            and line["role"].currentData() == role
+        )
+
     def _select_carbonate(self, component: dict[str, object], parameter_id: str) -> None:
         selector = component["carbonate_type"]
         self.assertIsInstance(selector, QComboBox)
@@ -855,9 +929,9 @@ class G06PageTests(unittest.TestCase):
     def test_component_selectors_are_hidden_and_material_kinds_are_automatic(self) -> None:
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = self._material_for_role(process, MaterialRole.CALCINATION_FEED)
         self._fill_material_line(feed, MaterialRole.CALCINATION_FEED, "原料甲", "100", "50", "10")
-        product = self.page._add_material_line(process)
+        product = self._material_for_role(process, MaterialRole.CALCINED_PRODUCT)
         self._fill_material_line(product, MaterialRole.CALCINED_PRODUCT, "煅后料甲", "70", "25", "2")
         controls = self.page._material_controls["calcination"]
         self.assertFalse(controls["basis_editor"].isVisible())
@@ -970,7 +1044,7 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process_row = self.page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = self._material_for_role(process_row, MaterialRole.CALCINATION_FEED)
         feed["name"].setText("原料甲")
         feed["mass"].setText("100")
         feed["fixed_carbon"].setText("80")
@@ -983,7 +1057,7 @@ class G06PageTests(unittest.TestCase):
         second_feed["mass"].setText("50")
         second_feed["fixed_carbon"].setText("60")
         second_feed["volatile_matter"].setText("20")
-        product = self.page._add_material_line(process_row)
+        product = self._material_for_role(process_row, MaterialRole.CALCINED_PRODUCT)
         product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
         product["name"].setText("煅后料")
         product["mass"].setText("120")
@@ -1044,9 +1118,9 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = self._material_for_role(process, MaterialRole.CALCINATION_FEED)
         self._fill_material_line(feed, MaterialRole.CALCINATION_FEED, "原料甲", "100", "50", "10")
-        product = self.page._add_material_line(process)
+        product = self._material_for_role(process, MaterialRole.CALCINED_PRODUCT)
         self._fill_material_line(product, MaterialRole.CALCINED_PRODUCT, "煅后料甲", "70", "25", "2")
         current_input = self.page._input()
         current_process = current_input.calcinations[0]
