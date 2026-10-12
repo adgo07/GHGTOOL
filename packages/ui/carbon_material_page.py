@@ -960,9 +960,29 @@ class CarbonMaterialAccountingPage(BasePage):
             application.installEventFilter(self)
 
     def eventFilter(self, watched: object, event: QEvent) -> bool:  # type: ignore[override]
-        """Keep the main page scrollable when the pointer rests on a closed input."""
+        """Open selectors from their input area and keep the page wheel-scrollable."""
 
-        if event.type() != QEvent.Type.Wheel or not isinstance(watched, QWidget):
+        if not isinstance(watched, QWidget):
+            return super().eventFilter(watched, event)
+        if event.type() == QEvent.Type.MouseButtonRelease:
+            control = watched
+            while control is not None and control is not self and not isinstance(control, QComboBox):
+                control = control.parentWidget()
+            if (
+                isinstance(control, QComboBox)
+                and self.isAncestorOf(control)
+                and control.isEnabled()
+                and not control.view().isVisible()
+            ):
+                line_edit = control.lineEdit() if control.isEditable() else None
+                if (
+                    watched is control
+                    or watched is line_edit
+                    or (line_edit is not None and line_edit.isAncestorOf(watched))
+                ):
+                    QTimer.singleShot(0, control, control.showPopup)
+            return super().eventFilter(watched, event)
+        if event.type() != QEvent.Type.Wheel:
             return super().eventFilter(watched, event)
         control = watched
         while control is not None and control is not self:
@@ -996,6 +1016,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if layout is not None:
             layout.invalidate()
             layout.activate()
+        self.adjustSize()
         self.updateGeometry()
         central = getattr(self.window(), "centralWidget", None)
         shell = central() if callable(central) else None
@@ -3563,10 +3584,13 @@ class CarbonMaterialAccountingPage(BasePage):
             self.fuel_rows_layout.removeWidget(row)
             row.setParent(None)
             row.deleteLater()
+            self.fuel_rows_layout.invalidate()
+            self.fuel_rows_host.updateGeometry()
             self._bind_fuel_aliases(self._fuel_rows[0])
             self._fuel_rows[0].remove_button.hide()
             self._mark_input_dirty()
         self._refresh_source_cards()
+        self._schedule_layout_refresh()
 
     def _canonical_default_factor(self, parameter_id: str, *, value_type: ValueType = ValueType.STANDARD_DEFAULT) -> object | None:
         parameter_id = parameter_id.lower()

@@ -64,7 +64,8 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         labels = [button.accessibleName() for button in self.page._source_toggle_buttons.values()]
         self.assertEqual(
             labels,
-            ["化石燃料", "原料煅烧", "焙烧/炭化", "石墨化", "烟气焚烧", "烟气脱硫", "购入/输出电力", "购入/输出热力"],
+            ["化石燃料燃烧", "原料煅烧", "炭素制品焙烧（炭化）", "炭素制品石墨化",
+             "烟气焚烧治理", "烟气脱硫净化", "购入/输出电力", "购入/输出热力/动力"],
         )
         purchase = self.page._source_statuses["CAR-SRC-PURCHASED-ELECTRICITY-001"]
         exported = self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"]

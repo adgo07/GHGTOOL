@@ -312,7 +312,7 @@ class StandardLibraryPage(BasePage):
                     font.setWeight(QFont.Weight.DemiBold)
                     item.setFont(font)
                     item.setForeground(QColor("#12618D"))
-                    item.setToolTip("打开标准详情")
+                    item.setToolTip(f"{value}\n点击打开标准详情")
                 self.standard_table.setItem(row_number, column, item)
         self.standard_table.resizeRowsToContents()
         self.result_summary.setText(

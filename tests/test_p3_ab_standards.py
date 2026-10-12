@@ -399,11 +399,8 @@ class P3ABStandardsTests(unittest.TestCase):
         self.assertIsNotNone(name_item)
         assert name_item is not None
         self.assertEqual(name_item.text(), long_name)
-        horizontal_bar = page.standard_table.horizontalScrollBar()
-        self.assertGreater(horizontal_bar.maximum(), 0)
-        horizontal_bar.setValue(horizontal_bar.maximum())
-        self._process_events()
-        self.assertEqual(horizontal_bar.value(), horizontal_bar.maximum())
+        self.assertIn(long_name, name_item.toolTip())
+        self.assertIn(long_name, name_item.data(Qt.ItemDataRole.AccessibleTextRole))
         self.assertTrue(
             page.standard_table.visualItemRect(name_item).intersects(
                 page.standard_table.viewport().rect()

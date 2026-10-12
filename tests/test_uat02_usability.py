@@ -75,6 +75,10 @@ class UAT02UsabilityTests(unittest.TestCase):
         QApplication.sendEvent(row.fuel_type, wheel)
         self.assertEqual(row.fuel_type.currentData(), before_fuel)
         self.assertGreaterEqual(scrollbar.value(), before_scroll)
+        QTest.mouseClick(row.path, Qt.MouseButton.LeftButton)
+        self.application.processEvents()
+        self.assertTrue(row.path.view().isVisible())
+        row.path.hidePopup()
         year = self.page.period_year.value()
         QApplication.sendEvent(self.page.period_year, QWheelEvent(
             QPointF(5, 5), QPointF(5, 5), QPoint(), QPoint(0, -120),
@@ -96,7 +100,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertEqual(row.fuel_type.currentText(), "测试燃料")
         row.fuel_type.setCurrentIndex(natural_gas)
         before_popup = row.fuel_type.currentIndex()
-        row.fuel_type.showPopup()
+        QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
         self.application.processEvents()
         self.assertTrue(row.fuel_type.view().isVisible())
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Down)
