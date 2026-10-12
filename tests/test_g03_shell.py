@@ -144,6 +144,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(home.findChild(QLabel, "pageTitle").text(), "温室气体排放核算")
         self.assertIsNotNone(home.findChild(QWidget, "primaryWorkspace"))
         self.assertIsNotNone(home.findChild(QWidget, "homeHeader"))
+        self.assertIsNone(home.findChild(QLabel, "homeDescription"))
         self.assertIsNone(home.findChild(QWidget, "homeInfoChip"))
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentProjectsCard"))
