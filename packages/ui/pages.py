@@ -57,10 +57,9 @@ from packages.application.carbon_accounting import (
     CarbonAccountingPreviewUseCase,
     CarbonAccountingUseCase,
     RecordPersistenceError,
-    create_g06_parameter_resolver,
     resolve_formal_record_repository,
 )
-from packages.standards.carbon_material import CarbonMaterialCalculator, FuelPath, STANDARD_ID, STANDARD_VERSION
+from packages.application.standard_registry import StandardRuntime
 from .report_export import export_saved_record_report, report_supplementary_dialog
 from .record_experience import (
     SnapshotState,
@@ -1897,12 +1896,19 @@ class ExcelImportPage(BasePage):
         calculation_use_case: CarbonAccountingUseCase | None = None,
         project_service: ProjectWorkspaceService | None = None,
         record_repository: RecordRepository | None = None,
+        standard_runtime=None,
+        standard_id: str | None = None,
     ) -> None:
         super().__init__(AppRoute.EXCEL_IMPORT, parent)
         self.calculation_use_case = calculation_use_case
         self.project_service = project_service
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
+        self.standard_id = standard_id or self.standard_runtime.registry.default_standard_id
+        self.implementation = self.standard_runtime.registry.require(self.standard_id)
+        _calculator, self.calculation_use_case, self.preview_use_case = self.standard_runtime.services(self.standard_id)
+        self.excel_adapter = self.standard_runtime.excel(self.standard_id)
         self._last_preview = None
         self._last_workbook_path: Path | None = None
         self._chosen_workbook_path: Path | None = None
@@ -1910,28 +1916,9 @@ class ExcelImportPage(BasePage):
         self._preview_workbook_warnings: tuple[object, ...] = ()
         self._workspace: ProjectWorkspace | None = None
         self._selected_unit_id: str | None = None
-        self._fuel_path_overrides: dict[str, FuelPath] = {}
+        self._fuel_path_overrides: dict[str, Any] = {}
         self._fuel_override_combos: dict[str, QComboBox] = {}
         self._preview_context_key: tuple[object, ...] | None = None
-
-        if calculation_use_case is not None:
-            self.preview_use_case = CarbonAccountingPreviewUseCase(calculation_use_case.calculator)
-        else:
-            resolver = None
-            try:
-                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
-            except (AttributeError, KeyError, TypeError, ValueError):
-                pass
-            try:
-                calculator = CarbonMaterialCalculator(
-                    parameter_resolver=resolver,
-                    standard_version=self.catalog_service.standard_version(STANDARD_ID) or STANDARD_VERSION,
-                    standard_implementation_date=self.catalog_service.standard_implementation_date(STANDARD_ID),
-                    reference_data_identity_provider=self.catalog_service.reference_data_identity,
-                )
-            except (AttributeError, TypeError, ValueError):
-                calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
-            self.preview_use_case = CarbonAccountingPreviewUseCase(calculator)
 
         self.add_header(
             "表格导入",
@@ -1944,12 +1931,12 @@ class ExcelImportPage(BasePage):
             "excelImportTemplateSection", "01 获取模板", self
         )
         template_row = QHBoxLayout()
-        self.templateButton = QPushButton("下载附录 B 填报模板", template_section)
+        self.templateButton = QPushButton(self.excel_adapter.template_button_label, template_section)
         self.templateButton.setObjectName("templateButton")
         self.templateButton.clicked.connect(self._download_template)
         template_row.addWidget(self.templateButton)
         template_row.addWidget(
-            QLabel("使用 GB/T 32151.34—2024 附录 B 模板，填写 B.2～B.9 活动数据。", template_section),
+            QLabel(self.excel_adapter.template_description, template_section),
             1,
         )
         template_layout.addLayout(template_row)
@@ -2117,14 +2104,12 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("暂无已保存的 Excel 项目；保存项目后可在此处重新打开。")
 
     def _download_template(self) -> None:
-        from packages.excel.templates import ExcelTemplateService
-
-        service = ExcelTemplateService.default()
-        template = service.get(STANDARD_ID)
+        service = self.excel_adapter.templates
+        template = service.get(self.standard_id)
         target, _ = QFileDialog.getSaveFileName(
             self,
-            "保存 GB/T 32151.34—2024 附录 B 模板",
-            "GB_T_32151_34_2024_Appendix_B.xlsx",
+            self.excel_adapter.template_dialog_title,
+            self.excel_adapter.template_filename,
             "Excel 工作簿 (*.xlsx)",
         )
         if not target:
@@ -2133,7 +2118,7 @@ class ExcelImportPage(BasePage):
         if path.suffix.lower() != ".xlsx":
             path = path.with_suffix(".xlsx")
         try:
-            service.copy_to(path, standard_id=STANDARD_ID)
+            service.copy_to(path, standard_id=self.standard_id)
         except Exception:
             _LOGGER.exception("Unable to copy approved Appendix B template to %s", path)
             QMessageBox.critical(
@@ -2202,11 +2187,7 @@ class ExcelImportPage(BasePage):
         regions: tuple[str, ...] = ()
         try:
             period = self._period_for_import()
-            resolver = self.preview_use_case.calculator.parameter_resolver
-            if resolver is not None:
-                from packages.application.uat03_parameter_queries import UAT03ParameterQueries
-
-                regions = UAT03ParameterQueries(self.catalog_service, resolver).electricity_regions(period)
+            regions = self.excel_adapter.regions(period)
         except (AttributeError, TypeError, ValueError):
             regions = ()
         blocker = QSignalBlocker(self.import_region)
@@ -2219,10 +2200,8 @@ class ExcelImportPage(BasePage):
         del blocker
 
     def _build_import_context(self):
-        from packages.excel.appendix_b import AppendixBImportContext
-
         enterprise_name = self.import_enterprise_name.text().strip() or None
-        return AppendixBImportContext(
+        return self.excel_adapter.context(
             period=self._period_for_import(),
             enterprise_name=enterprise_name,
             region=self.import_region.currentData(),
@@ -2255,7 +2234,7 @@ class ExcelImportPage(BasePage):
         errors = [
             item
             for item in preview.units[0].errors
-            if item.code == "EXB01_FUEL_PATH_REQUIRED"
+            if item.code == self.excel_adapter.path_error_code
         ]
         if not errors:
             return
@@ -2265,10 +2244,7 @@ class ExcelImportPage(BasePage):
         )
         heading.setWordWrap(True)
         self.fuel_override_layout.addWidget(heading)
-        path_labels = {
-            FuelPath.VOLUME: "体积计量",
-            FuelPath.MASS: "质量计量",
-        }
+        path_labels = self.excel_adapter.path_labels
         for error in errors:
             row = QHBoxLayout()
             label = QLabel(error.field_label or "燃料计量路径", self.fuel_override_panel)
@@ -2295,12 +2271,8 @@ class ExcelImportPage(BasePage):
         self.fuel_override_panel.show()
         self._update_fuel_override_button()
 
-    @staticmethod
-    def _fuel_path_from_widget(value) -> FuelPath | None:
-        try:
-            return value if isinstance(value, FuelPath) else FuelPath(value)
-        except (TypeError, ValueError):
-            return None
+    def _fuel_path_from_widget(self, value):
+        return self.excel_adapter.parse_path(value)
 
     def _update_fuel_override_button(self, *_args) -> None:
         button = getattr(self, "repreview_with_fuel_paths_button", None)
@@ -2387,13 +2359,8 @@ class ExcelImportPage(BasePage):
         self.selected_file_label.setToolTip(str(path))
         self.project_name.setText(path.stem)
         try:
-            from packages.excel.appendix_b import AppendixBWorkbookImporter
-
             context = self._build_import_context()
-            preview = AppendixBWorkbookImporter(
-                preview_use_case=self.preview_use_case,
-                catalog_service=self.catalog_service,
-            ).import_preview(path, context=context)
+            preview = self.excel_adapter.import_preview(path, context=context)
             preview_context_key = self._import_context_key()
         except Exception as exc:
             self._last_preview = None
@@ -2917,6 +2884,8 @@ def create_page(
     calculation_use_case: CarbonAccountingUseCase | None = None,
     logo_path: Path | None = None,
     icon_directory: Path | None = None,
+    standard_runtime=None,
+    standard_id: str | None = None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
@@ -2937,11 +2906,14 @@ def create_page(
             calculation_use_case=calculation_use_case,
             project_service=project_service,
             record_repository=record_repository,
+            standard_runtime=standard_runtime,
+            standard_id=standard_id,
         )
     if route is AppRoute.STANDARDS:
         from .catalog_pages import StandardLibraryPage
 
-        return StandardLibraryPage(catalog_service or CatalogQueryService.empty(), navigate, parent)
+        return StandardLibraryPage(catalog_service or CatalogQueryService.empty(), navigate, parent,
+                                   standard_registry=getattr(standard_runtime, "registry", None))
     if route is AppRoute.FACTORS:
         from .catalog_pages import ParameterFactorLibraryPage
 
@@ -2951,14 +2923,13 @@ def create_page(
     if route is AppRoute.RECORDS:
         return RecordLibraryPage(record_repository, parent, project_service=project_service)
     if route is AppRoute.NEW_ACCOUNTING:
-        from .carbon_material_page import CarbonMaterialAccountingPage
-
-        return CarbonMaterialAccountingPage(
-            catalog_service=catalog_service or CatalogQueryService.empty(),
-            record_repository=record_repository,
-            project_service=project_service,
-            calculation_use_case=calculation_use_case,
-            parent=parent,
+        from .standard_editors import create_standard_editor
+        catalog = catalog_service or CatalogQueryService.empty()
+        runtime = standard_runtime or StandardRuntime(catalog, record_repository, calculation_use_case)
+        return create_standard_editor(
+            runtime, standard_id or runtime.registry.default_standard_id,
+            catalog_service=catalog, record_repository=record_repository,
+            project_service=project_service, parent=parent,
         )
     if route is AppRoute.SETTINGS:
         return SettingsPage(view_model, parent)

@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import ParameterType, ReviewStatus
 from packages.core.models import ValueType
-from packages.standards.carbon_material import ALGORITHM_VERSION, STANDARD_ID, steam_reference_table_rows
+from packages.application.standard_registry import default_standard_registry
 from packages.standards.catalog import (
     CatalogStandardType,
     CatalogStatus,
@@ -137,9 +137,11 @@ class StandardLibraryPage(BasePage):
         service: CatalogQueryService,
         navigate: Navigate,
         parent: QWidget | None = None,
+        standard_registry=None,
     ) -> None:
         super().__init__(AppRoute.STANDARDS, parent)
         self._service = service
+        self._standard_registry = standard_registry or default_standard_registry()
         self.selected_standard_id: str | None = None
         self._standards_by_id: dict[str, StandardCatalogRecord] = {}
         self._saved_list_scroll: tuple[int | None, int, int] | None = None
@@ -241,10 +243,9 @@ class StandardLibraryPage(BasePage):
         self.standard_table.cellClicked.connect(self._open_detail_from_cell)
         self.standard_table.cellActivated.connect(self._open_detail_from_cell)
 
-    @staticmethod
-    def _software_support_label(standard: StandardCatalogRecord) -> str:
+    def _software_support_label(self, standard: StandardCatalogRecord) -> str:
         if (
-            standard.standard_id == STANDARD_ID
+            self._standard_registry.supports(standard.standard_id, standard.version)
             and standard.calculation_status == "IMPLEMENTED"
         ):
             return "已实现核算（未正式支持）"
@@ -458,7 +459,7 @@ class StandardLibraryPage(BasePage):
         _replace_layout_contents(self.detail_layout)
         standard = detail.standard
         supported = (
-            standard.standard_id == STANDARD_ID
+            self._standard_registry.supports(standard.standard_id, standard.version)
             and standard.calculation_status == "IMPLEMENTED"
         )
         if self.page_title is not None:
@@ -483,7 +484,7 @@ class StandardLibraryPage(BasePage):
         back_button.clicked.connect(self._return_to_list)
         navigation_row.addWidget(back_button)
         can_start = (
-            standard.standard_id == STANDARD_ID
+            self._standard_registry.supports(standard.standard_id, standard.version)
             and detail.status is CatalogStatus.CURRENT
         )
         if can_start:

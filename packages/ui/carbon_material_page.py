@@ -901,11 +901,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.project_service = project_service
         self.calculation_use_case = calculation_use_case
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
-        resolver = None
-        try:
-            resolver = create_g06_parameter_resolver(self.catalog_service.repository)
-        except (AttributeError, KeyError, TypeError, ValueError):
-            resolver = None
+        resolver = getattr(getattr(calculation_use_case, "calculator", None) or calculator, "parameter_resolver", None)
+        if resolver is None and calculator is None and calculation_use_case is None:
+            try:
+                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                resolver = None
         self._parameter_resolver = resolver
         try:
             self._uat03_parameter_queries = UAT03ParameterQueries(self.catalog_service, resolver) if resolver is not None else None

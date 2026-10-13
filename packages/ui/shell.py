@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QTimer, QSize, Qt
@@ -23,7 +23,7 @@ from packages.application import CarbonAccountingUseCase, resolve_formal_record_
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.repositories import RecordRepository
 from packages.application.project_workspaces import ProjectWorkspaceService
-from packages.standards.carbon_material import STANDARD_ID
+from packages.application.standard_registry import StandardRuntime
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
@@ -100,6 +100,23 @@ class CurrentPageStack(QStackedWidget):
         return handled
 
 
+class _PageAccess(Mapping):
+    """Compatibility mapping; reading a route explicitly creates its page."""
+    def __init__(self, shell):
+        self.shell = shell
+
+    def __getitem__(self, route):
+        if route not in tuple(self):
+            raise KeyError(route)
+        return self.shell._ensure_page(route)
+
+    def __iter__(self):
+        return (item.route for item in self.shell.view_model.navigation)
+
+    def __len__(self):
+        return len(self.shell.view_model.navigation)
+
+
 class AppShell(QWidget):
     """Route-driven shell with a sidebar on business pages only."""
 
@@ -114,6 +131,7 @@ class AppShell(QWidget):
         record_repository: RecordRepository | None = None,
         project_service: ProjectWorkspaceService | None = None,
         calculation_use_case: CarbonAccountingUseCase | None = None,
+        standard_runtime=None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -124,12 +142,14 @@ class AppShell(QWidget):
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.project_service = project_service
         self.calculation_use_case = calculation_use_case
+        self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
         self._navigation_buttons: dict[AppRoute, QPushButton] = {}
         self._icon_names: dict[AppRoute, str] = {}
         self._pages: dict[AppRoute, QWidget] = {}
+        self._standard_pages: dict[tuple[AppRoute, str], QWidget] = {}
         self._content_geometry_refresh_pending = False
         self.router = PageRouter((item.route for item in view_model.navigation), self)
         self.router.route_changed.connect(self._show_route)
@@ -141,53 +161,72 @@ class AppShell(QWidget):
         root_layout.addWidget(self._sidebar)
         root_layout.addWidget(self._build_main_content(), 1)
 
-        for item in view_model.navigation:
-            if self._custom_page_factory is None:
-                page = create_page(
-                    item.route,
-                    view_model,
-                    self.navigate,
-                    self,
-                    catalog_service=self.catalog_service,
-                    record_repository=self.record_repository,
-                    project_service=self.project_service,
-                    calculation_use_case=self.calculation_use_case,
-                    logo_path=self._logo_path,
-                    icon_directory=self._icon_directory,
-                )
-            else:
-                page = self._page_factory(item.route, view_model, self.navigate, self)
-            self._pages[item.route] = page
-            self.page_stack.addWidget(page)
-            accounting_requested = getattr(page, "accounting_requested", None)
-            if accounting_requested is not None:
-                accounting_requested.connect(self._request_standard_accounting)
-            record_created = getattr(page, "record_created", None)
-            if record_created is not None:
-                record_created.connect(self._refresh_record_views)
-            record_requested = getattr(page, "record_requested", None)
-            if record_requested is not None:
-                record_requested.connect(self._request_record_view)
-            project_requested = getattr(page, "project_requested", None)
-            if project_requested is not None:
-                project_requested.connect(self._request_home_project)
-            project_manager_requested = getattr(page, "project_manager_requested", None)
-            if project_manager_requested is not None:
-                project_manager_requested.connect(self._request_home_project_manager)
-            canonical_project_requested = getattr(page, "canonical_project_requested", None)
-            if canonical_project_requested is not None:
-                canonical_project_requested.connect(self._request_canonical_project)
+        if self._custom_page_factory is not None:
+            for item in view_model.navigation:
+                self._ensure_page(item.route)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
+
+    def _ensure_page(self, route: AppRoute) -> QWidget:
+        standard_id = None
+        if self._custom_page_factory is None and route in (AppRoute.NEW_ACCOUNTING, AppRoute.EXCEL_IMPORT):
+            standard_id = self.selected_standard_id or self.standard_runtime.registry.default_standard_id
+            self.standard_runtime.registry.require(standard_id)
+            cached = self._standard_pages.get((route, standard_id))
+            if cached is not None:
+                self._pages[route] = cached
+                return cached
+        elif route in self._pages:
+            return self._pages[route]
+        if self._custom_page_factory is None:
+            page = create_page(
+                route,
+                self.view_model,
+                self.navigate,
+                self,
+                catalog_service=self.catalog_service,
+                record_repository=self.record_repository,
+                project_service=self.project_service,
+                calculation_use_case=self.calculation_use_case,
+                logo_path=self._logo_path,
+                icon_directory=self._icon_directory,
+                standard_runtime=self.standard_runtime,
+                standard_id=self.selected_standard_id,
+            )
+        else:
+            page = self._page_factory(route, self.view_model, self.navigate, self)
+        self._pages[route] = page
+        if standard_id is not None:
+            self._standard_pages[(route, standard_id)] = page
+        self.page_stack.addWidget(page)
+        accounting_requested = getattr(page, "accounting_requested", None)
+        if accounting_requested is not None:
+            accounting_requested.connect(self._request_standard_accounting)
+        record_created = getattr(page, "record_created", None)
+        if record_created is not None:
+            record_created.connect(self._refresh_record_views)
+        record_requested = getattr(page, "record_requested", None)
+        if record_requested is not None:
+            record_requested.connect(self._request_record_view)
+        project_requested = getattr(page, "project_requested", None)
+        if project_requested is not None:
+            project_requested.connect(self._request_home_project)
+        project_manager_requested = getattr(page, "project_manager_requested", None)
+        if project_manager_requested is not None:
+            project_manager_requested.connect(self._request_home_project_manager)
+        canonical_project_requested = getattr(page, "canonical_project_requested", None)
+        if canonical_project_requested is not None:
+            canonical_project_requested.connect(self._request_canonical_project)
+        return page
 
     @property
     def navigation_buttons(self) -> dict[AppRoute, QPushButton]:
         return dict(self._navigation_buttons)
 
     @property
-    def pages(self) -> dict[AppRoute, QWidget]:
-        return dict(self._pages)
+    def pages(self) -> Mapping[AppRoute, QWidget]:
+        return _PageAccess(self)
 
     @property
     def current_route(self) -> AppRoute | None:
@@ -201,9 +240,12 @@ class AppShell(QWidget):
     def confirm_before_close(self) -> bool:
         """Offer explicit save, discard or cancel for unsaved project changes."""
 
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
-        prompt = getattr(page, "confirm_project_close", None)
-        return bool(prompt()) if callable(prompt) else True
+        pages = {page for (route, _standard), page in self._standard_pages.items() if route is AppRoute.NEW_ACCOUNTING}
+        for page in pages:
+            prompt = getattr(page, "confirm_project_close", None)
+            if callable(prompt) and not prompt():
+                return False
+        return True
 
     def navigate(self, route: AppRoute) -> None:
         """Switch pages without discarding the active new-accounting input."""
@@ -211,7 +253,7 @@ class AppShell(QWidget):
         self.router.navigate(route)
 
     def _refresh_record_views(self, _record_id: str | None = None) -> None:
-        for page in self._pages.values():
+        for page in set((*self._pages.values(), *self._standard_pages.values())):
             refresh = getattr(page, "refresh_recent_records", None)
             if callable(refresh):
                 refresh()
@@ -221,7 +263,7 @@ class AppShell(QWidget):
 
     def _request_record_view(self, record_id: str) -> None:
         self._refresh_record_views(record_id)
-        page = self._pages.get(AppRoute.RECORDS)
+        page = self._ensure_page(AppRoute.RECORDS)
         open_record = getattr(page, "open_record", None)
         if callable(open_record):
             open_record(record_id)
@@ -235,7 +277,7 @@ class AppShell(QWidget):
             open_project(project_id)
 
     def _request_home_project(self, project_id: str) -> None:
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        page = self._ensure_page(AppRoute.NEW_ACCOUNTING)
         open_project = getattr(page, "open_project_from_home", None)
         if not project_id or not callable(open_project):
             return
@@ -243,7 +285,7 @@ class AppShell(QWidget):
         open_project(project_id)
 
     def _request_home_project_manager(self) -> None:
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
+        page = self._ensure_page(AppRoute.NEW_ACCOUNTING)
         show_manager = getattr(page, "show_project_manager", None)
         if not callable(show_manager):
             return
@@ -261,13 +303,8 @@ class AppShell(QWidget):
     def _request_standard_accounting(self, standard_id: str) -> None:
         """Route only the implemented industry standard to its dedicated page."""
 
-        if standard_id != STANDARD_ID:
-            return
+        self.standard_runtime.registry.require(standard_id)
         self.selected_standard_id = standard_id
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
-        setter = getattr(page, "set_standard_id", None)
-        if setter is not None:
-            setter(standard_id)
         self.navigate(AppRoute.NEW_ACCOUNTING)
 
     def _build_sidebar(self) -> QFrame:
@@ -414,9 +451,7 @@ class AppShell(QWidget):
         return main_content
 
     def _show_route(self, route: AppRoute) -> None:
-        page = self._pages.get(route)
-        if page is None:
-            return
+        page = self._ensure_page(route)
         background = (
             HOME_CANVAS_GRADIENT
             if route is AppRoute.HOME
@@ -436,6 +471,10 @@ class AppShell(QWidget):
                     _SIDEBAR_ACTIVE if is_active else _SIDEBAR_MUTED_TEXT,
                 )
             )
+        if route is AppRoute.RECORDS:
+            refresh_records = getattr(page, "refresh_records", None)
+            if callable(refresh_records):
+                refresh_records()
         if route is AppRoute.HOME:
             refresh_home = getattr(page, "refresh_recent_records", None)
             if callable(refresh_home):

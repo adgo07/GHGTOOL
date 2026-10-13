@@ -458,25 +458,10 @@ class CatalogQueryService:
             return None
         source = next((item for item in self._repository.list_sources() if item.source_id == table.source_id), None)
         source_label = source.document_no if source else "标准资料"
-        if table.provider_id in {"CARBON_MATERIAL_C4", "CARBON_MATERIAL_C5"}:
-            from packages.standards.carbon_material import ALGORITHM_VERSION, steam_reference_table_rows
-
-            table_code = table.display_number
-            values = steam_reference_table_rows(table_code)
-            if table.provider_id == "CARBON_MATERIAL_C4":
-                rows = tuple((format(pressure, "f"), format(enthalpy, "f")) for pressure, enthalpy in values)
-                headers = tuple(column.label for column in table.columns)
-            else:
-                temperatures = tuple(sorted({row[0] for row in values}))
-                pressures = tuple(sorted({row[1] for row in values}))
-                lookup = {(temperature, pressure): enthalpy for temperature, pressure, enthalpy in values}
-                headers = (table.columns[0].label, *(f"{pressure:g} MPa" for pressure in pressures))
-                rows = tuple(
-                    (format(temperature, "f"), *(format(lookup[(temperature, pressure)], "f") for pressure in pressures))
-                    for temperature in temperatures
-                )
-            note = f"来源：{source_label} {table.source_location}。只读数据来自版本化计算器（{ALGORITHM_VERSION}）。{table.notes}"
-            return headers, rows, note
+        from .standard_registry import default_standard_registry
+        reference_view = default_standard_registry().reference_view(table, source_label)
+        if reference_view is not None:
+            return reference_view
         if table.provider_id == "CANONICAL_CONVERSION_RULES":
             reader = getattr(self._repository, "list_conversion_rules", None)
             rules = tuple(reader()) if callable(reader) else ()

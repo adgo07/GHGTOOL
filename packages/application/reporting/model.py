@@ -264,7 +264,7 @@ def _snapshot_mapping(item) -> dict[str, Any]:
     }
 
 
-def build_report_model(
+def _build_carbon_material_report_model(
     record: AccountingRecord,
     raw_input_snapshot: object,
     trace_snapshot: object,
@@ -375,6 +375,16 @@ def build_report_model(
         template_sha256=APPROVED_TEMPLATE_SHA256,
         layout_id=LAYOUT_ID,
     )
+
+
+def build_report_model(record, *args, standard_registry=None, **kwargs) -> ReportModel:
+    """Dispatch frozen snapshots by recorded standard, with no catalog lookup."""
+    from packages.application.standard_registry import default_standard_registry
+    registry = standard_registry or default_standard_registry()
+    implementation = registry.require(record.standard_id, record.standard_version)
+    if implementation.report_factory is None:
+        raise ValueError("此标准尚未配置核算报告。")
+    return implementation.report_factory(record, *args, **kwargs)
 
 
 __all__ = ["REPORT_SCHEMA_VERSION", "ReportCell", "ReportModel", "ReportRow", "ReportSection", "ReportTable", "build_report_model"]

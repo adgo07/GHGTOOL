@@ -15,7 +15,7 @@ from packages.application import (
     ProjectWorkspaceService,
 )
 from packages.persistence.catalog_queries_factory import create_catalog_query_service
-from packages.application.carbon_accounting import create_g06_parameter_resolver
+from packages.application.standard_registry import StandardRuntime
 from packages.core.repositories import RecordRepository
 from packages.persistence import (
     MigrationError,
@@ -24,12 +24,6 @@ from packages.persistence import (
     SQLiteProjectWorkspaceRepository,
     SQLiteRecordRepository,
 )
-from packages.standards.carbon_material import (
-    STANDARD_ID,
-    STANDARD_VERSION,
-    CarbonMaterialCalculator,
-)
-
 from .config import AppConfig
 from .logging_config import configure_logging
 from .product import create_shell
@@ -68,15 +62,7 @@ def create_main_window(
             app_version=app_config.app_version,
         )
 
-    formal_use_case = calculation_use_case
-    if formal_use_case is None and callable(getattr(records, "create_with_details", None)):
-        calculator = CarbonMaterialCalculator(
-            parameter_resolver=create_g06_parameter_resolver(catalog.repository),
-            standard_version=catalog.standard_version(STANDARD_ID) or STANDARD_VERSION,
-            standard_implementation_date=catalog.standard_implementation_date(STANDARD_ID),
-            reference_data_identity_provider=catalog.reference_data_identity,
-        )
-        formal_use_case = CarbonAccountingUseCase(calculator, records)
+    runtime = StandardRuntime(catalog, records, calculation_use_case)
 
     window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
@@ -90,7 +76,8 @@ def create_main_window(
         catalog_service=catalog,
         record_repository=records,
         project_service=project_service,
-        calculation_use_case=formal_use_case,
+        calculation_use_case=calculation_use_case,
+        standard_runtime=runtime,
     ))
     return window
 

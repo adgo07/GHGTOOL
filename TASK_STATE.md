@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：GHGTOOL标准分派与输入/输出一致性改造 — 第1包完成，第2包实施中；整阶段完成后提交独立PR等待验收，不自行合并。
+状态：GHGTOOL标准分派与输入/输出一致性改造 — 第1—2包完成，第3包实施中；整阶段完成后提交独立PR等待验收，不自行合并。
 最后更新：2026-10-13。
 
 - 开工main：204dded5d03853617f79a1f05693e89b619df9d1；origin已核实为adgo07/GHGTOOL。独立分支codex/ghg-standard-input-unification；主目录旧分支及用户修改原样保留。
@@ -12,4 +12,6 @@
 - 候选Excel模板2.0受控资源：当前SHA256=223156ce3246f7b769bafdf76b50bdd334e07201e6318d409347361d167d043e。活动格解锁，目录采用格/结果格锁定，自定义参数独立填写格，B.6多行和B.7两组。下载逐字节复制；旧母版保留为兼容夹具，用户docs模板未改。后续包继续完善B.2单位子列和B.3—B.5身份字段，本阶段尚未交付验收。
 - 本地Python 3.12第1包联合命令：python -m unittest tests.test_standard_input_policy tests.test_exb01_template_acceptance tests.test_exb01_ingress tests.test_uat03_page tests.test_g06_page tests.test_canonical_project_inputs tests.test_g08_delivery -q：108/108通过，151.562秒。前次62项定向为59通过/2失败/1错误，修正后3项复测通过并纳入本次108项。
 - 九表已用Artifact Tool离屏渲染检查；其保护接口不支持所需操作，模板保护修订使用bundled openpyxl，运行时下载仍只复制字节。原生Excel/WPS保存回导及Windows人工DPI仍未执行；不冒充实机验收。
-- 下一包：静态标准注册/分派及按需服务和页面构造；不开发第二行业公式。整阶段最终全量回归/Windows构建/CI/独立PR尚未执行。历史PR45 CI仅作基线证据。
+- 第2包：小型静态StandardRegistry/StandardRuntime登记当前唯一实现；公共启动/壳/导入页不直接构造炭素Calculator或附录B Adapter。核算与Excel页面按需创建，标准间草稿分别缓存；标准详情、蒸汽参考表及冻结报告通过注册项分派，未知标准/版本明确拒绝。未新增正式标准、数据库或插件框架。
+- 第2包本地联合命令：python -m unittest tests.test_standard_dispatch tests.test_g03_shell tests.test_exb01_ingress tests.test_exb01_rpt02_integration tests.test_canonical_project_inputs tests.test_g08_delivery -q：69/69通过，34.868秒；增补假标准Excel页和公共组合依赖断言后，test_standard_dispatch为8/8通过（0.143秒）。先前外壳抽取引用错误已修复，13/13复测通过。
+- 下一包：共享燃料语义、目录名称/搜索别名分离、燃料两行布局及B.2消耗量数据/单位子列；不开发第二行业公式。整阶段最终全量回归/Windows构建/CI/独立PR尚未执行。历史PR45 CI仅作基线证据。

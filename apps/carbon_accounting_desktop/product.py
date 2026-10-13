@@ -45,6 +45,7 @@ def create_shell(
     record_repository: RecordRepository | None = None,
     project_service: ProjectWorkspaceService | None = None,
     calculation_use_case: CarbonAccountingUseCase | None = None,
+    standard_runtime=None,
 ) -> AppShell:
     """Build the product shell from services composed by the desktop entry point."""
 
@@ -60,4 +61,5 @@ def create_shell(
         record_repository=record_repository,
         project_service=project_service,
         calculation_use_case=calculation_use_case,
+        standard_runtime=standard_runtime,
     )
