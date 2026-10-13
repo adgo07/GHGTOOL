@@ -483,9 +483,12 @@ class CalcinationInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "calcination-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -536,9 +539,12 @@ class BakingInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "baking-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -589,9 +595,12 @@ class GraphitizationInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "graphitization-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")

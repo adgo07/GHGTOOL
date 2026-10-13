@@ -46,7 +46,7 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
         }.items():
             ws = workbook[sheet]
             for row, (mass, percent) in assignments.items():
-                ws[f"C{row}"], ws[f"D{row}"] = mass, percent
+                ws[f"D{row}"], ws[f"E{row}"] = mass, percent
         fume = workbook["B.6"]
         for cell, value in {"A3":100,"B3":10,"C3":30,"D3":0.02,"E3":98,"F3":365}.items():
             fume[cell] = value

@@ -120,6 +120,8 @@ from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
 from .carbon_material_fuel import _FuelRow
+from .carbon_material_legacy_state import legacy_fuel_type,legacy_fuel_path,legacy_carbon_basis
+from packages.standards.carbon_material_process_inputs import PROCESS_MATERIAL_ROLES as _PROCESS_MATERIAL_ROLES, PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES as _PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES, PROCESS_MATERIAL_DEFAULT_ROLE as _PROCESS_MATERIAL_DEFAULT_ROLE
 from .report_export import export_saved_record_report
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState
@@ -136,52 +138,6 @@ _PROCESS_DEFAULT_PARAMETERS = {
     "calcination": ("CAR-PAR-K1", "第5.2.2条"),
     "baking": ("CAR-PAR-K2", "第5.2.3条"),
     "graphitization": ("CAR-PAR-K3", "第5.2.4条"),
-}
-_PROCESS_MATERIAL_ROLES: dict[str, tuple[tuple[str, MaterialRole], ...]] = {
-    "calcination": (
-        ("原料", MaterialRole.CALCINATION_FEED),
-        ("煅后料", MaterialRole.CALCINED_PRODUCT),
-        ("欠煅烧料", MaterialRole.UNDERBURN_RECOVERED),
-        ("碳粉尘", MaterialRole.CARBON_DUST),
-    ),
-    "baking": (
-        ("填充料", MaterialRole.BAKING_FILLER),
-        ("待焙烧/炭化品", MaterialRole.GREEN_BAKING_PRODUCT),
-        ("焙烧/炭化产品", MaterialRole.BAKED_PRODUCT),
-        # Keep the former combined category at its persisted index for saved
-        # project form state; new default rows use the three V4 subcategories.
-        ("粉尘/碎屑/副产品", MaterialRole.BAKING_BYPRODUCT),
-        ("待焙烧（炭化）品", MaterialRole.GREEN_BAKING_PRODUCT),
-        ("焙烧（炭化）品", MaterialRole.BAKED_PRODUCT),
-        ("粉尘", MaterialRole.BAKING_BYPRODUCT),
-        ("碎屑", MaterialRole.BAKING_BYPRODUCT),
-        ("副产品", MaterialRole.BAKING_BYPRODUCT),
-    ),
-    "graphitization": (
-        ("保温料/电阻料", MaterialRole.GRAPHITIZATION_PACKING),
-        ("待石墨化品", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT),
-        ("石墨化产品", MaterialRole.GRAPHITIZED_PRODUCT),
-        # Keep the former combined category at its persisted index for saved
-        # project form state; new default rows use the four V4 subcategories.
-        ("粉尘/碎屑/残块/副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
-        ("保温料", MaterialRole.GRAPHITIZATION_PACKING),
-        ("电阻料", MaterialRole.GRAPHITIZATION_PACKING),
-        ("石墨化品", MaterialRole.GRAPHITIZED_PRODUCT),
-        ("粉尘", MaterialRole.GRAPHITIZATION_BYPRODUCT),
-        ("碎屑", MaterialRole.GRAPHITIZATION_BYPRODUCT),
-        ("残块", MaterialRole.GRAPHITIZATION_BYPRODUCT),
-        ("副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
-    ),
-}
-_PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES = {
-    "calcination": (0, 1, 2, 3),
-    "baking": (0, 4, 5, 6, 7, 8),
-    "graphitization": (4, 5, 1, 6, 7, 8, 9, 10),
-}
-_PROCESS_MATERIAL_DEFAULT_ROLE = {
-    "calcination": MaterialRole.CALCINATION_FEED,
-    "baking": MaterialRole.GREEN_BAKING_PRODUCT,
-    "graphitization": MaterialRole.GREEN_GRAPHITIZATION_PRODUCT,
 }
 _REPORT_SOURCE_OPTIONS = (
     ("燃料", "CAR-SRC-FUEL-001"),
@@ -203,36 +159,6 @@ _FUEL_C1_ACTIVITY_PATH = {
     FuelType.OTHER_GAS: FuelPath.VOLUME,
     FuelType.REFINERY_DRY_GAS: FuelPath.MASS,
 }
-_FUEL_TYPE_OPTIONS = (
-    ("柴油", FuelType.DIESEL),
-    ("天然气", FuelType.NATURAL_GAS),
-    ("焦炉煤气", FuelType.COKE_OVEN_GAS),
-    ("煤（需选择具体煤种）", FuelType.COAL),
-    ("其他 / 手动输入", FuelType.OTHER),
-    ("无烟煤", FuelType.ANTHRACITE),
-    ("烟煤", FuelType.BITUMINOUS_COAL),
-    ("褐煤", FuelType.LIGNITE),
-    ("洗精煤", FuelType.CLEANED_COAL),
-    ("其他洗煤", FuelType.OTHER_CLEANED_COAL),
-    ("型煤", FuelType.BRIQUETTE),
-    ("其他煤制品", FuelType.OTHER_COAL_PRODUCTS),
-    ("焦炭", FuelType.COKE),
-    ("石油焦", FuelType.PETROLEUM_COKE),
-    ("原油", FuelType.CRUDE_OIL),
-    ("燃料油", FuelType.FUEL_OIL),
-    ("汽油", FuelType.GASOLINE),
-    ("一般煤油", FuelType.KEROSENE),
-    ("液化天然气", FuelType.LIQUEFIED_NATURAL_GAS),
-    ("液化石油气", FuelType.LIQUEFIED_PETROLEUM_GAS),
-    ("石脑油", FuelType.NAPHTHA),
-    ("焦油", FuelType.TAR),
-    ("粗苯", FuelType.CRUDE_BENZENE),
-    ("其他石油制品", FuelType.OTHER_PETROLEUM_PRODUCTS),
-    ("高炉煤气", FuelType.BLAST_FURNACE_GAS),
-    ("转炉煤气", FuelType.CONVERTER_GAS),
-    ("炼厂干气", FuelType.REFINERY_DRY_GAS),
-    ("其他煤气", FuelType.OTHER_GAS),
-)
 _C2_CARBONATES = (
     ("CaCO₃", "car-par-c2-caco3"),
     ("MgCO₃", "car-par-c2-mgco3"),
@@ -1697,7 +1623,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 "fuel_name": row.fuel_type.currentText(),
                 "fuel_subject_id": row.fuel_type.currentData(Qt.ItemDataRole.UserRole + 1),
                 "path": row.path.currentIndex(),
+                "path_value": getattr(row.path.currentData(),"value",row.path.currentData()),
                 "carbon_basis": row.carbon_basis.currentIndex(),
+                "carbon_basis_value": row.carbon_basis.currentData(),
                 "activity": row.activity.text(),
                 "carbon": row.carbon.text(),
                 "carbon_direct": row.carbon_direct.text(),
@@ -1759,6 +1687,7 @@ class CarbonMaterialAccountingPage(BasePage):
             prefix: [
                 {
                     "instance_id": str(row["instance_id"]),
+                    "instance_name": row["instance_name"].text() if isinstance(row.get("instance_name"),QLineEdit) else None,
                     "component_ids": [
                         str(component["component_id"])
                         for component in row.get("components", [])
@@ -1944,8 +1873,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     selected_fuel_type = None
             if selected_fuel_type is None:
                 old_index = stored.get("type")
-                if isinstance(old_index, int) and 0 <= old_index < len(_FUEL_TYPE_OPTIONS):
-                    selected_fuel_type = _FUEL_TYPE_OPTIONS[old_index][1]
+                selected_fuel_type = legacy_fuel_type(old_index)
             if isinstance(fuel_name, str):
                 row.fuel_type.setEditText(fuel_name)
             elif selected_fuel_type is not None:
@@ -1954,10 +1882,10 @@ class CarbonMaterialAccountingPage(BasePage):
                     row.fuel_type.setCurrentIndex(selected_index)
                 else:
                     row.fuel_type.setEditText(str(stored.get("fuel_label", "")))
-            for key in ("path", "carbon_basis"):
-                combo = row.path if key == "path" else row.carbon_basis
-                index = stored.get(key)
-                if isinstance(index, int) and 0 <= index < combo.count():
+            for key,combo,legacy_reader in (("path",row.path,legacy_fuel_path),("carbon_basis",row.carbon_basis,legacy_carbon_basis)):
+                value = stored.get(f"{key}_value") or legacy_reader(stored.get(key))
+                index = combo.findData(value)
+                if index >= 0:
                     combo.setCurrentIndex(index)
             for widget, key in ((row.activity, "activity"), (row.carbon, "carbon"),
                                 (row.carbon_direct, "carbon_direct"),
@@ -2073,6 +2001,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._add_process_row(
                     prefix,
                     instance_id=instance_id,
+                    instance_name=str(saved.get("instance_name") or "") or None,
                     component_ids=tuple(component_ids),
                     material_ids=tuple(material_ids) if material_ids is not None else None,
                     default_material_categories=False,
@@ -3008,9 +2937,9 @@ class CarbonMaterialAccountingPage(BasePage):
             regions, preferred = (), None
         blocker = QSignalBlocker(combo)
         combo.clear()
-        combo.addItem("全国平均", None)
+        combo.addItem("全国", None)
         for region in regions:
-            combo.addItem(f"{region}地区平均", region)
+            combo.addItem(f"省级：{region}", region)
         wanted = old if old is not None else preferred
         index = combo.findData(wanted)
         combo.setCurrentIndex(index if index >= 0 else 0)
@@ -3024,7 +2953,7 @@ class CarbonMaterialAccountingPage(BasePage):
             period = self._period()
             queries = self._uat03_parameter_queries
             region = row.region.currentData()
-            options = queries.electricity_options(region, period) if queries is not None else ()
+            options = queries.electricity_catalog_options("省级" if region is not None else "全国",region,period) if queries is not None else ()
         except (AttributeError, DomainValidationError, TypeError, ValueError):
             options = ()
         blocker = QSignalBlocker(selector)
@@ -3033,14 +2962,18 @@ class CarbonMaterialAccountingPage(BasePage):
             factor = option.factor
             year = f" · {factor.factor_year}" if factor.factor_year is not None else ""
             selector.addItem(f"{option.label}：{factor.value} {factor.unit}{year}", option)
+            item = selector.model().item(selector.count()-1)
+            if item is not None and not option.selectable:
+                item.setEnabled(False)
+                item.setToolTip(option.unavailable_reason or "此因子仅供查阅。")
         if not options:
             selector.addItem("当前期间暂无适用目录候选", None)
         index = next(
             (i for i in range(selector.count()) if getattr(getattr(selector.itemData(i), "factor", None), "factor_id", None) == old_id),
-            0,
+            next((i for i in range(selector.count()) if getattr(selector.itemData(i),"selectable",False)),0),
         )
         selector.setCurrentIndex(index)
-        selector.setEnabled(bool(options))
+        selector.setEnabled(any(getattr(item,"selectable",False) for item in options))
         del blocker
         self._refresh_unified_energy_row(row)
 
@@ -3657,15 +3590,16 @@ class CarbonMaterialAccountingPage(BasePage):
         self._process_rows_layout[prefix] = host_layout
         parent_layout.addWidget(host)
         buttons = QHBoxLayout()
-        add_button = QPushButton(f"新增{title.split('（')[0]}", host)
+        add_button = QPushButton("新增脱硫剂种类" if prefix == "fgd" else f"新增{title.split('（')[0]}", host)
         add_button.setObjectName(f"add_{prefix}_instance")
         add_button.clicked.connect(
             lambda _checked=False, _prefix=prefix: self._add_process_row(
                 _prefix, default_material_categories=True
             )
         )
-        add_button.setVisible(self.manage_process_button.isChecked())
-        self._advanced_process_buttons.append(add_button)
+        add_button.setVisible(prefix == "fgd" or self.manage_process_button.isChecked())
+        if prefix != "fgd":
+            self._advanced_process_buttons.append(add_button)
         buttons.addWidget(add_button)
         buttons.addStretch(1)
         parent_layout.addLayout(buttons)
@@ -3685,6 +3619,7 @@ class CarbonMaterialAccountingPage(BasePage):
         instance_id: str | None = None,
         component_ids: tuple[str, ...] | None = None,
         material_ids: tuple[str, ...] | None = None,
+        instance_name: str | None = None,
         default_material_categories: bool = True,
     ) -> dict[str, object]:
         if prefix not in self._process_rows_layout:
@@ -3731,6 +3666,15 @@ class CarbonMaterialAccountingPage(BasePage):
             "components": [],
             "materials": [],
         }
+        if prefix in _PROCESS_MATERIAL_ROLES:
+            process_name = QLineEdit(instance_name or f"{display_title}{len(rows)+1}",host)
+            process_name.setObjectName(f"{prefix}_{instance_id}_businessName")
+            process_name.setPlaceholderText("工序名称")
+            process_name.setAccessibleName("工序名称")
+            process_name.setMaxLength(120)
+            self._wire_dirty_tracking(process_name)
+            toolbar.insertWidget(1,process_name,1)
+            row["instance_name"] = process_name
         if prefix == "fgd":
             group_fields = QWidget(host)
             group_layout = QVBoxLayout(group_fields)
@@ -3738,7 +3682,7 @@ class CarbonMaterialAccountingPage(BasePage):
             name_row = QWidget(group_fields)
             name_layout = QHBoxLayout(name_row)
             name_layout.setContentsMargins(0, 0, 0, 0)
-            name_layout.addWidget(QLabel("碳酸盐种类", name_row))
+            name_layout.addWidget(QLabel("脱硫剂名称", name_row))
             reagent_name = QLineEdit(name_row)
             reagent_name.setObjectName("fgdReagentNameInput" if first else f"fgd_{instance_id}_reagentName")
             reagent_name.setProperty("fieldSpecKey", "fgd.reagent_name")
@@ -4401,8 +4345,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 cell_layout = QVBoxLayout(cell)
                 cell_layout.setContentsMargins(0, 0, 0, 0)
                 cell_layout.setSpacing(2)
-                cell_layout.addWidget(mode)
                 cell_layout.addWidget(edit)
+                grid.addWidget(mode,2,column)
                 widgets[field] = edit
                 widgets[f"{field}_source"] = mode
                 widgets[f"{field}_legacy_index"] = legacy_index
@@ -6391,6 +6335,7 @@ class CarbonMaterialAccountingPage(BasePage):
             return kind(
                 **values,
                 instance_id=instance_id,
+                **({"instance_name":row["instance_name"].text().strip() or None} if isinstance(row.get("instance_name"),QLineEdit) else {}),
                 **({"material_rows": material_lines} if has_material_input else {}),
             )
         evidence_reference = _value(controls["evidence_reference"])
@@ -6419,6 +6364,7 @@ class CarbonMaterialAccountingPage(BasePage):
         return kind(
             **values,
             instance_id=instance_id,
+            instance_name=row["instance_name"].text().strip() or None,
             material_rows=material_lines if has_material_input else None,
             mass_basis=_enum(mass_basis, MaterialBasis),
             composition_basis=_enum(composition_basis, MaterialBasis),

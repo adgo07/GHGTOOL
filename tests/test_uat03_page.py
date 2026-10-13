@@ -395,6 +395,8 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             state = page._capture_form_state()
             state["fuel_rows"][0]["path"] = 2
             state["fuel_rows"][0]["carbon_basis"] = 0
+            state["fuel_rows"][0].pop("path_value",None)
+            state["fuel_rows"][0].pop("carbon_basis_value",None)
             page._restore_form_state(state)
             legacy_heat = page._fuel()[0]
             self.assertEqual(legacy_heat.path, FuelPath.HEAT)
@@ -433,6 +435,38 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         self.assertIn("购入/输出热力", buttons[-1].text())
         self.assertIn("未启用", buttons[-1].accessibleDescription())
 
+
+    def test_new_fuel_draft_uses_semantics_instead_of_legacy_positions(self):
+        row=self.page._fuel_rows[0]
+        row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
+        row.fuel_type.setEditText("自定义燃料")
+        row.custom_mode.setChecked(True)
+        row.activity.setText("1.")
+        state=self.page._capture_form_state()
+        saved=state["fuel_rows"][0]
+        self.assertEqual(saved["path_value"],"MASS")
+        self.assertEqual(saved["carbon_basis_value"],"DIRECT")
+        saved["path"]=0;saved["carbon_basis"]=0 # stale presentation indices must not override business values
+        self.page._restore_form_state(state)
+        row=self.page._fuel_rows[0]
+        self.assertEqual(row.path.currentData(),"MASS")
+        self.assertEqual(row.carbon_basis.currentData(),"DIRECT")
+        self.assertEqual(row.activity.text(),"1.")
+
+    def test_process_business_name_is_saved_and_restored_separately_from_id(self):
+        row=self.page._process_rows["calcination"][0]
+        identity=row["instance_id"]
+        row["instance_name"].setText("一号煅烧窑 实际名称")
+        state=self.page._capture_form_state()
+        self.assertEqual(state["process_instances"]["calcination"][0]["instance_name"],"一号煅烧窑 实际名称")
+        self.page._restore_form_state(state)
+        restored=self.page._process_rows["calcination"][0]
+        self.assertEqual(restored["instance_id"],identity)
+        self.assertEqual(restored["instance_name"].text(),"一号煅烧窑 实际名称")
+        value=self.page._process("calcination",CalcinationInput,restored)
+        self.assertEqual(value.instance_id,identity)
+        self.assertEqual(value.instance_name,"一号煅烧窑 实际名称")
 
     def test_resolver_lhv_unit_recommends_each_fuel_path_without_changing_entered_units(self) -> None:
         page = CarbonMaterialAccountingPage(

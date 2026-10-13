@@ -268,7 +268,7 @@ class AppendixBWorkbookImporter:
 
             self._check_trailing_activity(workbook, reader, errors, warnings)
             self._parse_fuels(workbook, context, reader, errors, warnings, fuels, involved, unit_id, template_version=template_version)
-            self._parse_processes(workbook, context, reader, errors, warnings, processes, involved, unit_id)
+            self._parse_processes(workbook, context, reader, errors, warnings, processes, involved, unit_id, template_version=template_version)
             self._parse_fumes(workbook, context, reader, errors, warnings, fumes, involved, unit_id)
             self._parse_fgd(workbook, context, reader, errors, warnings, fgd, involved, unit_id, template_version=template_version)
             self._parse_power(workbook, context, reader, errors, warnings, purchased_power,
@@ -380,7 +380,9 @@ class AppendixBWorkbookImporter:
     @staticmethod
     def _check_trailing_activity(workbook, reader, errors, warnings):
         numeric_columns = {
-            "B.2":("BDFHIL" if workbook["B.2"]["M2"].value == "名称类型" else "BCEGH"), "B.3":"CD", "B.4":"CD", "B.5":"CD",
+            "B.2":("BDFHIL" if workbook["B.2"]["M2"].value == "名称类型" else "BCEGH"), "B.3":("DE" if workbook["B.3"]["C3"].value == "实际名称" else "CD"),
+            "B.4":("DE" if workbook["B.4"]["C3"].value == "实际名称" else "CD"),
+            "B.5":("DE" if workbook["B.5"]["C3"].value == "实际名称" else "CD"),
             "B.6":"ABCDEF", "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
         }
         for name,columns in numeric_columns.items():
@@ -683,17 +685,21 @@ class AppendixBWorkbookImporter:
             parameter_id = "electricity_emission_factor_nonfossil" if nonfossil_purchase else (
                 "electricity_emission_factor_provincial_average" if region else "electricity_emission_factor_national"
             )
-            default = self._default_factor(
-                parameter_id,
-                context.period,
-                region=region,
-                direction=direction_token,
-                electricity_attribute=(
-                    ElectricityAttribute.NONFOSSIL if nonfossil_purchase
-                    else ElectricityAttribute.ORDINARY
-                ),
-                electricity_acquisition_mode=ElectricityAcquisitionMode.PURCHASED,
-            )
+            if not nonfossil_purchase and self.queries is not None:
+                candidates = self.queries.electricity_options(region,context.period)
+                default = candidates[0].factor if candidates else None
+            else:
+                default = self._default_factor(
+                    parameter_id,
+                    context.period,
+                    region=region,
+                    direction=direction_token,
+                    electricity_attribute=(
+                        ElectricityAttribute.NONFOSSIL if nonfossil_purchase
+                        else ElectricityAttribute.ORDINARY
+                    ),
+                    electricity_acquisition_mode=ElectricityAcquisitionMode.PURCHASED,
+                )
             resolver_unit = self._parameter_unit(parameter_id, "tCO₂/MWh")
 
             if nonfossil_purchase:
@@ -859,7 +865,13 @@ class AppendixBWorkbookImporter:
                 exported.append(heat)
                 involved.add(SOURCE_EXPORTED_HEAT)
 
-    def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id):
+    def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
+        if template_version == "2.0.0":
+            from .appendix_b_processes import parse_process_sheets
+            return parse_process_sheets(self,workbook,context,reader,errors,warnings,outputs,involved,unit_id)
+        return self._parse_legacy_processes(workbook,context,reader,errors,warnings,outputs,involved,unit_id)
+
+    def _parse_legacy_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id):
         for sheet_name, meta in _PROCESS_META.items():
             source_id, model_type, default_parameter_id, parameter_name, index = meta
             ws = workbook[sheet_name]

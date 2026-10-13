@@ -84,6 +84,10 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                         letters,row = coordinate_from_string(cell)
                         index = column_index_from_string(letters)
                         cell = f"{get_column_letter(index+(index>=3))}{row}"
+                    if sheet_name in {"B.3","B.4","B.5"} and workbook[sheet_name]["C3"].value == "实际名称":
+                        from openpyxl.utils.cell import coordinate_from_string,column_index_from_string,get_column_letter
+                        letters,row=coordinate_from_string(cell);index=column_index_from_string(letters)
+                        cell=f"{get_column_letter(index+(index>=2))}{row}"
                     workbook[sheet_name][cell] = value
             workbook.save(path)
         finally:
@@ -293,6 +297,58 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 self.assertEqual(matches[0].fixed_carbon_percent, fixed)
                 self.assertEqual(matches[0].volatile_matter_percent, volatile)
 
+    def test_two_processes_with_same_material_names_keep_independent_materials(self):
+        from packages.excel.appendix_b_processes import _group_label
+        from packages.standards.carbon_material import SOURCE_CALCINATION
+        path=self._workbook("two-calcination-processes.xlsx",all_sources=True)
+        before=self.importer.import_preview(path,context=self._context()).units[0]
+        workbook=load_workbook(path);sheet=workbook["B.3"]
+        rows={r:[_group_label(sheet,r),*(sheet.cell(r,c).value for c in range(2,9))] for r in range(4,10)}
+        footer=[]
+        for area in list(sheet.merged_cells.ranges):
+            if area.min_row>=4:
+                if area.min_row>=10:footer.append(area.bounds)
+                sheet.unmerge_cells(str(area))
+        sheet.insert_rows(10,6)
+        for left,top,right,bottom in footer:
+            sheet.merge_cells(start_row=top+6,start_column=left,end_row=bottom+6,end_column=right)
+        for row,values in rows.items():
+            for col,value in enumerate(values,1):
+                sheet.cell(row,col,value)
+                sheet.cell(row+6,col,"第二煅烧窑" if col==7 else value)
+        workbook.save(path);workbook.close()
+        unit=self.importer.import_preview(path,context=self._context()).units[0]
+        self.assertTrue(before.can_calculate,before.errors)
+        self.assertTrue(unit.can_calculate,unit.errors)
+        self.assertEqual(len(unit.input_value.calcinations),2)
+        self.assertEqual({p.instance_name for p in unit.input_value.calcinations},{"煅烧1","第二煅烧窑"})
+        self.assertEqual(len({p.instance_id for p in unit.input_value.calcinations}),2)
+        with localcontext() as context:
+            context.prec=40;context.rounding=ROUND_HALF_UP
+            expected=before.source_breakdown[SOURCE_CALCINATION]*2
+        self.assertEqual(unit.source_breakdown[SOURCE_CALCINATION],expected)
+        for process in unit.input_value.calcinations:
+            self.assertEqual(len(process.material_rows),4)
+            feed=next(line for line in process.material_rows if line.role is MaterialRole.CALCINATION_FEED)
+            self.assertEqual(feed.mass_t,Decimal("100"))
+
+    def test_reordered_category_rows_do_not_change_material_roles(self):
+        path=self._workbook("reordered-output-materials.xlsx",all_sources=True)
+        before=self.importer.import_preview(path,context=self._context()).units[0]
+        workbook=load_workbook(path);sheet=workbook["B.3"]
+        # These rows share the output-carbon group; swap complete material identities.
+        first=[sheet.cell(6,c).value for c in range(2,9)]
+        second=[sheet.cell(7,c).value for c in range(2,9)]
+        for col,(left,right) in enumerate(zip(first,second),2):
+            sheet.cell(6,col).value=right;sheet.cell(7,col).value=left
+        workbook.save(path);workbook.close()
+        unit=self.importer.import_preview(path,context=self._context()).units[0]
+        self.assertTrue(unit.can_calculate,unit.errors)
+        self.assertEqual(unit.calculation.result.total_amount,before.calculation.result.total_amount)
+        original={line.role:(line.name,line.mass_t) for line in before.input_value.calcinations[0].material_rows}
+        actual={line.role:(line.name,line.mass_t) for line in unit.input_value.calcinations[0].material_rows}
+        self.assertEqual(actual,original)
+
     def test_paired_mass_mismatch_is_a_located_block_for_each_process_sheet(self) -> None:
         cases = (
             ("B.3", {"B4": "新煅烧料", "B5": "新煅烧料"}, "C5"),
@@ -310,7 +366,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 self.assertFalse(unit.can_calculate)
                 self.assertIsNone(unit.calculation)
                 self.assertIn(
-                    ("EXB01_PROCESS_PAIRED_MASS_MISMATCH", f"{sheet}!{mismatch_cell}"),
+                    ("EXB01_PROCESS_PAIRED_MASS_MISMATCH", f"{sheet}!D{mismatch_cell[1:]}"),
                     {(item.code, item.location) for item in unit.errors},
                 )
 

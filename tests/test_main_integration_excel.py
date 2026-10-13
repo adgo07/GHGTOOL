@@ -57,9 +57,9 @@ class MainIntegrationExcelTests(unittest.TestCase):
             if area.min_row >= 4:
                 process.unmerge_cells(str(area))
         process.insert_rows(5)
-        process["B5"], process["C5"], process["D5"] = "新增待煅烧原料", 20, 88
+        process["B5"], process["C5"], process["D5"], process["E5"], process["G5"], process["H5"] = "待煅烧原料", "新增待煅烧原料", 20, 88, "煅烧1", "物料5"
         process.insert_rows(7)
-        process["B7"], process["C7"], process["D7"] = "新增待煅烧原料", 20, 2
+        process["B7"], process["C7"], process["D7"], process["E7"], process["G7"], process["H7"] = "待煅烧原料", "新增待煅烧原料", 20, 2, "煅烧1", "物料5"
         # Make group boundaries explicit so role inference remains driven by
         # the approved labels after the test-only row insertions.
         group_labels = {

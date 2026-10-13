@@ -72,6 +72,37 @@ class UAT03RuleTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._temporary_directory.cleanup()
 
+    def test_prior_period_electricity_candidates_follow_resolver_without_registry_truncation(self):
+        period=AccountingPeriod(PeriodType.ANNUAL,date(2025,1,1),date(2025,12,31))
+        options=self.queries.electricity_options(None,period)
+        resolution=self.resolver.resolve(ParameterResolutionContext(parameter_id=NATIONAL_ELECTRICITY_PARAMETER_ID,
+            standard_id=STANDARD_ID,accounting_period=period,subject_id="purchased_electricity",parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR))
+        self.assertTrue(options)
+        self.assertEqual(options[0].factor.factor_id,resolution.recommended.factor_id)
+        display=self.queries.electricity_catalog_options("全国",None,period)
+        self.assertTrue(display[0].selectable)
+        self.assertEqual(display[0].factor.factor_id,options[0].factor.factor_id)
+
+    def test_five_electricity_tables_are_browsable_without_merging_factor_basis(self):
+        national=self.queries.electricity_catalog_options("全国",None,PERIOD)
+        parameters={item.factor.parameter_id for item in national}
+        self.assertIn(NATIONAL_ELECTRICITY_PARAMETER_ID,parameters)
+        self.assertIn("electricity_emission_factor_national_average_excluding_market_nonfossil",parameters)
+        self.assertIn("electricity_emission_factor_national_fossil",parameters)
+        expected=self.queries.electricity_options(None,PERIOD)
+        self.assertEqual([item.factor.factor_id for item in national if item.selectable],[item.factor.factor_id for item in expected])
+        self.assertTrue(all(item.unavailable_reason for item in national if not item.selectable))
+        self.assertEqual(national[0].factor.factor_id,expected[0].factor.factor_id)
+        regional_binding=next(binding for binding in self.queries._bindings if
+            (asset:=self.queries._assets.get(binding.asset_id)) is not None and asset.parameter_id=="electricity_emission_factor_regional_average")
+        regional=self.queries.electricity_catalog_options("区域",regional_binding.region,PERIOD)
+        self.assertTrue(regional)
+        self.assertTrue(all(not item.selectable for item in regional))
+        provincial=self.queries.electricity_catalog_options("省级","宁夏",PERIOD)
+        self.assertTrue(provincial)
+        self.assertTrue(any(item.selectable for item in provincial))
+        self.assertTrue(all(item.factor.parameter_id==PROVINCIAL_ELECTRICITY_PARAMETER_ID for item in provincial))
+
     def test_fuel_and_carbonate_candidates_follow_verified_canonical_bindings(self) -> None:
         fuel_options = {item.subject_id: item for item in self.queries.fuel_options()}
         self.assertIn("anthracite", fuel_options)

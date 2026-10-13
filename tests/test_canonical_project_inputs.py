@@ -335,17 +335,21 @@ class CanonicalProjectInputTests(unittest.TestCase):
         self.assertIsNone(decoded.fgd_units[0].reagent_name)
 
     def test_legacy_inputs_without_new_origin_fields_remain_readable(self):
-        payload=json.loads(encode_canonical_input(_rich_input()))
+        from packages.application.carbon_material_input_codec import encode_canonical_input as encode_legacy
+        payload=json.loads(encode_legacy(_rich_input()))
         def strip(node):
             if isinstance(node,dict):
                 if node.get("$kind")=="dataclass" and node.get("type") in {"fuel_input","carbonate_component"}:
                     node["fields"].pop("origin",None)
                     node["fields"].pop("catalog_subject_id",None)
+                if node.get("$kind")=="dataclass" and node.get("type") in {"calcination_input","baking_input","graphitization_input"}:
+                    node["fields"].pop("instance_name",None)
                 for child in node.values():strip(child)
             elif isinstance(node,list):
                 for child in node:strip(child)
         strip(payload)
         decoded=decode_canonical_input(json.dumps(payload))
+        self.assertIsNone(decoded.calcinations[0].instance_name)
         self.assertEqual(decoded.fuel_inputs[0].origin,None)
         self.assertEqual(decoded.fuel_inputs[0].catalog_subject_id,None)
         self.assertEqual(decoded.fuel_inputs[0].activity,_rich_input().fuel_inputs[0].activity)

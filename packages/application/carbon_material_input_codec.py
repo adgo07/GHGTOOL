@@ -227,6 +227,9 @@ def _decode_value(value: object) -> object:
             "electricity_consumption_detail": {"region", "selected_factor_id", "factor_selection_reason", "factor_override"},
             "electricity_output_line": {"region"},
             "fgd_input": {"reagent_name"},
+            "calcination_input": {"instance_name"},
+            "baking_input": {"instance_name"},
+            "graphitization_input": {"instance_name"},
             "fuel_input": {"origin", "catalog_subject_id"},
             "carbonate_component": {"origin"},
         }.get(node["type"], set())
