@@ -13,7 +13,7 @@ from packages.standards.carbon_material import STANDARD_ID, STANDARD_VERSION
 from .appendix_b_legacy_structure import LEGACY_HEADER_CELLS, LEGACY_HEADER_MERGES
 
 APPROVED_SOURCE_SHA256 = "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
-APPROVED_TEMPLATE_SHA256 = "223156ce3246f7b769bafdf76b50bdd334e07201e6318d409347361d167d043e"
+APPROVED_TEMPLATE_SHA256 = "e6354e19e184c95a52426c62a4b2e099b37dffb9bb2ef2127e8c166cea66a9ad"
 APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
@@ -87,7 +87,7 @@ class ExcelTemplateService:
         if tuple(workbook.sheetnames) != APPENDIX_B_SHEETS:
             raise ValueError("工作簿必须按原顺序保留 B.1 至 B.9 九张工作表。")
         is_current = (
-            workbook["B.2"]["L2"].value == "名称类型"
+            workbook["B.2"]["M2"].value == "名称类型"
             and workbook["B.7"]["I2"].value == "名称类型"
         )
         if not is_current:

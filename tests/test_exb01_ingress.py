@@ -79,6 +79,11 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         try:
             for sheet_name, assignments in changes.items():
                 for cell, value in assignments.items():
+                    if sheet_name == "B.2" and workbook[sheet_name]["M2"].value == "名称类型":
+                        from openpyxl.utils.cell import coordinate_from_string, column_index_from_string, get_column_letter
+                        letters,row = coordinate_from_string(cell)
+                        index = column_index_from_string(letters)
+                        cell = f"{get_column_letter(index+(index>=3))}{row}"
                     workbook[sheet_name][cell] = value
             workbook.save(path)
         finally:
@@ -87,7 +92,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
     def _workbook(self, name: str, *, all_sources: bool = False) -> Path:
         return write_valid_appendix_b_workbook(self.root / name, all_sources=all_sources)
 
-    def _custom_fuel(self, name: str, *, route: str = "实测值") -> Path:
+    def _custom_fuel(self, name: str, *, route: str = "实测值", unit: str | None = "t") -> Path:
         path = self._workbook(name)
         self._set_cells(path, {
             "B.2": {
@@ -104,6 +109,9 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 "I4": "实测值",
             },
         })
+        workbook = load_workbook(path)
+        workbook["B.2"]["C4"] = unit
+        workbook.save(path);workbook.close()
         return path
 
     def test_b6_additional_rows_are_consumed_once_with_independent_formula_total(self) -> None:
@@ -185,7 +193,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                                      "G4":0.03,"I4":"缺省值"}})
         unit = self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
         self.assertFalse(unit.can_calculate)
-        self.assertIn(("EXB01_CATALOG_FCH_READONLY","B.2!G4"),{(e.code,e.location) for e in unit.errors})
+        self.assertIn(("EXB01_CATALOG_FCH_READONLY","B.2!H4"),{(e.code,e.location) for e in unit.errors})
 
     def test_registered_coke_keeps_its_catalog_type_instead_of_becoming_custom(self) -> None:
         path = self._workbook("registered-coke.xlsx")
@@ -217,7 +225,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertEqual(unit.source_breakdown[SOURCE_FUEL], expected)
 
     def test_custom_fuel_computed_carbon_uses_explicit_volume_energy_path(self) -> None:
-        path = self._custom_fuel("custom-volume-calculated.xlsx", route="计算值")
+        path = self._custom_fuel("custom-volume-calculated.xlsx", route="计算值", unit="10⁴Nm³")
         self._set_cells(path, {"B.2": {"B4": 2}})
         preview = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME))
         unit = preview.units[0]
@@ -237,14 +245,14 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertEqual(unit.source_breakdown[SOURCE_FUEL], expected)
 
     def test_custom_fuel_without_catalog_unit_requires_an_explicit_path(self) -> None:
-        path = self._custom_fuel("custom-unit-required.xlsx")
+        path = self._custom_fuel("custom-unit-required.xlsx", unit=None)
         preview = self.importer.import_preview(path, context=self._context())
         unit = preview.units[0]
 
         self.assertFalse(unit.can_calculate)
         self.assertIsNone(unit.calculation)
         self.assertIn(
-            ("EXB01_FUEL_PATH_REQUIRED", "B.2!B4"),
+            ("EXB01_TEXT_REQUIRED", "B.2!C4"),
             {(item.code, item.location) for item in unit.errors},
         )
         self.assertEqual(unit.input_value.fuel_inputs, ())

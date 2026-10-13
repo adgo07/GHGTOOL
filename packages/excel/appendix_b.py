@@ -380,7 +380,7 @@ class AppendixBWorkbookImporter:
     @staticmethod
     def _check_trailing_activity(workbook, reader, errors, warnings):
         numeric_columns = {
-            "B.2":"BCEGHK", "B.3":"CD", "B.4":"CD", "B.5":"CD",
+            "B.2":("BDFHIL" if workbook["B.2"]["M2"].value == "名称类型" else "BCEGH"), "B.3":"CD", "B.4":"CD", "B.5":"CD",
             "B.6":"ABCDEF", "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
         }
         for name,columns in numeric_columns.items():
@@ -417,14 +417,8 @@ class AppendixBWorkbookImporter:
     def _fuel_option(self, label):
         if self.queries is None:
             return None
-        import unicodedata
-        normalize = lambda value: unicodedata.normalize("NFKC", str(value)).strip().casefold()
-        target = normalize(label)
-        matches = [
-            item for item in self.queries.fuel_options()
-            if target in {normalize(item.label), *(normalize(alias) for alias in item.aliases)}
-        ]
-        return matches[0] if len(matches) == 1 else None
+        from packages.standards.carbon_material_input_policy import match_fuel_option
+        return match_fuel_option(self.queries.fuel_options(), label)
 
     def _fuel_defaults(self, option, period):
         if self.queries is None or option is None:
@@ -469,68 +463,82 @@ class AppendixBWorkbookImporter:
 
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
+        from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
         current = template_version == "2.0.0"
+        def column(legacy_column):
+            return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
+
         stop = next(
             (r for r in range(4, sheet.max_row + 1) if _is_appendix_footer_row(sheet, r)),
             sheet.max_row + 1,
         )
         for row in range(4, stop):
-            if not any(_has_value(sheet[f"{col}{row}"]) for col in ("BCEGHK" if current else "BCEGH")):
+            if not any(_has_value(sheet[f"{column(col)}{row}"]) for col in ("BCEGHK" if current else "BCEGH")):
                 continue
-            label = reader.text(workbook, "B.2", f"A{row}", errors, required=True, field_label="燃料品种")
+            label = reader.text(workbook, "B.2", f"{column('A')}{row}", errors, required=True, field_label="燃料品种")
             if not label:
                 continue
-            name_mode = reader.text(workbook,"B.2",f"L{row}",errors,required=current,field_label="燃料名称类型") if current else None
+            name_mode = reader.text(workbook,"B.2",f"{column('L')}{row}",errors,required=current,field_label="燃料名称类型") if current else None
             if current and name_mode not in {"目录","自定义"}:
-                errors.append(ImportMessage("EXB01_FUEL_IDENTITY_REQUIRED","请选择目录燃料或自定义燃料。",f"B.2!L{row}","名称类型"))
+                errors.append(ImportMessage("EXB01_FUEL_IDENTITY_REQUIRED","请选择目录燃料或自定义燃料。",f"B.2!{column('L')}{row}","名称类型"))
                 continue
             option = None if name_mode == "自定义" else self._fuel_option(label)
             if current and name_mode == "目录" and option is None:
-                errors.append(ImportMessage("EXB01_FUEL_CATALOG_UNRESOLVED","目录中未找到该燃料；自行填写参数请选择自定义。",f"B.2!L{row}","名称类型"))
+                errors.append(ImportMessage("EXB01_FUEL_CATALOG_UNRESOLVED","目录中未找到该燃料；自行填写参数请选择自定义。",f"B.2!{column('L')}{row}","名称类型"))
                 continue
             fuel_type = (option.fuel_type or FuelType.OTHER) if option else FuelType.OTHER
             origin = InputOrigin.CATALOG if option else InputOrigin.CUSTOM
             default_lhv, default_carbon, default_oxidation = self._fuel_defaults(option, context.period)
-            path = self._fuel_path(label, row, default_lhv, context, errors)
-            activity = reader.number(workbook, "B.2", f"B{row}", errors, required=True, field_label=f"燃料“{label}”消耗量")
-            route = reader.text(workbook, "B.2", f"D{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
+            if current:
+                unit_label = reader.text(workbook,"B.2",f"C{row}",errors,required=True,field_label="消耗量单位")
+                from packages.standards.carbon_material_input_policy import fuel_path_for_unit
+                unit_path = fuel_path_for_unit(unit_label)
+                path = FuelPath(unit_path) if unit_path is not None else None
+                if unit_label is not None and path is None:
+                    errors.append(ImportMessage("EXB01_FUEL_UNIT_INVALID","消耗量单位请选择t或10⁴Nm³。",f"B.2!C{row}","消耗量单位"))
+            else:
+                path = self._fuel_path(label, row, default_lhv, context, errors)
+            activity = reader.number(workbook, "B.2", f"{column('B')}{row}", errors, required=True, field_label=f"燃料“{label}”消耗量")
+            if path is None:
+                continue
+            route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
             if route not in {"计算值", "实测值"}:
                 if route is not None:
-                    errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!D{row}", "碳含量路径"))
+                    errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
-            lhv_cell = f"B.2!E{row}"
-            carbon_column = "K" if current and origin is InputOrigin.CUSTOM else "G"
+            lhv_cell = f"B.2!{column('E')}{row}"
+            carbon_column = column("K" if current and origin is InputOrigin.CUSTOM else "G")
             carbon_cell = f"B.2!{carbon_column}{row}"
-            if current and origin is InputOrigin.CATALOG and _has_value(sheet[f"K{row}"]):
-                errors.append(ImportMessage("EXB01_CATALOG_FCH_CUSTOM_CELL","目录燃料不能使用自定义FCh填写格。",f"B.2!K{row}","自定义单位热值含碳量"))
-            if current and origin is InputOrigin.CUSTOM and _has_value(sheet[f"G{row}"]):
-                errors.append(ImportMessage("EXB01_CUSTOM_FCH_ADOPTED_CELL","自定义燃料不采用目录FCh，请清空G列并填写K列。",f"B.2!G{row}","目录采用值"))
-            direct_cell = f"B.2!C{row}"
-            lhv_source = reader.text(workbook, "B.2", f"F{row}", errors, field_label="低位发热量来源")
-            oxidation_source = reader.text(workbook, "B.2", f"I{row}", errors, field_label="碳氧化率来源")
+            if current and origin is InputOrigin.CATALOG and _has_value(sheet[f"{column('K')}{row}"]):
+                errors.append(ImportMessage("EXB01_CATALOG_FCH_CUSTOM_CELL","目录燃料不能使用自定义FCh填写格。",f"B.2!{column('K')}{row}","自定义单位热值含碳量"))
+            if current and origin is InputOrigin.CUSTOM and _has_value(sheet[f"{column('G')}{row}"]):
+                errors.append(ImportMessage("EXB01_CUSTOM_FCH_ADOPTED_CELL","自定义燃料不采用目录FCh，请清空H列并填写L列。",f"B.2!{column('G')}{row}","目录采用值"))
+            direct_cell = f"B.2!{column('C')}{row}"
+            lhv_source = reader.text(workbook, "B.2", f"{column('F')}{row}", errors, field_label="低位发热量来源")
+            oxidation_source = reader.text(workbook, "B.2", f"{column('I')}{row}", errors, field_label="碳氧化率来源")
 
             if route == "实测值":
-                direct = reader.number(workbook, "B.2", f"C{row}", errors, required=True, field_label="直接含碳量")
-                reader.observe_unused(workbook, "B.2", f"E{row}", warnings, field_label="低位发热量", reason="实测直接含碳路径不采用低位发热量；原始数值保留为证据。")
-                reader.observe_unused(workbook, "B.2", f"G{row}", warnings, field_label="单位热值含碳量", reason="实测直接含碳路径不采用单位热值含碳量；原始数值保留为证据。")
+                direct = reader.number(workbook, "B.2", f"{column('C')}{row}", errors, required=True, field_label="直接含碳量")
+                reader.observe_unused(workbook, "B.2", f"{column('E')}{row}", warnings, field_label="低位发热量", reason="实测直接含碳路径不采用低位发热量；原始数值保留为证据。")
+                reader.observe_unused(workbook, "B.2", f"{column('G')}{row}", warnings, field_label="单位热值含碳量", reason="实测直接含碳路径不采用单位热值含碳量；原始数值保留为证据。")
                 if current:
-                    reader.observe_unused(workbook,"B.2",f"K{row}",warnings,field_label="自定义单位热值含碳量",reason="直接含碳量路径不采用FCh。")
+                    reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="自定义单位热值含碳量",reason="直接含碳量路径不采用FCh。")
                 lhv_parameter = None
                 carbon_parameter = (
-                    _user_parameter(direct, f"enterprise_fuel_{unit_id}_{row}_carbon", "tC/10^4Nm3" if path is FuelPath.VOLUME else "tC/t", direct_cell, ParameterSourceKind.MEASURED)
+                    _user_parameter(direct, f"enterprise_fuel_{unit_id}_{row}_carbon", FUEL_QUANTITIES[path.value].direct_carbon_unit, direct_cell, ParameterSourceKind.MEASURED)
                     if direct is not None else None
                 )
                 if direct is not None:
                     self._warn_missing_source(warnings, direct_cell, f"燃料“{label}”直接含碳量")
             elif route == "计算值":
-                reader.observe_unused(workbook, "B.2", f"C{row}", warnings, field_label="直接含碳量", reason="计算路径不采用直接含碳量；原始数值保留为证据。")
-                lhv_value = reader.number(workbook, "B.2", f"E{row}", errors, field_label="低位发热量")
+                reader.observe_unused(workbook, "B.2", f"{column('C')}{row}", warnings, field_label="直接含碳量", reason="计算路径不采用直接含碳量；原始数值保留为证据。")
+                lhv_value = reader.number(workbook, "B.2", f"{column('E')}{row}", errors, field_label="低位发热量")
                 carbon_value = reader.number(workbook, "B.2", f"{carbon_column}{row}", errors, field_label="单位热值含碳量")
-                lhv_unit = {FuelPath.MASS: "GJ/t", FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.HEAT: "GJ/GJ"}[path] if path else "GJ/t"
+                lhv_unit = FUEL_QUANTITIES[path.value].lhv_unit if path else "GJ/t"
                 lhv_parameter = self._parameter_with_source(
                     lhv_value, lhv_source, default_lhv,
                     option.subject_id + "_lhv" if option else f"enterprise_fuel_{unit_id}_{row}_lhv",
-                    lhv_unit, lhv_cell, f"B.2!F{row}", errors, warnings, "低位发热量",
+                    lhv_unit, lhv_cell, f"B.2!{column('F')}{row}", errors, warnings, "低位发热量",
                 )
                 policy = fuel_input_policy(origin, direct_carbon=False)
                 if policy.fch_editable:
@@ -555,26 +563,26 @@ class AppendixBWorkbookImporter:
 
             if path is None or activity is None:
                 continue
-            oxidation_value = reader.number(workbook, "B.2", f"H{row}", errors, field_label="碳氧化率")
+            oxidation_value = reader.number(workbook, "B.2", f"{column('H')}{row}", errors, field_label="碳氧化率")
             oxidation_parameter = self._parameter_with_source(
                 oxidation_value, oxidation_source, default_oxidation,
                 option.subject_id + "_oxidation_rate" if option else f"enterprise_fuel_{unit_id}_{row}_oxidation",
-                "ratio", f"B.2!H{row}", f"B.2!I{row}", errors, warnings, "碳氧化率", percent=True,
+                "ratio", f"B.2!{column('H')}{row}", f"B.2!{column('I')}{row}", errors, warnings, "碳氧化率", percent=True,
             )
             if route == "计算值" and lhv_parameter is not None:
                 expected_unit = {FuelPath.MASS: "GJ/t", FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.HEAT: "GJ/GJ"}[path]
                 if lhv_parameter.unit != expected_unit:
-                    errors.append(ImportMessage("EXB01_FUEL_PATH_PARAMETER_UNIT_MISMATCH", "低位发热量目录单位与消耗量单位不一致；请更正单位，或选择实测参数路径。", f"B.2!B{row}", "消耗量单位"))
+                    errors.append(ImportMessage("EXB01_FUEL_PATH_PARAMETER_UNIT_MISMATCH", "低位发热量目录单位与消耗量单位不一致；请更正单位，或选择实测参数路径。", f"B.2!{column('B')}{row}", "消耗量单位"))
             if route == "计算值" and lhv_parameter is None:
                 errors.append(ImportMessage("EXB01_FUEL_LHV_REQUIRED", "计算路径缺少低位发热量；请填写实测值或使用可核验的目录缺省值。", lhv_cell, "低位发热量"))
             if carbon_parameter is None:
                 errors.append(ImportMessage("EXB01_FUEL_CARBON_REQUIRED", "当前路径缺少所需含碳量。", carbon_cell if route == "计算值" else direct_cell, "含碳量"))
             if oxidation_parameter is None:
-                errors.append(ImportMessage("EXB01_FUEL_OXIDATION_REQUIRED", "缺少碳氧化率；请填写数值或确认当前期间的目录缺省值。", f"B.2!H{row}", "碳氧化率"))
+                errors.append(ImportMessage("EXB01_FUEL_OXIDATION_REQUIRED", "缺少碳氧化率；请填写数值或确认当前期间的目录缺省值。", f"B.2!{column('H')}{row}", "碳氧化率"))
             output.append(FuelInput(
                 fuel_id=_stable_id("fuel", unit_id, row),
                 path=path,
-                activity=InputValue(activity, "ten_thousand_Nm3" if path is FuelPath.VOLUME else "t", source_reference=f"B.2!B{row}"),
+                activity=InputValue(activity, FUEL_QUANTITIES[path.value].activity_unit, source_reference=f"B.2!{column('B')}{row}"),
                 carbon_content=carbon_parameter,
                 oxidation_rate=oxidation_parameter,
                 lower_heating_value=lhv_parameter,

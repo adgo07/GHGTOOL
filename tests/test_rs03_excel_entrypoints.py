@@ -117,11 +117,12 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
     def _workbook(self, year: int = 2025) -> Path:
         workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"] = "天然气"
         fuel["B14"] = 1.25
-        fuel["D14"] = "计算值"
-        fuel["F14"] = "缺省值"
-        fuel["I14"] = "缺省值"
+        fuel['E14'] = "计算值"
+        fuel['G14'] = "缺省值"
+        fuel['J14'] = "缺省值"
         destination = self.root / f"输入-{year}.xlsx"
         workbook.save(destination)
         workbook.close()

@@ -70,3 +70,38 @@ def carbonate_source_violations(origin: InputOrigin | None, sources: Mapping[str
         (field,"CAR-VAL-CUSTOM-CARBONATE-DEFAULT","自定义碳酸盐不适用目录缺省参数，请填写必要参数并确认来源。")
         for field, source in sources.items() if source in {"STANDARD_DEFAULT","STANDARD_SPECIFIED"}
     )
+
+
+@dataclass(frozen=True)
+class FuelQuantitySpec:
+    activity_unit: str
+    display_unit: str
+    lhv_unit: str
+    direct_carbon_unit: str
+    direct_carbon_name: str
+
+FUEL_QUANTITIES = {
+    "MASS": FuelQuantitySpec("t", "t", "GJ/t", "tC/t", "单位质量含碳量"),
+    "VOLUME": FuelQuantitySpec("ten_thousand_Nm3", "10⁴Nm³", "GJ/10⁴Nm³", "tC/10^4Nm3", "单位体积含碳量"),
+    # Read-only compatibility for previously saved projects.
+    "HEAT": FuelQuantitySpec("GJ", "GJ", "GJ/GJ", "tC/GJ", "单位热量含碳量"),
+}
+
+def match_fuel_option(options, label):
+    """Aliases search an existing identity; they never create catalog identities."""
+    import unicodedata
+    def normalize(value):
+        return unicodedata.normalize("NFKC", str(value)).strip().casefold()
+    target = normalize(label)
+    matches = [item for item in options if target in {normalize(item.label), *(normalize(a) for a in item.aliases)}]
+    return matches[0] if len(matches) == 1 else None
+
+
+def fuel_path_for_unit(unit):
+    import unicodedata
+    normalized = unicodedata.normalize("NFKC", str(unit or "")).replace(" ", "").casefold()
+    if normalized in {"t", "吨"}:
+        return "MASS"
+    if normalized in {"104nm3", "10^4nm3", "104m3", "10^4m3", "万立方米", "万nm3"}:
+        return "VOLUME"
+    return None

@@ -60,6 +60,34 @@ class StandardInputPolicyTests(unittest.TestCase):
         self.assertEqual(policy.required_parameters,("carbon_content","oxidation_rate"))
         self.assertFalse(policy.default_parameters_allowed)
 
+    def test_fuel_alias_matching_is_normalized_and_ambiguous_names_fail(self):
+        from types import SimpleNamespace
+        from packages.standards.carbon_material_input_policy import match_fuel_option, fuel_path_for_unit
+        gas=SimpleNamespace(label="天然气",aliases=("NG",))
+        self.assertIs(match_fuel_option((gas,),"ｎｇ"),gas)
+        self.assertIsNone(match_fuel_option((gas,),"库外燃料"))
+        self.assertIsNone(match_fuel_option((gas,SimpleNamespace(label="另一燃料",aliases=("NG",))),"NG"))
+        self.assertEqual(fuel_path_for_unit("10⁴Nm³"),"VOLUME")
+        self.assertEqual(fuel_path_for_unit("t"),"MASS")
+        self.assertIsNone(fuel_path_for_unit("GJ"))
+
+    def test_fuel_editor_lists_only_canonical_options_and_searches_aliases(self):
+        from PySide6.QtWidgets import QApplication
+        from packages.ui.carbon_material_fuel import _FuelRow
+        from types import SimpleNamespace
+        app=QApplication.instance() or QApplication([])
+        option=SimpleNamespace(label="天然气",aliases=("NG","Natural Gas"),fuel_type=FuelType.NATURAL_GAS,subject_id="natural_gas")
+        row=_FuelRow(1,lambda _row:None,fuel_options=(option,))
+        try:
+            self.assertEqual(row.fuel_type.count(),1)
+            self.assertEqual(row.fuel_type.itemText(0),"天然气")
+            row.fuel_type.setEditText("NG")
+            row._accept_search_match("NG")
+            self.assertEqual(row.fuel_type.currentText(),"天然气")
+            self.assertEqual(row.input_grid.rowCount(),3) # two input bands + optional evidence
+        finally:
+            row.deleteLater();app.processEvents()
+
 
 if __name__ == "__main__":
     unittest.main()

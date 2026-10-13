@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import closing
 from dataclasses import asdict
+from decimal import Decimal
 from datetime import date
 from io import BytesIO
 import gc
@@ -118,12 +119,58 @@ class MainIntegrationUiTests(unittest.TestCase):
     def _workbook(self) -> Path:
         workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'] = "计算值", "缺省值", "缺省值"
         destination = self.root / "输入.xlsx"
         workbook.save(destination)
         workbook.close()
         return destination
+
+    def test_custom_fuel_both_quantities_and_carbon_routes_match_excel_exactly(self):
+        from packages.standards.carbon_material import ParameterSourceKind
+        row = self.page._fuel_rows[0]
+        row.custom_mode.setChecked(True)
+        row.fuel_type.setEditText("同名自定义燃料批次")
+        for path in (FuelPath.MASS, FuelPath.VOLUME):
+            for direct in (False, True):
+                with self.subTest(path=path,direct=direct):
+                    row.path.setCurrentIndex(row.path.findData(path))
+                    row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT" if direct else "HEAT_CONTENT"))
+                    for combo in (row.lhv_source,row.carbon_source,row.oxidation_source):
+                        combo.setCurrentIndex(combo.findData("USER_DEFINED"))
+                    row.activity.setText("10")
+                    row.lower_heating_value.setText("8")
+                    row.carbon.setText("0.03")
+                    row.carbon_direct.setText("0.4")
+                    row.oxidation.setText("98")
+                    gui = self.page.calculator.calculate(self.page._input())
+                    workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+                    sheet = workbook["B.2"]
+                    for cell,value in {"A4":"同名自定义燃料批次","B4":10,"C4":"t" if path is FuelPath.MASS else "10⁴Nm³",
+                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"填写值",
+                        "H4":None,"I4":98,"J4":"填写值","L4":0.03,"M4":"自定义"}.items():
+                        sheet[cell]=value
+                    destination=self.root / "自定义燃料等价.xlsx"
+                    workbook.save(destination);workbook.close()
+                    excel_page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+                    unit = AppendixBWorkbookImporter(preview_use_case=excel_page.preview_use_case,catalog_service=excel_page.catalog_service).import_preview(
+                        destination,context=AppendixBImportContext(period=AccountingPeriod(PeriodType.ANNUAL,date(2025,1,1),date(2025,12,31)),boundary_confirmed=True)).units[0]
+                    self.assertFalse(gui.blocked,gui.problems)
+                    self.assertTrue(unit.can_calculate,unit.errors)
+                    self.assertEqual(gui.result.total_amount,unit.calculation.result.total_amount)
+                    left,right=gui.input.fuel_inputs[0],unit.input_value.fuel_inputs[0]
+                    self.assertEqual(left.path,right.path)
+                    self.assertEqual(left.fuel_label,right.fuel_label)
+                    for key in ("carbon_content","oxidation_rate","lower_heating_value"):
+                        lvalue,rvalue=getattr(left,key),getattr(right,key)
+                        if lvalue is None:
+                            self.assertIsNone(rvalue)
+                        else:
+                            self.assertEqual(Decimal(str(lvalue.value)),Decimal(str(rvalue.value)),key)
+                            self.assertEqual(lvalue.unit,rvalue.unit,key)
+                            self.assertEqual(lvalue.source_kind,rvalue.source_kind,key)
+                    self.assertEqual(len(self.repository.list_all()),0)
 
     def test_gui_and_excel_have_exact_results_and_preview_does_not_save(self) -> None:
         self.page.quick_calculate_button.click()

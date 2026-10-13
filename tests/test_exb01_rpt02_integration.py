@@ -131,8 +131,9 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         self.assertEqual(sha256(template_bytes).hexdigest(), APPROVED_TEMPLATE_SHA256)
         workbook = load_workbook(BytesIO(template_bytes))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'] = "计算值", "缺省值", "缺省值"
         destination = self.root / "经批准附录B工作簿.xlsx"
         workbook.save(destination)
         workbook.close()

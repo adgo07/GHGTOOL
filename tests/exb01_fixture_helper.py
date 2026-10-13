@@ -34,9 +34,11 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()), data_only=False)
+    for row in range(4,19):
+        workbook["B.2"][f"C{row}"] = "10⁴Nm³" if row in (14,15,16,17) else "t"
     if all_sources:
         fuel = workbook["B.2"]
-        fuel["B4"], fuel["C4"], fuel["D4"], fuel["H4"], fuel["I4"] = 1, 0.5, "实测值", 98, "实测值"
+        fuel["B4"], fuel["C4"], fuel["D4"], fuel["E4"], fuel["I4"], fuel["J4"] = 1, "10⁴Nm³", 0.5, "实测值", 98, "实测值"
         for sheet, assignments in {
             "B.3": {4:(100,90), 5:(100,5), 6:(80,95), 7:(0,0), 8:(0,0), 9:(80,1)},
             "B.4": {4:(40,90), 5:(50,80), 6:(40,5), 7:(50,3), 8:(1,0), 9:(45,92)},

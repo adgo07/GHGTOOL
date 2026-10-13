@@ -6,7 +6,7 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
-from packages.standards.carbon_material_input_policy import InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS, SUPPORTED_STEAM_KINDS
+from packages.standards.carbon_material_input_policy import InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS, SUPPORTED_STEAM_KINDS, FUEL_QUANTITIES, match_fuel_option
 
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timezone
@@ -119,6 +119,7 @@ from packages.core.parameter_resolution import (
 from packages.core.repositories import RecordRepository
 
 from .pages import BasePage, Navigate, _card
+from .carbon_material_fuel import _FuelRow
 from .report_export import export_saved_record_report
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState
@@ -194,34 +195,6 @@ _REPORT_SOURCE_OPTIONS = (
     ("购入热力", "CAR-SRC-PURCHASED-HEAT-001"),
     ("输出热力", "CAR-SRC-EXPORTED-HEAT-001"),
 )
-_FUEL_C1_SUBJECT_IDS = {
-    FuelType.ANTHRACITE: "anthracite",
-    FuelType.BITUMINOUS_COAL: "bituminous_coal",
-    FuelType.LIGNITE: "lignite",
-    FuelType.CLEANED_COAL: "cleaned_coal",
-    FuelType.OTHER_CLEANED_COAL: "other_cleaned_coal",
-    FuelType.BRIQUETTE: "briquette",
-    FuelType.OTHER_COAL_PRODUCTS: "other_coal_products",
-    FuelType.COKE: "coke",
-    FuelType.PETROLEUM_COKE: "petroleum_coke",
-    FuelType.CRUDE_OIL: "crude_oil",
-    FuelType.FUEL_OIL: "fuel_oil",
-    FuelType.GASOLINE: "gasoline",
-    FuelType.DIESEL: "diesel",
-    FuelType.KEROSENE: "kerosene",
-    FuelType.LIQUEFIED_NATURAL_GAS: "liquefied_natural_gas",
-    FuelType.LIQUEFIED_PETROLEUM_GAS: "liquefied_petroleum_gas",
-    FuelType.NAPHTHA: "naphtha",
-    FuelType.TAR: "tar",
-    FuelType.CRUDE_BENZENE: "crude_benzene",
-    FuelType.OTHER_PETROLEUM_PRODUCTS: "other_petroleum_products",
-    FuelType.NATURAL_GAS: "natural_gas",
-    FuelType.BLAST_FURNACE_GAS: "blast_furnace_gas",
-    FuelType.CONVERTER_GAS: "converter_gas",
-    FuelType.COKE_OVEN_GAS: "coke_oven_gas",
-    FuelType.REFINERY_DRY_GAS: "refinery_dry_gas",
-    FuelType.OTHER_GAS: "other_gas",
-}
 _FUEL_C1_ACTIVITY_PATH = {
     FuelType.NATURAL_GAS: FuelPath.VOLUME,
     FuelType.BLAST_FURNACE_GAS: FuelPath.VOLUME,
@@ -625,246 +598,6 @@ class _UnifiedEnergyRow(QWidget):
         self.enthalpy.hide()
         self.measured_heat_factor.hide()
         self.heat_source.hide()
-
-class _FuelRow(QWidget):
-    """Compact two-line fuel entry with separate heat-based and direct-carbon paths."""
-
-    def __init__(
-        self,
-        index: int,
-        remove: Callable[[QWidget], None],
-        parent: QWidget | None = None,
-        fuel_options: tuple[object, ...] = (),
-    ) -> None:
-        super().__init__(parent)
-        self.setObjectName(f"fuelRow{index}")
-        self.row_key = uuid4().hex
-        self._fuel_options = tuple(fuel_options)
-        self._default_selection_reasons: dict[str, str] = {}
-        self._legacy_default_values: tuple[str, str, str] | None = None
-        self._legacy_source = "AUTO"
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 4, 0, 4)
-        outer.setSpacing(5)
-
-        header = QHBoxLayout()
-        self.title_label = QLabel(f"燃料 {index}", self)
-        self.title_label.setObjectName(f"fuelTitle{index}")
-        header.addWidget(self.title_label)
-        self.parameter_summary = QLabel("参数来源待确定", self)
-        self.parameter_summary.setObjectName(f"fuelParameterSummary{index}")
-        self.parameter_summary.setWordWrap(True)
-        self.parameter_summary.hide()
-        header.addStretch(1)
-        self.remove_button = QPushButton("删除", self)
-        self.remove_button.setObjectName(f"removeFuelButton{index}")
-        self.remove_button.clicked.connect(lambda: remove(self))
-        header.addWidget(self.remove_button)
-        outer.addLayout(header)
-
-        self.internal_id = QLineEdit(f"fuel-{self.row_key}", self)
-        self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
-        self.internal_id.hide()
-
-        self.fuel_type = QComboBox(self)
-        self.fuel_type.setObjectName(f"fuelType{index}")
-        self.fuel_type.setProperty("fieldSpecKey", "fuel_type")
-        self.fuel_type.setEditable(True)
-        self.fuel_type.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.fuel_type.setPlaceholderText("搜索或输入燃料名称")
-        self.fuel_type.setMinimumWidth(190)
-        self.fuel_type.lineEdit().setMaxLength(120)
-        seen: set[tuple[str, str]] = set()
-        for option in self._fuel_options:
-            label = str(getattr(option, "label", "")).strip()
-            fuel_type = getattr(option, "fuel_type", None)
-            subject_id = str(getattr(option, "subject_id", ""))
-            if not label or label.strip() in {"煤", "煤炭", "其他", "其它"}:
-                continue
-            aliases = tuple(getattr(option, "aliases", ()) or ())
-            for candidate in (label, *aliases):
-                candidate = str(candidate).strip()
-                key = (candidate, subject_id)
-                if not candidate or key in seen:
-                    continue
-                seen.add(key)
-                self.fuel_type.addItem(candidate, fuel_type)
-                self.fuel_type.setItemData(self.fuel_type.count() - 1, subject_id, Qt.ItemDataRole.UserRole + 1)
-        if self.fuel_type.completer() is not None:
-            self.fuel_type.completer().setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            self.fuel_type.completer().setFilterMode(Qt.MatchFlag.MatchContains)
-
-        self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
-        self.path.addItem("体积", FuelPath.VOLUME)
-        self.path.addItem("质量", FuelPath.MASS)
-        # Retained as an invisible, disabled legacy value so old workspaces restore
-        # without offering heat activity as a new-accounting choice.
-        self.path.addItem("", FuelPath.HEAT)
-        path_item = self.path.model().item(2) if hasattr(self.path.model(), "item") else None
-        if path_item is not None:
-            path_item.setEnabled(False)
-        self.path.view().setRowHidden(2, True)
-
-        self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
-        self.activity.setPlaceholderText("活动量")
-        self.fuel_type_label = QLabel("燃料种类", self)
-        self.path_label = QLabel("计量方式", self)
-        self.activity_label = QLabel("活动量", self)
-        self.carbon_basis_label = QLabel("含碳量方式", self)
-
-        self.lower_heating_value = create_typed_input(self, get_field_spec("fuel_lhv"), f"fuelLhvInput{index}")
-        self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
-        self.carbon_direct = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelMeasuredCarbonInput{index}")
-        self.oxidation = create_typed_input(self, get_field_spec("fuel_oxidation"), f"fuelOxidationInput{index}")
-        self.source_reference = create_typed_input(self, get_field_spec("fuel_source_reference"), f"fuelSourceReference{index}")
-        self.source_reference.setPlaceholderText("填写本条燃料的检测报告编号、页码或来源定位")
-
-        self.carbon_basis = QComboBox(self)
-        self.carbon_basis.setObjectName(f"fuelCarbonBasis{index}")
-        self.carbon_basis.addItem("计算值", "HEAT_CONTENT")
-        self.carbon_basis.addItem("实测值", "DIRECT")
-        self.lhv_source = self._source_combo(index, "lhv")
-        self.lhv_source.clear()
-        self.lhv_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.lhv_source.addItem("实测值", "MEASURED")
-        self.lhv_source.addItem("填写值", "USER_DEFINED")
-        self.carbon_source = self._source_combo(index, "carbon")
-        self.carbon_source.clear()
-        self.carbon_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.carbon_source.addItem("填写值", "USER_DEFINED")
-        self.direct_carbon_source = self._source_combo(index, "directCarbon")
-        self.direct_carbon_source.clear()
-        self.direct_carbon_source.addItem("实测值", "MEASURED")
-        self.oxidation_source = self._source_combo(index, "oxidation")
-        self.oxidation_source.clear()
-        self.oxidation_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.oxidation_source.addItem("实测值", "MEASURED")
-        self._legacy_oxidation_source_index = self.oxidation_source.count()
-        self.oxidation_source.addItem("填写值", "USER_DEFINED")
-        self.oxidation_source.view().setRowHidden(self._legacy_oxidation_source_index, True)
-        self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
-        self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
-        self.direct_carbon_control = self._parameter_control(self.direct_carbon_source, self.carbon_direct)
-        self.oxidation_control = self._parameter_control(self.oxidation_source, self.oxidation)
-        self.lhv_label = QLabel("低位发热量", self)
-        self.carbon_label = QLabel("单位热值含碳量", self)
-        self.direct_carbon_label = QLabel("实测单位含碳量", self)
-        self.oxidation_label = QLabel("碳氧化率", self)
-        self.source_reference_label = QLabel("实测报告/来源定位", self)
-        self.source_reference_control = QWidget(self)
-        source_layout = QHBoxLayout(self.source_reference_control)
-        source_layout.setContentsMargins(0, 0, 0, 0)
-        source_layout.setSpacing(5)
-        source_layout.addWidget(self.source_reference_label)
-        source_layout.addWidget(self.source_reference, 1)
-        self.source_reference_control.hide()
-        self.calculated_carbon_label = QLabel("按热值计算：待录入", self)
-        self.calculated_carbon_label.setObjectName(f"fuelCalculatedCarbon{index}")
-        self.calculated_carbon_label.setAccessibleName("按低位发热量计算的单位活动量含碳量，仅供查看")
-        self.calculated_carbon_label.setWordWrap(False)
-
-        carbon_value_cell = QWidget(self)
-        carbon_value_layout = QHBoxLayout(carbon_value_cell)
-        carbon_value_layout.setContentsMargins(0, 0, 0, 0)
-        carbon_value_layout.setSpacing(5)
-        carbon_value_layout.addWidget(self.carbon_basis, 1)
-        self.carbon_calc_cell = QWidget(self)
-        calc_layout = QVBoxLayout(self.carbon_calc_cell)
-        calc_layout.setContentsMargins(0, 0, 0, 0)
-        calc_layout.setSpacing(0)
-        calc_layout.addWidget(self.calculated_carbon_label)
-        self.carbon_direct_cell = self.direct_carbon_control
-        carbon_value_layout.addWidget(self.carbon_calc_cell, 2)
-        carbon_value_layout.addWidget(self.carbon_direct_cell, 2)
-        self.carbon_direct_cell.hide()
-        self.carbon_basis_label.hide()
-
-        self.lhv_cell = self.lhv_control
-        self.oxidation_cell = self.oxidation_control
-        self.source_cell = self.source_reference
-        grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(3)
-        for column, label in enumerate((self.fuel_type_label, self.path_label, self.activity_label, self.lhv_label, self.carbon_label, self.direct_carbon_label, self.oxidation_label)):
-            grid.addWidget(label, 0, column)
-        for column, widget in enumerate((self.fuel_type, self.path, self.activity, self.lhv_control, self.carbon_control, carbon_value_cell, self.oxidation_control)):
-            grid.addWidget(widget, 1, column)
-        grid.addWidget(self.source_reference_control, 2, 0, 1, 3)
-        grid.addWidget(self.lhv_source, 2, 3)
-        grid.addWidget(self.carbon_source, 2, 4)
-        grid.addWidget(self.oxidation_source, 2, 6)
-        self.custom_mode = QCheckBox("自定义燃料", self)
-        self.custom_mode.setObjectName(f"fuelCustomMode{index}")
-        self.custom_mode.setToolTip("勾选后按自定义参数填写；目录外名称也按自定义处理，不借用目录缺省值。")
-        grid.addWidget(self.custom_mode, 2, 5)
-        for column, stretch in enumerate((3, 1, 2, 2, 2, 3, 1)):
-            grid.setColumnStretch(column, stretch)
-        outer.addLayout(grid)
-
-        # Backward-compatible, hidden legacy free-text field. New input lives in
-        # the searchable fuel selector and is matched to Catalog text exactly.
-        self.custom_name = QLineEdit(self)
-        self.custom_name.setObjectName(f"fuelCustomName{index}")
-        self.custom_name.setPlaceholderText("填写具体燃料名称或煤种")
-        self.custom_name.hide()
-        self.custom_name_label = QLabel("具体名称", self)
-        self.custom_name_label.hide()
-
-        self._update_custom_name_visibility()
-        self._last_default_values: tuple[str, str, str] | None = None
-        # Old workspace source choices can exceed the reduced V2 selectors.
-        # Preserve those choices as hidden compatibility metadata.
-        self._legacy_source_modes: dict[str, str] = {}
-        self.parameter_source = "AUTO"
-
-    def _carbon_basis_row(self) -> QWidget:
-        row = QWidget(self)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        layout.addWidget(QLabel("含碳量方式", row))
-        layout.addWidget(self.carbon_basis)
-        layout.addStretch(1)
-        self._carbon_basis_control = row
-        return row
-
-    @staticmethod
-    def _field_cell(label: QLabel, widget: QWidget) -> QWidget:
-        cell = QWidget(label.parentWidget())
-        layout = QVBoxLayout(cell)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(3)
-        layout.addWidget(label)
-        layout.addWidget(widget)
-        return cell
-
-    @staticmethod
-    def _source_combo(index: int, key: str) -> QComboBox:
-        combo = QComboBox()
-        combo.setObjectName(f"fuel{key.title()}Source{index}")
-        combo.addItem("标准缺省", "STANDARD_DEFAULT")
-        combo.addItem("计算值", "CALCULATED")
-        combo.addItem("实测/检测", "MEASURED")
-        combo.addItem("用户自填", "USER_DEFINED")
-        combo.setMinimumWidth(94)
-        return combo
-
-    @staticmethod
-    def _parameter_control(source: QComboBox, edit: QWidget) -> QWidget:
-        control = QWidget()
-        row = QHBoxLayout(control)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(0)
-        row.addWidget(edit, 1)
-        return control
-
-    def _update_custom_name_visibility(self) -> None:
-        # The searchable combo itself accepts custom text; the compatibility
-        # editor remains hidden and is read only by the legacy state adapter.
-        self.custom_name_label.hide()
-        self.custom_name.hide()
-
 
 class _SearchableEnterpriseCombo(QComboBox):
     """Editable recent-name selector with the legacy line-edit convenience API."""
@@ -3552,10 +3285,7 @@ class CarbonMaterialAccountingPage(BasePage):
         text = row.fuel_type.currentText().strip()
         if not text:
             return None
-        for option in row._fuel_options:
-            if text == str(getattr(option, "label", "")) or text in tuple(getattr(option, "aliases", ()) or ()):
-                return option
-        return None
+        return match_fuel_option(row._fuel_options, text)
 
     @staticmethod
     def _fuel_source_mode(row: _FuelRow, source_key: str) -> str | None:
@@ -3836,9 +3566,8 @@ class CarbonMaterialAccountingPage(BasePage):
         row.parameter_summary.hide()
         row.carbon_basis_label.hide()
 
-        activity_unit = {FuelPath.VOLUME: "10⁴ Nm³", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[path]
-        lhv_unit = {FuelPath.VOLUME: "GJ/10⁴ Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
-        direct_carbon_unit = {FuelPath.VOLUME: "tC/10⁴Nm³", FuelPath.MASS: "tC/t", FuelPath.HEAT: "tC/GJ"}[path]
+        quantity = FUEL_QUANTITIES[path.value]
+        activity_unit, lhv_unit, direct_carbon_unit = quantity.display_unit, quantity.lhv_unit, quantity.direct_carbon_unit.replace("10^4Nm3", "10⁴Nm³")
         row.carbon_basis.setEnabled(path in {FuelPath.VOLUME, FuelPath.MASS})
         row.lhv_control.setVisible(path is not FuelPath.HEAT)
         row.lhv_control.setEnabled(not direct and path is not FuelPath.HEAT)
@@ -3864,7 +3593,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.activity.setProperty("fieldUnit", activity_unit)
         row.lhv_label.setText(f"低位发热量（{lhv_unit}）")
         row.carbon_label.setText("单位热值含碳量（tC/GJ）")
-        direct_name = "单位体积含碳量" if path is FuelPath.VOLUME else "单位质量含碳量"
+        direct_name = quantity.direct_carbon_name
         row.direct_carbon_label.setText(f"{direct_name}（{direct_carbon_unit}）")
         row.carbon_label.setVisible(True)
         row.direct_carbon_label.setVisible(True)
@@ -6468,17 +6197,13 @@ class CarbonMaterialAccountingPage(BasePage):
             direct = row.carbon_basis.currentData() == "DIRECT"
             defaults = self._fuel_default_factors(row)
             lhv_factor, carbon_factor, oxidation_factor = defaults if defaults is not None else (None, None, None)
-            lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[path]
+            lhv_unit = FUEL_QUANTITIES[path.value].lhv_unit
             lhv_value_num = row.lower_heating_value.text().strip() or None
             carbon_edit = row.carbon_direct if direct else row.carbon
             carbon_source = row.direct_carbon_source if direct else row.carbon_source
             carbon_value_num = carbon_edit.text().strip() or None
             oxidation_value_num = _ui_value("fuel_oxidation", row.oxidation)
-            carbon_unit = {
-                FuelPath.VOLUME: "tC/10^4Nm3",
-                FuelPath.MASS: "tC/t",
-                FuelPath.HEAT: "tC/GJ",
-            }[path] if direct else "tC/GJ"
+            carbon_unit = FUEL_QUANTITIES[path.value].direct_carbon_unit if direct else "tC/GJ"
             lhv_value = self._fuel_parameter(
                 row=row, source=row.lhv_source, edit=row.lower_heating_value,
                 suffix="lhv", unit=lhv_unit, factor=lhv_factor, value=lhv_value_num,

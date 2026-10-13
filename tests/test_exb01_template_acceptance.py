@@ -49,7 +49,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 }
                 for sheet in workbook.worksheets
             }
-            self.assertIn(("D4:D18", "list", '"计算值,实测值"'), validations["B.2"])
+            self.assertIn(("E4:E18", "list", '"计算值,实测值"'), validations["B.2"])
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
             self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
         finally:
@@ -59,7 +59,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
         workbook=load_workbook(BytesIO(self.service.read_bytes()))
         try:
             for sheet,cells in {
-                "B.2":("A4","B4","C4","D4","E4","F4","H4","I4","K4","L4"),
+                "B.2":("A4","B4","C4","D4","E4","F4","G4","I4","J4","L4","M4"),
                 "B.3":("B4","C4","D4","E4"),"B.4":("B4","C4","D4","E4"),
                 "B.5":("B4","C4","D4","E4"),"B.6":("A3","F3","A7","F7"),
                 "B.7":("A3","B3","C3","D3","F3","H3","I3","A6","B6"),
@@ -68,7 +68,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 self.assertTrue(workbook[sheet].protection.sheet,sheet)
                 for cell in cells:
                     self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
-            for sheet,cell in (("B.2","G4"),("B.2","J4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
+            for sheet,cell in (("B.2","H4"),("B.2","K4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
                 self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
             self.assertEqual(self.service.validate_structure(workbook),"2.0.0")
         finally:

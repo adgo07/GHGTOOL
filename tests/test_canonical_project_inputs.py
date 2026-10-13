@@ -334,6 +334,22 @@ class CanonicalProjectInputTests(unittest.TestCase):
         self.assertTrue(decoded.fgd_units)
         self.assertIsNone(decoded.fgd_units[0].reagent_name)
 
+    def test_legacy_inputs_without_new_origin_fields_remain_readable(self):
+        payload=json.loads(encode_canonical_input(_rich_input()))
+        def strip(node):
+            if isinstance(node,dict):
+                if node.get("$kind")=="dataclass" and node.get("type") in {"fuel_input","carbonate_component"}:
+                    node["fields"].pop("origin",None)
+                    node["fields"].pop("catalog_subject_id",None)
+                for child in node.values():strip(child)
+            elif isinstance(node,list):
+                for child in node:strip(child)
+        strip(payload)
+        decoded=decode_canonical_input(json.dumps(payload))
+        self.assertEqual(decoded.fuel_inputs[0].origin,None)
+        self.assertEqual(decoded.fuel_inputs[0].catalog_subject_id,None)
+        self.assertEqual(decoded.fuel_inputs[0].activity,_rich_input().fuel_inputs[0].activity)
+
     def test_codec_rejects_float_and_nonfinite_decimal_values(self) -> None:
         input_value = _rich_input()
         source_line = input_value.calcinations[0].material_rows[0]

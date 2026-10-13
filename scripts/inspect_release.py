@@ -21,7 +21,7 @@ MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
 APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
-APPROVED_TEMPLATE_SHA256 = "223156ce3246f7b769bafdf76b50bdd334e07201e6318d409347361d167d043e"
+APPROVED_TEMPLATE_SHA256 = "e6354e19e184c95a52426c62a4b2e099b37dffb9bb2ef2127e8c166cea66a9ad"
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
     APPROVED_TEMPLATE_PATH.as_posix(),

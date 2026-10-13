@@ -228,6 +228,8 @@ def _decode_value(value: object) -> object:
             "electricity_consumption_detail": {"region", "selected_factor_id", "factor_selection_reason", "factor_override"},
             "electricity_output_line": {"region"},
             "fgd_input": {"reagent_name"},
+            "fuel_input": {"origin", "catalog_subject_id"},
+            "carbonate_component": {"origin"},
         }.get(node["type"], set())
         missing_fields = declared_fields.difference(encoded_fields)
         if set(encoded_fields).difference(declared_fields) or not missing_fields.issubset(compatible_optional_fields):

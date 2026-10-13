@@ -141,7 +141,7 @@ class AppShell(QWidget):
         self.catalog_service = catalog_service or CatalogQueryService.empty()
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.project_service = project_service
-        self.calculation_use_case = calculation_use_case
+        self._injected_calculation_use_case = calculation_use_case
         self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
@@ -188,7 +188,7 @@ class AppShell(QWidget):
                 catalog_service=self.catalog_service,
                 record_repository=self.record_repository,
                 project_service=self.project_service,
-                calculation_use_case=self.calculation_use_case,
+                calculation_use_case=self._injected_calculation_use_case,
                 logo_path=self._logo_path,
                 icon_directory=self._icon_directory,
                 standard_runtime=self.standard_runtime,
@@ -227,6 +227,12 @@ class AppShell(QWidget):
     @property
     def pages(self) -> Mapping[AppRoute, QWidget]:
         return _PageAccess(self)
+
+    @property
+    def calculation_use_case(self):
+        """Compatibility access explicitly requests the selected formal service."""
+        standard_id = self.selected_standard_id or self.standard_runtime.registry.default_standard_id
+        return self.standard_runtime.services(standard_id)[1]
 
     @property
     def current_route(self) -> AppRoute | None:
