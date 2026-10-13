@@ -1,6 +1,19 @@
 # GHGTOOL HTML V4 — PR2 实施报告
 
-日期：2026-10-12。PR #45 已打开；代码 head `bbecb302f5611db40b1e30aed62d3221e107176f` 的 Windows CI 已通过，等待 Owner 最终视觉确认，不自动合并。
+日期：2026-10-13。PR #45 仍开放且未合并；代码 head `3545030a97bcaaa36744fbb37e55fa2b34bc75c7` 的 Windows CI #216 全部通过。既有代码 head `bbecb302f5611db40b1e30aed62d3221e107176f` 的 CI #211 通过记录见下文历史验证。
+
+## Owner 页面反馈跟进（2026-10-13）
+
+- 已读取正式 V4 交接包中的 HTML、定稿说明，以及首页、焙烧物料和热力三张配套截图，并按该包核对下拉样式。V4 页面使用原生选择框箭头和自定义搜索框箭头；因此保留箭头，同时增加点击输入区展开候选并保留键盘选择。
+- 按 Owner 页面反馈，收口首页最近核算列宽和“打开”垂直位置；标准目录的支持列/名称列比例、字号、标准编号/名称的可点击悬停提示、状态标签；统一快速定位与八张排放源卡的 Mapping 名称和分组；加入启用源深蓝标题条、燃料标签简化、煅烧/焙烧/石墨化分别 4/6/8 个 V4 默认类别行。因子库使用真实 Catalog，保留全库搜索和来源浏览两个模式，并按 V4 呈现查询方式和来源浏览说明。
+- 空白默认物料行可删除，不会生成 Canonical 物料项；保存项目会保留实际页面行及 ID。修复燃料行删除后 Qt 尺寸提示未刷新的滚动高度问题。输入文字不会重排活动卡片。
+- 本机 17 项唯一 UI/项目定向用例通过；事件过滤收窄后另复跑 4 项相关用例通过；UIR04 人工 GUI 脚本 A–E 通过。
+- Windows CI #214 在 470 项全量测试中有 3 failures / 10 errors。旧夹具/断言和动态燃料行移除后页面未收缩问题已修复。PR head `6403371` 的 Windows CI #215 前置、UIR04 A–E 和缩放检查通过，但 full-test 步骤在 40 分钟 job 时限处取消，无全量统计，standalone audit 跳过。为减少全局事件开销，将点击事件过滤收窄到标记过的可搜索输入框；相关下拉、滚动、打字稳定测试和 UIR04 A–E 本机复跑通过。
+- exact-head Windows CI #216（PR head `3545030`）：merge-ref 全量 470 项通过，0 failures / 0 errors / 0 skipped，耗时 1292.646 秒；前置规范、编译、依赖、数据库、UIR04 A–E 和 Windows 1.25/1.5 缩放检查通过。PR-head standalone audit 的 14 项 G08 交付测试通过，独立目录构建成功；270 个可见文件通过 release audit，271 个文件的归档 manifest 往返、provenance 和双次独立启动 smoke test 均通过，候选归档已上传。
+- 当前 PR head `3545030` 的说明与截图链接已更新。125% Windows 桌面实机视觉检查和 Owner 最终视觉确认仍待完成；本任务不自动合并。
+- 后续 Owner 反馈在 `3545030` 之后追加：焙烧/炭化与石墨化默认类别扩展至 V4 的六行/八行；因子库搜索列序调整为“参数名称、数值、单位、类别”，来源浏览保留真实 Catalog 原表列。为保持旧项目 `form_state` 的语义，旧的前四个类别下拉索引未移动；新增默认子类别只映射到既有 Domain 角色，不改变计算字段。
+- 最新定向回归（本机 Windows；运行时使用 `QT_QPA_PLATFORM=offscreen`）：`python -B -m unittest tests.test_g06_page.G06PageTests.test_quick_jump_matches_eight_source_groups_and_material_roles_are_preopened tests.test_g04_catalog.G04CatalogTests.test_parameter_factor_page_browses_sources_and_aggregates_shared_assets tests.test_g04_catalog.G04CatalogTests.test_missing_optional_source_url_disables_external_link_safely tests.test_p3_df_factors tests.test_accounting_projects_ui.AccountingProjectUiTests.test_material_rows_keep_values_after_project_reopen`，7 项通过、0 失败/错误。运行期间产生 1 条现存 SQLite `ResourceWarning`，不影响测试结果；完整 Windows CI 将在新 Head 推送后复验。
+- 因子库及焙烧/石墨化截图由本机 Windows PySide6 真实窗口生成，尺寸 1600×900、DPI 96、DPR 1.0，数据库位于隔离临时目录；125% Windows 系统缩放仍未实测。
 
 ## 基线与平台 / Contract 预检查
 
@@ -10,7 +23,7 @@
 
 ## 实施内容
 
-- 按 Owner 的首页意见移除标题下的小字说明；首页保持无侧栏、真实青舟 Logo、标准库重点卡、五张入口卡和真实“继续工作 / 最近核算”内容。没有项目或记录时显示真实空状态。
+- 按 Owner 的首页意见移除入口卡片前的演示提示标签，保留 V4 主标题副文案；首页保持无侧栏、真实青舟 Logo、标准库重点卡、五张入口卡和真实“继续工作 / 最近核算”内容。没有项目或记录时显示真实空状态。
 - 统一公共页面的 V4 色彩、字体、间距、卡片、输入、表格、选项卡、焦点/悬停样式；新增一个 SVG 下拉箭头并加入既有发布资源白名单。
 - 标准库和参数库采用标准中性文案。分发逻辑只把 `STANDARD_ID` 路由到炭素材料专属核算页；未开放标准不会进入该页。没有建立多标准插件或通用计算表单。
 - 炭素材料页面的八类排放源入口改为 V4 四列网格，只调整布局，不改变输入、Calculator 或计算语义。

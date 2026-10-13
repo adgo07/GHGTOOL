@@ -129,6 +129,30 @@
       "device_pixel_ratio": 1.0
     },
     {
+      "file": "accounting-material-baking-rows-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "accounting-material-graphitization-rows-1600x900.png",
+      "logical_window": [
+        1600,
+        900
+      ],
+      "image": [
+        1600,
+        900
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
       "file": "excel-import-1600x900.png",
       "logical_window": [
         1600,

@@ -501,10 +501,20 @@ class G04CatalogTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.FACTORS]
         self.assertEqual(page.view_mode_filter.itemText(0), "按标准/文件查看")
         self.assertEqual(page.view_mode_filter.itemText(1), "全库搜索")
+        self.assertEqual(page.search_mode_button.text(), "全库搜索")
+        self.assertEqual(page.browse_mode_button.text(), "按来源浏览")
+        browse_notice = page.findChild(QLabel, "sourceBrowseNotice")
+        self.assertIsNotNone(browse_notice)
+        assert browse_notice is not None
+        self.assertIn("完整展示原始登记信息", browse_notice.text())
         self.assertEqual(page.source_filter.currentData(), "SRC-32151-34-2024")
         self.assertEqual(page.factor_table.rowCount(), 26)
         self.assertEqual(page.factor_table.columnCount(), 5)
         self.assertIn("天然气", [page.factor_table.item(row, 0).text() for row in range(page.factor_table.rowCount())])
+        self.assertEqual(
+            [page.search_result_table.horizontalHeaderItem(i).text() for i in range(4)],
+            ["参数名称", "数值", "单位", "类别"],
+        )
 
         page.view_mode_filter.setCurrentIndex(1)
         self.assertTrue(page.search_mode_button.isChecked())
@@ -514,17 +524,18 @@ class G04CatalogTests(unittest.TestCase):
         )
         self.application.processEvents()
         self.assertTrue(all(
-            page.search_result_table.item(row, 0).text() == "排放因子"
+            page.search_result_table.item(row, 3).text() == "排放因子"
             for row in range(page.search_result_table.rowCount())
         ))
         heat_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "排放因子"
-            and "外购热力" in page.search_result_table.item(row, 1).text()
+            if page.search_result_table.item(row, 3).text() == "排放因子"
+            and "外购热力" in page.search_result_table.item(row, 0).text()
         )
         page.search_result_table.selectRow(heat_row)
         self.application.processEvents()
-        self.assertIn("2 处依据", page.search_result_table.item(heat_row, 4).text())
+        self.assertEqual(page.search_result_table.item(heat_row, 1).text(), "0.11")
+        self.assertEqual(page.search_result_table.item(heat_row, 2).text(), "tCO₂/GJ")
         detail_text = "\n".join(label.text() for label in page.factor_detail_host.findChildren(QLabel))
         self.assertIn("GB/T 32150—2025", detail_text)
         self.assertIn("GB/T 32151.34—2024", detail_text)
@@ -546,24 +557,24 @@ class G04CatalogTests(unittest.TestCase):
         page.search_input.setText("饱和蒸汽")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准表"
-            and "C.4" in page.search_result_table.item(row, 1).text()
+            page.search_result_table.item(row, 3).text() == "标准表"
+            and "C.4" in page.search_result_table.item(row, 0).text()
             for row in range(page.search_result_table.rowCount())
         ))
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "来源文件"
+            page.search_result_table.item(row, 3).text() == "来源文件"
             for row in range(page.search_result_table.rowCount())
         ))
 
         page.search_input.setText("GB/T 32151.34")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准"
+            page.search_result_table.item(row, 3).text() == "标准"
             for row in range(page.search_result_table.rowCount())
         ))
         standard_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "标准"
+            if page.search_result_table.item(row, 3).text() == "标准"
         )
         page.search_result_table.selectRow(standard_row)
         self.application.processEvents()
@@ -712,8 +723,8 @@ class G04CatalogTests(unittest.TestCase):
             self.application.processEvents()
             heat_row = next(
                 row for row in range(page.search_result_table.rowCount())
-                if page.search_result_table.item(row, 0).text() == "排放因子"
-                and "外购热力" in page.search_result_table.item(row, 1).text()
+                if page.search_result_table.item(row, 3).text() == "排放因子"
+                and "外购热力" in page.search_result_table.item(row, 0).text()
             )
             page.search_result_table.selectRow(heat_row)
             self.application.processEvents()

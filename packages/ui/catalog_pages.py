@@ -641,7 +641,10 @@ class ParameterFactorLibraryPage(BasePage):
 
     def _build_page(self) -> None:
         self.body_layout.setSpacing(16)
-        self.add_header("参数与因子库", "按来源浏览登记资料，或搜索参数与参考值；目录内容只读。")
+        self.add_header(
+            "参数与因子库",
+            "全库检索与按来源浏览使用同一份只读登记数据，切换后显示不同视图。",
+        )
 
         mode_card, mode_layout = _card("查询方式", self)
         mode_row = QHBoxLayout()
@@ -695,15 +698,22 @@ class ParameterFactorLibraryPage(BasePage):
         self.view_mode_filter.hide()
         self.body_layout.addWidget(mode_card)
 
-        self.browse_card, browse_layout = _card("标准与文件", self)
+        self.browse_card, browse_layout = _card("按来源浏览登记资料", self)
         browse_layout.setSpacing(10)
+        browse_notice = QLabel(
+            "此模式按资料文件、表格顺序浏览，完整展示原始登记信息；不同于全库搜索结果视图。",
+            self.browse_card,
+        )
+        browse_notice.setObjectName("sourceBrowseNotice")
+        browse_notice.setWordWrap(True)
+        browse_layout.addWidget(browse_notice)
         browse_filters = QHBoxLayout()
         browse_filters.setContentsMargins(0, 0, 0, 0)
         browse_filters.setSpacing(8)
-        browse_filters.addWidget(QLabel("资料文件", self.browse_card))
+        browse_filters.addWidget(QLabel("来源资料", self.browse_card))
         self.source_filter = QComboBox(self.browse_card)
         self.source_filter.setObjectName("sourceDocumentFilter")
-        self.source_filter.setAccessibleName("资料文件")
+        self.source_filter.setAccessibleName("来源资料")
         self.source_filter.setMinimumContentsLength(18)
         self.source_filter.setMinimumWidth(250)
         browse_filters.addWidget(self.source_filter, 2)
@@ -773,7 +783,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_result_table = QTableWidget(self.search_results_splitter)
         _configure_table(
             self.search_result_table,
-            ("类别", "参数名称 / 资料", "数值", "单位", "来源与适用条件"),
+            ("参数名称", "数值", "单位", "类别"),
         )
         self.search_result_table.setObjectName("catalogTable")
         self.search_result_table.setAccessibleName("参数与因子搜索结果")
@@ -783,7 +793,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.search_result_table.setMinimumHeight(260)
         self.search_result_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((96, 250, 100, 100, 280)):
+        for column, width in enumerate((340, 145, 125, 130)):
             self.search_result_table.setColumnWidth(column, width)
         self.factor_detail_host = QWidget(self.search_results_splitter)
         self.factor_detail_host.setObjectName("parameterDetailHost")
@@ -949,6 +959,15 @@ class ParameterFactorLibraryPage(BasePage):
             QLabel#sourceTableNote {{
                 color: {SECONDARY_TEXT};
                 font-size: 13px;
+            }}
+            QLabel#sourceBrowseNotice {{
+                color: #47697F;
+                background: #EFF7FD;
+                border-left: 3px solid #4299C5;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                padding: 9px 11px;
+                font-size: 12px;
             }}
             """
         )
@@ -1155,7 +1174,6 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_result_table.setRowCount(0)
         for row_number, result in enumerate(self._search_results):
             self.search_result_table.insertRow(row_number)
-            source_label = result.subtitle
             category = (
                 {
                     "standard": "标准",
@@ -1172,20 +1190,11 @@ class ParameterFactorLibraryPage(BasePage):
                 if result.result_type == "asset"
                 else result.title
             )
-            condition = (
-                self._asset_condition_text(result)
-                if result.result_type == "asset"
-                else "—"
-            )
-            source_and_condition = source_label
-            if condition != "—":
-                source_and_condition += f"\n适用：{condition}"
             values = (
-                category,
                 display_name,
                 result.value_text or "—",
                 result.unit or "—",
-                source_and_condition,
+                category,
             )
             for column, text in enumerate(values):
                 item = QTableWidgetItem(text)

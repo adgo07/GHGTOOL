@@ -123,8 +123,25 @@ class G06PageTests(unittest.TestCase):
         )
         expected = {
             "calcination": ["原料", "煅后料", "欠煅烧料", "碳粉尘"],
-            "baking": ["填充料", "待焙烧/炭化品", "焙烧/炭化产品", "粉尘/碎屑/副产品"],
-            "graphitization": ["保温料/电阻料", "待石墨化品", "石墨化产品", "粉尘/碎屑/残块/副产品"],
+            "baking": ["填充料", "待焙烧（炭化）品", "焙烧（炭化）品", "粉尘", "碎屑", "副产品"],
+            "graphitization": ["保温料", "电阻料", "待石墨化品", "石墨化品", "粉尘", "碎屑", "残块", "副产品"],
+        }
+        expected_roles = {
+            "calcination": [
+                MaterialRole.CALCINATION_FEED, MaterialRole.CALCINED_PRODUCT,
+                MaterialRole.UNDERBURN_RECOVERED, MaterialRole.CARBON_DUST,
+            ],
+            "baking": [
+                MaterialRole.BAKING_FILLER, MaterialRole.GREEN_BAKING_PRODUCT,
+                MaterialRole.BAKED_PRODUCT, MaterialRole.BAKING_BYPRODUCT,
+                MaterialRole.BAKING_BYPRODUCT, MaterialRole.BAKING_BYPRODUCT,
+            ],
+            "graphitization": [
+                MaterialRole.GRAPHITIZATION_PACKING, MaterialRole.GRAPHITIZATION_PACKING,
+                MaterialRole.GREEN_GRAPHITIZATION_PRODUCT, MaterialRole.GRAPHITIZED_PRODUCT,
+                MaterialRole.GRAPHITIZATION_BYPRODUCT, MaterialRole.GRAPHITIZATION_BYPRODUCT,
+                MaterialRole.GRAPHITIZATION_BYPRODUCT, MaterialRole.GRAPHITIZATION_BYPRODUCT,
+            ],
         }
         source_ids = {
             "calcination": "CAR-SRC-CALCINATION-001",
@@ -137,8 +154,26 @@ class G06PageTests(unittest.TestCase):
                 process = self.page._process_rows[prefix][0]
                 materials = process["materials"]
                 self.assertEqual([line["role"].currentText() for line in materials], labels)
+                self.assertEqual(
+                    [line["role"].currentData() for line in materials],
+                    expected_roles[prefix],
+                )
                 self.assertTrue(all(not line["remove_button"].isHidden() for line in materials))
                 self.assertEqual(self.page._material_inputs(process), ())
+
+        self.assertEqual(len(expected["calcination"]), 4)
+        self.assertEqual(len(expected["baking"]), 6)
+        self.assertEqual(len(expected["graphitization"]), 8)
+        self.assertEqual(
+            [self.page._process_rows["baking"][0]["materials"][i]["role"].itemText(i)
+             for i in range(4)],
+            ["填充料", "待焙烧/炭化品", "焙烧/炭化产品", "粉尘/碎屑/副产品"],
+        )
+        self.assertEqual(
+            [self.page._process_rows["graphitization"][0]["materials"][i]["role"].itemText(i)
+             for i in range(4)],
+            ["保温料/电阻料", "待石墨化品", "石墨化产品", "粉尘/碎屑/残块/副产品"],
+        )
 
         calcination = self.page._process_rows["calcination"][0]
         for material in tuple(calcination["materials"]):

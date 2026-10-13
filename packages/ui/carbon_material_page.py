@@ -145,14 +145,35 @@ _PROCESS_MATERIAL_ROLES: dict[str, tuple[tuple[str, MaterialRole], ...]] = {
         ("填充料", MaterialRole.BAKING_FILLER),
         ("待焙烧/炭化品", MaterialRole.GREEN_BAKING_PRODUCT),
         ("焙烧/炭化产品", MaterialRole.BAKED_PRODUCT),
+        # Keep the former combined category at its persisted index for saved
+        # project form state; new default rows use the three V4 subcategories.
         ("粉尘/碎屑/副产品", MaterialRole.BAKING_BYPRODUCT),
+        ("待焙烧（炭化）品", MaterialRole.GREEN_BAKING_PRODUCT),
+        ("焙烧（炭化）品", MaterialRole.BAKED_PRODUCT),
+        ("粉尘", MaterialRole.BAKING_BYPRODUCT),
+        ("碎屑", MaterialRole.BAKING_BYPRODUCT),
+        ("副产品", MaterialRole.BAKING_BYPRODUCT),
     ),
     "graphitization": (
         ("保温料/电阻料", MaterialRole.GRAPHITIZATION_PACKING),
         ("待石墨化品", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT),
         ("石墨化产品", MaterialRole.GRAPHITIZED_PRODUCT),
+        # Keep the former combined category at its persisted index for saved
+        # project form state; new default rows use the four V4 subcategories.
         ("粉尘/碎屑/残块/副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("保温料", MaterialRole.GRAPHITIZATION_PACKING),
+        ("电阻料", MaterialRole.GRAPHITIZATION_PACKING),
+        ("石墨化品", MaterialRole.GRAPHITIZED_PRODUCT),
+        ("粉尘", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("碎屑", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("残块", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
     ),
+}
+_PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES = {
+    "calcination": (0, 1, 2, 3),
+    "baking": (0, 4, 5, 6, 7, 8),
+    "graphitization": (4, 5, 1, 6, 7, 8, 9, 10),
 }
 _PROCESS_MATERIAL_DEFAULT_ROLE = {
     "calcination": MaterialRole.CALCINATION_FEED,
@@ -4070,8 +4091,13 @@ class CarbonMaterialAccountingPage(BasePage):
                     self._add_material_line(row, line_id=material_id)
                 if not row["materials"]:
                     if default_material_categories and prefix in _PROCESS_MATERIAL_ROLES:
-                        for _label, role_value in _PROCESS_MATERIAL_ROLES[prefix]:
-                            self._add_material_line(row, role_value=role_value)
+                        for category_index in _PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES[prefix]:
+                            _label, role_value = _PROCESS_MATERIAL_ROLES[prefix][category_index]
+                            self._add_material_line(
+                                row,
+                                role_value=role_value,
+                                category_index=category_index,
+                            )
                     elif material_ids is None:
                         self._add_material_line(row)
             flags: dict[str, QCheckBox] = {}
@@ -4114,6 +4140,7 @@ class CarbonMaterialAccountingPage(BasePage):
         *,
         line_id: str | None = None,
         role_value: MaterialRole | None = None,
+        category_index: int | None = None,
     ) -> dict[str, object]:
         prefix = str(process_row.get("prefix", ""))
         if not prefix:
@@ -4138,7 +4165,10 @@ class CarbonMaterialAccountingPage(BasePage):
         for label, value in _PROCESS_MATERIAL_ROLES[prefix]:
             role.addItem(label, value)
         default_role = role_value or _PROCESS_MATERIAL_DEFAULT_ROLE[prefix]
-        role.setCurrentIndex(max(0, role.findData(default_role)))
+        if category_index is not None and 0 <= category_index < role.count():
+            role.setCurrentIndex(category_index)
+        else:
+            role.setCurrentIndex(max(0, role.findData(default_role)))
         name = QLineEdit(container)
         name.setObjectName(f"{prefix}_materialName_{line_id}")
         name.setPlaceholderText("如：煅烧石油焦")
