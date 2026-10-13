@@ -971,6 +971,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._restoring_workspace = False
         self._unit_outcomes: dict[str, dict[str, object]] = {}
         self._geometry_refresh_pending = False
+        self._application_event_filter_installed = False
         self._build_page()
         for combo in self.findChildren(QComboBox):
             self._mark_search_combo_input(combo)
@@ -978,14 +979,25 @@ class CarbonMaterialAccountingPage(BasePage):
         self._input_dirty = False
         self._project_dirty = False
         self._install_dirty_tracking()
+
+    def showEvent(self, event: QEvent) -> None:  # type: ignore[override]
+        super().showEvent(event)
         application = QApplication.instance()
-        if application is not None:
+        if application is not None and not self._application_event_filter_installed:
             application.installEventFilter(self)
+            self._application_event_filter_installed = True
+
+    def hideEvent(self, event: QEvent) -> None:  # type: ignore[override]
+        application = QApplication.instance()
+        if application is not None and self._application_event_filter_installed:
+            application.removeEventFilter(self)
+            self._application_event_filter_installed = False
+        super().hideEvent(event)
 
     def eventFilter(self, watched: object, event: QEvent) -> bool:  # type: ignore[override]
         """Open selectors from their input area and keep the page wheel-scrollable."""
 
-        if not isinstance(watched, QWidget):
+        if not isinstance(watched, QWidget) or not self.isAncestorOf(watched):
             return super().eventFilter(watched, event)
         if event.type() == QEvent.Type.MouseButtonRelease:
             if not isinstance(watched, QLineEdit) or watched.property("openComboPopupOnClick") is not True:
