@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：GHGTOOL HTML V4 正式落地 — PR1 已合并（PR #44）；PR2 独立 PR #45 的代码 head `3545030a97bcaaa36744fbb37e55fa2b34bc75c7` 的 Windows CI #216 全部通过，等待 Owner 最终视觉确认和独立验收。
+状态：GHGTOOL HTML V4 正式落地 — PR1 已合并（PR #44）；PR2 独立 PR #45 已追加 V4 页面反馈跟进提交 `3b60a9f7aed988b8c18fdc32d0ac47b3a5e5ae77`，当前待推送并执行新 Head Windows CI，之后等待 Owner 最终视觉确认和独立验收。
 
 最后更新：2026-10-13。工作分支：`codex/ghg-html-v4-pr2`；基线为 `origin/main@204dded5d03853617f79a1f05693e89b619df9d1`。原 `codex/ghg-ui-p3-df` 脏工作区保持未动。
 
@@ -13,7 +13,7 @@
 - 已核对正式 V4 交接包的 HTML、定稿说明和三张配套截图。V4 明确使用下拉箭头，因此保留箭头；同时支持点击输入区域展开候选，保留键盘选择。打字不触发布局重排，结构变化后刷新页面尺寸提示；下拉点击过滤仅处理标记过的可搜索输入框。
 - 本机 17 项唯一界面/项目定向用例通过；事件过滤收窄后复跑 4 项相关测试通过，UIR04 GUI 验收脚本 A–E 通过；`git diff --check` 通过。
 - Windows CI #214 全量 470 项发现 3 failures / 10 errors；相关过期夹具/断言和动态行尺寸缓存问题已修复。head `6403371` 的 #215 前置、UIR04 和缩放通过，但 full-test 达到 40 分钟 job 时限而取消，standalone audit 跳过。随后将点击事件处理收窄到可搜索输入框；head `3545030` 的 Windows CI #216 已全部通过：Windows/Python 3.12 全量 470 项、UIR04 A–E、1.25/1.5 缩放、standalone 14 项交付测试、目录/归档/provenance 审计和双次启动 smoke test。
-- 后续 Owner 反馈收口后，现地 Windows 1600×900 截图已更新：因子库搜索表为“参数名称/数值/单位/类别”，来源浏览保留真实 Catalog 原始表列；新增焙烧六行、石墨化八行截图。当前改动定向回归命令共 7 项通过；下一 Head 的 Windows CI 尚待运行。
+- 后续 Owner 反馈收口后，现地 Windows 1600×900 截图已更新：因子库搜索表为“参数名称/数值/单位/类别”，来源浏览保留真实 Catalog 原始表列；新增焙烧六行、石墨化八行截图。当前改动定向回归命令共 7 项通过；提交 `3b60a9f` 的 Windows CI 尚待运行。
 - 本任务未修改 Frozen Contract、计算语义、Excel 导入规则、数据库 Schema 或正式报告业务；PR2 独立提交，不自动合并。原 `codex/ghg-ui-p3-df` 脏工作区保持未动。
 
 中央 Frozen baseline 继续锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。

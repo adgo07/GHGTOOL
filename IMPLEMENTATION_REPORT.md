@@ -1,6 +1,6 @@
 # GHGTOOL HTML V4 — PR2 实施报告
 
-日期：2026-10-13。PR #45 仍开放且未合并；代码 head `3545030a97bcaaa36744fbb37e55fa2b34bc75c7` 的 Windows CI #216 全部通过。既有代码 head `bbecb302f5611db40b1e30aed62d3221e107176f` 的 CI #211 通过记录见下文历史验证。
+日期：2026-10-13。PR #45 仍开放且未合并；先前代码 head `3545030a97bcaaa36744fbb37e55fa2b34bc75c7` 的 Windows CI #216 全部通过。本次后续反馈已在提交 `3b60a9f7aed988b8c18fdc32d0ac47b3a5e5ae77` 收口；该提交尚待推送并执行新 Head Windows CI。既有代码 head `bbecb302f5611db40b1e30aed62d3221e107176f` 的 CI #211 通过记录见下文历史验证。
 
 ## Owner 页面反馈跟进（2026-10-13）
 
@@ -10,7 +10,7 @@
 - 本机 17 项唯一 UI/项目定向用例通过；事件过滤收窄后另复跑 4 项相关用例通过；UIR04 人工 GUI 脚本 A–E 通过。
 - Windows CI #214 在 470 项全量测试中有 3 failures / 10 errors。旧夹具/断言和动态燃料行移除后页面未收缩问题已修复。PR head `6403371` 的 Windows CI #215 前置、UIR04 A–E 和缩放检查通过，但 full-test 步骤在 40 分钟 job 时限处取消，无全量统计，standalone audit 跳过。为减少全局事件开销，将点击事件过滤收窄到标记过的可搜索输入框；相关下拉、滚动、打字稳定测试和 UIR04 A–E 本机复跑通过。
 - exact-head Windows CI #216（PR head `3545030`）：merge-ref 全量 470 项通过，0 failures / 0 errors / 0 skipped，耗时 1292.646 秒；前置规范、编译、依赖、数据库、UIR04 A–E 和 Windows 1.25/1.5 缩放检查通过。PR-head standalone audit 的 14 项 G08 交付测试通过，独立目录构建成功；270 个可见文件通过 release audit，271 个文件的归档 manifest 往返、provenance 和双次独立启动 smoke test 均通过，候选归档已上传。
-- 当前 PR head `3545030` 的说明与截图链接已更新。125% Windows 桌面实机视觉检查和 Owner 最终视觉确认仍待完成；本任务不自动合并。
+- 先前 PR head `3545030` 的截图与说明已更新并通过 CI #216。125% Windows 桌面实机视觉检查和 Owner 最终视觉确认仍待完成；本任务不自动合并。
 - 后续 Owner 反馈在 `3545030` 之后追加：焙烧/炭化与石墨化默认类别扩展至 V4 的六行/八行；因子库搜索列序调整为“参数名称、数值、单位、类别”，来源浏览保留真实 Catalog 原表列。为保持旧项目 `form_state` 的语义，旧的前四个类别下拉索引未移动；新增默认子类别只映射到既有 Domain 角色，不改变计算字段。
 - 最新定向回归（本机 Windows；运行时使用 `QT_QPA_PLATFORM=offscreen`）：`python -B -m unittest tests.test_g06_page.G06PageTests.test_quick_jump_matches_eight_source_groups_and_material_roles_are_preopened tests.test_g04_catalog.G04CatalogTests.test_parameter_factor_page_browses_sources_and_aggregates_shared_assets tests.test_g04_catalog.G04CatalogTests.test_missing_optional_source_url_disables_external_link_safely tests.test_p3_df_factors tests.test_accounting_projects_ui.AccountingProjectUiTests.test_material_rows_keep_values_after_project_reopen`，7 项通过、0 失败/错误。运行期间产生 1 条现存 SQLite `ResourceWarning`，不影响测试结果；完整 Windows CI 将在新 Head 推送后复验。
 - 因子库及焙烧/石墨化截图由本机 Windows PySide6 真实窗口生成，尺寸 1600×900、DPI 96、DPR 1.0，数据库位于隔离临时目录；125% Windows 系统缩放仍未实测。
