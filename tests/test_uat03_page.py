@@ -574,6 +574,70 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             self.assertEqual(completer.caseSensitivity(), Qt.CaseSensitivity.CaseInsensitive)
             self.assertEqual(completer.filterMode(), Qt.MatchFlag.MatchContains)
 
+    def test_custom_fuel_with_catalog_name_has_independent_identity_and_clears_defaults(self) -> None:
+        from packages.standards.carbon_material_input_policy import InputOrigin
+        self.page.close()
+        self.page = CarbonMaterialAccountingPage(
+            catalog_service=CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
+        )
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setCurrentIndex(row.fuel_type.findText("天然气"))
+        self.assertTrue(row.carbon.isReadOnly())
+        self.assertTrue(row.carbon.text())
+        row.custom_mode.setChecked(True)
+        self.assertFalse(row.carbon.isReadOnly())
+        self.assertEqual(row.carbon.text(),"")
+        self.assertEqual(row.carbon_source.currentData(),"USER_DEFINED")
+        row.activity.setText("10")
+        row.lower_heating_value.setText("8")
+        row.carbon.setText("0.03")
+        row.oxidation.setText("98")
+        value = self.page._fuel()[0]
+        self.assertEqual(value.origin,InputOrigin.CUSTOM)
+        self.assertEqual(value.fuel_label,"天然气")
+        self.assertEqual(value.fuel_type,FuelType.OTHER)
+        self.assertEqual(value.carbon_content.value,Decimal("0.03"))
+        self.assertEqual(value.carbon_content.source_kind,ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(value.lower_heating_value.source_kind,ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(value.oxidation_rate.source_kind,ParameterSourceKind.USER_DEFINED)
+        row.custom_mode.setChecked(False)
+        self.assertTrue(row.carbon.isReadOnly())
+        self.assertEqual(row.carbon_source.currentData(),"STANDARD_DEFAULT")
+        self.assertNotEqual(row.carbon.text(),"0.03")
+
+    def test_custom_carbonate_clears_defaults_and_does_not_claim_chemical_calculation(self) -> None:
+        from packages.standards.carbon_material import FGDInput
+        from packages.standards.carbon_material_input_policy import InputOrigin
+        self.page.close()
+        self.page = CarbonMaterialAccountingPage(
+            catalog_service=CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
+        )
+        unit=self.page._process_rows["fgd"][0]
+        unit["reagent_name"].setText("自定义脱硫剂")
+        unit["group_amount"].setText("2")
+        component=unit["components"][0]
+        component["carbonate_type"].setEditText("自定义碳酸盐")
+        for field in ("i","tr"):
+            self.assertFalse(component[field].isReadOnly())
+            self.assertEqual(component[field].text(),"")
+            self.assertEqual(component[field+"_source"].currentData(),"USER_DEFINED")
+        component["i"].setText("80")
+        component["ef1"].setText("0.5")
+        component["tr"].setText("90")
+        value=self.page._process("fgd",FGDInput,unit).components[0]
+        self.assertEqual(value.origin,InputOrigin.CUSTOM)
+        for parameter in (value.carbonate_fraction,value.emission_factor,value.conversion_rate):
+            self.assertEqual(parameter.source_kind,ParameterSourceKind.USER_DEFINED)
+            self.assertIsNone(parameter.factor_id)
+
+    def test_current_standard_only_exposes_supported_steam_types(self) -> None:
+        row=self.page._energy_family_rows["heat"][0]
+        visible=[row.heat_kind.itemText(i) for i in range(row.heat_kind.count())
+                 if not row.heat_kind.view().isRowHidden(i)]
+        self.assertEqual(visible,["饱和蒸汽","过热蒸汽"])
+        for i in (2,3):
+            self.assertFalse(row.heat_kind.model().item(i).isEnabled())
+
 
 if __name__ == "__main__":
     unittest.main()

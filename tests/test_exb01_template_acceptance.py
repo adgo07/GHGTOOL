@@ -40,7 +40,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             self.assertIn("B3:B5", {str(area) for area in workbook["B.7"].merged_cells.ranges})
             self.assertEqual(workbook["B.9"]["G3"].value, 0.11)
             self.assertEqual(workbook["B.9"]["G4"].value, 0.11)
-            self.assertIn("焓值为只读结果", workbook["B.9"]["A6"].value)
+            self.assertIn("焓值可留空由软件解析", workbook["B.9"]["A6"].value)
 
             validations = {
                 sheet.title: {
@@ -51,7 +51,26 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             }
             self.assertIn(("D4:D18", "list", '"计算值,实测值"'), validations["B.2"])
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
-            self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽,热水,其他热力"'), validations["B.9"])
+            self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
+        finally:
+            workbook.close()
+
+    def test_activity_inputs_are_unlocked_and_catalog_adopted_values_are_locked(self) -> None:
+        workbook=load_workbook(BytesIO(self.service.read_bytes()))
+        try:
+            for sheet,cells in {
+                "B.2":("A4","B4","C4","D4","E4","F4","H4","I4","K4","L4"),
+                "B.3":("B4","C4","D4","E4"),"B.4":("B4","C4","D4","E4"),
+                "B.5":("B4","C4","D4","E4"),"B.6":("A3","F3","A7","F7"),
+                "B.7":("A3","B3","C3","D3","F3","H3","I3","A6","B6"),
+                "B.8":("A3","B3","C3","D3"),"B.9":("A3","B3","C3","D3","E3","F3","G3"),
+            }.items():
+                self.assertTrue(workbook[sheet].protection.sheet,sheet)
+                for cell in cells:
+                    self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
+            for sheet,cell in (("B.2","G4"),("B.2","J4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
+                self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
+            self.assertEqual(self.service.validate_structure(workbook),"2.0.0")
         finally:
             workbook.close()
 

@@ -13,6 +13,8 @@ from enum import Enum
 import json
 from typing import Any
 
+from packages.standards.carbon_material_input_policy import InputOrigin
+
 from packages.core.models import (
     AccountingPeriod,
     ActivityDataSource,
@@ -97,6 +99,7 @@ _ENUMS: dict[str, type[Enum]] = {
     "emission_source_status": EmissionSourceStatus,
     "fuel_path": FuelPath,
     "fuel_type": FuelType,
+    "input_origin": InputOrigin,
     "heat_factor_mode": HeatFactorMode,
     "material_basis": MaterialBasis,
     "material_component_kind": MaterialComponentKind,

@@ -401,15 +401,17 @@ class G06PageTests(unittest.TestCase):
         factor = manual.components[0].emission_factor
         self.assertIsNotNone(factor)
         assert factor is not None
-        self.assertIs(factor.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertIs(factor.source_kind, ParameterSourceKind.USER_DEFINED)
         self.assertIsNone(factor.source_id)
-        self.assertIn("化学计算", factor.source_location)
+        self.assertNotIn("化学计算", factor.source_location)
         self.assertIn("脱硫剂检测报告-UI-01", factor.source_location)
+        component["i"].setText("90")
+        component["tr"].setText("100")
         manual_outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(manual_outcome.successful, manual_outcome.problems)
         manual_snapshot = next(
             snapshot for snapshot in manual_outcome.parameter_snapshots
-            if snapshot.parameter_id == "fgd_carbonate_emission_factor_calculated"
+            if snapshot.parameter_id == "fgd_carbonate_emission_factor_user"
         )
         self.assertIsNone(manual_snapshot.source_id)
         self.assertIn("脱硫剂检测报告-UI-01", manual_snapshot.source_location)

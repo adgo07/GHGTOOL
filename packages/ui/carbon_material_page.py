@@ -6,6 +6,8 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_input_policy import InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS, SUPPORTED_STEAM_KINDS
+
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timezone
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
@@ -580,14 +582,18 @@ class _UnifiedEnergyRow(QWidget):
         heat.setSpacing(6)
         self.heat_kind = QComboBox(self.heat_details)
         self.heat_kind.setObjectName(f"energyHeatKind{index}")
-        self.heat_kind.addItem("饱和蒸汽", SteamKind.SATURATED)
-        self.heat_kind.addItem("过热蒸汽", SteamKind.SUPERHEATED)
+        for label,kind in STEAM_KIND_LABELS.items():
+            self.heat_kind.addItem(label,SteamKind(kind))
         self.heat_kind.addItem("热水（暂不支持）", "HOT_WATER")
         self.heat_kind.addItem("其他（暂不支持）", "OTHER")
-        for disabled_index in (2, 3):
+        for disabled_index in range(self.heat_kind.count()):
+            value=self.heat_kind.itemData(disabled_index)
+            if getattr(value,"value",value) in SUPPORTED_STEAM_KINDS:
+                continue
             item = self.heat_kind.model().item(disabled_index)
             if item is not None:
                 item.setEnabled(False)
+            self.heat_kind.view().setRowHidden(disabled_index, True)
         self.pressure = create_typed_input(self.heat_details, get_field_spec("heat_pressure"), f"energyHeatPressure{index}", "绝压 MPa")
         self.temperature = create_typed_input(self.heat_details, get_field_spec("heat_temperature"), f"energyHeatTemperature{index}", "℃（过热蒸汽）")
         self.enthalpy_mode = QComboBox(self.heat_details)
@@ -715,15 +721,17 @@ class _FuelRow(QWidget):
 
         self.carbon_basis = QComboBox(self)
         self.carbon_basis.setObjectName(f"fuelCarbonBasis{index}")
-        self.carbon_basis.addItem("按热值计算", "HEAT_CONTENT")
-        self.carbon_basis.addItem("直接实测", "DIRECT")
+        self.carbon_basis.addItem("计算值", "HEAT_CONTENT")
+        self.carbon_basis.addItem("实测值", "DIRECT")
         self.lhv_source = self._source_combo(index, "lhv")
         self.lhv_source.clear()
         self.lhv_source.addItem("缺省值", "STANDARD_DEFAULT")
         self.lhv_source.addItem("实测值", "MEASURED")
+        self.lhv_source.addItem("填写值", "USER_DEFINED")
         self.carbon_source = self._source_combo(index, "carbon")
         self.carbon_source.clear()
         self.carbon_source.addItem("缺省值", "STANDARD_DEFAULT")
+        self.carbon_source.addItem("填写值", "USER_DEFINED")
         self.direct_carbon_source = self._source_combo(index, "directCarbon")
         self.direct_carbon_source.clear()
         self.direct_carbon_source.addItem("实测值", "MEASURED")
@@ -732,7 +740,7 @@ class _FuelRow(QWidget):
         self.oxidation_source.addItem("缺省值", "STANDARD_DEFAULT")
         self.oxidation_source.addItem("实测值", "MEASURED")
         self._legacy_oxidation_source_index = self.oxidation_source.count()
-        self.oxidation_source.addItem("旧项目用户自定义值（保持原含义）", "USER_DEFINED")
+        self.oxidation_source.addItem("填写值", "USER_DEFINED")
         self.oxidation_source.view().setRowHidden(self._legacy_oxidation_source_index, True)
         self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
         self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
@@ -786,6 +794,10 @@ class _FuelRow(QWidget):
         grid.addWidget(self.lhv_source, 2, 3)
         grid.addWidget(self.carbon_source, 2, 4)
         grid.addWidget(self.oxidation_source, 2, 6)
+        self.custom_mode = QCheckBox("自定义燃料", self)
+        self.custom_mode.setObjectName(f"fuelCustomMode{index}")
+        self.custom_mode.setToolTip("勾选后按自定义参数填写；目录外名称也按自定义处理，不借用目录缺省值。")
+        grid.addWidget(self.custom_mode, 2, 5)
         for column, stretch in enumerate((3, 1, 2, 2, 2, 3, 1)):
             grid.setColumnStretch(column, stretch)
         outer.addLayout(grid)
@@ -1959,6 +1971,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "lower_heating_value": row.lower_heating_value.text(),
                 "source_reference": row.source_reference.text(),
                 "fuel_label": row.custom_name.text(),
+                "custom_mode": row.custom_mode.isChecked(),
                 # Keep the legacy numeric indices for old workspace readers and
                 # persist the actual semantic source modes for V2 round-trips.
                 "lhv_source": row.lhv_source.currentIndex(),
@@ -2218,6 +2231,7 @@ class CarbonMaterialAccountingPage(BasePage):
                                 (row.source_reference, "source_reference")):
                 widget.setText(str(stored.get(key, "")))
             row.custom_name.setText(str(stored.get("fuel_label", "")))
+            row.custom_mode.setChecked(bool(stored.get("custom_mode", False)))
             row._legacy_source_modes.clear()
             source_controls = (
                 ("lhv", row.lhv_source),
@@ -3499,6 +3513,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._bind_fuel_aliases(self._fuel_rows[0])
         row.fuel_type.currentIndexChanged.connect(lambda _index, _row=row: self._on_fuel_type_changed(_row, initialize_defaults=True))
         row.fuel_type.editTextChanged.connect(lambda _text, _row=row: self._on_fuel_type_changed(_row, initialize_defaults=True))
+        row.custom_mode.toggled.connect(lambda _checked, _row=row: self._on_fuel_type_changed(_row, initialize_defaults=True))
+        row.custom_mode.toggled.connect(self._mark_input_dirty)
         row.path.currentIndexChanged.connect(lambda _index, _row=row: self._refresh_fuel_row(_row, initialize_defaults=True))
         row.carbon_basis.currentIndexChanged.connect(lambda _index, _row=row: self._on_fuel_basis_changed(_row))
         for source_key, combo in (
@@ -3530,6 +3546,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_fuel_row(row, initialize_defaults=True)
 
     def _fuel_option_for_row(self, row: _FuelRow):
+        if row.custom_mode.isChecked():
+            return None
         text = row.fuel_type.currentText().strip()
         if not text:
             return None
@@ -3740,6 +3758,8 @@ class CarbonMaterialAccountingPage(BasePage):
         except (TypeError, ValueError):
             path = FuelPath.MASS
         direct = row.carbon_basis.currentData() == "DIRECT"
+        origin = InputOrigin.CATALOG if self._fuel_option_for_row(row) else InputOrigin.CUSTOM
+        input_policy = fuel_input_policy(origin, direct_carbon=direct, heat_activity=path is FuelPath.HEAT)
         factors = self._fuel_default_factors(row)
         lhv_factor, carbon_factor, oxidation_factor = factors if factors is not None else (None, None, None)
         default_values = {
@@ -3769,7 +3789,14 @@ class CarbonMaterialAccountingPage(BasePage):
             edit = edits[key]
             has_legacy_mode = key in row._legacy_source_modes
             mode = modes[key]
-            self._set_fuel_default_option(source_combo, factor is not None)
+            self._set_fuel_default_option(source_combo, factor is not None and input_policy.default_parameters_allowed)
+            user_index = source_combo.findData("USER_DEFINED")
+            if user_index >= 0:
+                source_combo.view().setRowHidden(user_index, origin is InputOrigin.CATALOG and key == "carbon")
+            if key == "carbon" and origin is InputOrigin.CATALOG and not has_legacy_mode:
+                mode = "STANDARD_DEFAULT"
+                self._restore_fuel_source_mode(row, key, mode)
+                modes[key] = mode
             if (
                 initialize_defaults and factor is not None and not has_legacy_mode
                 and mode in {None, "STANDARD_DEFAULT"}
@@ -3790,15 +3817,15 @@ class CarbonMaterialAccountingPage(BasePage):
                     previous_value = previous[("lhv", "carbon", "oxidation").index(key)]
                     if previous_value and edit.text().strip() == previous_value:
                         edit.clear()
-                    fallback = "MEASURED" if key in {"lhv", "oxidation"} else None
+                    fallback = "USER_DEFINED" if origin is InputOrigin.CUSTOM else ("MEASURED" if key in {"lhv", "oxidation"} else None)
                     if fallback is not None and row.fuel_type.currentText().strip():
                         index = source_combo.findData(fallback)
                         if index >= 0:
                             source_combo.setCurrentIndex(index)
                             modes[key] = fallback
-                edit.setReadOnly(key == "carbon")
+                edit.setReadOnly(key == "carbon" and not input_policy.fch_editable)
             else:
-                edit.setReadOnly(key == "carbon")
+                edit.setReadOnly(key == "carbon" and not input_policy.fch_editable)
 
         direct_mode = modes["direct_carbon"]
         if direct_mode is None:
@@ -3816,7 +3843,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.lhv_control.setEnabled(not direct and path is not FuelPath.HEAT)
         row.lhv_source.setVisible(not direct and path is not FuelPath.HEAT)
         row.carbon_control.setEnabled(not direct)
-        row.carbon_source.setVisible(carbon_factor is not None and not direct)
+        row.carbon_source.setVisible(not direct)
         row.carbon_calc_cell.setVisible(not direct)
         row.carbon_direct_cell.setVisible(direct)
         active_source_keys = ["oxidation"]
@@ -3830,13 +3857,14 @@ class CarbonMaterialAccountingPage(BasePage):
             self._fuel_source_mode(row, key) == "MEASURED"
             for key in active_source_keys
         )
-        row.source_reference_control.setVisible(has_measured_parameter)
+        row.source_reference_control.setVisible(has_measured_parameter or origin is InputOrigin.CUSTOM)
         row.lower_heating_value.setEnabled(not direct and path is not FuelPath.HEAT)
         row.activity_label.setText(f"活动量（{activity_unit}）")
         row.activity.setProperty("fieldUnit", activity_unit)
         row.lhv_label.setText(f"低位发热量（{lhv_unit}）")
         row.carbon_label.setText("单位热值含碳量（tC/GJ）")
-        row.direct_carbon_label.setText(f"单位活动量含碳量（{direct_carbon_unit}）")
+        direct_name = "单位体积含碳量" if path is FuelPath.VOLUME else "单位质量含碳量"
+        row.direct_carbon_label.setText(f"{direct_name}（{direct_carbon_unit}）")
         row.carbon_label.setVisible(True)
         row.direct_carbon_label.setVisible(True)
         row.carbon_direct.setProperty("fieldUnit", direct_carbon_unit)
@@ -4465,6 +4493,22 @@ class CarbonMaterialAccountingPage(BasePage):
         mode_combo = component.get(f"{field}_source")
         if isinstance(mode_combo, QComboBox):
             mode = mode_combo.currentData()
+        custom = component.get("input_origin") is InputOrigin.CUSTOM
+        if isinstance(mode_combo, QComboBox):
+            default_index = mode_combo.findData("STANDARD_DEFAULT")
+            if default_index >= 0:
+                mode_combo.model().item(default_index).setEnabled(not custom)
+            user_index = mode_combo.findData("USER_DEFINED")
+            if user_index >= 0:
+                mode_combo.view().setRowHidden(user_index, not custom and mode != "USER_DEFINED")
+            if custom and mode == "STANDARD_DEFAULT":
+                _, default_text = self._fgd_default_ratio(field)
+                if edit.text().strip() == default_text:
+                    edit.clear()
+                blocker = QSignalBlocker(mode_combo)
+                mode_combo.setCurrentIndex(user_index)
+                del blocker
+                mode = "USER_DEFINED"
         if mode == "STANDARD_DEFAULT":
             _, default_text = self._fgd_default_ratio(field)
             if edit.text().strip() != default_text:
@@ -4520,7 +4564,29 @@ class CarbonMaterialAccountingPage(BasePage):
         factor_edit = component.get("ef1")
         if not isinstance(selector, QComboBox) or not isinstance(factor_edit, QLineEdit):
             return
-        option = self._carbonate_option_for_text(selector.currentText())
+        custom_switch = component.get("custom_mode")
+        option = None if isinstance(custom_switch,QCheckBox) and custom_switch.isChecked() else self._carbonate_option_for_text(selector.currentText())
+        previous_origin = component.get("input_origin")
+        component["input_origin"] = InputOrigin.CATALOG if option else InputOrigin.CUSTOM
+        for field in ("i","tr"):
+            if option is None:
+                mode_combo=component.get(f"{field}_source")
+                edit=component.get(field)
+                if previous_origin is not InputOrigin.CUSTOM and isinstance(mode_combo,QComboBox):
+                    if mode_combo.currentData()=="STANDARD_DEFAULT" and isinstance(edit,QLineEdit):
+                        _,default_text=self._fgd_default_ratio(field)
+                        if edit.text().strip()==default_text:
+                            edit.clear()
+                    blocker=QSignalBlocker(mode_combo)
+                    mode_combo.setCurrentIndex(mode_combo.findData("USER_DEFINED"))
+                    del blocker
+                self._refresh_fgd_ratio_control(component,field)
+            else:
+                mode_combo = component.get(f"{field}_source")
+                if isinstance(mode_combo,QComboBox):
+                    index=mode_combo.findData("STANDARD_DEFAULT")
+                    if index >= 0:
+                        mode_combo.model().item(index).setEnabled(True)
         if option is None:
             blocker = QSignalBlocker(factor_edit)
             factor_edit.clear()
@@ -4541,7 +4607,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if component.get("factor_mode") == "CATALOG":
             return
         if component.get("factor_mode") not in {"MEASURED", "USER_DEFINED", "CALCULATED"}:
-            component["factor_mode"] = "CALCULATED"
+            component["factor_mode"] = "USER_DEFINED"
 
     def _refresh_carbonate_options(self) -> None:
         for unit in self._process_rows.get("fgd", ()):
@@ -4597,7 +4663,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 mode.addItem("缺省值", "STANDARD_DEFAULT")
                 mode.addItem("实测值", "MEASURED")
                 legacy_index = mode.count()
-                mode.addItem("旧项目用户自定义值（保持原含义）", "USER_DEFINED")
+                mode.addItem("填写值", "USER_DEFINED")
                 mode.view().setRowHidden(legacy_index, True)
                 if field == "i" and not first_in_group:
                     mode.setCurrentIndex(mode.findData("MEASURED"))
@@ -4618,8 +4684,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
                 edit = create_typed_input(container, spec, name)
                 if field == "ef1":
-                    edit.setPlaceholderText("化学计算所得值")
-                    edit.setToolTip("匹配附录 C.2 组分时使用已核验目录因子并锁定；自定义组分填入化学计算所得值。")
+                    edit.setPlaceholderText("填写排放因子")
+                    edit.setToolTip("匹配附录 C.2 组分时使用已核验目录因子并锁定；自定义组分填写自己的参数并保留来源。")
                 widgets[field] = edit
                 self._wire_dirty_tracking(edit)
                 grid.addWidget(edit, 1, column)
@@ -4641,12 +4707,18 @@ class CarbonMaterialAccountingPage(BasePage):
         outer.addWidget(legacy_amount_row)
         footer = QHBoxLayout()
         source_ref = create_typed_input(container, get_field_spec("fgd.factor_source_reference"), "fgdFactorSourceReferenceInput" if first else f"fgd_{unit['instance_id']}_{component_id}_factorSourceReference")
-        source_ref.setPlaceholderText("实测来源或化学计算说明（选填）")
+        source_ref.setPlaceholderText("参数来源说明（选填）")
         widgets["factor_source_reference"] = source_ref
         self._wire_dirty_tracking(source_ref)
         source_ref.hide()
         widgets["ef1"].textChanged.connect(lambda text, _ref=source_ref: _ref.setVisible(bool(text.strip())))  # type: ignore[union-attr]
         footer.addWidget(source_ref, 1)
+        custom_mode = QCheckBox("自定义碳酸盐",container)
+        custom_mode.setObjectName(f"fgdCustomMode_{component_id}")
+        widgets["custom_mode"] = custom_mode
+        custom_mode.toggled.connect(lambda _checked,_component=widgets: self._on_fgd_carbonate_text_changed(_component))
+        self._wire_dirty_tracking(custom_mode)
+        footer.addWidget(custom_mode)
         remove = QPushButton("删除组分", container)
         remove.setObjectName(f"remove_fgd_component_{unit['instance_id']}_{component_id}")
         remove.clicked.connect(lambda _checked=False, _unit=unit, _id=component_id: self._remove_fgd_component(_unit, _id))
@@ -6443,6 +6515,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 lower_heating_value=lhv_value,
                 fuel_type=fuel_type,
                 fuel_label=fuel_label,
+                origin=InputOrigin.CATALOG if selected_option else InputOrigin.CUSTOM,
+                catalog_subject_id=selected_option.subject_id if selected_option else None,
             ))
         return tuple(fuels)
 
@@ -6473,7 +6547,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 selector = component["carbonate_type"]
                 source_ref = _value(component["factor_source_reference"])
                 carbonate_text = selector.currentText().strip() if isinstance(selector, QComboBox) else ""
-                option = self._carbonate_option_for_text(carbonate_text)
+                custom_switch = component.get("custom_mode")
+                option = None if isinstance(custom_switch,QCheckBox) and custom_switch.isChecked() else self._carbonate_option_for_text(carbonate_text)
                 carbonate_type = option.label if option is not None else carbonate_text or None
                 ef_text = values["ef1"]
                 factor_mode = component.get("factor_mode")
@@ -6489,21 +6564,19 @@ class CarbonMaterialAccountingPage(BasePage):
                         "MEASURED": ParameterSourceKind.MEASURED,
                         "USER_DEFINED": ParameterSourceKind.USER_DEFINED,
                         "CALCULATED": ParameterSourceKind.CALCULATED,
-                    }.get(str(factor_mode), ParameterSourceKind.CALCULATED)
+                    }.get(str(factor_mode), ParameterSourceKind.USER_DEFINED)
                     factor_value = ParameterValue(
-                        parameter_id="fgd_carbonate_emission_factor_calculated",
+                        parameter_id="fgd_carbonate_emission_factor_user",
                         value=ef_text,
                         unit="tCO2/t",
                         source_kind=source_kind,
                         source_id=None,
                         source_version=None,
-                        source_location=f"化学计算；补充说明：{source_ref}" if source_ref else (
-                            "化学计算" if source_kind is ParameterSourceKind.CALCULATED else None
-                        ),
+                        source_location=f"参数来源：{source_ref}" if source_ref else None,
                         selection_reason=(
                             "自定义碳酸盐组分排放因子由用户按化学组成计算并录入。"
                             if source_kind is ParameterSourceKind.CALCULATED
-                            else "保留旧项目保存的碳酸盐排放因子来源语义。"
+                            else "采用用户填写的碳酸盐排放因子并保留真实来源类型。"
                         ),
                     )
                 else:
@@ -6513,7 +6586,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     raw = values[field]
                     mode_widget = component.get(f"{field}_source")
                     mode = mode_widget.currentData() if isinstance(mode_widget, QComboBox) else component.get(f"{field}_source_mode")
-                    if mode == "STANDARD_DEFAULT" or (mode == "USER_DEFINED" and raw is None):
+                    if mode == "STANDARD_DEFAULT" and option is not None:
                         factor = self._canonical_default_factor(parameter_id)
                         return self._parameter_value_from_factor(
                             factor, "采用当前核算期间 Resolver 核验的标准缺省参数。"
@@ -6532,11 +6605,11 @@ class CarbonMaterialAccountingPage(BasePage):
                         source_kind=source_kind,
                         source_id=None,
                         source_version=None,
-                        source_location=f"实测来源说明：{source_ref}" if source_ref else None,
+                        source_location=f"参数来源说明：{source_ref}" if source_ref else None,
                         selection_reason=(
                             "采用企业实测比例参数。"
                             if source_kind is ParameterSourceKind.MEASURED
-                            else "保留旧项目用户自定义比例参数的原有来源语义。"
+                            else "采用用户填写的比例参数并保留真实来源类型。"
                         ),
                     )
 
@@ -6546,6 +6619,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     factor_value,
                     fgd_ratio("tr", "CAR-PAR-P04B-TR"),
                     carbonate_type,
+                    origin=InputOrigin.CATALOG if option else InputOrigin.CUSTOM,
                 ))
             return kind(
                 components=tuple(components),

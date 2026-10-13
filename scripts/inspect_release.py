@@ -20,8 +20,8 @@ APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx")
-APPROVED_TEMPLATE_SHA256 = "e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
+APPROVED_TEMPLATE_SHA256 = "223156ce3246f7b769bafdf76b50bdd334e07201e6318d409347361d167d043e"
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
     APPROVED_TEMPLATE_PATH.as_posix(),

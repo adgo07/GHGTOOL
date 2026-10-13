@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 from pathlib import Path
 from types import MappingProxyType
@@ -46,26 +46,16 @@ from packages.excel.ingress import (
     read_worksheet_numeric_lexemes,
 )
 from packages.excel.templates import ExcelTemplateService
+from packages.standards.carbon_material_input_policy import InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS
 
 
 EXCEL_APPENDIX_B = "EXCEL_APPENDIX_B"
-INGRESS_POLICY_ID = "GHGTOOL_EXCEL_APPENDIX_B_V1"
+INGRESS_POLICY_ID = "GHGTOOL_EXCEL_APPENDIX_B_V2"
 _SOURCE_IDS = (
     SOURCE_FUEL, SOURCE_CALCINATION, SOURCE_BAKING, SOURCE_GRAPHITIZATION,
     SOURCE_FUME, SOURCE_FGD, SOURCE_PURCHASED_ELECTRICITY,
     SOURCE_EXPORTED_ELECTRICITY, SOURCE_PURCHASED_HEAT, SOURCE_EXPORTED_HEAT,
 )
-_FUEL_TYPES = {
-    "无烟煤": FuelType.ANTHRACITE, "烟煤": FuelType.BITUMINOUS_COAL,
-    "褐煤": FuelType.LIGNITE, "其他煤制品": FuelType.OTHER_COAL_PRODUCTS,
-    "燃料油": FuelType.FUEL_OIL, "汽油": FuelType.GASOLINE,
-    "柴油": FuelType.DIESEL, "液化天然气": FuelType.LIQUEFIED_NATURAL_GAS,
-    "液化石油气": FuelType.LIQUEFIED_PETROLEUM_GAS,
-    "其他石油制品": FuelType.OTHER_PETROLEUM_PRODUCTS,
-    "天然气": FuelType.NATURAL_GAS, "高炉煤气": FuelType.BLAST_FURNACE_GAS,
-    "焦炉煤气": FuelType.COKE_OVEN_GAS, "其他煤气": FuelType.OTHER_GAS,
-    "其他能源品种": FuelType.OTHER,
-}
 _PROCESS_META = {
     "B.3": (SOURCE_CALCINATION, CalcinationInput, "car-par-k1", "k1", 0),
     "B.4": (SOURCE_BAKING, BakingInput, "car-par-k2", "k2", 1),
@@ -270,16 +260,17 @@ class AppendixBWorkbookImporter:
         exported_heat: list[HeatInput] = []
         try:
             try:
-                self.template_service.validate_structure(workbook, STANDARD_ID)
+                template_version = self.template_service.validate_structure(workbook, STANDARD_ID)
             except ValueError as exc:
                 raise WorkbookFatalError(str(exc)) from exc
             unit_id = _stable_id("appendix-b-unit", digest)
             enterprise_id = context.enterprise_id or _stable_id("appendix-b-enterprise", digest)
 
-            self._parse_fuels(workbook, context, reader, errors, warnings, fuels, involved, unit_id)
+            self._check_trailing_activity(workbook, reader, errors, warnings)
+            self._parse_fuels(workbook, context, reader, errors, warnings, fuels, involved, unit_id, template_version=template_version)
             self._parse_processes(workbook, context, reader, errors, warnings, processes, involved, unit_id)
             self._parse_fumes(workbook, context, reader, errors, warnings, fumes, involved, unit_id)
-            self._parse_fgd(workbook, context, reader, errors, warnings, fgd, involved, unit_id)
+            self._parse_fgd(workbook, context, reader, errors, warnings, fgd, involved, unit_id, template_version=template_version)
             self._parse_power(workbook, context, reader, errors, warnings, purchased_power,
                               exported_power, involved, unit_id, enterprise_id)
             self._parse_heat(workbook, context, reader, errors, warnings, purchased_heat,
@@ -338,7 +329,7 @@ class AppendixBWorkbookImporter:
                 provenance=WorkbookProvenance(
                     workbook_sha256=digest,
                     template_id=template.template_id,
-                    template_version=template.template_version,
+                    template_version=template_version,
                     standard_id=template.standard_id,
                     standard_version=template.standard_version,
                     ingress_policy_id=INGRESS_POLICY_ID,
@@ -386,12 +377,54 @@ class AppendixBWorkbookImporter:
             return None
         return resolved.recommended.factor if not resolved.blocked and resolved.recommended else None
 
-    def _fuel_option(self, label: str):
-        kind = _FUEL_TYPES.get(label)
-        if self.queries is None or kind is None:
+    @staticmethod
+    def _check_trailing_activity(workbook, reader, errors, warnings):
+        numeric_columns = {
+            "B.2":"BCEGHK", "B.3":"CD", "B.4":"CD", "B.5":"CD",
+            "B.6":"ABCDEF", "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
+        }
+        for name,columns in numeric_columns.items():
+            sheet=workbook[name]
+            footer=next((row for row in range(3,sheet.max_row+1)
+                         if _is_appendix_footer_row(sheet,row)),None)
+            if footer is None:
+                continue
+            for row in range(footer+1,sheet.max_row+1):
+                if _is_appendix_footer_row(sheet,row):
+                    continue
+                for column in columns:
+                    cell=sheet[f"{column}{row}"]
+                    value=cell.value
+                    if value is None or value=="":
+                        continue
+                    numeric = cell.data_type in {"n","f"}
+                    if isinstance(value,str):
+                        try:
+                            Decimal(value.strip())
+                            numeric=True
+                        except (InvalidOperation,ValueError):
+                            pass
+                    if not numeric:
+                        continue
+                    location=f"{name}!{column}{row}"
+                    reader.observe_unused(workbook,name,f"{column}{row}",warnings,
+                                          field_label="表后活动数据",reason="活动数据位于表后说明区域，未纳入核算。")
+                    errors.append(ImportMessage(
+                        "EXB01_TRAILING_ACTIVITY","活动数据位于表后说明区域；请移到表内有效填写行，不能静默漏算。",
+                        location,"活动数据位置",
+                    ))
+
+    def _fuel_option(self, label):
+        if self.queries is None:
             return None
-        options = [item for item in self.queries.fuel_options() if item.fuel_type is kind]
-        return options[0] if len(options) == 1 else None
+        import unicodedata
+        normalize = lambda value: unicodedata.normalize("NFKC", str(value)).strip().casefold()
+        target = normalize(label)
+        matches = [
+            item for item in self.queries.fuel_options()
+            if target in {normalize(item.label), *(normalize(alias) for alias in item.aliases)}
+        ]
+        return matches[0] if len(matches) == 1 else None
 
     def _fuel_defaults(self, option, period):
         if self.queries is None or option is None:
@@ -434,20 +467,29 @@ class AppendixBWorkbookImporter:
         return None
 
 
-    def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
+    def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
+        current = template_version == "2.0.0"
         stop = next(
             (r for r in range(4, sheet.max_row + 1) if _is_appendix_footer_row(sheet, r)),
             sheet.max_row + 1,
         )
         for row in range(4, stop):
-            if not any(_has_value(sheet[f"{col}{row}"]) for col in "BCEGH"):
+            if not any(_has_value(sheet[f"{col}{row}"]) for col in ("BCEGHK" if current else "BCEGH")):
                 continue
             label = reader.text(workbook, "B.2", f"A{row}", errors, required=True, field_label="燃料品种")
             if not label:
                 continue
-            fuel_type = _FUEL_TYPES.get(label, FuelType.OTHER)
-            option = self._fuel_option(label)
+            name_mode = reader.text(workbook,"B.2",f"L{row}",errors,required=current,field_label="燃料名称类型") if current else None
+            if current and name_mode not in {"目录","自定义"}:
+                errors.append(ImportMessage("EXB01_FUEL_IDENTITY_REQUIRED","请选择目录燃料或自定义燃料。",f"B.2!L{row}","名称类型"))
+                continue
+            option = None if name_mode == "自定义" else self._fuel_option(label)
+            if current and name_mode == "目录" and option is None:
+                errors.append(ImportMessage("EXB01_FUEL_CATALOG_UNRESOLVED","目录中未找到该燃料；自行填写参数请选择自定义。",f"B.2!L{row}","名称类型"))
+                continue
+            fuel_type = (option.fuel_type or FuelType.OTHER) if option else FuelType.OTHER
+            origin = InputOrigin.CATALOG if option else InputOrigin.CUSTOM
             default_lhv, default_carbon, default_oxidation = self._fuel_defaults(option, context.period)
             path = self._fuel_path(label, row, default_lhv, context, errors)
             activity = reader.number(workbook, "B.2", f"B{row}", errors, required=True, field_label=f"燃料“{label}”消耗量")
@@ -457,7 +499,12 @@ class AppendixBWorkbookImporter:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!D{row}", "碳含量路径"))
                 route = None
             lhv_cell = f"B.2!E{row}"
-            carbon_cell = f"B.2!G{row}"
+            carbon_column = "K" if current and origin is InputOrigin.CUSTOM else "G"
+            carbon_cell = f"B.2!{carbon_column}{row}"
+            if current and origin is InputOrigin.CATALOG and _has_value(sheet[f"K{row}"]):
+                errors.append(ImportMessage("EXB01_CATALOG_FCH_CUSTOM_CELL","目录燃料不能使用自定义FCh填写格。",f"B.2!K{row}","自定义单位热值含碳量"))
+            if current and origin is InputOrigin.CUSTOM and _has_value(sheet[f"G{row}"]):
+                errors.append(ImportMessage("EXB01_CUSTOM_FCH_ADOPTED_CELL","自定义燃料不采用目录FCh，请清空G列并填写K列。",f"B.2!G{row}","目录采用值"))
             direct_cell = f"B.2!C{row}"
             lhv_source = reader.text(workbook, "B.2", f"F{row}", errors, field_label="低位发热量来源")
             oxidation_source = reader.text(workbook, "B.2", f"I{row}", errors, field_label="碳氧化率来源")
@@ -466,6 +513,8 @@ class AppendixBWorkbookImporter:
                 direct = reader.number(workbook, "B.2", f"C{row}", errors, required=True, field_label="直接含碳量")
                 reader.observe_unused(workbook, "B.2", f"E{row}", warnings, field_label="低位发热量", reason="实测直接含碳路径不采用低位发热量；原始数值保留为证据。")
                 reader.observe_unused(workbook, "B.2", f"G{row}", warnings, field_label="单位热值含碳量", reason="实测直接含碳路径不采用单位热值含碳量；原始数值保留为证据。")
+                if current:
+                    reader.observe_unused(workbook,"B.2",f"K{row}",warnings,field_label="自定义单位热值含碳量",reason="直接含碳量路径不采用FCh。")
                 lhv_parameter = None
                 carbon_parameter = (
                     _user_parameter(direct, f"enterprise_fuel_{unit_id}_{row}_carbon", "tC/10^4Nm3" if path is FuelPath.VOLUME else "tC/t", direct_cell, ParameterSourceKind.MEASURED)
@@ -476,18 +525,31 @@ class AppendixBWorkbookImporter:
             elif route == "计算值":
                 reader.observe_unused(workbook, "B.2", f"C{row}", warnings, field_label="直接含碳量", reason="计算路径不采用直接含碳量；原始数值保留为证据。")
                 lhv_value = reader.number(workbook, "B.2", f"E{row}", errors, field_label="低位发热量")
-                carbon_value = reader.number(workbook, "B.2", f"G{row}", errors, field_label="单位热值含碳量")
+                carbon_value = reader.number(workbook, "B.2", f"{carbon_column}{row}", errors, field_label="单位热值含碳量")
                 lhv_unit = {FuelPath.MASS: "GJ/t", FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.HEAT: "GJ/GJ"}[path] if path else "GJ/t"
                 lhv_parameter = self._parameter_with_source(
                     lhv_value, lhv_source, default_lhv,
                     option.subject_id + "_lhv" if option else f"enterprise_fuel_{unit_id}_{row}_lhv",
                     lhv_unit, lhv_cell, f"B.2!F{row}", errors, warnings, "低位发热量",
                 )
-                carbon_parameter = self._factor_cell(
-                    carbon_value, default_carbon,
-                    option.subject_id + "_carbon_content" if option else f"enterprise_fuel_{unit_id}_{row}_carbon",
-                    "tC/GJ", carbon_cell, warnings, "单位热值含碳量",
-                )
+                policy = fuel_input_policy(origin, direct_carbon=False)
+                if policy.fch_editable:
+                    carbon_parameter = _user_parameter(
+                        carbon_value, f"enterprise_fuel_{unit_id}_{row}_carbon", "tC/GJ", carbon_cell,
+                    ) if carbon_value is not None else None
+                    if carbon_value is not None:
+                        self._warn_missing_source(warnings, carbon_cell, "自定义燃料单位热值含碳量")
+                elif carbon_value is not None and default_carbon is not None and carbon_value != _factor_value(default_carbon):
+                    errors.append(ImportMessage(
+                        "EXB01_CATALOG_FCH_READONLY",
+                        "目录燃料单位热值含碳量只采用当前期间核验缺省值；自行填写参数请使用自定义燃料。",
+                        carbon_cell, "单位热值含碳量",
+                    ))
+                    carbon_parameter = None
+                else:
+                    carbon_parameter = self._parameter_value(
+                        default_carbon, "采用当前期间Resolver核验的附录C.1单位热值含碳量。"
+                    ) if default_carbon else None
             else:
                 continue
 
@@ -518,13 +580,15 @@ class AppendixBWorkbookImporter:
                 lower_heating_value=lhv_parameter,
                 fuel_type=fuel_type,
                 fuel_label=label if fuel_type is FuelType.OTHER else None,
+                origin=origin,
+                catalog_subject_id=option.subject_id if option else None,
             ))
             involved.add(SOURCE_FUEL)
 
     def _parameter_with_source(self, value, source_label, default_factor, parameter_id, unit,
                                value_location, source_location, errors, warnings, label, percent=False):
-        if source_label not in (None, "缺省值", "实测值"):
-            errors.append(ImportMessage("EXB01_PARAMETER_SOURCE_INVALID", "来源只能选择“缺省值”或“实测值”。", source_location, label))
+        if source_label not in (None, "缺省值", "实测值", "填写值"):
+            errors.append(ImportMessage("EXB01_PARAMETER_SOURCE_INVALID", "来源只能选择“缺省值”“实测值”或“填写值”。", source_location, label))
         if source_label == "缺省值":
             if value is None:
                 return self._parameter_value(default_factor, "采用当前期间 Resolver 核验的标准缺省参数。") if default_factor else None
@@ -537,13 +601,14 @@ class AppendixBWorkbookImporter:
                 ))
                 return self._parameter_value(default_factor, "采用当前期间 Resolver 核验的标准缺省参数。") if default_factor else None
             return self._parameter_value(default_factor, "数值与当前期间 Resolver 核验值完全一致。")
-        if source_label == "实测值":
+        if source_label in {"实测值", "填写值"}:
             if value is None:
                 errors.append(ImportMessage("EXB01_MEASURED_PARAMETER_REQUIRED", "选择“实测值”后必须填写参数。", value_location, label))
                 return None
             normalized = self.policy.divide(value, Decimal("100")) if percent else value
             self._warn_missing_source(warnings, value_location, label)
-            return _user_parameter(normalized, parameter_id, unit, value_location, ParameterSourceKind.MEASURED)
+            return _user_parameter(normalized, parameter_id, unit, value_location,
+                                   ParameterSourceKind.MEASURED if source_label == "实测值" else ParameterSourceKind.USER_DEFINED)
         if value is None:
             warnings.append(ImportMessage("EXB01_PARAMETER_SOURCE_UNSPECIFIED", "来源选择为空；此提醒不阻断计算。", source_location, label))
             return self._parameter_value(default_factor, "来源栏为空，采用当前期间 Resolver 核验的标准缺省参数。") if default_factor else None
@@ -733,7 +798,7 @@ class AppendixBWorkbookImporter:
                 for col, label in (("C", "动力总量"), ("D", "蒸汽压力"), ("E", "蒸汽温度"), ("G", "热力排放因子")):
                     reader.observe_unused(workbook, "B.9", f"{col}{row}", warnings, field_label=label)
                 continue
-            if kind_label not in {"饱和蒸汽", "过热蒸汽"}:
+            if kind_label not in STEAM_KIND_LABELS:
                 if kind_label is not None:
                     errors.append(ImportMessage("EXB01_HEAT_KIND_UNSUPPORTED", "当前正式模型只支持饱和蒸汽或过热蒸汽；热水及其他热力需要另行核验口径。", f"B.9!B{row}", "热力类别"))
                 for col, label in (("C", "动力总量"), ("D", "蒸汽压力"), ("E", "蒸汽温度"), ("G", "热力排放因子")):
@@ -913,30 +978,36 @@ class AppendixBWorkbookImporter:
 
     def _parse_fumes(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
         ws = workbook["B.6"]
-        if not any(_has_value(ws[f"{col}3"]) for col in "ABCDEF"):
-            return
-        labels = ("烟气流量", "焦油含量", "低位发热量", "单位热值含碳量", "碳氧化率", "报告期时长")
-        values = [
-            reader.number(workbook, "B.6", f"{col}3", errors, required=True, field_label=label)
-            for col, label in zip("ABCDEF", labels)
-        ]
-        if any(value is None for value in values):
-            return
-        q, qvar, hm, fch_value, fox_pct, duration = values
-        fch_default = self._default_factor("CAR-PAR-P04A-FCH", context.period)
-        fch = self._factor_cell(
-            fch_value, fch_default, "CAR-PAR-P04A-FCH", "tC/GJ",
-            "B.6!D3", warnings, "单位热值含碳量",
+        stop = next(
+            (row for row in range(3, ws.max_row + 1) if _is_appendix_footer_row(ws, row)),
+            ws.max_row + 1,
         )
-        fox = self.policy.divide(fox_pct, Decimal("100"))
-        output.append(FumeIncinerationInput(
-            q=InputValue(q, "Nm3/h", source_reference="B.6!A3"),
-            qvar=InputValue(qvar, "mg/Nm3", source_reference="B.6!B3"),
-            hm=InputValue(hm, "GJ/t", source_reference="B.6!C3"),
-            fch=fch, fox=fox, duration=InputValue(duration, "d", source_reference="B.6!F3"),
-            instance_id="fume-1",
-        ))
-        involved.add(SOURCE_FUME)
+        labels = ("烟气流量", "焦油含量", "低位发热量", "单位热值含碳量", "碳氧化率", "报告期时长")
+        fch_default = self._default_factor("CAR-PAR-P04A-FCH", context.period)
+        for row in range(3, stop):
+            if not any(_has_value(ws[f"{col}{row}"]) for col in "ABCDEF"):
+                continue
+            values = [
+                reader.number(workbook, "B.6", f"{col}{row}", errors, required=True, field_label=label)
+                for col, label in zip("ABCDEF", labels)
+            ]
+            if any(value is None for value in values):
+                continue
+            q, qvar, hm, fch_value, fox_pct, duration = values
+            fch = self._factor_cell(
+                fch_value, fch_default, "CAR-PAR-P04A-FCH", "tC/GJ",
+                f"B.6!D{row}", warnings, "单位热值含碳量",
+            )
+            fox = self.policy.divide(fox_pct, Decimal("100"))
+            output.append(FumeIncinerationInput(
+                q=InputValue(q, "Nm3/h", source_reference=f"B.6!A{row}"),
+                qvar=InputValue(qvar, "mg/Nm3", source_reference=f"B.6!B{row}"),
+                hm=InputValue(hm, "GJ/t", source_reference=f"B.6!C{row}"),
+                fch=fch, fox=fox,
+                duration=InputValue(duration, "d", source_reference=f"B.6!F{row}"),
+                instance_id=f"fume-{row - 2}",
+            ))
+            involved.add(SOURCE_FUME)
 
     def _carbonate_option(self, label, period):
         if self.queries is None:
@@ -948,8 +1019,9 @@ class AppendixBWorkbookImporter:
                    if target in {normalize(item.label), *(normalize(alias) for alias in item.aliases)}]
         return matches[0] if len(matches) == 1 else None
 
-    def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
+    def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
+        current = template_version == "2.0.0"
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}
@@ -1012,7 +1084,7 @@ class AppendixBWorkbookImporter:
         for row in range(3, stop):
             if row in grouped_rows:
                 continue
-            if any(_has_value(ws[f"{col}{row}"]) for col in "DEF"):
+            if any(_has_value(ws[f"{col}{row}"]) for col in ("DEFH" if current else "DEF")):
                 errors.append(ImportMessage(
                     "EXB01_FGD_BATCH_BOUNDARY_REQUIRED",
                     "该碳酸盐组分数据没有落在明确的 A/B 批次合并组或新批次边界内。",
@@ -1028,7 +1100,7 @@ class AppendixBWorkbookImporter:
             active = amount is not None or batch_name is not None
             active_component_rows = [
                 row for row in range(start, end + 1)
-                if any(_has_value(ws[f"{col}{row}"]) for col in "DEF")
+                if any(_has_value(ws[f"{col}{row}"]) for col in ("DEFH" if current else "DEF"))
             ]
             component_count = len(active_component_rows)
             for row in range(start, end + 1):
@@ -1039,21 +1111,39 @@ class AppendixBWorkbookImporter:
                     continue
                 active = True
                 fraction_pct = reader.number(workbook, "B.7", f"D{row}", errors, field_label="碳酸盐组分含量")
-                factor_value = reader.number(workbook, "B.7", f"E{row}", errors, field_label="碳酸盐排放因子")
+                name_mode = reader.text(workbook,"B.7",f"I{row}",errors,required=current,field_label="碳酸盐名称类型") if current else None
+                factor_column = "H" if current and name_mode == "自定义" else "E"
+                factor_value = reader.number(workbook,"B.7",f"{factor_column}{row}",errors,field_label="碳酸盐排放因子")
+                if current and name_mode not in {"目录","自定义"}:
+                    errors.append(ImportMessage("EXB01_CARBONATE_IDENTITY_REQUIRED","请选择目录碳酸盐或自定义碳酸盐。",f"B.7!I{row}","名称类型"))
+                if current and name_mode == "目录" and _has_value(ws[f"H{row}"]):
+                    errors.append(ImportMessage("EXB01_CARBONATE_CATALOG_CUSTOM_CELL","目录碳酸盐不能使用自定义因子填写格。",f"B.7!H{row}","自定义因子"))
+                if current and name_mode == "自定义" and _has_value(ws[f"E{row}"]):
+                    errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_ADOPTED_CELL","自定义碳酸盐不使用目录采用格，请清空E列并填写H列。",f"B.7!E{row}","目录采用值"))
                 conversion_pct = reader.number(workbook, "B.7", f"F{row}", errors, field_label="转化率")
                 if not label:
                     errors.append(ImportMessage("EXB01_CARBONATE_LABEL_REQUIRED", "请明确碳酸盐组分名称。", f"B.7!C{row}", "碳酸盐组分"))
                     continue
+                option = None if label == "其他" or name_mode == "自定义" else self._carbonate_option(label, context.period)
+                if current and name_mode == "目录" and option is None:
+                    errors.append(ImportMessage("EXB01_CARBONATE_CATALOG_UNRESOLVED","目录中未找到该碳酸盐；自行填写参数请选择自定义。",f"B.7!I{row}","名称类型"))
+                origin = InputOrigin.CATALOG if option else InputOrigin.CUSTOM
                 fraction_location = f"B.7!D{row}"
                 if fraction_pct is not None:
                     normalized_fraction = self.policy.divide(fraction_pct, Decimal("100"))
                     self._warn_missing_source(warnings, fraction_location, "碳酸盐组分含量")
                     fraction_value = _user_parameter(
                         normalized_fraction, "carbonate_fraction", "ratio", fraction_location,
-                        ParameterSourceKind.MEASURED,
+                        ParameterSourceKind.USER_DEFINED if origin is InputOrigin.CUSTOM else ParameterSourceKind.MEASURED,
                     )
                 elif not _has_value(ws[f"D{row}"]):
-                    if component_count > 1:
+                    if not catalog_defaults_allowed(origin):
+                        errors.append(ImportMessage(
+                            "EXB01_CUSTOM_CARBONATE_CONTENT_REQUIRED","自定义碳酸盐须填写组分含量，不采用缺省值。",
+                            fraction_location,"碳酸盐组分含量",
+                        ))
+                        fraction_value = None
+                    elif component_count > 1:
                         errors.append(ImportMessage(
                             "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED",
                             "同一脱硫剂含有多个碳酸盐组分时，必须为每个组分填写实测含量。",
@@ -1080,7 +1170,6 @@ class AppendixBWorkbookImporter:
                     # A present but invalid cell already has a blocking reader diagnostic;
                     # do not disguise it as a Resolver default.
                     fraction_value = None
-                option = None if label == "其他" else self._carbonate_option(label, context.period)
                 if label != "其他" and option is None and factor_value is None:
                     errors.append(ImportMessage("EXB01_CARBONATE_FACTOR_UNRESOLVED", f"“{label}”无法唯一匹配经核验的 C.2 碳酸盐因子；请提供因子或更正组分名称。", f"B.7!C{row}", "碳酸盐组分"))
                 if factor_value is not None:
@@ -1096,24 +1185,30 @@ class AppendixBWorkbookImporter:
                             factor = None
                     else:
                         factor = _user_parameter(
-                            factor_value, "fgd_carbonate_emission_factor_calculated", "tCO2/t",
-                            f"B.7!E{row}", ParameterSourceKind.CALCULATED,
-                            selection_reason="自定义碳酸盐组分排放因子按化学组成计算后录入。",
+                            factor_value, "fgd_carbonate_emission_factor_user", "tCO2/t",
+                            f"B.7!{factor_column}{row}", ParameterSourceKind.USER_DEFINED,
+                            selection_reason="采用用户填写的自定义碳酸盐排放因子，未自动认定为化学计算或实测。",
                         )
                 else:
                     factor = self._parameter_value(option.factor, option.selection_reason) if option else None
                 if option is None and factor is None:
-                    errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_FACTOR_REQUIRED", "自定义碳酸盐组分需要填写化学计算所得排放因子。", f"B.7!E{row}", "碳酸盐排放因子"))
+                    errors.append(ImportMessage("EXB01_CUSTOM_CARBONATE_FACTOR_REQUIRED", "自定义碳酸盐组分需要填写排放因子。", f"B.7!{factor_column}{row}", "碳酸盐排放因子"))
                 conversion_location = f"B.7!F{row}"
                 if conversion_pct is not None:
                     normalized_conversion = self.policy.divide(conversion_pct, Decimal("100"))
                     self._warn_missing_source(warnings, conversion_location, "脱硫转化率")
                     conversion = _user_parameter(
                         normalized_conversion, "CAR-PAR-P04B-TR", "ratio", conversion_location,
-                        ParameterSourceKind.MEASURED,
+                        ParameterSourceKind.USER_DEFINED if origin is InputOrigin.CUSTOM else ParameterSourceKind.MEASURED,
                     )
                 elif not _has_value(ws[f"F{row}"]):
-                    if ratio_tr_default is None:
+                    if not catalog_defaults_allowed(origin):
+                        errors.append(ImportMessage(
+                            "EXB01_CUSTOM_CARBONATE_CONVERSION_REQUIRED","自定义碳酸盐须填写转化率，不采用缺省值。",
+                            conversion_location,"转化率",
+                        ))
+                        conversion = None
+                    elif ratio_tr_default is None:
                         errors.append(ImportMessage(
                             "EXB01_CARBONATE_CONVERSION_UNRESOLVED",
                             "脱硫转化率为空，且当前 Resolver 没有可用的标准缺省参数。",
@@ -1137,6 +1232,7 @@ class AppendixBWorkbookImporter:
                     emission_factor=factor,
                     conversion_rate=conversion,
                     carbonate_type=option.label if option else label,
+                    origin=origin,
                 )
                 component_rows.append(component)
             if not active:

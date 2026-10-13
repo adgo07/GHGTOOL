@@ -97,12 +97,57 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 "D4": route,
                 "E4": 8,
                 "F4": "实测值",
-                "G4": 0.03,
+                "G4": None,
+                "K4": 0.03,
+                "L4": "自定义",
                 "H4": 98,
                 "I4": "实测值",
             },
         })
         return path
+
+    def test_b6_additional_rows_are_consumed_once_with_independent_formula_total(self) -> None:
+        from packages.standards.carbon_material import SOURCE_FUME
+        path = self._workbook("two-fume-facilities.xlsx", all_sources=True)
+        workbook = load_workbook(path)
+        sheet = workbook["B.6"]
+        footer_merges = [area.bounds for area in sheet.merged_cells.ranges if area.min_row >= 4]
+        for left, top, right, bottom in footer_merges:
+            sheet.unmerge_cells(start_row=top, start_column=left, end_row=bottom, end_column=right)
+        sheet.insert_rows(4)
+        for left, top, right, bottom in footer_merges:
+            sheet.merge_cells(start_row=top + 1, start_column=left, end_row=bottom + 1, end_column=right)
+        for column, value in zip("ABCDEF", (200, 10, 30, 0.02, 98, 365)):
+            sheet[f"{column}4"] = value
+        workbook.save(path)
+        workbook.close()
+        preview = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME))
+        unit = preview.units[0]
+        self.assertTrue(unit.can_calculate, unit.errors)
+        self.assertEqual([item.q.value for item in unit.input_value.fume_incinerations], [Decimal("100"), Decimal("200")])
+        amounts = [line.amount for line in unit.result.lines if line.emission_source_id == SOURCE_FUME]
+        self.assertEqual(sum(amounts), Decimal("0.05665968"))
+        self.assertIsNone(unit.calculation.record)
+        self.assertIn("B.6!A4", {item.q.source_reference for item in unit.input_value.fume_incinerations})
+
+    def test_b6_invalid_second_row_blocks_at_its_actual_cell(self) -> None:
+        path = self._workbook("invalid-second-fume.xlsx", all_sources=True)
+        workbook = load_workbook(path)
+        sheet = workbook["B.6"]
+        footer_merges = [area.bounds for area in sheet.merged_cells.ranges if area.min_row >= 4]
+        for left, top, right, bottom in footer_merges:
+            sheet.unmerge_cells(start_row=top, start_column=left, end_row=bottom, end_column=right)
+        sheet.insert_rows(4)
+        for left, top, right, bottom in footer_merges:
+            sheet.merge_cells(start_row=top + 1, start_column=left, end_row=bottom + 1, end_column=right)
+        workbook["B.6"]["A4"] = "不是数值"
+        workbook.save(path)
+        workbook.close()
+        preview = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME))
+        unit = preview.units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertIn("B.6!A4", {issue.location for issue in unit.errors})
+        self.assertIsNone(unit.calculation.record if unit.calculation else None)
 
     @staticmethod
     def _result_lines(unit) -> tuple[tuple[str, Decimal], ...]:
@@ -110,6 +155,45 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             (line.emission_source_id, Decimal(str(line.amount)))
             for line in unit.calculation.result.lines
         )
+
+    def test_custom_carbonate_does_not_inherit_default_fraction_or_conversion(self) -> None:
+        path = self._workbook("custom-carbonate-missing-parameters.xlsx")
+        self._set_cells(path, {"B.7":{"A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐","H3":0.5,"I3":"自定义"}})
+        unit = self.importer.import_preview(path,context=self._context()).units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertIn(("EXB01_CUSTOM_CARBONATE_CONTENT_REQUIRED","B.7!D3"),{(e.code,e.location) for e in unit.errors})
+        self.assertIn(("EXB01_CUSTOM_CARBONATE_CONVERSION_REQUIRED","B.7!F3"),{(e.code,e.location) for e in unit.errors})
+
+    def test_custom_carbonate_filled_parameters_keep_user_defined_source(self) -> None:
+        from packages.standards.carbon_material_input_policy import InputOrigin
+        path = self._workbook("custom-carbonate-filled-parameters.xlsx")
+        self._set_cells(path, {"B.7":{"A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
+                                     "D3":80,"H3":0.5,"F3":90,"I3":"自定义"}})
+        unit = self.importer.import_preview(path,context=self._context()).units[0]
+        self.assertTrue(unit.can_calculate,unit.errors)
+        component=unit.input_value.fgd_units[0].components[0]
+        self.assertEqual(component.origin,InputOrigin.CUSTOM)
+        for parameter in (component.carbonate_fraction,component.emission_factor,component.conversion_rate):
+            self.assertEqual(parameter.source_kind,ParameterSourceKind.USER_DEFINED)
+            self.assertIsNone(parameter.factor_id)
+        self.assertEqual(unit.result.total_amount,Decimal("0.720"))
+        self.assertIsNone(unit.calculation.record)
+
+    def test_catalog_fch_tampering_is_blocked_at_the_fch_cell(self) -> None:
+        path = self._workbook("tampered-catalog-fch.xlsx")
+        self._set_cells(path, {"B.2": {"A4":"天然气","B4":1,"D4":"计算值","F4":"缺省值",
+                                     "G4":0.03,"I4":"缺省值"}})
+        unit = self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertIn(("EXB01_CATALOG_FCH_READONLY","B.2!G4"),{(e.code,e.location) for e in unit.errors})
+
+    def test_registered_coke_keeps_its_catalog_type_instead_of_becoming_custom(self) -> None:
+        path = self._workbook("registered-coke.xlsx")
+        self._set_cells(path, {"B.2": {"A4":"焦炭","B4":1,"C4":0.4,"D4":"实测值",
+                                     "H4":98,"I4":"填写值"}})
+        unit = self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.MASS)).units[0]
+        self.assertTrue(unit.can_calculate,unit.errors)
+        self.assertEqual(unit.input_value.fuel_inputs[0].fuel_type,FuelType.COKE)
 
     def test_custom_fuel_direct_carbon_uses_explicit_mass_and_ignores_lhv_columns(self) -> None:
         path = self._custom_fuel("custom-mass-direct.xlsx")
@@ -247,24 +331,30 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             expected,
         )
 
-    def test_fgd_custom_batch_name_does_not_collide_with_footnote_and_real_footer_stops(self) -> None:
+    def test_fgd_batch_name_is_not_footer_and_trailing_activity_is_located_error(self) -> None:
         path = self._workbook("fgd-a-prefix-batch.xlsx")
         self._set_cells(path, {"B.7": {
-            "A3": "A Sample Batch", "B3": 2,
-            "D3": None, "E3": 0.440, "F3": None,
-            # This activity-looking row is below the approved merged footnote.
-            # The parser must stop at the real footer and ignore it.
-            "A7": "Ignored after footer", "B7": 99, "C7": "CaCO₃",
-            "D7": 100, "E7": 0.440, "F7": 100,
+            "A3":"A Sample Batch","B3":2,"D3":None,"E3":0.440,"F3":None,
+            "A10":"Activity after footer","B10":99,"C10":"CaCO₃",
+            "D10":100,"E10":0.440,"F10":100,
         }})
-        unit = self.importer.import_preview(
-            path, context=self._context(fuel_path=FuelPath.VOLUME)
-        ).units[0]
+        unit=self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertIn(("EXB01_TRAILING_ACTIVITY","B.7!B10"),{(e.code,e.location) for e in unit.errors})
+        self.assertEqual(len(unit.input_value.fgd_units),1)
+        self.assertEqual(unit.input_value.fgd_units[0].components[0].amount.value,Decimal("2"))
+        self.assertIsNone(unit.calculation)
 
-        self.assertTrue(unit.can_calculate, tuple((item.code, item.location) for item in unit.errors))
-        self.assertEqual(len(unit.input_value.fgd_units), 1)
-        self.assertEqual(unit.input_value.fgd_units[0].components[0].amount.value, Decimal("2"))
-        self.assertEqual(unit.source_breakdown[SOURCE_FGD], Decimal("0.79200"))
+    def test_legacy_template_version_and_custom_parameters_remain_readable(self) -> None:
+        path=self.root/"legacy-v1-filled.xlsx"
+        path.write_bytes((Path(__file__).parent/"fixtures/exb01/appendix_b_v1.xlsx").read_bytes())
+        self._set_cells(path,{"B.2":{"A4":"旧模板自定义燃料","B4":10,"D4":"计算值",
+                                    "E4":8,"F4":"填写值","G4":0.03,"H4":98,"I4":"填写值"}})
+        preview=self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.MASS))
+        self.assertEqual(preview.provenance.template_version,"1.0.0")
+        self.assertTrue(preview.units[0].can_calculate,preview.units[0].errors)
+        self.assertEqual(preview.units[0].input_value.fuel_inputs[0].carbon_content.source_kind,ParameterSourceKind.USER_DEFINED)
+        self.assertIsNone(preview.units[0].calculation.record)
 
     def test_fuel_name_starting_with_usage_prompt_is_not_a_footer(self) -> None:
         path = self._custom_fuel("fuel-usage-prompt-prefix.xlsx")

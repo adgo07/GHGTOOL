@@ -7,6 +7,8 @@ calculation evidence. Record persistence and adapters live outside this module.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_input_policy import (InputOrigin, infer_fuel_origin, fuel_source_violations, carbonate_source_violations)
+
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -53,7 +55,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-09-G06.2"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-13-G06.3"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -406,6 +408,8 @@ class FuelInput:
     electricity_detail_id: str | None = None
     fuel_type: FuelType | None = None
     fuel_label: str | None = None
+    origin: InputOrigin | None = None
+    catalog_subject_id: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.fuel_id, str) or not self.fuel_id.strip():
@@ -418,6 +422,10 @@ class FuelInput:
             not isinstance(self.fuel_label, str) or not self.fuel_label.strip()
         ):
             raise DomainValidationError("fuel_label must be a non-blank string when supplied")
+        if self.origin is not None and not isinstance(self.origin, InputOrigin):
+            raise DomainValidationError("origin must be a InputOrigin")
+        if self.catalog_subject_id is not None and not self.catalog_subject_id.strip():
+            raise DomainValidationError("catalog_subject_id cannot be blank")
         activity_unit = {
             FuelPath.VOLUME: "ten_thousand_Nm3",
             FuelPath.MASS: "t",
@@ -639,6 +647,7 @@ class CarbonateComponent:
     emission_factor: object | None
     conversion_rate: object = 1
     carbonate_type: str | None = None
+    origin: InputOrigin | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "amount", _coerce_input(self.amount, "t"))
@@ -647,6 +656,8 @@ class CarbonateComponent:
         object.__setattr__(self, "emission_factor", _coerce_parameter(self.emission_factor, "CAR-PAR-P04B-EF1", "tCO2/t", source_location="第5.2.5.2条、附录C.2"))
         if not isinstance(self.conversion_rate, ParameterValue):
             object.__setattr__(self, "conversion_rate", _coerce_input(self.conversion_rate, "ratio"))
+        if self.origin is not None and not isinstance(self.origin, InputOrigin):
+            raise DomainValidationError("origin must be an InputOrigin")
         if self.carbonate_type is not None and not self.carbonate_type.strip():
             raise DomainValidationError("carbonate_type cannot be blank")
 
@@ -1707,7 +1718,41 @@ class CarbonMaterialCalculator:
             problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, f"排放源 {source_id} 已标记涉及但缺少输入。", source_id))
         return status
 
-    def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
+    def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, accounting_period: AccountingPeriod) -> Decimal | None:
+        origin = infer_fuel_origin(item.fuel_type.value if item.fuel_type else None, item.origin)
+        direct = item.lower_heating_value is None and item.path is not FuelPath.HEAT
+        sources = {
+            name: value.source_kind.value if value is not None else None
+            for name, value in (
+                ("carbon_content", item.carbon_content),
+                ("lower_heating_value", item.lower_heating_value),
+                ("oxidation_rate", item.oxidation_rate),
+            )
+        }
+        violations = fuel_source_violations(
+            origin, direct_carbon=direct, sources=sources, heat_activity=item.path is FuelPath.HEAT,
+        )
+        for field, code, message in violations:
+            suffix={"carbon_content":"CARBON","lower_heating_value":"LHV","oxidation_rate":"FOX"}[field]
+            problems.append(_problem(code, IssueLevel.ERROR, message, f"CAR-FLD-F01-{item.fuel_id}-{suffix}"))
+        if violations:
+            return None
+        carbon_value = item.carbon_content
+        if origin is InputOrigin.CATALOG and not direct and item.origin is not None and self.parameter_resolver is not None and carbon_value is not None:
+            context = ParameterResolutionContext(
+                parameter_id=carbon_value.parameter_id, standard_id=STANDARD_ID,
+                accounting_period=accounting_period, subject_id=item.catalog_subject_id,
+                parameter_type=ParameterType.CARBON_CONTENT_PER_HEAT,
+            )
+            resolved = self.parameter_resolver.resolve(context)
+            selected = resolved.recommended.factor if resolved.recommended and not resolved.blocked else None
+            if selected is None or carbon_value.factor_id != selected.factor_id or carbon_value.value != selected.value:
+                problems.append(_problem(
+                    "CAR-VAL-CATALOG-FCH-MISMATCH", IssueLevel.ERROR,
+                    "目录燃料单位热值含碳量与当前期间Resolver核验缺省值不一致，请重新选择该燃料。",
+                    f"CAR-FLD-F01-{item.fuel_id}-CARBON",
+                ))
+                return None
         activity = self._quantity(item.activity, {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[item.path], f"CAR-FLD-F01-{item.fuel_id}-ACTIVITY", problems)
         if item.lower_heating_value is not None:
             lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[item.path]
@@ -1957,7 +2002,7 @@ class CarbonMaterialCalculator:
                 if fuel.fuel_id in seen_paths:
                     problems.append(_problem("CAR-VAL-FUEL-PATH-DUPLICATE", IssueLevel.ERROR, f"燃料 {fuel.fuel_id} 按多个路径重复计入。", fuel.fuel_id))
                 seen_paths[fuel.fuel_id] = fuel.path
-                amount = self._fuel(fuel, snapshots, problems, snapshot_at)
+                amount = self._fuel(fuel, snapshots, problems, snapshot_at, accounting_period=input_value.period)
                 if amount is not None:
                     fuel_total += amount
                     lines.append(CalculationLine(f"{SOURCE_FUEL}.{fuel.fuel_id}", SOURCE_FUEL, CO2_ID, amount, "tCO2"))
@@ -2105,6 +2150,16 @@ class CarbonMaterialCalculator:
                 validated: list[CarbonateComponent] = []
                 for index, component in enumerate(unit.components):
                     component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{index}"
+                    for field, code, message in carbonate_source_violations(component.origin, {
+                        name: value.source_kind.value if isinstance(value, ParameterValue) else None
+                        for name, value in (
+                            ("carbonate_fraction",component.carbonate_fraction),
+                            ("emission_factor",component.emission_factor),
+                            ("conversion_rate",component.conversion_rate),
+                        )
+                    }):
+                        suffix={"carbonate_fraction":"I","emission_factor":"EF1","conversion_rate":"TR"}[field]
+                        problems.append(_problem(code,IssueLevel.ERROR,message,f"{component_prefix}-{suffix}"))
                     amount = self._quantity(component.amount, "t", f"{component_prefix}-CAL", problems)
                     fraction_field = f"{component_prefix}-I"
                     if isinstance(component.carbonate_fraction, ParameterValue):

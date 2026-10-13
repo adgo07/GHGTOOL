@@ -10,10 +10,11 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 from packages.standards.carbon_material import STANDARD_ID, STANDARD_VERSION
+from .appendix_b_legacy_structure import LEGACY_HEADER_CELLS, LEGACY_HEADER_MERGES
 
 APPROVED_SOURCE_SHA256 = "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
-APPROVED_TEMPLATE_SHA256 = "e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx"
+APPROVED_TEMPLATE_SHA256 = "223156ce3246f7b769bafdf76b50bdd334e07201e6318d409347361d167d043e"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -33,7 +34,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "1.0.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.0.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -75,7 +76,7 @@ class ExcelTemplateService:
         destination.write_bytes(content)
         return destination
 
-    def validate_structure(self, workbook, standard_id: str = STANDARD_ID) -> None:
+    def validate_structure(self, workbook, standard_id: str = STANDARD_ID) -> str:
         """Recognize approved headers while allowing inserted business data rows.
 
         Filled workbooks have their own hash. Formatting changes from Excel/WPS
@@ -85,6 +86,26 @@ class ExcelTemplateService:
             raise ValueError("此标准尚未实现正式 Excel 输入映射。")
         if tuple(workbook.sheetnames) != APPENDIX_B_SHEETS:
             raise ValueError("工作簿必须按原顺序保留 B.1 至 B.9 九张工作表。")
+        is_current = (
+            workbook["B.2"]["L2"].value == "名称类型"
+            and workbook["B.7"]["I2"].value == "名称类型"
+        )
+        if not is_current:
+            for name in APPENDIX_B_SHEETS:
+                sheet = workbook[name]
+                if sheet.sheet_state != "visible":
+                    raise ValueError(f"{name} 工作表必须保持可见。")
+                for coordinate,value in LEGACY_HEADER_CELLS[name].items():
+                    if sheet[coordinate].value != value:
+                        raise ValueError(f"{name}!{coordinate} 表头与已登记模板版本不一致。")
+                end = 3 if name in {"B.2","B.3","B.4","B.5"} else 2
+                actual = sorted(str(a) for a in sheet.merged_cells.ranges if a.min_row <= end)
+                if actual != LEGACY_HEADER_MERGES[name]:
+                    raise ValueError(f"{name} 表头合并区域与已登记模板版本不一致。")
+                width = max(sheet[coordinate].column for coordinate in LEGACY_HEADER_CELLS[name])
+                if any(c.value is not None for row in sheet.iter_rows(max_row=end,min_col=width+1) for c in row):
+                    raise ValueError(f"{name} 存在未登记的新增表头，请使用软件当前模板。")
+            return "1.0.0"
         reference = load_workbook(BytesIO(self.read_bytes(standard_id)), data_only=False)
         try:
             for name in APPENDIX_B_SHEETS:
@@ -109,3 +130,4 @@ class ExcelTemplateService:
                     raise ValueError(f"{name} 表头合并区域与正式模板不一致。")
         finally:
             reference.close()
+        return APPENDIX_B_TEMPLATE.template_version
