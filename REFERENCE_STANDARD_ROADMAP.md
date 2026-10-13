@@ -353,10 +353,13 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- P3-AB PR #38、RPT02 PR #39、EXB01 PR #40、P3-DF PR #41、P3-C PR #42及P3-E PR #43均已通过对应验收，按独立PR整合到main。
-- P3-C只改核算记录列表与两个详情页签；P3-E只改附录B表格导入页面，后者与前者共同保留，均不改正式Calculator、Record、Excel Adapter、Word正式报告或数据库。
-- 原生Windows人工鼠标/键盘/系统DPI及Excel/WPS保存后回导仍为明确OPEN证据，不以自动测试结果替代。
-- 下一阶段需单独授权与正式Gate：RS04 Golden/正式标准支持候选、RS05 Windows Release；当前GB/T 32151.34—2024仍不得宣布SUPPORTED。PR #27维持CLOSED / UNMERGED。
+Owner 2026-10-13已授权在RS01/RS02/RS03内连续完成六个工作包，不新增产品路线：①当前标准共同输入政策、模板保护、B.6多行及热力限制；②小型静态标准注册与分派；③燃料共享规则、GUI/Excel双路径；④多工序/多物料、脱硫剂/组分、电力五表选择、热力与项目codec兼容；⑤Record/Word共用标准表投影、B.1及Excel表式同步；⑥首页/标准库/八卡/字号/两行输入视觉、历史冗余清理和整体验证。
+
+PR45视觉实现作为有来源的整合输入，未授权合并原PR。每包相关测试与样例；整阶段一次联合回归和Windows交付验证，提交独立PR后等待验收。无需逐包重新审批；新的真实标准歧义、不可逆取舍或Frozen变更才另报具体决定。
+
+自定义燃料与碳酸盐参数允许按路径填写，不用缺省值；目录缺省只读，来源不伪装。依据Issue009。52份未冻结映射只作压力检查资料，2021年前参考更弱，不实施其公式或批量改变官方有效状态。第二行业标准仍按RS05/RS06+阶段开展。
+
+原生Windows与Excel/WPS实测有证据才记通过；离屏截图与本地/CI证据分别记录。RS04 Golden/RS05 Release及正式SUPPORTED仍需各自Gate。
 
 ## 9. 相关治理登记项的归属
 
@@ -372,7 +375,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 本路线不自行授权新的产品阶段；P3-C/P3-E已完成独立验收与整合，RS04～RS06+仍需按各自Gate授权。
+- 本路线不自行授权新的产品阶段；当前六包已获专项授权，RS04～RS06+仍需按各自Gate授权。
 - EXB01附录B九表正式输入与RPT02 Word报告已合并；继续共享正式Application/Calculator及冻结Record，预览不能隐式写Record，报告不可重算历史。
 - 不修改中央Frozen Contract、platform-lock、Numeric或Schema，不宣布GB/T 32151.34—2024已SUPPORTED。
 - PR #27继续CLOSED/UNMERGED，不恢复旧V1和旧R2新下载路径。
@@ -380,7 +383,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 ## 当前延期与取消事项
 
 - 附录B正式输入模板和整工作簿导入已通过PR #40合并，RPT02 Word附录B报告已通过PR #39合并；不恢复核算结果Excel导出。
-- P3-DF（参数库与新建核算视觉）已合并；当前C记录页按独立工作包实施，E表格导入页仍未授权。
+- 当前六包包含输入模板、报告与Presentation同步；不恢复核算结果Excel导出。
 - 真实Windows人工DPI和原生Excel/WPS保存回导仍保留OPEN；Golden与正式Windows发布验收须按RS04/RS05另行完成。
 - PR #27保持CLOSED/UNMERGED，历史R2仅保留既有项目与Record兼容。
 

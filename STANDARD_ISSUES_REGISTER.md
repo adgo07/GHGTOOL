@@ -37,7 +37,7 @@
 
 ## 4. 当前问题
 
-当前登记数量：**8**；RESOLVED 8 / OPEN 0 / PROVISIONAL 0。前四项为既有项目决定；第五项记录标准实施日期与具体因子自身有效期的产品裁定；第六项记录按C.1、C.2、C.3及§5.2参数分组完成的来源核查。中央Numeric/Unit/Quantity议题不混入本台账。
+当前登记数量：**9**；RESOLVED 9 / OPEN 0 / PROVISIONAL 0。前四项为既有项目决定；第五项记录标准实施日期与具体因子自身有效期的产品裁定；第六项记录按C.1、C.2、C.3及§5.2参数分组完成的来源核查。中央Numeric/Unit/Quantity议题不混入本台账。
 
 共同证据：GB/T 32151.34—2024《温室气体排放核算与报告要求 第34部分：炭素材料生产企业》原始PDF，43页，文件名及SHA256见[CORE_CHECK §1](specs/carbon_accounting/GB_T_32151_34_2024_CORE_CHECK.md)；[冻结SM01-2026-09-13-R6 Mapping §17/17.1](specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md)。Mapping原样入仓SHA256=`01FB34E391A49D8EFAA2E465B38EA6BDFE2183CD00A414B3AB4A331EE36A080B`。G06最终PASS历史 `5b8d35db65375907ccef18d426fba9ec4319aa64:TASK_STATE.md`、验收对象 `c2ca02e5453e4b597cc73647f3ae6cba0d2b1842`佐证采用口径。独立原始批准附件缺失按GAP-009保留为provenance debt；本轮用户明确沿用这些历史决定。
 
@@ -155,3 +155,16 @@
 | 业务影响 | 新核算的购入/外供电力因子候选、参数快照及新Record结果；历史Record不变。 |
 | 关联Rule/Calculator/测试 | `GEN-RULE-ELECTRICITY-001`；省级FactorApplicability精确地区筛选；Canonical来源绑定驱动的UAT03查询；购入/外供地区解析与无地区回退测试。 |
 | 支持证据/状态/日期 | Canonical `SRC-ELEC-2023-47` 省级因子和已核验目录绑定（含宁夏2023值）；用户2026-10-09批准；RESOLVED；2026-10-09。 |
+
+
+### GHG-STD-32151-34-009 — 目录缺省与自定义输入的共同政策
+
+| 字段 | 记录 |
+|---|---|
+| 标准原文事实 | 已批准Mapping第8/9节分别定义FCh、FCm/FCV与适用计量路径；本项不改写Mapping、44/12或标准原文。自定义输入例外属于软件产品决定，不宣称标准明确规定该例外。 |
+| 类型/问题 | IMPLEMENTATION；GUI与Excel对库外燃料/碳酸盐允许的输入、参数来源及当前热力类别不一致；模板保护阻碍填写，B.6只读取首行。 |
+| 技术判断 | 参数身份、计算路径、来源类型应分别保留；自定义名称不代表目录匹配，不得借用其他燃料缺省值；用户填写不自动等于实测、化学计算或官方缺省。 |
+| 软件决定 | 按Owner 2026-10-13明确授权：目录燃料采用适用缺省FCh时只读，正式入口不得绕过；自定义燃料允许填写当前路径需要的FCh/低位发热量或直接FCm/FCV及氧化率，不套缺省值。自定义碳酸盐填写必要因子/含量/转化率，不套目录缺省、不自动标化学计算。填写来源保持真实类型；实测须为用户明确选择。当前.34新输入仅支持蒸汽，不提供热水/其他热力填入；历史载荷保持可读。 |
+| 实现与测试 | 本标准input_policy、GUI/Excel Adapter、Calculator正式入口；规则CAR-RULE-FUEL-INPUT-POLICY-001 / CAR-RULE-CARBONATE-INPUT-POLICY-001；输入政策、B.6多行、缺省篡改定位、跨入口等价及历史兼容回归。关联测试随实现补充，未执行前不得称通过。 |
+| 历史兼容 | 不重写历史Record；旧项目不因含用户参数而笼统拒绝，明确身份后按本次现行政策核算；保留旧FuelPath.HEAT、旧FGD输入和EXCEL_R2证据读取。 |
+| 确认程度/状态 | 项目所有者的软件实现决定；非发布机构解释。RESOLVED；2026-10-13。 |

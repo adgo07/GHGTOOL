@@ -134,7 +134,7 @@ git status --short                 # 工作区状态
   → 中央 docs/governance/STANDARD_DEVELOPMENT_GUIDE_V0.1.md（四阶段流程）
 
 涉及桌面 UI：
-  → 中央 docs/ui/UI_DESIGN_GUIDELINES_V0.1.md
+  → 中央 docs/ui/UI_DESIGN_GUIDELINES_V0.2.md
 
 需要确认中央当前冻结状态：
   → 中央 docs/GUIDE_INDEX.md，并按需读 PLATFORM_STATE.md
@@ -195,7 +195,7 @@ Stage A 标准整理 → Stage B 软件接入设计 → Stage C 实现 → Stage
 
 ## 10. UI 设计前置原则（短入口 + 本仓要点）
 
-涉及桌面 UI 的 Design / Execution / Acceptance 必须读取中央 `docs/ui/UI_DESIGN_GUIDELINES_V0.1.md` 的**当前适用版本**（**ACTIVE / EVOLVING**，不是 Frozen Contract）。本仓要点：① 当前 Windows Desktop 默认 UI 技术栈为 PySide6，用户可见内容中文优先；② 普通 UI 不得默认泄露内部 `key / field / field_id / rule_id / internal_id`、Python 变量、内部枚举或调试标识；③ 简单业务 `One-page first`，复杂核算不强制单屏或单步骤，技术 trace / Numeric Profile / Calculator version / 内部 Rule 渐进展示且不删除审计能力；④ UI 优先满足真实用户任务，不按数据库 / JSON / 代码结构组织普通页面；⑤ AI 不得因 v0.1 的推荐 AppShell、页面示意或当前实现而拒绝合理页面改进，也不得把当前七项导航误当永久冻结结构。
+涉及桌面 UI 的 Design / Execution / Acceptance 必须读取中央 `docs/ui/UI_DESIGN_GUIDELINES_V0.2.md` 的**当前适用版本**（**ACTIVE / EVOLVING**，不是 Frozen Contract）。本仓要点：① 当前 Windows Desktop 默认 UI 技术栈为 PySide6，用户可见内容中文优先；② 普通 UI 不得默认泄露内部 `key / field / field_id / rule_id / internal_id`、Python 变量、内部枚举或调试标识；③ 简单业务 `One-page first`，复杂核算不强制单屏或单步骤，技术 trace / Numeric Profile / Calculator version / 内部 Rule 渐进展示且不删除审计能力；④ UI 优先满足真实用户任务，不按数据库 / JSON / 代码结构组织普通页面；⑤ AI 不得因 v0.1 的推荐 AppShell、页面示意或当前实现而拒绝合理页面改进，也不得把当前七项导航误当永久冻结结构。
 
 本仓 UI 现状问题登记见 `UI_CURRENT_STATE_AUDIT.md`（专项证据，不是 Roadmap）；其阶段归属见 `REFERENCE_STANDARD_ROADMAP.md` 第 9 节。
 

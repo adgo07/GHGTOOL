@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（P3-C PR #42 与 P3-E PR #43 已独立验收；先后集成入main）
+最后更新：2026-10-13（标准分派与业务一致性六包连续实施）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -29,14 +29,11 @@ Module ID：`qz.carbon_accounting`
 
 ## 2. 当前阶段
 
-- **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40、P3-DF PR41均已进入`main`。附录B输入与RPT02冻结Record Word报告继续作为正式能力；P3-DF只影响新建核算与参数因子库Presentation。
-- **已完成的Phase 3界面包：** P3-C PR #42 统一核算记录列表和双页签详情；P3-E PR #43 统一EXB01附录B导入页面的四个操作区域。两者由同一main基线独立开发，本次整合时保留双方Presentation改动。
-- **仅限Presentation：** 记录列表可搜索、状态筛选并可完整访问；独立详情只有“基本信息与结果”“输入数据与计算依据”两个页签，第二页签连续展示；普通界面移除审计详情入口，继续保留底层Trace、Provenance及审计证据。
-- **操作与报告：** 删除仍二次确认并审计保留；Word复用已合并PR37/RPT02公共入口，报告模型、模板、渲染器及导出语义不变。
-- **保护边界：** 不改正式Record、Calculator、Canonical、数据库Schema及历史快照，不改EXB01业务导入器、RPT02报告模型/renderer、参数因子库或中央Frozen规则。
-- **验证边界：** 两PR原Head各自Windows CI通过；合并集成后的PR #43以新Head CI为准。原生鼠标/键盘/系统DPI人工验证及Excel/WPS保存回导的既有OPEN事项不因本次整合自动关闭。
+当前按Owner 2026-10-13明确授权实施六个连续内部工作包：共同输入政策/模板与漏行修复 → 静态标准分派 → 燃料GUI/Excel共享输入 → 多工序/FGD/电力/热力及项目兼容 → Record/Word统一业务表与Excel同步 → 视觉清理与整体验证。纳入既有RS01/RS02/RS03路线，不建立平行产品路线，不上线第二行业标准。
 
-既有PF01、RS03与UAT03软件决定继续有效，相关007/008解释不变。以下长期产品决定继续适用。
+从最新main独立分支实施；PR45尚未合并，其视觉成果以明确来源整合到任务分支，原PR保持OPEN。旧P3-E仅Presentation边界已由本次授权扩大。内部工作包完成后继续下一包，整阶段完成后交独立PR并等待验收，不自行合并。
+
+已明确的自定义参数例外见GHG-STD-32151-34-009。共同政策在标准模块实现，GUI和Excel共用；模板下载仍逐字节复制受控资源，正式计算继续共享Calculator/Application，历史项目/Record不重写、不漂移。52份未冻结映射仅作参考，不凭年份更改官方状态，不实现其公式。
 
 PF01范围约束：
 
