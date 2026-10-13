@@ -124,6 +124,28 @@ class StandardDispatchTest(unittest.TestCase):
             self.assertNotIn("AppendixBWorkbookImporter(", source, name)
             self.assertNotIn("from packages.standards.carbon_material import", source, name)
 
+    def test_project_codec_dispatches_fake_payload_without_carbon_codec(self):
+        import json
+        from dataclasses import replace
+        from decimal import Decimal
+        from packages.application.canonical_input_codec import encode_canonical_input,decode_canonical_input,CanonicalInputCodecError
+        fake=self.fake()
+        codec=SimpleNamespace(CANONICAL_INPUT_CODEC_VERSION=1,
+            encode_canonical_input=lambda value:json.dumps({"amount":str(value.amount)}),
+            decode_canonical_input=lambda text:SimpleNamespace(kind="test",amount=Decimal(json.loads(text)["amount"])))
+        fake=replace(fake,accepts_input=lambda value:isinstance(value,SimpleNamespace) and getattr(value,"kind",None)=="test",input_codec_factory=lambda:codec)
+        registry=StandardRegistry((fake,))
+        value=SimpleNamespace(kind="test",amount=Decimal("0.123456789012345678901234567890123456789"))
+        payload=encode_canonical_input(value,standard_registry=registry)
+        document=json.loads(payload)
+        self.assertEqual(document["standard_id"],fake.standard_id)
+        self.assertEqual(document["version"],2)
+        self.assertEqual(decode_canonical_input(payload,standard_registry=registry).amount,value.amount)
+        document["standard_id"]="unknown"
+        with self.assertRaises(CanonicalInputCodecError):decode_canonical_input(json.dumps(document),standard_registry=registry)
+        document["standard_id"]=fake.standard_id;document["input_version"]=99
+        with self.assertRaises(CanonicalInputCodecError):decode_canonical_input(json.dumps(document),standard_registry=registry)
+
     def test_registry_rejects_duplicate_implementations(self):
         fake = self.fake()
         with self.assertRaises(ValueError):

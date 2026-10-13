@@ -68,8 +68,18 @@ def create_report(*args, **kwargs):
     from .reporting.model import _build_carbon_material_report_model
     return _build_carbon_material_report_model(*args, **kwargs)
 
+def accepts_input(value):
+    from packages.standards.carbon_material import CarbonMaterialInput
+    return isinstance(value,CarbonMaterialInput)
+
+
+def input_codec():
+    from . import carbon_material_input_codec
+    return carbon_material_input_codec
+
+
 CARBON_MATERIAL_IMPLEMENTATION = StandardImplementation(
     standard_id="gbt_32151_34_2024", version="2024", title="GB/T 32151.34—2024", editor_key="carbon_material",
-    calculator_factory=create_calculator, excel_factory=CarbonMaterialExcel, report_factory=create_report,
+    calculator_factory=create_calculator, excel_factory=CarbonMaterialExcel, report_factory=create_report, accepts_input=accepts_input, input_codec_factory=input_codec,
     reference_providers=(("CARBON_MATERIAL_C4", steam_reference_view), ("CARBON_MATERIAL_C5", steam_reference_view)),
 )

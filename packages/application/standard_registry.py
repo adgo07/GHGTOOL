@@ -14,6 +14,8 @@ class StandardImplementation:
     excel_factory: Callable[[Any, Any], Any]
     reference_providers: tuple[tuple[str, Callable], ...] = ()
     report_factory: Callable | None = None
+    accepts_input: Callable | None = None
+    input_codec_factory: Callable | None = None
 
 class StandardRegistry:
     def __init__(self, implementations):
@@ -35,6 +37,10 @@ class StandardRegistry:
         except ValueError:
             return False
         return True
+
+    @property
+    def implementations(self):
+        return tuple(self._items.values())
 
     @property
     def default_standard_id(self) -> str:
