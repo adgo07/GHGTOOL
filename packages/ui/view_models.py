@@ -49,7 +49,6 @@ class ShellViewModel:
     navigation: tuple[NavigationItemViewModel, ...]
     recent_records: tuple[RecentRecordViewModel, ...] = ()
     recent_standards: tuple[RecentStandardViewModel, ...] = ()
-    status_summary: str = "成功核算后可在“核算记录”查看结果与来源依据。"
     primary_action_label: str = "＋ 新建核算"
     standards_action_label: str = "查看标准库"
     excel_action_label: str = "表格导入"

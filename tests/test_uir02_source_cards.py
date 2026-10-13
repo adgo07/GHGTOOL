@@ -134,7 +134,10 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.page.enterprise_name.setText("卡片保持企业")
         self.page.boundary_confirmed.setChecked(True)
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = next(
+            item for item in process["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")

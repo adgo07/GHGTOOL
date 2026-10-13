@@ -138,21 +138,42 @@ _PROCESS_MATERIAL_ROLES: dict[str, tuple[tuple[str, MaterialRole], ...]] = {
     "calcination": (
         ("原料", MaterialRole.CALCINATION_FEED),
         ("煅后料", MaterialRole.CALCINED_PRODUCT),
-        ("欠烧煅料", MaterialRole.UNDERBURN_RECOVERED),
+        ("欠煅烧料", MaterialRole.UNDERBURN_RECOVERED),
         ("碳粉尘", MaterialRole.CARBON_DUST),
     ),
     "baking": (
         ("填充料", MaterialRole.BAKING_FILLER),
         ("待焙烧/炭化品", MaterialRole.GREEN_BAKING_PRODUCT),
         ("焙烧/炭化产品", MaterialRole.BAKED_PRODUCT),
+        # Keep the former combined category at its persisted index for saved
+        # project form state; new default rows use the three V4 subcategories.
         ("粉尘/碎屑/副产品", MaterialRole.BAKING_BYPRODUCT),
+        ("待焙烧（炭化）品", MaterialRole.GREEN_BAKING_PRODUCT),
+        ("焙烧（炭化）品", MaterialRole.BAKED_PRODUCT),
+        ("粉尘", MaterialRole.BAKING_BYPRODUCT),
+        ("碎屑", MaterialRole.BAKING_BYPRODUCT),
+        ("副产品", MaterialRole.BAKING_BYPRODUCT),
     ),
     "graphitization": (
         ("保温料/电阻料", MaterialRole.GRAPHITIZATION_PACKING),
         ("待石墨化品", MaterialRole.GREEN_GRAPHITIZATION_PRODUCT),
         ("石墨化产品", MaterialRole.GRAPHITIZED_PRODUCT),
+        # Keep the former combined category at its persisted index for saved
+        # project form state; new default rows use the four V4 subcategories.
         ("粉尘/碎屑/残块/副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("保温料", MaterialRole.GRAPHITIZATION_PACKING),
+        ("电阻料", MaterialRole.GRAPHITIZATION_PACKING),
+        ("石墨化品", MaterialRole.GRAPHITIZED_PRODUCT),
+        ("粉尘", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("碎屑", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("残块", MaterialRole.GRAPHITIZATION_BYPRODUCT),
+        ("副产品", MaterialRole.GRAPHITIZATION_BYPRODUCT),
     ),
+}
+_PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES = {
+    "calcination": (0, 1, 2, 3),
+    "baking": (0, 4, 5, 6, 7, 8),
+    "graphitization": (4, 5, 1, 6, 7, 8, 9, 10),
 }
 _PROCESS_MATERIAL_DEFAULT_ROLE = {
     "calcination": MaterialRole.CALCINATION_FEED,
@@ -680,7 +701,7 @@ class _FuelRow(QWidget):
 
         self.activity = create_typed_input(self, get_field_spec("fuel_activity"), f"fuelActivityInput{index}")
         self.activity.setPlaceholderText("活动量")
-        self.fuel_type_label = QLabel("燃料种类 / 自定义名称", self)
+        self.fuel_type_label = QLabel("燃料种类", self)
         self.path_label = QLabel("计量方式", self)
         self.activity_label = QLabel("活动量", self)
         self.carbon_basis_label = QLabel("含碳量方式", self)
@@ -922,14 +943,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self._source_cards: dict[str, SourceCard] = {}
         self._source_toggle_buttons: dict[str, QPushButton] = {}
         self._source_toggle_groups: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-            ("fuel", "化石燃料", ("CAR-SRC-FUEL-001",)),
-            ("calcination", "原料煅烧", ("CAR-SRC-CALCINATION-001",)),
-            ("baking", "焙烧/炭化", ("CAR-SRC-BAKING-001",)),
-            ("graphitization", "石墨化", ("CAR-SRC-GRAPHITIZATION-001",)),
-            ("fume", "烟气焚烧", ("CAR-SRC-FUME-INCINERATION-001",)),
-            ("fgd", "烟气脱硫", ("CAR-SRC-FGD-001",)),
+            ("fuel", SOURCE_LABELS["CAR-SRC-FUEL-001"], ("CAR-SRC-FUEL-001",)),
+            ("calcination", SOURCE_LABELS["CAR-SRC-CALCINATION-001"], ("CAR-SRC-CALCINATION-001",)),
+            ("baking", SOURCE_LABELS["CAR-SRC-BAKING-001"], ("CAR-SRC-BAKING-001",)),
+            ("graphitization", SOURCE_LABELS["CAR-SRC-GRAPHITIZATION-001"], ("CAR-SRC-GRAPHITIZATION-001",)),
+            ("fume", SOURCE_LABELS["CAR-SRC-FUME-INCINERATION-001"], ("CAR-SRC-FUME-INCINERATION-001",)),
+            ("fgd", SOURCE_LABELS["CAR-SRC-FGD-001"], ("CAR-SRC-FGD-001",)),
             ("electricity", "购入/输出电力", ("CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001")),
-            ("heat", "购入/输出热力", ("CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001")),
+            ("heat", "购入/输出热力/动力", ("CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001")),
         )
         self._advanced_process_buttons: list[QPushButton] = []
         self._fields: dict[str, QLineEdit] = {}
@@ -950,19 +971,50 @@ class CarbonMaterialAccountingPage(BasePage):
         self._restoring_workspace = False
         self._unit_outcomes: dict[str, dict[str, object]] = {}
         self._geometry_refresh_pending = False
+        self._application_event_filter_installed = False
         self._build_page()
+        for combo in self.findChildren(QComboBox):
+            self._mark_search_combo_input(combo)
         self._default_form_state = self._capture_form_state()
         self._input_dirty = False
         self._project_dirty = False
         self._install_dirty_tracking()
+
+    def showEvent(self, event: QEvent) -> None:  # type: ignore[override]
+        super().showEvent(event)
         application = QApplication.instance()
-        if application is not None:
+        if application is not None and not self._application_event_filter_installed:
             application.installEventFilter(self)
+            self._application_event_filter_installed = True
+
+    def hideEvent(self, event: QEvent) -> None:  # type: ignore[override]
+        application = QApplication.instance()
+        if application is not None and self._application_event_filter_installed:
+            application.removeEventFilter(self)
+            self._application_event_filter_installed = False
+        super().hideEvent(event)
 
     def eventFilter(self, watched: object, event: QEvent) -> bool:  # type: ignore[override]
-        """Keep the main page scrollable when the pointer rests on a closed input."""
+        """Open selectors from their input area and keep the page wheel-scrollable."""
 
-        if event.type() != QEvent.Type.Wheel or not isinstance(watched, QWidget):
+        if not isinstance(watched, QWidget) or not self.isAncestorOf(watched):
+            return super().eventFilter(watched, event)
+        if event.type() == QEvent.Type.MouseButtonRelease:
+            if not isinstance(watched, QLineEdit) or watched.property("openComboPopupOnClick") is not True:
+                return super().eventFilter(watched, event)
+            control = watched.parentWidget()
+            while control is not None and control is not self and not isinstance(control, QComboBox):
+                control = control.parentWidget()
+            if (
+                isinstance(control, QComboBox)
+                and self.isAncestorOf(control)
+                and control.isEditable()
+                and control.isEnabled()
+                and not control.view().isVisible()
+            ):
+                QTimer.singleShot(0, control, control.showPopup)
+            return super().eventFilter(watched, event)
+        if event.type() != QEvent.Type.Wheel:
             return super().eventFilter(watched, event)
         control = watched
         while control is not None and control is not self:
@@ -996,12 +1048,21 @@ class CarbonMaterialAccountingPage(BasePage):
         if layout is not None:
             layout.invalidate()
             layout.activate()
+        self.adjustSize()
         self.updateGeometry()
         central = getattr(self.window(), "centralWidget", None)
         shell = central() if callable(central) else None
         refresh = getattr(shell, "update_content_geometry", None)
         if callable(refresh):
             refresh()
+
+    @staticmethod
+    def _mark_search_combo_input(combo: QComboBox) -> None:
+        if not combo.isEditable():
+            return
+        line_edit = combo.lineEdit()
+        if line_edit is not None:
+            line_edit.setProperty("openComboPopupOnClick", True)
 
     def _refresh_enterprise_candidates(self) -> None:
         combo = getattr(self, "enterprise_name", None)
@@ -1255,8 +1316,8 @@ class CarbonMaterialAccountingPage(BasePage):
         source_navigation_row.addWidget(self.quick_calculate_button)
         source_activity_layout.addLayout(source_navigation_row)
         self._build_source_cards(source_activity_layout)
-        for source_id in self._source_cards:
-            self.source_navigation.addItem(SOURCE_LABELS[source_id], source_id)
+        for group_id, label, _source_ids in self._source_toggle_groups:
+            self.source_navigation.addItem(label, group_id)
         self.source_navigation.currentIndexChanged.connect(self._jump_to_source)
         self.body_layout.addWidget(source_activity)
 
@@ -1396,6 +1457,16 @@ class CarbonMaterialAccountingPage(BasePage):
                 border: 1px solid {BORDER}; border-radius: 6px;
                 background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
             }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
+                min-height: 62px; padding: 10px 12px;
+                border: 1px solid #DBE8F0; border-radius: 10px;
+                background: #FFFFFF; color: #697E91; text-align: left;
+                font-size: 13px; font-weight: 650;
+            }}
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="已启用"],
+            QFrame[dfActivityRegion="true"] QPushButton[sourceState="部分启用"] {{
+                border-color: #9DCCE8; background: #ECF7FF; color: #155C88;
+            }}
             QFrame[dfActivityRegion="true"] QPushButton:hover,
             QFrame[dfActivityRegion="true"] QPushButton:focus {{
                 border-color: {PRIMARY_BRAND}; background: {SURFACE_MUTED};
@@ -1416,8 +1487,15 @@ class CarbonMaterialAccountingPage(BasePage):
             QFrame#unifiedElectricityCard, QFrame#unifiedHeatCard {{
                 border: 1px solid {BORDER}; border-radius: 8px; background: {SURFACE_MUTED};
             }}
+            QFrame#accountingSourceTitleBar {{
+                background: #12649A; color: #FFFFFF; border-radius: 7px;
+                padding: 0;
+            }}
+            QLabel#accountingSourceTitle,
             QLabel#unifiedElectricityTitle, QLabel#unifiedHeatTitle {{
-                font-size: 16px; font-weight: 600; color: {PRIMARY_TEXT};
+                background: #12649A; border-radius: 7px;
+                padding: 8px 14px;
+                font-size: 15px; font-weight: 700; color: #FFFFFF;
             }}
             QLabel#unifiedEnergyHelp, QLabel#parameterSnapshotSummary {{
                 color: {SECONDARY_TEXT}; font-size: 13px;
@@ -2238,14 +2316,18 @@ class CarbonMaterialAccountingPage(BasePage):
                 component_ids = saved.get("component_ids", [])
                 if not isinstance(component_ids, list) or any(not isinstance(value, str) for value in component_ids):
                     component_ids = []
-                material_ids = saved.get("material_ids", [])
-                if not isinstance(material_ids, list) or any(not isinstance(value, str) for value in material_ids):
-                    material_ids = []
+                material_ids = saved.get("material_ids")
+                if material_ids is not None and (
+                    not isinstance(material_ids, list)
+                    or any(not isinstance(value, str) for value in material_ids)
+                ):
+                    material_ids = None
                 self._add_process_row(
                     prefix,
                     instance_id=instance_id,
                     component_ids=tuple(component_ids),
-                    material_ids=tuple(material_ids),
+                    material_ids=tuple(material_ids) if material_ids is not None else None,
+                    default_material_categories=False,
                 )
             self._bind_process_aliases(prefix)
 
@@ -2524,6 +2606,23 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_enterprise_candidates()
         self._project_dirty = False
         self.project_save_status.setText("已打开已保存项目。")
+
+    def open_project_from_home(self, project_id: str) -> bool:
+        """Open a saved project selected from the standard-neutral home page."""
+
+        self._refresh_saved_projects()
+        index = self.saved_projects.findData(project_id)
+        if index < 0:
+            self.project_save_status.setText("未找到所选项目；请刷新项目列表后重试。")
+            return False
+        self.saved_projects.setCurrentIndex(index)
+        self._open_selected_project()
+        return True
+
+    def show_project_manager(self) -> None:
+        """Expand the existing project controls for the home-page shortcut."""
+
+        self.project_unit_toggle.setChecked(True)
 
     def _delete_selected_project(self) -> None:
         if self.project_service is None:
@@ -2866,8 +2965,19 @@ class CarbonMaterialAccountingPage(BasePage):
             scroll_area.ensureWidgetVisible(widget)
 
     def _jump_to_source(self, _index: int) -> None:
-        source_id = self.source_navigation.currentData()
-        card = self._source_cards.get(source_id)
+        group_id = self.source_navigation.currentData()
+        group = next(
+            (item for item in self._source_toggle_groups if item[0] == group_id),
+            None,
+        )
+        if group is None:
+            return
+        source_ids = group[2]
+        card = (
+            self._unified_energy_cards.get(group_id)
+            if group_id in {"electricity", "heat"}
+            else self._source_cards.get(source_ids[0]) if source_ids else None
+        )
         if card is not None:
             QTimer.singleShot(0, self, lambda: self._scroll_to_widget(card))
 
@@ -2904,32 +3014,25 @@ class CarbonMaterialAccountingPage(BasePage):
         self._mark_input_dirty()
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
-        """Build eight visible source selectors over the ten legacy Domain states."""
+        """Build the eight standard-specific source selectors in the V4 grid."""
 
-        selector_scroll = QScrollArea(self)
-        selector_scroll.setObjectName("accountingSourceToggleScroll")
-        selector_scroll.setWidgetResizable(True)
-        selector_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        selector_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        selector_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        selector_host = QWidget(selector_scroll)
-        selector_host.setObjectName("accountingSourceToggleRow")
+        selector_host = QWidget(self)
+        selector_host.setObjectName("accountingSourceToggleGrid")
         self.source_toggle_host = selector_host
-        self.source_toggle_scroll = selector_scroll
-        selector_layout = QHBoxLayout(selector_host)
+        selector_layout = QGridLayout(selector_host)
         selector_layout.setContentsMargins(0, 2, 0, 2)
-        selector_layout.setSpacing(8)
-        for group_id, label, _source_ids in self._source_toggle_groups:
+        selector_layout.setHorizontalSpacing(10)
+        selector_layout.setVerticalSpacing(10)
+        for index, (group_id, label, _source_ids) in enumerate(self._source_toggle_groups):
             button = QPushButton(selector_host)
             button.setObjectName(f"sourceToggle_{group_id}")
-            button.setMinimumHeight(36)
             button.setAccessibleName(label)
             button.clicked.connect(lambda _checked=False, _group=group_id: self._toggle_source_group(_group))
-            selector_layout.addWidget(button)
+            selector_layout.addWidget(button, index // 4, index % 4)
             self._source_toggle_buttons[group_id] = button
-        selector_layout.addStretch(1)
-        selector_scroll.setWidget(selector_host)
-        parent_layout.addWidget(selector_scroll)
+        for column in range(4):
+            selector_layout.setColumnStretch(column, 1)
+        parent_layout.addWidget(selector_host)
 
         source_definitions = (
             ("CAR-SRC-FUEL-001", lambda layout: self._build_fuel_section(layout)),
@@ -2997,6 +3100,14 @@ class CarbonMaterialAccountingPage(BasePage):
                 not_involved_value=EmissionSourceStatus.NOT_INVOLVED,
                 involved_value=EmissionSourceStatus.INVOLVED,
             )
+            title_bar = QFrame(card.body)
+            title_bar.setObjectName("accountingSourceTitleBar")
+            title_layout = QHBoxLayout(title_bar)
+            title_layout.setContentsMargins(14, 8, 14, 8)
+            title = QLabel(SOURCE_LABELS[source_id], title_bar)
+            title.setObjectName("accountingSourceTitle")
+            title_layout.addWidget(title)
+            card.body_layout.addWidget(title_bar)
             builder(card.body_layout)
             combo.currentIndexChanged.connect(self._mark_input_dirty)
             card.status_changed.connect(lambda _status, _source_id=source_id: self._refresh_source_cards())
@@ -3024,10 +3135,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _build_unified_energy_section(self, parent_layout: QVBoxLayout) -> None:
-        for family, title, hint, add_label in (
-            ("electricity", "购入/输出电力", "逐条填写电量、方向和购入电力属性。停用排放源时保留输入，计算不计入。", "新增电力来源"),
-            ("heat", "购入/输出热力", "逐条填写热力量、方向和蒸汽参数。停用排放源时保留输入，计算不计入。", "新增热力来源"),
+        group_labels = {
+            group_id: label for group_id, label, _source_ids in self._source_toggle_groups
+        }
+        for family, hint, add_label in (
+            ("electricity", "逐条填写电量、方向和购入电力属性。停用排放源时保留输入，计算不计入。", "新增电力来源"),
+            ("heat", "逐条填写热力量、方向和蒸汽参数。停用排放源时保留输入，计算不计入。", "新增热力来源"),
         ):
+            title = group_labels[family]
             card = QFrame(self)
             card.setObjectName("unifiedElectricityCard" if family == "electricity" else "unifiedHeatCard")
             card.setProperty("energyFamily", family)
@@ -3035,6 +3150,7 @@ class CarbonMaterialAccountingPage(BasePage):
             layout = QVBoxLayout(card)
             heading = QLabel(title, card)
             heading.setObjectName("unifiedElectricityTitle" if family == "electricity" else "unifiedHeatTitle")
+            heading.setProperty("accountingSourceTitle", True)
             layout.addWidget(heading)
             help_text = QLabel(hint, card)
             help_text.setObjectName("unifiedEnergyHelp")
@@ -3301,7 +3417,6 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
 
     def _refresh_source_toggle_buttons(self) -> None:
-        total_width = 0
         for group_id, label, source_ids in self._source_toggle_groups:
             button = self._source_toggle_buttons.get(group_id)
             if button is None:
@@ -3317,22 +3432,13 @@ class CarbonMaterialAccountingPage(BasePage):
                 state = "部分启用"
             else:
                 state = "未启用"
-            button.setText(f"{state} | {label}")
-            button.setMinimumWidth(max(118, button.fontMetrics().horizontalAdvance(button.text()) + 30))
-            total_width += button.minimumWidth()
-            button.setProperty("sourceState", state)
-            button.setAccessibleDescription(f"{label}排放源，当前{state}；点击切换。")
-            button.setToolTip(f"{label}：{state}。点击切换。")
-            button.style().unpolish(button)
-            button.style().polish(button)
-        host = getattr(self, "source_toggle_host", None)
-        if isinstance(host, QWidget):
-            layout = host.layout()
-            spacing = layout.spacing() if layout is not None else 0
-            margins = layout.contentsMargins() if layout is not None else None
-            horizontal_margins = margins.left() + margins.right() if margins is not None else 0
-            button_count = len(self._source_toggle_groups)
-            host.setMinimumWidth(total_width + max(0, button_count - 1) * max(0, spacing) + horizontal_margins)
+            if button.property("sourceState") != state:
+                button.setText(f"{state} | {label}")
+                button.setProperty("sourceState", state)
+                button.setAccessibleDescription(f"{label}排放源，当前{state}；点击切换。")
+                button.setToolTip(f"{label}：{state}。点击切换。")
+                button.style().unpolish(button)
+                button.style().polish(button)
 
     def _build_fuel_section(self, parent_layout: QVBoxLayout) -> None:
         self.fuel_rows_host = QWidget(self)
@@ -3386,6 +3492,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self,
             fuel_options=self._fuel_catalog_options(),
         )
+        self._mark_search_combo_input(row.fuel_type)
         self._fuel_rows.append(row)
         self.fuel_rows_layout.addWidget(row)
         row.remove_button.setVisible(len(self._fuel_rows) > 1)
@@ -3518,10 +3625,13 @@ class CarbonMaterialAccountingPage(BasePage):
             self.fuel_rows_layout.removeWidget(row)
             row.setParent(None)
             row.deleteLater()
+            self.fuel_rows_layout.invalidate()
+            self.fuel_rows_host.updateGeometry()
             self._bind_fuel_aliases(self._fuel_rows[0])
             self._fuel_rows[0].remove_button.hide()
             self._mark_input_dirty()
         self._refresh_source_cards()
+        self._schedule_layout_refresh()
 
     def _canonical_default_factor(self, parameter_id: str, *, value_type: ValueType = ValueType.STANDARD_DEFAULT) -> object | None:
         parameter_id = parameter_id.lower()
@@ -3791,13 +3901,17 @@ class CarbonMaterialAccountingPage(BasePage):
         buttons = QHBoxLayout()
         add_button = QPushButton(f"新增{title.split('（')[0]}", host)
         add_button.setObjectName(f"add_{prefix}_instance")
-        add_button.clicked.connect(lambda _checked=False, _prefix=prefix: self._add_process_row(_prefix))
+        add_button.clicked.connect(
+            lambda _checked=False, _prefix=prefix: self._add_process_row(
+                _prefix, default_material_categories=True
+            )
+        )
         add_button.setVisible(self.manage_process_button.isChecked())
         self._advanced_process_buttons.append(add_button)
         buttons.addWidget(add_button)
         buttons.addStretch(1)
         parent_layout.addLayout(buttons)
-        self._add_process_row(prefix)
+        self._add_process_row(prefix, default_material_categories=True)
 
     def _build_business_field(self, parent: QWidget, prefix: str, field: str, instance_id: str, *, first: bool) -> QWidget:
         spec = get_field_spec(f"{prefix}.{field}")
@@ -3813,6 +3927,7 @@ class CarbonMaterialAccountingPage(BasePage):
         instance_id: str | None = None,
         component_ids: tuple[str, ...] | None = None,
         material_ids: tuple[str, ...] | None = None,
+        default_material_categories: bool = True,
     ) -> dict[str, object]:
         if prefix not in self._process_rows_layout:
             return {}
@@ -3987,7 +4102,16 @@ class CarbonMaterialAccountingPage(BasePage):
                 for material_id in material_ids or ():
                     self._add_material_line(row, line_id=material_id)
                 if not row["materials"]:
-                    self._add_material_line(row)
+                    if default_material_categories and prefix in _PROCESS_MATERIAL_ROLES:
+                        for category_index in _PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES[prefix]:
+                            _label, role_value = _PROCESS_MATERIAL_ROLES[prefix][category_index]
+                            self._add_material_line(
+                                row,
+                                role_value=role_value,
+                                category_index=category_index,
+                            )
+                    elif material_ids is None:
+                        self._add_material_line(row)
             flags: dict[str, QCheckBox] = {}
             if prefix in {"calcination", "baking"}:
                 checkbox = QCheckBox("高级检查：产品中的碳已在本过程重复计入", host)
@@ -4022,7 +4146,14 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
         return row
 
-    def _add_material_line(self, process_row: dict[str, object], *, line_id: str | None = None) -> dict[str, object]:
+    def _add_material_line(
+        self,
+        process_row: dict[str, object],
+        *,
+        line_id: str | None = None,
+        role_value: MaterialRole | None = None,
+        category_index: int | None = None,
+    ) -> dict[str, object]:
         prefix = str(process_row.get("prefix", ""))
         if not prefix:
             return {}
@@ -4045,8 +4176,11 @@ class CarbonMaterialAccountingPage(BasePage):
         role.setObjectName(f"{prefix}_materialRole_{line_id}")
         for label, value in _PROCESS_MATERIAL_ROLES[prefix]:
             role.addItem(label, value)
-        default_role = _PROCESS_MATERIAL_DEFAULT_ROLE[prefix]
-        role.setCurrentIndex(max(0, role.findData(default_role)))
+        default_role = role_value or _PROCESS_MATERIAL_DEFAULT_ROLE[prefix]
+        if category_index is not None and 0 <= category_index < role.count():
+            role.setCurrentIndex(category_index)
+        else:
+            role.setCurrentIndex(max(0, role.findData(default_role)))
         name = QLineEdit(container)
         name.setObjectName(f"{prefix}_materialName_{line_id}")
         name.setPlaceholderText("如：煅烧石油焦")
@@ -4099,7 +4233,7 @@ class CarbonMaterialAccountingPage(BasePage):
         }
         layout.addWidget(container)
         material_rows.append(material)
-        remove.setVisible(len(material_rows) > 1)
+        remove.setVisible(True)
         for edit in (mass, carbon, volatile):
             edit.setValidator(QDoubleValidator(-1.0e15, 1.0e15, 12, edit))
             validator = edit.validator()
@@ -4121,8 +4255,6 @@ class CarbonMaterialAccountingPage(BasePage):
         materials = process_row.get("materials")
         if not isinstance(materials, list) or not materials:
             return
-        if materials[0].get("line_id") == line_id:
-            return
         for material in tuple(materials):
             if not isinstance(material, dict) or material.get("line_id") != line_id:
                 continue
@@ -4131,10 +4263,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 widget.setParent(None)
                 widget.deleteLater()
             materials.remove(material)
-        for index, material in enumerate(materials):
+        for material in materials:
             button = material.get("remove_button") if isinstance(material, dict) else None
             if isinstance(button, QWidget):
-                button.setVisible(index > 0)
+                button.setVisible(True)
         self._refresh_material_summary(process_row)
         self._refresh_source_cards()
 
@@ -4151,14 +4283,20 @@ class CarbonMaterialAccountingPage(BasePage):
             volatile_source = row.get("volatile_matter_source")
             if not isinstance(role, QComboBox) or not isinstance(fixed_source, QComboBox) or not isinstance(volatile_source, QComboBox):
                 continue
+            name = _value(row.get("name"))
+            mass = _value(row.get("mass"))
+            fixed_carbon = _value(row.get("fixed_carbon"))
+            volatile_matter = _value(row.get("volatile_matter"))
+            if not any((name, mass, fixed_carbon, volatile_matter)):
+                continue
             result.append(MaterialInputLine(
                 line_id=str(row.get("line_id", "")),
                 role=_enum(role.currentData(), MaterialRole),
-                name=_value(row.get("name")) or "",
-                mass_t=_value(row.get("mass")),
-                fixed_carbon_percent=_value(row.get("fixed_carbon")),
+                name=name or "",
+                mass_t=mass,
+                fixed_carbon_percent=fixed_carbon,
                 fixed_carbon_source=_enum(fixed_source.currentData(), MaterialDataSource),
-                volatile_matter_percent=_value(row.get("volatile_matter")),
+                volatile_matter_percent=volatile_matter,
                 volatile_matter_source=_enum(volatile_source.currentData(), MaterialDataSource),
             ))
         return tuple(result)
@@ -4248,6 +4386,7 @@ class CarbonMaterialAccountingPage(BasePage):
         previous = selector.currentText() if text is None else text
         blocker = QSignalBlocker(selector)
         selector.setEditable(True)
+        self._mark_search_combo_input(selector)
         selector.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         selector.clear()
         selector.addItem("未选择碳酸盐种类", None)
@@ -4604,11 +4743,6 @@ class CarbonMaterialAccountingPage(BasePage):
                 if isinstance(button, QWidget):
                     button.setVisible(index > 0)
                 materials = row.get("materials", [])
-                if isinstance(materials, list):
-                    for material_index, material in enumerate(materials):
-                        remove = material.get("remove_button") if isinstance(material, dict) else None
-                        if isinstance(remove, QWidget):
-                            remove.setVisible(material_index > 0)
                 components = row.get("components", [])
                 if isinstance(components, list):
                     for component_index, component in enumerate(components):
@@ -6128,22 +6262,21 @@ class CarbonMaterialAccountingPage(BasePage):
     def _refresh_source_cards(self, *_args: object) -> None:
         if not self._source_cards or not hasattr(self, "heat_factor_selector"):
             return
+        visibility_changed = False
         for source_id, card in self._source_cards.items():
             state, summary = self._derive_source_card_state(source_id)
-            card.set_presentation_state(state, summary)
-            header = card.findChild(QWidget, f"sourceCardHeader_{source_id}")
-            if header is not None:
-                header.hide()
-            card.summary_label.hide()
-            card.check_result_label.hide()
+            card.set_presentation_state(state, summary, show_summary=False)
             is_energy_adapter = source_id in {
                 "CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001",
                 "CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001",
             }
-            card.setVisible(
+            visible = (
                 not is_energy_adapter
                 and _enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.INVOLVED
             )
+            if card.isHidden() == visible:
+                card.setVisible(visible)
+                visibility_changed = True
         energy_families = {
             "electricity": ("CAR-SRC-PURCHASED-ELECTRICITY-001", "CAR-SRC-EXPORTED-ELECTRICITY-001"),
             "heat": ("CAR-SRC-PURCHASED-HEAT-001", "CAR-SRC-EXPORTED-HEAT-001"),
@@ -6151,10 +6284,14 @@ class CarbonMaterialAccountingPage(BasePage):
         for family, source_ids in energy_families.items():
             card = self._unified_energy_cards.get(family)
             if card is not None:
-                card.setVisible(any(self._energy_source_is_enabled(source_id) for source_id in source_ids))
+                visible = any(self._energy_source_is_enabled(source_id) for source_id in source_ids)
+                if card.isHidden() == visible:
+                    card.setVisible(visible)
+                    visibility_changed = True
         self._refresh_source_toggle_buttons()
         self._refresh_live_feedback()
-        self._schedule_layout_refresh()
+        if visibility_changed:
+            self._schedule_layout_refresh()
 
     def _refresh_live_feedback(self) -> None:
         """Show the most recent Domain feedback without duplicating its rules."""

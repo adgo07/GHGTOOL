@@ -262,7 +262,10 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
         page.boundary_confirmed.setChecked(True)
         page._source_toggle_buttons["calcination"].click()
         process_row = page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = next(
+            item for item in process_row["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")

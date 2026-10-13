@@ -75,6 +75,10 @@ class UAT02UsabilityTests(unittest.TestCase):
         QApplication.sendEvent(row.fuel_type, wheel)
         self.assertEqual(row.fuel_type.currentData(), before_fuel)
         self.assertGreaterEqual(scrollbar.value(), before_scroll)
+        QTest.mouseClick(row.path, Qt.MouseButton.LeftButton)
+        self.application.processEvents()
+        self.assertTrue(row.path.view().isVisible())
+        row.path.hidePopup()
         year = self.page.period_year.value()
         QApplication.sendEvent(self.page.period_year, QWheelEvent(
             QPointF(5, 5), QPointF(5, 5), QPoint(), QPoint(0, -120),
@@ -96,12 +100,27 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertEqual(row.fuel_type.currentText(), "测试燃料")
         row.fuel_type.setCurrentIndex(natural_gas)
         before_popup = row.fuel_type.currentIndex()
-        row.fuel_type.showPopup()
+        QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
         self.application.processEvents()
         self.assertTrue(row.fuel_type.view().isVisible())
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Down)
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Return)
         self.assertNotEqual(row.fuel_type.currentIndex(), before_popup)
+
+    def test_accounting_page_event_filter_follows_page_visibility(self) -> None:
+        self.assertTrue(self.page._application_event_filter_installed)
+        self.shell.navigate(AppRoute.HOME)
+        self.application.processEvents()
+        self.assertFalse(self.page._application_event_filter_installed)
+
+        self.shell.navigate(AppRoute.NEW_ACCOUNTING)
+        self.application.processEvents()
+        self.assertTrue(self.page._application_event_filter_installed)
+
+        self.window.close()
+        self.application.processEvents()
+        self.assertFalse(self.page._application_event_filter_installed)
+
     def test_twenty_dynamic_rows_expand_and_shrink_scroll_host(self) -> None:
         self.page._source_toggle_buttons["fuel"].click()
         self.application.processEvents()

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QLineEdit
+from PySide6.QtWidgets import QApplication, QGridLayout, QLineEdit
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core import (
@@ -64,7 +64,8 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         labels = [button.accessibleName() for button in self.page._source_toggle_buttons.values()]
         self.assertEqual(
             labels,
-            ["化石燃料", "原料煅烧", "焙烧/炭化", "石墨化", "烟气焚烧", "烟气脱硫", "购入/输出电力", "购入/输出热力"],
+            ["化石燃料燃烧", "原料煅烧", "炭素制品焙烧（炭化）", "炭素制品石墨化",
+             "烟气焚烧治理", "烟气脱硫净化", "购入/输出电力", "购入/输出热力/动力"],
         )
         purchase = self.page._source_statuses["CAR-SRC-PURCHASED-ELECTRICITY-001"]
         exported = self.page._source_statuses["CAR-SRC-EXPORTED-ELECTRICITY-001"]
@@ -420,15 +421,15 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         self.assertEqual(self.page._energy_family_rows["electricity"][0].amount.text(), "")
         self.assertEqual(self.page._energy_family_rows["heat"][0].amount.text(), "")
 
-    def test_source_toggle_host_width_covers_all_business_labels(self) -> None:
+    def test_source_toggles_follow_four_column_v4_grid_without_horizontal_overflow(self) -> None:
         buttons = tuple(self.page._source_toggle_buttons.values())
-        expected_width = sum(button.minimumWidth() for button in buttons)
         layout = self.page.source_toggle_host.layout()
-        expected_width += max(0, len(buttons) - 1) * max(0, layout.spacing())
-        margins = layout.contentsMargins()
-        expected_width += margins.left() + margins.right()
-        self.assertGreaterEqual(self.page.source_toggle_host.minimumWidth(), expected_width)
-        self.assertGreater(self.page.source_toggle_host.minimumWidth(), self.page.source_toggle_scroll.width())
+        self.assertIsInstance(layout, QGridLayout)
+        self.assertEqual(
+            [layout.getItemPosition(index)[:2] for index in range(layout.count())],
+            [(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3)],
+        )
+        self.assertEqual(self.page.source_toggle_host.minimumWidth(), 0)
         self.assertIn("购入/输出热力", buttons[-1].text())
         self.assertIn("未启用", buttons[-1].accessibleDescription())
 

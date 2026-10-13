@@ -21,6 +21,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import ReviewStatus, ValueType
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
+from packages.standards.carbon_material import STANDARD_ID
 from packages.standards.catalog import (
     CatalogStatus,
     CatalogValueCategory,
@@ -292,7 +293,7 @@ class G04CatalogTests(unittest.TestCase):
 
     def test_standard_page_searches_and_routes_only_the_opened_standard(self) -> None:
         page = self.shell.pages[AppRoute.STANDARDS]
-        table = page.findChild(QTableWidget, "catalogTable")
+        table = page.findChild(QTableWidget, "standardLibraryTable")
         search = page.findChild(type(page.search_input), "standardSearch")
         self.assertIsNotNone(table)
         self.assertIsNotNone(search)
@@ -359,6 +360,21 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_standard_id)
         self.assertEqual(page.result_summary.text(), "没有找到匹配的标准。")
+
+    def test_unsupported_standard_cannot_enter_carbon_material_accounting_page(self) -> None:
+        shell = self.shell
+        shell.navigate(AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting("gbt_32151_1_2015")
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting(STANDARD_ID)
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
+        self.assertEqual(shell.selected_standard_id, STANDARD_ID)
     def test_standard_detail_has_only_compact_verified_sections(self) -> None:
         self.shell.navigate(AppRoute.STANDARDS)
         self.application.processEvents()
@@ -381,14 +397,14 @@ class G04CatalogTests(unittest.TestCase):
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(card_titles, ["基本信息", "适用范围", "标准要求"])
+        self.assertEqual(card_titles, ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"])
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
-        self.assertIn("当前目录尚未录入可核验的结构化标准要求。", detail_text)
+        self.assertIn("使用已实现的行业核算流程", detail_text)
         for forbidden in (
             "发布单位",
             "标准关系",
@@ -431,7 +447,14 @@ class G04CatalogTests(unittest.TestCase):
         # Scenario C: 首页 → 标准库 → 标准详情 → 参数库 → 新建核算 → 首页.
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        # A compact V4 home may scroll; verify the scrollbar can reach and return from its end.
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
 
         shell.navigate(AppRoute.STANDARDS)
         assert_route_at_top(AppRoute.STANDARDS)
@@ -464,7 +487,13 @@ class G04CatalogTests(unittest.TestCase):
         self.window.resize(1180, 720)
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
         self.assertGreater(standards_height, 0)
     def test_parameter_factor_page_browses_sources_and_aggregates_shared_assets(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
@@ -472,22 +501,41 @@ class G04CatalogTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.FACTORS]
         self.assertEqual(page.view_mode_filter.itemText(0), "按标准/文件查看")
         self.assertEqual(page.view_mode_filter.itemText(1), "全库搜索")
+        self.assertEqual(page.search_mode_button.text(), "全库搜索")
+        self.assertEqual(page.browse_mode_button.text(), "按来源浏览")
+        browse_notice = page.findChild(QLabel, "sourceBrowseNotice")
+        self.assertIsNotNone(browse_notice)
+        assert browse_notice is not None
+        self.assertIn("完整展示原始登记信息", browse_notice.text())
         self.assertEqual(page.source_filter.currentData(), "SRC-32151-34-2024")
         self.assertEqual(page.factor_table.rowCount(), 26)
         self.assertEqual(page.factor_table.columnCount(), 5)
         self.assertIn("天然气", [page.factor_table.item(row, 0).text() for row in range(page.factor_table.rowCount())])
+        self.assertEqual(
+            [page.search_result_table.horizontalHeaderItem(i).text() for i in range(4)],
+            ["参数名称", "数值", "单位", "类别"],
+        )
 
         page.view_mode_filter.setCurrentIndex(1)
+        self.assertTrue(page.search_mode_button.isChecked())
         page.search_input.setText("0.11")
+        page.search_category_filter.setCurrentIndex(
+            page.search_category_filter.findData("factor")
+        )
         self.application.processEvents()
+        self.assertTrue(all(
+            page.search_result_table.item(row, 3).text() == "排放因子"
+            for row in range(page.search_result_table.rowCount())
+        ))
         heat_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "参数值"
-            and "外购热力" in page.search_result_table.item(row, 1).text()
+            if page.search_result_table.item(row, 3).text() == "排放因子"
+            and "外购热力" in page.search_result_table.item(row, 0).text()
         )
         page.search_result_table.selectRow(heat_row)
         self.application.processEvents()
-        self.assertIn("2 处依据", page.search_result_table.item(heat_row, 4).text())
+        self.assertEqual(page.search_result_table.item(heat_row, 1).text(), "0.11")
+        self.assertEqual(page.search_result_table.item(heat_row, 2).text(), "tCO₂/GJ")
         detail_text = "\n".join(label.text() for label in page.factor_detail_host.findChildren(QLabel))
         self.assertIn("GB/T 32150—2025", detail_text)
         self.assertIn("GB/T 32151.34—2024", detail_text)
@@ -497,27 +545,36 @@ class G04CatalogTests(unittest.TestCase):
         self.assertNotIn("asset-heat_default", visible_text)
         self.assertNotIn("heat_default_gbt", visible_text)
 
+        page.search_category_filter.setCurrentIndex(0)
+        page.search_source_list.setCurrentRow(1)
+        self.application.processEvents()
+        self.assertEqual(
+            page.search_source_filter.currentData(),
+            page.search_source_list.item(1).data(Qt.ItemDataRole.UserRole),
+        )
+        page.search_source_list.setCurrentRow(0)
+
         page.search_input.setText("饱和蒸汽")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准表"
-            and "C.4" in page.search_result_table.item(row, 1).text()
+            page.search_result_table.item(row, 3).text() == "标准表"
+            and "C.4" in page.search_result_table.item(row, 0).text()
             for row in range(page.search_result_table.rowCount())
         ))
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "来源文件"
+            page.search_result_table.item(row, 3).text() == "来源文件"
             for row in range(page.search_result_table.rowCount())
         ))
 
         page.search_input.setText("GB/T 32151.34")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准"
+            page.search_result_table.item(row, 3).text() == "标准"
             for row in range(page.search_result_table.rowCount())
         ))
         standard_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "标准"
+            if page.search_result_table.item(row, 3).text() == "标准"
         )
         page.search_result_table.selectRow(standard_row)
         self.application.processEvents()
@@ -633,7 +690,7 @@ class G04CatalogTests(unittest.TestCase):
             assert isinstance(shell, AppShell)
             standard_page = shell.pages[AppRoute.STANDARDS]
             factor_page = shell.pages[AppRoute.FACTORS]
-            self.assertEqual(standard_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
+            self.assertEqual(standard_page.findChild(QTableWidget, "standardLibraryTable").rowCount(), 0)
             shell.navigate(AppRoute.FACTORS)
             self.application.processEvents()
             self.assertEqual(factor_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
@@ -666,8 +723,8 @@ class G04CatalogTests(unittest.TestCase):
             self.application.processEvents()
             heat_row = next(
                 row for row in range(page.search_result_table.rowCount())
-                if page.search_result_table.item(row, 0).text() == "参数值"
-                and "外购热力" in page.search_result_table.item(row, 1).text()
+                if page.search_result_table.item(row, 3).text() == "排放因子"
+                and "外购热力" in page.search_result_table.item(row, 0).text()
             )
             page.search_result_table.selectRow(heat_row)
             self.application.processEvents()

@@ -94,7 +94,10 @@ class UIR04FinalizationTests(unittest.TestCase):
     def _set_received_calcination(self) -> None:
         self._involve(P01)
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = next(
+            item for item in process["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")

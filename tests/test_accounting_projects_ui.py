@@ -369,7 +369,10 @@ class AccountingProjectUiTests(unittest.TestCase):
         calcination_toggle.click()
 
         def fill_calcination(row, suffix: str, mass: str) -> tuple[str, str]:
-            feed, = row["materials"]
+            feed = next(
+                item for item in row["materials"]
+                if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+            )
             feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
             feed["name"].setText(f"原料{suffix}")
             feed["mass"].setText(mass)
@@ -472,7 +475,10 @@ class AccountingProjectUiTests(unittest.TestCase):
             self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
         )
         process_row = self.page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = next(
+            item for item in process_row["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         product = self.page._add_material_line(process_row)
         for material, role, name, mass, fixed, volatile in (
             (feed, MaterialRole.CALCINATION_FEED, "历史干基原料", "120", "82", "8"),
@@ -584,7 +590,10 @@ class AccountingProjectUiTests(unittest.TestCase):
             self.page._source_statuses["CAR-SRC-CALCINATION-001"].findData(EmissionSourceStatus.INVOLVED)
         )
         process_row = self.page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = next(
+            item for item in process_row["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["name"].setText("原料甲")
         feed["mass"].setText("120")
         feed["fixed_carbon"].setText("82")
@@ -597,6 +606,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         product["volatile_matter"].setText("2")
         feed_id = feed["line_id"]
         product_id = product["line_id"]
+        expected_material_ids = [item["line_id"] for item in process_row["materials"]]
 
         self.assertTrue(self.page._save_project())
         project_id = self.page._workspace.project_id
@@ -604,7 +614,8 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIsNotNone(saved)
         assert saved is not None
         saved_processes = saved.units[0].form_state["process_instances"]
-        self.assertEqual(saved_processes["calcination"][0]["material_ids"], [feed_id, product_id])
+        saved_material_ids = saved_processes["calcination"][0]["material_ids"]
+        self.assertEqual(saved_material_ids, expected_material_ids)
 
         self.page.close()
         self.page.deleteLater()
@@ -616,10 +627,11 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page._open_selected_project()
 
         restored = self.page._process_rows["calcination"][0]["materials"]
-        self.assertEqual([row["line_id"] for row in restored], [feed_id, product_id])
-        self.assertEqual(restored[0]["name"].text(), "原料甲")
-        self.assertEqual(restored[0]["mass"].text(), "120")
-        self.assertEqual(restored[1]["name"].text(), "煅后料甲")
+        self.assertEqual([row["line_id"] for row in restored], saved_material_ids)
+        restored_by_id = {row["line_id"]: row for row in restored}
+        self.assertEqual(restored_by_id[feed_id]["name"].text(), "原料甲")
+        self.assertEqual(restored_by_id[feed_id]["mass"].text(), "120")
+        self.assertEqual(restored_by_id[product_id]["name"].text(), "煅后料甲")
         normalized = self.page._input().calcinations[0]
         self.assertEqual([line.line_id for line in normalized.material_rows], [feed_id, product_id])
 

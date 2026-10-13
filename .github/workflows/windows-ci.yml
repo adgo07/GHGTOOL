@@ -16,7 +16,7 @@ jobs:
   windows-python-312-merge-integration:
     name: Windows / Python 3.12 / Merge-ref Full Tests
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout merge ref

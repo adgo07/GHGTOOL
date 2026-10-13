@@ -42,8 +42,13 @@ class P3CRecordUiTests(unittest.TestCase):
 
     def test_list_opens_independent_detail_with_two_continuous_tabs(self):
         self.assertIs(self.page.view_stack.currentWidget(), self.page.list_view)
+        self.assertEqual(
+            [self.page.record_list.horizontalHeaderItem(column).text()
+             for column in range(self.page.record_list.columnCount())],
+            ["企业 / 项目", "核算期间", "标准", "排放总量", "状态", "日期", "操作"],
+        )
         self.page.search_input.setText("p3c.two")
-        self.page.open_detail_button.click()
+        self.page.record_list.cellWidget(self.page.record_list.currentRow(), 6).click()
         self.assertIs(self.page.view_stack.currentWidget(), self.page.detail_view)
         self.assertEqual([self.page.detail_tabs.tabText(i) for i in range(2)],
                          ["基本信息与结果", "输入数据与计算依据"])
@@ -55,7 +60,7 @@ class P3CRecordUiTests(unittest.TestCase):
         self.page.back_to_records_button.click()
         self.assertIs(self.page.view_stack.currentWidget(), self.page.list_view)
         self.assertEqual(self.page.search_input.text(), "p3c.two")
-        self.assertEqual(self.page.record_list.count(), 1)
+        self.assertEqual(self.page.record_list.rowCount(), 1)
 
     def test_all_126_records_are_accessible_and_keyboard_opens_last(self):
         for index in range(124):
@@ -63,10 +68,14 @@ class P3CRecordUiTests(unittest.TestCase):
             self.repo.create(replace(base, input_snapshot=replace(
                 base.input_snapshot, enterprise_name=f"列表演示企业 {index:03}")))
         self.page.refresh_records()
-        self.assertEqual(self.page.record_list.count(), 126)
+        self.assertEqual(self.page.record_list.rowCount(), 126)
         self.assertIn("共 126 条", self.page.result_count.text())
         self.page.record_list.setFocus()
-        QTest.keyClick(self.page.record_list, Qt.Key.Key_End)
+        QTest.keyClick(
+            self.page.record_list,
+            Qt.Key.Key_End,
+            Qt.KeyboardModifier.ControlModifier,
+        )
         self.assertEqual(self.page.record_list.currentRow(), 125)
         selected = self.page._records[-1]
         QTest.keyClick(self.page.record_list, Qt.Key.Key_Return)
@@ -74,20 +83,20 @@ class P3CRecordUiTests(unittest.TestCase):
         self.assertEqual(self.page._detail_record_id, selected.record_id)
         self.page.back_to_records_button.click()
         self.page.search_input.setText("p3c.more.123")
-        self.assertEqual(self.page.record_list.count(), 1)
+        self.assertEqual(self.page.record_list.rowCount(), 1)
         self.page.search_input.clear()
-        self.assertEqual(self.page.record_list.count(), 126)
+        self.assertEqual(self.page.record_list.rowCount(), 126)
 
     def test_display_standard_and_period_search_status_and_empty_results(self):
         self.page.search_input.setText("GB/T 32151.34")
-        self.assertEqual(self.page.record_list.count(), 2)
+        self.assertEqual(self.page.record_list.rowCount(), 2)
         self.page.search_input.setText("2025年度")
-        self.assertEqual(self.page.record_list.count(), 2)
+        self.assertEqual(self.page.record_list.rowCount(), 2)
         self.page.status_filter.setCurrentIndex(2)
-        self.assertEqual(self.page.record_list.count(), 1)
+        self.assertEqual(self.page.record_list.rowCount(), 1)
         self.page.search_input.setText("不存在的企业")
-        self.assertEqual(self.page.record_list.count(), 0)
-        self.assertFalse(self.page.open_detail_button.isEnabled())
+        self.assertEqual(self.page.record_list.rowCount(), 1)
+        self.assertEqual(len(self.page._records), 0)
         self.assertFalse(self.page.export_word_button.isEnabled())
         self.assertFalse(self.page.open_record("missing-record"))
         self.assertIs(self.page.view_stack.currentWidget(), self.page.list_view)
@@ -128,7 +137,7 @@ class P3CRecordUiTests(unittest.TestCase):
     def test_export_is_bound_to_loaded_detail_and_uses_public_helper(self):
         self.assertTrue(self.page.open_record("p3c.one"))
         other = next(i for i, record in enumerate(self.page._records) if record.record_id == "p3c.two")
-        self.page.record_list.setCurrentRow(other)
+        self.page.record_list.setCurrentCell(other, 0)
         with patch("packages.ui.pages.export_saved_record_report") as exporter:
             self.page.export_word_button.click()
         self.assertEqual(exporter.call_args.args[2].record_id, "p3c.one")
