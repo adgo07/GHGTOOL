@@ -6503,8 +6503,13 @@ class CarbonMaterialAccountingPage(BasePage):
                     source_summary = (
                         factor.source_location or ("本次用户填写" if is_user_provided else "来源资料见记录快照")
                     )
+                    row.status.setToolTip(source_summary)
+                    clause_summary = re.sub(
+                        r"[；;]?\s*(?:PDF\s*第?\s*\d+(?:[~～—-]\d+)?\s*页?|印刷页\s*\d+(?:[~～—-]\d+)?)",
+                        "", source_summary, flags=re.I,
+                    )
                     row.status.setText(
-                        f"电力因子：已确定 {display_value} {factor.unit} · {category} · {source_summary}"
+                        f"电力因子：已确定 {display_value} {factor.unit} · {category} · {clause_summary}"
                     )
                 continue
             self._electricity_resolution_states[detail_id] = "BLOCKED"

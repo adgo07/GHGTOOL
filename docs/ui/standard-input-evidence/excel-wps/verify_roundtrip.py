@@ -12,6 +12,12 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 repo=Path(sys.argv[1]); before_path=Path(sys.argv[2]); saved_path=Path(sys.argv[3]); run_dir=Path(sys.argv[4])
+# This evidence helper may read the repository but only writes/opens TEMP copies.
+import tempfile
+_temp_root = Path(tempfile.gettempdir()).resolve()
+for _path in (before_path, saved_path, run_dir):
+    if not _path.resolve().is_relative_to(_temp_root):
+        raise ValueError("native round-trip evidence paths must stay inside TEMP")
 expected_template_sha="58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 sys.path.insert(0,str(repo))
 from packages.application.catalog_queries import CatalogQueryService

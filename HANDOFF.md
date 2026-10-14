@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-13（标准分派与业务一致性六包连续实施）
+最后更新：2026-10-14（六包实现完成，提交独立PR等待验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -181,8 +181,10 @@ PF01范围约束：
 需要决策的具体问题：
 ```
 
-## 7. 当前阶段范围声明
+## 7. 当前交付与验收边界
 
-P3-C（PR #42）与P3-E（PR #43）均已完成独立验收；本次整合在同一main内同时保留RecordLibraryPage双页签业务展示与ExcelImportPage四区操作路径。记录页面只做Presentation，Excel页面继续使用EXB01的安全解析、Preview、显式项目保存和正式UseCase。Word导出仍复用公共服务，不重算历史。
+六包实现已完成，保留P3-C双页签、P3-E四区导入及PR45视觉成果；当前批准范围包含共同输入政策、静态标准分派、模板2.0、项目codec及冻结报告表，不再是仅Presentation。具体变更与命令见IMPLEMENTATION_REPORT.md，当前状态见TASK_STATE.md。
 
-完整代码和验证证据分别见 `docs/ui/p3-c/ACCEPTANCE.md`、`docs/ui/p3-e/ACCEPTANCE.md` 及各自PR的Checks。本阶段不宣称已完成原生Windows人工DPI验收、Excel/WPS回导验收或RS04/RS05门禁。
+本地完整回归510项通过；WPS ET原生临时副本保存回导17项通过；WPS Word兼容引擎导出11页已逐页检查。Windows Qt原生平台程序驱动100%/125%截图及离屏125%/150%动态布局证据分别保留，不称人工系统DPI验收或真实企业填报验收。最终PR的Checks记录实际CI head及构建来源，不以旧PR45的CI作为新阶段通过证据。
+
+只交付一个独立PR等待验收；不自动合并/关闭原PR45，不上线第二标准，不推进RS04/RS05或其他工作包。

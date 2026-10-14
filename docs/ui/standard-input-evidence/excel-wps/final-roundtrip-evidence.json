@@ -3809,10 +3809,10 @@
   },
   "reproducibility": {
     "native_com_script_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\native_excel_roundtrip.ps1",
-    "adapter_usecase_script_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\verify_roundtrip.py",
+    "adapter_usecase_script_path": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\docs\\ui\\standard-input-evidence\\excel-wps\\verify_roundtrip.py",
     "adapter_command": [
       "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\.venv\\Scripts\\python.exe",
-      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\verify_roundtrip.py",
+      "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\docs\\ui\\standard-input-evidence\\excel-wps\\verify_roundtrip.py",
       "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL",
       "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-before.xlsx",
       "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-native-roundtrip.xlsx",
@@ -3980,7 +3980,7 @@
     },
     "formal_successful": true,
     "formal_record_count": 1,
-    "formal_record_id": "record.appendix-b-input-947595e4c3834c763956.db7ed9b4689c43deba3e8d4bae8a1680"
+    "formal_record_id": "record.appendix-b-input-947595e4c3834c763956.ae60d22bec6244bd8fa9c7e0a9f1f462"
   },
   "sheet_protection": {
     "before": [
