@@ -1,0 +1,342 @@
+﻿{
+    "status":  "PASS",
+    "failure":  null,
+    "engine":  "WPS Office ET COM",
+    "prog_id":  "Excel.Application",
+    "clsid":  "{00024500-0000-0000-C000-000000000046}",
+    "registered_server":  "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe /Automation",
+    "registered_exe":  "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+    "registered_file_version":  "12,1,0,29158",
+    "activated_exe":  "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+    "activated_file_version":  "12,1,0,29158",
+    "application_version":  "12.0",
+    "process_id":  24932,
+    "pid_was_preexisting":  false,
+    "initial_workbooks":  0,
+    "gate_passed_before_open":  true,
+    "source_path":  "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\complete-appendix-b.xlsx",
+    "source_sha256_before":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "source_sha256_after":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "before_copy_path":  "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-before.xlsx",
+    "before_copy_sha256":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "saved_copy_path":  "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-native-roundtrip.xlsx",
+    "saved_copy_sha256":  "8adcfe9746b8fd790c4cb932376fab0758b430b77e8718d2a0e4e5ac61ddf08b",
+    "saved_copy_changed":  true,
+    "run_directory":  "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6",
+    "before_audit":  {
+                         "sheet_names":  [
+                                             "B.1",
+                                             "B.2",
+                                             "B.3",
+                                             "B.4",
+                                             "B.5",
+                                             "B.6",
+                                             "B.7",
+                                             "B.8",
+                                             "B.9"
+                                         ],
+                         "sheets":  [
+                                        {
+                                            "name":  "B.1",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.2",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.3",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.4",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  false,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.5",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  false,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.6",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.7",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.8",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        },
+                                        {
+                                            "name":  "B.9",
+                                            "protect_contents":  true,
+                                            "protect_drawing_objects":  true,
+                                            "protect_scenarios":  true
+                                        }
+                                    ]
+                     },
+    "after_audit":  {
+                        "sheet_names":  [
+                                            "B.1",
+                                            "B.2",
+                                            "B.3",
+                                            "B.4",
+                                            "B.5",
+                                            "B.6",
+                                            "B.7",
+                                            "B.8",
+                                            "B.9"
+                                        ],
+                        "sheets":  [
+                                       {
+                                           "name":  "B.1",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.2",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.3",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.4",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  false,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.5",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  false,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.6",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.7",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.8",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       },
+                                       {
+                                           "name":  "B.9",
+                                           "protect_contents":  true,
+                                           "protect_drawing_objects":  true,
+                                           "protect_scenarios":  true
+                                       }
+                                   ]
+                    },
+    "checks":  [
+                   {
+                       "name":  "registered_server_matches_activated_process",
+                       "passed":  true,
+                       "detail":  "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe"
+                   },
+                   {
+                       "name":  "independent_instance_started_with_zero_workbooks",
+                       "passed":  true,
+                       "detail":  {
+                                      "pid":  24932,
+                                      "pid_was_preexisting":  false,
+                                      "initial_workbooks":  0
+                                  }
+                   },
+                   {
+                       "name":  "nine_sheet_names_preserved",
+                       "passed":  true,
+                       "detail":  {
+                                      "before":  [
+                                                     "B.1",
+                                                     "B.2",
+                                                     "B.3",
+                                                     "B.4",
+                                                     "B.5",
+                                                     "B.6",
+                                                     "B.7",
+                                                     "B.8",
+                                                     "B.9"
+                                                 ],
+                                      "after":  [
+                                                    "B.1",
+                                                    "B.2",
+                                                    "B.3",
+                                                    "B.4",
+                                                    "B.5",
+                                                    "B.6",
+                                                    "B.7",
+                                                    "B.8",
+                                                    "B.9"
+                                                ]
+                                  }
+                   },
+                   {
+                       "name":  "sheet_protection_flags_preserved",
+                       "passed":  true,
+                       "detail":  {
+                                      "before":  [
+                                                     {
+                                                         "name":  "B.1",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.2",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.3",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.4",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  false,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.5",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  false,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.6",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.7",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.8",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     },
+                                                     {
+                                                         "name":  "B.9",
+                                                         "protect_contents":  true,
+                                                         "protect_drawing_objects":  true,
+                                                         "protect_scenarios":  true
+                                                     }
+                                                 ],
+                                      "after":  [
+                                                    {
+                                                        "name":  "B.1",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.2",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.3",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.4",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  false,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.5",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  false,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.6",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.7",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.8",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    },
+                                                    {
+                                                        "name":  "B.9",
+                                                        "protect_contents":  true,
+                                                        "protect_drawing_objects":  true,
+                                                        "protect_scenarios":  true
+                                                    }
+                                                ]
+                                  }
+                   },
+                   {
+                       "name":  "source_workbook_unchanged",
+                       "passed":  true,
+                       "detail":  {
+                                      "before":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+                                      "after":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98"
+                                  }
+                   },
+                   {
+                       "name":  "native_saved_copy_exists",
+                       "passed":  true,
+                       "detail":  {
+                                      "before_copy_sha256":  "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+                                      "saved_copy_sha256":  "8adcfe9746b8fd790c4cb932376fab0758b430b77e8718d2a0e4e5ac61ddf08b"
+                                  }
+                   }
+               ]
+}

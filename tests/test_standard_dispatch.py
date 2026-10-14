@@ -59,8 +59,9 @@ class StandardDispatchTest(unittest.TestCase):
                 editor.assert_called_once()
                 self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
                 self.assertEqual(shell.selected_standard_id, fake.standard_id)
-                with self.assertRaises(ValueError):
-                    shell._request_standard_accounting("missing")
+                shell._request_standard_accounting("missing")
+                self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
+                editor.assert_called_once()
                 self.assertEqual(shell.selected_standard_id, fake.standard_id)
             finally:
                 shell.deleteLater()
