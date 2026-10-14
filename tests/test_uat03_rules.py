@@ -46,6 +46,7 @@ from packages.standards.carbon_material import (
     FuelPath,
     FuelType,
     InputValue,
+    InputOrigin,
     ParameterSourceKind,
     ParameterValue,
     fuel_mass_emission,
@@ -231,16 +232,41 @@ class UAT03RuleTests(unittest.TestCase):
             factor_id=factor.factor_id,
             factor_year=factor.factor_year,
         )
+        def standard_parameter(parameter_id: str) -> ParameterValue:
+            resolved = self.resolver.resolve(ParameterResolutionContext(
+                parameter_id=parameter_id,
+                standard_id=STANDARD_ID,
+                accounting_period=PERIOD,
+                subject_id="fgd",
+                parameter_type=ParameterType.PROCESS_DEFAULT_PARAMETER,
+            )).recommended
+            self.assertIsNotNone(resolved)
+            factor = resolved.factor
+            return ParameterValue(
+                factor.parameter_id, factor.value, factor.unit, ParameterSourceKind.STANDARD_DEFAULT,
+                factor.source_id, factor.version, factor.source_location,
+                "按本期Resolver推荐的一般标准缺省参数。", factor.factor_id, factor.factor_year,
+            )
+
         input_value = CarbonMaterialInput(
             "input.fgd-c2",
             "enterprise.uat03",
             None,
             PERIOD,
             boundary_confirmed=True,
-            fgd=FGDInput(components=(CarbonateComponent("10", "0.9", parameter_value, "1", "CaCO3"),)),
+            fgd=FGDInput(components=(CarbonateComponent(
+                "10",
+                standard_parameter("car-par-p04b-i"),
+                parameter_value,
+                standard_parameter("car-par-p04b-tr"),
+                "CaCO3",
+                InputOrigin.CATALOG,
+            ),)),
         )
 
-        outcome = CarbonMaterialCalculator().calculate(input_value, calculated_at=SNAPSHOT_AT)
+        outcome = CarbonMaterialCalculator(parameter_resolver=self.resolver).calculate(
+            input_value, calculated_at=SNAPSHOT_AT
+        )
 
         self.assertTrue(outcome.successful, outcome.problems)
         snapshot = next(item for item in outcome.parameter_snapshots if item.factor_id == factor.factor_id)

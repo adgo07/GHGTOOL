@@ -1,6 +1,6 @@
 # 当前任务状态
 
-状态：PR46验收修订实现完成，代码与最终证据diff独立审查通过，完整Windows CI已验证；等待Owner实际操作验收，不自行合并。
+状态：PR46第二轮反馈修订中：逐字段来源、来源简写、电力短标签、公共分段外观及导航实测优化；继续原PR，不自行合并。
 最后更新：2026-10-14。
 
 - origin已核实adgo07/GHGTOOL，独立分支codex/ghg-standard-input-unification；base main204dded5d03853617f79a1f05693e89b619df9d1；当前生产验收head8d87199f25bd17e56e2e8443e09575966d557f12。原主目录用户分支、Excel母版及参考文件未覆盖。继续PR46，PR45仍OPEN未合并。
@@ -16,3 +16,12 @@
 - 中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，Architecture V2.1/Numeric v1；未改Frozen/Profile/数据库结构，未增加第二标准或结果Excel导出。
 
 未闭合：电脑操作工具截图超时/激活失败，真实鼠标与中文输入验收未执行，不能以QTest或截图代替；Owner真实企业样例、人工系统DPI操作验收仍开放。最终等待检查，不自行合并。
+
+
+第二轮新范围（2026-10-14）：Issue011已先登记；Owner明确目录燃料FCh默认缺省可修改、自定义燃料参数全部由使用者填写。共享来源政策待逐字段独立核对；导航先计时再优化，不能把静态慢路径当已测唯一根因。Luna子代理分别承担来源/正式Excel链、导航计时优化及共享展示组件，root负责核算页接线和整合。此前d36 CI222/561通过只证明第二轮之前的基线，不替代新验收。
+
+第二轮稳定断点：核算页已消费共享 parameter_source_policy；目录FCh保留STD/CALC/MEASURED显式选择，自定义燃料不带数值默认；FGD EF统一Canonical来源tokens，旧STD/CALC仅restore边界解释，I/TR按实际组件数与通用Resolver绑定展示。添加第二组件保留首行STD90草稿并拦截重算；删除回单保留实测值。物料唯一实测以只读来源标签显示，旧计算来源有明确确认入口。`python -m unittest tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -v` 本地18/18通过，61.291s。期间新增物料cell变量遮蔽导致Qt父子布局循环，已定位并改为cell_layout；此前异常耗时测试被终止，不计为通过。全量/新母版WPS/本轮Windows CI尚未执行，不沿用上一轮完成结论。
+
+独立来源审查修复断点：燃料来源切换按field/source分开保留运行时草稿，首次改源不冒用缺省数值；FGD旧STD/CALC/CATALOG保留原始机器码与数值，明确确认后才采用新来源；百分比双向转换通过Decimal指数精确位移，不受caller ambient context影响。`python -m unittest tests.test_pr46_percentage_precision tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -q` 本地21/21通过，60.612s。更早`tests.test_g06_page tests.test_uat03_formal_workflow`34项为30pass/1fail/3error(153.665s)，error定位到新Domain FGD门禁引用未定义accounting_period，后端代理已修，仍需复验；不得把这次失败记为通过。
+
+当前追加验证：后端来源/规则/Record证据组合69项通过(2.700s)，关联材料/Numeric/canonical项目45项通过；修复期间NameError后的`tests.test_g06_page tests.test_uat03_formal_workflow -q`本地34/34通过(161.052s)。Windows Qt实际windows平台source-policy脚本100%/125%/150%各12项状态检查、7张截图通过；共21张截图，属于QTest/程序驱动与QWidget.grab，不能冒充原生人工鼠标/中文输入验收。不同来源草稿已进入既有form_state JSON，仅Presentation state，无数据库/Canonical模型变更。canonical验证9 standards/12 sources/102 parameters/138 factors通过，pip check无破损依赖。Excel v2.2资源与字段策略仍由Luna子代理收口，未启动本轮完整回归/构建/CI。

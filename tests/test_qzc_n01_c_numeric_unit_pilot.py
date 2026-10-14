@@ -28,6 +28,7 @@ from packages.standards.carbon_material import (
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
+    InputValue,
     ParameterValue,
     SteamKind,
     baking_emission,
@@ -51,7 +52,7 @@ def _fuel_only_input(activity: str = "1") -> CarbonMaterialInput:
         enterprise_name="N01-C",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.context", activity, "1", "1"),),
+        fuel_inputs=(FuelInput.mass("fuel.context", activity, InputValue("1", "tC/t"), InputValue("1", "ratio")),),
     )
 
 
@@ -64,7 +65,7 @@ def _full_profile_input() -> CarbonMaterialInput:
         enterprise_name="N01-C-R1",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.profile", "1", "1", "1"),),
+        fuel_inputs=(FuelInput.mass("fuel.profile", "1", InputValue("1", "tC/t"), InputValue("1", "ratio")),),
         calcination=CalcinationInput(
             gc="100",
             wfc="0.008",

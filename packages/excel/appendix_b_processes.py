@@ -14,7 +14,7 @@ def _group_label(sheet,row):
     return None
 
 
-def parse_process_sheets(importer,workbook,context,reader,errors,warnings,outputs,involved,unit_id):
+def parse_process_sheets(importer,workbook,context,reader,errors,warnings,outputs,involved,unit_id,*,template_version="2.1.0"):
     from .appendix_b import _PROCESS_META,_has_value,_is_appendix_footer_row,_stable_id
     for sheet_name,meta in _PROCESS_META.items():
         source_id,model_type,parameter_id,parameter_name,index=meta
@@ -36,14 +36,30 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
             if role_kind is None:
                 errors.append(ImportMessage("EXB01_PROCESS_ROW_UNMAPPED","物料类别与过程分组不匹配；请选择明确的类别与碳/挥发分分组。",f"{sheet_name}!B{row}","物料类别"))
                 continue
+            role,component=role_kind
             mass=reader.number(workbook,sheet_name,f"D{row}",errors,required=True,field_label="活动数据")
             percentage=reader.number(workbook,sheet_name,f"E{row}",errors,field_label="碳/挥发分含量")
             source=reader.text(workbook,sheet_name,f"F{row}",errors,field_label="碳/挥发分来源")
-            if source not in (None,"实测值"):
+            if template_version == "2.2.0":
+                from packages.standards.carbon_material_input_policy import (
+                    InputOrigin, MEASURED, parameter_source_policy,
+                    validate_parameter_source_policy,
+                )
+                field_id = "material.fixed_carbon" if component == "fixed" else "material.volatile_matter"
+                source_policy = parameter_source_policy(field_id, origin=InputOrigin.CATALOG)
+                if source is None and source_policy.default_source == MEASURED:
+                    source_kind = MEASURED
+                else:
+                    source_kind = {"实测值": MEASURED}.get(source)
+                issue = validate_parameter_source_policy(field_id, source_kind, origin=InputOrigin.CATALOG)
+                if issue is not None:
+                    errors.append(ImportMessage(issue[1],issue[2],f"{sheet_name}!F{row}","碳/挥发分来源"))
+                elif source is not None and source != "实测值":
+                    errors.append(ImportMessage("EXB01_PROCESS_SOURCE_UNSUPPORTED","该字段仅支持实测来源。",f"{sheet_name}!F{row}","碳/挥发分来源"))
+            elif source not in (None,"实测值"):
                 errors.append(ImportMessage("EXB01_PROCESS_SOURCE_UNSUPPORTED","该表的碳/挥发分来源仅支持实测值。",f"{sheet_name}!F{row}","碳/挥发分来源"))
             if not all((name,process,material)):
                 continue
-            role,component=role_kind
             key=(process,material)
             entry=materials.setdefault(key,{"role":role,"name":name,"masses":[],"fixed":[],"volatile":[]})
             if entry["role"] is not role or entry["name"]!=name:

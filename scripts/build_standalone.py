@@ -26,6 +26,8 @@ from scripts.inspect_release import (
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
     COMPATIBILITY_TEMPLATE_SHA256,
+    PREVIOUS_TEMPLATE_PATH,
+    PREVIOUS_TEMPLATE_SHA256,
     EXCEL_SUFFIXES,
     inspect_release,
 )
@@ -159,6 +161,7 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
     resource_root = project_root / "resources"
     expected_hashes = {
         APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+        PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
         COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
     }
     expected_paths = tuple(sorted(path.relative_to("resources").as_posix() for path in expected_hashes))
@@ -171,7 +174,7 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
     )
     if workbook_files != expected_paths:
         raise RuntimeError(
-            "Excel build inputs must contain only the approved current and compatibility templates at "
+            "Excel build inputs must contain only the approved current, previous, and compatibility templates at "
             f"{expected_paths!r}; found {workbook_files!r}"
         )
     for path in resource_root.rglob("*"):

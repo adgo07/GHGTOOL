@@ -52,6 +52,7 @@ from packages.application.project_workspaces import (
     ProjectWorkspaceService,
 )
 from packages.core.models import AccountingPeriod, AccountingRecord, PeriodType, RecordStatus
+from packages.core.record_summaries import RecordSummary
 from packages.core.repositories import RecordRepository
 from packages.application.carbon_accounting import (
     CarbonAccountingPreviewUseCase,
@@ -75,12 +76,10 @@ from .record_experience import (
     build_parameter_view,
     build_calculation_basis_view,
     build_quality_view,
-    build_record_list_label,
     standard_label,
     build_record_report_model,
     evidence_names_for,
     format_amount,
-    period_label,
     status_label,
     snapshot_state,
 )
@@ -99,6 +98,42 @@ from .view_models import AppRoute, ShellViewModel
 
 Navigate = Callable[[AppRoute], None]
 _LOGGER = logging.getLogger(__name__)
+
+
+def _summary_from_record(record: AccountingRecord) -> RecordSummary:
+    period = record.input_snapshot.period
+    return RecordSummary(
+        record_id=record.record_id,
+        standard_id=record.standard_id,
+        standard_version=record.standard_version,
+        created_at=record.created_at,
+        enterprise_name=record.input_snapshot.enterprise_name,
+        period_type=period.period_type,
+        period_start=period.start,
+        period_end=period.end,
+        total_amount=record.calculation_result.total_amount,
+        total_unit=record.calculation_result.total_unit,
+        status=record.status,
+    )
+
+
+def _summary_period_label(summary: RecordSummary) -> str:
+    if summary.period_type is PeriodType.ANNUAL:
+        return f"{summary.period_start.year}年度"
+    if summary.period_type is PeriodType.MONTHLY:
+        return f"{summary.period_start.year}年{summary.period_start.month:02d}月"
+    return f"自定义期间 {summary.period_start.isoformat()} 至 {summary.period_end.isoformat()}"
+
+
+def _record_repository_change_token(repository: object | None) -> object | None:
+    if repository is None:
+        return None
+    token = getattr(repository, "change_token", None)
+    if callable(token):
+        return token()
+    if token is not None:
+        return token
+    return getattr(repository, "revision", None)
 
 
 _SNAPSHOT_LABELS = {
@@ -616,7 +651,9 @@ class HomePage(BasePage):
         self.body_layout.addWidget(self._build_recent_work(navigate))
         self.body_layout.addStretch(1)
         self.body_layout.addWidget(self._build_home_footer(view_model, navigate))
-        self.refresh_recent_records()
+        self._project_data_dirty = True
+        self._record_data_dirty = True
+        self._loaded_record_token: object | None = None
 
     def set_page_margin(self, margin: int) -> None:
         compact = margin == COMPACT_HOME_PAGE_SIDE_MARGIN
@@ -1131,7 +1168,7 @@ class HomePage(BasePage):
 
     def _build_recent_record_table(
         self,
-        records: tuple[AccountingRecord, ...],
+        records: tuple[RecordSummary, ...],
     ) -> QTableWidget:
         table = QTableWidget(len(records), 5)
         table.setObjectName("homeRecentTable")
@@ -1183,8 +1220,8 @@ class HomePage(BasePage):
         table.verticalHeader().setDefaultSectionSize(50)
 
         for row, record in enumerate(records):
-            enterprise = record.input_snapshot.enterprise_name or "未填写企业"
-            period = period_label(record)
+            enterprise = record.enterprise_name or "未填写企业"
+            period = _summary_period_label(record)
             name_item = QTableWidgetItem(enterprise)
             name_item.setTextAlignment(
                 Qt.AlignmentFlag.AlignCenter
@@ -1257,67 +1294,96 @@ class HomePage(BasePage):
             table.setRowHeight(row, 44)
         return table
 
-    def refresh_recent_records(self) -> None:
-        """Refresh the real project and immutable-record views from existing services."""
+    def invalidate_project_data(self) -> None:
+        self._project_data_dirty = True
 
-        if self.project_service is None:
-            self._show_project_empty("项目暂不可用", "当前无法读取已保存项目。")
-        else:
-            try:
-                projects = tuple(self.project_service.list_all())
-                reader = getattr(
-                    self.project_service,
-                    "list_updated_at_by_project_id",
-                    None,
-                )
-                timestamps = reader() if callable(reader) else {}
-                projects = tuple(sorted(
-                    projects,
-                    key=lambda project: (
-                        timestamps[project.project_id].timestamp()
-                        if isinstance(timestamps.get(project.project_id), datetime)
-                        else 0
-                    ),
-                    reverse=True,
-                ))
-            except Exception:
-                _LOGGER.exception("Unable to read saved projects for the home page")
-                projects = None
-                timestamps = {}
-            if projects is None:
-                self._show_project_empty("项目暂不可用", "本地项目数据当前无法读取。")
-            elif not projects:
-                self._show_project_empty(
-                    "暂无已保存项目",
-                    "保存后的项目会显示在这里，可从新建核算中继续编辑。",
-                )
+    def invalidate_record_views(self, *, projects: bool = False) -> None:
+        self._record_data_dirty = True
+        if projects:
+            self._project_data_dirty = True
+
+    def refresh_if_dirty(self) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._record_data_dirty = True
+        if self._record_data_dirty or self._project_data_dirty:
+            self.refresh_recent_records(force_reload=False)
+
+    def refresh_recent_records(self, *, force_reload: bool = True) -> None:
+        """Refresh dirty home projections while keeping list reads lightweight."""
+
+        if force_reload:
+            self._project_data_dirty = True
+            self._record_data_dirty = True
+        if self._project_data_dirty:
+            project_refresh_succeeded = False
+            if self.project_service is None:
+                self._show_project_empty("项目暂不可用", "当前无法读取已保存项目。")
+                project_refresh_succeeded = True
             else:
-                latest = projects[0]
-                self._clear_layout(self.project_layout)
-                updated_at = timestamps.get(latest.project_id)
-                self.project_layout.addWidget(
-                    self._build_project_resume_card(
-                        latest,
-                        updated_at if isinstance(updated_at, datetime) else None,
+                try:
+                    projects = tuple(self.project_service.list_all())
+                    reader = getattr(self.project_service, "list_updated_at_by_project_id", None)
+                    timestamps = reader() if callable(reader) else {}
+                    projects = tuple(sorted(
+                        projects,
+                        key=lambda project: (
+                            timestamps[project.project_id].timestamp()
+                            if isinstance(timestamps.get(project.project_id), datetime)
+                            else 0
+                        ),
+                        reverse=True,
+                    ))
+                    project_refresh_succeeded = True
+                except Exception:
+                    _LOGGER.exception("Unable to read saved projects for the home page")
+                    projects = None
+                    timestamps = {}
+                if projects is None:
+                    self._show_project_empty("项目暂不可用", "本地项目数据当前无法读取。")
+                elif not projects:
+                    self._show_project_empty(
+                        "暂无已保存项目",
+                        "保存后的项目会显示在这里，可从新建核算中继续编辑。",
                     )
-                )
-                self.project_layout.addStretch(1)
+                else:
+                    latest = projects[0]
+                    self._clear_layout(self.project_layout)
+                    updated_at = timestamps.get(latest.project_id)
+                    self.project_layout.addWidget(
+                        self._build_project_resume_card(
+                            latest,
+                            updated_at if isinstance(updated_at, datetime) else None,
+                        )
+                    )
+                    self.project_layout.addStretch(1)
+            self._project_data_dirty = not project_refresh_succeeded
 
+        if not self._record_data_dirty:
+            return
         if self.record_repository is None:
             self._show_record_empty("记录暂不可用", "当前无法读取核算记录。")
+            self._record_data_dirty = False
+            self._loaded_record_token = None
             return
         try:
-            records = tuple(sorted(
-                self.record_repository.list_all(),
-                key=lambda record: record.created_at,
-                reverse=True,
-            )[:3])
+            summaries_reader = getattr(self.record_repository, "list_summaries", None)
+            if callable(summaries_reader):
+                records = tuple(summaries_reader(limit=3))
+            else:
+                records = tuple(sorted(
+                    (_summary_from_record(record) for record in self.record_repository.list_all()),
+                    key=lambda record: (record.created_at, record.record_id),
+                    reverse=True,
+                )[:3])
         except Exception:
-            _LOGGER.exception("Unable to read formal records for the home page")
+            _LOGGER.exception("Unable to read formal record summaries for the home page")
             records = None
         if records is None:
             self._show_record_empty("记录暂不可用", "本地核算记录当前无法读取。")
             return
+        self._record_data_dirty = False
+        self._loaded_record_token = _record_repository_change_token(self.record_repository)
         if not records:
             self._show_record_empty(
                 "暂无核算记录",
@@ -1515,8 +1581,14 @@ class RecordLibraryPage(BasePage):
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
         self.project_service = project_service
-        self._records: tuple[AccountingRecord, ...] = ()
+        self._records: tuple[RecordSummary, ...] = ()
+        self._all_summaries: tuple[RecordSummary, ...] = ()
+        self._summaries_dirty = True
+        self._loaded_record_token: object | None = None
+        self._associations_dirty = True
+        self._association_cache: dict[str, str] = {}
         self._detail_record_id: str | None = None
+        self._detail_record: AccountingRecord | None = None
         self.add_header("核算记录", "搜索已保存的核算记录，查看历史结果和计算依据。")
         self.page_title = self.findChild(QLabel, "pageTitle")
         self.page_description = self.findChild(QLabel, "pageDescription")
@@ -1535,7 +1607,7 @@ class RecordLibraryPage(BasePage):
         self.search_input.setAccessibleName("搜索核算记录")
         self.search_input.setPlaceholderText("搜索企业名称、期间、标准或记录编号")
         self.search_input.setClearButtonEnabled(True)
-        self.search_input.textChanged.connect(self.refresh_records)
+        self.search_input.textChanged.connect(self._apply_filters)
         filter_row.addWidget(self.search_input, 1)
         self.status_filter = QComboBox(filter_card)
         self.status_filter.setObjectName("recordStatusFilter")
@@ -1543,7 +1615,7 @@ class RecordLibraryPage(BasePage):
         self.status_filter.addItem("全部状态", "ALL")
         self.status_filter.addItem("已完成", RecordStatus.COMPLETED.value)
         self.status_filter.addItem("含提醒", RecordStatus.COMPLETED_WITH_WARNINGS.value)
-        self.status_filter.currentIndexChanged.connect(self.refresh_records)
+        self.status_filter.currentIndexChanged.connect(self._apply_filters)
         filter_row.addWidget(self.status_filter)
         filter_layout.addLayout(filter_row)
         list_layout.addWidget(filter_card)
@@ -1652,7 +1724,7 @@ class RecordLibraryPage(BasePage):
             QTabWidget#recordDetailTabs::pane { border: 1px solid #DAE7F1; border-radius: 9px; }
             QTabWidget#recordDetailTabs QTabBar::tab { padding: 0 18px; font-size: 13px; }
         """)
-        self.refresh_records()
+        self.refresh_records(force_reload=True)
 
     def _read_snapshot(self, method_name: str, record_id: str) -> tuple[object, bool]:
         getter = getattr(self.record_repository, method_name, None)
@@ -1663,114 +1735,186 @@ class RecordLibraryPage(BasePage):
         except Exception:
             return None, True
 
-    def _workspace_association(self, record_id: str) -> str:
-        if self.project_service is None:
-            return "当前无工作区关联"
-        try:
-            for workspace in self.project_service.list_all():
-                for unit in workspace.units:
-                    if record_id in unit.record_ids:
-                        return f"{workspace.name} / {unit.name}"
-        except Exception:
-            return "当前工作区关系暂不可用"
-        return "当前无工作区关联"
+    def invalidate_project_associations(self) -> None:
+        self._associations_dirty = True
 
-    def refresh_records(self, *_args: object, select_record_id: str | None = None) -> None:
+    def invalidate_record_views(self, *, projects: bool = False) -> None:
+        self._summaries_dirty = True
+        if projects:
+            self._associations_dirty = True
+
+    def refresh_if_dirty(self) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._summaries_dirty = True
+        if self._summaries_dirty or self._associations_dirty:
+            self.refresh_records(force_reload=self._summaries_dirty)
+
+    def refresh_records(
+        self,
+        *_args: object,
+        select_record_id: str | None = None,
+        force_reload: bool = True,
+    ) -> None:
+        if force_reload:
+            self._summaries_dirty = True
+            self._associations_dirty = True
+        if self._summaries_dirty:
+            summaries_reader = getattr(self.record_repository, "list_summaries", None)
+            if self.record_repository is None:
+                all_summaries = ()
+            elif callable(summaries_reader):
+                all_summaries = tuple(summaries_reader())
+            else:
+                all_summaries = tuple(
+                    _summary_from_record(record)
+                    for record in self.record_repository.list_all()
+                )
+            self._all_summaries = tuple(sorted(
+                all_summaries,
+                key=lambda record: (record.created_at, record.record_id),
+                reverse=True,
+            ))
+            self._loaded_record_token = _record_repository_change_token(self.record_repository)
+            self._summaries_dirty = False
+        self._apply_filters(select_record_id=select_record_id)
+
+    def _apply_filters(
+        self,
+        *_args: object,
+        select_record_id: str | None = None,
+    ) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._summaries_dirty = True
+            self.refresh_records(force_reload=False, select_record_id=select_record_id)
+            return
         selected_before = select_record_id or (
             self.record_list.item(self.record_list.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
             if self.record_list.currentRow() >= 0
             and self.record_list.item(self.record_list.currentRow(), 0) is not None
             else None
         )
-        all_records = tuple(self.record_repository.list_all()) if self.record_repository is not None else ()
         query = self.search_input.text().strip().casefold()
         status = self.status_filter.currentData()
         self._records = tuple(
             record
-            for record in all_records
+            for record in self._all_summaries
             if (status == "ALL" or record.status.value == status)
             and (
                 not query
-                or query in build_record_list_label(record).casefold()
-                or query in record.record_id.casefold()
-                or query in record.standard_id.casefold()
-                or query in (record.input_snapshot.enterprise_name or "").casefold()
-                or query in str(record.input_snapshot.period.start).casefold()
-                or query in str(record.input_snapshot.period.end).casefold()
+                or query in " ".join((
+                    record.enterprise_name or "",
+                    _summary_period_label(record),
+                    standard_label(record.standard_id),
+                    format_amount(record.total_amount, record.total_unit),
+                    status_label(record.status),
+                    record.record_id,
+                    record.standard_id,
+                    record.period_start.isoformat(),
+                    record.period_end.isoformat(),
+                )).casefold()
             )
         )
-        self.record_list.clearContents()
-        self.record_list.setRowCount(0)
-        selected_row = -1
-        associations = self._workspace_associations()
-        for index, record in enumerate(self._records):
-            self.record_list.insertRow(index)
-            company = record.input_snapshot.enterprise_name or "未填写企业名称"
-            workspace = associations.get(record.record_id, "未关联项目")
-            result = record.calculation_result
-            total = format_amount(result.total_amount, result.total_unit)
-            created = record.created_at.date().isoformat()
-            values = (
-                f"{company}\n{workspace}",
-                period_label(record),
-                standard_label(record.standard_id),
-                total,
-                status_label(record.status),
-                created,
-                "",
-            )
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                item.setToolTip(value or f"记录编号：{record.record_id}")
-                if column == 0:
-                    item.setData(Qt.ItemDataRole.UserRole, record.record_id)
-                item.setData(
-                    Qt.ItemDataRole.AccessibleTextRole,
-                    f"{self.record_list.horizontalHeaderItem(column).text()}：{value or record.record_id}",
+        self.record_list.setUpdatesEnabled(False)
+        try:
+            self.record_list.clearContents()
+            self.record_list.setRowCount(len(self._records))
+            selected_row = -1
+            associations = self._workspace_associations()
+            for index, summary in enumerate(self._records):
+                company = summary.enterprise_name or "未填写企业名称"
+                workspace = associations.get(summary.record_id, "未关联项目")
+                total = format_amount(summary.total_amount, summary.total_unit)
+                created = summary.created_at.astimezone().date().isoformat()
+                period = _summary_period_label(summary)
+                values = (
+                    f"{company}\n{workspace}",
+                    period,
+                    standard_label(summary.standard_id),
+                    total,
+                    status_label(summary.status),
+                    created,
+                    "",
                 )
-                self.record_list.setItem(index, column, item)
-            status_badge = QLabel(status_label(record.status), self.record_list)
-            status_badge.setObjectName("recordStatusBadge")
-            warning = record.status is RecordStatus.COMPLETED_WITH_WARNINGS
-            status_badge.setProperty("warning", "true" if warning else "false")
-            status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            status_badge.setAccessibleName(f"记录状态：{status_label(record.status)}")
-            self.record_list.setCellWidget(index, 4, status_badge)
-            open_button = QPushButton("查看详情  ›", self.record_list)
-            open_button.setObjectName("openRecordRowButton")
-            open_button.setAccessibleName(f"打开 {company} 的核算记录详情")
-            open_button.clicked.connect(
-                lambda _checked=False, selected=index: self._open_record_row(selected)
-            )
-            self.record_list.setCellWidget(index, 6, open_button)
-            self.record_list.setRowHeight(index, 62)
-            for column in range(self.record_list.columnCount()):
-                item = self.record_list.item(index, column)
-                if item is not None:
-                    item.setToolTip(
-                        f"{item.text()}\n记录编号：{record.record_id}\n核算时间：{record.created_at.isoformat(timespec='seconds')}"
+                tooltip_suffix = (
+                    f"记录编号：{summary.record_id}\n"
+                    f"核算时间：{summary.created_at.isoformat(timespec='seconds')}"
+                )
+                for column, value in enumerate(values):
+                    item = QTableWidgetItem(value)
+                    item.setToolTip(f"{value}\n{tooltip_suffix}" if value else tooltip_suffix)
+                    if column == 0:
+                        item.setData(Qt.ItemDataRole.UserRole, summary.record_id)
+                    item.setData(
+                        Qt.ItemDataRole.AccessibleTextRole,
+                        f"{self.record_list.horizontalHeaderItem(column).text()}：{value or summary.record_id}",
                     )
-            if record.record_id == selected_before:
-                selected_row = index
-        self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(all_records)} 条 · 历史记录只读")
-        self.delete_button.setEnabled(bool(self._records))
-        self.export_word_button.setEnabled(bool(self._records))
-        if self._records:
-            self.record_list.setCurrentCell(selected_row if selected_row >= 0 else 0, 0)
-            self.record_list.selectRow(selected_row if selected_row >= 0 else 0)
-        else:
-            self.record_list.insertRow(0)
-            empty = QTableWidgetItem("没有符合条件的记录；可修改关键词或状态筛选。")
-            empty.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.record_list.setItem(0, 0, empty)
-            self.record_list.setSpan(0, 0, 1, self.record_list.columnCount())
-            self.record_list.setRowHeight(0, 80)
-            self._clear_details("暂无符合条件的核算记录。")
+                    self.record_list.setItem(index, column, item)
+                status_badge = QLabel(status_label(summary.status), self.record_list)
+                status_badge.setObjectName("recordStatusBadge")
+                warning = summary.status is RecordStatus.COMPLETED_WITH_WARNINGS
+                status_badge.setProperty("warning", "true" if warning else "false")
+                status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                status_badge.setAccessibleName(f"记录状态：{status_label(summary.status)}")
+                self.record_list.setCellWidget(index, 4, status_badge)
+                open_button = QPushButton("查看详情  ›", self.record_list)
+                open_button.setObjectName("openRecordRowButton")
+                open_button.setAccessibleName(f"打开 {company} 的核算记录详情")
+                open_button.clicked.connect(
+                    lambda _checked=False, selected=index: self._open_record_row(selected)
+                )
+                self.record_list.setCellWidget(index, 6, open_button)
+                self.record_list.setRowHeight(index, 62)
+                if summary.record_id == selected_before:
+                    selected_row = index
+            self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
+            self.delete_button.setEnabled(bool(self._records))
+            self.export_word_button.setEnabled(bool(self._records))
+            if self._records:
+                selected_row = selected_row if selected_row >= 0 else 0
+                self.record_list.setCurrentCell(selected_row, 0)
+                self.record_list.selectRow(selected_row)
+            else:
+                self.record_list.insertRow(0)
+                empty = QTableWidgetItem("没有符合条件的记录；可修改关键词或状态筛选。")
+                empty.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.record_list.setItem(0, 0, empty)
+                self.record_list.setSpan(0, 0, 1, self.record_list.columnCount())
+                self.record_list.setRowHeight(0, 80)
+                self._clear_details("暂无符合条件的核算记录。")
+        finally:
+            self.record_list.setUpdatesEnabled(True)
         if self.view_stack.currentWidget() is self.detail_view:
-            if any(record.record_id == self._detail_record_id for record in self._records):
-                self._show_selected_record(self.record_list.currentRow())
+            detail_row = next(
+                (index for index, item in enumerate(self._records) if item.record_id == self._detail_record_id),
+                -1,
+            )
+            if detail_row >= 0:
+                self._show_selected_record(detail_row)
             else:
                 self._back_to_list()
+
+    def _workspace_associations(self) -> dict[str, str]:
+        if not self._associations_dirty:
+            return self._association_cache
+        associations: dict[str, str] = {}
+        if self.project_service is None:
+            self._association_cache = associations
+            self._associations_dirty = False
+            return self._association_cache
+        try:
+            for workspace in self.project_service.list_all():
+                for unit in workspace.units:
+                    label = f"{workspace.name} / {unit.name}"
+                    for record_id in unit.record_ids:
+                        associations.setdefault(record_id, label)
+        except Exception:
+            self._association_cache = {}
+            return self._association_cache
+        self._association_cache = associations
+        self._associations_dirty = False
+        return self._association_cache
 
     def open_record(self, record_id: str) -> bool:
         self.search_input.blockSignals(True)
@@ -1779,7 +1923,16 @@ class RecordLibraryPage(BasePage):
         self.status_filter.blockSignals(True)
         self.status_filter.setCurrentIndex(0)
         self.status_filter.blockSignals(False)
-        self.refresh_records(select_record_id=record_id)
+        record_is_cached = any(item.record_id == record_id for item in self._all_summaries)
+        change_token = _record_repository_change_token(self.record_repository)
+        records_changed = (
+            change_token is not None
+            and change_token != self._loaded_record_token
+        )
+        if self._summaries_dirty or records_changed or not record_is_cached:
+            self.refresh_records(force_reload=True, select_record_id=record_id)
+        else:
+            self._apply_filters(select_record_id=record_id)
         row = self._row_for_record(record_id)
         found = row >= 0
         if found:
@@ -1793,22 +1946,9 @@ class RecordLibraryPage(BasePage):
                 return row
         return -1
 
-    def _workspace_associations(self) -> dict[str, str]:
-        associations: dict[str, str] = {}
-        if self.project_service is None:
-            return associations
-        try:
-            for workspace in self.project_service.list_all():
-                for unit in workspace.units:
-                    label = f"{workspace.name} / {unit.name}"
-                    for record_id in unit.record_ids:
-                        associations.setdefault(record_id, label)
-        except Exception:
-            return {}
-        return associations
-
     def _back_to_list(self) -> None:
         self._detail_record_id = None
+        self._detail_record = None
         self.view_stack.setCurrentWidget(self.list_view)
         self.record_list.setFocus()
         if self.page_title is not None:
@@ -1836,15 +1976,38 @@ class RecordLibraryPage(BasePage):
 
     def _clear_details(self, message: str) -> None:
         self._detail_record_id = None
+        self._detail_record = None
         self.summary_view.clear(message)
         self.input_basis_view.clear(message)
+
+    def _load_detail_record(self, record_id: str) -> AccountingRecord | None:
+        if self._detail_record_id == record_id and self._detail_record is not None:
+            return self._detail_record
+        if self.record_repository is None:
+            return None
+        getter = getattr(self.record_repository, "get", None)
+        if callable(getter):
+            record = getter(record_id)
+        else:
+            record = next(
+                (item for item in self.record_repository.list_all() if item.record_id == record_id),
+                None,
+            )
+        self._detail_record_id = record_id if record is not None else None
+        self._detail_record = record
+        return record
 
     def _show_selected_record(self, row: int) -> None:
         if row < 0 or row >= len(self._records):
             self._clear_details("请选择一条核算记录。")
             return
-        record = self._records[row]
-        self._detail_record_id = record.record_id
+        summary = self._records[row]
+        record = self._load_detail_record(summary.record_id)
+        if record is None:
+            self._clear_details("这条记录已无法读取；请刷新列表后重试。")
+            return
+        self._detail_record_id = summary.record_id
+        self._detail_record = record
         getters = {
             "raw": "get_raw_input_snapshot",
             "rules": "get_effective_rule_set",
@@ -1938,14 +2101,16 @@ class RecordLibraryPage(BasePage):
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 
     def _delete_selected(self) -> None:
-        row = next((i for i, record in enumerate(self._records) if record.record_id == self._detail_record_id), -1)
-        if row < 0 or row >= len(self._records) or self.record_repository is None:
+        summary = next(
+            (item for item in self._records if item.record_id == self._detail_record_id),
+            None,
+        )
+        if summary is None or self.record_repository is None:
             return
-        record = self._records[row]
         answer = QMessageBox.question(
             self,
             "确认删除核算记录",
-            f"将删除 {record.input_snapshot.enterprise_name or '未填写企业'} 的 {record.input_snapshot.period.start} 至 {record.input_snapshot.period.end} 核算记录。审计信息会保留，是否继续？",
+            f"将删除 {summary.enterprise_name or '未填写企业'} 的 {summary.period_start} 至 {summary.period_end} 核算记录。审计信息会保留，是否继续？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1953,8 +2118,11 @@ class RecordLibraryPage(BasePage):
             return
         delete = getattr(self.record_repository, "delete", None)
         if callable(delete):
-            delete(record.record_id, actor="current_user", reason="用户二次确认删除")
-        self.refresh_records()
+            delete(summary.record_id, actor="current_user", reason="用户二次确认删除")
+        self._detail_record = None
+        self._detail_record_id = None
+        self.invalidate_record_views()
+        self.refresh_records(force_reload=False)
         self._back_to_list()
 
     def _report_supplementary_dialog(self, record: AccountingRecord) -> dict[str, object] | None:
@@ -1963,13 +2131,15 @@ class RecordLibraryPage(BasePage):
         return report_supplementary_dialog(self, self.record_repository, record)
 
     def _export_selected_report(self) -> None:
-        row = next((i for i, record in enumerate(self._records) if record.record_id == self._detail_record_id), -1)
-        if row < 0 or row >= len(self._records) or self.record_repository is None:
+        if self._detail_record_id is None or self.record_repository is None:
+            return
+        record = self._load_detail_record(self._detail_record_id)
+        if record is None:
             return
         export_saved_record_report(
             self,
             self.record_repository,
-            self._records[row],
+            record,
             supplementary_dialog=self._report_supplementary_dialog,
         )
 

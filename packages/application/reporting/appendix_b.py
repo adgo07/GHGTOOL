@@ -5,6 +5,7 @@ Only this standard is registered. Layout contains labels/merges, never formulas.
 from __future__ import annotations
 
 import json
+import re
 from importlib.resources import files
 from dataclasses import replace
 from decimal import Decimal, ROUND_HALF_UP, localcontext
@@ -12,6 +13,7 @@ from typing import Mapping
 
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.units import UnitService
+from packages.application.source_display import format_source_reference
 from packages.standards.carbon_material import (
     STANDARD_ID, SOURCE_FUEL, SOURCE_CALCINATION, SOURCE_BAKING,
     SOURCE_GRAPHITIZATION, SOURCE_FUME, SOURCE_FGD, SOURCE_PURCHASED_ELECTRICITY,
@@ -87,12 +89,29 @@ _SHORT_SOURCE_NAMES = {
     "GOVERNMENT_PUBLISHED":"官方发布值","OFFICIAL_PUBLISHED":"官方发布值","SCIENTIFIC_REFERENCE":"文献值",
     "SYSTEM_CONSTANT":"系统常数","HISTORICAL":"历史值",
     "USER_SELECTED_LIBRARY_VALUE":"库选值","SYSTEM_RECOMMENDED":"系统推荐值",
+    "CHEMICAL_CALCULATION":"化学计算","METER":"计量器具","PRODUCTION_LEDGER":"生产台账",
+    "ENERGY_BILL":"能源账单","TEST_REPORT":"检测报告","STATEMENT":"结算单",
+    "MANUAL":"手工录入","OTHER":"其他来源",
 }
 
 
 def _short_source(raw,snapshot,detail):
-    source_type=_mapping(snapshot).get("source_type") or _mapping(raw).get("source_kind") or _mapping(snapshot).get("selection_method")
-    return _SHORT_SOURCE_NAMES.get(source_type) or ((detail or "").split("；")[0]) or "来源未记录"
+    snapshot_data = _mapping(snapshot)
+    raw_data = _mapping(raw)
+    source_type = (
+        snapshot_data.get("source_type")
+        or raw_data.get("source_kind")
+        or raw_data.get("source_type")
+        or snapshot_data.get("selection_method")
+    )
+    source_name = _SHORT_SOURCE_NAMES.get(source_type) or "来源未记录"
+    source_location = snapshot_data.get("source_location") or raw_data.get("source_location")
+    if not source_location and raw_data.get("source_reference"):
+        source_location = raw_data.get("source_reference")
+    if not source_location and detail:
+        match = re.search(r"(?:来源定位|来源参考)：([^；]+)", detail)
+        source_location = match.group(1) if match else None
+    return format_source_reference(source_location, source_name)
 
 
 def _parameter(value, snapshots, key, *, percent=False):

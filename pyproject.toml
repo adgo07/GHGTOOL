@@ -32,6 +32,7 @@ resources = [
     "icons/new.svg", "icons/settings.svg", "icons/standards.svg",
     "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx",
     "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx",
+    "excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx",
 ]
 
 

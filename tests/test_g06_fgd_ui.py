@@ -83,88 +83,66 @@ class G06FgdUiTests(unittest.TestCase):
         status = self.page._source_statuses["CAR-SRC-FGD-001"]
         status.setCurrentIndex(status.findData(EmissionSourceStatus.INVOLVED))
 
-    def test_confirmed_catalog_identity_uses_subscript_display_and_explicit_factor_source(self) -> None:
-        unit = self._unit()
-        component = unit["components"][0]
+    def test_confirmed_catalog_factor_is_locked_and_ratios_allow_only_default_or_measured(self) -> None:
+        component = self._unit()["components"][0]
         option = self._select_catalog(component, "car-par-c2-caco3")
-        selector = component["carbonate_type"]
-        self.assertEqual(component["confirmed_name"], option.label)
-        self.assertEqual(selector.currentText(), chemical_label(option.label))
-        self.assertEqual(selector.currentData().factor.factor_id, option.factor.factor_id)
-        self.assertEqual(component["ef1_source"].currentData(), "STD")
+        self.assertEqual(component["carbonate_type"].currentText(), chemical_label(option.label))
+        self.assertEqual(component["ef1_source"].currentData(), "STANDARD_DEFAULT")
         self.assertTrue(component["ef1"].isReadOnly())
-        self.assertTrue(any(
-            isinstance(child, SegmentedChoiceControl)
-            and {button.text() for button in child.group.buttons()} == {"标准值", "计算值", "实测值"}
-            for child in component["_widget"].findChildren(SegmentedChoiceControl)
-            if child.combo is component["ef1_source"]
-        ))
-
-        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("CALC"))
-        self.assertEqual(component["ef1"].text(), "")
-        self.assertFalse(component["ef1"].isReadOnly())
-        component["ef1"].setText("0.456789012345")
-        component["i_source"].setCurrentIndex(component["i_source"].findData("CALCULATED"))
-        component["i"].setText("92.3456789")
-        component["tr_source"].setCurrentIndex(component["tr_source"].findData("MEASURED"))
-        component["tr"].setText("98.7654321")
-
+        control = next(child for child in component["_widget"].findChildren(SegmentedChoiceControl) if child.combo is component["ef1_source"])
+        self.assertEqual(control.values, frozenset({"STANDARD_DEFAULT"}))
+        self.assertEqual(len(control.group.buttons()), 0)
+        for field in ("i", "tr"):
+            combo = component[f"{field}_source"]
+            self.assertFalse(combo.model().item(combo.findData("CALCULATED")).isEnabled())
+            combo.setCurrentIndex(combo.findData("MEASURED"))
+            component[field].setText("92.3456789" if field == "i" else "98.7654321")
         value = self.page._process("fgd", FGDInput).components[0]
         self.assertIs(value.origin, InputOrigin.CATALOG)
-        self.assertEqual(value.emission_factor.value, Decimal("0.456789012345"))
-        self.assertIs(value.emission_factor.source_kind, ParameterSourceKind.CALCULATED)
-        self.assertIs(value.carbonate_fraction.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertEqual(value.emission_factor.value, Decimal(str(option.factor.value)))
+        self.assertIs(value.carbonate_fraction.source_kind, ParameterSourceKind.MEASURED)
         self.assertIs(value.conversion_rate.source_kind, ParameterSourceKind.MEASURED)
 
-    def test_unconfirmed_custom_name_and_unselected_source_do_not_become_user_defined(self) -> None:
-        unit = self._unit()
-        component = unit["components"][0]
+    def test_custom_carbonate_manual_factor_and_general_ratio_defaults(self) -> None:
+        component = self._unit()["components"][0]
         selector = component["carbonate_type"]
         selector.setEditText("企业自定义碳酸盐")
         with self.assertRaisesRegex(DomainValidationError, "确认碳酸盐名称"):
             self.page._process("fgd", FGDInput)
-
         selector.confirm_name(force=True)
-        self.assertIsNone(component["ef1_source"].currentData())
-        component["ef1"].setText("0.501")
-        with self.assertRaisesRegex(DomainValidationError, "选择标准值、计算值或实测值"):
-            self.page._process("fgd", FGDInput)
-
-        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
-        component["ef1"].setText("0.501")
-        component["i_source"].setCurrentIndex(component["i_source"].findData("MEASURED"))
-        component["i"].setText("91.25")
-        component["tr_source"].setCurrentIndex(component["tr_source"].findData("CALCULATED"))
-        component["tr"].setText("99.5")
+        self.assertEqual(component["ef1_source"].currentData(), "MEASURED")
+        self.assertEqual(component["ef1"].text(), "")
+        self.assertEqual((component["i"].text(), component["tr"].text()), ("90", "100"))
+        component["ef1"].setText("0.50123456789")
         value = self.page._process("fgd", FGDInput).components[0]
         self.assertIs(value.origin, InputOrigin.CUSTOM)
         self.assertIs(value.emission_factor.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(value.carbonate_fraction.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(value.conversion_rate.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertEqual(value.emission_factor.value, Decimal("0.50123456789"))
+        self.assertIs(value.carbonate_fraction.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+        self.assertIs(value.conversion_rate.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
 
-    def test_new_component_does_not_change_existing_sources_or_fake_ratio_measurements(self) -> None:
+    def test_new_component_preserves_default_draft_requires_measurement_and_deletion_keeps_measurement(self) -> None:
         unit = self._unit()
         first = unit["components"][0]
         self._select_catalog(first, "car-par-c2-caco3")
-        first_ratio_modes = (first["i_source"].currentData(), first["tr_source"].currentData())
-        first_ratio_values = (first["i"].text(), first["tr"].text())
-
         second = self.page._add_fgd_component(unit)
-        self.assertEqual((first["i_source"].currentData(), first["tr_source"].currentData()), first_ratio_modes)
-        self.assertEqual((first["i"].text(), first["tr"].text()), first_ratio_values)
-        self.assertIsNone(second["i_source"].currentData())
-        self.assertIsNone(second["tr_source"].currentData())
-        self.assertEqual((second["i"].text(), second["tr"].text()), ("", ""))
-
+        self.assertEqual((first["i_source"].currentData(), first["i"].text()), ("STANDARD_DEFAULT", "90"))
+        self.assertFalse(self.page._fgd_ratio_default_allowed(first, "i"))
+        self.assertEqual((second["i_source"].currentData(), second["i"].text()), ("MEASURED", ""))
+        self.assertEqual((second["tr_source"].currentData(), second["tr"].text()), ("STANDARD_DEFAULT", "100"))
         self._select_catalog(second, "car-par-c2-mgco3")
-        self.assertEqual(second["ef1_source"].currentData(), "STD")
-        self.assertIsNone(second["i_source"].currentData())
-        self.assertIsNone(second["tr_source"].currentData())
-        self.assertEqual((second["i"].text(), second["tr"].text()), ("", ""))
+        self.assertEqual((second["i_source"].currentData(), second["i"].text()), ("MEASURED", ""))
+        with self.assertRaisesRegex(DomainValidationError, "多组分"):
+            self.page._process("fgd", FGDInput)
+        first["i_source"].setCurrentIndex(first["i_source"].findData("MEASURED"))
+        self.assertEqual(first["i"].text(), "")
+        first["i"].setText("60.123456789")
+        second["i"].setText("30.123456789")
         restored = self.page._process("fgd", FGDInput)
         self.assertEqual(len(restored.components), 2)
-        self.assertIsNone(restored.components[1].carbonate_fraction)
-        self.assertIsNone(restored.components[1].conversion_rate)
+        self.assertEqual(restored.components[0].carbonate_fraction.value, Decimal("0.60123456789"))
+        self.page._remove_fgd_component(unit, second["component_id"])
+        self.assertEqual((first["i_source"].currentData(), first["i"].text()), ("MEASURED", "60.123456789"))
 
     def test_restore_preserves_saved_standard_values_and_legacy_same_name_identity(self) -> None:
         unit = self._unit()
@@ -183,10 +161,10 @@ class G06FgdUiTests(unittest.TestCase):
             (restored["ef1"].text(), restored["i"].text(), restored["tr"].text()),
             ("0.440123", "90.12345", "99.87654"),
         )
-        self.assertEqual(restored["ef1_source"].currentData(), "STD")
+        self.assertEqual(restored["ef1_source"].currentData(), "STANDARD_DEFAULT")
         self.assertEqual(restored["i_source"].currentData(), "STANDARD_DEFAULT")
         self.assertEqual(restored["tr_source"].currentData(), "STANDARD_DEFAULT")
-        restored["ef1_source"].setCurrentIndex(restored["ef1_source"].findData("CALC"))
+        restored["ef1_source"].setCurrentIndex(restored["ef1_source"].findData("CALCULATED"))
         self.assertEqual(restored["ef1"].text(), "")
 
         legacy_state = dict(saved_state)
@@ -207,9 +185,36 @@ class G06FgdUiTests(unittest.TestCase):
         self.assertTrue(restored["legacy_custom_identity"])
         self.assertIsNone(self.page._fgd_component_option(restored))
         self.assertEqual(restored["ef1_source"].currentData(), "USER_DEFINED")
-        value = self.page._process("fgd", FGDInput).components[0]
-        self.assertIs(value.origin, InputOrigin.CUSTOM)
-        self.assertIs(value.emission_factor.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(restored["ef1"].text(), "0.440123")
+        self.assertEqual(restored["i"].text(), "90.12345")
+        # Reading the old source does not make an unsupported or changed default
+        # eligible for a new formal calculation.
+        with self.assertRaisesRegex(DomainValidationError, "碳酸盐含量"):
+            self.page._process("fgd", FGDInput)
+
+    def test_legacy_factor_and_ratio_aliases_remain_raw_until_explicit_confirmation(self) -> None:
+        component = self._unit()["components"][0]
+        self._select_catalog(component, "car-par-c2-caco3")
+        state = self.page._capture_form_state()
+        component_id = component["component_id"]
+        state["fgd_factor_provenance"][component_id]["mode"] = "STD"
+        state["fgd_ratio_modes"][component_id]["i"] = "STD"
+        state["fgd_ratio_modes"][component_id]["tr"] = "CALC"
+        self.page._restore_form_state(state)
+        restored = self.page._process_rows["fgd"][0]["components"][0]
+        self.assertEqual(restored["ef1_source"].currentData(), "STD")
+        self.assertEqual(restored["i_source"].currentData(), "STD")
+        self.assertEqual(restored["tr_source"].currentData(), "CALC")
+        saved = self.page._capture_form_state()
+        self.assertEqual(saved["fgd_factor_provenance"][component_id]["mode"], "STD")
+        self.assertEqual(saved["fgd_ratio_modes"][component_id], {"i": "STD", "tr": "CALC"})
+        control = next(child for child in restored["_widget"].findChildren(SegmentedChoiceControl) if child.combo is restored["ef1_source"])
+        self.assertEqual(control.values, frozenset({"STANDARD_DEFAULT"}))
+        self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
+        restored["ef1_source"].setCurrentIndex(restored["ef1_source"].findData("STANDARD_DEFAULT"))
+        self.assertEqual(restored["ef1_source"].currentData(), "STANDARD_DEFAULT")
+        restored["tr_source"].setCurrentIndex(restored["tr_source"].findData("MEASURED"))
+        self.assertEqual(restored["tr"].text(), "")
 
     def test_restored_standard_values_matching_current_catalog_are_used_as_standard_defaults(self) -> None:
         unit = self._unit()
@@ -256,7 +261,7 @@ class G06FgdUiTests(unittest.TestCase):
                 restored = self.page._process_rows["fgd"][0]["components"][0]
                 self.assertEqual(restored[field].text(), saved_value)
                 mode_key = "ef1_source" if field == "ef1" else f"{field}_source"
-                expected_mode = "STD" if field == "ef1" else "STANDARD_DEFAULT"
+                expected_mode = "STANDARD_DEFAULT"
                 self.assertEqual(restored[mode_key].currentData(), expected_mode)
                 with self.assertRaisesRegex(DomainValidationError, label):
                     self.page._input(increment=False, render_electricity=False)

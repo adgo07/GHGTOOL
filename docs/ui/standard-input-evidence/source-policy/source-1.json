@@ -1,0 +1,120 @@
+{
+  "type": "Windows Qt programmatic driver / QWidget.grab",
+  "human_acceptance": "OPEN",
+  "scale": "1",
+  "checks": [
+    {
+      "label": "实际Windows Qt平台",
+      "passed": true
+    },
+    {
+      "label": "目录FCh初始缺省锁定",
+      "passed": true
+    },
+    {
+      "label": "目录FCh改源留空可编辑",
+      "passed": true
+    },
+    {
+      "label": "自定义燃料数值全部手填",
+      "passed": true
+    },
+    {
+      "label": "匹配C2因子锁定",
+      "passed": true
+    },
+    {
+      "label": "单组分通用缺省90和100",
+      "passed": true
+    },
+    {
+      "label": "新增组分保留原90草稿",
+      "passed": true
+    },
+    {
+      "label": "多组分首行明确确认提示",
+      "passed": true
+    },
+    {
+      "label": "新组分I留空TR通用默认",
+      "passed": true
+    },
+    {
+      "label": "删除组分保留实测",
+      "passed": true
+    },
+    {
+      "label": "物料成分唯一实测来源",
+      "passed": true
+    },
+    {
+      "label": "展示核查不生成Record",
+      "passed": true
+    }
+  ],
+  "captures": [
+    {
+      "file": "source-1-fuel-default.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-fuel-manual.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-fuel-custom.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-fgd-single.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-fgd-multiple-pending.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-fgd-single-measured.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    },
+    {
+      "file": "source-1-material-measured.png",
+      "pixels": [
+        1366,
+        768
+      ],
+      "dpr": 1.0
+    }
+  ],
+  "sources": {
+    "packages/ui/carbon_material_page.py": "26d0e2d411fe00b0e4a641499d90d3772bc1f5b3a7e1a11685df634c0243754c",
+    "packages/ui/carbon_material_fuel.py": "a3d4ecd8b8a6dec916157399b478c373cce0175aa1d09d8d5384c4bb05e5ee43",
+    "packages/ui/compact_choices.py": "e7ee6484c088a70ccb99863783da5f39aecdca521a4034469b1a0fb5d5f3b26f",
+    "packages/ui/field_specs.py": "41dbaa9bbed887625918229e22c26e09debe0451b59bda426130a0b77cc07d30",
+    "packages/standards/carbon_material_input_policy.py": "3098ec6882b4451bce77309769a0e06a0b70fa4e3afe788f624522bc2c096db1"
+  }
+}

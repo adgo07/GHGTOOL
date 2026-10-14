@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.source_display import format_source_reference, strip_source_page_numbers
 from packages.core.models import ParameterType, ReviewStatus
 from packages.core.models import ValueType
 from packages.application.standard_registry import default_standard_registry
@@ -84,10 +85,12 @@ def _replace_layout_contents(layout: QVBoxLayout) -> None:
 def _detail_section(
     title: str,
     parent: QWidget,
-    rows: Iterable[tuple[str, str]],
+    rows: Iterable[tuple[str, str] | tuple[str, str, str]],
 ) -> QFrame:
     card, layout = _card(title, parent)
-    for label_text, value_text in rows:
+    for row_data in rows:
+        label_text, value_text = row_data[:2]
+        full_value = row_data[2] if len(row_data) > 2 else None
         row = QWidget(card)
         row_layout = QGridLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -98,6 +101,8 @@ def _detail_section(
         value = QLabel(value_text or "—", row)
         value.setObjectName("detailFieldValue")
         value.setWordWrap(True)
+        if full_value:
+            value.setToolTip(full_value)
         row_layout.addWidget(label, 0, 0)
         row_layout.addWidget(value, 0, 1)
         row_layout.setColumnStretch(1, 1)
@@ -1081,23 +1086,47 @@ class ParameterFactorLibraryPage(BasePage):
         if table is None or view is None:
             return
         headers, rows, note = view
+        source = next(
+            (item for item in self._service.list_sources() if item.source_id == table.source_id),
+            None,
+        )
+        source_name = (
+            f"{source.document_no} · {source.document_name}"
+            if source is not None
+            else "标准资料"
+        )
         self.factor_table.clear()
         self.factor_table.setColumnCount(len(headers))
         self.factor_table.setHorizontalHeaderLabels(headers)
         self.factor_table.setRowCount(len(rows))
         for row_number, values in enumerate(rows):
             for column, value in enumerate(values):
-                item = QTableWidgetItem(str(value))
+                raw_value = str(value)
+                display_value = raw_value
+                if "定位" in headers[column]:
+                    display_value = format_source_reference(
+                        raw_value,
+                        source_name,
+                        table_number=table.display_number,
+                    )
+                item = QTableWidgetItem(display_value)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                item.setToolTip(str(value))
+                item.setToolTip(raw_value)
                 item.setData(
                     Qt.ItemDataRole.AccessibleTextRole,
-                    f"{headers[column]}：{value}",
+                    f"{headers[column]}：{display_value}",
                 )
                 self.factor_table.setItem(row_number, column, item)
         self.factor_table.resizeRowsToContents()
         self.browse_table_title.setText(f"{table.display_number} · {table.title} · {len(rows)} 行")
-        self.browse_table_note.setText(note)
+        short_reference = format_source_reference(
+            table.source_location,
+            source_name,
+            table_number=table.display_number,
+        )
+        visible_note = f"来源：{short_reference}。{strip_source_page_numbers(table.notes)}".strip()
+        self.browse_table_note.setText(visible_note)
+        self.browse_table_note.setToolTip(note)
 
     def _asset_display_name(self, result: object) -> str:
         asset = getattr(result, "asset", None)
@@ -1277,7 +1306,11 @@ class ParameterFactorLibraryPage(BasePage):
                 ("发布日期", _date_text(source.publication_date)),
                 ("生效日期", _date_text(source.effective_from)),
                 ("资料核对", self._service.review_status_label(source.review_status)),
-                ("说明", source.notes or "—"),
+                (
+                    "说明",
+                    strip_source_page_numbers(source.notes) or "—",
+                    source.notes or "",
+                ),
             )
             self.factor_detail_layout.addWidget(_detail_section("来源文件", self.factor_detail_host, rows))
             if source.official_url:
@@ -1287,11 +1320,25 @@ class ParameterFactorLibraryPage(BasePage):
                 self.factor_detail_layout.addWidget(button)
         elif result.result_type == "table" and result.table is not None:
             source = next((item for item in self._service.list_sources() if item.source_id == result.table.source_id), None)
+            source_name = (
+                f"{source.document_no} · {source.document_name}"
+                if source is not None
+                else "标准资料"
+            )
+            short_locator = format_source_reference(
+                result.table.source_location,
+                source_name,
+                table_number=result.table.display_number,
+            )
             rows = (
                 ("资料文件", source.document_no if source else "标准资料"),
                 ("表格", f"{result.table.display_number} · {result.table.title}"),
-                ("依据定位", result.table.source_location),
-                ("说明", result.table.notes or "—"),
+                ("依据定位", short_locator, result.table.source_location),
+                (
+                    "说明",
+                    strip_source_page_numbers(result.table.notes) or "—",
+                    result.table.notes or "",
+                ),
             )
             self.factor_detail_layout.addWidget(_detail_section("表格来源", self.factor_detail_host, rows))
             button = QPushButton("按原表结构查看", self.factor_detail_host)
@@ -1302,6 +1349,7 @@ class ParameterFactorLibraryPage(BasePage):
             asset = result.asset
             parameter = next((item for item in self._service.repository.list_parameters() if item.parameter_id == asset.parameter_id), None)
             subject = next((item for item in self._service.repository.list_subjects() if item.subject_id == asset.subject_id), None)
+            asset_notes = asset.notes or (parameter.notes if parameter else "") or ""
             rows = (
                 ("参数", parameter.name if parameter else "—"),
                 ("适用对象", subject.name if subject else "—"),
@@ -1310,6 +1358,7 @@ class ParameterFactorLibraryPage(BasePage):
                 ("单位", asset.unit),
                 ("适用条件", self._asset_condition_text(result)),
                 ("数据类型", self._service.value_type_label(asset.value_type)),
+                ("说明", strip_source_page_numbers(asset_notes) or "—", asset_notes),
             )
             self.factor_detail_layout.addWidget(_detail_section("参数值", self.factor_detail_host, rows))
 
@@ -1338,8 +1387,17 @@ class ParameterFactorLibraryPage(BasePage):
             for binding in result.bindings:
                 table = tables.get(binding.source_table_id)
                 source = sources.get(table.source_id) if table else None
-                label = f"{source.document_no} · {table.display_number}" if source and table else "标准资料"
-                binding_rows.append((label, binding.source_location))
+                source_name = (
+                    f"{source.document_no} · {source.document_name}"
+                    if source is not None
+                    else "标准资料"
+                )
+                short_location = format_source_reference(
+                    binding.source_location,
+                    source_name,
+                    table_number=table.display_number if table else None,
+                )
+                binding_rows.append(("来源定位", short_location, binding.source_location))
             if binding_rows:
                 trace_layout.addWidget(_detail_section("来源定位", trace_host, binding_rows))
 
@@ -1402,10 +1460,29 @@ class ParameterFactorLibraryPage(BasePage):
                 period_rows.append(("因子年度", "、".join(binding_years)))
             if standard_numbers:
                 period_rows.append(("适用标准", "、".join(standard_numbers)))
+            source_names = tuple(
+                dict.fromkeys(
+                    f"{sources[tables[binding.source_table_id].source_id].document_no} · "
+                    f"{sources[tables[binding.source_table_id].source_id].document_name}"
+                    for binding in result.bindings
+                    if binding.source_table_id in tables
+                    and tables[binding.source_table_id].source_id in sources
+                )
+            )
+            parameter_source = "、".join(source_names) or "标准资料"
+            parameter_location = parameter.source_location if parameter else ""
+            short_parameter_location = format_source_reference(
+                parameter_location,
+                parameter_source,
+            )
             period_rows.extend(
                 (
-                    ("参数定位", parameter.source_location if parameter else "—"),
-                    ("数据说明", asset.notes or (parameter.notes if parameter else "—") or "—"),
+                    ("参数定位", short_parameter_location, parameter_location),
+                    (
+                        "数据说明",
+                        strip_source_page_numbers(asset.notes or (parameter.notes if parameter else "")) or "—",
+                        asset.notes or (parameter.notes if parameter else "") or "",
+                    ),
                     ("资源版本", asset.asset_version or "—"),
                     ("原始值", f"{format(asset.source_value, 'f')} {asset.source_unit}"),
                     ("归一化值", f"{format(asset.normalized_value, 'f')} {asset.normalized_unit}"),

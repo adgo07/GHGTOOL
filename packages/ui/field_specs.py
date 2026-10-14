@@ -539,6 +539,15 @@ def get_field_spec(internal_key: str) -> FieldSpec:
         raise KeyError(f"没有为 UI 字段建立 FieldSpec：{internal_key}") from exc
 
 
+def _shift_decimal_exact(value: object, places: int) -> Decimal:
+    """Move the decimal point without consulting the caller's Decimal context."""
+    parsed = Decimal(str(value))
+    if not parsed.is_finite():
+        raise ValueError("比例必须是有限十进制数")
+    sign, digits, exponent = parsed.as_tuple()
+    return Decimal((sign, digits, exponent + places))
+
+
 def ui_to_domain_value(spec: FieldSpec, value: str | None) -> str | None:
     """Convert a display value to the unit expected by the Domain model."""
 
@@ -547,7 +556,7 @@ def ui_to_domain_value(spec: FieldSpec, value: str | None) -> str | None:
     if spec.data_type is not FieldDataType.PERCENTAGE:
         return value.strip()
     try:
-        return format(Decimal(value.strip()) / Decimal("100"), "f")
+        return format(_shift_decimal_exact(value.strip(), -2), "f")
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"{spec.internal_key} 不是合法百分数：{value}") from exc
 
@@ -558,7 +567,7 @@ def domain_to_ui_value(spec: FieldSpec, value: object) -> str:
     if spec.data_type is not FieldDataType.PERCENTAGE:
         return str(value)
     try:
-        return format(Decimal(str(value)) * Decimal("100"), "f")
+        return format(_shift_decimal_exact(value, 2), "f")
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"{spec.internal_key} 不是合法 Domain 比例：{value}") from exc
 

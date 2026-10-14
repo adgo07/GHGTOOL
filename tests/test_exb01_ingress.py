@@ -30,7 +30,7 @@ from packages.standards.carbon_material import (
     SteamKind,
 )
 from packages.standards.carbon_material_normalization import MaterialRole
-from tests.exb01_fixture_helper import appendix_b_context, write_valid_appendix_b_workbook
+from tests.exb01_fixture_helper import appendix_b_context, rewrite_numeric_lexeme, write_valid_appendix_b_workbook
 
 
 class AppendixBIngressIntegrationTests(unittest.TestCase):
@@ -170,29 +170,79 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             for line in unit.calculation.result.lines
         )
 
-    def test_custom_carbonate_does_not_inherit_default_fraction_or_conversion(self) -> None:
-        path = self._workbook("custom-carbonate-missing-parameters.xlsx")
-        self._set_cells(path, {"B.7":{"A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐","H3":0.5,"I3":"自定义"}})
+    def test_custom_carbonate_uses_resolver_defaults_for_single_i_and_general_tr(self) -> None:
+        path = self._workbook("custom-carbonate-resolver-defaults.xlsx")
+        self._set_cells(path, {"B.7": {
+            "A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
+            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值",
+        }})
         unit = self.importer.import_preview(path,context=self._context()).units[0]
-        self.assertFalse(unit.can_calculate)
-        self.assertIn(("EXB01_CUSTOM_CARBONATE_CONTENT_REQUIRED","B.7!D3"),{(e.code,e.location) for e in unit.errors})
-        self.assertIn(("EXB01_CUSTOM_CARBONATE_CONVERSION_REQUIRED","B.7!F3"),{(e.code,e.location) for e in unit.errors})
+        self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
+        component = unit.input_value.fgd_units[0].components[0]
+        self.assertEqual(component.carbonate_fraction.value, Decimal("0.90"))
+        self.assertEqual(component.carbonate_fraction.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+        self.assertEqual(component.conversion_rate.value, Decimal("1.00"))
+        self.assertEqual(component.conversion_rate.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+        self.assertEqual(component.emission_factor.source_kind, ParameterSourceKind.MEASURED)
+        self.assertEqual(unit.source_breakdown[SOURCE_FGD], Decimal("0.9000"))
 
-    def test_catalog_carbonate_can_select_calculated_or_measured_factor(self) -> None:
-        for source_label, source_kind in (("计算值", ParameterSourceKind.CALCULATED), ("实测值", ParameterSourceKind.MEASURED)):
+    def test_exact_c2_factor_allows_only_resolved_standard_source(self) -> None:
+        path = self._workbook("catalog-carbonate-standard-factor.xlsx")
+        self._set_cells(path, {"B.7": {
+            "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":"缺省值",
+        }})
+        unit = self.importer.import_preview(path, context=self._context()).units[0]
+        self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
+        factor = unit.input_value.fgd_units[0].components[0].emission_factor
+        self.assertIsNotNone(factor.factor_id)
+        self.assertIn("c2", factor.parameter_id)
+        self.assertIn(factor.source_kind, {ParameterSourceKind.STANDARD_DEFAULT, ParameterSourceKind.STANDARD_SPECIFIED})
+
+        for source_label, expected_code in (("实测值", "CAR-VAL-CARBONATE-FACTOR-SOURCE"),
+                                           ("计算值", "EXB01_CARBONATE_FACTOR_SOURCE_INVALID")):
             with self.subTest(source=source_label):
-                path = self._workbook(f"catalog-carbonate-{source_label}.xlsx")
-                self._set_cells(path, {"B.7": {
+                measured_path = self._workbook(f"catalog-carbonate-{source_label}-blocked.xlsx")
+                self._set_cells(measured_path, {"B.7": {
                     "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"H3":0.5,"J3":source_label,
                 }})
-                unit = self.importer.import_preview(path, context=self._context()).units[0]
-                self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
-                factor = unit.input_value.fgd_units[0].components[0].emission_factor
-                self.assertEqual(factor.source_kind, source_kind)
-                self.assertIsNone(factor.factor_id)
-                self.assertEqual(factor.value, Decimal("0.5"))
+                blocked = self.importer.import_preview(measured_path, context=self._context()).units[0]
+                self.assertFalse(blocked.can_calculate)
+                self.assertIn(expected_code, {e.code for e in blocked.errors})
+                self.assertIsNone(blocked.input_value.fgd_units[0].components[0].emission_factor)
 
-    def test_missing_v21_catalog_carbonate_source_does_not_default_silently(self) -> None:
+    def test_custom_multi_component_i_requires_each_measured_value_but_tr_is_resolved(self) -> None:
+        path = self._workbook("custom-multi-carbonate-requires-fractions.xlsx")
+        self._set_cells(path, {"B.7": {
+            "A3":"自定义脱硫剂","B3":2,"C3":"自定义组分甲","D3":None,"F3":None,
+            "H3":0.5,"I3":"自定义","J3":"实测值",
+            "C4":"自定义组分乙","D4":None,"F4":None,"H4":0.3,"I4":"自定义","J4":"实测值",
+        }})
+        unit = self.importer.import_preview(path, context=self._context()).units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertEqual(sum(1 for e in unit.errors if e.code == "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED"), 2)
+        components = unit.input_value.fgd_units[0].components
+        self.assertEqual([item.conversion_rate.source_kind for item in components], [ParameterSourceKind.STANDARD_DEFAULT] * 2)
+
+    def test_blank_fgd_i_and_tr_block_when_resolver_bindings_are_missing(self) -> None:
+        path = self._workbook("fgd-no-resolver-bindings.xlsx")
+        self._set_cells(path, {"B.7": {
+            "A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
+            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值",
+        }})
+        original = self.importer._default_factor
+        self.importer._default_factor = lambda parameter_id, period, **kwargs: (
+            None if parameter_id in {"CAR-PAR-P04B-I", "CAR-PAR-P04B-TR"}
+            else original(parameter_id, period, **kwargs)
+        )
+        unit = self.importer.import_preview(path, context=self._context()).units[0]
+        self.assertFalse(unit.can_calculate)
+        self.assertIn("EXB01_CARBONATE_CONTENT_UNRESOLVED", {e.code for e in unit.errors})
+        self.assertIn("EXB01_CARBONATE_CONVERSION_UNRESOLVED", {e.code for e in unit.errors})
+        component = unit.input_value.fgd_units[0].components[0]
+        self.assertIsNone(component.carbonate_fraction)
+        self.assertIsNone(component.conversion_rate)
+
+    def test_missing_v22_catalog_carbonate_source_does_not_default_silently(self) -> None:
         path = self._workbook("missing-catalog-carbonate-source.xlsx")
         self._set_cells(path, {"B.7": {
             "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":None,
@@ -205,7 +255,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         )
         self.assertIsNone(unit.input_value.fgd_units[0].components[0].emission_factor)
 
-    def test_custom_carbonate_filled_parameters_keep_user_defined_source(self) -> None:
+    def test_custom_carbonate_filled_parameters_are_measured(self) -> None:
         from packages.standards.carbon_material_input_policy import InputOrigin
         path = self._workbook("custom-carbonate-filled-parameters.xlsx")
         self._set_cells(path, {"B.7":{"A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
@@ -214,9 +264,9 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertTrue(unit.can_calculate,unit.errors)
         component=unit.input_value.fgd_units[0].components[0]
         self.assertEqual(component.origin,InputOrigin.CUSTOM)
-        self.assertEqual(component.carbonate_fraction.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(component.carbonate_fraction.source_kind, ParameterSourceKind.MEASURED)
         self.assertEqual(component.emission_factor.source_kind, ParameterSourceKind.MEASURED)
-        self.assertEqual(component.conversion_rate.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(component.conversion_rate.source_kind, ParameterSourceKind.MEASURED)
         self.assertIsNone(component.emission_factor.factor_id)
         self.assertEqual(unit.result.total_amount,Decimal("0.720"))
         self.assertIsNone(unit.calculation.record)
@@ -248,7 +298,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 self.assertIsNone(fch.factor_id)
                 self.assertEqual(fch.value, Decimal("0.03"))
 
-    def test_missing_v21_fch_source_is_located_and_does_not_become_measured(self) -> None:
+    def test_missing_v22_fch_source_is_located_and_does_not_become_measured(self) -> None:
         path = self._workbook("missing-fch-source.xlsx")
         self._set_cells(path, {"B.2": {
             "A4":"天然气","B4":1,"D4":"计算值","F4":"缺省值",
@@ -258,6 +308,63 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertFalse(unit.can_calculate)
         self.assertIn(("EXB01_FCH_SOURCE_REQUIRED","B.2!N4"), {(e.code,e.location) for e in unit.errors})
         self.assertIsNone(unit.input_value.fuel_inputs[0].carbon_content)
+
+    def test_custom_fuel_cannot_select_catalog_defaults_for_fch_or_fox(self) -> None:
+        path = self._custom_fuel("custom-fuel-defaults-blocked.xlsx", route="计算值", unit="10⁴Nm³")
+        self._set_cells(path, {"B.2": {"I4":"缺省值", "N4":"缺省值"}})
+        unit = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+        self.assertFalse(unit.can_calculate)
+        issues = {(item.code, item.location) for item in unit.errors}
+        self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!N4"), issues)
+        self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!J4"), issues)
+
+    def test_catalog_fuel_defaults_are_resolved_from_the_current_period(self) -> None:
+        path = self._workbook("catalog-fuel-current-defaults.xlsx")
+        self._set_cells(path, {"B.2": {
+            "A4":"天然气","B4":1,"D4":"计算值","F4":"缺省值",
+            "G4":None,"I4":"缺省值","N4":"缺省值",
+        }})
+        workbook = load_workbook(path)
+        workbook["B.2"]["C4"] = "10⁴Nm³"
+        workbook.save(path)
+        workbook.close()
+        unit = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+        self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
+        fuel = unit.input_value.fuel_inputs[0]
+        self.assertIsNotNone(fuel.lower_heating_value.factor_id)
+        self.assertIsNotNone(fuel.carbon_content.factor_id)
+        self.assertIsNotNone(fuel.oxidation_rate.factor_id)
+        self.assertEqual(fuel.lower_heating_value.value, Decimal("389.31"))
+
+        invalid_fox = self._workbook("catalog-fuel-calculated-fox-blocked.xlsx")
+        self._set_cells(invalid_fox, {"B.2": {
+            "A4":"焦炭","B4":1,"C4":0.4,"D4":"实测值","H4":98,"I4":"计算值",
+        }})
+        blocked = self.importer.import_preview(invalid_fox, context=self._context(fuel_path=FuelPath.MASS)).units[0]
+        self.assertFalse(blocked.can_calculate)
+        self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!J4"),
+                      {(item.code,item.location) for item in blocked.errors})
+
+    def test_catalog_lhv_allows_explicit_calculated_and_measured_values(self) -> None:
+        entered = Decimal("389.312345678901")
+        for source_label, source_kind in (("计算值", ParameterSourceKind.CALCULATED),
+                                          ("实测值", ParameterSourceKind.MEASURED)):
+            with self.subTest(source=source_label):
+                path = self._workbook(f"catalog-lhv-{source_label}.xlsx")
+                self._set_cells(path, {"B.2": {
+                    "A4":"天然气","B4":1,"D4":"计算值","E4":entered,"F4":source_label,
+                    "G4":None,"I4":"缺省值","L4":"目录","N4":"缺省值",
+                }})
+                workbook = load_workbook(path)
+                workbook["B.2"]["C4"] = "10⁴Nm³"
+                workbook.save(path)
+                workbook.close()
+                rewrite_numeric_lexeme(path, "B.2", "F4", str(entered))
+                unit = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+                self.assertTrue(unit.can_calculate, tuple((item.code,item.location) for item in unit.errors))
+                lhv = unit.input_value.fuel_inputs[0].lower_heating_value
+                self.assertEqual(lhv.value, entered)
+                self.assertEqual(lhv.source_kind, source_kind)
 
     def test_registered_coke_keeps_its_catalog_type_instead_of_becoming_custom(self) -> None:
         path = self._workbook("registered-coke.xlsx")
@@ -486,7 +593,11 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
 
         preview = self.importer.import_preview(path, context=self._context())
         unit = preview.units[0]
-        self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
+        self.assertFalse(unit.can_calculate)
+        self.assertIsNotNone(unit.calculation)
+        self.assertIsNone(unit.calculation.result)
+        self.assertIsNone(unit.calculation.record)
+        self.assertIn("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", {e.code for e in unit.errors})
         self.assertEqual(preview.provenance.template_version, "2.0.0")
         self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.source_kind, ParameterSourceKind.USER_DEFINED)
         self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.value, Decimal("0.03"))
@@ -508,7 +619,11 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
 
         preview = self.importer.import_preview(path, context=self._context())
         unit = preview.units[0]
-        self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
+        self.assertFalse(unit.can_calculate)
+        self.assertIsNotNone(unit.calculation)
+        self.assertIsNone(unit.calculation.result)
+        self.assertIsNone(unit.calculation.record)
+        self.assertIn("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", {e.code for e in unit.errors})
         self.assertEqual(preview.provenance.template_version, "2.0.0")
         self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.source_kind, ParameterSourceKind.USER_DEFINED)
         self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.value, Decimal("0.03"))
@@ -519,10 +634,15 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self._set_cells(path,{"B.2":{"A4":"旧模板自定义燃料","B4":10,"D4":"计算值",
                                     "E4":8,"F4":"填写值","G4":0.03,"H4":98,"I4":"填写值"}})
         preview=self.importer.import_preview(path,context=self._context(fuel_path=FuelPath.MASS))
+        unit=preview.units[0]
         self.assertEqual(preview.provenance.template_version,"1.0.0")
-        self.assertTrue(preview.units[0].can_calculate,preview.units[0].errors)
-        self.assertEqual(preview.units[0].input_value.fuel_inputs[0].carbon_content.source_kind,ParameterSourceKind.USER_DEFINED)
-        self.assertIsNone(preview.units[0].calculation.record)
+        self.assertFalse(unit.can_calculate)
+        self.assertIsNotNone(unit.calculation)
+        self.assertIsNone(unit.calculation.result)
+        self.assertIsNone(unit.calculation.record)
+        self.assertIn("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", {e.code for e in unit.errors})
+        self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.source_kind,ParameterSourceKind.USER_DEFINED)
+        self.assertEqual(unit.input_value.fuel_inputs[0].carbon_content.value,Decimal("0.03"))
 
     def test_fuel_name_starting_with_usage_prompt_is_not_a_footer(self) -> None:
         path = self._custom_fuel("fuel-usage-prompt-prefix.xlsx")

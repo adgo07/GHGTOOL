@@ -17,7 +17,7 @@ from openpyxl import load_workbook
 
 from packages.application.reporting import build_saved_record_report
 from packages.application.reporting.model import build_report_model, frozen_totals
-from packages.application.reporting.appendix_b import _energy_parameter, _frozen_step
+from packages.application.reporting.appendix_b import _energy_parameter, _frozen_step, _short_source
 from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT, SOURCE_EXPORTED_HEAT, SOURCE_PURCHASED_ELECTRICITY, SOURCE_EXPORTED_ELECTRICITY
 from packages.core.models import CalculationLine
 from packages.infrastructure.reporting import render_report_docx
@@ -312,6 +312,36 @@ class RPT02AppendixBTests(unittest.TestCase):
         factor = _section(model, "b9").tables[0].rows[0].cells[6]
         self.assertIn("来源定位：", factor.source_detail)
         self.assertIn("来源版本：", factor.source_detail)
+
+    def test_report_source_uses_clause_without_dropping_frozen_pdf_audit(self):
+        record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        snapshot = next(
+            item for item in record.parameter_snapshots
+            if item.detail_id == "CAR-FLD-P04B-fgd-1-0-I"
+        )
+        frozen_location = (
+            "GB/T 32151.34—2024 第5.2.6.1条；PDF第30页；印刷页22"
+        )
+        snapshots = tuple(
+            replace(item, source_location=frozen_location)
+            if item.snapshot_id == snapshot.snapshot_id else item
+            for item in record.parameter_snapshots
+        )
+        record = replace(record, parameter_snapshots=snapshots)
+
+        model = build_report_model(record, raw, trace, provenance, reporting, qualification)
+        cell = _section(model, "b7").tables[0].rows[0].cells[3]
+
+        self.assertEqual(cell.source, "GB/T32151.34—2024 第5.2.6.1条")
+        self.assertNotIn("PDF", cell.source)
+        self.assertNotIn("印刷页", cell.source)
+        self.assertIn(f"来源定位：{frozen_location}", cell.source_detail)
+
+    def test_legacy_user_defined_source_is_not_relabelled_as_measured(self):
+        self.assertEqual(
+            _short_source({"source_kind": "USER_DEFINED"}, None, "用户提供值"),
+            "填写值",
+        )
 
     def test_b9_missing_history_explains_missing_input_without_repeating_results(self):
         record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")

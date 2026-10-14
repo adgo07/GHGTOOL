@@ -188,6 +188,8 @@ class _FuelRow(QWidget):
         # Old workspace source choices can exceed the reduced V2 selectors.
         # Preserve those choices as hidden compatibility metadata.
         self._legacy_source_modes: dict[str, str] = {}
+        self._active_source_modes: dict[str, str | None] = {}
+        self._parameter_source_drafts: dict[tuple[str, str], str] = {}
         self.parameter_source = "AUTO"
 
     @staticmethod

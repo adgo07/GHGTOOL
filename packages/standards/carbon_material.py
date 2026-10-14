@@ -7,7 +7,13 @@ calculation evidence. Record persistence and adapters live outside this module.
 
 from __future__ import annotations
 
-from packages.standards.carbon_material_input_policy import (InputOrigin, infer_fuel_origin, fuel_source_violations, carbonate_source_violations)
+from packages.standards.carbon_material_input_policy import (
+    InputOrigin,
+    carbonate_c2_identity,
+    infer_fuel_origin,
+    parameter_source_policy,
+    validate_parameter_source_policy,
+)
 
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from datetime import date, datetime, timezone
@@ -149,6 +155,12 @@ class ParameterSourceKind(str, Enum):
     OFFICIAL_PUBLISHED = "OFFICIAL_PUBLISHED"
     USER_DEFINED = "USER_DEFINED"
     PROJECT_SPECIFIED = "PROJECT_SPECIFIED"
+
+
+STANDARD_PARAMETER_SOURCE_KINDS = {
+    ParameterSourceKind.STANDARD_DEFAULT,
+    ParameterSourceKind.STANDARD_SPECIFIED,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -1752,45 +1764,277 @@ class CarbonMaterialCalculator:
             problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, f"排放源 {source_id} 已标记涉及但缺少输入。", source_id))
         return status
 
+    def _resolved_source_factor(
+        self,
+        parameter_id: str,
+        subject_id: str,
+        parameter_type: ParameterType,
+        accounting_period: AccountingPeriod,
+    ):
+        if self.parameter_resolver is None or not subject_id:
+            return None
+        context = ParameterResolutionContext(
+            parameter_id=parameter_id,
+            standard_id=STANDARD_ID,
+            accounting_period=accounting_period,
+            subject_id=subject_id,
+            parameter_type=parameter_type,
+        )
+        resolution = self.parameter_resolver.resolve(context)
+        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
+        if resolution.blocked or resolution.recommended is None:
+            return None
+        return resolution.recommended.factor
+
+    def _standard_parameter_binding(
+        self,
+        value: object,
+        expected_parameter_id: str,
+        accounting_period: AccountingPeriod,
+    ):
+        if not isinstance(value, ParameterValue) or value.parameter_id.casefold() != expected_parameter_id.casefold():
+            return None
+        if self.parameter_resolver is None:
+            return None
+        repository = self.parameter_resolver.repository
+        parameter_id = expected_parameter_id.casefold()
+        parameter = repository.get_parameter(parameter_id)
+        if (
+            parameter is None
+            or parameter.parameter_id.casefold() != expected_parameter_id.casefold()
+            or parameter.subject_id != "fgd"
+            or parameter.parameter_type is not ParameterType.PROCESS_DEFAULT_PARAMETER
+        ):
+            return None
+        candidate = self._resolved_source_factor(
+            parameter.parameter_id,
+            parameter.subject_id,
+            parameter.parameter_type,
+            accounting_period,
+        )
+        if (
+            candidate is None
+            or candidate.value_type is not ValueType.STANDARD_DEFAULT
+            or candidate.source_id != "SRC-32151-34-2024"
+            or candidate.source_location is None
+            or "第5.2.5.2条" not in candidate.source_location
+            or STANDARD_ID not in candidate.applicable_standard_ids
+        ):
+            return None
+        if value.factor_id:
+            registered = repository.get_factor(value.factor_id)
+            if (
+                registered is None
+                or registered.factor_id != candidate.factor_id
+                or registered.parameter_id.casefold() != expected_parameter_id.casefold()
+            ):
+                return None
+        return candidate
+
+    def _fuel_default_binding(
+        self,
+        value: ParameterValue | None,
+        subject_id: str | None,
+        parameter_type: ParameterType,
+        accounting_period: AccountingPeriod,
+    ):
+        if value is None or not subject_id:
+            return None
+        if self.parameter_resolver is None:
+            return None
+        parameter = self.parameter_resolver.repository.get_parameter(value.parameter_id)
+        if (
+            parameter is None
+            or parameter.parameter_id != value.parameter_id
+            or parameter.subject_id != subject_id
+            or parameter.parameter_type is not parameter_type
+        ):
+            return None
+        candidate = self._resolved_source_factor(value.parameter_id, subject_id, parameter_type, accounting_period)
+        if (
+            candidate is None
+            or candidate.parameter_id != value.parameter_id
+            or candidate.subject_id != subject_id
+            or candidate.parameter_type is not parameter_type
+            or candidate.value_type is not ValueType.STANDARD_DEFAULT
+            or candidate.source_id != "SRC-32151-34-2024"
+            or candidate.source_location is None
+            or "附录C表C.1" not in candidate.source_location
+            or STANDARD_ID not in candidate.applicable_standard_ids
+        ):
+            return None
+        return candidate
+
+    def _factor_value_matches(self, value: ParameterValue, factor: object) -> bool:
+        expected_source_kind = {
+            ValueType.STANDARD_SPECIFIED: ParameterSourceKind.STANDARD_SPECIFIED,
+            ValueType.STANDARD_DEFAULT: ParameterSourceKind.STANDARD_DEFAULT,
+            ValueType.GOVERNMENT_PUBLISHED: ParameterSourceKind.OFFICIAL_PUBLISHED,
+            ValueType.SCIENTIFIC_REFERENCE: ParameterSourceKind.USER_DEFINED,
+            ValueType.MEASURED: ParameterSourceKind.MEASURED,
+            ValueType.DERIVED: ParameterSourceKind.CALCULATED,
+            ValueType.SYSTEM_CONSTANT: ParameterSourceKind.CALCULATED,
+            ValueType.HISTORICAL: ParameterSourceKind.USER_DEFINED,
+        }.get(getattr(factor, "value_type", None))
+        if (
+            value.factor_id != getattr(factor, "factor_id", None)
+            or value.parameter_id != getattr(factor, "parameter_id", None)
+            or value.source_kind is not expected_source_kind
+            or value.source_id != getattr(factor, "source_id", None)
+            or value.source_version != getattr(factor, "version", None)
+            or value.source_location != getattr(factor, "source_location", None)
+            or value.factor_year != getattr(factor, "factor_year", None)
+        ):
+            return False
+        try:
+            normalized = self.units.convert(value.value, value.unit, factor.unit) if value.unit != factor.unit else value.value
+        except (UnitError, ValueError):
+            return False
+        return normalized == factor.value
+
+    def _registered_factor_value_matches(self, value: ParameterValue) -> bool:
+        if self.parameter_resolver is None or value.factor_id is None:
+            return False
+        factor = self.parameter_resolver.repository.get_factor(value.factor_id)
+        return factor is not None and self._factor_value_matches(value, factor)
+
+    @staticmethod
+    def _source_kind_for_policy(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, ParameterValue):
+            return value.source_kind.value
+        return "UNSPECIFIED"
+
+    def _carbonate_default_binding(self, component: CarbonateComponent, accounting_period: AccountingPeriod):
+        """Resolve a C.2 candidate only for an explicit catalog identity."""
+        if component.origin is not InputOrigin.CATALOG or self.parameter_resolver is None:
+            return None
+        identity = carbonate_c2_identity(component.carbonate_type)
+        if identity is None:
+            return None
+        repository = self.parameter_resolver.repository
+        parameter = repository.get_parameter(identity.parameter_id)
+        if (
+            parameter is None
+            or parameter.parameter_id != identity.parameter_id
+            or parameter.subject_id != identity.subject_id
+            or parameter.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
+        ):
+            return None
+        candidates = []
+        for factor in repository.list_factors(identity.parameter_id):
+            if (
+                factor.parameter_id != identity.parameter_id
+                or factor.subject_id != identity.subject_id
+                or factor.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
+                or factor.value_type is not ValueType.STANDARD_SPECIFIED
+                or factor.review_status.value != "VERIFIED"
+                or factor.source_id != "SRC-32151-34-2024"
+                or factor.source_location is None
+                or "附录C表C.2" not in factor.source_location
+                or STANDARD_ID not in factor.applicable_standard_ids
+            ):
+                continue
+            candidate = self._resolved_source_factor(
+                factor.parameter_id,
+                factor.subject_id,
+                factor.parameter_type,
+                accounting_period,
+            )
+            if candidate is not None and candidate.factor_id == factor.factor_id:
+                candidates.append(candidate)
+        return candidates[0] if len(candidates) == 1 else None
+
+    def _append_source_policy_problem(
+        self,
+        field_id: str,
+        value: object | None,
+        problems: list[ValidationProblem],
+        *,
+        origin: InputOrigin | None = None,
+        has_resolver_binding: bool = False,
+        carbonate_component_count: int = 1,
+        input_basis: str | None = None,
+        problem_field_id: str | None = None,
+    ) -> bool:
+        issue = validate_parameter_source_policy(
+            field_id,
+            self._source_kind_for_policy(value),
+            origin=origin,
+            has_resolver_binding=has_resolver_binding,
+            carbonate_component_count=carbonate_component_count,
+            input_basis=input_basis,
+        )
+        if issue is None:
+            return False
+        _policy_field, code, message = issue
+        problems.append(_problem(code, IssueLevel.ERROR, message, problem_field_id or field_id))
+        return True
+
     def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, accounting_period: AccountingPeriod) -> Decimal | None:
+        if item.path is FuelPath.HEAT and item.lower_heating_value is not None:
+            problems.append(_problem(
+                "CAR-VAL-FUEL-LHV-NOT-APPLICABLE",
+                IssueLevel.ERROR,
+                "热量路径的活动量已经是热量，不应再填写低位发热量；请清空该字段。",
+                f"CAR-FLD-F01-{item.fuel_id}-LHV",
+            ))
+            return None
         origin = infer_fuel_origin(item.fuel_type.value if item.fuel_type else None, item.origin)
         direct = item.lower_heating_value is None and item.path is not FuelPath.HEAT
-        sources = {
-            name: value.source_kind.value if value is not None else None
-            for name, value in (
-                ("carbon_content", item.carbon_content),
-                ("lower_heating_value", item.lower_heating_value),
-                ("oxidation_rate", item.oxidation_rate),
-            )
+        binding_by_field = {
+            "fuel.lhv": self._fuel_default_binding(
+                item.lower_heating_value, item.catalog_subject_id, ParameterType.LOWER_HEATING_VALUE, accounting_period,
+            ) if origin is InputOrigin.CATALOG and isinstance(item.lower_heating_value, ParameterValue) and (item.lower_heating_value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.lower_heating_value.factor_id is not None) else None,
+            "fuel.fch": self._fuel_default_binding(
+                item.carbon_content, item.catalog_subject_id, ParameterType.CARBON_CONTENT_PER_HEAT, accounting_period,
+            ) if origin is InputOrigin.CATALOG and not direct and isinstance(item.carbon_content, ParameterValue) and (item.carbon_content.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.carbon_content.factor_id is not None) else None,
+            "fuel.oxidation": self._fuel_default_binding(
+                item.oxidation_rate, item.catalog_subject_id, ParameterType.OXIDATION_RATE, accounting_period,
+            ) if origin is InputOrigin.CATALOG and isinstance(item.oxidation_rate, ParameterValue) and (item.oxidation_rate.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.oxidation_rate.factor_id is not None) else None,
         }
-        violations = fuel_source_violations(
-            origin, direct_carbon=direct, sources=sources, heat_activity=item.path is FuelPath.HEAT,
-        )
-        for field, code, message in violations:
-            suffix={"carbon_content":"CARBON","lower_heating_value":"LHV","oxidation_rate":"FOX"}[field]
-            problems.append(_problem(code, IssueLevel.ERROR, message, f"CAR-FLD-F01-{item.fuel_id}-{suffix}"))
-        if violations:
-            return None
-        carbon_value = item.carbon_content
-        if (
-            origin is InputOrigin.CATALOG and not direct and item.origin is not None
-            and self.parameter_resolver is not None and carbon_value is not None
-            and carbon_value.source_kind is ParameterSourceKind.STANDARD_DEFAULT
-        ):
-            context = ParameterResolutionContext(
-                parameter_id=carbon_value.parameter_id, standard_id=STANDARD_ID,
-                accounting_period=accounting_period, subject_id=item.catalog_subject_id,
-                parameter_type=ParameterType.CARBON_CONTENT_PER_HEAT,
+        policy_fields = []
+        if direct:
+            policy_fields.append(("fuel.direct_carbon", item.carbon_content, False, "CARBON"))
+        else:
+            if item.lower_heating_value is not None:
+                policy_fields.append(("fuel.lhv", item.lower_heating_value, binding_by_field["fuel.lhv"] is not None, "LHV"))
+            policy_fields.append(("fuel.fch", item.carbon_content, binding_by_field["fuel.fch"] is not None, "CARBON"))
+        policy_fields.append(("fuel.oxidation", item.oxidation_rate, binding_by_field["fuel.oxidation"] is not None, "FOX"))
+        policy_invalid = False
+        for policy_field, value, is_bound, suffix in policy_fields:
+            row_field_id = f"CAR-FLD-F01-{item.fuel_id}-{suffix}"
+            policy_invalid |= self._append_source_policy_problem(
+                policy_field, value, problems, origin=origin, has_resolver_binding=is_bound,
+                input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
+                problem_field_id=row_field_id,
             )
-            resolved = self.parameter_resolver.resolve(context)
-            selected = resolved.recommended.factor if resolved.recommended and not resolved.blocked else None
-            if selected is None or carbon_value.factor_id != selected.factor_id or carbon_value.value != selected.value:
+        if policy_invalid:
+            return None
+        for policy_field, value, is_bound, suffix in policy_fields:
+            if value is None or not isinstance(value, ParameterValue):
+                continue
+            candidate = binding_by_field.get(policy_field)
+            has_factor_identity = value.factor_id is not None
+            if value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS:
+                matches = candidate is not None and self._factor_value_matches(value, candidate)
+            elif has_factor_identity:
+                matches = self._registered_factor_value_matches(value)
+            else:
+                continue
+            if not matches:
+                label = parameter_source_policy(
+                    policy_field, origin=origin, has_resolver_binding=is_bound,
+                    input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
+                ).short_label
                 problems.append(_problem(
-                    "CAR-VAL-CATALOG-FCH-MISMATCH", IssueLevel.ERROR,
-                    "目录燃料单位热值含碳量与当前期间Resolver核验缺省值不一致，请重新选择该燃料。",
-                    f"CAR-FLD-F01-{item.fuel_id}-CARBON",
+                    "CAR-VAL-PARAMETER-BINDING-MISMATCH", IssueLevel.ERROR,
+                    f"{label}与当前核验的参数来源信息不一致，请重新选择适用来源。",
+                    f"CAR-FLD-F01-{item.fuel_id}-{suffix}",
                 ))
                 return None
+        carbon_value = item.carbon_content
         activity = self._quantity(item.activity, {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[item.path], f"CAR-FLD-F01-{item.fuel_id}-ACTIVITY", problems)
         if item.lower_heating_value is not None:
             lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[item.path]
@@ -1802,14 +2046,6 @@ class CarbonMaterialCalculator:
         }[item.path]
         carbon = self._parameter(item.carbon_content, carbon_unit, f"CAR-FLD-F01-{item.fuel_id}-CARBON", snapshots, problems, snapshot_at)
         fox = self._parameter(item.oxidation_rate, "ratio", f"CAR-FLD-F01-{item.fuel_id}-FOX", snapshots, problems, snapshot_at)
-        if item.path is FuelPath.HEAT and item.lower_heating_value is not None:
-            problems.append(_problem(
-                "CAR-VAL-FUEL-LHV-NOT-APPLICABLE",
-                IssueLevel.ERROR,
-                "热量路径的活动量已经是热量，不应再填写低位发热量；请清空该字段。",
-                f"CAR-FLD-F01-{item.fuel_id}-LHV",
-            ))
-            return None
         if activity is None or carbon is None or fox is None:
             return None
         if lhv is not None:
@@ -2188,16 +2424,49 @@ class CarbonMaterialCalculator:
                 validated: list[CarbonateComponent] = []
                 for index, component in enumerate(unit.components):
                     component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{index}"
-                    for field, code, message in carbonate_source_violations(component.origin, {
-                        name: value.source_kind.value if isinstance(value, ParameterValue) else None
-                        for name, value in (
-                            ("carbonate_fraction",component.carbonate_fraction),
-                            ("emission_factor",component.emission_factor),
-                            ("conversion_rate",component.conversion_rate),
+                    fraction_binding = self._standard_parameter_binding(
+                        component.carbonate_fraction, "CAR-PAR-P04B-I", input_value.period,
+                    ) if isinstance(component.carbonate_fraction, ParameterValue) and (component.carbonate_fraction.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.carbonate_fraction.factor_id is not None) and len(unit.components) == 1 else None
+                    factor_binding = self._carbonate_default_binding(component, input_value.period)
+                    conversion_binding = self._standard_parameter_binding(
+                        component.conversion_rate, "CAR-PAR-P04B-TR", input_value.period,
+                    ) if isinstance(component.conversion_rate, ParameterValue) and (component.conversion_rate.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.conversion_rate.factor_id is not None) else None
+                    for policy_field, value, bound, suffix in (
+                        ("fgd.ratio", component.carbonate_fraction, fraction_binding is not None, "I"),
+                        ("fgd.factor", component.emission_factor, factor_binding is not None, "EF1"),
+                        ("fgd.conversion", component.conversion_rate, conversion_binding is not None, "TR"),
+                    ):
+                        row_field_id = f"{component_prefix}-{suffix}"
+                        policy_invalid = self._append_source_policy_problem(
+                            policy_field, value, problems,
+                            origin=component.origin,
+                            has_resolver_binding=bound,
+                            carbonate_component_count=len(unit.components),
+                            problem_field_id=row_field_id,
                         )
-                    }):
-                        suffix={"carbonate_fraction":"I","emission_factor":"EF1","conversion_rate":"TR"}[field]
-                        problems.append(_problem(code,IssueLevel.ERROR,message,f"{component_prefix}-{suffix}"))
+                        if not policy_invalid and isinstance(value, ParameterValue):
+                            candidate = {
+                                "fgd.ratio": fraction_binding,
+                                "fgd.factor": factor_binding,
+                                "fgd.conversion": conversion_binding,
+                            }[policy_field]
+                            if value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS:
+                                matches = candidate is not None and self._factor_value_matches(value, candidate)
+                            elif value.factor_id is not None:
+                                matches = self._registered_factor_value_matches(value)
+                            else:
+                                continue
+                            if not matches:
+                                label = parameter_source_policy(
+                                    policy_field, origin=component.origin,
+                                    has_resolver_binding=bound,
+                                    carbonate_component_count=len(unit.components),
+                                ).short_label
+                                problems.append(_problem(
+                                    "CAR-VAL-PARAMETER-BINDING-MISMATCH", IssueLevel.ERROR,
+                                    f"{label}与当前核验的参数来源信息不一致，请重新选择适用来源。",
+                                    row_field_id,
+                                ))
                     amount = self._quantity(component.amount, "t", f"{component_prefix}-CAL", problems)
                     fraction_field = f"{component_prefix}-I"
                     if isinstance(component.carbonate_fraction, ParameterValue):

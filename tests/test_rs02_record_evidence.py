@@ -25,6 +25,7 @@ from packages.standards.carbon_material import (
     FuelPath,
     GraphitizationInput,
     InputValue,
+    InputOrigin,
     MeasuredFactorEvidence,
     ParameterSourceKind,
     ParameterValue,
@@ -119,7 +120,7 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             )
             input_value = _input(
                 reporting_data=reporting,
-                fuel_inputs=(FuelInput.mass("fuel.coke", "2", measured_carbon, "0.98"),),
+                fuel_inputs=(FuelInput.mass("fuel.coke", "2", measured_carbon, InputValue("0.98", "ratio")),),
             )
 
             outcome = use_case.calculate(input_value, calculated_at=NOW)
@@ -217,14 +218,15 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         )
         activity = InputValue("2", "t", source_reference="燃料台账第1页", evidence_ref_ids=("evidence.fuel",))
         carbon = ParameterValue(
-            "CAR-PAR-FUEL-CARBON", "0.02", "tC/t", source_location="附录C.1",
+            "CAR-PAR-FUEL-CARBON", "0.02", "tC/t", ParameterSourceKind.MEASURED,
+            source_id="TEST-FUEL-REPORT", source_version="test-v1", source_location="附录C.1",
             evidence_ref_ids=("evidence.fuel",),
         )
         outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
             _input(
                 reporting_data=reporting,
                 source_states=(EmissionSourceState(SOURCE_FUEL, EmissionSourceStatus.INVOLVED),),
-                fuel_inputs=(FuelInput("coke-line", FuelPath.MASS, activity, carbon, "0.98"),),
+                fuel_inputs=(FuelInput("coke-line", FuelPath.MASS, activity, carbon, InputValue("0.98", "ratio")),),
             ),
             calculated_at=NOW,
         )
@@ -258,46 +260,109 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         self.assertEqual(activity_view.count("年度燃料计量"), 1)
 
     def test_record_detail_b7_shows_reagent_group_and_group_usage_once(self) -> None:
-        repository = InMemoryRecordRepository()
-        fgd = FGDInput(
-            components=(
-                CarbonateComponent("2", "0.90", "0.440", "1.00", "CaCO3"),
-                CarbonateComponent("2", "0.10", "0.522", "1.00", "MgCO3"),
-            ),
-            instance_id="fgd-limestone-a",
-            reagent_name="石灰石甲",
-        )
-        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), repository).calculate(
-            _input(
-                source_states=(EmissionSourceState(SOURCE_FGD, EmissionSourceStatus.INVOLVED),),
-                fgd_units=(fgd,),
-            ),
-            calculated_at=NOW,
-        )
-        self.assertTrue(outcome.successful, outcome.problems)
-        raw = repository.get_raw_input_snapshot(outcome.record.record_id)
-        trace = repository.get_trace_snapshot(outcome.record.record_id)
-        reporting = repository.get_reporting_snapshot(outcome.record.record_id)
-        model = _PRESENTATION["build_record_report_model"](outcome.record, raw, trace, reporting)
-        report = _PRESENTATION["build_report_view"](outcome.record, raw, trace, reporting)
-        b7 = next(section for section in model.sections if section.section_id == "b7")
-        table = b7.tables[0]
-        self.assertEqual(len(table.rows), 2)
-        self.assertEqual([row.cells[0].value for row in table.rows], ["石灰石甲", "石灰石甲"])
-        self.assertEqual([row.cells[1].value for row in table.rows], ["2.00", "2.00"])
-        self.assertEqual([row.cells[1].source_detail for row in table.rows], ["手工录入", "手工录入"])
-        self.assertIn((0, 1, 1, 1), table.body_merges)
-        self.assertEqual([row.cells[2].value for row in table.rows], ["CaCO3", "MgCO3"])
-        self.assertEqual([row.cells[4].value for row in table.rows], ["0.44", "0.52"])
-        source_detail = "选择方式：标准规定值；来源定位：第5.2.5.2条、附录C.2；来源版本：SM01-2026-09-13-R6"
-        self.assertEqual(table.rows[0].cells[4].source_detail, source_detail)
-        self.assertEqual(
-            table.rows[1].cells[4].source_detail,
-            source_detail + "；展示前完整值：0.522 tCO2/t",
-        )
-        self.assertEqual([row.cells[6].value for row in table.rows], ["0.90", ""])
-        self.assertTrue(any("历史记录未保存逐组分排放量时不重新计算" in note for note in b7.notes))
-        self.assertNotIn("设施1", report)
+        from packages.application.catalog_queries import CatalogQueryService
+        from packages.application.carbon_accounting import create_g06_parameter_resolver
+        from packages.application.uat03_parameter_queries import UAT03ParameterQueries
+        from packages.core.models import ParameterType
+        from packages.core.parameter_resolution import ParameterResolutionContext
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = Path(directory) / "catalog.sqlite"
+            build_catalog_database(output_path=catalog_path)
+            catalog_repository = SQLiteCatalogRepository(catalog_path)
+            resolver = create_g06_parameter_resolver(catalog_repository)
+            queries = UAT03ParameterQueries(CatalogQueryService(catalog_repository), resolver)
+            period = _input().period
+            carbonate_defaults = {
+                item.subject_id: item for item in queries.carbonate_options(period)
+            }
+
+            def standard_parameter(parameter_id: str) -> ParameterValue:
+                resolved = resolver.resolve(ParameterResolutionContext(
+                    parameter_id=parameter_id,
+                    standard_id=STANDARD_ID,
+                    accounting_period=period,
+                    subject_id="fgd",
+                    parameter_type=ParameterType.PROCESS_DEFAULT_PARAMETER,
+                )).recommended
+                assert resolved is not None
+                factor = resolved.factor
+                return ParameterValue(
+                    factor.parameter_id, factor.value, factor.unit, ParameterSourceKind.STANDARD_DEFAULT,
+                    source_id=factor.source_id, source_version=factor.version,
+                    source_location=factor.source_location,
+                    selection_reason="按本期Resolver推荐的一般标准缺省参数。",
+                    factor_id=factor.factor_id, factor_year=factor.factor_year,
+                )
+
+            def carbonate_component(amount: str, fraction: str, label: str) -> CarbonateComponent:
+                subject_id = {"CaCO3": "carbonate_caco3", "MgCO3": "carbonate_mgco3"}[label]
+                resolved = carbonate_defaults[subject_id]
+                factor = resolved.factor
+                measured_fraction = ParameterValue(
+                    "measured_carbonate_fraction", fraction, "ratio", ParameterSourceKind.MEASURED,
+                    source_id="TEST-REPORT", source_version="test-v1", source_location="report page 1",
+                    selection_reason="measured composition",
+                )
+                measured_ef = ParameterValue(
+                    factor.parameter_id, factor.normalized_value, factor.normalized_unit,
+                    ParameterSourceKind.STANDARD_SPECIFIED, source_id=factor.source_id,
+                    source_version=str(factor.factor_year), source_location=factor.source_location,
+                    selection_reason=resolved.selection_reason,
+                    factor_id=factor.factor_id, factor_year=factor.factor_year,
+                )
+                return CarbonateComponent(
+                    amount, measured_fraction, measured_ef, standard_parameter("car-par-p04b-tr"),
+                    label, InputOrigin.CATALOG,
+                )
+
+            repository = InMemoryRecordRepository()
+            fgd = FGDInput(
+                components=(
+                    carbonate_component("2", "0.90", "CaCO3"),
+                    carbonate_component("2", "0.10", "MgCO3"),
+                ),
+                instance_id="fgd-limestone-a",
+                reagent_name="石灰石甲",
+            )
+            outcome = CarbonAccountingUseCase(
+                CarbonMaterialCalculator(parameter_resolver=resolver), repository
+            ).calculate(
+                _input(
+                    source_states=(EmissionSourceState(SOURCE_FGD, EmissionSourceStatus.INVOLVED),),
+                    fgd_units=(fgd,),
+                ),
+                calculated_at=NOW,
+            )
+            self.assertTrue(outcome.successful, outcome.problems)
+            raw = repository.get_raw_input_snapshot(outcome.record.record_id)
+            trace = repository.get_trace_snapshot(outcome.record.record_id)
+            reporting = repository.get_reporting_snapshot(outcome.record.record_id)
+            model = _PRESENTATION["build_record_report_model"](outcome.record, raw, trace, reporting)
+            report = _PRESENTATION["build_report_view"](outcome.record, raw, trace, reporting)
+            b7 = next(section for section in model.sections if section.section_id == "b7")
+            table = b7.tables[0]
+            self.assertEqual(len(table.rows), 2)
+            self.assertEqual([row.cells[0].value for row in table.rows], ["石灰石甲", "石灰石甲"])
+            self.assertEqual([row.cells[1].value for row in table.rows], ["2.00", "2.00"])
+            self.assertEqual([row.cells[1].source_detail for row in table.rows], ["手工录入", "手工录入"])
+            self.assertIn((0, 1, 1, 1), table.body_merges)
+            self.assertEqual([row.cells[2].value for row in table.rows], ["CaCO3", "MgCO3"])
+            self.assertEqual([row.cells[4].value for row in table.rows], ["0.44", "0.52"])
+            source_detail = (
+                "选择方式：标准规定值；来源类型：标准规定值；来源定位："
+                "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19；"
+                "来源版本：2024；因子年度：2024"
+            )
+            self.assertEqual(table.rows[0].cells[4].source_detail, source_detail)
+            self.assertEqual(
+                table.rows[1].cells[4].source_detail,
+                source_detail + "；展示前完整值：0.522 tCO2/t",
+            )
+            self.assertEqual([row.cells[6].value for row in table.rows], ["0.90", ""])
+            self.assertTrue(any("历史记录未保存逐组分排放量时不重新计算" in note for note in b7.notes))
+            self.assertNotIn("设施1", report)
 
     def test_snapshot_states_distinguish_present_empty_legacy_and_corrupt(self) -> None:
         snapshot_state = _PRESENTATION["snapshot_state"]

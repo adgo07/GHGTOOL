@@ -12,16 +12,16 @@ from packages.standards.carbon_material import (
 
 class StandardInputPolicyTests(unittest.TestCase):
     @staticmethod
-    def _parameter(name, value, unit, kind=ParameterSourceKind.USER_DEFINED):
+    def _parameter(name, value, unit, kind=ParameterSourceKind.MEASURED):
         return ParameterValue(name, value, unit, source_kind=kind, source_id=None, source_version=None,
                               source_location="用户提供的参数", selection_reason="用户明确填写")
 
-    def _calculate(self, *, origin=InputOrigin.CUSTOM, fch_kind=ParameterSourceKind.USER_DEFINED, path=FuelPath.MASS):
+    def _calculate(self, *, origin=InputOrigin.CUSTOM, fch_kind=ParameterSourceKind.CALCULATED, path=FuelPath.MASS):
         fuel = FuelInput(
             "custom", path, "10",
             self._parameter("fch", "0.03", "tC/GJ", fch_kind),
-            self._parameter("fox", "0.98", "ratio"),
-            self._parameter("lhv", "8", "GJ/t" if path is FuelPath.MASS else "GJ/10⁴Nm³"),
+            self._parameter("fox", "0.98", "ratio", ParameterSourceKind.MEASURED),
+            self._parameter("lhv", "8", "GJ/t" if path is FuelPath.MASS else "GJ/10⁴Nm³", ParameterSourceKind.MEASURED),
             fuel_type=FuelType.OTHER if origin is InputOrigin.CUSTOM else FuelType.NATURAL_GAS,
             fuel_label="用户定义的燃料", origin=origin,
         )
@@ -40,15 +40,16 @@ class StandardInputPolicyTests(unittest.TestCase):
                 self.assertFalse(outcome.blocked, outcome.problems)
                 self.assertEqual(outcome.result.total_amount,Decimal("8.624000000000000000000000000000000000001"))
                 self.assertIsNone(outcome.record)
-                self.assertTrue(all(p.source_kind is ParameterSourceKind.USER_DEFINED
-                                    for p in (outcome.input.fuel_inputs[0].carbon_content,
-                                              outcome.input.fuel_inputs[0].oxidation_rate)))
+                self.assertIs(outcome.input.fuel_inputs[0].carbon_content.source_kind, ParameterSourceKind.CALCULATED)
+                self.assertIs(outcome.input.fuel_inputs[0].oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
 
     def test_custom_fuel_may_not_claim_a_catalog_default(self):
         outcome=self._calculate(fch_kind=ParameterSourceKind.STANDARD_DEFAULT)
         self.assertTrue(outcome.blocked)
-        self.assertIn("CAR-VAL-CUSTOM-FUEL-DEFAULT",{p.code for p in outcome.problems})
-        self.assertTrue(next(p for p in outcome.problems if p.code=="CAR-VAL-CUSTOM-FUEL-DEFAULT").field_id.endswith("-CARBON"))
+        self.assertIn("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE",{p.code for p in outcome.problems})
+        self.assertTrue(next(
+            p for p in outcome.problems if p.code=="CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE"
+        ).field_id == "CAR-FLD-F01-custom-CARBON")
 
     def test_catalog_explicit_measured_and_calculated_fch_are_accepted(self):
         for source_kind in (ParameterSourceKind.MEASURED, ParameterSourceKind.CALCULATED):
@@ -60,13 +61,15 @@ class StandardInputPolicyTests(unittest.TestCase):
                     source_kind,
                 )
 
-    def test_catalog_legacy_user_defined_fch_is_preserved_without_renaming(self):
+    def test_catalog_legacy_user_defined_fch_is_preserved_but_requires_confirmation_to_recalculate(self):
         outcome = self._calculate(origin=InputOrigin.CATALOG, fch_kind=ParameterSourceKind.USER_DEFINED)
-        self.assertFalse(outcome.blocked, outcome.problems)
+        self.assertTrue(outcome.blocked)
+        self.assertIn("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", {p.code for p in outcome.problems})
         self.assertIs(
             outcome.input.fuel_inputs[0].carbon_content.source_kind,
             ParameterSourceKind.USER_DEFINED,
         )
+        self.assertIsNone(outcome.record)
 
     def test_catalog_fch_editability_depends_on_explicit_source(self):
         self.assertFalse(fuel_input_policy(InputOrigin.CATALOG, direct_carbon=False).fch_editable)

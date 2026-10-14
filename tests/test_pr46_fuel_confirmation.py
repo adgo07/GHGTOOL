@@ -27,6 +27,78 @@ class FuelConfirmationTests(unittest.TestCase):
         QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
     def select(self,kind):
         row=self.row; row.fuel_type.setCurrentIndex(row.fuel_type.findData(kind)); row.fuel_type.confirm_name(force=True)
+    def test_catalog_fch_defaults_are_editable_after_source_selection(self):
+        self.select(FuelType.NATURAL_GAS)
+        row = self.row
+        self.assertEqual(row.carbon_source.currentData(), "STANDARD_DEFAULT")
+        self.assertTrue(row.carbon.isReadOnly())
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
+        self.assertFalse(row.carbon.isReadOnly())
+        self.assertEqual(row.carbon.text(), "")
+        row.carbon.setText("0.01234567890123456789")
+        self.assertEqual(row.carbon.text(), "0.01234567890123456789")
+        self.assertEqual(row.carbon_source.currentData(), "MEASURED")
+        index = row.oxidation_source.findData("CALCULATED")
+        self.assertFalse(row.oxidation_source.model().item(index).isEnabled())
+
+    def test_source_switch_retains_separate_manual_drafts_without_relabeling_defaults(self):
+        self.select(FuelType.NATURAL_GAS)
+        row = self.row
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
+        self.assertEqual(row.carbon.text(), "")
+        row.carbon.setText("0.01234567890123456789")
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("CALCULATED"))
+        self.assertEqual(row.carbon.text(), "")
+        row.carbon.setText("0.02234567890123456789")
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
+        self.assertEqual(row.carbon.text(), "0.01234567890123456789")
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("STANDARD_DEFAULT"))
+        self.assertEqual(row.carbon.text(), "0.0153")
+        # JSON project presentation-state round trip keeps non-current drafts.
+        import json
+        state = json.loads(json.dumps(self.page._capture_form_state()))
+        self.page._restore_form_state(state)
+        row = self.page._fuel_rows[0]
+        row.carbon_source.setCurrentIndex(row.carbon_source.findData("CALCULATED"))
+        self.assertEqual(row.carbon.text(), "0.02234567890123456789")
+
+    def test_custom_fuel_has_no_numeric_defaults_and_only_measured_oxidation(self):
+        self.row.fuel_type.setEditText("企业特制燃料")
+        self.row.fuel_type.confirm_name(force=True)
+        for edit in (self.row.lower_heating_value, self.row.carbon, self.row.oxidation, self.row.carbon_direct):
+            self.assertEqual(edit.text(), "")
+        self.row.carbon_source.setCurrentIndex(self.row.carbon_source.findData("CALCULATED"))
+        self.assertFalse(self.row.carbon.isReadOnly())
+        self.row.carbon.setText("0.02")
+        self.assertEqual(self.row.carbon_source.currentData(), "CALCULATED")
+        for source in ("STANDARD_DEFAULT", "CALCULATED"):
+            index = self.row.oxidation_source.findData(source)
+            self.assertFalse(self.row.oxidation_source.model().item(index).isEnabled())
+
+    def test_legacy_material_source_requires_new_measured_input(self):
+        from packages.standards.carbon_material_normalization import MaterialDataSource
+        material = self.page._process_rows["calcination"][0]["materials"][0]
+        source = material["fixed_carbon_source"]
+        edit = material["fixed_carbon"]
+        self.page._restoring_workspace = True
+        source.setCurrentIndex(source.findData(MaterialDataSource.CHEMICAL_CALCULATION))
+        edit.setText("80.123456789")
+        self.page._restoring_workspace = False
+        self.assertEqual(edit.text(), "80.123456789")
+        source.setCurrentIndex(source.findData(MaterialDataSource.MEASURED))
+        self.assertEqual(edit.text(), "")
+
+    def test_legacy_direct_source_is_not_visually_relabelled_as_measured(self):
+        from packages.ui.compact_choices import SegmentedChoiceControl
+        self.row._legacy_source_modes["direct_carbon"] = "PROJECT_SPECIFIED"
+        self.row.carbon_basis.setCurrentIndex(self.row.carbon_basis.findData("DIRECT"))
+        self.page._refresh_fuel_row(self.row)
+        control = next(item for item in self.row.direct_carbon_control.findChildren(SegmentedChoiceControl) if item.combo is self.row.direct_carbon_source)
+        self.assertEqual(self.row.direct_carbon_source.currentData(), "PROJECT_SPECIFIED")
+        self.assertEqual(self.page._fuel_source_mode(self.row, "direct_carbon"), "PROJECT_SPECIFIED")
+        self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
+        self.assertEqual(control.values, frozenset({"MEASURED"}))
+
     def test_typing_chinese_does_not_change_parameters_or_open_popup(self):
         self.select(FuelType.DIESEL)
         self.row.activity.setText("123.4567890123456789")
@@ -101,6 +173,8 @@ class FuelConfirmationTests(unittest.TestCase):
         with self.assertRaisesRegex(DomainValidationError, "与当前缺省值不一致"):
             self.page._fuel()
         row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
+        self.assertEqual(row.lower_heating_value.text(), "")
+        row.lower_heating_value.setText("388.123456789")
         self.assertEqual(self.page._fuel()[0].lower_heating_value.value, __import__('decimal').Decimal("388.123456789"))
     def test_header_and_top_switch_share_state_and_keep_input(self):
         group_id=self.page._source_toggle_groups[0][0]

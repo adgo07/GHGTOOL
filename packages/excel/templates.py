@@ -15,8 +15,10 @@ from .appendix_b_legacy_structure import LEGACY_HEADER_CELLS, LEGACY_HEADER_MERG
 APPROVED_SOURCE_SHA256 = "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
 APPROVED_TEMPLATE_V2_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 APPROVED_TEMPLATE_V2_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
-APPROVED_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx"
+APPROVED_TEMPLATE_V3_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
+APPROVED_TEMPLATE_V3_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx"
+APPROVED_TEMPLATE_SHA256 = "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -36,7 +38,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.1.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.2.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -94,6 +96,11 @@ class ExcelTemplateService:
             and workbook["B.7"]["I2"].value == "名称类型"
             and workbook["B.7"]["J2"].value == "因子来源"
         )
+        current_note = workbook["B.2"]["A20"].value
+        is_v22 = (
+            is_v21 and isinstance(current_note, str)
+            and current_note.startswith("来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。")
+        )
         is_v20 = (
             workbook["B.2"]["M2"].value == "名称类型"
             and workbook["B.7"]["I2"].value == "名称类型"
@@ -114,9 +121,15 @@ class ExcelTemplateService:
                 if any(c.value is not None for row in sheet.iter_rows(max_row=end,min_col=width+1) for c in row):
                     raise ValueError(f"{name} 存在未登记的新增表头，请使用软件当前模板。")
             return "1.0.0"
-        if is_v21:
-            template_version = "2.1.0"
+        if is_v22:
+            template_version = "2.2.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif is_v21:
+            template_version = "2.1.0"
+            legacy_master = files("resources").joinpath(APPROVED_TEMPLATE_V3_RESOURCE)
+            reference_bytes = legacy_master.read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V3_SHA256:
+                raise ValueError("旧版2.1 Excel模板校验失败，无法安全读取该版本工作簿。")
         else:
             template_version = "2.0.0"
             legacy_master = files("resources").joinpath(APPROVED_TEMPLATE_V2_RESOURCE)

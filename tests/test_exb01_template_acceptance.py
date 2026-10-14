@@ -13,6 +13,8 @@ from packages.excel.templates import (
     APPENDIX_B_SHEETS,
     APPROVED_TEMPLATE_SHA256,
     APPROVED_TEMPLATE_V2_RESOURCE,
+    APPROVED_TEMPLATE_V3_RESOURCE,
+    APPROVED_TEMPLATE_V3_SHA256,
     APPROVED_TEMPLATE_V2_SHA256,
     ExcelTemplateService,
 )
@@ -56,9 +58,13 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 for sheet in workbook.worksheets
             }
             self.assertIn(("E4:E18", "list", '"计算值,实测值"'), validations["B.2"])
-            self.assertIn(("G4:G18 J4:J18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("G4:G18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("J4:J18", "list", '"缺省值,实测值"'), validations["B.2"])
             self.assertIn(("N4:N18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
-            self.assertIn(("J3:J8", "list", '"缺省值,计算值,实测值"'), validations["B.7"])
+            self.assertIn(("J3:J8", "list", '"缺省值,实测值"'), validations["B.7"])
+            self.assertTrue(all(workbook[name].protection.sheet for name in APPENDIX_B_SHEETS))
+            self.assertIn("Resolver 绑定", workbook["B.2"]["A20"].value)
+            self.assertIn("多组分逐项填实测", workbook["B.7"]["A9"].value)
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
             self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
         finally:
@@ -79,7 +85,16 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                     self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
             for sheet,cell in (("B.2","H4"),("B.2","K4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
                 self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
-            self.assertEqual(self.service.validate_structure(workbook),"2.1.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.2.0")
+        finally:
+            workbook.close()
+
+    def test_real_v21_template_keeps_its_original_identity_and_bytes(self) -> None:
+        content = files("resources").joinpath(APPROVED_TEMPLATE_V3_RESOURCE).read_bytes()
+        self.assertEqual(sha256(content).hexdigest(), APPROVED_TEMPLATE_V3_SHA256)
+        workbook = load_workbook(BytesIO(content), data_only=False, read_only=False)
+        try:
+            self.assertEqual(self.service.validate_structure(workbook), "2.1.0")
         finally:
             workbook.close()
 

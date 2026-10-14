@@ -8,12 +8,13 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget, QToolButton
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -540,7 +541,8 @@ class G04CatalogTests(unittest.TestCase):
         self.assertIn("GB/T 32150—2025", detail_text)
         self.assertIn("GB/T 32151.34—2024", detail_text)
         self.assertIn("7.5.6", detail_text)
-        self.assertIn("表C.3", detail_text)
+        self.assertIn("附录C", detail_text)
+        self.assertIn("C.3", detail_text)
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
         self.assertNotIn("asset-heat_default", visible_text)
         self.assertNotIn("heat_default_gbt", visible_text)
@@ -678,6 +680,101 @@ class G04CatalogTests(unittest.TestCase):
         standard_results = [item for item in self.service.search_reference_library("GB/T 32151.34")
                             if item.result_type == "standard" and item.standard is not None]
         self.assertTrue(any(item.standard.standard_id == "gbt_32151_34_2024" for item in standard_results))
+
+    def test_catalog_source_locators_are_short_on_screen_and_full_in_tooltips(self) -> None:
+        page = self.shell.pages[AppRoute.FACTORS]
+        table = next(item for item in self.service.list_source_tables() if item.display_number == "C.4")
+        page.table_filter.setCurrentIndex(page.table_filter.findData(table.source_table_id))
+        raw_locator = "GB/T 32151.34—2024 附录C.4；PDF第27～28页；印刷页19～20"
+        full_note = f"来源：标准原文 {raw_locator}。原表结构。"
+        with patch.object(
+            page._service,
+            "get_source_table_view",
+            return_value=(("依据定位",), ((raw_locator,),), full_note),
+        ):
+            page._show_source_table()
+        locator_item = page.factor_table.item(0, 0)
+        self.assertIsNotNone(locator_item)
+        assert locator_item is not None
+        self.assertEqual(locator_item.text(), "GB/T32151.34—2024 附录C.4")
+        self.assertEqual(locator_item.toolTip(), raw_locator)
+        self.assertNotIn("PDF", page.browse_table_note.text())
+        self.assertNotIn("印刷页", page.browse_table_note.text())
+        self.assertEqual(page.browse_table_note.toolTip(), full_note)
+
+        table_result = next(
+            item for item in self.service.search_reference_library("蒸汽")
+            if item.result_type == "table" and item.table is not None
+            and item.table.source_table_id == table.source_table_id
+        )
+        page._render_search_detail(table_result)
+        locator_label = next(
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "依据定位"
+        )
+        locator_value = locator_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(locator_value)
+        assert locator_value is not None
+        self.assertNotIn("PDF", locator_value.text())
+        self.assertNotIn("印刷页", locator_value.text())
+        self.assertEqual(locator_value.toolTip(), table.source_location)
+
+        asset_result = next(
+            item for item in self.service.search_reference_library("0.11")
+            if item.result_type == "asset" and item.asset is not None
+            and item.asset.parameter_id == "heat_emission_factor_default"
+        )
+        page._refresh_search()
+        binding = asset_result.bindings[0]
+        frozen_binding_locator = (
+            "GB/T 32151.34—2024 第5.2.6.1条；PDF第30页；印刷页22"
+        )
+        detailed_asset = replace(
+            asset_result,
+            bindings=(
+                replace(binding, source_location=frozen_binding_locator),
+                *asset_result.bindings[1:],
+            ),
+        )
+        page._render_search_detail(detailed_asset)
+        trace_toggle = page.findChild(QToolButton, "parameterDetailTraceToggle")
+        self.assertIsNotNone(trace_toggle)
+        assert trace_toggle is not None
+        trace_toggle.click()
+        binding_label = next(
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "来源定位"
+        )
+        binding_value = binding_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(binding_value)
+        assert binding_value is not None
+        self.assertIn("第5.2.6.1条", binding_value.text())
+        self.assertNotIn("PDF", binding_value.text())
+        self.assertNotIn("印刷页", binding_value.text())
+        self.assertEqual(binding_value.toolTip(), frozen_binding_locator)
+
+        source = next(
+            item for item in self.service.list_sources()
+            if item.notes and "PDF第27" in item.notes
+        )
+        source_result = next(
+            item for item in self.service.search_reference_library(source.document_no)
+            if item.result_type == "source" and item.source is not None
+            and item.source.source_id == source.source_id
+        )
+        page._render_search_detail(source_result)
+        note_labels = [
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "说明"
+        ]
+        self.assertTrue(note_labels)
+        note_label = note_labels[-1]
+        note_value = note_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(note_value)
+        assert note_value is not None
+        self.assertNotIn("PDF第27", note_value.text())
+        self.assertNotIn("印刷页", note_value.text())
+        self.assertEqual(note_value.toolTip(), source.notes)
 
     def test_missing_catalog_degrades_to_safe_empty_pages(self) -> None:
         missing = Path(self.temp_directory.name) / "not-installed.sqlite"

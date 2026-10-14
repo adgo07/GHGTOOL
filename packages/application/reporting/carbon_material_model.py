@@ -185,7 +185,7 @@ def _table(table_id: str, title: str, columns: Sequence[str], values: Sequence[S
     def cell(value: ReportCell | str) -> ReportCell:
         result = value if isinstance(value, ReportCell) else ReportCell(str(value))
         unit = unit_names.get(result.unit, result.unit) if result.unit else None
-        return ReportCell(result.value, unit, result.source)
+        return ReportCell(result.value, unit, result.source, result.source_detail)
 
     rows = tuple(ReportRow(tuple(cell(value) for value in row)) for row in values)
     return ReportTable(table_id, title, tuple(columns), rows, landscape)

@@ -20,17 +20,21 @@ APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
-APPROVED_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx")
+APPROVED_TEMPLATE_SHA256 = "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac"
+PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
+PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
 COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 TEMPLATE_SHA256_BY_PATH = {
     APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+    PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
 }
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
     APPROVED_TEMPLATE_PATH.as_posix(),
+    PREVIOUS_TEMPLATE_PATH.as_posix(),
     COMPATIBILITY_TEMPLATE_PATH.as_posix(),
     "resources/branding/qingzhou_logo.png",
     *(f"resources/icons/{name}.svg" for name in
@@ -133,6 +137,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
         issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / PREVIOUS_TEMPLATE_PATH).is_file():
+        issues.append(f"missing previous Excel template: {PREVIOUS_TEMPLATE_PATH.as_posix()}")
     if not (artifact / COMPATIBILITY_TEMPLATE_PATH).is_file():
         issues.append(f"missing compatibility Excel template: {COMPATIBILITY_TEMPLATE_PATH.as_posix()}")
     if not (artifact / REPORT_LAYOUT_PATH).is_file():
