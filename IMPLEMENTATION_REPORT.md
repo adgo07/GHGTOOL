@@ -38,7 +38,7 @@ Issue010 已登记 Owner 批准的输入政策和五表接线，覆盖 Issue008/
 - 独立审查定位并修复：燃料/FGD恢复STD显示与正式值分叉；旧直接实测来源污染新身份；特殊电力口径/失效ID购入与输出自动回退。燃料9 + FGD6 + RS03完整10 + C1定向1，共26项通过，0失败/错误，75.791秒。
 - 本地完整回归：`python -m unittest discover -s tests -t . -v`，head8d87199：561项，550通过/9失败/2错误，616.685秒。剩余8个失败为RS03旧fixture漏填2.1 FCh来源N14，已补并完整两模块9项通过（11.544秒）；另3项旧UI断言按显式名称确认、文本正常编辑/箭头展开及电力placeholder迁移后，定向3/3通过（4.324秒）。最终完整回归以提交后同一PR最新Windows CI为准，不能将本地此轮写成全绿。
 - 本地Windows：`python scripts/build_standalone.py --output-root dist/pr46-reviewed` 成功；`inspect_release.py` 269文件审计通过，`verify_release_archive.py` 270可见文件ZIP回导通过，`smoke_standalone.py --starts 2` 两次隔离启动通过。source/pr-head/tested-merge均8d87199；此为本地来源，GitHub Actions另记。
-- Windows Qt原生平台程序驱动：1366×768逻辑窗口，Qt scale1.0/1.25各20检查、各19截图通过。涵盖正文开关、连接式分段、两类能源/过热蒸汽、记录真实表格；未改变Windows系统DPI，非真实鼠标/人工验收。
+- Windows Qt原生平台程序驱动：1366×768逻辑窗口，Qt scale1.0/1.25各20检查、各19次捕获（18个不同PNG）通过。涵盖正文开关、连接式分段、两类能源/过热蒸汽、记录真实表格；未改变Windows系统DPI，非真实鼠标/人工验收。
 - `python scripts/validate_canonical.py`：9标准、12来源、102参数、138因子有效；`python -m pip check` 无依赖冲突；diff-check通过。
 
 ## 未闭合

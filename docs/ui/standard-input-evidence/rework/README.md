@@ -2,7 +2,7 @@
 
 本轮生产验收head `8d87199f25bd17e56e2e8443e09575966d557f12`；base main `204dded5d03853617f79a1f05693e89b619df9d1`。截图manifest逐个登记实际源文件SHA，不沿用旧head的510项证据。
 
-- `100/`、`125/`：Windows Qt原生平台、1366×768逻辑窗口、QT_SCALE_FACTOR 1.0/1.25各20项程序检查和19张截图。使用QTest/控件API与QWidget.grab，不是系统DPI调整或真实鼠标交互；程序字体为本机Microsoft YaHei。脚本 `capture_windows_qt.py` 只接受TEMP合成工作簿。
+- `100/`、`125/`：Windows Qt原生平台、1366×768逻辑窗口、QT_SCALE_FACTOR 1.0/1.25各20项程序检查和19次捕获（18个不同PNG）。使用QTest/控件API与QWidget.grab，不是系统DPI调整或真实鼠标交互；程序字体为本机Microsoft YaHei。脚本 `capture_windows_qt.py` 只接受TEMP合成工作簿。
 - `excel-wps/`：当前2.1受控模板、完整合成九表，用独立且空白的WPS ET COM实例原生保存TEMP副本；17项全部通过，原源文件不改。完整输入、计算结果、快照/trace一致，预览零Record、正式一次新增一条。
 - `word-wps/`：最终冻结合成Record经WPS文字兼容COM只读导出11页PDF，再渲染逐页PNG；B.1～B.9共10张业务表。未关闭可能共享的应用实例，打开文档数前后均0，只关闭本次TEMP文档，不改用户文档。已检查全部11页、短来源/必要注释、扣减意义和冗余尾注移除。PDF元数据Creator=WPS文字；不是Microsoft Word或真实企业UAT。
 
