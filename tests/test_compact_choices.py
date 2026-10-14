@@ -34,3 +34,19 @@ class CompactChoiceTests(unittest.TestCase):
         self.assertFalse(first.isEnabled())
         self.assertFalse(second.isEnabled())
         control.close()
+
+    def test_segment_buttons_stay_connected_in_a_wide_field(self):
+        combo = QComboBox()
+        combo.addItem("缺省值", "STANDARD_DEFAULT")
+        combo.addItem("计算值", "CALCULATED")
+        combo.addItem("实测值", "MEASURED")
+        from packages.ui.compact_choices import SegmentedChoiceControl
+        control = SegmentedChoiceControl(combo)
+        control.resize(600,60)
+        control.show()
+        self.app.processEvents()
+        first, second, third = control.group.buttons()
+        self.assertEqual(first.geometry().right()+1,second.geometry().left())
+        self.assertEqual(second.geometry().right()+1,third.geometry().left())
+        self.assertEqual(control.row.spacing(),0)
+        control.close()

@@ -455,9 +455,10 @@ class _UnifiedEnergyRow(QWidget):
         electricity.setVerticalSpacing(8)
         self.attribute = QComboBox(self.electricity_details)
         self.attribute.setObjectName(f"energyElectricityAttribute{index}")
-        self.attribute.addItem("购入电网电力", ElectricityAttribute.ORDINARY)
-        self.attribute.addItem("购入非化石电力", ElectricityAttribute.NONFOSSIL)
-        self.attribute.addItem("自发自用（不计入）", "SELF_CONSUMED_EXCLUDED")
+        self.attribute.addItem("电网电力", ElectricityAttribute.ORDINARY)
+        self.attribute.addItem("非化石电力", ElectricityAttribute.NONFOSSIL)
+        self.attribute.addItem("自发自用", "SELF_CONSUMED_EXCLUDED")
+        self.attribute.setItemData(2, "自发自用电力不计入购入/输出核算。", Qt.ItemDataRole.ToolTipRole)
         self.attribute_choices = SegmentedChoiceControl(
             self.attribute,
             values={ElectricityAttribute.ORDINARY, ElectricityAttribute.NONFOSSIL, "SELF_CONSUMED_EXCLUDED"},
