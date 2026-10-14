@@ -36,11 +36,17 @@ Issue010 已登记 Owner 批准的输入政策和五表接线，覆盖 Issue008/
 - Word：当前 TEMP 合成冻结 Record 生成 10 张业务表，WPS 兼容 COM 只读打开并导出 11 页 PDF；打开文档数前后均为 0，未 Quit 可能共享实例。最终2.1元数据已同步，11页联系图全部查看；B.1～B.9完整、无裁切/空白页，B.8必要扣减注保留，B.9逐条结果尾注及“第x行第y列”删除。证据见本轮word-wps目录，不称Microsoft Word验收。
 - 两次完整回归调试未完成：首次卡在内容测试探测用户Documents，faulthandler确认 `export_location.py:168 NamedTemporaryFile`；第二次RS03旧fixture缺FCh来源N14导致3项失败，模板下载测试也未隔离路径探测；另C1一项仍模拟已移除泛化菜单。均停止并保留日志，不伪报完整统计。后迁移为TEMP chooser/成功提示mock、补N14，并保留原结果/精度/关联保护断言。
 - 独立审查定位并修复：燃料/FGD恢复STD显示与正式值分叉；旧直接实测来源污染新身份；特殊电力口径/失效ID购入与输出自动回退。燃料9 + FGD6 + RS03完整10 + C1定向1，共26项通过，0失败/错误，75.791秒。
-- 本地完整回归：`python -m unittest discover -s tests -t . -v`，head8d87199：561项，550通过/9失败/2错误，616.685秒。剩余8个失败为RS03旧fixture漏填2.1 FCh来源N14，已补并完整两模块9项通过（11.544秒）；另3项旧UI断言按显式名称确认、文本正常编辑/箭头展开及电力placeholder迁移后，定向3/3通过（4.324秒）。最终完整回归以提交后同一PR最新Windows CI为准，不能将本地此轮写成全绿。
+- 本地完整回归：`python -m unittest discover -s tests -t . -v`，head8d87199：561项，550通过/9失败/2错误，616.685秒。剩余8个失败为RS03旧fixture漏填2.1 FCh来源N14，已补并完整两模块9项通过（11.544秒）；另3项旧UI断言按显式名称确认、文本正常编辑/箭头展开及电力placeholder迁移后，定向3/3通过（4.324秒）。修正后的完整回归已由下述Windows CI通过；不能将本地此轮写成全绿。
 - 本地Windows：`python scripts/build_standalone.py --output-root dist/pr46-reviewed` 成功；`inspect_release.py` 269文件审计通过，`verify_release_archive.py` 270可见文件ZIP回导通过，`smoke_standalone.py --starts 2` 两次隔离启动通过。source/pr-head/tested-merge均8d87199；此为本地来源，GitHub Actions另记。
 - Windows Qt原生平台程序驱动：1366×768逻辑窗口，Qt scale1.0/1.25各20检查、各19次捕获（18个不同PNG）通过。涵盖正文开关、连接式分段、两类能源/过热蒸汽、记录真实表格；未改变Windows系统DPI，非真实鼠标/人工验收。
 - `python scripts/validate_canonical.py`：9标准、12来源、102参数、138因子有效；`python -m pip check` 无依赖冲突；diff-check通过。
 
+## 最终独立审查与远端CI
+
+已核实的Windows CI #221（run38546946024，交付head e500edc65fa1191acf0197454d6ad012118f19e0）：merge-ref d30568374d7a332bc231251c34fceada06b79081完整561/561通过（747.623秒）；精确PR-head交付专项14/14通过（4.293秒），构建、271文件审计、272可见文件ZIP回导、两次启动及provenance校验全部通过。Artifact11885782152名称与head一致，ZIP59,785,100字节。后续纯证据文档提交不修改生产；最新PR head与Checks、候选下载入口以PR46正文为准，不混用本地和CI来源。
+
+独立Luna已复核交付head e500edc：8d之后没有生产运行时代码差异，最终12项定向通过（17.326秒）；旧fixture/控件断言迁移保留原业务断言，未发现剩余阻断/高/中级生产缺陷。
+
 ## 未闭合
 
-独立Luna代码审查已在head8d87199通过：燃料/FGD15项及G0629项定向通过，未发现剩余阻断/高/中级生产缺陷；最终证据文档提交仍需核diff。提交后最新GitHub Windows CI完整回归待执行。原生电脑操作工具在身份修正后仍截图超时/激活失败，尚无真实鼠标或中文输入操作通过证据；Qt 程序检查不能代替它。真实企业样例/人工系统 DPI 验收仍待 Owner 实际操作。完成本轮后更新同一 PR46，等待独立验收，不自行合并。
+代码独立审查在head8d87199通过（燃料/FGD15项、G0629项），最终证据diff已在e500edc复核。原生电脑操作工具在身份修正后仍截图超时/激活失败，尚无真实鼠标或中文输入操作通过证据；Qt 程序检查不能代替它。真实企业样例/人工系统 DPI 验收仍待 Owner 实际操作。完成本轮后更新同一 PR46，等待独立验收，不自行合并。
