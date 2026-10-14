@@ -128,10 +128,13 @@ def _source_label(value: object) -> str:
     return {"user-input": "用户录入", "gbt_32151_34_2024": "GB/T 32151.34—2024"}.get(text, text)
 
 
-def _snapshot_source(snapshot: Mapping[str, Any] | None) -> str | None:
+def _snapshot_audit_detail(snapshot: Mapping[str, Any] | None) -> str | None:
+    """Keep frozen provenance on the report cell; renderers choose a short label."""
     if not snapshot:
         return None
     pieces = ["选择方式："+_enum(snapshot.get("selection_method"),_SOURCE_NAMES)]
+    if snapshot.get("source_type"):
+        pieces.append("来源类型："+_enum(snapshot.get("source_type"),_SOURCE_NAMES))
     labels={"source_location":"来源定位","source_version":"来源版本","factor_year":"因子年度"}
     for field,label in labels.items():
         value=snapshot.get(field)
@@ -143,11 +146,19 @@ def _snapshot_source(snapshot: Mapping[str, Any] | None) -> str | None:
 def _parameter_cell(raw_value: object, snapshots: Mapping[str, Mapping[str, Any]], detail_id: str) -> ReportCell:
     snapshot = snapshots.get(detail_id)
     if snapshot is not None:
-        return ReportCell(_text(snapshot.get("value_used")), _text(snapshot.get("unit_used")) or None, _snapshot_source(snapshot))
+        return ReportCell(
+            _text(snapshot.get("value_used")),
+            _text(snapshot.get("unit_used")) or None,
+            source_detail=_snapshot_audit_detail(snapshot),
+        )
     parameter = _mapping(raw_value)
     source_kind = _enum(parameter.get("source_kind"), _SOURCE_NAMES)
     source_parts = [source_kind, _text(parameter.get("source_location")), _source_label(parameter.get("source_version"))]
-    return ReportCell(_text(parameter.get("value")), _text(parameter.get("unit")) or None, "；".join(item for item in source_parts if item) or None)
+    return ReportCell(
+        _text(parameter.get("value")),
+        _text(parameter.get("unit")) or None,
+        source_detail="；".join(item for item in source_parts if item) or None,
+    )
 
 
 def _trace_steps(trace: object) -> tuple[Mapping[str, Any], ...]:

@@ -17,11 +17,14 @@ class FuelInputPolicy:
     fch_editable: bool
 
 
-def fuel_input_policy(origin: InputOrigin, *, direct_carbon: bool, heat_activity: bool = False) -> FuelInputPolicy:
+def fuel_input_policy(origin: InputOrigin, *, direct_carbon: bool, heat_activity: bool = False,
+                      carbon_source_kind: str | None = None) -> FuelInputPolicy:
     required = ("carbon_content", "oxidation_rate")
     if not direct_carbon and not heat_activity:
         required = ("lower_heating_value", *required)
-    return FuelInputPolicy(required, origin is InputOrigin.CATALOG, origin is InputOrigin.CUSTOM)
+    explicit_fch = carbon_source_kind in {"CALCULATED", "MEASURED", "USER_DEFINED"}
+    fch_editable = origin is InputOrigin.CUSTOM or (not direct_carbon and explicit_fch)
+    return FuelInputPolicy(required, origin is InputOrigin.CATALOG, fch_editable)
 
 
 def infer_fuel_origin(fuel_type: str | None, explicit: InputOrigin | None = None) -> InputOrigin:
@@ -46,9 +49,11 @@ def fuel_source_violations(origin: InputOrigin, *, direct_carbon: bool,
                                "自定义燃料不适用目录缺省参数，请填写当前路径需要的值并确认来源。"))
     elif not direct_carbon and sources.get("carbon_content") is not None:
         source = sources["carbon_content"]
-        if origin is InputOrigin.CATALOG and source != "STANDARD_DEFAULT":
+        if origin is InputOrigin.CATALOG and source not in {
+            "STANDARD_DEFAULT", "CALCULATED", "MEASURED", "USER_DEFINED",
+        }:
             issues.append(("carbon_content", "CAR-VAL-CATALOG-FCH-READONLY",
-                           "目录燃料的单位热值含碳量采用适用缺省值；如需自行填写，请明确使用自定义燃料。"))
+                           "目录燃料的单位热值含碳量来源无效；请选择当前适用缺省值、计算值或实测值。"))
         elif origin is InputOrigin.LEGACY_UNSPECIFIED and source in {"USER_DEFINED", "MEASURED", "CALCULATED"}:
             issues.append(("carbon_content", "CAR-VAL-FUEL-IDENTITY-REQUIRED",
                            "历史燃料身份不明确，请确认目录燃料或自定义燃料后重新核算；原记录保持不变。"))

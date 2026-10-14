@@ -320,6 +320,14 @@ class StandardLibraryPage(BasePage):
                     item.setForeground(QColor("#12618D"))
                     item.setToolTip(f"{value}\n点击打开标准详情")
                 self.standard_table.setItem(row_number, column, item)
+                if column == 4 and value == "已实现核算":
+                    badge = QLabel(value,self.standard_table)
+                    badge.setObjectName("standardCalculationBadge")
+                    badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    badge.setAccessibleName("软件支持：已实现核算；未改变正式支持状态")
+                    badge.setStyleSheet("QLabel { background:#E7F6F0; color:#168268; border-radius:7px; padding:4px 7px; font-size:11px; }")
+                    self.standard_table.setCellWidget(row_number,column,badge)
+
         self.standard_table.resizeRowsToContents()
         self.result_summary.setText(
             f"共 {len(results)} 项标准" if results else "没有找到匹配的标准。"

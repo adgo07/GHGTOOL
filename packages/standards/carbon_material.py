@@ -39,6 +39,8 @@ from packages.core.models import (
 )
 from packages.core.parameter_resolution import (
     ElectricityConsumptionDetail,
+    NATIONAL_ELECTRICITY_PARAMETER_ID,
+    OFFICIAL_ELECTRICITY_PARAMETER_IDS,
     PROVINCIAL_ELECTRICITY_PARAMETER_ID,
     ElectricityResolutionRoute,
     ParameterResolutionContext,
@@ -55,7 +57,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-13-G06.4"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-14-G06.5"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -1770,7 +1772,11 @@ class CarbonMaterialCalculator:
         if violations:
             return None
         carbon_value = item.carbon_content
-        if origin is InputOrigin.CATALOG and not direct and item.origin is not None and self.parameter_resolver is not None and carbon_value is not None:
+        if (
+            origin is InputOrigin.CATALOG and not direct and item.origin is not None
+            and self.parameter_resolver is not None and carbon_value is not None
+            and carbon_value.source_kind is ParameterSourceKind.STANDARD_DEFAULT
+        ):
             context = ParameterResolutionContext(
                 parameter_id=carbon_value.parameter_id, standard_id=STANDARD_ID,
                 accounting_period=accounting_period, subject_id=item.catalog_subject_id,
@@ -2305,7 +2311,13 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_electricity:
                 quantity = self._quantity(line.amount, "MWh", line.line_id, problems)
                 factor = line.factor
-                parameter_id = PROVINCIAL_ELECTRICITY_PARAMETER_ID if line.region is not None else "electricity_emission_factor_national"
+                parameter_id = (
+                    factor.parameter_id
+                    if factor is not None and factor.parameter_id in OFFICIAL_ELECTRICITY_PARAMETER_IDS
+                    else PROVINCIAL_ELECTRICITY_PARAMETER_ID
+                    if line.region is not None
+                    else NATIONAL_ELECTRICITY_PARAMETER_ID
+                )
                 parameter_context = ParameterResolutionContext(
                     parameter_id=parameter_id,
                     standard_id=STANDARD_ID,
@@ -2322,21 +2334,8 @@ class CarbonMaterialCalculator:
                         parameter_context, snapshots, problems, snapshot_at, detail_id=line.line_id
                     )
                 elif (
-                    factor.parameter_id in {
-                        "electricity_emission_factor_national",
-                        PROVINCIAL_ELECTRICITY_PARAMETER_ID,
-                    }
-                    and factor.parameter_id != parameter_id
-                ):
-                    problems.append(_problem(
-                        "CAR-VAL-ELECTRICITY-PARAMETER-REGION",
-                        IssueLevel.ERROR,
-                        "外供电力因子参数必须与所选地区对应；当前输入不能回退到其他地区或全国参数。",
-                        line.line_id,
-                    ))
-                    factor_value = None
-                elif (
                     factor.factor_id is not None
+                    and factor.parameter_id in OFFICIAL_ELECTRICITY_PARAMETER_IDS
                     and factor.source_kind in {
                         ParameterSourceKind.STANDARD_DEFAULT,
                         ParameterSourceKind.STANDARD_SPECIFIED,

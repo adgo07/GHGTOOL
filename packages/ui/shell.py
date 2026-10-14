@@ -40,6 +40,7 @@ from .design_tokens import (
 )
 from .icons import load_tinted_icon
 from .pages import create_page
+from .export_location import ExportLocationService
 from .routing import PageRouter
 from .view_models import AppRoute, ShellViewModel
 
@@ -132,6 +133,7 @@ class AppShell(QWidget):
         project_service: ProjectWorkspaceService | None = None,
         calculation_use_case: CarbonAccountingUseCase | None = None,
         standard_runtime=None,
+        export_location_service: ExportLocationService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -143,6 +145,7 @@ class AppShell(QWidget):
         self.project_service = project_service
         self._injected_calculation_use_case = calculation_use_case
         self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
+        self.export_location_service = export_location_service
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page

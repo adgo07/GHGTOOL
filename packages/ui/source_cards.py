@@ -266,3 +266,32 @@ class SourceToggleButton(QPushButton):
         option.text = ""
         painter = QPainter(self)
         self.style().drawControl(QStyle.ControlElement.CE_PushButton, option, painter, self)
+
+
+class SourceHeaderSwitch(QPushButton):
+    """Compact header switch sharing the same state as the source selector."""
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setObjectName("sourceHeaderSwitch")
+        self.setAccessibleName(title + "排放源开关")
+        self.setStyleSheet("QPushButton#sourceHeaderSwitch { min-height:24px; padding:0; border:none; background:transparent; }")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(7)
+        self.switch = _SourceSwitch(self)
+        self.label = QLabel(self)
+        self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.label.setStyleSheet("background:transparent; color:#075985; font-size:13px;")
+        layout.addWidget(self.switch)
+        layout.addWidget(self.label)
+
+    def set_source_state(self,state):
+        self.switch.active = state != "未启用"
+        self.switch.update()
+        self.label.setText(state)
+        self.setAccessibleDescription(f"当前{state}；点击切换，停用保留数据。")
+
+    def paintEvent(self,event):
+        option = QStyleOptionButton(); self.initStyleOption(option); option.text=""
+        painter=QPainter(self)
+        self.style().drawControl(QStyle.ControlElement.CE_PushButton,option,painter,self)

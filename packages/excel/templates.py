@@ -13,8 +13,10 @@ from packages.standards.carbon_material import STANDARD_ID, STANDARD_VERSION
 from .appendix_b_legacy_structure import LEGACY_HEADER_CELLS, LEGACY_HEADER_MERGES
 
 APPROVED_SOURCE_SHA256 = "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4"
-APPROVED_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
+APPROVED_TEMPLATE_V2_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+APPROVED_TEMPLATE_V2_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
+APPROVED_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -34,7 +36,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.0.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.1.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -86,11 +88,17 @@ class ExcelTemplateService:
             raise ValueError("此标准尚未实现正式 Excel 输入映射。")
         if tuple(workbook.sheetnames) != APPENDIX_B_SHEETS:
             raise ValueError("工作簿必须按原顺序保留 B.1 至 B.9 九张工作表。")
-        is_current = (
+        is_v21 = (
+            workbook["B.2"]["M2"].value == "名称类型"
+            and workbook["B.2"]["N2"].value == "FCh来源"
+            and workbook["B.7"]["I2"].value == "名称类型"
+            and workbook["B.7"]["J2"].value == "因子来源"
+        )
+        is_v20 = (
             workbook["B.2"]["M2"].value == "名称类型"
             and workbook["B.7"]["I2"].value == "名称类型"
         )
-        if not is_current:
+        if not is_v21 and not is_v20:
             for name in APPENDIX_B_SHEETS:
                 sheet = workbook[name]
                 if sheet.sheet_state != "visible":
@@ -106,7 +114,16 @@ class ExcelTemplateService:
                 if any(c.value is not None for row in sheet.iter_rows(max_row=end,min_col=width+1) for c in row):
                     raise ValueError(f"{name} 存在未登记的新增表头，请使用软件当前模板。")
             return "1.0.0"
-        reference = load_workbook(BytesIO(self.read_bytes(standard_id)), data_only=False)
+        if is_v21:
+            template_version = "2.1.0"
+            reference_bytes = self.read_bytes(standard_id)
+        else:
+            template_version = "2.0.0"
+            legacy_master = files("resources").joinpath(APPROVED_TEMPLATE_V2_RESOURCE)
+            reference_bytes = legacy_master.read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V2_SHA256:
+                raise ValueError("旧版2.0 Excel模板校验失败，无法安全读取该版本工作簿。")
+        reference = load_workbook(BytesIO(reference_bytes), data_only=False)
         try:
             for name in APPENDIX_B_SHEETS:
                 sheet, approved = workbook[name], reference[name]
@@ -130,4 +147,4 @@ class ExcelTemplateService:
                     raise ValueError(f"{name} 表头合并区域与正式模板不一致。")
         finally:
             reference.close()
-        return APPENDIX_B_TEMPLATE.template_version
+        return template_version

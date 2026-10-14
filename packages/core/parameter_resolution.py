@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
@@ -73,9 +73,20 @@ def _require_id(value: str, field_name: str) -> str:
     return value
 
 NATIONAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_national"
+REGIONAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_regional_average"
 PROVINCIAL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_provincial_average"
+NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID = "electricity_emission_factor_national_average_excluding_market_nonfossil"
+NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_national_fossil"
 NONFOSSIL_ELECTRICITY_PARAMETER_ID = "electricity_emission_factor_nonfossil"
 NONFOSSIL_ZERO_FACTOR_ID = "electricity_nonfossil_zero_gbt32151_34_2024"
+
+OFFICIAL_ELECTRICITY_PARAMETER_IDS = (
+    NATIONAL_ELECTRICITY_PARAMETER_ID,
+    REGIONAL_ELECTRICITY_PARAMETER_ID,
+    PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+    NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID,
+    NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -748,13 +759,25 @@ class ParameterResolver:
     ) -> ParameterResolution:
         override = context.user_provided_value
         assert override is not None
-        expected_parameter_id = (
-            PROVINCIAL_ELECTRICITY_PARAMETER_ID if context.region is not None
-            else NATIONAL_ELECTRICITY_PARAMETER_ID
+        national_parameters = {
+            NATIONAL_ELECTRICITY_PARAMETER_ID,
+            NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID,
+            NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID,
+        }
+        region_parameters = {
+            REGIONAL_ELECTRICITY_PARAMETER_ID,
+            PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+        }
+        geography_matches = (
+            context.parameter_id in national_parameters
+            and context.region is None
+        ) or (
+            context.parameter_id in region_parameters
+            and context.region is not None
         )
         if (
-            context.parameter_id not in {NATIONAL_ELECTRICITY_PARAMETER_ID, PROVINCIAL_ELECTRICITY_PARAMETER_ID}
-            or context.parameter_id != expected_parameter_id
+            context.parameter_id not in OFFICIAL_ELECTRICITY_PARAMETER_IDS
+            or not geography_matches
             or context.parameter_type is not ParameterType.ELECTRICITY_EMISSION_FACTOR
             or context.electricity_acquisition_mode is not ElectricityAcquisitionMode.PURCHASED
             or context.electricity_attribute is not ElectricityAttribute.ORDINARY
@@ -1092,6 +1115,59 @@ class ParameterResolver:
                 problems=(problem,),
             )
         parameter_context = detail.to_parameter_context()
+        if (
+            detail.acquisition_mode is ElectricityAcquisitionMode.PURCHASED
+            and detail.attribute is ElectricityAttribute.ORDINARY
+        ):
+            if detail.selected_factor_id is not None:
+                selected_factor = self._repository.get_factor(detail.selected_factor_id)
+                if selected_factor is not None and selected_factor.parameter_id in OFFICIAL_ELECTRICITY_PARAMETER_IDS:
+                    national_parameters = {
+                        NATIONAL_ELECTRICITY_PARAMETER_ID,
+                        NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID,
+                        NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID,
+                    }
+                    if selected_factor.parameter_id in national_parameters and detail.region not in (None, "全国"):
+                        problem = self._problem(
+                            "GEN-VAL-ELECTRICITY-GEOGRAPHY-MISMATCH",
+                            IssueLevel.ERROR,
+                            "所选因子为全国口径，但当前电力地域不是全国；请改选与地域层级相符的目录因子。",
+                            detail.detail_id,
+                        )
+                        return ElectricityDetailResolution(
+                            detail=detail,
+                            parameter_resolution=None,
+                            snapshot=None,
+                            route=ElectricityResolutionRoute.BLOCKED,
+                            problems=(problem,),
+                        )
+                    parameter_context = replace(
+                        parameter_context,
+                        parameter_id=selected_factor.parameter_id,
+                        region=None if selected_factor.parameter_id in national_parameters else detail.region,
+                    )
+            elif detail.region == "全国":
+                parameter_context = replace(
+                    parameter_context,
+                    parameter_id=NATIONAL_ELECTRICITY_PARAMETER_ID,
+                    region=None,
+                )
+            elif detail.region is not None:
+                regional_parameter_ids = {
+                    factor.parameter_id
+                    for factor_id, applicability in self._applicability.items()
+                    if applicability.region == detail.region
+                    and (factor := self._repository.get_factor(factor_id)) is not None
+                    and factor.parameter_id in {
+                        REGIONAL_ELECTRICITY_PARAMETER_ID,
+                        PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+                    }
+                }
+                if len(regional_parameter_ids) == 1:
+                    parameter_context = replace(
+                        parameter_context,
+                        parameter_id=next(iter(regional_parameter_ids)),
+                    )
         resolution = self.resolve(parameter_context)
         if resolution.blocked:
             route = ElectricityResolutionRoute.BLOCKED
@@ -1336,7 +1412,7 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
         _frozen_rule("GEN-RULE-FACTOR-PRIORITY-001", "parameter_selection", RuleRelation.BASE, "因子适用优先级。",
             standard_id="gbt_32150_2025", applicable_standard_ids=common_ids, target_id="factor.priority",
             source_location="GB/T 32150—2025 第7.4条；PDF14～15；印刷页8～9", evidence_source_id=common_source),
-        _parameter_rule("GEN-RULE-ELECTRICITY-001", ("electricity_emission_factor_national", PROVINCIAL_ELECTRICITY_PARAMETER_ID),
+        _parameter_rule("GEN-RULE-ELECTRICITY-001", OFFICIAL_ELECTRICITY_PARAMETER_IDS,
             ParameterSelectionPolicy.OFFICIAL_LATEST, relation=RuleRelation.BASE, standard_id="gbt_32150_2025",
             applicable_standard_ids=common_ids, parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR,),
             target_id="electricity_emission_factor_national", description="最新适用官方电力因子。",
@@ -1385,7 +1461,7 @@ def default_g05_rules() -> tuple[tuple[RuleDefinition, ...], tuple[RuleDefinitio
         _frozen_rule("CAR-RULE-POWER-HEAT-001", "parameter_selection", RuleRelation.SPECIALIZE,
             "炭素材料外购电力和热力分别沿用各自适用的参数选择路径。",
             standard_id="gbt_32151_34_2024", applicable_standard_ids=carbon_ids, target_id="power_heat",
-            parameter_ids=(NATIONAL_ELECTRICITY_PARAMETER_ID, NONFOSSIL_ELECTRICITY_PARAMETER_ID, "heat_emission_factor_default"),
+            parameter_ids=(*OFFICIAL_ELECTRICITY_PARAMETER_IDS, NONFOSSIL_ELECTRICITY_PARAMETER_ID, "heat_emission_factor_default"),
             parameter_types=(ParameterType.ELECTRICITY_EMISSION_FACTOR, ParameterType.HEAT_EMISSION_FACTOR),
             payload=(("specializes", "GEN-RULE-ELECTRICITY-001|GEN-RULE-HEAT-001"),),
             source_location="GB/T 32151.34—2024 第5.2.6条；PDF15；印刷页7", evidence_source_id=carbon_source),

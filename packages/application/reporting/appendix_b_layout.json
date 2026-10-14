@@ -404,6 +404,6 @@
       ]
     }
   },
-  "input_template_version": "2.0.0",
-  "input_template_sha256": "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+  "input_template_version": "2.1.0",
+  "input_template_sha256": "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 }

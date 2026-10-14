@@ -211,7 +211,10 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
 def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterResolver:
     """Create the G06 resolver from catalog bindings and standard rules."""
 
-    from packages.core.parameter_resolution import PROVINCIAL_ELECTRICITY_PARAMETER_ID
+    from packages.core.parameter_resolution import (
+        PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+        REGIONAL_ELECTRICITY_PARAMETER_ID,
+    )
     from packages.standards.carbon_material import STANDARD_ID
 
     common, industry = default_g05_rules()
@@ -235,7 +238,10 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
             or not binding.region.strip()
             or binding.review_status not in accepted_reviews
             or asset is None
-            or asset.parameter_id != PROVINCIAL_ELECTRICITY_PARAMETER_ID
+            or asset.parameter_id not in {
+                REGIONAL_ELECTRICITY_PARAMETER_ID,
+                PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+            }
             or factor_record is None
             or factor_record.parameter_id != asset.parameter_id
             or factor_record.subject_id != asset.subject_id
@@ -277,7 +283,10 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
         common_rules=common,
         industry_rules=(*industry, *_catalog_parameter_rules(repository)),
         applicability=applicability,
-        required_applicability_parameter_ids=(PROVINCIAL_ELECTRICITY_PARAMETER_ID,),
+        required_applicability_parameter_ids=(
+            REGIONAL_ELECTRICITY_PARAMETER_ID,
+            PROVINCIAL_ELECTRICITY_PARAMETER_ID,
+        ),
     )
 
 

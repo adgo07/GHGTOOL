@@ -20,11 +20,18 @@ APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
-APPROVED_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
+APPROVED_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
+COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
+COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+TEMPLATE_SHA256_BY_PATH = {
+    APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+    COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
+}
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
     APPROVED_TEMPLATE_PATH.as_posix(),
+    COMPATIBILITY_TEMPLATE_PATH.as_posix(),
     "resources/branding/qingzhou_logo.png",
     *(f"resources/icons/{name}.svg" for name in
       ("factors", "excel", "home", "records", "new", "settings", "standards", "chevron-down")),
@@ -126,6 +133,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
         issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / COMPATIBILITY_TEMPLATE_PATH).is_file():
+        issues.append(f"missing compatibility Excel template: {COMPATIBILITY_TEMPLATE_PATH.as_posix()}")
     if not (artifact / REPORT_LAYOUT_PATH).is_file():
         issues.append(f"missing packaged Word report layout: {REPORT_LAYOUT_PATH.as_posix()}")
     for path in _relative_files(artifact):
@@ -138,9 +147,10 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         if parts & {part.lower() for part in FORBIDDEN_PARTS}:
             issues.append(f"forbidden development or user-data path: {normalized}")
         if relative.suffix.lower() in EXCEL_SUFFIXES:
-            if relative.suffix.lower() != ".xlsx" or relative != APPROVED_TEMPLATE_PATH:
+            expected_hash = TEMPLATE_SHA256_BY_PATH.get(relative)
+            if relative.suffix.lower() != ".xlsx" or expected_hash is None:
                 issues.append(f"unexpected Excel workbook file: {normalized}")
-            elif _sha256(artifact / relative) != APPROVED_TEMPLATE_SHA256:
+            elif _sha256(artifact / relative) != expected_hash:
                 issues.append(f"approved Excel template hash mismatch: {normalized}")
         elif relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
             relative.suffix.lower() == ".docx"

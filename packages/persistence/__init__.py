@@ -3,6 +3,7 @@
 from .catalog_repository import CatalogRepositoryError, EmptyCatalogRepository, SQLiteCatalogRepository
 from .records_repository import AuditEntry, RecordRepositoryError, SQLiteRecordRepository
 from .projects_repository import ProjectWorkspaceRepositoryError, SQLiteProjectWorkspaceRepository
+from .settings_repository import SQLiteSettingsRepository, SettingsRepositoryError
 from .catalog_builder import build_all_databases, build_catalog_database
 from .in_memory_records import InMemoryRecordRepository
 from .sqlite import MigrationError, MigrationRunner, initialize_database
@@ -19,6 +20,8 @@ __all__ = [
     "SQLiteCatalogRepository",
     "SQLiteRecordRepository",
     "SQLiteProjectWorkspaceRepository",
+    "SQLiteSettingsRepository",
+    "SettingsRepositoryError",
     "build_all_databases",
     "build_catalog_database",
     "initialize_database",

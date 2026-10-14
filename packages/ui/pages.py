@@ -61,6 +61,12 @@ from packages.application.carbon_accounting import (
 )
 from packages.application.standard_registry import StandardRuntime
 from .report_export import export_saved_record_report, report_supplementary_dialog
+from .export_location import (
+    choose_export_path,
+    service_for_parent,
+    show_export_success,
+    template_export_filename,
+)
 from .record_experience import (
     SnapshotState,
     REPORT_FIELD_LABELS,
@@ -77,7 +83,6 @@ from .record_experience import (
     period_label,
     status_label,
     snapshot_state,
-    summary_with_trace,
 )
 
 from .design_tokens import (
@@ -1355,9 +1360,10 @@ class SettingsPage(BasePage):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(AppRoute.SETTINGS, parent)
+        self.export_location_service = service_for_parent(self)
         self.add_header(
             "设置",
-            "当前主线只保留真实设置入口，暂无已实现的可调整业务设置项。",
+            "统一设置 Word 报告与 Excel 输入模板的导出文件夹；其他业务设置暂未开放。",
         )
         card, card_layout = _card("当前版本", self)
         columns = QWidget(card)
@@ -1401,34 +1407,100 @@ class SettingsPage(BasePage):
         options_layout = QVBoxLayout(options)
         options_layout.setContentsMargins(14, 14, 14, 14)
         options_layout.setSpacing(12)
-        options_title = QLabel("可调整项目", options)
+        options_title = QLabel("导出位置", options)
         options_title.setObjectName("cardTitle")
         options_layout.addWidget(options_title)
-        empty_state = QWidget(options)
-        empty_layout = QVBoxLayout(empty_state)
-        empty_layout.setContentsMargins(8, 10, 8, 10)
-        empty_layout.setSpacing(8)
-        empty_title = QLabel("当前版本暂无可调整的设置项", empty_state)
-        empty_title.setObjectName("emptyStateTitle")
-        empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_description = QLabel(
-            "此处仅显示本版本已经开放的设置。",
-            empty_state,
+        export_description = QLabel(
+            "Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。",
+            options,
         )
-        empty_description.setObjectName("emptyStateDescription")
-        empty_description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_description.setWordWrap(True)
-        empty_layout.addStretch(1)
-        empty_layout.addWidget(empty_title)
-        empty_layout.addWidget(empty_description)
-        empty_layout.addStretch(1)
-        options_layout.addWidget(empty_state, 1)
+        export_description.setObjectName("emptyStateDescription")
+        export_description.setWordWrap(True)
+        options_layout.addWidget(export_description)
+        directory_label = QLabel("统一导出文件夹", options)
+        directory_label.setObjectName("detailFieldLabel")
+        options_layout.addWidget(directory_label)
+        directory_row = QWidget(options)
+        directory_row_layout = QHBoxLayout(directory_row)
+        directory_row_layout.setContentsMargins(0, 0, 0, 0)
+        directory_row_layout.setSpacing(8)
+        self.export_directory_path = QLineEdit(directory_row)
+        self.export_directory_path.setObjectName("exportDirectoryPath")
+        self.export_directory_path.setReadOnly(True)
+        directory_row_layout.addWidget(self.export_directory_path, 1)
+        self.choose_export_directory_button = QPushButton("更改…", directory_row)
+        self.choose_export_directory_button.setObjectName("chooseExportDirectoryButton")
+        self.choose_export_directory_button.clicked.connect(self._choose_export_directory)
+        directory_row_layout.addWidget(self.choose_export_directory_button)
+        options_layout.addWidget(directory_row)
+        self.export_directory_status = QLabel(options)
+        self.export_directory_status.setObjectName("exportDirectoryStatus")
+        self.export_directory_status.setWordWrap(True)
+        options_layout.addWidget(self.export_directory_status)
+        options_layout.addStretch(1)
 
         columns_layout.addWidget(info, 1)
         columns_layout.addWidget(options, 1)
         card_layout.addWidget(columns, 1)
         self.body_layout.addWidget(card)
         self.body_layout.addStretch(1)
+        self._refresh_export_directory_display()
+
+
+    def _refresh_export_directory_display(self) -> None:
+        try:
+            directory = self.export_location_service.display_directory()
+        except Exception:
+            _LOGGER.exception("Unable to read the preferred export directory")
+            try:
+                fallback_display = self.export_location_service.default_directory()
+            except Exception:
+                fallback_display = None
+            self.export_directory_path.setText(str(fallback_display or ""))
+            can_save = self.export_location_service.settings_repository is not None
+            self.choose_export_directory_button.setEnabled(can_save)
+            self.export_directory_status.setText(
+                "当前导出文件夹设置无法读取。可选择新位置重新保存；如用户设置数据库不可用，保存仍会失败。"
+                if can_save
+                else "无法读取系统文档目录，且用户设置存储未配置。"
+            )
+            return
+
+        self.export_directory_path.setText(str(directory))
+        can_save = self.export_location_service.settings_repository is not None
+        self.choose_export_directory_button.setEnabled(can_save)
+        if can_save:
+            self.export_directory_status.setText("首次导出时创建文件夹。")
+        else:
+            self.export_directory_status.setText("用户设置存储未配置，当前路径可用于导出但无法保存更改。")
+
+    def _choose_export_directory(self) -> None:
+        if self.export_location_service.settings_repository is None:
+            QMessageBox.warning(
+                self,
+                "无法保存设置",
+                "用户设置存储未配置，无法保存统一导出文件夹。",
+            )
+            return
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            "选择统一导出文件夹",
+            self.export_directory_path.text(),
+        )
+        if not selected:
+            return
+        try:
+            self.export_location_service.set_preferred_directory(selected)
+        except Exception:
+            _LOGGER.exception("Unable to save the preferred export directory")
+            QMessageBox.critical(
+                self,
+                "导出文件夹未更改",
+                "无法保存统一导出文件夹设置。请检查用户设置数据库和所选路径后重试。",
+            )
+            self._refresh_export_directory_display()
+            return
+        self._refresh_export_directory_display()
 
 
 class RecordLibraryPage(BasePage):
@@ -1531,10 +1603,12 @@ class RecordLibraryPage(BasePage):
         detail_card, detail_card_layout = _card("历史记录 · 只读", self.detail_view)
         self.detail_tabs = QTabWidget(detail_card)
         self.detail_tabs.setObjectName("recordDetailTabs")
-        self.summary_text = self._readonly_text("recordSummaryView", self.detail_tabs)
-        self.input_basis_text = self._readonly_text("recordInputBasisView", self.detail_tabs)
-        self.detail_tabs.addTab(self.summary_text, "基本信息与结果")
-        self.detail_tabs.addTab(self.input_basis_text, "输入数据与计算依据")
+        from .record_tables import RecordReportTab
+
+        self.summary_view = RecordReportTab("recordSummaryView", include_audit=False, parent=self.detail_tabs)
+        self.input_basis_view = RecordReportTab("recordInputBasisView", include_audit=True, parent=self.detail_tabs)
+        self.detail_tabs.addTab(self.summary_view, "基本信息与结果")
+        self.detail_tabs.addTab(self.input_basis_view, "输入数据与计算依据")
         detail_card_layout.addWidget(self.detail_tabs, 1)
 
         actions = QHBoxLayout()
@@ -1561,8 +1635,8 @@ class RecordLibraryPage(BasePage):
             QPushButton#deleteRecordButton { color: #B42318; }
             QLabel#recordDetailHeading { font-size: 18px; font-weight: 700; color: #18364F; }
             QLabel#recordResultCount { color: #698198; font-size: 12px; }
-            QTextEdit#recordSummaryView, QTextEdit#recordInputBasisView {
-                border: none; padding: 14px; background: white; font-size: 13px;
+            QTextEdit#recordAuditText {
+                border: 1px solid #DCE7EF; padding: 8px; background: white; font-size: 12px;
             }
             QLabel#recordStatusBadge {
                 border-radius: 8px; padding: 4px 9px; font-size: 11px;
@@ -1579,13 +1653,6 @@ class RecordLibraryPage(BasePage):
             QTabWidget#recordDetailTabs QTabBar::tab { padding: 0 18px; font-size: 13px; }
         """)
         self.refresh_records()
-
-    @staticmethod
-    def _readonly_text(object_name: str, parent: QWidget) -> QTextEdit:
-        text = QTextEdit(parent)
-        text.setObjectName(object_name)
-        text.setReadOnly(True)
-        return text
 
     def _read_snapshot(self, method_name: str, record_id: str) -> tuple[object, bool]:
         getter = getattr(self.record_repository, method_name, None)
@@ -1769,8 +1836,8 @@ class RecordLibraryPage(BasePage):
 
     def _clear_details(self, message: str) -> None:
         self._detail_record_id = None
-        self.summary_text.setPlainText(message)
-        self.input_basis_text.setPlainText(message)
+        self.summary_view.clear(message)
+        self.input_basis_view.clear(message)
 
     def _show_selected_record(self, row: int) -> None:
         if row < 0 or row >= len(self._records):
@@ -1805,11 +1872,6 @@ class RecordLibraryPage(BasePage):
         trace = values["trace"] if states["trace"] is SnapshotState.PRESENT else None
         reporting = values["reporting"] if states["reporting"] is SnapshotState.PRESENT else None
         raw = values["raw"] if states["raw"] is SnapshotState.PRESENT else None
-        summary = summary_with_trace(
-            record, values["qualification"], qualification_state, trace,
-            association=self._workspace_association(record.record_id),
-        )
-        self.summary_text.setHtml(_record_summary_markup(summary))
         if states["raw"] is SnapshotState.LEGACY:
             report_notice="该历史记录生成时尚未保存完整业务输入；以下仅列出已冻结的信息。"
         elif states["raw"] is SnapshotState.CORRUPT:
@@ -1842,14 +1904,37 @@ class RecordLibraryPage(BasePage):
             ("数据质量与提醒", quality_text),
             ("计算过程与来源链", professional),
         )
-        from packages.application.reporting.presentation import report_html
         try:
             model=build_record_report_model(record,raw,trace,reporting,provenance=values["provenance"],qualification=values["qualification"])
-            business_html=("<p>"+html_escape(report_notice)+"</p>" if report_notice else "")+report_html(model)
         except ValueError:
-            business_html="<p>此标准尚未提供业务报告表式；可在基本信息与计算依据中查看已冻结的结果。</p>"
-        audit_html="".join("<h3>"+html_escape(title)+"</h3><p>"+html_escape(content).replace("\n","<br>")+"</p>" for title,content in sections[1:])
-        self.input_basis_text.setHtml(business_html+audit_html)
+            fallback = "此标准尚未提供业务报告表式；可在核算结果与来源审计中查看已冻结的信息。"
+            self.summary_view.clear(fallback)
+            self.input_basis_view.set_sections((), audit_sections=(*sections[1:], ("标准报告数据", fallback)))
+        else:
+            summary_sections = tuple(
+                section for section in model.sections
+                if section.section_id in {"basic", "b1"}
+            )
+            detail_sections = tuple(
+                section for section in model.sections
+                if section.section_id not in {"basic", "b1"}
+            )
+            all_tables = tuple(table for section in model.sections for table in section.tables)
+            detail_notices = [report_notice] if report_notice else []
+            if not any(section.section_id == "evidence" for section in detail_sections):
+                if states["reporting"] is SnapshotState.LEGACY:
+                    detail_notices.append("该历史记录生成时未保存报告信息快照，独立来源证据不可用。")
+                elif states["reporting"] is SnapshotState.CORRUPT:
+                    detail_notices.append("无法读取该记录的报告信息快照，独立来源证据不可用。")
+                else:
+                    detail_notices.append("该记录未保存独立来源证据条目；已记录的活动数据和参数来源见 B.2—B.9。")
+            self.summary_view.set_sections(summary_sections, notices=model.notices)
+            self.input_basis_view.set_sections(
+                detail_sections,
+                notices=detail_notices,
+                audit_sections=sections[1:],
+                audit_tables=all_tables,
+            )
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 
     def _delete_selected(self) -> None:
@@ -2109,21 +2194,37 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("暂无已保存的 Excel 项目；保存项目后可在此处重新打开。")
 
     def _download_template(self) -> None:
-        service = self.excel_adapter.templates
-        template = service.get(self.standard_id)
-        target, _ = QFileDialog.getSaveFileName(
+        template_service = self.excel_adapter.templates
+        template = template_service.get(self.standard_id)
+        filename = template_export_filename(
+            template.standard_id,
+            template.template_version,
+        )
+        location_service = service_for_parent(self)
+        target, _ = choose_export_path(
             self,
             self.excel_adapter.template_dialog_title,
-            self.excel_adapter.template_filename,
+            filename,
             "Excel 工作簿 (*.xlsx)",
+            location_service=location_service,
         )
         if not target:
             return
         path = Path(target)
         if path.suffix.lower() != ".xlsx":
             path = path.with_suffix(".xlsx")
+        if path.exists():
+            answer = QMessageBox.question(
+                self,
+                "确认覆盖文件",
+                f"同名 Excel 模板已存在：\n{path}\n是否覆盖？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
         try:
-            service.copy_to(path, standard_id=self.standard_id)
+            template_service.copy_to(path, standard_id=self.standard_id)
         except Exception:
             _LOGGER.exception("Unable to copy approved Appendix B template to %s", path)
             QMessageBox.critical(
@@ -2132,10 +2233,11 @@ class ExcelImportPage(BasePage):
                 f"无法保存附录 B 模板。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
             )
             return
-        QMessageBox.information(
+        show_export_success(
             self,
             "模板已保存",
-            f"{template.standard_version} 附录 B 模板已保存到：\n{path}",
+            f"{template.standard_version} 附录 B 模板（模板版本 {template.template_version}）已保存到：\n{path}",
+            path,
         )
 
     def _choose_workbook(self) -> None:

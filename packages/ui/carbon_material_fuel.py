@@ -2,10 +2,11 @@
 from collections.abc import Callable
 from uuid import uuid4
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QCompleter, QCheckBox, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
+from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QCompleter, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
 from packages.standards.carbon_material import FuelPath
 from packages.standards.carbon_material_input_policy import match_fuel_option
-from .compact_choices import TwoChoiceControl
+from .compact_choices import TwoChoiceControl, SegmentedChoiceControl
+from .name_selector import NameSelector
 from .field_specs import get_field_spec
 from .typed_inputs import create_typed_input
 
@@ -49,7 +50,7 @@ class _FuelRow(QWidget):
         self.internal_id.setObjectName("fuelIdInput" if index == 1 else f"fuelIdInput{index}")
         self.internal_id.hide()
 
-        self.fuel_type = QComboBox(self)
+        self.fuel_type = NameSelector(self)
         self.fuel_type.setObjectName(f"fuelType{index}")
         self.fuel_type.setProperty("fieldSpecKey", "fuel_type")
         self.fuel_type.setEditable(True)
@@ -65,11 +66,10 @@ class _FuelRow(QWidget):
             self.fuel_type.addItem(label, option.fuel_type)
             self.fuel_type.setItemData(self.fuel_type.count() - 1, option.subject_id, Qt.ItemDataRole.UserRole + 1)
             search_terms.extend((label, *option.aliases))
-        completer = QCompleter(list(dict.fromkeys(search_terms)), self.fuel_type)
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.fuel_type.setCompleter(completer)
-        completer.activated[str].connect(self._accept_search_match)
+        self.fuel_type.set_search_names((option.label, option.aliases) for option in self._fuel_options)
+        self._committed_name = self.fuel_type.currentText().strip()
+        self._legacy_custom_identity = False
+        self._activity_drafts = {}
 
         self.path = create_typed_input(self, get_field_spec("fuel_path"), f"fuelPathInput{index}")
         self.path.addItem("体积", FuelPath.VOLUME)
@@ -101,24 +101,10 @@ class _FuelRow(QWidget):
         self.carbon_basis.addItem("计算值", "HEAT_CONTENT")
         self.carbon_basis.addItem("实测值", "DIRECT")
         self.lhv_source = self._source_combo(index, "lhv")
-        self.lhv_source.clear()
-        self.lhv_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.lhv_source.addItem("实测值", "MEASURED")
-        self.lhv_source.addItem("填写值", "USER_DEFINED")
         self.carbon_source = self._source_combo(index, "carbon")
-        self.carbon_source.clear()
-        self.carbon_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.carbon_source.addItem("填写值", "USER_DEFINED")
-        self.direct_carbon_source = self._source_combo(index, "directCarbon")
-        self.direct_carbon_source.clear()
-        self.direct_carbon_source.addItem("实测值", "MEASURED")
+        self.direct_carbon_source = self._source_combo(index, "directCarbon", values=("MEASURED",))
         self.oxidation_source = self._source_combo(index, "oxidation")
-        self.oxidation_source.clear()
-        self.oxidation_source.addItem("缺省值", "STANDARD_DEFAULT")
-        self.oxidation_source.addItem("实测值", "MEASURED")
-        self._legacy_oxidation_source_index = self.oxidation_source.count()
-        self.oxidation_source.addItem("填写值", "USER_DEFINED")
-        self.oxidation_source.view().setRowHidden(self._legacy_oxidation_source_index, True)
+        self._legacy_oxidation_source_index = self.oxidation_source.findData("USER_DEFINED")
         self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
         self.carbon_control = self._parameter_control(self.carbon_source, self.carbon)
         self.direct_carbon_control = self._parameter_control(self.direct_carbon_source, self.carbon_direct)
@@ -126,7 +112,7 @@ class _FuelRow(QWidget):
         self.lhv_label = QLabel("低位发热量", self)
         self.carbon_label = QLabel("单位热值含碳量", self)
         self.direct_carbon_label = QLabel("实测单位含碳量", self)
-        self.oxidation_label = QLabel("碳氧化率", self)
+        self.oxidation_label = QLabel("碳氧化率（%）", self)
         self.source_reference_label = QLabel("实测报告/来源定位", self)
         self.source_reference_control = QWidget(self)
         source_layout = QHBoxLayout(self.source_reference_control)
@@ -135,10 +121,11 @@ class _FuelRow(QWidget):
         source_layout.addWidget(self.source_reference_label)
         source_layout.addWidget(self.source_reference, 1)
         self.source_reference_control.hide()
-        self.calculated_carbon_label = QLabel("按热值计算：待录入", self)
+        self.calculated_carbon_label = QLineEdit(self)
+        self.calculated_carbon_label.setReadOnly(True)
+        self.calculated_carbon_label.setPlaceholderText("待计算")
         self.calculated_carbon_label.setObjectName(f"fuelCalculatedCarbon{index}")
         self.calculated_carbon_label.setAccessibleName("按低位发热量计算的单位活动量含碳量，仅供查看")
-        self.calculated_carbon_label.setWordWrap(False)
 
         carbon_value_cell = QWidget(self)
         carbon_value_layout = QVBoxLayout(carbon_value_cell)
@@ -171,14 +158,20 @@ class _FuelRow(QWidget):
         for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.direct_carbon_label, carbon_value_cell), (self.oxidation_label, self.oxidation_control))):
             grid.addWidget(self._field_cell(label, widget), 1, column * 3, 1, 3)
         grid.addWidget(self.source_reference_control, 2, 0, 1, 12)
-        self.custom_mode = QCheckBox("自定义燃料", self)
-        self.custom_mode.setObjectName(f"fuelCustomMode{index}")
-        self.custom_mode.setToolTip("勾选后填写自定义参数，不借用目录缺省值。")
-        header.insertWidget(1, self.custom_mode)
         for column in range(12):
             grid.setColumnStretch(column, 1)
         self.input_grid = grid
         outer.addLayout(grid)
+        self._last_path = getattr(self.path.currentData(), "value", self.path.currentData())
+        activity_notice = QHBoxLayout()
+        self.activity_draft_notice = QLabel(self)
+        self.activity_draft_notice.setWordWrap(True)
+        self.restore_activity_button = QPushButton("恢复当前燃料原单位活动量", self)
+        self.activity_draft_notice.hide()
+        self.restore_activity_button.hide()
+        activity_notice.addWidget(self.activity_draft_notice, 1)
+        activity_notice.addWidget(self.restore_activity_button)
+        outer.addLayout(activity_notice)
 
         # Backward-compatible, hidden legacy free-text field. New input lives in
         # the searchable fuel selector and is matched to Catalog text exactly.
@@ -196,22 +189,6 @@ class _FuelRow(QWidget):
         self._legacy_source_modes: dict[str, str] = {}
         self.parameter_source = "AUTO"
 
-    def _accept_search_match(self, text):
-        option = match_fuel_option(self._fuel_options, text)
-        if option is not None:
-            self.fuel_type.setCurrentIndex(self.fuel_type.findText(option.label))
-
-    def _carbon_basis_row(self) -> QWidget:
-        row = QWidget(self)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        layout.addWidget(QLabel("含碳量方式", row))
-        layout.addWidget(self.carbon_basis)
-        layout.addStretch(1)
-        self._carbon_basis_control = row
-        return row
-
     @staticmethod
     def _field_cell(label: QLabel, widget: QWidget) -> QWidget:
         cell = QWidget(label.parentWidget())
@@ -223,14 +200,13 @@ class _FuelRow(QWidget):
         return cell
 
     @staticmethod
-    def _source_combo(index: int, key: str) -> QComboBox:
+    def _source_combo(index: int, key: str, values=("STANDARD_DEFAULT", "CALCULATED", "MEASURED")) -> QComboBox:
         combo = QComboBox()
         combo.setObjectName(f"fuel{key.title()}Source{index}")
-        combo.addItem("标准缺省", "STANDARD_DEFAULT")
-        combo.addItem("计算值", "CALCULATED")
-        combo.addItem("实测/检测", "MEASURED")
-        combo.addItem("用户自填", "USER_DEFINED")
-        combo.setMinimumWidth(94)
+        labels = {"STANDARD_DEFAULT":"缺省值", "CALCULATED":"计算值", "MEASURED":"实测值"}
+        for value in values:combo.addItem(labels[value], value)
+        combo.addItem("历史填写来源（需确认）", "USER_DEFINED")
+        combo.view().setRowHidden(combo.count()-1, True)
         return combo
 
     @staticmethod
@@ -240,7 +216,7 @@ class _FuelRow(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(3)
         row.addWidget(edit)
-        row.addWidget(source)
+        row.addWidget(SegmentedChoiceControl(source, parent=control, values={"STANDARD_DEFAULT", "CALCULATED", "MEASURED"}))
         return control
 
     def _update_custom_name_visibility(self) -> None:

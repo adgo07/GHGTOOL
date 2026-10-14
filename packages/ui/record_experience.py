@@ -8,7 +8,6 @@ from enum import Enum
 import re
 from typing import Any
 
-from packages.application.reporting.model import frozen_totals
 from packages.core.models import AccountingRecord, PeriodType, RecordStatus
 from packages.standards.carbon_material import (
     SOURCE_BAKING,
@@ -21,7 +20,6 @@ from packages.standards.carbon_material import (
     SOURCE_GRAPHITIZATION,
     SOURCE_PURCHASED_ELECTRICITY,
     SOURCE_PURCHASED_HEAT,
-    verify_record_aggregation,
 )
 
 
@@ -38,44 +36,6 @@ SOURCE_LABELS = {
     SOURCE_PURCHASED_HEAT: "购入热力",
     SOURCE_EXPORTED_HEAT: "输出热力",
 }
-SOURCE_TOTAL_KEYS = {
-    SOURCE_FUEL: "fuel",
-    SOURCE_CALCINATION: "calcination",
-    SOURCE_BAKING: "baking",
-    SOURCE_GRAPHITIZATION: "graphitization",
-    SOURCE_FUME: None,
-    SOURCE_FGD: None,
-    SOURCE_PURCHASED_ELECTRICITY: "purchased_electricity",
-    SOURCE_EXPORTED_ELECTRICITY: "exported_electricity",
-    SOURCE_PURCHASED_HEAT: "purchased_heat",
-    SOURCE_EXPORTED_HEAT: "exported_heat",
-}
-SOURCE_ROWS = (
-    ("fuel", "化石燃料燃烧", SOURCE_FUEL, "fuel_inputs", "fuel_id", "燃料"),
-    ("calcination", "原料煅烧", SOURCE_CALCINATION, "calcinations", "instance_id", "过程"),
-    ("baking", "焙烧/炭化", SOURCE_BAKING, "bakings", "instance_id", "过程"),
-    ("graphitization", "石墨化", SOURCE_GRAPHITIZATION, "graphitizations", "instance_id", "过程"),
-    ("fume", "烟气焚烧治理", SOURCE_FUME, "fume_incinerations", "instance_id", "设施"),
-    ("fgd", "烟气脱硫净化", SOURCE_FGD, "fgd_units", "instance_id", "设施"),
-    ("purchased_electricity", "购入电力", SOURCE_PURCHASED_ELECTRICITY, "electricity_details", "detail_id", "来源"),
-    ("exported_electricity", "输出电力", SOURCE_EXPORTED_ELECTRICITY, "exported_electricity", "line_id", "来源"),
-    ("purchased_heat", "购入热力", SOURCE_PURCHASED_HEAT, "purchased_heat", "line_id", "来源"),
-    ("exported_heat", "输出热力", SOURCE_EXPORTED_HEAT, "exported_heat", "line_id", "来源"),
-)
-
-FUEL_TYPES = {
-    "ANTHRACITE": "无烟煤", "BITUMINOUS_COAL": "烟煤", "LIGNITE": "褐煤",
-    "CLEANED_COAL": "洗精煤", "OTHER_CLEANED_COAL": "其他洗煤", "BRIQUETTE": "型煤",
-    "OTHER_COAL_PRODUCTS": "其他煤制品", "COKE": "焦炭", "PETROLEUM_COKE": "石油焦",
-    "CRUDE_OIL": "原油", "FUEL_OIL": "燃料油", "GASOLINE": "汽油", "DIESEL": "柴油",
-    "KEROSENE": "一般煤油", "LIQUEFIED_NATURAL_GAS": "液化天然气",
-    "LIQUEFIED_PETROLEUM_GAS": "液化石油气", "NAPHTHA": "石脑油", "TAR": "焦油",
-    "CRUDE_BENZENE": "粗苯", "OTHER_PETROLEUM_PRODUCTS": "其他石油制品",
-    "NATURAL_GAS": "天然气", "BLAST_FURNACE_GAS": "高炉煤气", "CONVERTER_GAS": "转炉煤气",
-    "COKE_OVEN_GAS": "焦炉煤气", "REFINERY_DRY_GAS": "炼厂干气", "OTHER_GAS": "其他煤气",
-    "COAL": "煤（历史输入未细分）", "OTHER": "其他燃料（按历史输入记录）",
-}
-PATH_LABELS = {"MASS": "质量路径", "VOLUME": "体积路径", "HEAT": "热量路径"}
 SOURCE_KIND_LABELS = {
     "STANDARD_DEFAULT": "标准缺省值", "STANDARD_SPECIFIED": "标准规定值", "MEASURED": "企业实测值",
     "CALCULATED": "计算值", "OFFICIAL_PUBLISHED": "官方发布值", "USER_DEFINED": "用户指定值",
@@ -274,27 +234,6 @@ def _raw_items(raw: object, plural: str, legacy: str | None = None) -> tuple[Map
     return tuple(item for item in entries if isinstance(item, Mapping))
 
 
-def _calculation_snapshot(record: AccountingRecord) -> dict[str, object]:
-    return {
-        "lines": [
-            {
-                "line_id": line.line_id,
-                "emission_source_id": line.emission_source_id,
-                "amount": str(line.amount),
-                "unit": line.unit,
-            }
-            for line in record.calculation_result.lines
-        ],
-        "total_amount": str(record.calculation_result.total_amount),
-    }
-
-
-def aggregation_errors(record: AccountingRecord, trace: object) -> tuple[str, ...]:
-    if not isinstance(trace, Mapping):
-        return ("历史记录没有可核验的计算过程快照",)
-    return verify_record_aggregation(trace, _calculation_snapshot(record))
-
-
 def _trace_steps(trace: object) -> tuple[Mapping[str, Any], ...]:
     if not isinstance(trace, Mapping):
         return ()
@@ -433,70 +372,6 @@ def _business_warning(message: str) -> str:
     return re.sub(r"\b(?:CAR|GEN|STD)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b", "相关输入项", message)
 
 
-def build_professional_view(
-    record: AccountingRecord,
-    *,
-    raw: object,
-    rules: object,
-    trace: object,
-    provenance: object,
-    reporting: object,
-    qualification: object,
-    states: Mapping[str, SnapshotState],
-    audit: object = (),
-) -> str:
-    warnings = tuple(
-        problem for problem in (*record.problems, *record.calculation_result.problems)
-        if problem.level.value == "WARNING"
-    )
-    output = [
-        f"Record ID：{record.record_id}",
-        f"创建时间：{record.created_at.isoformat()}",
-        f"标准 ID：{record.standard_id}",
-        f"标准版本：{record.standard_version or '未记录'}",
-        f"算法版本：{record.algorithm_version}",
-        f"状态枚举：{record.status.value}",
-        f"总量：{record.calculation_result.total_amount} {record.calculation_result.total_unit}",
-        "\n排放源稳定 ID：",
-    ]
-    output.extend(f"- {item.source_id}：{'纳入' if item.included else '未纳入'}" for item in record.input_snapshot.emission_sources)
-    output.append("\n有效规则集：")
-    rule_ids = rules.get("rule_ids", ()) if isinstance(rules, Mapping) else ()
-    output.extend(f"- {value}" for value in rule_ids) if rule_ids else output.append("- 历史规则快照未记录")
-    for title, value in (
-        ("实际输入快照", raw), ("Trace 快照", trace), ("Provenance 快照", provenance),
-        ("报告信息快照", reporting), ("年度报告资格快照", qualification),
-    ):
-        output.append(f"\n{title}状态：{states.get(title, SnapshotState.LEGACY).value}")
-        output.append(repr(value) if value is not None else SNAPSHOT_STATE_LABELS[states.get(title, SnapshotState.LEGACY)])
-    output.append("\n参数快照：")
-    for item in record.parameter_snapshots:
-        output.append(
-            f"- {item.parameter_id}={item.value_used} {item.unit_used}; factor={item.factor_id}; "
-            f"source={item.source_id}@{item.source_version}; detail={item.detail_id}; "
-            f"location={item.source_location}; evidence={','.join(item.evidence_ref_ids)}"
-        )
-    if isinstance(trace, Mapping):
-        output.append("\n公式/映射依据：")
-        for step in _trace_steps(trace):
-            output.append(
-                f"- {step.get('trace_id')} / {step.get('process_instance_id')} / {step.get('formula_id')}: "
-                f"{step.get('calculation_step')} = {step.get('intermediate_result')} {step.get('unit')}; "
-                f"standard={step.get('standard_location')}; mapping={step.get('mapping_location')}; "
-                f"parameters={step.get('parameter_references')}"
-            )
-    output.append("\n校验与警告：")
-    output.extend(f"- {problem.code}：{problem.message}" for problem in warnings) if warnings else output.append("- 无警告")
-    output.append("\n审计日志：")
-    if isinstance(audit, (tuple, list)) and audit:
-        output.extend(f"- {item}" for item in audit)
-    else:
-        output.append("- 未提供审计日志")
-    output.append("\n历史记录为不可变快照；此页面不会查询当前目录或重新计算。")
-    return "\n".join(output)
-
-
-
 def build_calculation_basis_view(
     record: AccountingRecord, *, trace: object, provenance: object,
     states: Mapping[str, SnapshotState],
@@ -555,63 +430,6 @@ def build_calculation_basis_view(
             output.append(f"映射版本：{provenance['mapping_version']}")
     output.append("\n上述内容来自该记录保存的快照；原始计算过程、来源链和审计证据继续保留。")
     return "\n".join(output)
-
-
-def build_record_summary(
-    record: AccountingRecord,
-    qualification: object,
-    qualification_state: SnapshotState,
-    trace: object,
-    *,
-    association: str = "当前无工作区关联",
-) -> str:
-    period = record.input_snapshot.period
-    boundary = "已保存边界分项" if record.input_snapshot.boundary_component_ids else "边界分项未单独记录；边界确认和说明见输入数据"
-    output = [
-        "基本信息",
-        f"企业：{record.input_snapshot.enterprise_name or '未填写企业'}",
-        f"核算期间：{period_label(record)}（{period.start.isoformat()} 至 {period.end.isoformat()}）",
-        f"核算边界：{boundary}",
-        f"核算标准：{standard_label(record.standard_id)}",
-        f"核算状态：{status_label(record.status)}",
-        f"年度报告资格：{_qualification_label(qualification, qualification_state)}",
-        f"所属工作区（当前关联）：{association}",
-        "\n核算结果",
-    ]
-    totals = frozen_totals(record, trace)
-    total = totals.get("ET") or None
-    direct = totals.get("ES") or None
-    indirect = totals.get("EI") or None
-    output.extend((
-        f"温室气体排放总量：{format_amount(total)}（ET，含购入和输出电力、热力影响）",
-        f"不含购入和输出电力、热力影响的总排放量（ES）：{format_amount(direct)}",
-        f"购入/输出能源对应的净间接排放量：{format_amount(indirect)}",
-        "标准报告数据 B.1—B.9 及逐项依据见“输入数据与计算依据”。",
-    ))
-    if record.status is RecordStatus.COMPLETED_WITH_WARNINGS:
-        output.append("\n关键提醒：本次核算含非致命提醒，详见“输入数据与计算依据”中的数据质量与提醒。")
-    return "\n".join(output)
-
-
-def _qualification_label(value: object, state: SnapshotState) -> str:
-    if state is SnapshotState.PRESENT and isinstance(value, Mapping):
-        eligible = value.get("eligible")
-        if eligible is True:
-            return "符合年度报告周期要求"
-        if eligible is False:
-            return "不符合年度报告周期要求（仍可作为内部核算结果）"
-    return SNAPSHOT_STATE_LABELS[state]
-
-
-def summary_with_trace(
-    record: AccountingRecord,
-    qualification: object,
-    qualification_state: SnapshotState,
-    trace: object,
-    *,
-    association: str = "当前无工作区关联",
-) -> str:
-    return build_record_summary(record, qualification, qualification_state, trace, association=association)
 
 
 def build_home_record_label(record: AccountingRecord) -> str:
