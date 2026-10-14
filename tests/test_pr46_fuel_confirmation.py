@@ -96,6 +96,12 @@ class FuelConfirmationTests(unittest.TestCase):
         row=self.page._fuel_rows[0]
         self.assertEqual(row.lower_heating_value.text(),"388.123456789")
         self.assertTrue(row.lower_heating_value.isReadOnly())
+        row.activity.setText("1")
+        from packages.core.models import DomainValidationError
+        with self.assertRaisesRegex(DomainValidationError, "与当前缺省值不一致"):
+            self.page._fuel()
+        row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
+        self.assertEqual(self.page._fuel()[0].lower_heating_value.value, __import__('decimal').Decimal("388.123456789"))
     def test_header_and_top_switch_share_state_and_keep_input(self):
         group_id=self.page._source_toggle_groups[0][0]
         top=self.page._source_toggle_buttons[group_id]
@@ -109,3 +115,45 @@ class FuelConfirmationTests(unittest.TestCase):
         top.click()
         self.assertEqual(header.label.text(),before)
         self.assertEqual(self.row.activity.text(),"123.456789")
+
+    def test_new_confirmed_fuel_does_not_inherit_legacy_direct_source(self):
+        self.row.direct_carbon_source.setCurrentIndex(self.row.direct_carbon_source.findData("USER_DEFINED"))
+        self.select(FuelType.DIESEL)
+        self.row.carbon_basis.setCurrentIndex(self.row.carbon_basis.findData("DIRECT"))
+        self.row.carbon_direct.setText("0.7")
+        self.row.activity.setText("1")
+        from packages.standards.carbon_material import ParameterSourceKind
+        self.assertIs(self.page._fuel()[0].carbon_content.source_kind,ParameterSourceKind.MEASURED)
+    def test_special_electricity_basis_never_becomes_automatic_fallback(self):
+        from unittest.mock import patch
+        row=self.page._energy_family_rows["electricity"][0]
+        option=row.factor_selector.currentData()
+        self.assertEqual(option.table_number,"表1")
+        queries=self.page._uat03_parameter_queries
+        original=queries.electricity_catalog_options
+        with patch.object(queries,"electricity_catalog_options",side_effect=lambda *args: tuple(item for item in original(*args) if item.table_number!="表1")):
+            self.page._refresh_energy_factor_options(row)
+            self.assertIsNone(row.factor_selector.currentData())
+            row.amount.setText("1")
+            from packages.core.models import DomainValidationError
+            with self.assertRaisesRegex(DomainValidationError,"明确选择"):
+                self.page._electricity("enterprise.current",self.page._period(),render=False)
+            saved=self.page._energy_row_state(row)
+            self.assertEqual(saved["selected_factor_id"],option.factor.factor_id)
+            index=next(i for i in range(row.factor_selector.count()) if getattr(row.factor_selector.itemData(i),"table_number",None)=="表4")
+            row.factor_selector.setCurrentIndex(index)
+            self.assertEqual(self.page._electricity("enterprise.current",self.page._period(),render=False)[0].selected_factor_id,row.factor_selector.currentData().factor.factor_id)
+    def test_unavailable_restored_electricity_id_is_retained_and_not_replaced(self):
+        row=self.page._energy_family_rows["electricity"][0]
+        saved=self.page._energy_row_state(row)
+        saved.update(amount="1", selected_factor_id="missing-historical-factor")
+        self.page._restore_unified_energy_rows([saved])
+        row=self.page._energy_family_rows["electricity"][0]
+        self.assertIsNone(row.factor_selector.currentData())
+        self.assertEqual(self.page._energy_row_state(row)["selected_factor_id"],"missing-historical-factor")
+        from packages.core.models import DomainValidationError
+        with self.assertRaisesRegex(DomainValidationError,"明确选择"):
+            self.page._electricity("enterprise.current",self.page._period(),render=False)
+        row.kind.setCurrentIndex(row.kind.findData("exported_electricity"))
+        with self.assertRaisesRegex(DomainValidationError,"明确选择"):
+            self.page._exported_electricity()

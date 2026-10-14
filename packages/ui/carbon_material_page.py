@@ -1415,7 +1415,7 @@ class CarbonMaterialAccountingPage(BasePage):
     def _energy_row_state(self, row: _UnifiedEnergyRow) -> dict[str, object]:
         factor_option = row.factor_selector.currentData()
         factor = getattr(factor_option, "factor", None)
-        selected_factor_id = getattr(factor, "factor_id", None)
+        selected_factor_id = getattr(factor, "factor_id", None) or getattr(row, "_unavailable_selected_factor_id", None)
         return {
             "row_key": row.row_key,
             "family": row.family,
@@ -1540,6 +1540,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 )
                 if factor_index >= 0:
                     row.factor_selector.setCurrentIndex(factor_index)
+                else:
+                    row._unavailable_selected_factor_id = selected_factor_id
+                    row.factor_selector.setCurrentIndex(0)
+                    row.factor_selector.setItemText(0, "原选因子当前不适用，请重新选择口径")
             try:
                 heat_kind_value = SteamKind(saved.get("heat_kind"))
                 heat_index = row.heat_kind.findData(heat_kind_value)
@@ -3028,7 +3032,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.heat_factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.amount.textChanged.connect(lambda *_args: self._refresh_source_cards())
         row.amount.textChanged.connect(lambda *_args: self._refresh_electricity_rows())
-        row.factor_selector.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row.factor_selector.currentIndexChanged.connect(lambda *_args, _row=row: self._on_energy_factor_choice_changed(_row))
         self._refresh_energy_region_options(row)
         self._refresh_energy_factor_options(row)
         self._refresh_unified_energy_row(row)
@@ -3120,7 +3124,7 @@ class CarbonMaterialAccountingPage(BasePage):
     def _refresh_energy_factor_options(self, row: _UnifiedEnergyRow) -> None:
         selector = row.factor_selector
         old = selector.currentData()
-        old_id = getattr(getattr(old, "factor", None), "factor_id", None)
+        old_id = getattr(getattr(old, "factor", None), "factor_id", None) or getattr(row, "_unavailable_selected_factor_id", None)
         level = str(row.geographic_level.currentData() or "全国")
         region = None if level == "全国" else row.region.currentData()
         try:
@@ -3131,6 +3135,7 @@ class CarbonMaterialAccountingPage(BasePage):
             options = ()
         blocker = QSignalBlocker(selector)
         selector.clear()
+        selector.addItem("请选择适用因子口径", None)
         for option in options:
             factor = option.factor
             year = f" · {factor.factor_year}" if factor.factor_year is not None else ""
@@ -3140,14 +3145,25 @@ class CarbonMaterialAccountingPage(BasePage):
                 item.setEnabled(False)
                 item.setToolTip(option.unavailable_reason or "此因子仅供查阅。")
         if not options:
-            selector.addItem("当前期间暂无适用目录候选", None)
-        index = next(
-            (i for i in range(selector.count()) if getattr(getattr(selector.itemData(i), "factor", None), "factor_id", None) == old_id),
-            next((i for i in range(selector.count()) if getattr(selector.itemData(i), "selectable", False)), 0),
-        )
+            selector.setItemText(0, "当前期间暂无适用目录候选")
+        if old_id is not None:
+            index = next((i for i in range(1, selector.count()) if getattr(getattr(selector.itemData(i), "factor", None), "factor_id", None) == old_id), 0)
+            row._unavailable_selected_factor_id = old_id if index == 0 else None
+            if index == 0:
+                selector.setItemText(0, "原选因子当前不适用，请重新选择口径")
+        else:
+            # Preserve the established baseline only; never automatically adopt
+            # the market-excluded or fossil-only national accounting basis.
+            baseline_table = {"全国": "表1", "区域": "表2", "省级": "表3"}.get(level)
+            index = next((i for i in range(1, selector.count()) if getattr(selector.itemData(i), "table_number", None) == baseline_table and getattr(selector.itemData(i), "selectable", False)), 0)
         selector.setCurrentIndex(index)
         selector.setEnabled(any(getattr(item, "selectable", False) for item in options))
         del blocker
+        self._refresh_unified_energy_row(row)
+
+    def _on_energy_factor_choice_changed(self, row: _UnifiedEnergyRow) -> None:
+        if row.factor_selector.currentData() is not None:
+            row._unavailable_selected_factor_id = None
         self._refresh_unified_energy_row(row)
 
     @staticmethod
@@ -3515,6 +3531,7 @@ class CarbonMaterialAccountingPage(BasePage):
         catalog = self._fuel_option_for_row(row) is not None
         for combo in (row.lhv_source,row.carbon_source,row.oxidation_source):
             combo.setCurrentIndex(combo.findData("STANDARD_DEFAULT") if catalog else -1)
+        row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         for edit in (row.lower_heating_value,row.carbon,row.oxidation,row.carbon_direct):edit.clear()
         row.source_reference.clear()
         blockers.clear()
@@ -6421,6 +6438,17 @@ class CarbonMaterialAccountingPage(BasePage):
     ) -> ParameterValue | None:
         source_kind = source_kind if source_kind is not None else source.currentData()
         if source_kind == "STANDARD_DEFAULT":
+            if factor is not None:
+                try:
+                    consistent = value is not None and Decimal(str(value)) == Decimal(str(factor.value))
+                except (InvalidOperation, TypeError, ValueError):
+                    consistent = False
+                if not consistent:
+                    name = {"lhv": "低位发热量", "carbon": "单位热值含碳量", "oxidation": "碳氧化率"}.get(suffix, suffix)
+                    raise DomainValidationError(
+                        f"燃料“{row._committed_name}”保存的{name}与当前缺省值不一致；"
+                        "请重新确认燃料以采用当前缺省值，或选择真实的计算值/实测值来源。原保存值仍保留。"
+                    )
             reason = row._default_selection_reasons.get(suffix) or (
                 "采用当前核算期经参数解析器选出的 GB/T 32151.34—2024 附录 C.1 缺省值。"
             )
@@ -6551,12 +6579,24 @@ class CarbonMaterialAccountingPage(BasePage):
                 ef_text = values["ef1"]
                 factor_combo = component.get("ef1_source")
                 factor_mode = factor_combo.currentData() if isinstance(factor_combo, QComboBox) else component.get("factor_mode")
-                catalog_selected = (
-                    factor_mode == "STD"
-                    and option is not None
-                    and component.get("catalog_factor_id") == option.factor.factor_id
-                )
-                if catalog_selected:
+                if factor_mode == "STD":
+                    if option is None:
+                        raise DomainValidationError(
+                            "已保存的脱硫剂标准排放因子无法匹配当前目录项；请重新选择碳酸盐目录项，"
+                            "或切换为计算值/实测值来源并填写。"
+                        )
+                    if component.get("catalog_factor_id") != option.factor.factor_id:
+                        raise DomainValidationError(
+                            "已保存的脱硫剂标准排放因子目录身份与当前目录项不一致；请重新选择碳酸盐目录项，"
+                            "或切换为计算值/实测值来源并填写。"
+                        )
+                    current_factor_value = Decimal(str(option.factor.value))
+                    if ef_text is not None and Decimal(str(ef_text)) != current_factor_value:
+                        raise DomainValidationError(
+                            f"脱硫剂碳酸盐标准排放因子保存值 {ef_text} tCO₂/t 与当前目录值 "
+                            f"{current_factor_value} tCO₂/t 不一致；请重新选择碳酸盐目录项确认，"
+                            "或切换为计算值/实测值来源并填写。"
+                        )
                     factor_value = self._parameter_value_from_factor(option.factor, option.selection_reason)
                 elif factor_mode in {"CALC", "MEASURED", "USER_DEFINED"} and ef_text is not None:
                     source_kind = {
@@ -6589,6 +6629,17 @@ class CarbonMaterialAccountingPage(BasePage):
                     mode = mode_widget.currentData() if isinstance(mode_widget, QComboBox) else component.get(f"{field}_source_mode")
                     if mode == "STANDARD_DEFAULT" and option is not None and self._fgd_ratio_default_allowed(component):
                         factor = self._canonical_default_factor(parameter_id)
+                        if factor is not None and raw is not None:
+                            current_default = Decimal(str(factor.value))
+                            if Decimal(str(raw)) != current_default:
+                                shown_value = Decimal(str(raw)) * Decimal("100")
+                                current_shown_value = current_default * Decimal("100")
+                                label = "碳酸盐含量" if field == "i" else "转化率"
+                                raise DomainValidationError(
+                                    f"脱硫剂{label}标准缺省保存值 {shown_value}% 与当前目录值 "
+                                    f"{current_shown_value}% 不一致；请重新选择碳酸盐目录项确认，"
+                                    "或切换为计算值/实测值来源并填写。"
+                                )
                         return self._parameter_value_from_factor(
                             factor, "采用当前核算期间 Resolver 核验的标准缺省参数。"
                         ) if factor is not None else None
@@ -6753,9 +6804,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 else:
                     option = row.factor_selector.currentData()
                     factor = getattr(option, "factor", None)
-                    if factor is not None:
-                        selected_factor_id = factor.factor_id
-                        selection_reason = option.selection_reason
+                    if factor is None:
+                        raise DomainValidationError("请明确选择当前期间与地区适用的电力因子口径；原选因子不会自动替换。")
+                    selected_factor_id = factor.factor_id
+                    selection_reason = option.selection_reason
             details.append(ElectricityConsumptionDetail(
                 detail_id=row.line_id.text().strip(),
                 enterprise_id=enterprise_id,
@@ -6999,8 +7051,9 @@ class CarbonMaterialAccountingPage(BasePage):
             else:
                 option = row.factor_selector.currentData()
                 factor = getattr(option, "factor", None)
-                if factor is not None:
-                    factor_value = self._parameter_value_from_factor(factor, option.selection_reason)
+                if factor is None:
+                    raise DomainValidationError("请明确选择当前期间与地区适用的输出电力因子口径；原选因子不会自动替换。")
+                factor_value = self._parameter_value_from_factor(factor, option.selection_reason)
             result.append(ElectricityOutputLine(
                 line_id=row.line_id.text().strip(), amount=amount, factor=factor_value,
                 region=region,

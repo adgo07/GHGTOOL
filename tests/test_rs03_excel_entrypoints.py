@@ -123,6 +123,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         fuel['E14'] = "计算值"
         fuel['G14'] = "缺省值"
         fuel['J14'] = "缺省值"
+        fuel['N14'] = "缺省值"
         destination = self.root / f"输入-{year}.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -489,8 +490,8 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.EXCEL_IMPORT]
         destination = self.root / "exported-Appendix-B-template.xlsx"
         with (
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.QMessageBox.information") as success,
+            patch("packages.ui.pages.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.pages.show_export_success") as success,
         ):
             page.templateButton.click()
             self.app.processEvents()

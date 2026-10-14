@@ -17,7 +17,7 @@ from packages.core import DomainValidationError
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.reference_data import DEFAULT_SOURCE_PATH
-from packages.standards.carbon_material import FGDInput, InputOrigin, ParameterSourceKind
+from packages.standards.carbon_material import EmissionSourceStatus, FGDInput, InputOrigin, ParameterSourceKind
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.name_selector import NameSelector, chemical_label
 from packages.ui.compact_choices import SegmentedChoiceControl
@@ -78,6 +78,10 @@ class G06FgdUiTests(unittest.TestCase):
         unit["reagent_name"].setText("石灰石")
         unit["group_amount"].setText("10")
         return unit
+
+    def _enable_fgd(self) -> None:
+        status = self.page._source_statuses["CAR-SRC-FGD-001"]
+        status.setCurrentIndex(status.findData(EmissionSourceStatus.INVOLVED))
 
     def test_confirmed_catalog_identity_uses_subscript_display_and_explicit_factor_source(self) -> None:
         unit = self._unit()
@@ -206,6 +210,56 @@ class G06FgdUiTests(unittest.TestCase):
         value = self.page._process("fgd", FGDInput).components[0]
         self.assertIs(value.origin, InputOrigin.CUSTOM)
         self.assertIs(value.emission_factor.source_kind, ParameterSourceKind.USER_DEFINED)
+
+    def test_restored_standard_values_matching_current_catalog_are_used_as_standard_defaults(self) -> None:
+        unit = self._unit()
+        component = unit["components"][0]
+        option = self._select_catalog(component, "car-par-c2-caco3")
+        self._enable_fgd()
+        saved_state = self.page._capture_form_state()
+        self.page._restore_form_state(saved_state)
+
+        restored_unit = self.page._input(increment=False, render_electricity=False).fgd_units[0]
+        restored = restored_unit.components[0]
+        i_factor, _ = self.page._fgd_default_ratio("i")
+        tr_factor, _ = self.page._fgd_default_ratio("tr")
+        expected_ef = self.page._parameter_value_from_factor(
+            option.factor, option.selection_reason
+        )
+        self.assertEqual(restored.emission_factor.value, Decimal(str(option.factor.value)))
+        self.assertIs(restored.emission_factor.source_kind, expected_ef.source_kind)
+        self.assertIsNotNone(i_factor)
+        self.assertEqual(restored.carbonate_fraction.value, Decimal(str(i_factor.value)))
+        self.assertIs(restored.carbonate_fraction.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+        self.assertIsNotNone(tr_factor)
+        self.assertEqual(restored.conversion_rate.value, Decimal(str(tr_factor.value)))
+        self.assertIs(restored.conversion_rate.source_kind, ParameterSourceKind.STANDARD_DEFAULT)
+
+    def test_restored_standard_values_differing_from_current_catalog_block_formal_input(self) -> None:
+        cases = (
+            ("ef1", "0.440123", "排放因子"),
+            ("i", "90.12345", "碳酸盐含量"),
+            ("tr", "99.87654", "转化率"),
+        )
+        for field, saved_value, label in cases:
+            with self.subTest(field=field):
+                unit = self._unit()
+                component = unit["components"][0]
+                self._select_catalog(component, "car-par-c2-caco3")
+                self._enable_fgd()
+                blocker = QSignalBlocker(component[field])
+                component[field].setText(saved_value)
+                del blocker
+                saved_state = self.page._capture_form_state()
+                self.page._restore_form_state(saved_state)
+
+                restored = self.page._process_rows["fgd"][0]["components"][0]
+                self.assertEqual(restored[field].text(), saved_value)
+                mode_key = "ef1_source" if field == "ef1" else f"{field}_source"
+                expected_mode = "STD" if field == "ef1" else "STANDARD_DEFAULT"
+                self.assertEqual(restored[mode_key].currentData(), expected_mode)
+                with self.assertRaisesRegex(DomainValidationError, label):
+                    self.page._input(increment=False, render_electricity=False)
 
 
 if __name__ == "__main__":

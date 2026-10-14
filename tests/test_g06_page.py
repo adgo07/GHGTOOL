@@ -243,9 +243,10 @@ class G06PageTests(unittest.TestCase):
                 row.activity.clear()
 
         row.activity.clear()
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.COAL))
-        self.assertIsNone(self.page._fuel_default_factors(row))
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
+        self.assertEqual(row.fuel_type.findData(FuelType.COAL), -1)
+        self.assertEqual(row.fuel_type.findData(FuelType.OTHER), -1)
+        row.fuel_type.setEditText("未登记具体种类的企业燃料")
+        row.fuel_type.confirm_name(force=True)
         self.assertIsNone(self.page._fuel_default_factors(row))
     def test_custom_fuel_requires_named_measured_parameters_and_source(self) -> None:
         self.page.boundary_confirmed.setChecked(True)
