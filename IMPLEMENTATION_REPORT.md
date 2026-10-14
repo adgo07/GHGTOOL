@@ -4,13 +4,13 @@
 
 ## 平台 / Contract 预检查
 
-实际 origin 为 adgo07/GHGTOOL，分支 codex/ghg-standard-input-unification。重新 fetch 后 origin/main 为 `204dded5d03853617f79a1f05693e89b619df9d1`；本轮起始 head 为 `d36e50c89b87542ab83f63586dd5f6bad243134b`，当前生产修订尚未提交。中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，Architecture V2.1 / Numeric v1，当前 ACTIVE UI 指南 v0.2。
+实际 origin 为 adgo07/GHGTOOL，分支 codex/ghg-standard-input-unification。重新 fetch 后 origin/main 为 `204dded5d03853617f79a1f05693e89b619df9d1`；本轮起始 head 为 `d36e50c89b87542ab83f63586dd5f6bad243134b`，当前生产修订head为 `ed18aa6ad760fac298d0d237e45229301b944784`。中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，Architecture V2.1 / Numeric v1，当前 ACTIVE UI 指南 v0.2。
 
 适用 MUST：分层、同一正式 Calculator、Decimal40/HALF_UP declared Profile、ambient independence、显示修约不回流、冻结 Record 与来源证据不漂移。MUST NOT：第二套算法、改写历史 Record、修改 Frozen/Profile/数据库结构、来源静默重标。Issue011先登记后实现；本轮为本模块输入来源政策和普通产品缺陷修复，无中央 Contract 冲突或升级，不扩大标准范围。
 
 ## 当前实现
 
-逐字段来源政策由 `carbon_material_input_policy.py` 统一提供，GUI、Excel 与 Domain 消费该政策；模板与解析器仍在收口。数值缺省必须来自实际适用的 Catalog / Resolver 绑定，不能由控件或模板硬编码补值。
+逐字段来源政策由 `carbon_material_input_policy.py` 统一提供，GUI、Excel 与 Domain 消费该政策；模板与解析器已采用相同逐字段政策。数值缺省必须来自实际适用的 Catalog / Resolver 绑定，不能由控件或模板硬编码补值。
 
 | 字段 | 当前来源政策 |
 | --- | --- |
@@ -37,18 +37,28 @@
 
 - `python -m unittest tests.test_pr46_percentage_precision tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -q`：23/23，46.617s；后续元数据收口仍需最终回归。
 - `python -m unittest tests.test_g06_page tests.test_uat03_formal_workflow -q`：34/34，161.052s。此前同命令30pass/1fail/3error定位到新FGD门禁未定义变量，已修复后复验通过。
-- 后端来源/规则/冻结证据初轮组合69项通过；材料/Numeric/canonical项目关联45项通过；严格来源元数据与具体行定位组合当前66项通过，RS02补验进行中。
+- 后端来源/规则/冻结证据初轮组合69项通过；材料/Numeric/canonical项目关联45项通过；严格来源元数据与具体行定位组合当前66项通过，RS02补验完成，五模块最终70/70。
 - 摘要与记录UI组合27项通过；后续摘要排序补验6项通过。来源 formatter / 控件 / Word表式25项通过；目录定向2项通过。
 - `validate_canonical.py`：9 standards / 12 sources / 102 parameters / 138 factors；`pip check`：无破损依赖。
 - Windows Qt实际windows平台程序驱动100%/125%/150%各12项检查、7张截图；共21张截图。证据在 `docs/ui/standard-input-evidence/source-policy/`，是QTest与QWidget.grab，人工原生鼠标/中文输入验收仍 OPEN。
 
 导航实测使用临时合成200条记录、20个项目，未读写用户数据库。最终after冷点击返回302.465ms、首次绘制317.29ms、缓存重访中位数93.682ms；构造结束仅加载1页。原d36留存摘要冷handler约1045.574ms、缓存重访约657.654ms；原始完整baseline JSON未能恢复，不补造。开发中1103/743ms慢中间版本不是原版基线。完整after JSON、命令及源码SHA在 `docs/ui/standard-input-evidence/navigation/`。
 
+## 第二轮整合验收断点
+
+- 当前正式模板版本2.2.0（v4），SHA256 `e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f`。下载仍精确复制资源；v3→v4只改B.2/B.7 XML，九表保护保留，旧2.1/2.0资源哈希不变。B.2来源提示列号及B.7允许来源与正式解析一致，报告布局仅同步输入版本/指纹。
+- 最终v4临时副本经WPS ET 12.1.0.29158原生保存后回导：17/17通过、17项数据验证语义一致。三个JSON包含原生实例隔离、真实命令及前后哈希；原始输入副本未变。不是程序重存替代Office验证。
+- `python -m unittest discover -s tests -t . -v`，生产head ed18aa6：602项，591通过/10失败/1错误，694.510s。失败分别涉及新模板版本、来源资格与真实绑定、旧项目确认及旧控件断言；正在逐项复核，不把此次完整回归记为通过。
+- `python scripts/build_standalone.py --output-root dist/pr46-source-ed18aa6`：成功；后续 `inspect_release.py` 270文件PASS、`verify_release_archive.py` 271可见文件ZIP回导PASS、`smoke_standalone.py` 两次隔离启动PASS。三个命令均使用该输出目录。manifest source/pr-head/tested-merge均为ed18aa6，这是本地工作区构建，非GitHub merge-ref证据。
+- 独立Luna对ed18aa6的最终实际源码、模板指纹和来源链静态复核未发现阻断；该结论不替代运行测试、构建或CI。
+
+八个旧测试文件已完成迁移。Excel/报告四模块14/14（4.428s）；GUI四模块初跑66项64pass/2fail（146.033s），两处陈旧断言修正后5个相关方法5/5（11.101s）。独立静态审查确认数值、来源、旧项目可读、失败零Record、冻结快照不漂移断言保留。没有修改生产代码以绕过测试。一次在定向结果尚未返回时启动的全量已主动中断，不计通过；最终offscreen完整回归正在重新执行。
+
 ## 尚未闭合
 
-1. Excel v2.2 / v4资源与逐字段导入校验、旧模板身份/证据兼容、精确打包白名单。
-2. 新资源的WPS原生TEMP副本保存回导；不得用程序重存冒充。
-3. 最终稳定源码的完整回归、Windows本地构建/审计/隔离启动，以及GitHub Actions最终head CI。
-4. 最终实际diff/head的独立AI验收，更新原PR46并交用户实际操作验收；不自行合并。
+1. 迁移已批准政策下的旧测试fixture，保留重要业务断言，再执行最终完整回归。
+2. 最终head GitHub Actions：merge-ref联合回归及精确PR-head Windows构建/发布/来源审计。
+3. 最终测试diff/head独立AI验收，更新原PR46并交用户实际操作验收；不自行合并。
+4. 真实鼠标/中文输入、人工系统DPI及Owner真实企业样例仍OPEN；Qt程序检查和Office COM回导不代替这些项目。
 
 上一轮 d36 CI222 / 561项通过只证明此前基线，不作为本轮通过证据。原主目录的用户修改、批准原始母版与历史受控模板文件不覆盖。

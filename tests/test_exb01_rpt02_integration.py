@@ -228,7 +228,7 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         )
         self.assertEqual(report.layout_id, "gbt-32151-34-2024-appendix-b")
         self.assertEqual(report.template_sha256, APPROVED_SOURCE_SHA256)
-        self.assertEqual(report.input_template_version, "2.1.0")
+        self.assertEqual(report.input_template_version, "2.2.0")
         self.assertEqual(report.input_template_sha256, APPROVED_TEMPLATE_SHA256)
         b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
         totals = frozen_totals(record, self.repository.get_trace_snapshot(record.record_id))

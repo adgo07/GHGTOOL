@@ -792,11 +792,20 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         selector = component["carbonate_type"]
         selector.setEditText("自定义碳酸盐")
         selector.confirm_name(force=True)
+        self.assertEqual(component["i"].text(), "90")
+        self.assertEqual(component["tr"].text(), "100")
         for field in ("i","tr"):
+            self.assertTrue(component[field].isReadOnly())
+            self.assertEqual(component[field].text(), "90" if field == "i" else "100")
+            source = component[field+"_source"]
+            self.assertEqual(source.currentData(), "STANDARD_DEFAULT")
+            source.setCurrentIndex(source.findData("MEASURED"))
             self.assertFalse(component[field].isReadOnly())
-            self.assertEqual(component[field].text(),"")
-            self.assertIsNone(component[field+"_source"].currentData())
-            component[field+"_source"].setCurrentIndex(component[field+"_source"].findData("MEASURED"))
+            self.assertEqual(component[field].text(), "")
+        factor_source = component["ef1_source"]
+        self.assertEqual(factor_source.currentData(), "MEASURED")
+        self.assertEqual(component["ef1"].text(), "")
+        self.assertFalse(component["ef1"].isReadOnly())
         component["i"].setText("80")
         component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
         component["ef1"].setText("0.5")

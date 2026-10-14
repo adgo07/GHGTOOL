@@ -1,8 +1,10 @@
 {
-  "status": "FAIL",
+  "status": "PASS",
+  "source_head": "ed18aa6ad760fac298d0d237e45229301b944784",
   "data_validation_count_before": 17,
   "data_validation_count_after": 17,
-  "data_validations_equal": false,
+  "raw_ordered_equal": false,
+  "data_validations_semantically_equal": true,
   "before": {
     "B.1": [],
     "B.2": [
@@ -14,7 +16,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 C 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 D 列。",
           "type": "custom"
         },
         "formula1": "OR($E4=\"实测值\",D4=\"\")",
@@ -42,7 +44,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 E 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 F 列。",
           "type": "custom"
         },
         "formula1": "OR($G4=\"计算值\",$G4=\"实测值\",F4=\"\")",
@@ -70,7 +72,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 H 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 I 列。",
           "type": "custom"
         },
         "formula1": "OR($J4=\"计算值\",$J4=\"实测值\",I4=\"\")",
@@ -206,7 +208,7 @@
           "showErrorMessage": "1",
           "allowBlank": "0",
           "errorTitle": "请选择因子来源",
-          "error": "请选择缺省值、计算值或实测值。",
+          "error": "请选择缺省值或实测值。",
           "type": "list",
           "errorStyle": "stop"
         },
@@ -284,7 +286,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 C 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 D 列。",
           "type": "custom"
         },
         "formula1": "OR($E4=\"实测值\",D4=\"\")",
@@ -312,7 +314,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 E 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 F 列。",
           "type": "custom"
         },
         "formula1": "OR($G4=\"计算值\",$G4=\"实测值\",F4=\"\")",
@@ -340,7 +342,7 @@
           "showErrorMessage": "1",
           "allowBlank": "1",
           "errorTitle": "当前不能填写",
-          "error": "仅在相应数据来源选择“实测值”后可填写 H 列。",
+          "error": "仅在相应数据来源选择“实测值”后可填写 I 列。",
           "type": "custom"
         },
         "formula1": "OR($J4=\"计算值\",$J4=\"实测值\",I4=\"\")",
@@ -461,7 +463,7 @@
           "showErrorMessage": "1",
           "allowBlank": "0",
           "errorTitle": "请选择因子来源",
-          "error": "请选择缺省值、计算值或实测值。",
+          "error": "请选择缺省值或实测值。",
           "type": "list"
         },
         "formula1": "\"缺省值,实测值\"",
@@ -513,10 +515,13 @@
       }
     ]
   },
+  "normalization_policy": "Compare per-sheet unordered complete DV definitions; absent errorStyle uses OOXML default stop. All sqref, formula and other attributes retained.",
+  "normalization_authority": "https://learn.microsoft.com/en-us/openspecs/office_standards/ms-xlsx/89029dfc-1ca8-4ff9-afe0-46f9454d09c6",
+  "raw_difference_explanation": "WPS reorders DV definitions and omits explicit errorStyle=stop; this is not loss of protection or validation.",
   "template_id": "GHGTOOL_GBT_32151_34_2024_APPENDIX_B",
   "template_version": "2.2.0",
-  "template_sha256": "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac",
-  "download_sha256": "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac",
+  "template_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
+  "download_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
   "download_byte_equal": true,
   "python": "3.12.14 (main, Sep  1 2026, 14:17:39) [MSC v.1944 64 bit (AMD64)]",
   "native_command": [
@@ -527,9 +532,10 @@
     "-File",
     "docs/ui/standard-input-evidence/excel-wps/native_excel_roundtrip.ps1",
     "-SourcePath",
-    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\complete.xlsx",
+    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\complete.xlsx",
     "-OutputRoot",
-    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm"
+    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb"
   ],
+  "native_command_working_directory": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL",
   "scope": "本地WPS ET COM原生保存与程序回导；不构成人工鼠标/中文输入验收；不修改用户Office文档。"
 }

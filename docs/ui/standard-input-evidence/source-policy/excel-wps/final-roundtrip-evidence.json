@@ -9,7 +9,7 @@
       "status": "PASS",
       "detail": {
         "engine": "WPS Office ET COM",
-        "process_id": 6608,
+        "process_id": 25020,
         "initial_workbooks": 0,
         "gate_passed_before_open": true
       }
@@ -18,8 +18,8 @@
       "name": "approved_template_sha_matches",
       "status": "PASS",
       "detail": {
-        "expected": "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac",
-        "actual": "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac"
+        "expected": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
+        "actual": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
       }
     },
     {
@@ -884,16 +884,16 @@
     }
   ],
   "workbooks": {
-    "before_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-before.xlsx",
-    "before_sha256": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-    "saved_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-native-roundtrip.xlsx",
-    "saved_sha256": "3b9e8b44f4f1b79e6c90ab9a837ba1649c181c400b6bbd4372bef68bb840ac35",
+    "before_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-before.xlsx",
+    "before_sha256": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+    "saved_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-native-roundtrip.xlsx",
+    "saved_sha256": "0aa792609fd754dcbb7f2f303eb7aa05b8f86d24d36ce2b2609fcc1f4883485d",
     "source_workbook_sha256_before_and_after_roundtrip": {
-      "before": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-      "after": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9"
+      "before": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+      "after": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf"
     },
     "template_path": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\resources\\excel_templates\\gb_t_32151_34_2024_appendix_b_v4.xlsx",
-    "template_sha256": "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac"
+    "template_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
   },
   "semantic_payloads": {
     "normalization_policy": {
@@ -3480,19 +3480,19 @@
     "activated_exe": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
     "activated_file_version": "12,1,0,29158",
     "application_version": "12.0",
-    "process_id": 6608,
+    "process_id": 25020,
     "pid_was_preexisting": false,
     "initial_workbooks": 0,
     "gate_passed_before_open": true,
-    "source_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\complete.xlsx",
-    "source_sha256_before": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-    "source_sha256_after": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-    "before_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-before.xlsx",
-    "before_copy_sha256": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-    "saved_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-native-roundtrip.xlsx",
-    "saved_copy_sha256": "3b9e8b44f4f1b79e6c90ab9a837ba1649c181c400b6bbd4372bef68bb840ac35",
+    "source_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\complete.xlsx",
+    "source_sha256_before": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+    "source_sha256_after": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+    "before_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-before.xlsx",
+    "before_copy_sha256": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+    "saved_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-native-roundtrip.xlsx",
+    "saved_copy_sha256": "0aa792609fd754dcbb7f2f303eb7aa05b8f86d24d36ce2b2609fcc1f4883485d",
     "saved_copy_changed": true,
-    "run_directory": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf",
+    "run_directory": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92",
     "before_audit": {
       "sheet_names": [
         "B.1",
@@ -3641,7 +3641,7 @@
         "name": "independent_instance_started_with_zero_workbooks",
         "passed": true,
         "detail": {
-          "pid": 6608,
+          "pid": 25020,
           "pid_was_preexisting": false,
           "initial_workbooks": 0
         }
@@ -3796,16 +3796,16 @@
         "name": "source_workbook_unchanged",
         "passed": true,
         "detail": {
-          "before": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-          "after": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9"
+          "before": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+          "after": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf"
         }
       },
       {
         "name": "native_saved_copy_exists",
         "passed": true,
         "detail": {
-          "before_copy_sha256": "e6ea5358f25fe4f04a93ee8950a6022b617490391bd437a0bcf0cc080225fec9",
-          "saved_copy_sha256": "3b9e8b44f4f1b79e6c90ab9a837ba1649c181c400b6bbd4372bef68bb840ac35"
+          "before_copy_sha256": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+          "saved_copy_sha256": "0aa792609fd754dcbb7f2f303eb7aa05b8f86d24d36ce2b2609fcc1f4883485d"
         }
       }
     ]
@@ -3817,10 +3817,10 @@
       "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\.venv\\Scripts\\python.exe",
       "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\docs\\ui\\standard-input-evidence\\excel-wps\\verify_roundtrip.py",
       "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL",
-      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-before.xlsx",
-      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf\\complete-appendix-b-native-roundtrip.xlsx",
-      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-native-mpnmzmvm\\native-excel-roundtrip-repro-20261014-203502-20bb1acf",
-      "64779587def196532ba8a315d985a2286e3c5c990aec032899c7c3e5b7bb60ac",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-before.xlsx",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-native-roundtrip.xlsx",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92",
+      "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
       "gb_t_32151_34_2024_appendix_b_v4.xlsx"
     ]
   },
@@ -3985,7 +3985,7 @@
     },
     "formal_successful": true,
     "formal_record_count": 1,
-    "formal_record_id": "record.appendix-b-input-69283e1eec603f271f24.4738d9caad7243fc9aa3dd3f55383331"
+    "formal_record_id": "record.appendix-b-input-8033edb3f30fd0ab583b.e6cc4101c2fc4d9d91e6efc7ab6209c5"
   },
   "sheet_protection": {
     "before": [
@@ -4568,5 +4568,9 @@
         "lock_map_sha256": "a4139aec109f47400c330e5335d37943cbfa87ae4e14cf529993a71f2971c744"
       }
     ]
-  }
+  },
+  "source_head": "ed18aa6ad760fac298d0d237e45229301b944784",
+  "template_id": "GHGTOOL_GBT_32151_34_2024_APPENDIX_B",
+  "template_version": "2.2.0",
+  "template_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
 }

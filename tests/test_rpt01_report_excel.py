@@ -308,7 +308,7 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
         self.assertIn("2024",fuel_rows[0].cells[6].source_detail)
         self.assertEqual(fuel_rows[0].cells[7].value, "0.03")
         self.assertIn("0.028",fuel_rows[0].cells[7].source_detail)
-        self.assertEqual(fuel_rows[0].cells[9].value,"系统推荐值")
+        self.assertEqual(fuel_rows[0].cells[9].value,"附录C.1")
         self.assertIn("附录C.1",fuel_rows[0].cells[9].source_detail)
         self.assertEqual(len(sections["b3"].tables), 3)
         self.assertEqual(len(sections["b3"].tables[0].rows), 9)
