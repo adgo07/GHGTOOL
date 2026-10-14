@@ -62,6 +62,12 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             self.assertIn(("J4:J18", "list", '"缺省值,实测值"'), validations["B.2"])
             self.assertIn(("N4:N18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
             self.assertIn(("J3:J8", "list", '"缺省值,实测值"'), validations["B.7"])
+            b2_by_range = {str(item.sqref): item for item in workbook["B.2"].data_validations.dataValidation}
+            self.assertEqual(b2_by_range["D4:D18"].error, "仅在相应数据来源选择“实测值”后可填写 D 列。")
+            self.assertEqual(b2_by_range["F4:F18"].error, "仅在相应数据来源选择“实测值”后可填写 F 列。")
+            self.assertEqual(b2_by_range["I4:I18"].error, "仅在相应数据来源选择“实测值”后可填写 I 列。")
+            b7_by_range = {str(item.sqref): item for item in workbook["B.7"].data_validations.dataValidation}
+            self.assertEqual(b7_by_range["J3:J8"].error, "请选择缺省值或实测值。")
             self.assertTrue(all(workbook[name].protection.sheet for name in APPENDIX_B_SHEETS))
             self.assertIn("Resolver 绑定", workbook["B.2"]["A20"].value)
             self.assertIn("多组分逐项填实测", workbook["B.7"]["A9"].value)
