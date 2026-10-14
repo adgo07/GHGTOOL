@@ -234,11 +234,11 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         frozen_reporting = repository.get_reporting_snapshot(outcome.record.record_id)
         report = _PRESENTATION["build_report_view"](outcome.record, raw, trace, frozen_reporting)
         activity_view = _PRESENTATION["build_activity_evidence_view"](raw, frozen_reporting, SnapshotState.PRESENT)
-        self.assertIn("B.1 排放量汇总与主要排放源分项", report)
+        self.assertIn("B.1 温室气体排放量汇总",report)
         self.assertIn("B.2 化石燃料活动数据和排放因子", report)
-        self.assertIn("质量路径", report)
-        self.assertIn("证据1", report)
-        self.assertIn("历史汇总核对：通过", report)
+        self.assertIn(" | t | ",report)
+        self.assertIn("证据1",activity_view)
+        self.assertIn("历史汇总核对：通过",report)
         self.assertNotIn("CAR-FML-", report)
         self.assertNotIn("CAR-FLD-", report)
         self.assertIn("证据1：年度燃料计量", activity_view)
@@ -268,8 +268,8 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             repository.get_trace_snapshot(outcome.record.record_id),
             repository.get_reporting_snapshot(outcome.record.record_id),
         )
-        self.assertIn("- 本脱硫剂组：石灰石甲", report)
-        self.assertEqual(report.count("脱硫剂组用量"), 1)
+        self.assertEqual(report.count("石灰石甲"),1)
+        self.assertEqual(report.count("2.00（手工录入）"),1)
         self.assertNotIn("设施1", report)
 
     def test_snapshot_states_distinguish_present_empty_legacy_and_corrupt(self) -> None:

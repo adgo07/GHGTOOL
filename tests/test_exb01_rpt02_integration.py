@@ -260,7 +260,7 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         for section in appendix_sections:
             self.assertIn(section.title, headings)
         _assert_word_tables_match_model(self, document, report)
-        self.assertEqual(document.core_properties.comments, f"布局：{report.layout_id}；批准模板 SHA256：{report.template_sha256}")
+        self.assertEqual(document.core_properties.comments, f"业务表式：{report.layout_id}（{report.schema_version}）；来源母版 SHA256：{report.template_sha256}；输入模板：{report.input_template_version} SHA256：{report.input_template_sha256}")
         self.assertEqual(asdict(self.repository.get(record.record_id)), frozen_record)
         self.assertEqual(len(self.repository.list_all()), 1)
         self.assertEqual(

@@ -23,7 +23,7 @@ from packages.core.models import CalculationLine
 from packages.infrastructure.reporting import render_report_docx
 from packages.persistence.catalog_repository import SQLiteCatalogRepository
 from packages.standards.carbon_material import CarbonMaterialCalculator, SOURCE_BAKING
-from packages.ui.record_experience import SnapshotState, _b1_report, build_record_summary
+from packages.ui.record_experience import SnapshotState, build_report_view, build_record_summary
 from scripts.rpt02_acceptance_samples import build_acceptance_case, build_acceptance_model
 
 
@@ -52,7 +52,8 @@ class RPT02AppendixBTests(unittest.TestCase):
     def test_layout_metadata_matches_formula_free_approved_workbook(self):
         layout = json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))
         self.assertEqual(hashlib.sha256(TEMPLATE_PATH.read_bytes()).hexdigest(), layout["formula_free_sha256"])
-        workbook = load_workbook(TEMPLATE_PATH, data_only=False)
+        from packages.excel.templates import ExcelTemplateService
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()), data_only=False)
         try:
             self.assertEqual(workbook.sheetnames, [f"B.{number}" for number in range(1, 10)])
             for key, table in layout["tables"].items():
@@ -64,7 +65,7 @@ class RPT02AppendixBTests(unittest.TestCase):
                 )
                 self.assertEqual(actual, tuple(tuple(row) for row in headers), sheet.title)
                 self.assertEqual(
-                    _header_merges_from_sheet(sheet, len(headers)),
+                    tuple(item for item in _header_merges_from_sheet(sheet,len(headers)) if item[3]<len(headers[0])),
                     tuple(sorted(tuple(item) for item in table["header_merges"])),
                     sheet.title,
                 )
@@ -75,6 +76,8 @@ class RPT02AppendixBTests(unittest.TestCase):
                 [row.cells[0].value for row in _section(model, "b1").tables[0].rows[:10]],
                 [workbook["B.1"].cell(row=row, column=1).value for row in range(3, 13)],
             )
+            workbook.close()
+            workbook=load_workbook(TEMPLATE_PATH,data_only=False)
             for cell_ref in layout["removed_formula_cells"]:
                 sheet_name, address = cell_ref.split("!")
                 cell = workbook[sheet_name][address]
@@ -93,7 +96,7 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), ("7.30", "9.70"))
         self.assertEqual(len(b1.footnotes), 1)
 
-        expected_columns = {"b2": 10, "b3": 5, "b4": 5, "b5": 5, "b6": 7, "b7": 7, "b8": 5, "b9": 7}
+        expected_columns = {"b2": 11, "b3": 6, "b4": 6, "b5": 6, "b6": 7, "b7": 7, "b8": 5, "b9": 7}
         for section_id, count in expected_columns.items():
             for table in _section(model, section_id).tables:
                 self.assertEqual(len(table.columns), count, table.table_id)
@@ -102,8 +105,8 @@ class RPT02AppendixBTests(unittest.TestCase):
 
         b2 = _section(model, "b2").tables[0]
         self.assertEqual(len(b2.rows), 2)
-        self.assertEqual(b2.rows[0].cells[9].value, "1.40")
-        self.assertEqual(tuple(sorted(b2.header_merges)), ((0, 0, 1, 0), (0, 1, 1, 1), (0, 2, 0, 3), (0, 4, 0, 5), (0, 6, 1, 6), (0, 7, 0, 8), (0, 9, 1, 9)))
+        self.assertEqual(b2.rows[0].cells[10].value, "1.40")
+        self.assertEqual(tuple(sorted(b2.header_merges)), ((0, 0, 1, 0), (0, 1, 0, 2), (0, 3, 0, 4), (0, 5, 0, 6), (0, 7, 1, 7), (0, 8, 0, 9), (0, 10, 1, 10)))
         self.assertEqual(len(_section(model, "b3").tables), 2)
         self.assertGreater(len(_section(model, "b3").tables[0].rows), 8)
         self.assertEqual(len(_section(model, "b6").tables[0].rows), 2)
@@ -113,7 +116,8 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertTrue(all(Decimal(row.cells[4].value) < 0 for row in b8.rows if row.cells[0].value == "输出"))
         b9 = _section(model, "b9")
         self.assertEqual(len(b9.tables[0].rows), 3)
-        self.assertTrue(any("自动参考焓值" in note for note in b9.notes))
+        self.assertFalse(any("仅供对照" in note for note in b9.notes))
+        self.assertTrue(any("标准饱和蒸汽表" in note for note in b9.tables[0].footnotes))
 
     def test_b7_uses_frozen_reagent_name_and_marks_legacy_name_missing(self):
         record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
@@ -140,7 +144,7 @@ class RPT02AppendixBTests(unittest.TestCase):
         raw["bakings"] = []
         model = build_report_model(record, raw, trace, provenance, reporting, qualification, today=date(2026, 10, 9))
 
-        self.assertEqual(_section(model, "b2").tables[0].rows[1].cells[7].value, "0")
+        self.assertEqual(_section(model, "b2").tables[0].rows[1].cells[8].value, "0.00")
         self.assertEqual(_section(model, "b6").tables[0].rows[1].cells[3].value, "未填写")
         self.assertNotIn("{", _section(model, "b6").tables[0].rows[1].cells[3].value)
         self.assertEqual(_section(model, "b4").tables[0].rows[0].cells[0].value, "未启用")
@@ -204,11 +208,11 @@ class RPT02AppendixBTests(unittest.TestCase):
         b1, b2 = document.tables[1], document.tables[2]
         self.assertEqual(len(b1.rows), 14)
         self.assertIs(b1.rows[0].cells[0]._tc, b1.rows[0].cells[1]._tc)
-        self.assertIs(b2.rows[0].cells[2]._tc, b2.rows[0].cells[3]._tc)
+        self.assertIs(b2.rows[0].cells[1]._tc, b2.rows[0].cells[2]._tc)
         for row in (*b1.rows[:1], *b2.rows[:2]):
             self.assertIsNotNone(row._tr.trPr.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tblHeader"))
         text = "\n".join(paragraph.text for paragraph in document.paragraphs)
-        self.assertIn("自动参考焓值", text)
+        self.assertIn("标准饱和蒸汽表",text)
         b1_heading = next(p for p in document.paragraphs if p.text == "B.1 温室气体排放量汇总")
         self.assertTrue(b1_heading.paragraph_format.page_break_before)
 
@@ -220,8 +224,8 @@ class RPT02AppendixBTests(unittest.TestCase):
         record = replace(record, parameter_snapshots=(heat, power))
         cell = _energy_parameter(record, {}, "shared", "CAR-FLD-HEAT-shared-EF3", "tCO2/GJ", "EF3", None)
         self.assertEqual(cell.value, "0.11")
-        self.assertIn("热力冻结来源", cell.source)
-        self.assertNotIn("电力冻结来源", cell.source)
+        self.assertIn("热力冻结来源", cell.source_detail)
+        self.assertNotIn("电力冻结来源", cell.source_detail)
 
     def test_purchase_and_export_same_id_keep_separate_factor_sources(self):
         record, raw, trace, *_ = build_acceptance_case("GUI")
@@ -234,9 +238,9 @@ class RPT02AppendixBTests(unittest.TestCase):
         raw["exported_electricity"] = [{"line_id":"shared", "amount":"1", "unit":"MWh"}]
         model = build_report_model(record, raw, trace, {}, {}, {})
         rows = _section(model, "b8").tables[0].rows
-        self.assertIn("购电合同来源", rows[0].cells[3].source)
-        self.assertNotIn("输电合同来源", rows[0].cells[3].source)
-        self.assertIn("输电合同来源", rows[1].cells[3].source)
+        self.assertIn("购电合同来源", rows[0].cells[3].source_detail)
+        self.assertNotIn("输电合同来源", rows[0].cells[3].source_detail)
+        self.assertIn("输电合同来源", rows[1].cells[3].source_detail)
 
     def test_incomplete_colliding_power_snapshots_do_not_invent_direction_or_value(self):
         record, raw, trace, *_ = build_acceptance_case("GUI")
@@ -261,13 +265,25 @@ class RPT02AppendixBTests(unittest.TestCase):
         record = replace(record, parameter_snapshots=(output,))
         rows = _section(build_report_model(record, raw, trace, {}, {}, {}), "b8").tables[0].rows
         self.assertEqual(len(rows), 1)
-        self.assertIn("自动输出冻结来源", rows[0].cells[3].source)
+        self.assertIn("自动输出冻结来源", rows[0].cells[3].source_detail)
         # A single prefixed candidate also must agree with the frozen adopted value.
         record = replace(record, parameter_snapshots=(replace(purchase, detail_id="CAR-FLD-POWER-EXPORTED-EF.shared"),))
         step = {"input_variables": [{"name": "EF2", "value": "0.5"}]}
         cell = _energy_parameter(record, {}, "shared", "CAR-FLD-POWER-EXPORTED-EF.shared", "tCO2/MWh", "EF2", step)
         self.assertEqual(cell.value, "0.5")
         self.assertEqual(cell.source, "历史来源快照与冻结采用值不一致")
+
+    def test_manual_heat_keeps_frozen_reference_and_auto_heat_does_not_repeat_it(self):
+        record,raw,trace,*_=build_acceptance_case("GUI")
+        trace=deepcopy(trace)
+        step=next(item for item in trace["formula_steps"] if item.get("process_instance_id")=="heat-in-1")
+        step["calculation_provenance"]["enthalpy_source"]="用户手动填写"
+        step["calculation_provenance"]["enthalpy_used_kj_per_kg"]="2800"
+        model=build_report_model(record,raw,trace,{}, {}, {})
+        b9=_section(model,"b9")
+        self.assertEqual(b9.tables[0].rows[0].cells[5].value,"2800.00")
+        self.assertEqual(b9.tables[0].rows[0].cells[5].source,"填写值")
+        self.assertTrue(any("自动参考焓值：2716.00" in note for note in b9.notes))
 
     def test_missing_trace_uses_exact_frozen_line_without_sharing_aggregate(self):
         record, *_ = build_acceptance_case("GUI")
@@ -284,11 +300,12 @@ class RPT02AppendixBTests(unittest.TestCase):
         record, raw, trace, *_ = build_acceptance_case("GUI")
         values = frozen_totals(record, trace)
         self.assertEqual(values, {"ES": "7.30", "EI": "2.40", "ET": "9.70"})
-        ui_text = "\n".join(_b1_report(record, raw, trace))
+        ui_text = build_report_view(record,raw,trace,{})
         summary = build_record_summary(record, {}, SnapshotState.PRESENT, trace)
         report = build_report_model(record, raw, trace, {}, {}, {}, today=date(2026, 10, 9))
         b1 = _section(report, "b1").tables[0]
-        self.assertIn("直接排放量：7.30 tCO₂", ui_text)
+        self.assertIn("不包括购入和输出的电力、热力所产生的 CO₂",ui_text)
+        self.assertIn("7.30",ui_text)
         self.assertIn("温室气体排放总量：9.70 tCO₂", summary)
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (values["ES"], values["ET"]))
         empty_record = SimpleNamespace(calculation_result=SimpleNamespace(lines=(), total_amount=None))

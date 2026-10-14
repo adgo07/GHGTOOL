@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from importlib.resources import files
 from dataclasses import replace
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, localcontext
 from typing import Mapping
 
 from packages.core.decimal_policy import DecimalPolicy
@@ -17,7 +17,7 @@ from packages.standards.carbon_material import (
     SOURCE_GRAPHITIZATION, SOURCE_FUME, SOURCE_FGD, SOURCE_PURCHASED_ELECTRICITY,
     SOURCE_EXPORTED_ELECTRICITY, SOURCE_PURCHASED_HEAT, SOURCE_EXPORTED_HEAT,
 )
-from .model import (
+from .carbon_material_model import (
     ReportCell, ReportRow, ReportTable, ReportSection, _mapping, _entries, _text,
     _enum, _FUEL_NAMES, _SOURCE_NAMES, _parameter_cell, _activity_source,
     _step_for_instance, _step_result, _trace_steps, _display_amount, frozen_totals, _snapshot_mapping, _snapshot_source,
@@ -36,6 +36,33 @@ def _units(value, source, target):
     return format(UnitService(DecimalPolicy(precision=max(50, digits + 16), rounding=ROUND_HALF_UP)).convert(text, source, target), 'f')
 
 
+def _display_number(value):
+    text=_text(value)
+    try:
+        number=Decimal(text)
+        if not number.is_finite():return text
+    except Exception:
+        return text
+    displayed=_display_amount(number)
+    if number != 0 and Decimal(displayed)==0:
+        with localcontext() as context:
+            context.rounding=ROUND_HALF_UP
+            return format(number,'.2E')
+    return displayed
+
+
+def _display_cell(value, *, source=None, detail=None, unit=None):
+    exact=_text(value)
+    displayed=_display_number(exact)
+    explanation=detail
+    try:
+        if Decimal(displayed)!=Decimal(exact):
+            explanation='；'.join(part for part in (detail,f"展示前完整值：{exact} {unit or ''}".strip()) if part)
+    except Exception:
+        pass
+    return ReportCell(displayed,source=source,source_detail=explanation)
+
+
 def _value(value, *, unit=None, percent=False):
     raw = _mapping(value)
     text = _text(value)
@@ -46,7 +73,23 @@ def _value(value, *, unit=None, percent=False):
         text = _units(text, from_unit, 'percent')
     elif unit and from_unit and unit != from_unit:
         text = _units(text, from_unit, unit)
-    return ReportCell(text, source=_activity_source(value))
+    detail=_activity_source(value)
+    return _display_cell(text,source=_short_source(value,None,detail) if detail else None,detail=detail,unit=unit)
+
+
+_SHORT_SOURCE_NAMES = {
+    "STANDARD_DEFAULT":"缺省值","STANDARD_SPECIFIED":"标准规定值","STANDARD_REQUIRED":"标准规定值",
+    "MEASURED":"实测值","ENTERPRISE_MEASURED":"实测值","USER_DEFINED":"填写值","USER_PROVIDED":"填写值","MANUAL_OVERRIDE":"填写值",
+    "CALCULATED":"计算值","DERIVED":"计算值","INTERPOLATED":"插值计算",
+    "GOVERNMENT_PUBLISHED":"官方发布值","OFFICIAL_PUBLISHED":"官方发布值","SCIENTIFIC_REFERENCE":"文献值",
+    "SYSTEM_CONSTANT":"系统常数","HISTORICAL":"历史值",
+    "USER_SELECTED_LIBRARY_VALUE":"库选值","SYSTEM_RECOMMENDED":"系统推荐值",
+}
+
+
+def _short_source(raw,snapshot,detail):
+    source_type=_mapping(snapshot).get("source_type") or _mapping(raw).get("source_kind") or _mapping(snapshot).get("selection_method")
+    return _SHORT_SOURCE_NAMES.get(source_type) or ((detail or "").split("；")[0]) or "来源未记录"
 
 
 def _parameter(value, snapshots, key, *, percent=False):
@@ -57,15 +100,16 @@ def _parameter(value, snapshots, key, *, percent=False):
         else:
             return ReportCell('历史未记录' if value is None else '未填写')
     text = _units(cell.value, cell.unit or 'ratio', 'percent') if percent else cell.value
-    return ReportCell(text, source=cell.source or _activity_source(value) or '来源未记录')
+    detail = cell.source or _activity_source(value) or '来源未记录'
+    return _display_cell(text,source=_short_source(value,snapshots.get(key),detail),detail=detail,unit="%" if percent else cell.unit)
 
 
 def _source_cell(cell):
-    return ReportCell(cell.source or ('—' if cell.value == '不适用' else '来源未记录'))
+    return ReportCell(cell.source or ('—' if cell.value == '不适用' else '来源未记录'),source_detail=cell.source_detail)
 
 
 def _number_cell(cell):
-    return ReportCell(cell.value)
+    return ReportCell(cell.value,source_detail=cell.source_detail)
 
 
 def _status(raw, source):
@@ -75,18 +119,36 @@ def _status(raw, source):
     return '历史未记录此项明细'
 
 
+def _source_explanation(detail):
+    # Physical PDF pagination stays available in the frozen audit evidence.
+    # Ordinary business tables use the clause/table locator without repeating it.
+    import re
+    text=re.sub(r"[；;]?\s*PDF\s*第?\s*\d+(?:[~～—-]\d+)?\s*页?","",detail,flags=re.I)
+    text=re.sub(r"[；;]?\s*印刷页\s*\d+(?:[~～—-]\d+)?","",text)
+    text=re.sub(r"[（(]\s*PDF\s*第?\s*\d+\s*页?\s*[）)]","",text,flags=re.I)
+    text=re.sub(r"[（(]\s*[）)]","",text)
+    return text
+
+
 def _table(key, rows, *, source=None, raw=None, suffix='', merges=(), notes=()):
     layout = _LAYOUT['tables'][key]
     values = tuple(ReportRow(tuple(c if isinstance(c, ReportCell) else ReportCell(str(c)) for c in row)) for row in rows)
     if not values:
         values = (ReportRow(tuple(ReportCell(_status(raw, source) if i == 0 else '—') for i in range(len(layout['headers'][0])))),)
         merges = ((0, 0, 0, len(layout['headers'][0]) - 1),)
+    details = {}
+    for row_index,row in enumerate(values,1):
+        for column_index,cell in enumerate(row.cells,1):
+            if cell.source_detail:
+                detail=_source_explanation(cell.source_detail)
+                details.setdefault(detail,[]).append(f"第{row_index}行第{column_index}列")
+    evidence=["、".join(locations)+"："+detail for detail,locations in details.items()]
     return ReportTable(
         table_id=key + suffix, title=layout['title'], columns=tuple(layout['headers'][0]),
         rows=values, landscape=key in ('b2', 'b6', 'b7', 'b9'),
         header_rows=tuple(ReportRow(tuple(ReportCell(c) for c in row)) for row in layout['headers']),
         header_merges=tuple(tuple(m) for m in layout['header_merges']),
-        body_merges=tuple(merges), footnotes=tuple(layout['footnotes']) + tuple(notes),
+        body_merges=tuple(merges), footnotes=tuple(layout['footnotes']) + tuple(notes) + tuple(evidence),
         column_weights=tuple(layout['column_weights']),
     )
 
@@ -122,7 +184,7 @@ def _frozen_step(record, trace, source, iid, *, single_instance=False):
     return step
 
 
-def _energy_parameter(record, item, iid, explicit_key, unit, variable, step, *, ambiguous_detail_ids=()):
+def _energy_parameter(record, item, iid, explicit_key, unit, variable, step, *, ambiguous_detail_ids=(),source_types=None):
     # detail IDs can coincide between purchased power and heat. Match quantity kind too.
     candidates = [snap for snap in record.parameter_snapshots
                   if snap.detail_id in (iid, explicit_key) and snap.unit_used.replace("₂", "2") == unit]
@@ -141,7 +203,9 @@ def _energy_parameter(record, item, iid, explicit_key, unit, variable, step, *, 
     unique = {tuple(sorted((key, str(value)) for key, value in _snapshot_mapping(snap).items())): snap for snap in candidates}
     if len(unique) == 1:
         snapshot = _snapshot_mapping(next(iter(unique.values())))
-        return ReportCell(_text(snapshot["value_used"]), source=_snapshot_source(snapshot) or "来源未记录")
+        snapshot["source_type"] = _mapping(source_types).get(next(iter(unique.values())).detail_id+"|"+next(iter(unique.values())).unit_used)
+        detail = _snapshot_source(snapshot) or "来源未记录"
+        return _display_cell(snapshot["value_used"],source=_short_source(item.get("factor"),snapshot,detail),detail=detail,unit=unit)
     if len(unique) > 1:
         return ReportCell(_text(frozen_value) or "历史未记录", source="历史来源快照无法唯一关联")
     cell = _parameter(item.get("factor"), {}, explicit_key)
@@ -209,9 +273,9 @@ def _process_table(key, process, step, ordinal, source, raw):
         if matching:
             for material in matching:
                 source_key = 'fixed_carbon_source' if component == 'fixed_carbon_percent' else 'volatile_matter_source'
-                rows.append((group, material.get('name') or _ROLE_NAMES[role], _value(material.get('mass_t')), _value(material.get(component)), _enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录'))
+                rows.append((group, _ROLE_NAMES[role], material.get('name') or _ROLE_NAMES[role], _value(material.get('mass_t')), _value(material.get(component)), _enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录'))
         elif materials:
-            rows.append((group, _ROLE_NAMES[role], '未列示此物流', '—', '—'))
+            rows.append((group, _ROLE_NAMES[role], '未列示此物流', '—', '—', '—'))
         else:
             # Legacy scalar inputs have frozen aggregated data, not individual material identities.
             mass = process.get(mass_key) if mass_key else None
@@ -220,7 +284,7 @@ def _process_table(key, process, step, ordinal, source, raw):
                 mass = variables.get(mass_key)
             if ratio is None:
                 ratio = variables.get(ratio_key)
-            rows.append((group, _ROLE_NAMES[role], _value(mass) if mass is not None else '历史未记录', _number_cell(_value(ratio, percent=True)) if ratio is not None else '历史未记录', _activity_source(ratio) or _enum(_mapping(ratio).get('source_kind'), _SOURCE_NAMES) or '来源未记录'))
+            rows.append((group, _ROLE_NAMES[role], '历史未记录实际名称', _value(mass) if mass is not None else '历史未记录', _number_cell(_value(ratio, percent=True)) if ratio is not None else '历史未记录', _activity_source(ratio) or _enum(_mapping(ratio).get('source_kind'), _SOURCE_NAMES) or '来源未记录'))
     # Merge adjacent group labels without discarding distinct material names.
     start = 0
     for i in range(1, len(rows) + 1):
@@ -229,10 +293,10 @@ def _process_table(key, process, step, ordinal, source, raw):
                 merges.append((start, 0, i - 1, 0))
             start = i
     last = len(rows)
-    rows.append(('排放量（tCO₂）', '', _step_result(step) or '历史未记录', '', ''))
-    merges.extend(((last, 0, last, 1), (last, 2, last, 4)))
+    rows.append(('排放量（tCO₂）', '', '', _step_result(step) or '历史未记录', '', ''))
+    merges.extend(((last, 0, last, 2), (last, 3, last, 5)))
     return replace(_table(key, rows, source=source, raw=raw, suffix=f'-{ordinal}', merges=merges,
-                  notes=('收到基；逐过程列示冻结结果，不向物料分摊。' + ('' if materials else '此记录仅存汇总输入，无逐物料快照。'),)), context_label=f'过程单元{ordinal}')
+                  notes=('收到基；逐过程列示冻结结果，不向物料分摊。' + ('' if materials else '此记录仅存汇总输入，无逐物料快照。'),)), context_label=process.get('instance_name') or f'过程单元{ordinal}')
 
 
 def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=None):
@@ -255,6 +319,16 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
     rows.extend((('… …', '', '—'), ('报告主体温室气体排放总量', '不包括购入和输出的电力、热力所产生的 CO₂   排放量', totals['ES'] or '历史未记录'), ('', '包括购入和输出的电力、热力所产生的 CO₂   排放量', totals['ET'] or '历史未记录')))
     merges = [(i, 0, i, 1) for i in range(11)] + [(11, 0, 12, 0)]
     sections = [ReportSection('b1', 'B.1 温室气体排放量汇总', (_table('b1', rows, merges=merges),), ('输出电力、热力在总量中扣减。未按1%脚注省略任何已冻结结果；其他行业活动须另按适用标准核算。',))]
+
+    from packages.standards.carbon_material import verify_record_aggregation
+    if trace.get("trace_schema_version")==1:
+        calculation_snapshot={"lines":[{"line_id":line.line_id,"emission_source_id":line.emission_source_id,"amount":str(line.amount),"unit":line.unit} for line in record.calculation_result.lines],
+                              "total_amount":str(record.calculation_result.total_amount)}
+        errors=verify_record_aggregation(trace,calculation_snapshot)
+        audit_note="历史汇总核对：存在不一致，请在计算依据中查看冻结证据。" if errors else "历史汇总核对：通过"
+    else:
+        audit_note="历史汇总核对：记录未保存完整汇总链，未使用当前参数补算。"
+    sections[0]=replace(sections[0],notes=(*sections[0].notes,audit_note))
 
     b1_table = sections[0].tables[0]
     subject = enterprise_name or record.input_snapshot.enterprise_name or '报告主体'
@@ -279,7 +353,8 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
             fuel_notes.append(f'燃料{i}按冻结的热量活动数据列示，不反推质量或体积。')
         if carbon_unit == 'tC/GJ':
             # A derived fuel carbon content was never frozen; do not recompute LHV × carbon.
-            direct_carbon = ReportCell('未记录（采用单位热值含碳量）')
+            frozen = _mapping(_mapping(trace.get('derived_display_evidence')).get(prefix))
+            direct_carbon = _display_cell(frozen.get('value'),source='计算值',unit=frozen.get('unit')) if frozen.get('value') is not None else ReportCell('未记录（采用单位热值含碳量）')
             unit_carbon = carbon
         elif carbon_unit in ('tC/t', 'tC/10^4Nm3', 'tC/10⁴Nm³'):
             direct_carbon = carbon
@@ -290,11 +365,11 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
         result = _step_result(step)
         if not result:
             result = next((_display_amount(line.amount) for line in record.calculation_result.lines if line.line_id == f'{SOURCE_FUEL}.{iid}'), '历史未记录')
-        rows.append((item.get('fuel_label') or _enum(item.get('fuel_type'), _FUEL_NAMES), activity, _number_cell(direct_carbon), _source_cell(direct_carbon), _number_cell(lhv), _source_cell(lhv), unit_carbon, _number_cell(oxidation), _source_cell(oxidation), result))
+        rows.append((item.get('fuel_label') or _enum(item.get('fuel_type'), _FUEL_NAMES) or '历史未记录燃料名称', activity, {'MASS':'t','VOLUME':'10⁴Nm³','HEAT':'GJ'}.get(path,'历史未记录'), _number_cell(direct_carbon), _source_cell(direct_carbon), _number_cell(lhv), _source_cell(lhv), unit_carbon, _number_cell(oxidation), _source_cell(oxidation), result))
     if not rows:
         for i,line in enumerate(record.calculation_result.lines,1):
             if line.emission_source_id == SOURCE_FUEL:
-                rows.append((f'历史燃料结果{i}', *('历史未记录',)*8, _display_amount(line.amount)))
+                rows.append((f'历史燃料结果{i}', *('历史未记录',)*9, _display_amount(line.amount)))
     sections.append(ReportSection('b2', 'B.2 化石燃料活动数据和排放因子', (_table('b2', rows, source=SOURCE_FUEL, raw=raw),), tuple(fuel_notes)))
 
     for key, title, collection, legacy, source in (
@@ -353,8 +428,8 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
                 if export_key not in purchased_ids and any(s.detail_id == export_key for s in record.parameter_snapshots):
                     ambiguous_ids = ambiguous_ids - {iid}
             factor = _energy_parameter(record,item,iid,factor_key,'tCO2/MWh','EF2',step,
-                                       ambiguous_detail_ids=ambiguous_ids)
-            rows.append((direction, _enum(item.get('attribute'),{'ORDINARY':'常规电力','NONFOSSIL':'非化石电力','FOSSIL':'化石能源电力'}) or '历史未记录', quantity, factor, _signed(step,direction=='输出')))
+                                       ambiguous_detail_ids=ambiguous_ids,source_types=_mapping(trace.get("parameter_source_types")))
+            rows.append((direction, ('不适用' if direction=='输出' else _enum(item.get('attribute'),{'ORDINARY':'常规电力','NONFOSSIL':'非化石电力','FOSSIL':'化石能源电力'}) or '历史未记录'), quantity, factor, _signed(step,direction=='输出')))
     for collection,direction,source in (('electricity_details','购入',SOURCE_PURCHASED_ELECTRICITY),('exported_electricity','输出',SOURCE_EXPORTED_ELECTRICITY)):
         if not _entries(raw,collection):
             for line in record.calculation_result.lines:
@@ -379,12 +454,12 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
             enthalpy_source = _enum(provenance.get('enthalpy_source'),{'USER_MANUAL':'用户手动填写','SATURATED_TABLE':'标准饱和蒸汽表','SUPERHEATED_TABLE':'标准过热蒸汽表'})
             if provenance.get('table'):
                 enthalpy_source = f'{enthalpy_source}；GB/T 32151.34—2024 附录{provenance["table"]}'
-            factor = _energy_parameter(record,item,iid,f'CAR-FLD-HEAT-{iid}-EF3','tCO2/GJ','EF3',step)
-            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _value(item.get('pressure_mpa')), _value(item.get('temperature_c')) if item.get('steam_kind')!='SATURATED' else '不适用', ReportCell(_text(value) or '历史未记录',source=enthalpy_source or '历史来源未记录'), factor))
+            factor = _energy_parameter(record,item,iid,f'CAR-FLD-HEAT-{iid}-EF3','tCO2/GJ','EF3',step,source_types=_mapping(trace.get('parameter_source_types')))
+            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _value(item.get('pressure_mpa')), _value(item.get('temperature_c')) if item.get('steam_kind')!='SATURATED' else '不适用', _display_cell(value,source={'USER_MANUAL':'填写值','用户手动填写':'填写值','标准表自动确定':'标准查表','SATURATED_TABLE':'标准查表','SUPERHEATED_TABLE':'标准查表'}.get(provenance.get('enthalpy_source'),'历史来源未记录'),detail=enthalpy_source or None,unit='kJ/kg') if value is not None else ReportCell('历史未记录'), factor))
             notes.append(f'{direction}热力第{i}条对应排放量：{_signed(step,direction=="输出")} tCO₂' + ('（扣减项）' if direction=='输出' else ''))
             reference = provenance.get('automatic_reference_enthalpy_kj_per_kg')
-            if reference is not None:
-                notes.append(f'{direction}热力第{i}条冻结自动参考焓值：{reference} kJ/kg；仅供对照，未替换采用值。')
+            if reference is not None and provenance.get('enthalpy_source') in {'USER_MANUAL','用户手动填写'}:
+                notes.append(f'{direction}热力第{i}条冻结自动参考焓值：{_display_number(reference)} kJ/kg；仅供对照，未替换采用值。')
     for collection,direction,source in (('purchased_heat','购入',SOURCE_PURCHASED_HEAT),('exported_heat','输出',SOURCE_EXPORTED_HEAT)):
         if not _entries(raw,collection):
             for i,line in enumerate((line for line in record.calculation_result.lines if line.emission_source_id == source),1):

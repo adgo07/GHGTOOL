@@ -620,6 +620,10 @@ class ParameterResolver:
             context.to_rule_context(),
         )
 
+    def get_factor(self, factor_id: str) -> Factor | None:
+        """Read an adopted factor's metadata for freezing provenance, not selection."""
+        return self._repository.get_factor(factor_id)
+
     def _collect_factors(self, context: ParameterResolutionContext) -> tuple[Factor, ...]:
         factors = list(self._repository.list_factors(context.parameter_id))
         if context.measured_factor is not None and context.measured_factor.factor_id not in {

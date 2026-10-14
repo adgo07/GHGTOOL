@@ -191,7 +191,7 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
                 lower_heating_value=measured("natural-gas_lhv", "35.5", "GJ/10⁴Nm³"),
                 carbon_content=measured("natural-gas_carbon", "0.0153", "tC/GJ"),
                 oxidation_rate=measured("natural-gas_oxidation", "0.99", "ratio"),
-                fuel_type=FuelType.NATURAL_GAS,
+                fuel_type=FuelType.OTHER, fuel_label="天然气",
             )
             input_value = CarbonMaterialInput(
                 "input.rpt01-real", "enterprise.rpt01", "报告测试企业", PERIOD,
@@ -216,10 +216,13 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
             self.assertEqual(b2.rows[0].cells[0].value, "天然气")
             # Presentation rounds saved emissions; the original Record remains exact.
             exact_amount = record.calculation_result.lines[0].amount
-            self.assertEqual(b2.rows[0].cells[9].value, "19.72")
+            self.assertEqual(b2.rows[0].cells[10].value, "19.72")
             self.assertEqual(repository.get(record.record_id).calculation_result.lines[0].amount, exact_amount)
-            self.assertEqual(b2.rows[0].cells[6].value, "0.0153")
-            self.assertEqual(b2.rows[0].cells[5].value, "企业实测值；燃料化验单第2页；2025")
+            self.assertEqual(b2.rows[0].cells[7].value,"0.02")
+            self.assertIn("0.0153",b2.rows[0].cells[7].source_detail)
+            self.assertEqual(b2.rows[0].cells[6].value,"实测值")
+            self.assertIn("燃料化验单第2页",b2.rows[0].cells[6].source_detail)
+            self.assertIn("2025",b2.rows[0].cells[6].source_detail)
             evidence = next(section for section in report.sections if section.section_id == "evidence")
             self.assertIn("年度燃气计量台账", evidence.tables[0].rows[0].cells[2].value)
 
@@ -300,9 +303,13 @@ class RPT01ReportAndExcelTests(unittest.TestCase):
         sections = {section.section_id: section for section in report.sections}
         fuel_rows = sections["b2"].tables[0].rows
         self.assertEqual(len(fuel_rows), 1)
-        self.assertEqual(fuel_rows[0].cells[5].value, "企业实测值；燃料检测报告；2024")
-        self.assertEqual(fuel_rows[0].cells[6].value, "0.028")
-        self.assertEqual(fuel_rows[0].cells[8].value, "软件按标准推荐；附录C.1；2024")
+        self.assertEqual(fuel_rows[0].cells[6].value,"实测值")
+        self.assertIn("燃料检测报告",fuel_rows[0].cells[6].source_detail)
+        self.assertIn("2024",fuel_rows[0].cells[6].source_detail)
+        self.assertEqual(fuel_rows[0].cells[7].value, "0.03")
+        self.assertIn("0.028",fuel_rows[0].cells[7].source_detail)
+        self.assertEqual(fuel_rows[0].cells[9].value,"系统推荐值")
+        self.assertIn("附录C.1",fuel_rows[0].cells[9].source_detail)
         self.assertEqual(len(sections["b3"].tables), 3)
         self.assertEqual(len(sections["b3"].tables[0].rows), 9)
         self.assertEqual(len(sections["b4"].tables[0].rows), 9)

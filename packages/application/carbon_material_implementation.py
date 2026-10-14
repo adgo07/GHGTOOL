@@ -65,7 +65,7 @@ def steam_reference_view(table, source_label):
     return headers, rows, note
 
 def create_report(*args, **kwargs):
-    from .reporting.model import _build_carbon_material_report_model
+    from .reporting.carbon_material_model import _build_carbon_material_report_model
     return _build_carbon_material_report_model(*args, **kwargs)
 
 def accepts_input(value):

@@ -71,7 +71,7 @@ from .record_experience import (
     build_quality_view,
     build_record_list_label,
     standard_label,
-    build_report_view,
+    build_record_report_model,
     evidence_names_for,
     format_amount,
     period_label,
@@ -1811,11 +1811,11 @@ class RecordLibraryPage(BasePage):
         )
         self.summary_text.setHtml(_record_summary_markup(summary))
         if states["raw"] is SnapshotState.LEGACY:
-            report_text = "该历史记录生成时尚未保存完整业务输入；可查看以下已固化的核算汇总。\n\n" + build_report_view(record, None, trace, reporting)
+            report_notice="该历史记录生成时尚未保存完整业务输入；以下仅列出已冻结的信息。"
         elif states["raw"] is SnapshotState.CORRUPT:
-            report_text = "无法读取该历史记录的业务输入快照。\n\n" + build_report_view(record, None, trace, reporting)
+            report_notice="无法读取该历史记录的业务输入快照；以下仅列出其他可取得的冻结信息。"
         else:
-            report_text = build_report_view(record, raw, trace, reporting)
+            report_notice=""
         activity_text = build_activity_evidence_view(raw, reporting, states["reporting"])
         parameter_state = (
             SnapshotState.PRESENT if record.parameter_snapshots else
@@ -1836,15 +1836,20 @@ class RecordLibraryPage(BasePage):
             f"\n报告信息与证据快照：\n{_format_reporting_snapshot(values['reporting'])}"
         )
         sections = (
-            ("标准报告数据 B.1—B.9", report_text),
+            ("标准报告数据", report_notice),
             ("活动数据与来源证据", activity_text),
             ("参数与因子来源", parameter_text),
             ("数据质量与提醒", quality_text),
             ("计算过程与来源链", professional),
         )
-        self.input_basis_text.setPlainText("\n\n".join(
-            f"{title}\n{'─' * 24}\n{content}" for title, content in sections
-        ))
+        from packages.application.reporting.presentation import report_html
+        try:
+            model=build_record_report_model(record,raw,trace,reporting,provenance=values["provenance"],qualification=values["qualification"])
+            business_html=("<p>"+html_escape(report_notice)+"</p>" if report_notice else "")+report_html(model)
+        except ValueError:
+            business_html="<p>此标准尚未提供业务报告表式；可在基本信息与计算依据中查看已冻结的结果。</p>"
+        audit_html="".join("<h3>"+html_escape(title)+"</h3><p>"+html_escape(content).replace("\n","<br>")+"</p>" for title,content in sections[1:])
+        self.input_basis_text.setHtml(business_html+audit_html)
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 
     def _delete_selected(self) -> None:

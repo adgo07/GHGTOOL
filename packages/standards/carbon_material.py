@@ -55,7 +55,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-13-G06.3"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-13-G06.4"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -1522,6 +1522,26 @@ class CarbonMaterialCalculator:
                 "standard_location": trace.standard_location or standard_location,
                 "mapping_location": trace.mapping_location or mapping_location,
             })
+        # New display evidence uses the exact adopted parameters and the declared
+        # profile. It does not alter any emission formula or its operation order.
+        by_detail = {item.detail_id:item for item in parameter_snapshots}
+        derived_display = {}
+        for lhv in parameter_snapshots:
+            if not lhv.detail_id.startswith("CAR-FLD-F01-") or not lhv.detail_id.endswith("-LHV"):
+                continue
+            prefix = lhv.detail_id[:-4]
+            carbon = by_detail.get(prefix+"-CARBON")
+            if carbon is None or carbon.unit_used != "tC/GJ":
+                continue
+            unit = "tC/10^4Nm3" if lhv.unit_used in {"GJ/10⁴Nm³","GJ/10^4Nm3"} else "tC/t"
+            derived_display[prefix] = {"value":str(self.policy.multiply(lhv.value_used,carbon.value_used)),
+                "unit":unit,"source_kind":"CALCULATED","parameter_detail_ids":[lhv.detail_id,carbon.detail_id]}
+        source_types = {}
+        read_factor = getattr(self.parameter_resolver,"get_factor",None)
+        for parameter in parameter_snapshots:
+            factor = read_factor(parameter.factor_id) if callable(read_factor) and parameter.factor_id else None
+            if factor is not None and parameter.detail_id:
+                source_types[parameter.detail_id+"|"+parameter.unit_used] = factor.value_type.value
         direct = Decimal("0")
         for key in ("fuel", "calcination", "baking", "graphitization", "gas_control"):
             direct = self.policy.add(direct, source_subtotals[key])
@@ -1537,6 +1557,9 @@ class CarbonMaterialCalculator:
             "mapping_version": MAPPING_VERSION,
             "calculated_at": calculation_result.calculated_at.isoformat(),
             "formula_steps": steps,
+            "display_evidence_schema_version": 1,
+            "derived_display_evidence": derived_display,
+            "parameter_source_types": source_types,
             "parameter_snapshots": _snapshot_value(tuple(parameter_snapshots)),
             "effective_rule_ids": sorted(self._effective_rule_ids),
             "source_subtotals": {key: str(value) for key, value in source_subtotals.items()},
