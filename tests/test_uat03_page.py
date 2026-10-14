@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QGridLayout, QLineEdit
+from PySide6.QtWidgets import QApplication, QGridLayout, QLabel, QLineEdit
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core import (
@@ -28,10 +28,13 @@ from packages.standards.carbon_material import (
     MaterialBasis,
     MaterialComponentKind,
     ParameterSourceKind,
+    HeatFactorMode,
+    SteamKind,
 )
 from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.responsive_fields import ResponsiveFieldGrid
+from packages.ui.compact_choices import SegmentedChoiceControl
 
 
 class UAT03AccountingPageV2Tests(unittest.TestCase):
@@ -123,6 +126,112 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         self.assertIsNone(output_factor.factor_id)
         self.assertIsNone(output_factor.source_id)
         self.assertEqual(result.exported_electricity[0].region, output.region.currentData())
+
+    def test_electricity_geography_uses_formal_five_table_candidates_and_saves_selection(self) -> None:
+        catalog = CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
+        page = CarbonMaterialAccountingPage(catalog_service=catalog)
+        try:
+            page.period_year.setValue(2025)
+            row = page._energy_family_rows["electricity"][0]
+            self.assertIsInstance(row.geographic_level_choices, SegmentedChoiceControl)
+            self.assertEqual([button.text() for button in row.geographic_level_choices.group.buttons()], ["全国", "区域", "省级"])
+            self.assertEqual(row.geographic_level.currentData(), "全国")
+            self.assertIsNone(row.region.currentData())
+            national = [row.factor_selector.itemData(i) for i in range(row.factor_selector.count())]
+            national = [item for item in national if getattr(item, "factor", None) is not None]
+            self.assertEqual({item.table_number for item in national}, {"表1", "表4", "表5"})
+
+            regions = page._uat03_parameter_queries.electricity_regions_by_level(page._period())
+            row.geographic_level.setCurrentIndex(row.geographic_level.findData("区域"))
+            self.assertIsNone(row.region.currentData())
+            regional_name = regions["区域"][0]
+            row.region.setCurrentIndex(row.region.findData(regional_name))
+            regional = [row.factor_selector.itemData(i) for i in range(row.factor_selector.count())]
+            regional = [item for item in regional if getattr(item, "factor", None) is not None]
+            self.assertTrue(regional)
+            self.assertEqual({item.table_number for item in regional}, {"表2"})
+            selected = row.factor_selector.currentData()
+            state = page._energy_row_state(row)
+            self.assertEqual(state["geographic_level"], "区域")
+            self.assertEqual(state["region"], regional_name)
+            self.assertEqual(state["selected_factor_id"], selected.factor.factor_id)
+
+            output = page._add_unified_energy_row(kind="exported_electricity", line_id="regional-output")
+            output.geographic_level.setCurrentIndex(output.geographic_level.findData("区域"))
+            output.region.setCurrentIndex(output.region.findData(regional_name))
+            output.factor_mode.setCurrentIndex(output.factor_mode.findData("MANUAL"))
+            output.amount.setText("1")
+            output.manual_factor.setText("0.5")
+            manual_output = page._exported_electricity()[0]
+            self.assertEqual(manual_output.factor.parameter_id, regional[0].factor.parameter_id)
+
+            row.geographic_level.setCurrentIndex(row.geographic_level.findData("省级"))
+            province = regions["省级"][0]
+            row.region.setCurrentIndex(row.region.findData(province))
+            provincial = [row.factor_selector.itemData(i) for i in range(row.factor_selector.count())]
+            provincial = [item for item in provincial if getattr(item, "factor", None) is not None]
+            self.assertTrue(provincial)
+            self.assertEqual({item.table_number for item in provincial}, {"表3"})
+            province_choice = row.factor_selector.currentData()
+            provincial_state = page._energy_row_state(row)
+            page._restore_unified_energy_rows([provincial_state, {"kind": "purchased_heat"}])
+            restored = page._energy_family_rows["electricity"][0]
+            self.assertEqual(restored.geographic_level.currentData(), "省级")
+            self.assertEqual(restored.region.currentData(), province)
+            self.assertEqual(
+                page._energy_row_state(restored)["selected_factor_id"],
+                province_choice.factor.factor_id,
+            )
+        finally:
+            page.close()
+
+    def test_energy_restore_keeps_national_and_unknown_legacy_regions_explicit(self) -> None:
+        catalog = CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
+        page = CarbonMaterialAccountingPage(catalog_service=catalog)
+        try:
+            page._restore_unified_energy_rows([
+                {"kind": "purchased_electricity", "region": None},
+                {"kind": "purchased_heat"},
+            ])
+            national = page._energy_family_rows["electricity"][0]
+            self.assertEqual(national.geographic_level.currentData(), "全国")
+            self.assertIsNone(national.region.currentData())
+            self.assertEqual(page._energy_row_state(national)["geographic_level"], "全国")
+
+            unknown_name = "旧档案地区"
+            page._restore_unified_energy_rows([
+                {"kind": "exported_electricity", "region": unknown_name},
+                {"kind": "purchased_heat"},
+            ])
+            unknown = page._energy_family_rows["electricity"][0]
+            self.assertEqual(unknown.geographic_level.currentData(), "省级")
+            self.assertEqual(unknown.region.currentData(), unknown_name)
+            self.assertIn("当前不适用", unknown.region.currentText())
+            self.assertIn("不会自动切换为全国", unknown.status.text())
+            state = page._energy_row_state(unknown)
+            self.assertEqual(state["region"], unknown_name)
+            self.assertEqual(state["geographic_level"], "省级")
+        finally:
+            page.close()
+
+    def test_heat_labeled_fields_hide_as_groups_and_keep_method_labels_distinct(self) -> None:
+        row = self.page._energy_family_rows["heat"][0]
+        self.assertEqual(row.heat_kind_field.findChild(QLabel, "detailFieldLabel").text(), "蒸汽状态")
+        self.assertEqual(row.pressure_field.findChild(QLabel, "fieldUnitHint").text(), "MPa（绝压）")
+        self.assertEqual(row.temperature_field.findChild(QLabel, "fieldUnitHint").text(), "℃（过热蒸汽）")
+        self.assertEqual(row.enthalpy_field.findChild(QLabel, "fieldUnitHint").text(), "kJ/kg")
+        self.assertEqual(row.measured_heat_factor_field.findChild(QLabel, "fieldUnitHint").text(), "tCO₂/GJ")
+        self.assertTrue(row.temperature_field.isHidden())
+        row.heat_kind.setCurrentIndex(row.heat_kind.findData(SteamKind.SUPERHEATED))
+        self.assertFalse(row.temperature_field.isHidden())
+        row.enthalpy_mode.setCurrentIndex(row.enthalpy_mode.findData("MANUAL"))
+        self.assertTrue(row.pressure_field.isHidden())
+        self.assertTrue(row.temperature_field.isHidden())
+        self.assertFalse(row.enthalpy_field.isHidden())
+        row.heat_factor_mode.setCurrentIndex(row.heat_factor_mode.findData(HeatFactorMode.MEASURED))
+        self.assertFalse(row.measured_heat_factor_field.isHidden())
+        self.assertFalse(row.heat_source_field.isHidden())
+        self.assertNotIn("热力来源", row.status.text())
 
     def test_self_consumed_electricity_is_retained_and_excluded_from_formal_input(self) -> None:
         row = self.page._energy_family_rows["electricity"][0]
@@ -293,6 +402,7 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             row = page._fuel_rows[0]
             option = next(item for item in page._fuel_catalog_options() if item.fuel_type is FuelType.NATURAL_GAS)
             row.fuel_type.setEditText(option.label)
+            row.fuel_type.confirm_name(force=True)
             row.activity.setText("12.3456789012345")
             self.assertIs(FuelPath(row.path.currentData()), FuelPath.VOLUME)
             selected = page._fuel()[0]
@@ -438,10 +548,10 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
 
     def test_new_fuel_draft_uses_semantics_instead_of_legacy_positions(self):
         row=self.page._fuel_rows[0]
+        row.fuel_type.setEditText("自定义燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
-        row.fuel_type.setEditText("自定义燃料")
-        row.custom_mode.setChecked(True)
         row.activity.setText("1.")
         state=self.page._capture_form_state()
         saved=state["fuel_rows"][0]
@@ -468,7 +578,7 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         self.assertEqual(value.instance_id,identity)
         self.assertEqual(value.instance_name,"一号煅烧窑 实际名称")
 
-    def test_resolver_lhv_unit_recommends_each_fuel_path_without_changing_entered_units(self) -> None:
+    def test_resolver_lhv_unit_recommends_paths_and_unit_changes_preserve_raw_drafts(self) -> None:
         page = CarbonMaterialAccountingPage(
             catalog_service=CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
         )
@@ -478,15 +588,36 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             anthracite = next(item for item in options if item.label == "无烟煤")
             natural_gas = next(item for item in options if item.label == "天然气")
             row.fuel_type.setEditText(anthracite.label)
+            row.fuel_type.confirm_name(force=True)
             self.assertEqual(FuelPath(row.path.currentData()), FuelPath.MASS)
-            row.activity.setText("10")
+            row.activity.setText("10.123456789012345")
+            row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+            self.assertEqual(row.activity.text(), "10.123456789012345")
+
+            row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
+            self.assertEqual(row.activity.text(), "")
+            self.assertEqual(row._activity_drafts[f"{anthracite.label}|MASS"], "10.123456789012345")
+            row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+            self.assertFalse(row.restore_activity_button.isHidden())
+            row.restore_activity_button.click()
+            self.assertEqual(row.activity.text(), "10.123456789012345")
+
             row.fuel_type.setEditText(natural_gas.label)
-            self.assertEqual(FuelPath(row.path.currentData()), FuelPath.MASS)
-            self.assertIn("计量单位与该燃料", row.activity.toolTip())
-            row.activity.clear()
-            row.fuel_type.setEditText(anthracite.label)
-            row.fuel_type.setEditText(natural_gas.label)
+            row.fuel_type.confirm_name(force=True)
             self.assertEqual(FuelPath(row.path.currentData()), FuelPath.VOLUME)
+            self.assertEqual(row.activity.text(), "")
+            self.assertEqual(row._activity_drafts[f"{anthracite.label}|MASS"], "10.123456789012345")
+            row.activity.setText("1.2500")
+            row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
+            self.assertEqual(row.activity.text(), "1.2500")
+            row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
+            self.assertEqual(row.activity.text(), "")
+            self.assertEqual(row._activity_drafts[f"{natural_gas.label}|VOLUME"], "1.2500")
+            self.assertIn("计量单位与该燃料", row.activity.toolTip())
+            row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
+            self.assertFalse(row.restore_activity_button.isHidden())
+            row.restore_activity_button.click()
+            self.assertEqual(row.activity.text(), "1.2500")
         finally:
             page.close()
             self.app.processEvents()
@@ -608,36 +739,33 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             self.assertEqual(completer.caseSensitivity(), Qt.CaseSensitivity.CaseInsensitive)
             self.assertEqual(completer.filterMode(), Qt.MatchFlag.MatchContains)
 
-    def test_custom_fuel_with_catalog_name_has_independent_identity_and_clears_defaults(self) -> None:
+    def test_catalog_fch_can_be_edited_with_explicit_calculated_or_measured_source(self) -> None:
         from packages.standards.carbon_material_input_policy import InputOrigin
         self.page.close()
         self.page = CarbonMaterialAccountingPage(
             catalog_service=CatalogQueryService(SQLiteCatalogRepository(self.catalog_path))
         )
         row = self.page._fuel_rows[0]
-        row.fuel_type.setCurrentIndex(row.fuel_type.findText("天然气"))
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+        row.activity.setText("10")
         self.assertTrue(row.carbon.isReadOnly())
         self.assertTrue(row.carbon.text())
-        row.custom_mode.setChecked(True)
-        self.assertFalse(row.carbon.isReadOnly())
-        self.assertEqual(row.carbon.text(),"")
-        self.assertEqual(row.carbon_source.currentData(),"USER_DEFINED")
-        row.activity.setText("10")
-        row.lower_heating_value.setText("8")
-        row.carbon.setText("0.03")
-        row.oxidation.setText("98")
-        value = self.page._fuel()[0]
-        self.assertEqual(value.origin,InputOrigin.CUSTOM)
-        self.assertEqual(value.fuel_label,"天然气")
-        self.assertEqual(value.fuel_type,FuelType.OTHER)
-        self.assertEqual(value.carbon_content.value,Decimal("0.03"))
-        self.assertEqual(value.carbon_content.source_kind,ParameterSourceKind.USER_DEFINED)
-        self.assertEqual(value.lower_heating_value.source_kind,ParameterSourceKind.USER_DEFINED)
-        self.assertEqual(value.oxidation_rate.source_kind,ParameterSourceKind.USER_DEFINED)
-        row.custom_mode.setChecked(False)
-        self.assertTrue(row.carbon.isReadOnly())
-        self.assertEqual(row.carbon_source.currentData(),"STANDARD_DEFAULT")
-        self.assertNotEqual(row.carbon.text(),"0.03")
+
+        for mode, text, expected_kind in (
+            ("CALCULATED", "0.03", ParameterSourceKind.CALCULATED),
+            ("MEASURED", "0.015", ParameterSourceKind.MEASURED),
+        ):
+            with self.subTest(mode=mode):
+                row.carbon_source.setCurrentIndex(row.carbon_source.findData(mode))
+                self.assertFalse(row.carbon.isReadOnly())
+                row.carbon.setText(text)
+                row.source_reference.setText("企业单位热值含碳量依据")
+                value = self.page._fuel()[0]
+                self.assertIs(value.origin, InputOrigin.CATALOG)
+                self.assertIs(value.fuel_type, FuelType.NATURAL_GAS)
+                self.assertEqual(value.carbon_content.value, Decimal(text))
+                self.assertIs(value.carbon_content.source_kind, expected_kind)
+                self.assertIsNone(value.carbon_content.factor_id)
 
     def test_custom_carbonate_clears_defaults_and_does_not_claim_chemical_calculation(self) -> None:
         from packages.standards.carbon_material import FGDInput
@@ -650,18 +778,22 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         unit["reagent_name"].setText("自定义脱硫剂")
         unit["group_amount"].setText("2")
         component=unit["components"][0]
-        component["carbonate_type"].setEditText("自定义碳酸盐")
+        selector = component["carbonate_type"]
+        selector.setEditText("自定义碳酸盐")
+        selector.confirm_name(force=True)
         for field in ("i","tr"):
             self.assertFalse(component[field].isReadOnly())
             self.assertEqual(component[field].text(),"")
-            self.assertEqual(component[field+"_source"].currentData(),"USER_DEFINED")
+            self.assertIsNone(component[field+"_source"].currentData())
+            component[field+"_source"].setCurrentIndex(component[field+"_source"].findData("MEASURED"))
         component["i"].setText("80")
+        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
         component["ef1"].setText("0.5")
         component["tr"].setText("90")
         value=self.page._process("fgd",FGDInput,unit).components[0]
         self.assertEqual(value.origin,InputOrigin.CUSTOM)
         for parameter in (value.carbonate_fraction,value.emission_factor,value.conversion_rate):
-            self.assertEqual(parameter.source_kind,ParameterSourceKind.USER_DEFINED)
+            self.assertEqual(parameter.source_kind,ParameterSourceKind.MEASURED)
             self.assertIsNone(parameter.factor_id)
 
     def test_current_standard_only_exposes_supported_steam_types(self) -> None:

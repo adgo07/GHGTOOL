@@ -155,6 +155,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         toggle.click()
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("测试燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -165,7 +166,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         row.carbon_direct.setText("0.02")
         row.oxidation.setText("98")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
         record = self.page.record_repository.list_all()[0]
@@ -183,6 +184,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         toggle.click()
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("测试燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -207,7 +209,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertFalse(hasattr(records, "audit_button"))
         self.assertIsNone(records.findChild(QPushButton, "openRecordAuditButton"))
         self.assertEqual(records.detail_tabs.count(), 2)
-        self.assertTrue(records.input_basis_text.isReadOnly())
+        self.assertTrue(records.input_basis_view.isReadOnly())
 
 
 if __name__ == "__main__":

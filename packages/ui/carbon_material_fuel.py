@@ -56,6 +56,7 @@ class _FuelRow(QWidget):
         self.fuel_type.setEditable(True)
         self.fuel_type.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.fuel_type.setPlaceholderText("搜索或输入燃料名称")
+        self.fuel_type.lineEdit().setPlaceholderText("搜索或输入燃料名称")
         self.fuel_type.setMinimumWidth(190)
         self.fuel_type.lineEdit().setMaxLength(120)
         search_terms = []

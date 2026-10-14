@@ -232,13 +232,26 @@ class RS02RecordEvidenceTests(unittest.TestCase):
         raw = repository.get_raw_input_snapshot(outcome.record.record_id)
         trace = repository.get_trace_snapshot(outcome.record.record_id)
         frozen_reporting = repository.get_reporting_snapshot(outcome.record.record_id)
+        model = _PRESENTATION["build_record_report_model"](outcome.record, raw, trace, frozen_reporting)
         report = _PRESENTATION["build_report_view"](outcome.record, raw, trace, frozen_reporting)
         activity_view = _PRESENTATION["build_activity_evidence_view"](raw, frozen_reporting, SnapshotState.PRESENT)
-        self.assertIn("B.1 温室气体排放量汇总",report)
+        sections = {section.section_id: section for section in model.sections}
+        self.assertIn("b1", sections)
+        self.assertIn("b2", sections)
+        b1_section = sections["b1"]
+        b1_table = b1_section.tables[0]
+        b2_table = sections["b2"].tables[0]
+        self.assertEqual(verify_record_aggregation(trace, _calculation_snapshot(outcome.record)), ())
+        self.assertFalse(any("历史汇总核对存在不一致" in note for note in b1_section.notes))
+        self.assertEqual(b1_table.rows[-2].cells[2].value, "0.14")
+        self.assertEqual(b1_table.rows[-1].cells[2].value, "0.14")
+        # Unrecorded sources stay visibly absent in this frozen Record; the report must not turn them into zero.
+        self.assertEqual(b1_table.rows[4].cells[2].value, "历史未记录")
+        self.assertEqual(b1_table.rows[5].cells[2].value, "历史未记录")
+        self.assertEqual(b2_table.rows[0].cells[2].value, "t")
+        self.assertIn("证据1", activity_view)
+        self.assertIn("B.1 温室气体排放量汇总", report)
         self.assertIn("B.2 化石燃料活动数据和排放因子", report)
-        self.assertIn(" | t | ",report)
-        self.assertIn("证据1",activity_view)
-        self.assertIn("历史汇总核对：通过",report)
         self.assertNotIn("CAR-FML-", report)
         self.assertNotIn("CAR-FLD-", report)
         self.assertIn("证据1：年度燃料计量", activity_view)
@@ -262,14 +275,28 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             calculated_at=NOW,
         )
         self.assertTrue(outcome.successful, outcome.problems)
-        report = _PRESENTATION["build_report_view"](
-            outcome.record,
-            repository.get_raw_input_snapshot(outcome.record.record_id),
-            repository.get_trace_snapshot(outcome.record.record_id),
-            repository.get_reporting_snapshot(outcome.record.record_id),
+        raw = repository.get_raw_input_snapshot(outcome.record.record_id)
+        trace = repository.get_trace_snapshot(outcome.record.record_id)
+        reporting = repository.get_reporting_snapshot(outcome.record.record_id)
+        model = _PRESENTATION["build_record_report_model"](outcome.record, raw, trace, reporting)
+        report = _PRESENTATION["build_report_view"](outcome.record, raw, trace, reporting)
+        b7 = next(section for section in model.sections if section.section_id == "b7")
+        table = b7.tables[0]
+        self.assertEqual(len(table.rows), 2)
+        self.assertEqual([row.cells[0].value for row in table.rows], ["石灰石甲", "石灰石甲"])
+        self.assertEqual([row.cells[1].value for row in table.rows], ["2.00", "2.00"])
+        self.assertEqual([row.cells[1].source_detail for row in table.rows], ["手工录入", "手工录入"])
+        self.assertIn((0, 1, 1, 1), table.body_merges)
+        self.assertEqual([row.cells[2].value for row in table.rows], ["CaCO3", "MgCO3"])
+        self.assertEqual([row.cells[4].value for row in table.rows], ["0.44", "0.52"])
+        source_detail = "选择方式：标准规定值；来源定位：第5.2.5.2条、附录C.2；来源版本：SM01-2026-09-13-R6"
+        self.assertEqual(table.rows[0].cells[4].source_detail, source_detail)
+        self.assertEqual(
+            table.rows[1].cells[4].source_detail,
+            source_detail + "；展示前完整值：0.522 tCO2/t",
         )
-        self.assertEqual(report.count("石灰石甲"),1)
-        self.assertEqual(report.count("2.00（手工录入）"),1)
+        self.assertEqual([row.cells[6].value for row in table.rows], ["0.90", ""])
+        self.assertTrue(any("历史记录未保存逐组分排放量时不重新计算" in note for note in b7.notes))
         self.assertNotIn("设施1", report)
 
     def test_snapshot_states_distinguish_present_empty_legacy_and_corrupt(self) -> None:

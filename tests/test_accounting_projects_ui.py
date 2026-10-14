@@ -90,13 +90,14 @@ class AccountingProjectUiTests(unittest.TestCase):
 
     def _fill_custom_fuel(self, row, activity: str, source_reference: str) -> None:
         row.fuel_type.setEditText("企业自定义燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText(activity)
         row.carbon_direct.setText("0.2")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         row.oxidation.setText("98")
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         row.source_reference.setText(source_reference)
 
     def test_project_unit_controls_expand_and_expose_save_and_unit_management(self) -> None:
@@ -750,18 +751,19 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.page.project_name.setText("实测参数来源项目")
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("企业实测混合燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.carbon_direct.setText("0.2")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
         row.activity.setText("10")
         row.oxidation.setText("98")
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         row.source_reference.setText("企业检测报告-EQUAL-01")
         before_row_key = row.row_key
         before = self.page._fuel()[0]
         self.assertIs(before.carbon_content.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIs(before.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
         saved_fuel_state = self.page._capture_form_state()["fuel_rows"][0]
         self.assertEqual(saved_fuel_state["carbon_direct"], "0.2")
         self.assertEqual(saved_fuel_state["oxidation"], "98")
@@ -783,7 +785,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(after.carbon_content.parameter_id, before.carbon_content.parameter_id)
         self.assertEqual(after.oxidation_rate.parameter_id, before.oxidation_rate.parameter_id)
         self.assertIs(after.carbon_content.source_kind, ParameterSourceKind.MEASURED)
-        self.assertIs(after.oxidation_rate.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIs(after.oxidation_rate.source_kind, ParameterSourceKind.MEASURED)
 
     def test_changed_input_marks_result_stale_after_switch_save_and_reopen(self) -> None:
         self.page.project_name.setText("结果过期项目")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from dataclasses import replace
 from decimal import Decimal
 import json
 from pathlib import Path
@@ -72,6 +73,34 @@ class UAT03RuleTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._temporary_directory.cleanup()
 
+    def test_table_one_valid_from_boundary_is_respected_without_imputing_other_tables(self):
+        before = AccountingPeriod(PeriodType.CUSTOM, date(2025, 12, 29), date(2025, 12, 30))
+        boundary_day = AccountingPeriod(PeriodType.CUSTOM, date(2025, 12, 31), date(2025, 12, 31))
+        crosses = AccountingPeriod(PeriodType.CUSTOM, date(2025, 12, 30), date(2026, 1, 1))
+        after = AccountingPeriod(PeriodType.CUSTOM, date(2026, 1, 1), date(2026, 1, 2))
+
+        before_tables = self.queries.electricity_catalog_options("全国", None, before)
+        self.assertEqual({item.table_number for item in before_tables}, {"表4", "表5"})
+        boundary_tables = self.queries.electricity_catalog_options("全国", None, boundary_day)
+        self.assertEqual({item.table_number for item in boundary_tables}, {"表1", "表4", "表5"})
+        cross_tables = self.queries.electricity_catalog_options("全国", None, crosses)
+        self.assertEqual({item.table_number for item in cross_tables}, {"表4", "表5"})
+        after_tables = self.queries.electricity_catalog_options("全国", None, after)
+        self.assertEqual({item.table_number for item in after_tables}, {"表1", "表4", "表5"})
+
+        table_one = next(item.factor for item in boundary_tables if item.table_number == "表1")
+        self.assertEqual(table_one.valid_from, date(2025, 12, 31))
+        self.assertIsNone(table_one.valid_to)
+        for item in (*before_tables, *boundary_tables, *cross_tables, *after_tables):
+            if item.table_number in {"表4", "表5"}:
+                self.assertIsNone(item.factor.valid_from)
+                self.assertIsNone(item.factor.valid_to)
+        for level, region in (("区域", "华北"), ("省级", "宁夏")):
+            for period in (before, crosses, after):
+                options = self.queries.electricity_catalog_options(level, region, period)
+                self.assertTrue(options)
+                self.assertTrue(all(item.factor.valid_from is None for item in options))
+                self.assertTrue(all(item.factor.valid_to is None for item in options))
     def test_prior_period_electricity_candidates_follow_resolver_without_registry_truncation(self):
         period=AccountingPeriod(PeriodType.ANNUAL,date(2025,1,1),date(2025,12,31))
         options=self.queries.electricity_options(None,period)
@@ -89,19 +118,70 @@ class UAT03RuleTests(unittest.TestCase):
         self.assertIn(NATIONAL_ELECTRICITY_PARAMETER_ID,parameters)
         self.assertIn("electricity_emission_factor_national_average_excluding_market_nonfossil",parameters)
         self.assertIn("electricity_emission_factor_national_fossil",parameters)
-        expected=self.queries.electricity_options(None,PERIOD)
-        self.assertEqual([item.factor.factor_id for item in national if item.selectable],[item.factor.factor_id for item in expected])
-        self.assertTrue(all(item.unavailable_reason for item in national if not item.selectable))
-        self.assertEqual(national[0].factor.factor_id,expected[0].factor.factor_id)
+        self.assertEqual({item.table_number for item in national},{"表1","表4","表5"})
+        self.assertTrue(all(item.selectable for item in national))
+        self.assertTrue(all(item.factor.source_id=="SRC-ELEC-2023-47" for item in national))
+        self.assertTrue(all(item.source_document_name and item.factor.source_location for item in national))
+        self.assertEqual(
+            {item.table_number:item.factor.parameter_id for item in national},
+            {
+                "表1":NATIONAL_ELECTRICITY_PARAMETER_ID,
+                "表4":"electricity_emission_factor_national_average_excluding_market_nonfossil",
+                "表5":"electricity_emission_factor_national_fossil",
+            },
+        )
         regional_binding=next(binding for binding in self.queries._bindings if
             (asset:=self.queries._assets.get(binding.asset_id)) is not None and asset.parameter_id=="electricity_emission_factor_regional_average")
         regional=self.queries.electricity_catalog_options("区域",regional_binding.region,PERIOD)
         self.assertTrue(regional)
-        self.assertTrue(all(not item.selectable for item in regional))
+        self.assertTrue(all(item.selectable and item.table_number=="表2" for item in regional))
+        self.assertTrue(all(item.factor.parameter_id=="electricity_emission_factor_regional_average" for item in regional))
         provincial=self.queries.electricity_catalog_options("省级","宁夏",PERIOD)
         self.assertTrue(provincial)
         self.assertTrue(any(item.selectable for item in provincial))
+        self.assertTrue(all(item.table_number=="表3" for item in provincial))
         self.assertTrue(all(item.factor.parameter_id==PROVINCIAL_ELECTRICITY_PARAMETER_ID for item in provincial))
+
+    def test_electricity_geography_choices_and_table_basis_selection_use_resolver_snapshots(self):
+        choices=self.queries.electricity_regions_by_level(PERIOD)
+        self.assertEqual(tuple(choices),("全国","区域","省级"))
+        self.assertEqual(choices["全国"],("全国",))
+        self.assertEqual(set(choices["区域"]),{"华北","东北","华东","华中","西北","南方","西南"})
+        self.assertIn("宁夏",choices["省级"])
+        selected_options=(
+            next(item for item in self.queries.electricity_catalog_options("全国",None,PERIOD) if item.table_number=="表1"),
+            next(item for item in self.queries.electricity_catalog_options("全国",None,PERIOD) if item.table_number=="表4"),
+            next(item for item in self.queries.electricity_catalog_options("全国",None,PERIOD) if item.table_number=="表5"),
+            next(item for item in self.queries.electricity_catalog_options("区域","华北",PERIOD)),
+            next(item for item in self.queries.electricity_catalog_options("省级","宁夏",PERIOD)),
+        )
+        for index, option in enumerate(selected_options):
+            detail=ElectricityConsumptionDetail(
+                f"power.table-choice.{index}","enterprise.uat03",STANDARD_ID,PERIOD,"1","MWh",
+                ElectricityAcquisitionMode.PURCHASED,ElectricityAttribute.ORDINARY,
+                region=option.region,
+                selected_factor_id=option.factor.factor_id,
+                factor_selection_reason=f"用户明确选择{option.table_number}目录因子。",
+            )
+            result=self.resolver.resolve_electricity_details((detail,),snapshot_at=SNAPSHOT_AT)[0]
+            self.assertFalse(result.blocked,(option.table_number,result.problems))
+            self.assertEqual(result.snapshot.factor_id,option.factor.factor_id)
+            self.assertEqual(result.snapshot.parameter_id,option.factor.parameter_id)
+            self.assertEqual(result.snapshot.source_id,option.factor.source_id)
+            self.assertEqual(result.snapshot.value_used,option.factor.value)
+            self.assertEqual(result.snapshot.selection_method,ParameterSelectionMethod.USER_SELECTED_LIBRARY_VALUE)
+            input_value=CarbonMaterialInput(
+                f"input.table-choice.{index}","enterprise.uat03",None,PERIOD,
+                boundary_confirmed=True,electricity_details=(detail,),
+            )
+            outcome=CarbonMaterialCalculator(parameter_resolver=self.resolver).calculate(
+                input_value,calculated_at=SNAPSHOT_AT,
+            )
+            self.assertTrue(outcome.successful,(option.table_number,outcome.problems))
+            formal_snapshot=next(item for item in outcome.parameter_snapshots if item.detail_id==detail.detail_id)
+            self.assertEqual(formal_snapshot.factor_id,option.factor.factor_id)
+            self.assertEqual(formal_snapshot.parameter_id,option.factor.parameter_id)
+            self.assertEqual(formal_snapshot.source_id,option.factor.source_id)
 
     def test_fuel_and_carbonate_candidates_follow_verified_canonical_bindings(self) -> None:
         fuel_options = {item.subject_id: item for item in self.queries.fuel_options()}
@@ -237,6 +317,28 @@ class UAT03RuleTests(unittest.TestCase):
         self.assertEqual(ningxia[0].factor.normalized_value, Decimal("0.6187"))
         self.assertEqual(ningxia[0].factor.source_id, "SRC-ELEC-2023-47")
         self.assertEqual(ningxia[0].region, "宁夏")
+        north_china = self.queries.electricity_options("华北", PERIOD)
+        self.assertEqual(len(north_china), 1)
+        self.assertEqual(north_china[0].factor.factor_id, "electricity_regional_average_2023_01")
+        self.assertEqual(north_china[0].table_number, "表2")
+
+        regional_detail = ElectricityConsumptionDetail(
+            "power.regional.default",
+            "enterprise.uat03",
+            STANDARD_ID,
+            PERIOD,
+            "1",
+            "MWh",
+            ElectricityAcquisitionMode.PURCHASED,
+            ElectricityAttribute.ORDINARY,
+            region="华北",
+        )
+        regional_default = self.resolver.resolve_electricity_details(
+            (regional_detail,), snapshot_at=SNAPSHOT_AT
+        )[0]
+        self.assertFalse(regional_default.blocked)
+        self.assertEqual(regional_default.snapshot.parameter_id, "electricity_emission_factor_regional_average")
+        self.assertEqual(regional_default.snapshot.factor_id, north_china[0].factor.factor_id)
 
         selected_detail = ElectricityConsumptionDetail(
             "power.selected.catalog.factor",
@@ -294,6 +396,20 @@ class UAT03RuleTests(unittest.TestCase):
             item.factor.parameter_id == NATIONAL_ELECTRICITY_PARAMETER_ID
             for item in self.queries.electricity_options(None, PERIOD)
         ))
+
+        national_factor = self.queries.electricity_catalog_options("全国", None, PERIOD)[-1].factor
+        wrong_geography = replace(
+            selected_detail,
+            detail_id="power.national-factor-wrong-region",
+            region="宁夏",
+            selected_factor_id=national_factor.factor_id,
+        )
+        mismatch = self.resolver.resolve_electricity_details(
+            (wrong_geography,), snapshot_at=SNAPSHOT_AT
+        )[0]
+        self.assertTrue(mismatch.blocked)
+        self.assertIsNone(mismatch.snapshot)
+        self.assertEqual(mismatch.problems[0].code,"GEN-VAL-ELECTRICITY-GEOGRAPHY-MISMATCH")
 
     def test_nonfossil_without_verified_proof_uses_only_independent_zero_factor(self) -> None:
         detail = ElectricityConsumptionDetail(
@@ -493,6 +609,35 @@ class UAT03RuleTests(unittest.TestCase):
         self.assertEqual(factor_cell.value, "0.70")
         self.assertEqual(factor_cell.source, "填写值")
         self.assertIn("2025年宁夏购电合同因子说明", factor_cell.source_detail)
+
+    def test_user_provided_purchase_factor_uses_the_selected_regional_context(self) -> None:
+        detail = ElectricityConsumptionDetail(
+            "power.manual.override.regional",
+            "enterprise.uat03",
+            STANDARD_ID,
+            PERIOD,
+            "1",
+            "MWh",
+            ElectricityAcquisitionMode.PURCHASED,
+            ElectricityAttribute.ORDINARY,
+            region="华北",
+            factor_override=UserProvidedParameterValue(
+                "0.7",
+                "tCO₂/MWh",
+                source_reference="企业提供的华北购电因子说明",
+                selection_reason="企业依据当期资料手动填写因子。",
+            ),
+        )
+        resolution = self.resolver.resolve_electricity_details(
+            (detail,), snapshot_at=SNAPSHOT_AT
+        )[0]
+        self.assertFalse(resolution.blocked,resolution.problems)
+        self.assertEqual(
+            resolution.snapshot.parameter_id,
+            "electricity_emission_factor_regional_average",
+        )
+        self.assertEqual(resolution.snapshot.selection_method,ParameterSelectionMethod.MANUAL_OVERRIDE)
+        self.assertEqual(resolution.snapshot.value_used,Decimal("0.7"))
 
     def test_exported_electricity_selected_factor_keeps_catalog_snapshot_provenance(self) -> None:
         option = self.queries.electricity_options("宁夏", PERIOD)[0]

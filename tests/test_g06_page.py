@@ -252,6 +252,7 @@ class G06PageTests(unittest.TestCase):
         self._set_source_involved("CAR-SRC-FUEL-001")
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("工艺回收混合燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -388,6 +389,7 @@ class G06PageTests(unittest.TestCase):
 
         selector = component["carbonate_type"]
         selector.setEditText("未登记碳酸盐")
+        selector.confirm_name(force=True)
         legacy_fgd = self.page._process("fgd", FGDInput)
         self.assertIsNotNone(legacy_fgd)
         assert legacy_fgd is not None
@@ -397,6 +399,7 @@ class G06PageTests(unittest.TestCase):
         self.assertTrue(any(problem.code == "CAR-VAL-CARBONATE-FACTOR-MISSING" for problem in outcome.problems))
         self.assertEqual(self.page.record_repository.list_all(), ())
 
+        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
         component["ef1"].setText("0.500")
         component["factor_source_reference"].setText("脱硫剂检测报告-UI-01")
         manual = self.page._process("fgd", FGDInput)
@@ -405,11 +408,13 @@ class G06PageTests(unittest.TestCase):
         factor = manual.components[0].emission_factor
         self.assertIsNotNone(factor)
         assert factor is not None
-        self.assertIs(factor.source_kind, ParameterSourceKind.USER_DEFINED)
+        self.assertIs(factor.source_kind, ParameterSourceKind.MEASURED)
         self.assertIsNone(factor.source_id)
         self.assertNotIn("化学计算", factor.source_location)
         self.assertIn("脱硫剂检测报告-UI-01", factor.source_location)
+        component["i_source"].setCurrentIndex(component["i_source"].findData("MEASURED"))
         component["i"].setText("90")
+        component["tr_source"].setCurrentIndex(component["tr_source"].findData("MEASURED"))
         component["tr"].setText("100")
         manual_outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(manual_outcome.successful, manual_outcome.problems)
@@ -654,11 +659,15 @@ class G06PageTests(unittest.TestCase):
         first_unit["reagent_name"].setText("石灰石")
         first_unit["group_amount"].setText("10")
         first_component, = first_unit["components"]
-        first_component["i"].setText("40")
         self._select_carbonate(first_component, "car-par-c2-caco3")
+        first_component["i_source"].setCurrentIndex(first_component["i_source"].findData("MEASURED"))
+        first_component["i"].setText("40")
         second_component = self.page._add_fgd_component(first_unit)
-        second_component["i"].setText("40")
         self._select_carbonate(second_component, "car-par-c2-mgco3")
+        second_component["i_source"].setCurrentIndex(second_component["i_source"].findData("MEASURED"))
+        second_component["i"].setText("40")
+        second_component["tr_source"].setCurrentIndex(second_component["tr_source"].findData("MEASURED"))
+        second_component["tr"].setText("100")
         self.assertEqual([component["i_source"].currentData() for component in first_unit["components"]], ["MEASURED", "MEASURED"])
         self.page._add_process_row("fgd")
         second_unit = self.page._process_rows["fgd"][1]
@@ -674,7 +683,10 @@ class G06PageTests(unittest.TestCase):
             [[Decimal("10"), Decimal("10")], [Decimal("5")]],
         )
         self.assertTrue(all(component.carbonate_fraction.source_kind is ParameterSourceKind.MEASURED for component in input_value.fgd_units[0].components))
-        self.assertTrue(all(component.conversion_rate.source_kind is ParameterSourceKind.STANDARD_DEFAULT for component in input_value.fgd_units[0].components))
+        self.assertEqual(
+            [component.conversion_rate.source_kind for component in input_value.fgd_units[0].components],
+            [ParameterSourceKind.STANDARD_DEFAULT, ParameterSourceKind.MEASURED],
+        )
         reordered_fgd = replace(
             input_value,
             fgd=None,
@@ -752,11 +764,15 @@ class G06PageTests(unittest.TestCase):
                 first["reagent_name"].setText("石灰石")
                 first["group_amount"].setText("10")
                 component = first["components"][0]
-                component["i"].setText("45")
                 self._select_carbonate(component, "car-par-c2-caco3")
+                component["i_source"].setCurrentIndex(component["i_source"].findData("MEASURED"))
+                component["i"].setText("45")
                 second_component = self.page._add_fgd_component(first)
-                second_component["i"].setText("45")
                 self._select_carbonate(second_component, "car-par-c2-mgco3")
+                second_component["i_source"].setCurrentIndex(second_component["i_source"].findData("MEASURED"))
+                second_component["i"].setText("45")
+                second_component["tr_source"].setCurrentIndex(second_component["tr_source"].findData("MEASURED"))
+                second_component["tr"].setText("100")
                 second = self.page._add_process_row(prefix)
                 second["reagent_name"].setText("石灰石")
                 second["group_amount"].setText("5")
@@ -915,9 +931,12 @@ class G06PageTests(unittest.TestCase):
             None,
         )
         self.assertIsNotNone(option, parameter_id)
-        label = option.label
-        index = selector.findText(label, Qt.MatchFlag.MatchExactly)
-        self.assertGreaterEqual(index, 0, label)
+        index = next(
+            (i for i in range(selector.count())
+             if getattr(selector.itemData(i), "subject_id", None) == option.subject_id),
+            -1,
+        )
+        self.assertGreaterEqual(index, 0, option.label)
         selector.setCurrentIndex(index)
         selected = selector.currentData()
         self.assertIsNotNone(selected)
@@ -1037,7 +1056,7 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(row.amount.property("fieldUnit"), "t")
         self.assertEqual(get_field_spec("heat_pressure").label, "蒸汽压力（MPa，绝压）")
         self.assertEqual(row.heat_factor_mode.currentData(), HeatFactorMode.STANDARD_DEFAULT)
-        self.assertEqual(row.heat_factor_mode.currentText(), "标准缺省热力因子")
+        self.assertEqual(row.heat_factor_mode.currentText(), "缺省值")
         self.assertEqual(row.enthalpy_mode.currentData(), "AUTO")
         self.assertFalse(row.measured_heat_factor.isVisible())
         self.assertFalse(row.heat_source.isVisible())

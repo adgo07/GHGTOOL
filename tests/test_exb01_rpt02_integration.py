@@ -133,7 +133,7 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         fuel = workbook["B.2"]
         fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel['E14'], fuel['G14'], fuel['J14'] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'], fuel['N14'] = "计算值", "缺省值", "缺省值", "缺省值"
         destination = self.root / "经批准附录B工作簿.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -228,6 +228,8 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         )
         self.assertEqual(report.layout_id, "gbt-32151-34-2024-appendix-b")
         self.assertEqual(report.template_sha256, APPROVED_SOURCE_SHA256)
+        self.assertEqual(report.input_template_version, "2.1.0")
+        self.assertEqual(report.input_template_sha256, APPROVED_TEMPLATE_SHA256)
         b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
         totals = frozen_totals(record, self.repository.get_trace_snapshot(record.record_id))
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (totals["ES"], totals["ET"]))
@@ -240,8 +242,8 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         destination = self.root / "EXB01-正式记录-RPT02.docx"
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value=report_supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()

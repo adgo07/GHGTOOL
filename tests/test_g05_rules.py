@@ -609,7 +609,15 @@ class G05RuleTests(unittest.TestCase):
         power_heat = industry_by_id["CAR-RULE-POWER-HEAT-001"]
         self.assertEqual(
             set(power_heat.parameter_ids),
-            {"electricity_emission_factor_national", "electricity_emission_factor_nonfossil", "heat_emission_factor_default"},
+            {
+                "electricity_emission_factor_national",
+                "electricity_emission_factor_nonfossil",
+                "electricity_emission_factor_regional_average",
+                "electricity_emission_factor_provincial_average",
+                "electricity_emission_factor_national_average_excluding_market_nonfossil",
+                "electricity_emission_factor_national_fossil",
+                "heat_emission_factor_default",
+            },
         )
         self.assertEqual(
             set(power_heat.applicability.parameter_types),

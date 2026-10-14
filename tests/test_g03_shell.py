@@ -212,8 +212,8 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(len(settings.findChildren(QFrame, "settingsSurface")), 2)
         labels = [label.text() for label in settings.findChildren(QLabel)]
         self.assertIn("软件信息", labels)
-        self.assertIn("可调整项目", labels)
-        self.assertIn("当前版本暂无可调整的设置项", labels)
+        self.assertIn("导出位置", labels)
+        self.assertIn("统一导出文件夹", labels)
         self.assertFalse(any("GB/T 32151.34" in label for label in labels))
 
     def test_page_margin_matches_v4_viewport_clamp(self) -> None:

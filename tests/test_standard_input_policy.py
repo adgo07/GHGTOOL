@@ -50,10 +50,32 @@ class StandardInputPolicyTests(unittest.TestCase):
         self.assertIn("CAR-VAL-CUSTOM-FUEL-DEFAULT",{p.code for p in outcome.problems})
         self.assertTrue(next(p for p in outcome.problems if p.code=="CAR-VAL-CUSTOM-FUEL-DEFAULT").field_id.endswith("-CARBON"))
 
-    def test_catalog_fuel_may_not_bypass_fch_readonly_through_formal_input(self):
-        outcome=self._calculate(origin=InputOrigin.CATALOG)
-        self.assertTrue(outcome.blocked)
-        self.assertIn("CAR-VAL-CATALOG-FCH-READONLY",{p.code for p in outcome.problems})
+    def test_catalog_explicit_measured_and_calculated_fch_are_accepted(self):
+        for source_kind in (ParameterSourceKind.MEASURED, ParameterSourceKind.CALCULATED):
+            with self.subTest(source_kind=source_kind):
+                outcome = self._calculate(origin=InputOrigin.CATALOG, fch_kind=source_kind)
+                self.assertFalse(outcome.blocked, outcome.problems)
+                self.assertEqual(
+                    outcome.input.fuel_inputs[0].carbon_content.source_kind,
+                    source_kind,
+                )
+
+    def test_catalog_legacy_user_defined_fch_is_preserved_without_renaming(self):
+        outcome = self._calculate(origin=InputOrigin.CATALOG, fch_kind=ParameterSourceKind.USER_DEFINED)
+        self.assertFalse(outcome.blocked, outcome.problems)
+        self.assertIs(
+            outcome.input.fuel_inputs[0].carbon_content.source_kind,
+            ParameterSourceKind.USER_DEFINED,
+        )
+
+    def test_catalog_fch_editability_depends_on_explicit_source(self):
+        self.assertFalse(fuel_input_policy(InputOrigin.CATALOG, direct_carbon=False).fch_editable)
+        self.assertTrue(fuel_input_policy(
+            InputOrigin.CATALOG, direct_carbon=False, carbon_source_kind="MEASURED"
+        ).fch_editable)
+        self.assertTrue(fuel_input_policy(
+            InputOrigin.CATALOG, direct_carbon=False, carbon_source_kind="CALCULATED"
+        ).fch_editable)
 
     def test_direct_policy_does_not_require_lhv_or_fch(self):
         policy=fuel_input_policy(InputOrigin.CUSTOM,direct_carbon=True)

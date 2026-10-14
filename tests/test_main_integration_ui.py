@@ -121,7 +121,7 @@ class MainIntegrationUiTests(unittest.TestCase):
         fuel = workbook["B.2"]
         fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel['E14'], fuel['G14'], fuel['J14'] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'], fuel["N14"] = "计算值", "缺省值", "缺省值", "缺省值"
         destination = self.root / "输入.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -130,15 +130,17 @@ class MainIntegrationUiTests(unittest.TestCase):
     def test_custom_fuel_both_quantities_and_carbon_routes_match_excel_exactly(self):
         from packages.standards.carbon_material import ParameterSourceKind
         row = self.page._fuel_rows[0]
-        row.custom_mode.setChecked(True)
         row.fuel_type.setEditText("同名自定义燃料批次")
+        row.fuel_type.confirm_name(force=True)
         for path in (FuelPath.MASS, FuelPath.VOLUME):
             for direct in (False, True):
                 with self.subTest(path=path,direct=direct):
                     row.path.setCurrentIndex(row.path.findData(path))
                     row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT" if direct else "HEAT_CONTENT"))
-                    for combo in (row.lhv_source,row.carbon_source,row.oxidation_source):
-                        combo.setCurrentIndex(combo.findData("USER_DEFINED"))
+                    row.lhv_source.setCurrentIndex(row.lhv_source.findData("CALCULATED"))
+                    row.carbon_source.setCurrentIndex(row.carbon_source.findData("CALCULATED"))
+                    row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
+                    row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
                     row.activity.setText("10")
                     row.lower_heating_value.setText("8")
                     row.carbon.setText("0.03")
@@ -148,8 +150,8 @@ class MainIntegrationUiTests(unittest.TestCase):
                     workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
                     sheet = workbook["B.2"]
                     for cell,value in {"A4":"同名自定义燃料批次","B4":10,"C4":"t" if path is FuelPath.MASS else "10⁴Nm³",
-                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"填写值",
-                        "H4":None,"I4":98,"J4":"填写值","L4":0.03,"M4":"自定义"}.items():
+                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"计算值",
+                        "H4":None,"I4":98,"J4":"实测值","L4":0.03,"M4":"自定义","N4":"计算值" if not direct else None}.items():
                         sheet[cell]=value
                     destination=self.root / "自定义燃料等价.xlsx"
                     workbook.save(destination);workbook.close()
@@ -263,8 +265,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         supplementary = {"prepared_on": "2026-10-10"}
         with (
             patch("packages.ui.report_export.report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(first), "")),
-            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(first), "")),
+            patch("packages.ui.report_export.show_export_success"),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             self.page.export_report_button.click()
@@ -274,8 +276,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.assertTrue(record_page.open_record(record.record_id))
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(second), "")),
-            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(second), "")),
+            patch("packages.ui.report_export.show_export_success"),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()
@@ -318,8 +320,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.catalog.rename(self.root / "catalog-unavailable.sqlite")
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value={"prepared_on": date(2026, 10, 7).isoformat()}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()

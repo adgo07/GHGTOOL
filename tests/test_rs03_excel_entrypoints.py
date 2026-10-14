@@ -243,8 +243,8 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
@@ -302,7 +302,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
                 "_report_supplementary_dialog",
                 side_effect=RuntimeError("private supplementary metadata detail"),
             ),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName") as file_dialog,
+            patch("packages.ui.report_export.choose_export_path") as file_dialog,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
             patch.object(self.repository, "record_report_export") as audit,
         ):
@@ -328,10 +328,14 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch("packages.ui.report_export.render_report_docx", side_effect=RuntimeError("private renderer detail")),
+            patch(
+                "packages.ui.report_export.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.Yes,
+            ),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
@@ -368,10 +372,14 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch("packages.ui.report_export.os.replace", side_effect=OSError("private filesystem detail")),
+            patch(
+                "packages.ui.report_export.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.Yes,
+            ),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
@@ -407,10 +415,10 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch.object(self.repository, "record_report_export", side_effect=RuntimeError("private audit detail")),
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             page.export_word_button.click()
@@ -454,7 +462,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(selected), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(selected), "")),
             patch(
                 "packages.ui.report_export.QMessageBox.question",
                 return_value=QMessageBox.StandardButton.No,

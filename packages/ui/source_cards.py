@@ -285,10 +285,17 @@ class SourceHeaderSwitch(QPushButton):
         layout.addWidget(self.switch)
         layout.addWidget(self.label)
 
+    def sizeHint(self):
+        return super().sizeHint().expandedTo(self.layout().sizeHint())
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
+
     def set_source_state(self,state):
         self.switch.active = state != "未启用"
         self.switch.update()
         self.label.setText(state)
+        self.updateGeometry()
         self.setAccessibleDescription(f"当前{state}；点击切换，停用保留数据。")
 
     def paintEvent(self,event):

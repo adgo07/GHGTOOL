@@ -119,7 +119,10 @@ class UAT03FormalWorkflowTests(unittest.TestCase):
         selector = component["carbonate_type"]
         self.assertTrue(selector.isEditable())
         selector.setEditText("CaCO3")
+        selector.confirm_name(force=True)
         unit["group_amount"].setText("12.3456789")
+        for field in ("i", "tr"):
+            component[f"{field}_source"].setCurrentIndex(component[f"{field}_source"].findData("MEASURED"))
         component["i"].setText("92.3456789")
         component["tr"].setText("98.7654321")
         expected = self.page._carbonate_option_for_text("CaCO3").factor
@@ -136,6 +139,7 @@ class UAT03FormalWorkflowTests(unittest.TestCase):
         restored_factor = next(s for s in restored.parameter_snapshots if s.factor_id == expected.factor_id)
         self.assertEqual(restored_factor.value_used, expected.value)
         selector.setEditText("企业自定义碳酸盐")
+        selector.confirm_name(force=True)
         self.assertIsNone(self.page._carbonate_option_for_text(selector.currentText()))
         for field in ("i", "tr"):
             mode = component[f"{field}_source"]
@@ -143,6 +147,7 @@ class UAT03FormalWorkflowTests(unittest.TestCase):
         component["i"].setText("92.3456789")
         component["tr"].setText("98.7654321")
         component["factor_source_reference"].setText("企业填写依据")
+        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
         component["ef1"].setText("0.5123456789123456789")
         manual = self._calculate()
         snapshot = next(
@@ -156,6 +161,8 @@ class UAT03FormalWorkflowTests(unittest.TestCase):
         self.assertIn("企业填写依据", snapshot.source_location)
         self.assertEqual(asdict(self.records.get(standard.record_id)), before)
         selector.setEditText("另一种企业自定义碳酸盐")
+        self.assertEqual(component["ef1"].text(), "0.5123456789123456789")
+        selector.confirm_name(force=True)
         self.assertEqual(component["ef1"].text(), "")
 
     def test_exported_electricity_manual_factor_is_deducted_with_domain_unit_and_own_source(self):

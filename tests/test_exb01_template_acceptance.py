@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from importlib.resources import files
 from io import BytesIO
 from pathlib import Path
 import tempfile
@@ -11,6 +12,8 @@ from openpyxl import load_workbook
 from packages.excel.templates import (
     APPENDIX_B_SHEETS,
     APPROVED_TEMPLATE_SHA256,
+    APPROVED_TEMPLATE_V2_RESOURCE,
+    APPROVED_TEMPLATE_V2_SHA256,
     ExcelTemplateService,
 )
 
@@ -26,6 +29,9 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
         try:
             self.assertEqual(tuple(workbook.sheetnames), APPENDIX_B_SHEETS)
             self.assertTrue(all(workbook[name].sheet_state == "visible" for name in APPENDIX_B_SHEETS))
+            self.assertEqual(workbook["B.2"]["N2"].value, "FCh来源")
+            self.assertEqual(workbook["B.7"]["J2"].value, "因子来源")
+            self.assertEqual(workbook["B.2"]["L2"].value, "其他来源FCh填写值\n（tC/GJ）")
             formulas = [
                 f"{sheet.title}!{cell.coordinate}"
                 for sheet in workbook.worksheets
@@ -50,6 +56,9 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 for sheet in workbook.worksheets
             }
             self.assertIn(("E4:E18", "list", '"计算值,实测值"'), validations["B.2"])
+            self.assertIn(("G4:G18 J4:J18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("N4:N18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("J3:J8", "list", '"缺省值,计算值,实测值"'), validations["B.7"])
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
             self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
         finally:
@@ -59,10 +68,10 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
         workbook=load_workbook(BytesIO(self.service.read_bytes()))
         try:
             for sheet,cells in {
-                "B.2":("A4","B4","C4","D4","E4","F4","G4","I4","J4","L4","M4"),
+                "B.2":("A4","B4","C4","D4","E4","F4","G4","I4","J4","L4","M4","N4"),
                 "B.3":("B4","C4","D4","E4","F4","G4","H4"),"B.4":("B4","C4","D4","E4","F4","G4","H4"),
                 "B.5":("B4","C4","D4","E4","F4","G4","H4"),"B.6":("A3","F3","A7","F7"),
-                "B.7":("A3","B3","C3","D3","F3","H3","I3","A6","B6"),
+                "B.7":("A3","B3","C3","D3","F3","H3","I3","J3","A6","B6"),
                 "B.8":("A3","B3","C3","D3"),"B.9":("A3","B3","C3","D3","E3","F3","G3"),
             }.items():
                 self.assertTrue(workbook[sheet].protection.sheet,sheet)
@@ -70,7 +79,16 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                     self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
             for sheet,cell in (("B.2","H4"),("B.2","K4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
                 self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
-            self.assertEqual(self.service.validate_structure(workbook),"2.0.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.1.0")
+        finally:
+            workbook.close()
+
+    def test_real_v2_template_remains_recognized_without_relabeling(self) -> None:
+        content = files("resources").joinpath(APPROVED_TEMPLATE_V2_RESOURCE).read_bytes()
+        self.assertEqual(sha256(content).hexdigest(), APPROVED_TEMPLATE_V2_SHA256)
+        workbook = load_workbook(BytesIO(content), data_only=False, read_only=False)
+        try:
+            self.assertEqual(self.service.validate_structure(workbook), "2.0.0")
         finally:
             workbook.close()
 

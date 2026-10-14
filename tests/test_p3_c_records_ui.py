@@ -11,12 +11,38 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QPushButton, QTabWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QDialog,
+    QMessageBox,
+    QPushButton,
+    QTabWidget,
+    QTableWidget,
+)
 
 from packages.persistence import SQLiteRecordRepository
 from packages.ui.pages import RecordLibraryPage
 from scripts.rpt02_acceptance_samples import build_acceptance_case
 from tests.test_g07_records import _record
+
+
+def _business_table(page, table_id: str, *, summary: bool = False) -> QTableWidget:
+    pane = page.summary_view if summary else page.input_basis_view
+    return next(
+        card.table_widget
+        for card in pane.report_table_cards
+        if card.table_widget.property("reportTableId") == table_id
+    )
+
+
+def _table_text(table: QTableWidget) -> str:
+    return "\n".join(
+        table.item(row, column).text()
+        for row in range(table.rowCount())
+        for column in range(table.columnCount())
+        if table.item(row, column) is not None
+    )
 
 
 class P3CRecordUiTests(unittest.TestCase):
@@ -54,7 +80,7 @@ class P3CRecordUiTests(unittest.TestCase):
                          ["基本信息与结果", "输入数据与计算依据"])
         self.assertEqual(self.page.detail_tabs.count(), 2)
         self.assertEqual(len(self.page.findChildren(QTabWidget)), 1)
-        self.assertTrue(self.page.input_basis_text.isReadOnly())
+        self.assertTrue(self.page.input_basis_view.isReadOnly())
         self.assertIsNone(self.page.findChild(QPushButton, "openRecordAuditButton"))
         self.assertIsNone(self.page.findChild(QDialog, "recordAuditDialog"))
         self.page.back_to_records_button.click()
@@ -103,6 +129,14 @@ class P3CRecordUiTests(unittest.TestCase):
 
     def test_frozen_basis_is_complete_and_viewing_does_not_write(self):
         record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        reporting = dict(reporting)
+        reporting["activity_evidence"] = [{
+            "source_ids": ["CAR-SRC-FUEL-001"],
+            "source_reference": "燃料计量台账-001",
+            "monitoring_method": "计量器具",
+            "recording_frequency": "连续记录",
+            "note": "验收演示证据",
+        }]
         self.repo.create_with_details(
             record, raw_input=raw, trace_snapshot=trace, provenance_snapshot=provenance,
             reporting_snapshot=reporting, report_qualification=qualification)
@@ -113,16 +147,42 @@ class P3CRecordUiTests(unittest.TestCase):
             "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
             side_effect=AssertionError("No historical recalculation")):
             self.assertTrue(self.page.open_record(record.record_id))
-        text = self.page.input_basis_text.toPlainText()
-        for section in ("B.1", "B.2", "B.3", "B.4", "B.5", "B.6", "B.7", "B.8", "B.9",
-                        "活动数据与来源证据", "参数与因子来源", "数据质量与提醒", "计算过程与来源链"):
-            self.assertIn(section, text)
-        self.assertNotIn("审计日志：", text)
-        self.assertNotIn("'formula_steps':", text)
-        self.assertNotIn("instance_id", text)
-        self.assertNotIn("其他信息（gtafc）", text)
-        self.assertIn("总排放量（ES）：7.30 tCO₂", self.page.summary_text.toPlainText())
-        self.assertIn("9.70 tCO₂（ET", self.page.summary_text.toPlainText())
+        self.assertEqual(
+            {card.table_widget.property("reportTableId") for card in self.page.summary_view.report_table_cards},
+            {"basic-info", "b1"},
+        )
+        detail_ids = {
+            card.table_widget.property("reportTableId")
+            for card in self.page.input_basis_view.report_table_cards
+        }
+        self.assertTrue({
+            "b2", "b3-1", "b3-2", "b4-1", "b5-1", "b6", "b7", "b8", "b9", "evidence-register",
+        }.issubset(detail_ids))
+        detail_titles = "\n".join(
+            label.text() for label in self.page.input_basis_view.findChildren(type(self.page.detail_heading))
+            if label.objectName() == "recordReportSectionTitle"
+        )
+        for section in ("B.2", "B.3", "B.4", "B.5", "B.6", "B.7", "B.8", "B.9", "数据来源及支撑信息"):
+            self.assertIn(section, detail_titles)
+        b2 = _business_table(self.page, "b2")
+        self.assertEqual(b2.editTriggers(), QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.assertEqual(b2.rowSpan(0, 0), 2)
+        self.assertEqual(b2.columnSpan(0, 1), 2)
+        self.assertNotIn("来源定位：", _table_text(b2))
+        evidence = _business_table(self.page, "evidence-register")
+        self.assertIn("燃料计量台账-001", _table_text(evidence))
+        self.assertTrue(self.page.input_basis_view.audit_panel.isHidden())
+        self.assertNotIn("审计日志：", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertNotIn("'formula_steps':", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertNotIn("instance_id", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertNotIn("其他信息（gtafc）", _table_text(_business_table(self.page, "b2")))
+        first_tab_text = _table_text(_business_table(self.page, "b1", summary=True))
+        self.assertIn("7.30", first_tab_text)
+        self.assertIn("9.70", first_tab_text)
+        self.page.input_basis_view.audit_toggle.click()
+        self.assertFalse(self.page.input_basis_view.audit_panel.isHidden())
+        self.assertGreater(self.page.input_basis_view.audit_table.rowCount(), 0)
+        self.assertIn("来源定位：", _table_text(self.page.input_basis_view.audit_table))
         after = (asdict(self.repo.get(record.record_id)), self.repo.get_raw_input_snapshot(record.record_id),
                  self.repo.get_trace_snapshot(record.record_id), self.repo.get_provenance_snapshot(record.record_id),
                  self.repo.list_audit(record.record_id))
@@ -131,8 +191,8 @@ class P3CRecordUiTests(unittest.TestCase):
     def test_corrupt_trace_is_explicit_and_does_not_prevent_saved_inputs(self):
         with patch.object(self.repo, "get_trace_snapshot", side_effect=ValueError("corrupt")):
             self.assertTrue(self.page.open_record("p3c.one"))
-        self.assertIn("无法读取该历史信息", self.page.input_basis_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.page.input_basis_text.toPlainText())
+        self.assertIn("无法读取该历史信息", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertIn("G07 测试选择理由", self.page.input_basis_view.audit_text.toPlainText())
 
     def test_export_is_bound_to_loaded_detail_and_uses_public_helper(self):
         self.assertTrue(self.page.open_record("p3c.one"))

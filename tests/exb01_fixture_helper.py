@@ -51,8 +51,8 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
         for cell, value in {"A3":100,"B3":10,"C3":30,"D3":0.02,"E3":98,"F3":365}.items():
             fume[cell] = value
         fgd = workbook["B.7"]
-        fgd["A3"], fgd["B3"], fgd["D3"], fgd["F3"] = "脱硫批次A", 2, 90, 95
-        fgd["D4"], fgd["F4"] = 10, 90
+        fgd["A3"], fgd["B3"], fgd["D3"], fgd["F3"], fgd["J3"] = "脱硫批次A", 2, 90, 95, "缺省值"
+        fgd["D4"], fgd["F4"], fgd["J4"] = 10, 90, "缺省值"
         power = workbook["B.8"]
         power["B3"], power["C3"] = "电网电力", 100
         power["B4"], power["C4"], power["D4"] = "电网电力", 2, 0.5

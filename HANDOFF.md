@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-14（六包实现完成，提交独立PR等待验收）
+最后更新：2026-10-14（PR46验收修订进行中，旧六包证据不替代本轮验收）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -28,6 +28,9 @@ Module ID：`qz.carbon_accounting`
 4. 本文件不写固定绝对路径（`C:\` / `D:\` / `E:\` / `G:\`）作为仓库身份；仓库身份以 GitHub owner/repository + `git origin` 为准。
 
 ## 2. 当前阶段
+
+Owner已批准PR46验收修订：名称确认/单位草稿/真实来源分段、电力五表正式接线、标题开关、Record表格、统一导出目录及必要Word注释；Issue010覆盖旧输入限制。继续同一PR，当前进度与未闭合项见TASK_STATE和IMPLEMENTATION_REPORT，不自行合并。
+
 
 当前按Owner 2026-10-13明确授权实施六个连续内部工作包：共同输入政策/模板与漏行修复 → 静态标准分派 → 燃料GUI/Excel共享输入 → 多工序/FGD/电力/热力及项目兼容 → Record/Word统一业务表与Excel同步 → 视觉清理与整体验证。纳入既有RS01/RS02/RS03路线，不建立平行产品路线，不上线第二行业标准。
 
