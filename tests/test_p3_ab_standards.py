@@ -147,14 +147,14 @@ class P3ABStandardsTests(unittest.TestCase):
             table.horizontalHeader().sectionResizeMode(1),
             QHeaderView.ResizeMode.Stretch,
         )
-        self.assertEqual(table.columnWidth(4), 190)
+        self.assertEqual(table.columnWidth(4), 104)
         self.assertIn("font-size: 13px", table.styleSheet())
         self.assertEqual(table.verticalHeader().defaultSectionSize(), 46)
 
         page.search_input.setText("炭素材料生产企业")
         self._process_events()
         self.assertEqual(table.rowCount(), 1)
-        self.assertEqual(table.item(0, 4).text(), "已实现核算（未正式支持）")
+        self.assertEqual(table.item(0, 4).text(), "已实现核算")
         for column in (0, 1):
             item = table.item(0, column)
             assert item is not None
@@ -364,7 +364,7 @@ class P3ABStandardsTests(unittest.TestCase):
         self._process_events()
         self._open_by_keyboard(historical_page, "gbt_32151_34_2024", 0)
         historical_row = self._row_for_standard(historical_page, "gbt_32151_34_2024")
-        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现核算（未正式支持）")
+        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现核算")
         historical_accounting = historical_page.findChild(QPushButton, "startAccountingButton")
         self.assertIsNotNone(historical_accounting)
         assert historical_accounting is not None

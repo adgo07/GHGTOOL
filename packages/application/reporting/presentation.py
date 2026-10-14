@@ -48,7 +48,6 @@ def _table_html(table):
 
 def report_html(model):
     output=['<div style="font-family:Microsoft YaHei UI;font-size:13px;color:#233749;">']
-    for notice in model.notices:output.append('<p style="color:#815A15;">'+escape(notice)+'</p>')
     for section in model.sections:
         if section.section_id=="basic":continue
         output.append('<h3>'+escape(section.title)+'</h3>')
@@ -58,5 +57,8 @@ def report_html(model):
             output.append(_table_html(table))
             for note in table.footnotes:output.append('<p style="font-size:11px;color:#526579;">'+escape(note).replace(chr(10),'<br>')+'</p>')
         for note in section.notes:output.append('<p>'+escape(note)+'</p>')
+    if model.notices:
+        output.append('<h3>核算提醒</h3>')
+        for notice in model.notices:output.append('<p style="color:#815A15;">'+escape(notice)+'</p>')
     output.append('</div>')
     return ''.join(output)

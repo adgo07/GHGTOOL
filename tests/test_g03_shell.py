@@ -303,9 +303,9 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(recent_table.rowCount(), 1)
         self.assertEqual(recent_table.item(0, 0).text(), "首页记录展示测试企业")
         self.assertEqual(recent_table.item(0, 1).text(), "2025年度")
-        self.assertEqual(recent_table.columnWidth(0), 190)
+        self.assertGreaterEqual(recent_table.columnWidth(2), 140)
         self.assertEqual(
-            recent_table.horizontalHeader().sectionResizeMode(4),
+            recent_table.horizontalHeader().sectionResizeMode(0),
             QHeaderView.ResizeMode.Stretch,
         )
         self.assertEqual(recent_table.textElideMode(), Qt.TextElideMode.ElideRight)

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from enum import Enum
 
-from PySide6.QtCore import QTimer, Signal
+from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -12,6 +13,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
+    QStyle,
+    QStyleOptionButton,
     QVBoxLayout,
     QWidget,
 )
@@ -207,3 +210,59 @@ class SourceCard(QFrame):
 
 
 __all__ = ["SourceCard", "SourceCardPresentationState"]
+
+
+class _SourceSwitch(QWidget):
+    """Decorative switch; the enclosing accessible button owns interaction."""
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFixedSize(32, 18)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.active = False
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#197CC2" if self.active else "#B8C8D4"))
+        painter.drawRoundedRect(0, 1, 32, 16, 8, 8)
+        painter.setBrush(QColor("#FFFFFF"))
+        painter.drawEllipse(17 if self.active else 3, 3, 12, 12)
+
+
+class SourceToggleButton(QPushButton):
+    """Single-line source name with a switch and explicit status below."""
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self._title = title
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+        self.title_label = QLabel(title, self)
+        self.title_label.setWordWrap(False)
+        self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.title_label.setStyleSheet("background: transparent; color: #213A4F; font-size: 16px; font-weight: 600;")
+        layout.addWidget(self.title_label)
+        status_row = QHBoxLayout()
+        status_row.setSpacing(7)
+        self.switch = _SourceSwitch(self)
+        status_row.addWidget(self.switch)
+        self.state_label = QLabel(self)
+        self.state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.state_label.setStyleSheet("background: transparent; color: #597187; font-size: 13px;")
+        status_row.addWidget(self.state_label)
+        status_row.addStretch(1)
+        layout.addLayout(status_row)
+
+    def set_source_state(self, state):
+        self.setText(f"{state} | {self._title}")
+        self.switch.active = state != "未启用"
+        self.switch.update()
+        self.state_label.setText(("✓ " if self.switch.active else "") + state)
+
+    def paintEvent(self, event):
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        option.text = ""
+        painter = QPainter(self)
+        self.style().drawControl(QStyle.ControlElement.CE_PushButton, option, painter, self)

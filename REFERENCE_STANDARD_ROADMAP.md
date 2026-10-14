@@ -16,7 +16,7 @@ Module ID：`qz.carbon_accounting`
 | 层级 | 文件 | 读取方式 |
 |---|---|---|
 | 中央 Frozen 基线 | 本仓 `platform-lock.json` + `PLATFORM_BASELINE.md` | 按 locked SHA 读取中央 Frozen 权威文件 |
-| 中央 ACTIVE 指南 | 中央 `GUIDE_INDEX` / `PRODUCT_DELIVERY_POLICY_V1` / `STANDARD_DEVELOPMENT_GUIDE_V0.1` / `UI_DESIGN_GUIDELINES_V0.1` | 按中央当前正式合并版本读取，**不是 Frozen Contract** |
+| 中央 ACTIVE 指南 | 中央 `GUIDE_INDEX` / `PRODUCT_DELIVERY_POLICY_V1` / `STANDARD_DEVELOPMENT_GUIDE_V0.1` / `UI_DESIGN_GUIDELINES_V0.2` | 按中央当前正式合并版本读取，**不是 Frozen Contract** |
 | 本仓长期硬规则 | `AGENTS.md` | 长期有效 |
 | 本仓当前产品路线 | 本文件 | 唯一当前路线 |
 | 本仓当前阶段交接 | `HANDOFF.md` | 当前阶段实施说明 |

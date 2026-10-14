@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QCompleter, QCheckBox, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
 from packages.standards.carbon_material import FuelPath
 from packages.standards.carbon_material_input_policy import match_fuel_option
+from .compact_choices import TwoChoiceControl
 from .field_specs import get_field_spec
 from .typed_inputs import create_typed_input
 
@@ -140,10 +141,10 @@ class _FuelRow(QWidget):
         self.calculated_carbon_label.setWordWrap(False)
 
         carbon_value_cell = QWidget(self)
-        carbon_value_layout = QHBoxLayout(carbon_value_cell)
+        carbon_value_layout = QVBoxLayout(carbon_value_cell)
         carbon_value_layout.setContentsMargins(0, 0, 0, 0)
         carbon_value_layout.setSpacing(5)
-        carbon_value_layout.addWidget(self.carbon_basis, 1)
+        self.carbon_basis_choices = TwoChoiceControl(self.carbon_basis, parent=self)
         self.carbon_calc_cell = QWidget(self)
         calc_layout = QVBoxLayout(self.carbon_calc_cell)
         calc_layout.setContentsMargins(0, 0, 0, 0)
@@ -152,6 +153,7 @@ class _FuelRow(QWidget):
         self.carbon_direct_cell = self.direct_carbon_control
         carbon_value_layout.addWidget(self.carbon_calc_cell, 2)
         carbon_value_layout.addWidget(self.carbon_direct_cell, 2)
+        carbon_value_layout.addWidget(self.carbon_basis_choices)
         self.carbon_direct_cell.hide()
         self.carbon_basis_label.hide()
 
@@ -163,7 +165,8 @@ class _FuelRow(QWidget):
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(3)
         # Two business rows, with sources beside their own parameter.
-        for column, (label, widget) in enumerate(((self.fuel_type_label, self.fuel_type), (self.path_label, self.path), (self.activity_label, self.activity))):
+        self.path_choices = TwoChoiceControl(self.path, parent=self)
+        for column, (label, widget) in enumerate(((self.fuel_type_label, self.fuel_type), (self.path_label, self.path_choices), (self.activity_label, self.activity))):
             grid.addWidget(self._field_cell(label, widget), 0, column * 4, 1, 4)
         for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.direct_carbon_label, carbon_value_cell), (self.oxidation_label, self.oxidation_control))):
             grid.addWidget(self._field_cell(label, widget), 1, column * 3, 1, 3)

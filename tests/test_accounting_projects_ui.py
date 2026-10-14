@@ -205,8 +205,8 @@ class AccountingProjectUiTests(unittest.TestCase):
         row.activity.setText("10")
 
         self.assertIs(FuelPath(row.path.currentData()), FuelPath.VOLUME)
-        self.assertIn("活动量（10⁴ Nm³）", row.activity_label.text())
-        self.assertIn("低位发热量（GJ/10⁴ Nm³）", row.lhv_label.text())
+        self.assertIn("活动量（10⁴Nm³）", row.activity_label.text())
+        self.assertIn("低位发热量（GJ/10⁴Nm³）", row.lhv_label.text())
         self.assertIn("单位热值含碳量（tC/GJ）", row.carbon_label.text())
         self.assertEqual(row.activity.placeholderText(), "活动量")
         self.assertEqual(row.oxidation.text(), "99.00")

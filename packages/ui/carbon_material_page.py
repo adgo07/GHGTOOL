@@ -124,7 +124,7 @@ from .carbon_material_legacy_state import legacy_fuel_type,legacy_fuel_path,lega
 from packages.standards.carbon_material_process_inputs import PROCESS_MATERIAL_ROLES as _PROCESS_MATERIAL_ROLES, PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES as _PROCESS_MATERIAL_DEFAULT_CATEGORY_INDICES, PROCESS_MATERIAL_DEFAULT_ROLE as _PROCESS_MATERIAL_DEFAULT_ROLE
 from .report_export import export_saved_record_report
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
-from .source_cards import SourceCard, SourceCardPresentationState
+from .source_cards import SourceCard, SourceCardPresentationState, SourceToggleButton
 from .responsive_fields import ResponsiveFieldGrid
 from .typed_inputs import NumericLineEdit, create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
@@ -457,7 +457,7 @@ class _UnifiedEnergyRow(QWidget):
         self.factor_mode = QComboBox(self.electricity_details)
         self.factor_mode.setObjectName(f"energyElectricityFactorMode{index}")
         self.factor_mode.addItem("参数库候选", "LIBRARY")
-        self.factor_mode.addItem("企业手填", "MANUAL")
+        self.factor_mode.addItem("企业填写", "MANUAL")
         self.factor_selector = QComboBox(self.electricity_details)
         self.factor_selector.setObjectName(f"energyElectricityFactor{index}")
         self.manual_factor = QLineEdit(self.electricity_details)
@@ -465,7 +465,7 @@ class _UnifiedEnergyRow(QWidget):
         self.manual_factor.setPlaceholderText("电力因子")
         self.electricity_source = QLineEdit(self.electricity_details)
         self.electricity_source.setObjectName(f"energyElectricitySource{index}")
-        self.electricity_source.setPlaceholderText("手填因子来源说明（可选）")
+        self.electricity_source.setPlaceholderText("填写因子来源说明（可选）")
         electricity.addWidget(self.attribute)
         electricity.addWidget(self.legacy_attribute_notice)
         electricity.addWidget(self.region)
@@ -1100,6 +1100,9 @@ class CarbonMaterialAccountingPage(BasePage):
     def _apply_accounting_style(self) -> None:
         """Page-local visuals; exclude optional report fields and export controls."""
         self.setStyleSheet(f"""
+            QFrame[dfActivityRegion="true"] QLabel,
+            QFrame[dfActivityRegion="true"] QRadioButton,
+            QFrame[dfActivityRegion="true"] QCheckBox {{ font-size: 14px; }}
             QFrame[dfActivityRegion="true"] QLineEdit,
             QFrame[dfActivityRegion="true"] QComboBox,
             QComboBox#enterpriseNameInput, QComboBox#accountingPeriodType,
@@ -1160,14 +1163,14 @@ class CarbonMaterialAccountingPage(BasePage):
                 border: 1px solid {BORDER}; border-radius: 8px; background: {SURFACE_MUTED};
             }}
             QFrame#accountingSourceTitleBar {{
-                background: #12649A; color: #FFFFFF; border-radius: 7px;
+                background: #E6F4FB; color: #075985; border-radius: 7px;
                 padding: 0;
             }}
             QLabel#accountingSourceTitle,
             QLabel#unifiedElectricityTitle, QLabel#unifiedHeatTitle {{
-                background: #12649A; border-radius: 7px;
+                background: #E6F4FB; border-radius: 7px;
                 padding: 8px 14px;
-                font-size: 15px; font-weight: 700; color: #FFFFFF;
+                font-size: 16px; font-weight: 700; color: #075985;
             }}
             QLabel#unifiedEnergyHelp, QLabel#parameterSnapshotSummary {{
                 color: {SECONDARY_TEXT}; font-size: 13px;
@@ -2701,7 +2704,7 @@ class CarbonMaterialAccountingPage(BasePage):
         selector_layout.setHorizontalSpacing(10)
         selector_layout.setVerticalSpacing(10)
         for index, (group_id, label, _source_ids) in enumerate(self._source_toggle_groups):
-            button = QPushButton(selector_host)
+            button = SourceToggleButton(label, selector_host)
             button.setObjectName(f"sourceToggle_{group_id}")
             button.setAccessibleName(label)
             button.clicked.connect(lambda _checked=False, _group=group_id: self._toggle_source_group(_group))
@@ -3114,7 +3117,7 @@ class CarbonMaterialAccountingPage(BasePage):
             else:
                 state = "未启用"
             if button.property("sourceState") != state:
-                button.setText(f"{state} | {label}")
+                button.set_source_state(state)
                 button.setProperty("sourceState", state)
                 button.setAccessibleDescription(f"{label}排放源，当前{state}；点击切换。")
                 button.setToolTip(f"{label}：{state}。点击切换。")

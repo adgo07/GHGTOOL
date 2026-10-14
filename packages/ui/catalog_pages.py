@@ -163,10 +163,14 @@ class StandardLibraryPage(BasePage):
         list_layout.setSpacing(16)
 
         filters, filters_layout = _card("搜索和筛选", self.list_view)
+        filters_layout.setContentsMargins(16, 10, 16, 10)
+        filters_layout.setSpacing(7)
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(10)
         search = QLineEdit(filters)
         search.setObjectName("standardSearch")
         search.setPlaceholderText("按标准编号、名称或适用对象搜索")
-        filters_layout.addWidget(search)
+        filter_row.addWidget(search, 1)
         self.search_input = search
 
         self.status_filter = QComboBox(filters)
@@ -179,7 +183,8 @@ class StandardLibraryPage(BasePage):
             (CatalogStatus.UNKNOWN, "待核对"),
         ):
             self.status_filter.addItem(label, status)
-        filters_layout.addWidget(self.status_filter)
+        filter_row.addWidget(self.status_filter)
+        filters_layout.addLayout(filter_row)
         list_layout.addWidget(filters)
 
         list_card, list_card_layout = _card("标准列表", self.list_view)
@@ -212,7 +217,7 @@ class StandardLibraryPage(BasePage):
         """)
         standard_header = self.standard_table.horizontalHeader()
         standard_header.setStretchLastSection(False)
-        for column, width in enumerate((180, 460, 112, 124, 190)):
+        for column, width in enumerate((180, 540, 96, 112, 104)):
             standard_header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
             self.standard_table.setColumnWidth(column, width)
         standard_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -248,7 +253,7 @@ class StandardLibraryPage(BasePage):
             self._standard_registry.supports(standard.standard_id, standard.version)
             and standard.calculation_status == "IMPLEMENTED"
         ):
-            return "已实现核算（未正式支持）"
+            return "已实现核算"
         if (
             standard.calculation_status == "COMMON_RULES_ONLY"
             and standard.standard_type is CatalogStandardType.COMMON_RULES

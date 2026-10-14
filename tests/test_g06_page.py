@@ -40,7 +40,8 @@ from packages.standards.carbon_material import (
 )
 from packages.standards.carbon_material_normalization import MaterialDataSource, MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
-from packages.ui.carbon_material_page import _C2_CARBONATES, _FUEL_C1_ACTIVITY_PATH, _FUEL_C1_SUBJECT_IDS
+from packages.ui.carbon_material_page import _C2_CARBONATES
+from packages.standards.carbon_material_input_policy import fuel_path_for_unit
 from packages.ui.field_specs import get_field_spec
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
@@ -208,7 +209,8 @@ class G06PageTests(unittest.TestCase):
     def test_c1_specific_fuels_resolve_canonical_defaults_through_supported_paths(self) -> None:
         row = self.page._fuel_rows[0]
         self.assertEqual(row.lower_heating_value.property("fieldSpecKey"), "fuel_lhv")
-        self.assertEqual(len(_FUEL_C1_SUBJECT_IDS), 26)
+        options = row._fuel_options
+        self.assertEqual(len(options), 26)
         heat_index = row.path.findData(FuelPath.HEAT)
         self.assertGreaterEqual(heat_index, 0)
         self.assertFalse(row.path.model().item(heat_index).isEnabled())
@@ -217,11 +219,13 @@ class G06PageTests(unittest.TestCase):
             {row.path.itemData(index) for index in range(row.path.count()) if not row.path.view().isRowHidden(index)},
             {FuelPath.MASS, FuelPath.VOLUME},
         )
-        for fuel_type, subject_id in _FUEL_C1_SUBJECT_IDS.items():
+        for option in options:
+            fuel_type, subject_id = option.fuel_type, option.subject_id
             with self.subTest(fuel_type=fuel_type):
                 row.activity.clear()
                 row.fuel_type.setCurrentIndex(row.fuel_type.findData(fuel_type))
-                expected_path = _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS)
+                defaults = self.page._uat03_parameter_queries.fuel_defaults(subject_id, self.page._period())
+                expected_path = FuelPath(fuel_path_for_unit(defaults.lower_heating_value.factor.unit.removeprefix("GJ/")))
                 self.assertIs(FuelPath(row.path.currentData()), expected_path)
                 row.activity.setText("1")
                 fuel = self.page._fuel()[0]

@@ -240,7 +240,7 @@ class G08DeliveryTests(unittest.TestCase):
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
-            self.assertEqual(layout["version"], "2.0.0")
+            self.assertEqual(layout["version"], "3.0.0")
             self.assertEqual(
                 layout["approved_sha256"],
                 "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",

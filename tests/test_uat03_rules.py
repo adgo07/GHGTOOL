@@ -490,8 +490,9 @@ class UAT03RuleTests(unittest.TestCase):
         )
         report_electricity = next(section for section in report.sections if section.section_id == "b8")
         factor_cell = report_electricity.tables[0].rows[0].cells[3]
-        self.assertEqual(factor_cell.value, "0.7")
-        self.assertEqual(factor_cell.source, "用户手动填写；2025年宁夏购电合同因子说明")
+        self.assertEqual(factor_cell.value, "0.70")
+        self.assertEqual(factor_cell.source, "填写值")
+        self.assertIn("2025年宁夏购电合同因子说明", factor_cell.source_detail)
 
     def test_exported_electricity_selected_factor_keeps_catalog_snapshot_provenance(self) -> None:
         option = self.queries.electricity_options("宁夏", PERIOD)[0]

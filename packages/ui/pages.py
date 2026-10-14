@@ -1148,17 +1148,17 @@ class HomePage(BasePage):
         header = table.horizontalHeader()
         header.setStretchLastSection(False)
         header.setDefaultAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            Qt.AlignmentFlag.AlignCenter
         )
         header.setMinimumSectionSize(62)
-        for column, width in enumerate((190, 88, 94, 96, 78)):
+        for column, width in enumerate((190, 108, 140, 108, 80)):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
             table.setColumnWidth(column, width)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         operation_header = table.horizontalHeaderItem(4)
         if operation_header is not None:
             operation_header.setTextAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+                Qt.AlignmentFlag.AlignCenter
             )
         table.setTextElideMode(Qt.TextElideMode.ElideRight)
         table.setStyleSheet("""
@@ -1182,13 +1182,13 @@ class HomePage(BasePage):
             period = period_label(record)
             name_item = QTableWidgetItem(enterprise)
             name_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                Qt.AlignmentFlag.AlignCenter
             )
             name_item.setToolTip(enterprise)
             table.setItem(row, 0, name_item)
             period_item = QTableWidgetItem(period)
             period_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                Qt.AlignmentFlag.AlignCenter
             )
             table.setItem(row, 1, period_item)
 
@@ -1196,7 +1196,7 @@ class HomePage(BasePage):
             status = QLabel(status_text)
             status.setObjectName("homeRecordStatus")
             status.setAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                Qt.AlignmentFlag.AlignCenter
             )
             status.setAccessibleName(f"核算状态：{status_text}")
             is_warning = record.status is RecordStatus.COMPLETED_WITH_WARNINGS
@@ -1214,7 +1214,7 @@ class HomePage(BasePage):
                 record.created_at.astimezone().date().isoformat()
             )
             date_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                Qt.AlignmentFlag.AlignCenter
             )
             table.setItem(row, 3, date_item)
 
@@ -1244,7 +1244,7 @@ class HomePage(BasePage):
             action_layout.setContentsMargins(4, 0, 4, 0)
             action_layout.setSpacing(0)
             action_layout.addWidget(
-                action, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+                action, 0, Qt.AlignmentFlag.AlignCenter
             )
             table.setCellWidget(row, 4, action_cell)
         table.resizeRowsToContents()

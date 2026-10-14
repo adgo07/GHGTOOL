@@ -309,7 +309,8 @@ class AppShell(QWidget):
     def _request_standard_accounting(self, standard_id: str) -> None:
         """Route only the implemented industry standard to its dedicated page."""
 
-        self.standard_runtime.registry.require(standard_id)
+        if not self.standard_runtime.registry.supports(standard_id):
+            return
         self.selected_standard_id = standard_id
         self.navigate(AppRoute.NEW_ACCOUNTING)
 

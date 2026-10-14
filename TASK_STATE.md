@@ -24,3 +24,7 @@
 - 第5包联合命令：python -m unittest tests.test_frozen_business_tables tests.test_rpt01_report_excel tests.test_rpt02_appendix_b tests.test_rs02_record_evidence tests.test_p3_c_records_ui tests.test_exb01_rpt02_integration tests.test_uat03_report tests.test_standard_dispatch -q：56/56通过（7.409秒）。旧表式断言已迁移，来源错配、精度、原模板公式保护和历史汇总核对均保留；日志中的故意注入异常属于失败路径测试。
 - 原生报告视觉证据：技能render_docx.py因本机缺LibreOffice失败；改用已核实注册为WPS 12的Word兼容COM引擎只读打开临时DOCX→原生PDF→bundled PDFium逐页PNG。11页全部检查，已修正Title蓝线、长来源、输出属性、内部编号和提醒分页；1个合成完整工作簿→1条Record→10张业务表，不称作真实企业数据或Microsoft Word验收。临时输出位于系统TEMP的ghg-standard-input-word-qa，非产品资源。
 - 下一包：最后的首页/标准库/卡片/字号及二选控件收口、重复清理、原生Windows与缩放截图、原生WPS保存回导、完整回归/Windows构建/CI/独立PR。整阶段尚未完成，不自行合并。历史PR45 CI仅作基线证据。
+
+- 第6包视觉实现：最近记录表状态列140、操作列固定并将余宽给企业列、表头居中；标准筛选一行/支持列104、名称列伸展且不升级SUPPORTED；来源卡名称单行/开关与状态下置/浅色标题，输入14px；燃料二选控件保持既有typed combo与旧HEAT读值、键盘可选。未开放标准信号入口拒绝进入而不向Qt抛异常。
+- 第6包首轮完整回归482项，475通过/5失败/2错误（368.757秒）：定位为1个UI信号缺陷及旧常量导入/布局/模板版本/自定义来源断言；已修复并93项复测通过、29项政策/报告复测通过。最终完整回归、构建/CI尚待执行，不把定向结果写为全量通过。
+- Windows原生Qt平台程序驱动：1366×768逻辑窗口、Qt缩放1.0/1.25各20项检查通过，截图与源文件哈希位于docs/ui/standard-input-evidence；仅合成数据，未改变Windows系统DPI，不称人工DPI验收。WPS原生工作簿保存回导独立复核中。
