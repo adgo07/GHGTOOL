@@ -18,7 +18,8 @@ _temp_root = Path(tempfile.gettempdir()).resolve()
 for _path in (before_path, saved_path, run_dir):
     if not _path.resolve().is_relative_to(_temp_root):
         raise ValueError("native round-trip evidence paths must stay inside TEMP")
-expected_template_sha="58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+# The default reproduces the historical 2.0 evidence; newer runs pass their exact approved SHA.
+expected_template_sha=sys.argv[5] if len(sys.argv)>5 else "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 sys.path.insert(0,str(repo))
 from packages.application.catalog_queries import CatalogQueryService
 from packages.application.carbon_accounting import CarbonAccountingPreviewUseCase, CarbonAccountingUseCase, create_g06_parameter_resolver
@@ -140,7 +141,7 @@ def normalize(value,id_map,ignored_fields=frozenset()):
 def canonical_hash(value):
     return sha_bytes(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8"))
 
-template_path=repo/"resources"/"excel_templates"/"gb_t_32151_34_2024_appendix_b_v2.xlsx"
+template_path=repo/"resources"/"excel_templates"/(sys.argv[6] if len(sys.argv)>6 else "gb_t_32151_34_2024_appendix_b_v2.xlsx")
 template_sha=sha_file(template_path)
 before_sha=sha_file(before_path); saved_sha=sha_file(saved_path)
 audit_before=workbook_audit(before_path); audit_saved=workbook_audit(saved_path)

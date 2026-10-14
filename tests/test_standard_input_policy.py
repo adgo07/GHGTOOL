@@ -104,8 +104,9 @@ class StandardInputPolicyTests(unittest.TestCase):
             self.assertEqual(row.fuel_type.count(),1)
             self.assertEqual(row.fuel_type.itemText(0),"天然气")
             row.fuel_type.setEditText("NG")
-            row._accept_search_match("NG")
+            row.fuel_type.confirm_name(force=True)
             self.assertEqual(row.fuel_type.currentText(),"天然气")
+            self.assertEqual(row.fuel_type.currentData(),FuelType.NATURAL_GAS)
             self.assertEqual(row.input_grid.rowCount(),3) # two input bands + optional evidence
         finally:
             row.deleteLater();app.processEvents()

@@ -1,0 +1,11 @@
+{
+  "source_commit": "8d87199f25bd17e56e2e8443e09575966d557f12",
+  "pr_head_sha": "8d87199f25bd17e56e2e8443e09575966d557f12",
+  "tested_merge_sha": "8d87199f25bd17e56e2e8443e09575966d557f12",
+  "release_audit_files": 269,
+  "zip_visible_files": 270,
+  "isolated_starts": 2,
+  "total_bytes": 135656246,
+  "status": "PASS",
+  "evidence_source": "local Windows .venv Python 3.12.14, not GitHub Actions"
+}

@@ -150,7 +150,13 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             regional = [item for item in regional if getattr(item, "factor", None) is not None]
             self.assertTrue(regional)
             self.assertEqual({item.table_number for item in regional}, {"表2"})
+            regional_index = next(
+                i for i in range(row.factor_selector.count())
+                if getattr(row.factor_selector.itemData(i), "table_number", None) == "表2"
+            )
+            row.factor_selector.setCurrentIndex(regional_index)
             selected = row.factor_selector.currentData()
+            self.assertEqual(selected.table_number, "表2")
             state = page._energy_row_state(row)
             self.assertEqual(state["geographic_level"], "区域")
             self.assertEqual(state["region"], regional_name)
@@ -172,6 +178,11 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             provincial = [item for item in provincial if getattr(item, "factor", None) is not None]
             self.assertTrue(provincial)
             self.assertEqual({item.table_number for item in provincial}, {"表3"})
+            provincial_index = next(
+                i for i in range(row.factor_selector.count())
+                if getattr(row.factor_selector.itemData(i), "table_number", None) == "表3"
+            )
+            row.factor_selector.setCurrentIndex(provincial_index)
             province_choice = row.factor_selector.currentData()
             provincial_state = page._energy_row_state(row)
             page._restore_unified_energy_rows([provincial_state, {"kind": "purchased_heat"}])

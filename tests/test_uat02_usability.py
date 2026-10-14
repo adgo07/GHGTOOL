@@ -90,22 +90,33 @@ class UAT02UsabilityTests(unittest.TestCase):
         QTest.keyClick(self.page.period_year, Qt.Key.Key_Up)
         self.assertEqual(self.page.period_year.value(), year + 1)
 
-        # The V2 fuel selector is searchable and accepts a concrete custom
-        # name in its editable text field; choosing a Catalog option remains
-        # an explicit popup action.
+        # Typing a name creates a draft until explicitly confirmed. Clicking
+        # the editable area does not force the option popup; the arrow still
+        # opens it so a Catalog choice remains selectable.
         line_edit = row.fuel_type.lineEdit()
         self.assertIsNotNone(line_edit)
         assert line_edit is not None
+        committed_before_typing = row._committed_name
         line_edit.setText("测试燃料")
         self.assertEqual(row.fuel_type.currentText(), "测试燃料")
-        row.fuel_type.setCurrentIndex(natural_gas)
-        before_popup = row.fuel_type.currentIndex()
+        self.assertEqual(row._committed_name, committed_before_typing)
+        row.fuel_type.confirm_name(force=True)
+        self.assertEqual(row._committed_name, "测试燃料")
         QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
         self.application.processEvents()
+        self.assertFalse(row.fuel_type.view().isVisible())
+        QTest.mouseClick(
+            row.fuel_type,
+            Qt.MouseButton.LeftButton,
+            pos=QPoint(row.fuel_type.width() - 5, row.fuel_type.height() // 2),
+        )
+        self.application.processEvents()
         self.assertTrue(row.fuel_type.view().isVisible())
-        QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Down)
+        row.fuel_type.view().setCurrentIndex(row.fuel_type.model().index(natural_gas, 0))
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Return)
-        self.assertNotEqual(row.fuel_type.currentIndex(), before_popup)
+        self.assertEqual(row.fuel_type.currentIndex(), natural_gas)
+        self.assertEqual(row.fuel_type.currentData(), FuelType.NATURAL_GAS)
+        self.assertEqual(row._committed_name, "天然气")
 
     def test_accounting_page_event_filter_follows_page_visibility(self) -> None:
         self.assertTrue(self.page._application_event_filter_installed)

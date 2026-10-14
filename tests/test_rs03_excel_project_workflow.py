@@ -90,6 +90,7 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
         fuel['E14'], fuel['G14'], fuel['J14'] = "计算值", "缺省值", "缺省值"
+        fuel['N14'] = "缺省值"
         destination = self.root / "导入源.xlsx"
         workbook.save(destination)
         workbook.close()

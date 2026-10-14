@@ -1,0 +1,334 @@
+{
+  "evidence_type": "Windows PySide6 native-platform programmatic driver",
+  "native_human_acceptance": "OPEN",
+  "qt_platform_expected": "windows",
+  "requested_logical_window": [
+    1366,
+    768
+  ],
+  "qt_scale_factor": "1.0",
+  "font": "Installed Microsoft YaHei",
+  "source_files_sha256": {
+    "apps/carbon_accounting_desktop/product.py": "be3e60b2f4873abf2ce765300d5cba137ddf8574303d7ee17a42a0bdf66193c0",
+    "packages/ui/shell.py": "ea2844a9c468baed6ca1d47612ff269724a6419131aec2a5c2a76bd6ec4494b2",
+    "packages/ui/pages.py": "397c9271414e0cafd5255e5912bf89e379220795e43a6b4a066a084d591cfc0a",
+    "packages/ui/view_models.py": "6a2de548e2c0af4ef0d61a444216907b14c2c333032ea5306e81129fb63fe181",
+    "packages/ui/catalog_pages.py": "125c7c0cea5b0aed97c301cdb137304325b77a62c57043a3864fb082d5d9286e",
+    "packages/ui/carbon_material_page.py": "75c42bf9e5bd9ca06aee883519af15c6b7786ab6b7aed9382aa4d7b4c78d0a93",
+    "packages/ui/carbon_material_fuel.py": "1685728165700ff72493424969133b0ded3e7577362dab8a3904e63ee8c4f1d0",
+    "packages/ui/compact_choices.py": "13f38d5d9e5c6fea4b29c46379ef3a82869e539e40f350de147484102710966d",
+    "packages/ui/record_tables.py": "bfabf628a08d5620ea3905252cbe6fae52b1e5ccf751f0a0e368653d85188002"
+  },
+  "captures": [
+    {
+      "file": "1366x768-100-home.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-standards.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-detail-diagnostic.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-standard-detail.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-standards-empty.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-factors.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-records.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-excel_import.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-home.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-new_accounting.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-fuel-entry.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-fgd-entry.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-electricity-entry.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-heat-entry.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-superheated-steam-entry.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-excel-preview.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-home-record.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-record-detail.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    },
+    {
+      "file": "1366x768-100-record-tables.png",
+      "logical_window": [
+        1366,
+        768
+      ],
+      "physical_image": [
+        1366,
+        768
+      ],
+      "device_pixel_ratio": 1.0
+    }
+  ],
+  "checks": [
+    {
+      "name": "Windows原生Qt平台",
+      "passed": true
+    },
+    {
+      "name": "启动首页无侧栏",
+      "passed": true
+    },
+    {
+      "name": "业务页显示侧栏",
+      "passed": true
+    },
+    {
+      "name": "标准列表五列",
+      "passed": true
+    },
+    {
+      "name": "真实目录关键词检索",
+      "passed": true
+    },
+    {
+      "name": "名称进入正确详情",
+      "passed": true
+    },
+    {
+      "name": "详情连续三分区",
+      "passed": true
+    },
+    {
+      "name": "返回保留查询和选中",
+      "passed": true
+    },
+    {
+      "name": "编号键盘进入正确详情",
+      "passed": true
+    },
+    {
+      "name": "无搜索结果真实空状态",
+      "passed": true
+    },
+    {
+      "name": "factors切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "records切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "excel_import切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "home切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "new_accounting切换保留核算页及未完成输入",
+      "passed": true
+    },
+    {
+      "name": "二选控件写入既有业务值",
+      "passed": true
+    },
+    {
+      "name": "界面核查未生成正式记录",
+      "passed": true
+    },
+    {
+      "name": "完整附录B预览",
+      "passed": true
+    },
+    {
+      "name": "有效预览零Record",
+      "passed": true
+    },
+    {
+      "name": "正式成功新增一条Record",
+      "passed": true
+    }
+  ]
+}

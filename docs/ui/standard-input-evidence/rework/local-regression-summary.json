@@ -1,0 +1,11 @@
+{
+  "source_commit": "8d87199f25bd17e56e2e8443e09575966d557f12",
+  "command": "python -m unittest discover -s tests -t . -v",
+  "tests": 561,
+  "passed": 550,
+  "failures": 9,
+  "errors": 2,
+  "seconds": 616.685,
+  "status": "FAILED",
+  "followup": "Old 2.1 fixture/removed-control assertions corrected: complete RS03 project/recovery modules 9 passed; UI assertions 3 passed. Production unchanged. Final complete regression is required in latest PR Windows CI."
+}
