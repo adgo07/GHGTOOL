@@ -1,4 +1,4 @@
-# PR46 第二轮来源与导航修订实施报告（执行中）
+# PR46 第二轮来源与导航修订实施报告
 
 2026-10-14。继续原 PR46，不合并。最新 Owner 决定：目录燃料 FCh 默认采用缺省值，但允许按真实填写来源修改；自定义燃料的参数全部由使用者填写。此前“目录 FCh 只能采用缺省”的交接限制已被该直接答复覆盖。
 
@@ -33,7 +33,7 @@
 
 ## 当前验证证据
 
-以下为实际已执行的定向检查，不能替代待执行的最终完整回归、构建和 CI。
+以下定向检查与最终完整回归分别记录；本地与GitHub Actions证据不混用。所有本地Python命令使用本仓 .venv 的Python 3.12.14。
 
 - `python -m unittest tests.test_pr46_percentage_precision tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -q`：23/23，46.617s；后续元数据收口仍需最终回归。
 - `python -m unittest tests.test_g06_page tests.test_uat03_formal_workflow -q`：34/34，161.052s。此前同命令30pass/1fail/3error定位到新FGD门禁未定义变量，已修复后复验通过。
@@ -52,13 +52,18 @@
 - `python scripts/build_standalone.py --output-root dist/pr46-source-ed18aa6`：成功；后续 `inspect_release.py` 270文件PASS、`verify_release_archive.py` 271可见文件ZIP回导PASS、`smoke_standalone.py` 两次隔离启动PASS。三个命令均使用该输出目录。manifest source/pr-head/tested-merge均为ed18aa6，这是本地工作区构建，非GitHub merge-ref证据。
 - 独立Luna对ed18aa6的最终实际源码、模板指纹和来源链静态复核未发现阻断；该结论不替代运行测试、构建或CI。
 
-八个旧测试文件已完成迁移。Excel/报告四模块14/14（4.428s）；GUI四模块初跑66项64pass/2fail（146.033s），两处陈旧断言修正后5个相关方法5/5（11.101s）。独立静态审查确认数值、来源、旧项目可读、失败零Record、冻结快照不漂移断言保留。没有修改生产代码以绕过测试。一次在定向结果尚未返回时启动的全量已主动中断，不计通过；最终offscreen完整回归正在重新执行。
+八个旧测试文件已完成迁移。Excel/报告四模块14/14（4.428s）；GUI四模块初跑66项64pass/2fail（146.033s），两处陈旧断言修正后5个相关方法5/5（11.101s）。独立静态审查确认数值、来源、旧项目可读、失败零Record、冻结快照不漂移断言保留。没有修改生产代码以绕过测试。一次在定向结果尚未返回时启动的全量已主动中断，不计通过；最终完整回归已重新完成，结果如下。
 
-## 尚未闭合
+## 最终本地验收与独立审查
 
-1. 迁移已批准政策下的旧测试fixture，保留重要业务断言，再执行最终完整回归。
-2. 最终head GitHub Actions：merge-ref联合回归及精确PR-head Windows构建/发布/来源审计。
-3. 最终测试diff/head独立AI验收，更新原PR46并交用户实际操作验收；不自行合并。
-4. 真实鼠标/中文输入、人工系统DPI及Owner真实企业样例仍OPEN；Qt程序检查和Office COM回导不代替这些项目。
+- `QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -t . -v`：**602/602通过，0失败、0错误，678.406s**。生产内容为ed18aa6，八个迁移测试与提交0ee7d4c一致；后续仅验收脚本及文档更改。完整本地日志SHA256：`e89431956d09c8ccf02cefb4a0ca72164f186f6ec73cb9453f5ef94cf08f454e`（执行环境TEMP中的ghg-pr46-source-final-full-regression.log）。先前591/10/1及中断运行均保留真实区别，不冒充最终通过。
+- `python scripts/uir04_manual_gui_acceptance.py`（offscreen）：5个场景PASS；`python scripts/uir04_scale_acceptance.py --scale 1.25` / `--scale 1.5`：各PASS。初跑manual使用已废弃USER_DEFINED氧化率来源而失败，失败诊断又引用已删控件；仅修正脚本fixture为先选实测再填值，并删除失效诊断引用，五场景复验通过。程序驱动不是人工鼠标验收。
+- 独立Luna静态复核ed18aa6生产、八个迁移测试及最终验收脚本：未发现阻断或业务断言弱化。旧项目原值/来源恢复、明确重确认、失败零Record、成功后冻结快照不变的断言仍保留。审查代理未运行完整回归或构建，其静态结论不冒充运行证据。
+- 本轮保留原PR的标准分派、GUI/整工作簿输入、项目恢复、冻结Record/Word、统一导出目录能力；不新增核算结果Excel导出，不重算历史报告，不改变正式标准支持状态。
+- GitHub Actions最终head联合回归、精确PR-head构建/发布审计及候选下载的权威结果登记在**原PR46正文及其最新Checks**。仓内本报告只声明已经实际执行的本地结果，旧d36 CI222不替代新head。
+
+## 仍需用户操作验收
+
+真实鼠标/中文输入、人工系统DPI及Owner真实企业样例仍OPEN。此前电脑操作工具截图超时/激活失败，Qt程序检查、截图和Office COM回导不能冒充这些项目。交付原PR46等待最终检查，不自行合并，不实施后续阶段。
 
 上一轮 d36 CI222 / 561项通过只证明此前基线，不作为本轮通过证据。原主目录的用户修改、批准原始母版与历史受控模板文件不覆盖。

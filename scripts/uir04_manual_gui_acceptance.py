@@ -123,10 +123,12 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         fuel.path.setCurrentIndex(fuel.path.findData(FuelPath.MASS))
         fuel.carbon_basis.setCurrentIndex(fuel.carbon_basis.findData("DIRECT"))
         fuel.activity.setText("10")
-        fuel.carbon_direct.setText("0.0153")
         fuel.direct_carbon_source.setCurrentIndex(fuel.direct_carbon_source.findData("MEASURED"))
+        fuel.carbon_direct.setText("0.0153")
+        oxidation_source_index = fuel.oxidation_source.findData("MEASURED")
+        assert oxidation_source_index >= 0, "碳氧化率来源缺少允许的实测值选项"
+        fuel.oxidation_source.setCurrentIndex(oxidation_source_index)
         fuel.oxidation.setText("94")
-        fuel.oxidation_source.setCurrentIndex(fuel.oxidation_source.findData("USER_DEFINED"))
         _involve(page, I01)
         row = next(row for row in page._energy_family_rows["electricity"] if row.kind.currentData() == "purchased_electricity")
         row.line_id.setText("grid-ordinary")
@@ -135,7 +137,6 @@ def _scenario_a(application: QApplication, catalog_service: CatalogQueryService,
         page._run_calculation()
         assert page.result_card.isVisible(), {
             "validation": _validation_text(page),
-            "professional_details": page.validation_professional_details.text(),
         }
         assert len(repository.list_all()) == 1
         return (
