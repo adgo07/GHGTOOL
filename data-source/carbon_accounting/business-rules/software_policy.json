@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-15-a2",
+  "revision": "candidate-2026-10-15-a3",
   "base": "Review-only software policy; no production adoption.",
   "dependency": [
     {
@@ -17595,13 +17595,14 @@
     {
       "key": "review.change.initial_source_policy",
       "change_type": "EXPLICIT_INITIAL_SOURCE_POLICY",
-      "before": "候选字段区分数值default/source qualification/locking，但未独立表达新对象首次选择的来源；允许来源多项时存在被误读为默认首项的风险。",
+      "before": "候选字段区分数值default/source qualification/locking，但未独立表达新对象首次选择的来源；允许来源多项时存在被误读为默认首项的风险。 PR47@252a71d把无匹配EF1初始化误写为NONE，正式复验按Owner既有明确决定退回。",
       "after": "Industry 11个稳定参数目标字段增加default_source属性与逐条件政策：仅NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE、RESELECT_AFTER_LEAVE触发；terminal结果是单一FIXED来源、NONE或PENDING。技术/legacy镜像字段显式NONE；numeric default、来源资格、锁定保持独立。",
-      "reason": "落实V1.2 §7.1的首次默认来源行为并与数值Catalog默认分开。custom/unbound LHV/FCh和无绑定EF1不自动选来源；氧化率/直接碳/材料/FGD/heat按已核现行政策明确；表2/4/5和Issue014仍PENDING。",
+      "reason": "落实V1.2 §7.1的首次默认来源行为并与数值Catalog默认分开。custom/unbound LHV/FCh不自动选来源；无匹配碳酸盐EF1按Owner已批准决定默认MEASURED、numeric default为NONE并由用户填写；氧化率/直接碳/材料/FGD/heat按已核现行政策明确；表2/4/5和Issue014仍PENDING。",
       "basis": [
         "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1",
         "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy",
-        "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:policies"
+        "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:policies",
+        "Owner已批准的无目录匹配碳酸盐EF默认实测决定；tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_unmatched_carbonate_initializes_measured_without_numeric_default"
       ],
       "pending": [
         "A只定义候选初始来源语义，不实现GUI/Excel/Domain状态机或更改历史Project。"

@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-15-a2",
+  "revision": "candidate-2026-10-15-a3",
   "base": "GB/T 32151.34-2024 G05 industry snapshot at main base 204dded5; CANDIDATE only.",
   "dependency": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-15-a2"
+      "revision": "candidate-2026-10-15-a3"
     }
   ],
   "status": "CANDIDATE",
@@ -30952,8 +30952,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE",
-            "reason": "无精确C.2绑定时不自动选实测来源；用户选择与来源资格政策分开，且无数值兜底。"
+            "state": "FIXED",
+            "source": "MEASURED",
+            "reason": "按Owner已批准决定：碳酸盐EF无精确目录匹配时默认实测来源，数值留空由使用者填写；numeric default为NONE，不借用C.2缺省。来源登记PENDING仍待核。"
           }
         },
         {
@@ -39356,7 +39357,8 @@
         "Specific parameter values remain exclusively in the verified catalog/repository; this is identity and policy metadata.",
         "data-source/carbon_accounting/catalog.json:parameter_id+reference_data_binding_id for all 11 exact C.2 species; catalog review_status VERIFIED; values remain in Catalog only.",
         "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1",
-        "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy"
+        "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy",
+        "Owner已批准：碳酸盐排放因子，对应在因子库的，默认为缺省值且不可改；没对应上的默认为实测值，需填写。V1.2 §9对应碳酸盐EF映射；PR47复验252a71d纠正旧实现NONE。"
       ],
       "consumers": [
         "domain:CarbonateComponent.emission_factor",
@@ -39366,7 +39368,8 @@
       ],
       "cases": [
         "PR46:tests/test_pr46_parameter_source_policy.py::test_fuel_source_choices_are_field_and_origin_specific",
-        "PR46:tests/test_pr46_parameter_source_policy.py::test_all_canonical_c2_species_match_explicit_subject_and_parameter_ids"
+        "PR46:tests/test_pr46_parameter_source_policy.py::test_all_canonical_c2_species_match_explicit_subject_and_parameter_ids",
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_unmatched_carbonate_initializes_measured_without_numeric_default"
       ],
       "pending": [],
       "rule_ids": []

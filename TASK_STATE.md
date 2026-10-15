@@ -6,10 +6,12 @@ origin实核adgo07/GHGTOOL；分支codex/ghg-business-rules-a，base及fetch后�
 
 批准V1.2 SHA256 98abf84ea7f7af3887d60c3c1e128c272d73ccbf73892d76581ad1771bfad876保持原字节；中央lock ee5feb0cc34dbd99790500fadd0c4c932e202a20未升级。012/C01、013/C02已批准；014专业适用资格OPEN仅受影响路径PENDING。表2/4/5软件资格另待PR46/Issue010组合，来源登记VERIFIED不代替资格。
 
-a2：41 Common/10 Industry旧G05对象等价、453字段、41策略、18操作、12变化。默认来源与当前来源/数值默认分开；同身份重复保留确认输入，切换/重选只接收新身份fresh context，携带旧source拒绝；恢复/导入不初始化。百分数/ratio、原物料/归一化、蒸汽t/kg及电量MWh按真实渠道/消费者分开；源启停是业务状态、纯导航/折叠另列。
+a3：41 Common/10 Industry旧G05对象等价、453字段、41策略、18操作、12变化。默认来源与当前来源/数值默认分开；同身份重复保留确认输入，切换/重选只接收新身份fresh context，携带旧source拒绝；恢复/导入不初始化。百分数/ratio、原物料/归一化、蒸汽t/kg及电量MWh按真实渠道/消费者分开；源启停是业务状态、纯导航/折叠另列。
 
-审阅字段1090行（585 READY/505 BLOCKED、结构异常0）+18操作+12变化。最终LF投影SHA256 539c500f26219dd138090abfd3c6329c2eda37c876fcad3d77389715160c5719，XLSX SHA256 662882335b859848618cafaed8e2abef2aff1d7da27659d8a0c4b99fe82bdda5。6/6意见原样保留，删除定义1条意见迁入变化页；三页已看，0公式/错误，最终无QA意见。详见evidence/review-artifact-checks.json。
+审阅字段1090行（585 READY/505 BLOCKED、结构异常0）+18操作+12变化。最终LF投影SHA256 7f56056df731938e390ae2415b3a51740ddc5f1f7aa21516a80a1e474b86e1a4，XLSX SHA256 5bd80a288f6373b88746dc9995caf1d38e28c286db0a471b8c2bb53d6e3f5cc5。6/6意见原样保留，删除定义1条意见迁入变化页；三页已看，0公式/错误，最终无QA意见。详见evidence/review-artifact-checks.json。
 
-本地最终联合62/62、0失败/错误、14.462s；独立R1～R4复核15/15、1.049s，无剩余阻断。Canonical验证9/12/102/138、compileall、pip check通过。开发失败及旧dfe验收退回证据如实保留在报告。最终完整回归/Windows构建与审计以本次提交head的GitHub Actions日志/PR评论为准，不以旧516项CI或修复前本地快照替代。本轮不重复本地全量，远端不能写成本地。
+252a71d复验R1/R3/R4已关闭，仅R2无匹配碳酸盐EF初始来源退回。a3已按Owner既有决定改MEASURED（numeric NONE、用户填写），匹配锁定/PENDING/恢复不变；新增独立例2/2通过，真实表3行MEASURED。
+
+本地最终联合63/63、0失败/错误、9.443s；独立R1～R4复核15/15、1.049s，无剩余阻断。Canonical验证9/12/102/138、compileall、pip check通过。开发失败及旧dfe验收退回证据如实保留在报告。最终完整回归/Windows构建与审计以本次提交head的GitHub Actions日志/PR评论为准，不以旧516项CI或修复前本地快照替代。本轮不重复本地全量，远端不能写成本地。
 
 Owner授权自动送方案设计（01a13325-68df-70f1-b39a-ad523c62e3a2/local）复验继续有效。最新Owner原话“A包验收通过后先不要继续，提交PR，并告诉我是否还有需要我确认的部分，我要再次独立验收”覆盖旧自动继续授权。更新原PR47不建重复PR；方案设计PASS后仍停止，向Owner交付精确head、证据与实际决策清单，等待再次验收和明确后续指令；不自动B/N、合并、专业解释或Frozen变更。

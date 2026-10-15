@@ -12,7 +12,7 @@
 
 ## 真实交付
 
-Common 41/Industry 10条现有G05对象保持main等价；行业固定采用Common修订与成员，不隐式扩围。109 GUI FieldSpec、11标准参数政策字段、36类333个Domain/输入来源/Record/Report投影，共453个定义；数字不是新增产品字段或完整标准覆盖率。Industry/Software修订升至candidate-2026-10-15-a2，Common仍main固定快照。41策略、18操作、12变化；1090条件审阅行（585 READY/505 BLOCKED），结构异常0。BLOCKED包括待核资格、技术待核与非法来源，不是505个生产错误。
+Common 41/Industry 10条现有G05对象保持main等价；行业固定采用Common修订与成员，不隐式扩围。109 GUI FieldSpec、11标准参数政策字段、36类333个Domain/输入来源/Record/Report投影，共453个定义；数字不是新增产品字段或完整标准覆盖率。Industry/Software修订升至candidate-2026-10-15-a3，Common仍main固定快照。41策略、18操作、12变化；1090条件审阅行（585 READY/505 BLOCKED），结构异常0。BLOCKED包括待核资格、技术待核与非法来源，不是505个生产错误。
 
 A仅维护Canonical候选、严格loader/schema、只读求值/审阅工具、消费者清单和三页审阅表。未改生产GUI、正式Excel模板/Adapter、Calculator、项目/Record、Word、DB、运行参数或打包资源；candidate无生产import。旧活动路径保留，B接管/退出尚未实施。开发期Artifact Tool与schema校验器不是新增运行依赖。
 
@@ -21,11 +21,11 @@ A仅维护Canonical候选、严格loader/schema、只读求值/审阅工具、�
 | 项目 | 最终修正与证据 |
 |---|---|
 | A-R1 | 同一确认身份重复选择/失焦/刷新保留已确认实测、来源、计量路径与草稿；main/PR46旧重置只作历史差异依据。真A→B/离开后重选用新身份初始化；恢复/导入禁初始化。新增明确变化记录和独立资产预期；A不实施生产状态机。 |
-| A-R2 | 每字段强制显式default_source：NONE/FIXED/POLICY/PENDING，与合法来源集合、数值default及binding分开。只读initialize_context检验目录燃料、自定义、FGD单/多组分；禁止数组首项推默认。NEW_SELECTION已有来源只读保留；身份变化/重选带business_source明确拒绝，必须由未来B服务传新身份fresh context，不猜或删除来源归属。RESTORE/IMPORT/SAME/BLUR/REFRESH禁止初始化。审阅合取保留已有来源，不用默认来源覆盖合法实测或隐藏非法来源。 |
+| A-R2 | 每字段强制显式default_source：NONE/FIXED/POLICY/PENDING，与合法来源集合、数值default及binding分开。只读initialize_context检验目录燃料、自定义、FGD单/多组分；无匹配碳酸盐EF按Owner既有批准默认MEASURED、数值NONE由用户填写，匹配STD锁定、PENDING不改判；禁止数组首项推默认。NEW_SELECTION已有来源只读保留；身份变化/重选带business_source明确拒绝，必须由未来B服务传新身份fresh context，不猜或删除来源归属。RESTORE/IMPORT/SAME/BLUR/REFRESH禁止初始化。审阅合取保留已有来源，不用默认来源覆盖合法实测或隐藏非法来源。 |
 | A-R3 | GUI/Excel FOX、FGD含量/转化率为%，Domain ratio；MaterialInputLine原始百分数与归一化ratio分开。电量MWh；蒸汽GUI/Excel/HeatInput为t、Calculator用现有UnitService转kg。燃料活动路径及main/PR46 Excel位置分别登记；HEAT只记disabled/hidden legacy恢复，不新增可选路径。因子ID/资格枚举不再伪装成因子数值；实际模块级控件与legacy消费者分开。独立测试直接核真实模板、AST和现有换算/物料服务，原始输入不变。 |
 | A-R4 | toggle_emission_source单列业务操作：INVOLVED/NOT_INVOLVED改变Canonical纳入状态、mark dirty/stale，保留草稿；导航/折叠/纯view刷新才是Presentation。独立AST核实真实调用链。 |
 
-审阅表新增“默认来源”，数值默认与绑定另列；STANDARD_DEFAULT显示“缺省值”，VERIFIED显示“来源登记已核验”。三页为字段与条件规则、操作与影响、本次变化；稳定键、反馈列、筛选、D6冻结保留。最终数据/工作簿哈希及意见保留结果见evidence/review-artifact-checks.json，审阅投影LF SHA256 539c500f26219dd138090abfd3c6329c2eda37c876fcad3d77389715160c5719。Windows原JSON文件hash与LF规范投影分开记录。
+审阅表新增“默认来源”，数值默认与绑定另列；STANDARD_DEFAULT显示“缺省值”，VERIFIED显示“来源登记已核验”。三页为字段与条件规则、操作与影响、本次变化；稳定键、反馈列、筛选、D6冻结保留。最终数据/工作簿哈希及意见保留结果见evidence/review-artifact-checks.json，审阅投影LF SHA256 7f56056df731938e390ae2415b3a51740ddc5f1f7aa21516a80a1e474b86e1a4。Windows原JSON文件hash与LF规范投影分开记录。
 
 ## 本地实际验证
 
@@ -33,16 +33,16 @@ A仅维护Canonical候选、严格loader/schema、只读求值/审阅工具、�
 
 | 命令/检查 | 真实结果 |
 |---|---|
-| `python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions -v` | 最终62/62通过、0失败/错误、14.462s（loader36、业务路径10、资产9、OOXML2、四项独立预期5）。日志build/business-rules-authoring/a2-final-targeted.log。 |
+| `python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions -v` | 最终63/63通过、0失败/错误、9.443s（loader36、业务路径10、资产9、OOXML2、四项独立预期6）。日志build/business-rules-authoring/a3-final-targeted.log。 |
 | `python scripts/validate_business_rules_candidate.py --review-json build/business-rules-authoring/review.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json` | 加载成功；1090/18/12，585 READY/505 BLOCKED，UNCOMPOSABLE/AMBIGUOUS/MISSING_CONTEXT等结构异常0。 |
-| Artifact Tool构建、三页PNG查看、readonly工作簿检查、6意见重排/删除定义回导 | 完成：三页已查看；稳定键/哈希/D6/筛选/验证正确，0公式/0错误；6/6审阅意见原样保留，删除定义1条迁入变化页，字面PENDING未改。最终交付无QA意见；XLSX SHA256 662882335b859848618cafaed8e2abef2aff1d7da27659d8a0c4b99fe82bdda5。 |
+| Artifact Tool构建、三页PNG查看、readonly工作簿检查、6意见重排/删除定义回导 | 完成：三页已查看；稳定键/哈希/D6/筛选/验证正确，0公式/0错误；6/6审阅意见原样保留，删除定义1条迁入变化页，字面PENDING未改。最终交付无QA意见；XLSX SHA256 5bd80a288f6373b88746dc9995caf1d38e28c286db0a471b8c2bb53d6e3f5cc5。 |
 | `python scripts/validate_canonical.py` | 成功：9标准/12来源/102参数/138因子。 |
 | `python -m compileall -q apps packages resources scripts tests` / `python -m pip check` | 成功；No broken requirements found。 |
-| 开发期Draft202012 schema三包/正负例 | 独立子Agent的最终结果随本PR精确head评论登记；Python3.13只用于开发schema检查，不作为正式回归。 |
+| 开发期Draft202012 schema三包/正负例 | a3 Draft202012 check_schema 1/1、实际三包3/3通过；a2独立焦点例FIXED合法、self-source条件拒绝、nested POLICY拒绝均符合预期，Schema未改。Python3.13仅开发schema检查，不作为正式回归。 |
 
 两项OOXML缓存测试仍保留：临时母版副本中输入公式缺失/陈旧cache定位拒绝，结果公式cache忽略，Decimal原始值不变；这是程序证据，不冒充原生Excel/WPS。生产隔离、完整109/36类盘点、Common adoption、真正默认/来源分离及全条件组合断言保留。
 
-历史失败如实保留：旧dfe阶段虽51/51专项与516/516 Windows CI通过，正式独立验收仍退回4项，旧绿色不是本次PASS。此前早期全量488项为487通过/1失败/0错误；后续本地快照515/515不冒充新head。此次开发中两次独立试跑各出现1error（非法binding TOKEN、依赖a1/a2闭包不匹配），5项先4pass/1error后全过；审阅器发现467 UNCOMPOSABLE已修，未删非法来源分支或放松校验。单位测试最初缺必需产物行导致1fail，修fixture加显式零产物后通过。最终完整回归/Windows构建、审计、启动均以新head CI及真实日志另记，不引用旧run背书。另一次独立修复diff审查15/15通过（Python3.12.14，1.049s），R1～R4无剩余阻断；范围不替代完整A阶段验收。
+历史失败如实保留：旧dfe阶段虽51/51专项与516/516 Windows CI通过，正式独立验收仍退回4项，旧绿色不是本次PASS。此前早期全量488项为487通过/1失败/0错误；后续本地快照515/515不冒充新head。此次开发中两次独立试跑各出现1error（非法binding TOKEN、依赖a1/a2闭包不匹配），5项先4pass/1error后全过；审阅器发现467 UNCOMPOSABLE已修，未删非法来源分支或放松校验。单位测试最初缺必需产物行导致1fail，修fixture加显式零产物后通过。252a71d复验关闭R1/R3/R4，但指出无匹配EF1误设初始NONE且测试固化错误；已按Owner既有原话纠正为MEASURED（numeric NONE），独立新增匹配/无匹配/PENDING/恢复例。a3独立定向2/2通过，真实审阅表3条无匹配行均显示MEASURED。最终完整回归/Windows构建、审计、启动均以新head CI及真实日志另记，不引用旧run背书。另一次独立修复diff审查15/15通过（Python3.12.14，1.049s），R1～R4无剩余阻断；范围不替代完整A阶段验收。
 
 ## 缺项、决定与停止条件
 

@@ -147,7 +147,7 @@ class CandidateRevisionExpectations(unittest.TestCase):
         self.assertEqual(fresh['application']['locking']['value']['state'],'LOCKED')
         self.assertNotIn('business_source',catalog,'readonly initialization cannot mutate caller evidence')
         custom=dict(origin='CUSTOM',binding_status='ABSENT')
-        for field in ('fuel.lhv','fuel.fch','fgd.factor'):
+        for field in ('fuel.lhv','fuel.fch'):
             with self.subTest(field=field):
                 out=initialize(field,custom)
                 self.assertEqual(out['initialization_status'],'NO_AUTOMATIC_SOURCE')
@@ -180,3 +180,32 @@ class CandidateRevisionExpectations(unittest.TestCase):
         for event in ('RESTORE','IMPORT','CONFIRM_SAME_IDENTITY','BLUR','REFRESH_CANDIDATES'):
             with self.subTest(event=event),self.assertRaises(CandidateBundleError):
                 bundle.initialize_context(catalog,field_ids=['fuel.oxidation'],event=event)
+
+    def test_unmatched_carbonate_initializes_measured_without_numeric_default(self):
+        bundle=load_bundle([SOURCE/p for p in ('common/gbt_32150_2025.json',
+            'standards/gbt_32151_34_2024.json','software_policy.json')])
+        def initialize(context,event='NEW_SELECTION'):
+            result=bundle.initialize_context(context,field_ids=['fgd.factor'],event=event)
+            return next(iter(result['outcomes'].values()))
+        custom={'origin':'CUSTOM','binding_status':'ABSENT'}
+        for event in ('NEW_SELECTION','CONFIRMED_IDENTITY_CHANGE','RESELECT_AFTER_LEAVE'):
+            with self.subTest(event=event):
+                out=initialize(custom,event)
+                self.assertEqual(out['initialization_status'],'INITIALIZED')
+                self.assertEqual(out['selected_business_source'],'MEASURED')
+                self.assertEqual(out['application']['default']['value'],{'state':'NONE'})
+                self.assertEqual(out['application']['locking']['value']['state'],'EDITABLE')
+                self.assertEqual(out['application']['locking']['source']['state'],'LOCKED')
+                self.assertEqual(out['application']['status'],'READY')
+        self.assertEqual(custom,{'origin':'CUSTOM','binding_status':'ABSENT'})
+        matched=initialize({'origin':'CATALOG','binding_status':'VERIFIED',
+            'parameter_id':'car-par-c2-caco3','binding_id':'binding-carbonate_caco3_gbt32151_34_c2'})
+        self.assertEqual(matched['selected_business_source'],'STANDARD_DEFAULT')
+        self.assertEqual(matched['application']['default']['value'],{'state':'BINDING','parameter_id':'car-par-c2-caco3'})
+        self.assertEqual(matched['application']['locking']['value']['state'],'LOCKED')
+        pending=initialize({'origin':'CUSTOM','binding_status':'PENDING'})
+        self.assertEqual(pending['initialization_status'],'PENDING')
+        self.assertIsNone(pending['selected_business_source'])
+        for event in ('RESTORE','IMPORT'):
+            with self.subTest(event=event),self.assertRaises(CandidateBundleError):
+                initialize(custom,event)

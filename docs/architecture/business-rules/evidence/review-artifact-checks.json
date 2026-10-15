@@ -1,8 +1,8 @@
 {
   "candidate_only": true,
-  "review_projection_sha256": "539c500f26219dd138090abfd3c6329c2eda37c876fcad3d77389715160c5719",
-  "review_json_file_sha256": "576fd33e127608e3d0f4f1f7453040cfe96c6011354db7a1e3c2ddde980a583f",
-  "workbook_sha256": "662882335b859848618cafaed8e2abef2aff1d7da27659d8a0c4b99fe82bdda5",
+  "review_projection_sha256": "7f56056df731938e390ae2415b3a51740ddc5f1f7aa21516a80a1e474b86e1a4",
+  "review_json_file_sha256": "6b286677c37b3317647726ae4d89d2be20b806a81ee84598385a4a3395624d5b",
+  "workbook_sha256": "5bd80a288f6373b88746dc9995caf1d38e28c286db0a471b8c2bb53d6e3f5cc5",
   "sheets": {
     "字段与条件规则": 1090,
     "操作与影响": 18,
@@ -19,7 +19,7 @@
     "deleted_definition_opinion_retained_in_changes": 1,
     "all_three_sheets_reordered": true,
     "literal_PENDING_unchanged": true,
-    "tested_review_projection_sha256": "188f586d397aa6dcf95b9c343a9d940a319f30e24365fd24ce7675fd6506a368"
+    "tested_review_projection_sha256": "7e40aa7ed2140de82432c9aebf3dd82403e6beb2aede3dc0123635d053d7ca49"
   },
   "evaluation_states": {
     "READY": 585,
