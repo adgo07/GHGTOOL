@@ -2,7 +2,7 @@
   "candidate_only": true,
   "review_projection_sha256": "e346d967f661c9bbf72acb78844d8a6ae15fe76458f8502e2393b5e3b2a9a221",
   "review_json_file_sha256": "cc1c3826f06f2a8f24a61c203c2b61626a0682b6bfa098510cc34f5dd67b4e4b",
-  "workbook_sha256": "af33f39650ad152bc550212d3bcecc24857bfe2ebddb9d10f892ac5ee313185c",
+  "workbook_sha256": "dd8e109120e2f509ae8d1532f85ce48d2b8c81fcc15b3252619de932bf29125c",
   "sheets": {
     "业务规则": 11,
     "操作与影响": 17,
@@ -12,7 +12,7 @@
   "tables_and_status_validation": "one each per sheet",
   "formulas": 0,
   "error_cells": 0,
-  "maximum_cell_characters": 482,
+  "maximum_cell_characters": 2315,
   "feedback_test": {
     "seeded": 6,
     "retained_exactly": 6,

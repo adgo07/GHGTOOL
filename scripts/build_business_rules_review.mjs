@@ -32,7 +32,7 @@ if(previous){
   }
 }
 const objectLabels={state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本实例组分数",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
-const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法"};
+const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"任意覆盖路径（现有候选未开放）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
 function literalCell(value){ const raw=String(value??""); return raw.startsWith("=")?"'"+raw:raw; }
 function text(value){
   if(value===null || value===undefined) return "";
@@ -45,32 +45,67 @@ function text(value){
 }
 const labels={mapping_refs:"既有映射关联",key:"稳定审阅键",review_key:"稳定审阅键",revision:"规则修订",field_id:"字段ID",condition_id:"条件ID",condition:"条件与边界",context:"求值上下文",property:"属性",name:"业务名称",kind:"字段类型",unit:"单位",source:"允许来源",locking:"读写与来源锁定",source_qualification:"合法来源",default:"数值默认及绑定",default_source:"默认来源",channels:"渠道投影",channel_projections:"渠道名称与单位",basis:"依据",consumers:"实际消费者",cases:"案例",pending:"待处理项",operation_id:"操作ID",initial_context:"初始上下文",action:"触发动作",changes:"改变什么",preserves:"保留什么",invalidates:"失效依赖",confirmation:"重新确认",change_type:"变化类型",before:"基线",after:"候选",reason:"原因",rule_set_id:"规则集ID",policy_id:"策略ID",rule_ids:"关联规则",evaluation_status:"候选求值状态",evaluation_problems:"候选求值问题",definition_key:"原定义键",scope_note:"范围说明",projection_notes:"渠道约束与补充说明",visibility:"可见性盘点",initialization_status:"初始化检查状态",selected_business_source:"选定来源",effective_context:"有效上下文"};
 function conditionText(condition){
-  const parts=Object.entries(condition.tags??{}).map(([key,value])=>`${objectLabels[key]??key}=${stateLabels[value]??value}`);
-  for(const [key,value] of Object.entries(condition.ranges??{})) parts.push(`${objectLabels[key]??key}：${text(value)}`);
+  const parts=Object.entries(condition.tags??{}).map(([key,values])=>`${objectLabels[key]??key}=${[values].flat().map(value=>stateLabels[value]??value).join("或")}`);
+  for(const [key,value] of Object.entries(condition.ranges??{})) {
+    const name=objectLabels[key]??key;
+    if(value.min===value.max && value.min!==undefined) parts.push(`${name}=${value.min}`);
+    else {
+      if(value.min!==undefined) parts.push(`${name}${value.include_min?"≥":">"}${value.min}`);
+      if(value.max!==undefined) parts.push(`${name}${value.include_max?"≤":"<"}${value.max}`);
+    }
+  }
   if(condition.exact_matches) parts.push(`须匹配精确登记组合（${condition.exact_matches.combination_count}项）`);
   return parts.join("，") || "各适用业务条件";
+}
+function businessConditions(conditions){
+  // Merge only one tag dimension with every other tag/range/exact-match constraint identical.
+  // This preserves the disjunction; it never invents a Cartesian product of separate conditions.
+  let rows=conditions.map(c=>({...c,tags:Object.fromEntries(Object.entries(c.tags??{}).map(([k,v])=>[k,[v].flat()]))}));
+  for(const dimension of ["business_source","direction","origin","attribute","binding_status"]){
+    const groups=new Map();
+    for(const row of rows){
+      if(!Object.hasOwn(row.tags,dimension)) { groups.set(Symbol(),row); continue; }
+      const otherTags=Object.fromEntries(Object.entries(row.tags).filter(([k])=>k!==dimension).sort(([a],[b])=>a.localeCompare(b)));
+      const key=JSON.stringify([otherTags,row.ranges??{},row.exact_matches??null]);
+      if(groups.has(key)){
+        const prior=groups.get(key);
+        prior.tags[dimension]=[...new Set([...prior.tags[dimension],...row.tags[dimension]])];
+      }else groups.set(key,{...row,tags:{...row.tags}});
+    }
+    rows=[...groups.values()];
+  }
+  const commonTags={};
+  if(rows.length>1){
+    for(const [key,value] of Object.entries(rows[0].tags)){
+      if(rows.every(row=>JSON.stringify(row.tags[key])===JSON.stringify(value))) commonTags[key]=value;
+    }
+  }
+  const shared=Object.keys(commonTags).length?`共同条件：${conditionText({tags:commonTags})}；且满足以下任一情形：\n`:"";
+  const alternatives=rows.map(row=>conditionText({...row,tags:Object.fromEntries(Object.entries(row.tags).filter(([key])=>!Object.hasOwn(commonTags,key)))}));
+  return shared+alternatives.join("；\n");
 }
 function summaryText(summary){
   return summary.groups.map(group=>{
     const value=group.outcome;
-    if(summary.property==="locking"){
-      if(value.value_state==="PENDING" || value.source_state==="PENDING") return "资格或适用性条件未满足：暂不可直接采用";
-      const modes=[...new Set((group.conditions??[]).map(c=>c.tags?.business_source).filter(Boolean))].map(v=>stateLabels[v]??v);
-      return `${modes.length?modes.join(" / ")+"：":""}数值${stateLabels[value.value_state]??value.value_state}，来源${stateLabels[value.source_state]??value.source_state}`;
-    }
-    if(summary.property==="default"){
-      if(value.state==="BINDING") return "缺省路径按适用精确绑定从参数与因子库读取";
-      if(value.state==="NONE") return "不自动填写数值；按来源与输入要求填写";
-      if(value.state==="PENDING") return "适用性未完成核对，暂不自动填写";
-    }
     let result;
-    if(value.state==="FIXED") result=value.values?value.values.map(v=>stateLabels[v]??v).join(" / "):value.source?(stateLabels[value.source]??value.source):text(value.value);
-    else if(value.state==="BINDING") result="按适用精确绑定从参数与因子库读取";
-    else result=stateLabels[value.state]??value.state;
-    const conditions=group.conditions??[];
-    const detail=conditions.length<=6 ? conditions.map(conditionText).join("；") : `${conditions.length}组条件，技术组合由测试核验`;
-    return `${result}\n适用：${detail}`;
+    if(summary.property==="locking"){
+      result=`数值${stateLabels[value.value_state]??value.value_state}，来源${stateLabels[value.source_state]??value.source_state}`;
+      if(value.value_state==="PENDING" || value.source_state==="PENDING") result+="；资格或适用性条件未满足，暂不可直接采用";
+    }else if(summary.property==="default"){
+      if(value.state==="BINDING") result="缺省路径按适用精确绑定从参数与因子库读取";
+      else if(value.state==="NONE") result="不自动填写数值；按来源与输入要求填写";
+      else if(value.state==="PENDING") result="适用性未完成核对，暂不自动填写";
+    }
+    if(result===undefined){
+      if(value.state==="FIXED") result=value.values?value.values.map(v=>stateLabels[v]??v).join(" / "):value.source?(stateLabels[value.source]??value.source):text(value.value);
+      else if(value.state==="BINDING") result="按适用精确绑定从参数与因子库读取";
+      else result=stateLabels[value.state]??value.state;
+    }
+    return `${result}\n适用：${businessConditions(group.conditions??[])}`;
   }).filter((value,index,all)=>all.indexOf(value)===index).join("\n\n");
+}
+function unitText(value){
+  return value==="ratio" ? "比值（0～1）；界面/Excel用百分数（%）" : text(value);
 }
 const metadata=payload.metadata??{};
 let seen=0;
@@ -102,7 +137,7 @@ for(const [name,records,tableName] of [["业务规则",payload.fields,"FieldsRev
     const key=String(row.review_key??row.key??"");
     if(!key || unique.has(key)) throw new Error(`Missing/duplicate review key: ${name} ${key}`);
     unique.add(key);
-    matrix.push(keys.map(k=>text(row[k])).concat(["",...(comments.get(key)??row.preserved_feedback??["","",""]).map(literalCell),key]));
+    matrix.push(keys.map(k=>k==="unit"?unitText(row[k]):text(row[k])).concat(["",...(comments.get(key)??row.preserved_feedback??["","",""]).map(literalCell),key]));
   }
   const sheet=wb.worksheets.add(name);sheet.showGridLines=false;
   sheet.getRange("A1").values=[[`审阅数据SHA256：${reviewHash}`]];

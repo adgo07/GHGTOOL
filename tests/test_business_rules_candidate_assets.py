@@ -136,6 +136,59 @@ class CandidateAssetCoverageTests(unittest.TestCase):
         finally:
             workbook.close()
 
+    def test_generated_locking_distinguishes_catalog_and_unbound_measurements(self):
+        from openpyxl import load_workbook
+        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        try:
+            sheet=book["业务规则"]
+            rows={row[0]:row for row in sheet.iter_rows(min_row=6,values_only=True)}
+            for name in ("燃料碳氧化率FOx","脱硫碳酸盐含量I","脱硫转化率TR"):
+                with self.subTest(name=name):
+                    blocks=rows[name][6].split("\n\n")
+                    selectable=next(b for b in blocks if b.startswith("数值可填写/选择，来源可填写/选择"))
+                    locked=next(b for b in blocks if b.startswith("数值可填写/选择，来源只读"))
+                    self.assertIn("绑定资格=来源登记已核验",selectable)
+                    self.assertIn("当前来源=实测值",selectable)
+                    self.assertIn("须匹配精确登记组合",selectable)
+                    self.assertIn("绑定资格=无适用绑定",locked)
+                    self.assertIn("当前来源=实测值",locked)
+                    self.assertNotIn("绑定资格=来源登记已核验",locked)
+                    self.assertEqual(rows[name][2],"比值（0～1）；界面/Excel用百分数（%）")
+            carbonate=rows["脱硫碳酸盐含量I"][6].split("\n\n")
+            self.assertIn("本实例组分数=1",next(b for b in carbonate if b.startswith("数值可填写/选择，来源可填写/选择")))
+            locked=next(b for b in carbonate if b.startswith("数值可填写/选择，来源只读"))
+            self.assertIn("本实例组分数=1",locked)
+            self.assertIn("本实例组分数≥2",locked)
+        finally:
+            book.close()
+
+    def test_generated_default_and_large_condition_groups_keep_business_conditions(self):
+        from openpyxl import load_workbook
+        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        try:
+            rows={row[0]:row for row in book["业务规则"].iter_rows(min_row=6,values_only=True)}
+            for name,row in rows.items():
+                for column in (3,4,5,6):
+                    for block in row[column].split("\n\n"):
+                        with self.subTest(name=name,column=column):
+                            self.assertIn("\n适用：",block)
+                            self.assertNotIn("技术组合由测试核验",block)
+            defaults=rows["燃料碳氧化率FOx"][5].split("\n\n")
+            bound=next(b for b in defaults if b.startswith("缺省路径"))
+            self.assertIn("绑定资格=来源登记已核验",bound)
+            self.assertIn("当前来源=缺省值",bound)
+            unbound=next(b for b in defaults if b.startswith("不自动填写"))
+            self.assertIn("绑定资格=无适用绑定",unbound)
+            self.assertIn("当前来源=实测值",unbound)
+            # These groups contain more than six conditions in the actual projection.
+            for column in (5,6):
+                power=rows["购入/输出电力因子"][column]
+                for condition in ("目录表1","目录表2","目录表3","目录表4","目录表5","供电单位实测","企业实测","企业计算","非化石购电零排放","方向=购入","方向=输出"):
+                    self.assertIn(condition,power)
+                self.assertNotIn("SUPPLY_UNIT_MEASURED",power)
+        finally:
+            book.close()
+
     def test_all_packages_remain_candidate_and_reference_explicit_revisions(self):
         for doc in self.documents():
             self.assertEqual(doc["status"],"CANDIDATE")
