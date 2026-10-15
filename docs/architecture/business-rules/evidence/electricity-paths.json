@@ -1,0 +1,77 @@
+{
+  "document_type": "evidence_only_candidate",
+  "as_of": "2026-10-15",
+  "runtime_canonical": false,
+  "approval": {
+    "plan_sha256": "98ABF84EA7F7AF3887D60C3C1E128C272D73CCBF73892D76581AD1771BFAD876",
+    "C01": "APPROVED_FIXED_VERSION_RULE_GROUP",
+    "C02": "APPROVED_PATH_SPECIFIC_EVIDENCE_AND_READ_ONLY_CATALOGUE",
+    "issue014": "OPEN; only company factor paths are UNVERIFIED/PENDING"
+  },
+  "heads": {
+    "origin": "https://github.com/adgo07/GHGTOOL.git",
+    "a_worktree": "d279f505951b68750db133cf4279b2b76e0323bb",
+    "main": "204dded5d03853617f79a1f05693e89b619df9d1",
+    "pr46": "77d36a155323bc82199cb516c4ac58a2e1c60309"
+  },
+  "official_factor_tables": [
+    {"table": 1, "name": "全国平均", "unit": "tCO2/MWh", "values": {"全国": "0.5306"}, "context": ["PURCHASED", "EXPORTED"], "read_only": true},
+    {"table": 2, "name": "区域平均", "unit": "tCO2/MWh", "values": {"华北": "0.6361", "东北": "0.5122", "华东": "0.5500", "华中": "0.5271", "西北": "0.5543", "南方": "0.4042", "西南": "0.2472"}, "context": ["PURCHASED", "EXPORTED"], "exact_region": true},
+    {"table": 3, "name": "省级平均", "unit": "tCO2/MWh", "values": {"北京": "0.5554", "天津": "0.6796", "河北": "0.6516", "山西": "0.6634", "内蒙古": "0.6479", "辽宁": "0.4878", "吉林": "0.4671", "黑龙江": "0.5229", "上海": "0.5737", "江苏": "0.5827", "浙江": "0.4974", "安徽": "0.6553", "福建": "0.4211", "江西": "0.5836", "山东": "0.6191", "河南": "0.5897", "湖北": "0.4044", "湖南": "0.4976", "广东": "0.4419", "广西": "0.4476", "海南": "0.3648", "重庆": "0.5581", "四川": "0.1564", "贵州": "0.5683", "云南": "0.1333", "陕西": "0.6335", "甘肃": "0.4471", "青海": "0.1796", "宁夏": "0.6187", "新疆": "0.6021"}, "context": ["PURCHASED", "EXPORTED"], "exact_province": true},
+    {"table": 4, "name": "全国平均（不含市场化交易非化石电量）", "unit": "tCO2/MWh", "values": {"全国": "0.6096"}, "explicit_selection": true, "auto_fill": false},
+    {"table": 5, "name": "全国化石能源电力", "unit": "tCO2/MWh", "values": {"全国": "0.8273"}, "explicit_selection": true, "auto_fill": false}
+  ],
+  "candidate_paths": [
+    {"id": "purchased_grid_catalogue", "status": "VERIFIED_SOURCE_AND_APPROVED_CANDIDATE", "context": {"standard": "gbt_32151_34_2024", "version": "2024", "direction": "PURCHASED", "quantity": "measured QGe", "geography": "exact national/region/province", "period": "report period and factor validity"}, "conditions": ["single read-only source per row", "freeze value/source/year/context", "no average, cross-table substitution, manual edit, or fallback"], "blocked_reason": ["ELECTRICITY_CATALOG_SELECTION_REQUIRED", "ELECTRICITY_CATALOG_CONTEXT_MISMATCH", "ELECTRICITY_CATALOG_FACTOR_UNRESOLVED"]},
+    {"id": "exported_electricity_catalogue", "status": "VERIFIED_SOURCE_AND_APPROVED_CANDIDATE", "context": {"standard": "gbt_32151_34_2024", "version": "2024", "direction": "EXPORTED", "formula": "equation (12), deduct by equation (15)"}, "conditions": ["separate output row", "freeze source", "no averaging/fallback", "never add as purchased electricity"], "blocked_reason": ["ELECTRICITY_CATALOG_SELECTION_REQUIRED", "ELECTRICITY_CATALOG_CONTEXT_MISMATCH", "ELECTRICITY_CATALOG_FACTOR_UNRESOLVED"]},
+    {"id": "nonfossil_zero_consumption", "status": "VERIFIED_STANDARD_PATH_ISSUE_007_BOUNDARY", "context": {"direction": "CONSUMPTION", "eligible": ["SELF_GENERATED_SELF_CONSUMED_NONFOSSIL", "MARKET_PURCHASED_NONFOSSIL"]}, "conditions": ["independent zero EF required", "preserve Annex D.2 evidence status", "no claim of external verification", "no fallback to table 1", "exclusive with ordinary EF on same electricity"], "blocked_reason": "NONFOSSIL_ZERO_FACTOR_UNRESOLVED"},
+    {"id": "supply_unit_measured_factor", "status": "UNVERIFIED_PENDING_014", "context": {"directions": ["PURCHASED", "EXPORTED"], "provider": "supply unit"}, "blocked_reason": "ELECTRICITY_FACTOR_PATH_PENDING_014", "unaffected_paths": ["verified catalogue", "independent nonfossil zero"]},
+    {"id": "enterprise_measured_or_calculated_factor", "status": "UNVERIFIED_PENDING_014", "context": {"directions": ["PURCHASED", "EXPORTED"], "provider": "enterprise"}, "blocked_reason": "ELECTRICITY_FACTOR_PATH_PENDING_014", "basis": "No .34-specific qualification verified; generic §7.4 is insufficient."},
+    {"id": "new_arbitrary_manual_override", "status": "PROHIBITED_FOR_NEW_INPUTS_C02", "context": {"source_kinds": ["USER_PROVIDED", "MANUAL_OVERRIDE", "USER_DEFINED"]}, "blocked_reason": "ELECTRICITY_FACTOR_UNSUPPORTED_SOURCE", "history": "Read stored labels unchanged; never relabel MANUAL_OVERRIDE as MEASURED."}
+  ],
+  "adapter": {
+    "approved_plan_section": "§8.2",
+    "pr46_load_mode": "data_only=false",
+    "input_formula": "EXB01_FORMULA_REJECTED; cache not consumed",
+    "ignored_result_formula": "not Canonical input",
+    "existing_test": "test_result_formula_is_ignored_but_input_formula_blocks",
+    "missing_stale_cache_roundtrip": "NOT_RUN",
+    "condition": "Reject formula inputs regardless of cache; missing cache is not zero."
+  },
+  "compatibility": {
+    "project_codec": {
+      "main_204": {"id": "ghgtool.carbon_material_input", "version": 1},
+      "pr46_77": {"id": "ghgtool.standard_input", "version": 2, "identity": ["standard_id", "standard_version", "input_version"], "legacy": "explicit mapping to .34@2024; unknown identity/version reject"},
+      "storage": "projects.sqlite mutable projects; records.sqlite immutable append-only Records; form_state is Presentation State; .qzproj unsupported"
+    },
+    "report": {
+      "main_204": {"schema": "2.0.0", "layout": "2.0.0"},
+      "pr46_77": {"schema": "3.0.0", "schema_file": "packages/application/reporting/types.py", "layout": "3.0.1", "layout_file": "packages/application/reporting/appendix_b_layout.json"},
+      "roles": "ReportModel schema and Appendix B layout version are independent",
+      "export": "Word from frozen Record snapshots; no Calculator/live catalogue; result Excel export cancelled"
+    }
+  },
+  "independent_expected_cases": [
+    {"id": "E01", "input": "100 MWh purchase x table1 0.5306", "expected": "53.06 tCO2, readonly source snapshot"},
+    {"id": "E02", "input": "10 MWh purchase x East table2 0.5500", "expected": "5.500 tCO2, exact region"},
+    {"id": "E03", "input": "10 MWh purchase x Ningxia table3 0.6187", "expected": "6.187 tCO2"},
+    {"id": "E04", "input": "No exact province table3 binding while table1 exists", "expected": "Block; no fallback to 0.5306"},
+    {"id": "E05", "input": "Explicit table4, 10 MWh x 0.6096", "expected": "6.096 tCO2; no auto-fill/double count"},
+    {"id": "E06", "input": "Explicit table5 fossil, 10 MWh x 0.8273", "expected": "8.273 tCO2; reject nonfossil"},
+    {"id": "E07", "input": "Separate rows: 10 MWh x 0.5306 and 5 MWh x 0.6361", "expected": "5.306 + 3.1805 = 8.4865 tCO2; no average"},
+    {"id": "E08", "input": "Export 20 MWh x 0.5306", "expected": "10.612 tCO2 deducted"},
+    {"id": "E09", "input": "Eligible nonfossil consumption, independent zero EF, proof unverified", "expected": "Resolve zero per Issue007; preserve evidence; no verification claim/fallback"},
+    {"id": "E10", "input": "Supply-unit measured EF selected", "expected": "Only this path blocked pending 014"},
+    {"id": "E11", "input": "Enterprise-calculated EF selected", "expected": "Only this path blocked pending 014"},
+    {"id": "E12", "input": "New arbitrary MANUAL_OVERRIDE", "expected": "Unsupported-source block; do not relabel MEASURED"},
+    {"id": "X01", "input": "Input formula, cache missing", "expected": "EXB01_FORMULA_REJECTED; no Canonical input; not zero"},
+    {"id": "X02", "input": "Input formula, stale cache", "expected": "Same rejection; ignore cache"},
+    {"id": "X03", "input": "Ignored result formula with literal input", "expected": "Formula cannot change shared calculation"},
+    {"id": "P01", "input": "PR46 v2 .34@2024 and matching input version", "expected": "Decode exact registered codec"},
+    {"id": "P02", "input": "Legacy v1 ghgtool.carbon_material_input", "expected": "Only explicit PR46 mapping to .34@2024"},
+    {"id": "P03", "input": "Unknown standard/version or payload version mismatch", "expected": "Reject, no guessing/latest fallback"},
+    {"id": "R01", "input": "Word after live catalogue changes", "expected": "Frozen Record data only; no recalculation/live lookup"},
+    {"id": "R02", "input": "PR46 schema 3.0.0 and layout 3.0.1", "expected": "Separate metadata roles"}
+  ],
+  "verification": {"product_tests_run": false, "issue014_resolved": false}
+}

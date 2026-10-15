@@ -41,8 +41,15 @@ _FIELD_KINDS = {"text", "quantity", "percentage", "integer", "enum", "boolean",
                 "readonly_parameter", "metadata", "status", "report"}
 _NUMERIC_FIELD_KINDS = {"quantity", "percentage", "integer", "readonly_parameter"}
 _DECIMAL_LITERAL = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?")
+# Integer defaults expressed as strings use plain integer digits with an
+# optional all-zero fractional suffix (for example "100" or "-2.00"). JSON
+# number values are checked mathematically for integrality; exponent notation
+# is intentionally not part of the string form (so "1e0" is rejected).
+_INTEGER_DECIMAL_LITERAL = re.compile(r"-?(0|[1-9][0-9]*)(\.0+)?")
+_COUNT_BOUND_LITERAL = re.compile(r"(0|[1-9][0-9]*)(\.0+)?")
 _CONTEXT_ENUMS = {
     "origin": {"CATALOG", "CUSTOM", "LEGACY_UNSPECIFIED"},
+    "business_source": {"STANDARD_DEFAULT", "CALCULATED", "MEASURED"},
     "binding_status": {"VERIFIED", "ABSENT", "PENDING"},
     "component_mode": {"DIRECT", "FCH"},
     "source_path": {"CATALOGUE_TABLE_1", "CATALOGUE_TABLE_2", "CATALOGUE_TABLE_3",
@@ -238,12 +245,24 @@ def _decimal_text(value: Any, path: str) -> Decimal:
     return parsed
 
 
+def _decimal_is_integral(value: Decimal) -> bool:
+    parts = value.as_tuple()
+    exponent = parts.exponent
+    if exponent >= 0:
+        return True
+    digits = parts.digits
+    fractional_places = -exponent
+    return all(digit == 0 for digit in digits[-min(fractional_places, len(digits)):])
+
+
 def _validate_numeric_default(value: Any, path: str, field_kind: str) -> None:
     if field_kind not in _NUMERIC_FIELD_KINDS:
         return
     if isinstance(value, bool):
         _fail(path, "numeric fields cannot use boolean defaults")
     if isinstance(value, str):
+        if field_kind == "integer" and not _INTEGER_DECIMAL_LITERAL.fullmatch(value):
+            _fail(path, "integer defaults must use an integral decimal literal")
         number = _decimal_text(value, path)
     elif isinstance(value, int):
         number = Decimal(value)
@@ -253,12 +272,8 @@ def _validate_numeric_default(value: Any, path: str, field_kind: str) -> None:
         _fail(path, "numeric defaults must be a finite JSON number or decimal string")
     if not number.is_finite():
         _fail(path, "numeric defaults must be finite")
-    if field_kind == "integer":
-        sign, digits, exponent = number.as_tuple()
-        if exponent < 0 and not all(digit == 0 for digit in digits[-min(-exponent, len(digits)):]):
-            _fail(path, "integer defaults must be integral")
-        if exponent < 0 and -exponent >= len(digits) and not all(digit == 0 for digit in digits):
-            _fail(path, "integer defaults must be integral")
+    if field_kind == "integer" and not _decimal_is_integral(number):
+        _fail(path, "integer defaults must be integral")
 
 
 def _validate_default_for_kind(value: Mapping[str, Any], path: str, field_kind: str) -> None:
@@ -270,11 +285,13 @@ def _validate_default_for_kind(value: Mapping[str, Any], path: str, field_kind: 
             _fail(path, "boolean fields require a JSON boolean default")
     elif isinstance(fixed, bool):
         _fail(path, "only boolean fields may use boolean defaults")
+    if isinstance(fixed, str) and not fixed.strip() and not (field_kind == "text" and fixed == ""):
+        _fail(path, "blank defaults are allowed only for explicit empty text values")
     _validate_numeric_default(fixed, path, field_kind)
 
 
 def _validate_state(value: Any, path: str, *, source: bool = False,
-                    allow_boolean: bool = False) -> dict[str, Any]:
+                    allow_boolean: bool = False, allow_empty_string: bool = False) -> dict[str, Any]:
     obj = _object(value, path)
     state = _enum(obj.get("state"), _SOURCE_SHAPES if source else _DEFAULT_SHAPES, f"{path}.state")
     expected = (_SOURCE_SHAPES if source else _DEFAULT_SHAPES)[state]
@@ -298,7 +315,7 @@ def _validate_state(value: Any, path: str, *, source: bool = False,
             _fail(f"{path}.value", "must be a scalar string, boolean field value, or finite JSON number")
         if isinstance(fixed, Decimal) and not fixed.is_finite():
             _fail(f"{path}.value", "must be finite")
-        if isinstance(fixed, str) and not fixed.strip():
+        if isinstance(fixed, str) and not fixed.strip() and not (allow_empty_string and fixed == ""):
             _fail(f"{path}.value", "must not be blank")
     elif state == "BINDING":
         _token(obj["parameter_id"], f"{path}.parameter_id")
@@ -307,8 +324,15 @@ def _validate_state(value: Any, path: str, *, source: bool = False,
     return dict(obj)
 
 
-def _validate_locking(value: Any, path: str) -> dict[str, dict[str, str]]:
-    obj = _keys(value, {"value", "source"}, path)
+def _validate_locking(value: Any, path: str, *, allow_policy: bool = True) -> dict[str, Any]:
+    obj = _object(value, path)
+    if obj.get("state") == "POLICY":
+        if not allow_policy:
+            _fail(path, "locking policy branches must contain a complete value/source locking object")
+        policy = _keys(obj, {"state", "policy_id"}, path)
+        _token(policy["policy_id"], f"{path}.policy_id")
+        return dict(policy)
+    obj = _keys(obj, {"value", "source"}, path)
     result: dict[str, dict[str, str]] = {}
     for property_name in ("value", "source"):
         state = _keys(obj[property_name], {"state", "reason"}, f"{path}.{property_name}")
@@ -318,7 +342,7 @@ def _validate_locking(value: Any, path: str) -> dict[str, dict[str, str]]:
     return result
 
 
-def _validate_range(value: Any, path: str) -> dict[str, Any]:
+def _validate_range(value: Any, path: str, context_key: str | None = None) -> dict[str, Any]:
     obj = _object(value, path)
     allowed = {"min", "max", "include_min", "include_max"}
     if set(obj) - allowed:
@@ -330,6 +354,8 @@ def _validate_range(value: Any, path: str) -> dict[str, Any]:
         include = "include_" + bound
         if bound in obj:
             _decimal_text(obj[bound], f"{path}.{bound}")
+            if context_key == "carbonate_component_count" and not _COUNT_BOUND_LITERAL.fullmatch(obj[bound]):
+                _fail(f"{path}.{bound}", "carbonate component count bounds must be non-negative integer literals")
             if include not in obj or not isinstance(obj[include], bool):
                 _fail(path, f"{include} must be present with a {bound} bound")
         elif include in obj:
@@ -341,6 +367,8 @@ def _validate_range(value: Any, path: str) -> dict[str, Any]:
             _fail(path, "min must not exceed max")
         if lower == upper and not (obj["include_min"] and obj["include_max"]):
             _fail(path, "an equal-bound range must include its only value")
+    if context_key == "carbonate_component_count":
+        _count_integer_domain(result, path)
     return result
 
 
@@ -367,7 +395,7 @@ def _validate_when(value: Any, path: str) -> dict[str, Any]:
         key = _token(raw_key, f"{path}.ranges key")
         if key not in _CONTEXT_RANGE_KEYS:
             _fail(f"{path}.ranges.{key}", "range context key is not registered")
-        ranges[key] = _validate_range(item, f"{path}.ranges.{key}")
+        ranges[key] = _validate_range(item, f"{path}.ranges.{key}", context_key=key)
     if not tags and not ranges:
         _fail(path, "must declare at least one context tag or range")
     return {"tags": tags, "ranges": ranges}
@@ -376,7 +404,7 @@ def _validate_when(value: Any, path: str) -> dict[str, Any]:
 def _validate_policy(value: Any, path: str) -> dict[str, Any]:
     obj = _keys(value, {"id", "property", "strategy", "branches"}, path)
     policy_id = _token(obj["id"], f"{path}.id")
-    property_name = _enum(obj["property"], {"default", "source_qualification"}, f"{path}.property")
+    property_name = _enum(obj["property"], {"default", "source_qualification", "locking"}, f"{path}.property")
     strategy = _enum(obj["strategy"], {"UNIQUE_CONTEXT_MATCH"}, f"{path}.strategy")
     if not isinstance(obj["branches"], list) or not obj["branches"]:
         _fail(f"{path}.branches", "must be a non-empty array")
@@ -389,9 +417,15 @@ def _validate_policy(value: Any, path: str) -> dict[str, Any]:
         if branch_id in seen:
             _fail(f"{branch_path}.id", "duplicate branch ID")
         seen.add(branch_id)
-        outcome = _validate_state(branch["value"], f"{branch_path}.value",
-                                  source=property_name == "source_qualification",
-                                  allow_boolean=property_name == "default")
+        if property_name == "locking":
+            outcome = _validate_locking(branch["value"], f"{branch_path}.value", allow_policy=False)
+        else:
+            outcome = _validate_state(branch["value"], f"{branch_path}.value",
+                                      source=property_name == "source_qualification",
+                                      allow_boolean=property_name == "default",
+                                      allow_empty_string=property_name == "default")
+            if outcome["state"] == "POLICY":
+                _fail(f"{branch_path}.value.state", "policy branch values must be terminal; nested POLICY is not supported")
         branches.append({"id": branch_id, "when": _validate_when(branch["when"], f"{branch_path}.when"),
                          "value": outcome})
     return {"id": policy_id, "property": property_name, "strategy": strategy, "branches": branches}
@@ -521,6 +555,26 @@ def _decimal_plus_integer(value: Decimal, amount: int) -> Decimal:
     exponent = min(value.as_tuple().exponent, 0)
     coefficient = _coefficient_at(value, exponent) + amount * (10 ** -exponent)
     return _decimal_from_coefficient(coefficient, exponent)
+
+
+def _count_integer_domain(bounds: Mapping[str, Any], path: str) -> tuple[Decimal, Decimal | None]:
+    lower = Decimal(0)
+    upper: Decimal | None = None
+    if "min" in bounds:
+        raw_lower = bounds["min"]
+        if not isinstance(raw_lower, str) or not _COUNT_BOUND_LITERAL.fullmatch(raw_lower):
+            _fail(f"{path}.min", "carbonate component count bounds must be non-negative integer literals")
+        min_value = _decimal_text(raw_lower, f"{path}.min")
+        lower = min_value if bounds["include_min"] else _decimal_plus_integer(min_value, 1)
+    if "max" in bounds:
+        raw_upper = bounds["max"]
+        if not isinstance(raw_upper, str) or not _COUNT_BOUND_LITERAL.fullmatch(raw_upper):
+            _fail(f"{path}.max", "carbonate component count bounds must be non-negative integer literals")
+        max_value = _decimal_text(raw_upper, f"{path}.max")
+        upper = max_value if bounds["include_max"] else _decimal_plus_integer(max_value, -1)
+    if upper is not None and (upper < 0 or lower > upper):
+        _fail(path, "range contains no non-negative integer carbonate component count")
+    return lower, upper
 
 
 def _exact_midpoint(low: Decimal, high: Decimal) -> Decimal:
@@ -695,9 +749,17 @@ class CandidateBundle:
         if len(matches) == 1:
             branch = matches[0]
             state = dict(branch["value"])
-            status = "PENDING" if state["state"] == "PENDING" else "RESOLVED"
+            if policy["property"] == "locking":
+                status = "RESOLVED"
+                message = None
+            else:
+                status = (
+                    state["state"] if state["state"] in {"PENDING", "NO_LEGAL_SOURCES"}
+                    else "RESOLVED"
+                )
+                message = state.get("reason") if status != "RESOLVED" else None
             return {"status": status, "value": state, "condition_id": branch["id"],
-                    "policy_id": policy["id"], "message": None}
+                    "policy_id": policy["id"], "message": message}
         if len(matches) > 1:
             return {"status": "AMBIGUOUS_POLICY_MATCH", "value": None, "condition_id": None,
                     "policy_id": policy["id"], "message": "More than one policy branch matched"}
@@ -740,6 +802,12 @@ class CandidateBundle:
                     raise CandidateBundleError(f"context.{key}: use a finite Decimal or integer")
                 if isinstance(value, Decimal) and not value.is_finite():
                     raise CandidateBundleError(f"context.{key}: decimal value must be finite")
+                if key == "carbonate_component_count":
+                    numeric = Decimal(value)
+                    if numeric < 0 or not _decimal_is_integral(numeric):
+                        raise CandidateBundleError(
+                            f"context.{key}: use a finite non-negative integer count"
+                        )
 
         entries = self._field_entries()
         selected_ids = None if field_ids is None else {_token(item, "field_ids[]") for item in field_ids}
@@ -779,12 +847,12 @@ class CandidateBundle:
             ]
 
         outcomes: dict[str, Any] = {}
-        problems: list[dict[str, str]] = []
+        problems: list[dict[str, Any]] = []
         overall = "READY"
         for package, field in entries:
             field_id = field["id"]
             entry_key = f"{package.rule_set_id}:{field_id}"
-            local_problems: list[dict[str, str]] = []
+            local_problems: list[dict[str, Any]] = []
             state_map: dict[str, Any] = {}
             for property_name, source in (
                 ("default", field["default"]),
@@ -810,21 +878,58 @@ class CandidateBundle:
                         "rule_set_id": package.rule_set_id, "property": property_name,
                         "message": outcome["message"] or f"{property_name} is not eligible to execute",
                     })
-            locking = field["locking"]
-            for key in ("value", "source"):
-                lock_state = locking[key]["state"]
-                if lock_state in {"PENDING", "CONDITIONAL"}:
-                    local_problems.append({
-                        "code": "PENDING_LOCKING" if lock_state == "PENDING" else "CONDITIONAL_LOCKING",
-                        "entry_key": entry_key, "field_id": field_id,
-                        "rule_set_id": package.rule_set_id, "property": key,
-                        "message": locking[key]["reason"],
-                    })
+            source_outcome = state_map["source_qualification"]
+            resolved_source = source_outcome.get("value")
+            if (
+                "business_source" in current
+                and source_outcome["status"] == "RESOLVED"
+                and isinstance(resolved_source, Mapping)
+                and resolved_source.get("state") == "FIXED"
+                and current["business_source"] not in resolved_source["values"]
+            ):
+                allowed_sources = list(resolved_source["values"])
+                local_problems.append({
+                    "code": "SOURCE_NOT_ALLOWED", "entry_key": entry_key, "field_id": field_id,
+                    "rule_set_id": package.rule_set_id, "property": "source_qualification",
+                    "business_source": current["business_source"], "allowed_sources": allowed_sources,
+                    "message": (
+                        f"business_source {current['business_source']!r} is not allowed for this field; "
+                        f"allowed sources are {allowed_sources!r}"
+                    ),
+                })
+            locking_source = field["locking"]
+            if locking_source.get("state") == "POLICY":
+                locking_outcome = self._apply_policy(
+                    self._policy(package, locking_source["policy_id"]), current,
+                )
+            else:
+                locking_outcome = {
+                    "status": "RESOLVED", "value": dict(locking_source), "condition_id": None,
+                    "policy_id": None, "message": None,
+                }
+            locking = locking_outcome["value"] if locking_outcome["status"] == "RESOLVED" else None
+            if locking_outcome["status"] != "RESOLVED":
+                local_problems.append({
+                    "code": locking_outcome["status"], "entry_key": entry_key, "field_id": field_id,
+                    "rule_set_id": package.rule_set_id, "property": "locking",
+                    "message": locking_outcome["message"] or "locking policy did not resolve uniquely",
+                })
+            elif locking is not None:
+                for key in ("value", "source"):
+                    lock_state = locking[key]["state"]
+                    if lock_state in {"PENDING", "CONDITIONAL"}:
+                        local_problems.append({
+                            "code": "PENDING_LOCKING" if lock_state == "PENDING" else "CONDITIONAL_LOCKING",
+                            "entry_key": entry_key, "field_id": field_id,
+                            "rule_set_id": package.rule_set_id, "property": key,
+                            "message": locking[key]["reason"],
+                        })
             if local_problems:
                 overall = "BLOCKED"
                 problems.extend(local_problems)
             outcomes[entry_key] = {
-                **state_map, "locking": dict(locking),
+                **state_map, "locking": dict(locking) if locking is not None else dict(locking_source),
+                "locking_outcome": locking_outcome,
                 "status": "BLOCKED" if local_problems else "READY",
                 "problems": local_problems,
             }
@@ -833,6 +938,10 @@ class CandidateBundle:
     def _representative_context(self, when: Mapping[str, Any]) -> dict[str, Any]:
         result: dict[str, Any] = dict(when["tags"])
         for key, bounds in when["ranges"].items():
+            if key == "carbonate_component_count":
+                lower, _ = _count_integer_domain(bounds, f"representative_context.{key}")
+                result[key] = lower
+                continue
             low = _decimal_text(bounds["min"], f"range.{key}.min") if "min" in bounds else None
             high = _decimal_text(bounds["max"], f"range.{key}.max") if "max" in bounds else None
             if low is not None and high is not None:
@@ -850,6 +959,58 @@ class CandidateBundle:
                 result[key] = high if bounds["include_max"] else _decimal_plus_integer(high, -1)
         return result
 
+    @staticmethod
+    def _intersect_conditions(
+        whens: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        tags: dict[str, str] = {}
+        range_parts: dict[str, dict[str, list[tuple[Decimal, str, bool]]]] = {}
+        for when in whens:
+            for key, value in when["tags"].items():
+                if key in tags and tags[key] != value:
+                    return None, f"conflicting tag {key}: {tags[key]!r} versus {value!r}"
+                tags[key] = value
+            for key, bounds in when["ranges"].items():
+                parts = range_parts.setdefault(key, {"min": [], "max": []})
+                for bound in ("min", "max"):
+                    if bound in bounds:
+                        parts[bound].append((
+                            _decimal_text(bounds[bound], f"intersection.{key}.{bound}"),
+                            bounds[bound], bounds[f"include_{bound}"],
+                        ))
+
+        ranges: dict[str, Any] = {}
+        for key, parts in range_parts.items():
+            merged: dict[str, Any] = {}
+            lower: Decimal | None = None
+            upper: Decimal | None = None
+            lower_included = True
+            upper_included = True
+            if parts["min"]:
+                lower = max(item[0] for item in parts["min"])
+                equal = [item for item in parts["min"] if item[0] == lower]
+                lower_included = all(item[2] for item in equal)
+                merged["min"] = equal[0][1]
+                merged["include_min"] = lower_included
+            if parts["max"]:
+                upper = min(item[0] for item in parts["max"])
+                equal = [item for item in parts["max"] if item[0] == upper]
+                upper_included = all(item[2] for item in equal)
+                merged["max"] = equal[0][1]
+                merged["include_max"] = upper_included
+            if lower is not None and upper is not None:
+                if lower > upper:
+                    return None, f"empty numeric range intersection for {key}"
+                if lower == upper and not (lower_included and upper_included):
+                    return None, f"empty numeric range intersection for {key}: boundary is excluded"
+            if key == "carbonate_component_count":
+                try:
+                    _count_integer_domain(merged, f"intersection.{key}")
+                except CandidateBundleError as exc:
+                    return None, str(exc)
+            ranges[key] = merged
+        return {"tags": tags, "ranges": ranges}, None
+
     def review_rows(self) -> dict[str, Any]:
         """Return flat review rows with branch conditions and field-local outcomes."""
         field_rows: list[dict[str, Any]] = []
@@ -862,39 +1023,158 @@ class CandidateBundle:
             for item in self.primary.document["adopts"]
         }
         for package, field in selected_entries:
-            references: list[tuple[str | None, str | None, Mapping[str, Any] | None]] = []
-            for prop in ("default", "source_qualification"):
+            policies_by_property: dict[str, Mapping[str, Any]] = {}
+            for prop in ("default", "source_qualification", "locking"):
                 source = field[prop]
-                if source["state"] == "POLICY":
-                    policy = self._policy(package, source["policy_id"])
-                    references.extend((policy["id"], branch["id"], branch) for branch in policy["branches"])
-            if not references:
-                references = [(None, None, None)]
-            for policy_id, condition_id, branch in references:
-                context = {} if branch is None else self._representative_context(branch["when"])
+                if source.get("state") == "POLICY":
+                    policies_by_property[prop] = self._policy(package, source["policy_id"])
+            property_order = list(policies_by_property)
+            compatible_scenarios: list[tuple[dict[str, Mapping[str, Any]], dict[str, Any]]] = []
+            participating: dict[str, set[str]] = {
+                prop: set() for prop in property_order
+            }
+
+            def collect_compatible(
+                index: int,
+                chosen: dict[str, Mapping[str, Any]],
+                combined_when: dict[str, Any],
+            ) -> None:
+                if index == len(property_order):
+                    compatible_scenarios.append((dict(chosen), combined_when))
+                    for chosen_prop, chosen_branch in chosen.items():
+                        participating[chosen_prop].add(chosen_branch["id"])
+                    return
+                prop = property_order[index]
+                policy = policies_by_property[prop]
+                for branch in policy["branches"]:
+                    merged_when, conflict = self._intersect_conditions(
+                        [combined_when, branch["when"]],
+                    )
+                    if conflict is not None:
+                        continue
+                    chosen[prop] = branch
+                    collect_compatible(index + 1, chosen, merged_when or {"tags": {}, "ranges": {}})
+                    del chosen[prop]
+
+            collect_compatible(0, {}, {"tags": {}, "ranges": {}})
+            review_scenarios: list[
+                tuple[dict[str, Mapping[str, Any]], dict[str, Any] | None, dict[str, Any] | None]
+            ] = [
+                (branches, merged_when, None)
+                for branches, merged_when in compatible_scenarios
+            ]
+            for prop, policy in policies_by_property.items():
+                for branch in policy["branches"]:
+                    if branch["id"] in participating[prop]:
+                        continue
+                    review_scenarios.append(({}, None, {
+                        "property": prop,
+                        "policy_id": policy["id"],
+                        "branch_id": branch["id"],
+                        "when": branch["when"],
+                        "value": branch["value"],
+                        "reason": "This branch has no compatible conjunction with the other field policies.",
+                    }))
+
+            for branches_by_property, merged_when, uncomposable in review_scenarios:
+                conditions_by_property = {
+                    prop: branch["when"] for prop, branch in branches_by_property.items()
+                }
                 entry_key = f"{package.rule_set_id}:{field['id']}"
-                applied = self.apply_context(context, field_ids=[entry_key])
-                outcome = applied["outcomes"][entry_key]
-                field_problems = outcome["problems"]
-                review_property = "BASE" if policy_id is None else self._policy(package, policy_id)["property"]
-                review_key = (
-                    f"field|{package.rule_set_id}|{package.revision}|{field['id']}|"
-                    f"{review_property}|{policy_id or 'BASE'}|{condition_id or 'BASE'}"
-                )
+                branch_values = {
+                    prop: branch["value"] for prop, branch in branches_by_property.items()
+                }
+                if uncomposable is not None:
+                    conditions_by_property = {
+                        uncomposable["property"]: uncomposable["when"],
+                    }
+                    branch_values = {uncomposable["property"]: uncomposable["value"]}
+                    field_problems = [{
+                        "code": "UNCOMPOSABLE_BRANCH", "entry_key": entry_key,
+                        "field_id": field["id"], "rule_set_id": package.rule_set_id,
+                        "property": uncomposable["property"],
+                        "message": uncomposable["reason"],
+                    }]
+                    default_value = dict(field["default"])
+                    source_value = dict(field["source_qualification"])
+                    locking_value = dict(field["locking"])
+                    locking_outcome = {
+                        "status": "UNCOMPOSABLE_BRANCH", "value": None,
+                        "condition_id": None, "policy_id": None,
+                        "message": uncomposable["reason"],
+                    }
+                    evaluation_status = "UNCOMPOSABLE_BRANCH"
+                else:
+                    context = self._representative_context(merged_when or {"tags": {}, "ranges": {}})
+                    applied = self.apply_context(context, field_ids=[entry_key])
+                    outcome = applied["outcomes"][entry_key]
+                    field_problems = outcome["problems"]
+                    default_value = outcome["default"]["value"]
+                    source_value = outcome["source_qualification"]["value"]
+                    locking_value = outcome["locking"]
+                    locking_outcome = outcome["locking_outcome"]
+                    evaluation_status = outcome["status"]
+
+                if uncomposable is not None:
+                    review_property = "UNCOMPOSABLE"
+                    policy_id = uncomposable["policy_id"]
+                    condition_id = uncomposable["branch_id"]
+                    review_key = (
+                        f"field|{package.rule_set_id}|{package.revision}|{field['id']}|"
+                        f"UNCOMPOSABLE|{policy_id}|{condition_id}"
+                    )
+                elif len(branches_by_property) == 0:
+                    review_property, policy_id, condition_id = "BASE", None, None
+                    review_key = (
+                        f"field|{package.rule_set_id}|{package.revision}|{field['id']}|BASE|BASE|BASE"
+                    )
+                elif len(branches_by_property) == 1:
+                    prop, branch = next(iter(branches_by_property.items()))
+                    policy = policies_by_property[prop]
+                    review_property, policy_id, condition_id = prop, policy["id"], branch["id"]
+                    review_key = (
+                        f"field|{package.rule_set_id}|{package.revision}|{field['id']}|"
+                        f"{review_property}|{policy_id}|{condition_id}"
+                    )
+                else:
+                    review_property, policy_id, condition_id = "COMBINED", None, None
+                    branch_signature = ";".join(
+                        f"{prop}={policies_by_property[prop]['id']}:{branches_by_property[prop]['id']}"
+                        for prop in policies_by_property
+                    )
+                    review_key = (
+                        f"field|{package.rule_set_id}|{package.revision}|{field['id']}|"
+                        f"COMBINED|{branch_signature}"
+                    )
                 pending = list(field["pending"])
                 pending.extend(f"{problem['code']}: {problem['message']}" for problem in field_problems)
                 field_rows.append({
                     "key": review_key, "review_key": review_key, "revision": package.revision,
                     "rule_set_id": package.rule_set_id, "field_id": field["id"], "condition_id": condition_id,
-                    "condition": None if branch is None else branch["when"],
+                    "condition": (
+                        uncomposable["when"] if uncomposable else
+                        merged_when if merged_when is not None and policies_by_property else None
+                    ),
+                    "condition_status": "UNCOMPOSABLE_BRANCH" if uncomposable else "INTERSECTED",
+                    "condition_conflict": uncomposable["reason"] if uncomposable else None,
+                    "conditions_by_property": conditions_by_property,
                     "policy_id": policy_id,
+                    "policy_ids": {prop: policy["id"] for prop, policy in policies_by_property.items()},
+                    "condition_ids": (
+                        {uncomposable["property"]: uncomposable["branch_id"]}
+                        if uncomposable else
+                        {prop: branch["id"] for prop, branch in branches_by_property.items()}
+                    ),
+                    "uncomposable_branch": uncomposable,
+                    "policy_branch_values": branch_values,
                     "property": review_property,
                     "name": field["name"], "kind": field["kind"], "unit": field["unit"],
-                    "source": outcome["source_qualification"]["value"], "default": outcome["default"]["value"],
-                    "locking": outcome["locking"], "channels": field["channel_projections"],
+                    "source": source_value, "default": default_value,
+                    "locking": locking_value, "locking_outcome": locking_outcome,
+                    "channels": field["channel_projections"],
                     "basis": list(field["basis"]), "consumers": list(field["consumers"]),
                     "cases": list(field["cases"]), "pending": pending, "rule_ids": list(field["rule_ids"]),
-                    "evaluation_status": outcome["status"], "evaluation_problems": field_problems,
+                    "evaluation_status": evaluation_status, "evaluation_problems": field_problems,
                 })
         for package in selected_packages:
             operations = package.document["operations"]
@@ -1052,10 +1332,11 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
         field_kind = _enum(field["kind"], _FIELD_KINDS, f"{item_path}.kind")
         _text(field["unit"], f"{item_path}.unit")
         default = _validate_state(field["default"], f"{item_path}.default",
-                                  allow_boolean=field_kind == "boolean")
+                                  allow_boolean=field_kind == "boolean",
+                                  allow_empty_string=field_kind == "text")
         _validate_default_for_kind(default, f"{item_path}.default.value", field_kind)
         _validate_state(field["source_qualification"], f"{item_path}.source_qualification", source=True)
-        _validate_locking(field["locking"], f"{item_path}.locking")
+        locking = _validate_locking(field["locking"], f"{item_path}.locking")
         if not isinstance(field["channel_projections"], list) or not field["channel_projections"]:
             _fail(f"{item_path}.channel_projections", "must be a non-empty array")
         projections: set[tuple[str, str]] = set()
@@ -1092,6 +1373,12 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
                                 f"{item_path}.{state_name}.policy:{policy['id']}:{branch['id']}.value",
                                 field_kind,
                             )
+        if locking.get("state") == "POLICY":
+            policy = policies.get(locking["policy_id"])
+            if policy is None:
+                _fail(f"{item_path}.locking.policy_id", "references unknown local policy")
+            if policy["property"] != "locking":
+                _fail(f"{item_path}.locking.policy_id", "policy property does not match field locking")
     operation_ids: set[str] = set()
     operation_keys: set[str] = set()
     for index, item in enumerate(doc["operations"]):
@@ -1258,6 +1545,8 @@ def _json_safe(value: Any) -> Any:
         return str(value)
     if isinstance(value, date):
         return value.isoformat()
+    if isinstance(value, int) and not isinstance(value, bool) and abs(value) > (2**53 - 1):
+        return str(value)
     if isinstance(value, Mapping):
         return {str(key): _json_safe(item) for key, item in value.items()}
     if isinstance(value, (tuple, list)):

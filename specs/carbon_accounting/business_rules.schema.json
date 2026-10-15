@@ -55,12 +55,14 @@
 }},
 "defaultState":{"oneOf":[
 {"type":"object","additionalProperties":false,"required":["state"],"properties":{"state":{"const":"NONE"}}},
-{"type":"object","additionalProperties":false,"required":["state","value"],"properties":{"state":{"const":"FIXED"},"value":{"type":["string","number","boolean"]}}},
+{"type":"object","additionalProperties":false,"required":["state","value"],"properties":{"state":{"const":"FIXED"},"value":{"anyOf":[{"const":""},{"$ref":"#/$defs/nonBlank"},{"type":["number","boolean"]}]}}},
 {"type":"object","additionalProperties":false,"required":["state","parameter_id"],"properties":{"state":{"const":"BINDING"},"parameter_id":{"$ref":"#/$defs/token"}}},
 {"type":"object","additionalProperties":false,"required":["state","policy_id"],"properties":{"state":{"const":"POLICY"},"policy_id":{"$ref":"#/$defs/token"}}},
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"PENDING"},"reason":{"$ref":"#/$defs/nonBlank"}}}
 ]},
 "numericValue":{"anyOf":[{"type":"number"},{"type":"string","pattern":"^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?$"}]},
+"integerValue":{"description":"JSON number values are accepted when mathematically integral. String defaults use plain integer digits with an optional all-zero fractional suffix (for example 100, -2.00); exponent notation is intentionally not part of the string form.","anyOf":[{"type":"integer"},{"type":"number","multipleOf":1},{"type":"string","pattern":"^-?(0|[1-9][0-9]*)(\\.0+)?$"}]},
+"terminalDefaultState":{"allOf":[{"$ref":"#/$defs/defaultState"},{"not":{"properties":{"state":{"const":"POLICY"}}}}]},
 "sourceState":{"oneOf":[
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"NOT_APPLICABLE"},"reason":{"$ref":"#/$defs/nonBlank"}}},
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"NO_LEGAL_SOURCES"},"reason":{"$ref":"#/$defs/nonBlank"}}},
@@ -68,25 +70,33 @@
 {"type":"object","additionalProperties":false,"required":["state","policy_id"],"properties":{"state":{"const":"POLICY"},"policy_id":{"$ref":"#/$defs/token"}}},
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"PENDING"},"reason":{"$ref":"#/$defs/nonBlank"}}}
 ]},
+"terminalSourceState":{"allOf":[{"$ref":"#/$defs/sourceState"},{"not":{"properties":{"state":{"const":"POLICY"}}}}]},
 "lockingProperty":{"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"enum":["EDITABLE","LOCKED","CONDITIONAL","NOT_APPLICABLE","PENDING"]},"reason":{"$ref":"#/$defs/nonBlank"}}},
-"locking":{"type":"object","additionalProperties":false,"required":["value","source"],"properties":{"value":{"$ref":"#/$defs/lockingProperty"},"source":{"$ref":"#/$defs/lockingProperty"}}},
+"lockingPair":{"type":"object","additionalProperties":false,"required":["value","source"],"properties":{"value":{"$ref":"#/$defs/lockingProperty"},"source":{"$ref":"#/$defs/lockingProperty"}}},
+"locking":{"oneOf":[{"$ref":"#/$defs/lockingPair"},{"type":"object","additionalProperties":false,"required":["state","policy_id"],"properties":{"state":{"const":"POLICY"},"policy_id":{"$ref":"#/$defs/token"}}}]},
 "range":{"type":"object","additionalProperties":false,"minProperties":2,"properties":{"min":{"type":"string","pattern":"^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?$"},"max":{"type":"string","pattern":"^-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?$"},"include_min":{"type":"boolean"},"include_max":{"type":"boolean"}},"dependentRequired":{"min":["include_min"],"max":["include_max"]},"dependentSchemas":{"include_min":{"required":["min"]},"include_max":{"required":["max"]}}},
+"countBound":{"type":"string","pattern":"^(0|[1-9][0-9]*)(\\.0+)?$"},
+"countRange":{"type":"object","additionalProperties":false,"minProperties":2,"properties":{"min":{"$ref":"#/$defs/countBound"},"max":{"$ref":"#/$defs/countBound"},"include_min":{"type":"boolean"},"include_max":{"type":"boolean"}},"dependentRequired":{"min":["include_min"],"max":["include_max"]},"dependentSchemas":{"include_min":{"required":["min"]},"include_max":{"required":["max"]}}},
 "when":{
 "type":"object","additionalProperties":false,"required":["tags","ranges"],
 "properties":{
 "tags":{"type":"object","additionalProperties":false,"properties":{
-"origin":{"enum":["CATALOG","CUSTOM","LEGACY_UNSPECIFIED"]},"binding_status":{"enum":["VERIFIED","ABSENT","PENDING"]},"parameter_id":{"$ref":"#/$defs/token"},"binding_id":{"$ref":"#/$defs/token"},
+"origin":{"enum":["CATALOG","CUSTOM","LEGACY_UNSPECIFIED"]},"business_source":{"enum":["STANDARD_DEFAULT","CALCULATED","MEASURED"]},"binding_status":{"enum":["VERIFIED","ABSENT","PENDING"]},"parameter_id":{"$ref":"#/$defs/token"},"binding_id":{"$ref":"#/$defs/token"},
 "component_mode":{"enum":["DIRECT","FCH"]},"source_path":{"enum":["CATALOGUE_TABLE_1","CATALOGUE_TABLE_2","CATALOGUE_TABLE_3","CATALOGUE_TABLE_4","CATALOGUE_TABLE_5","NONFOSSIL_ZERO","SUPPLY_UNIT_MEASURED","ENTERPRISE_MEASURED","ENTERPRISE_CALCULATED","ARBITRARY_OVERRIDE"]},
 "direction":{"enum":["PURCHASED","EXPORTED"]},"attribute":{"enum":["CONVENTIONAL","NONFOSSIL","FOSSIL"]},"catalog_table":{"enum":["1","2","3","4","5"]},
 "region":{"$ref":"#/$defs/nonBlank"},"province":{"$ref":"#/$defs/nonBlank"},"standard_id":{"$ref":"#/$defs/token"},
 "period_type":{"enum":["ANNUAL","MONTHLY","CUSTOM"]},"fuel_path":{"enum":["MASS","VOLUME","HEAT"]}
 }},
-"ranges":{"type":"object","additionalProperties":false,"properties":{"carbonate_component_count":{"$ref":"#/$defs/range"}}}
+"ranges":{"type":"object","additionalProperties":false,"properties":{"carbonate_component_count":{"$ref":"#/$defs/countRange"}}}
 },
 "anyOf":[{"properties":{"tags":{"minProperties":1}}},{"properties":{"ranges":{"minProperties":1}}}]
 },
-"policyBranch":{"type":"object","additionalProperties":false,"required":["id","when","value"],"properties":{"id":{"$ref":"#/$defs/token"},"when":{"$ref":"#/$defs/when"},"value":{"anyOf":[{"$ref":"#/$defs/defaultState"},{"$ref":"#/$defs/sourceState"}]}}},
-"policy":{"type":"object","additionalProperties":false,"required":["id","property","strategy","branches"],"properties":{"id":{"$ref":"#/$defs/token"},"property":{"enum":["default","source_qualification"]},"strategy":{"const":"UNIQUE_CONTEXT_MATCH"},"branches":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/policyBranch"}}}},
+"policyBranch":{"type":"object","additionalProperties":false,"required":["id","when","value"],"properties":{"id":{"$ref":"#/$defs/token"},"when":{"$ref":"#/$defs/when"},"value":{"anyOf":[{"$ref":"#/$defs/defaultState"},{"$ref":"#/$defs/sourceState"},{"$ref":"#/$defs/lockingPair"}]}}},
+"policy":{"type":"object","additionalProperties":false,"required":["id","property","strategy","branches"],"properties":{"id":{"$ref":"#/$defs/token"},"property":{"enum":["default","source_qualification","locking"]},"strategy":{"const":"UNIQUE_CONTEXT_MATCH"},"branches":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/policyBranch"}}},"allOf":[
+{"if":{"properties":{"property":{"const":"default"}},"required":["property"]},"then":{"properties":{"branches":{"items":{"properties":{"value":{"$ref":"#/$defs/terminalDefaultState"}}}}}}},
+{"if":{"properties":{"property":{"const":"source_qualification"}},"required":["property"]},"then":{"properties":{"branches":{"items":{"properties":{"value":{"$ref":"#/$defs/terminalSourceState"}}}}}}},
+{"if":{"properties":{"property":{"const":"locking"}},"required":["property"]},"then":{"properties":{"branches":{"items":{"properties":{"value":{"$ref":"#/$defs/lockingPair"}}}}}}}
+]},
 "projection":{"type":"object","additionalProperties":false,"required":["channel","label","unit","binding","notes"],"properties":{"channel":{"$ref":"#/$defs/token"},"label":{"$ref":"#/$defs/nonBlank"},"unit":{"$ref":"#/$defs/nonBlank"},"binding":{"$ref":"#/$defs/token"},"notes":{"$ref":"#/$defs/nonBlank"}}},
 "field":{
 "type":"object","additionalProperties":false,
@@ -100,11 +110,27 @@
 "cases":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/nonBlank"}},"pending":{"$ref":"#/$defs/strings"},"rule_ids":{"$ref":"#/$defs/tokens"}
 },
 "allOf":[
-{"if":{"properties":{"kind":{"const":"boolean"}},"required":["kind"]},
+{
+ "if":{"properties":{"kind":{"const":"boolean"}},"required":["kind"]},
  "then":{"properties":{"default":{"properties":{"value":{"type":"boolean"}}}}},
- "else":{"properties":{"default":{"properties":{"value":{"type":["string","number"]}}}}}},
-{"if":{"properties":{"kind":{"enum":["quantity","percentage","integer","readonly_parameter"]}},"required":["kind"]},
- "then":{"properties":{"default":{"properties":{"value":{"$ref":"#/$defs/numericValue"}}}}}}
+ "else":{"properties":{"default":{"properties":{"value":{"type":["string","number"]}}}}}
+},
+{
+ "if":{"properties":{"kind":{"const":"text"}},"required":["kind"]},
+ "then":{"properties":{"default":{"properties":{"value":{"anyOf":[{"const":""},{"$ref":"#/$defs/nonBlank"},{"type":"number"}]}}}}}
+},
+{
+ "if":{"properties":{"kind":{"enum":["quantity","percentage","integer","readonly_parameter"]}},"required":["kind"]},
+ "then":{"properties":{"default":{"properties":{"value":{"$ref":"#/$defs/numericValue"}}}}}
+},
+{
+ "if":{"properties":{"kind":{"const":"integer"}},"required":["kind"]},
+ "then":{"properties":{"default":{"properties":{"value":{"$ref":"#/$defs/integerValue"}}}}}
+},
+{
+ "if":{"properties":{"kind":{"not":{"enum":["text","boolean","quantity","percentage","integer","readonly_parameter"]}}},"required":["kind"]},
+ "then":{"properties":{"default":{"properties":{"value":{"anyOf":[{"type":"number"},{"$ref":"#/$defs/nonBlank"}]}}}}}
+}
 ]
 },
 "operation":{

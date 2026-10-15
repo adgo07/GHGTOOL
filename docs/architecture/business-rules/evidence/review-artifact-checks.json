@@ -1,0 +1,36 @@
+{
+  "candidate_only": true,
+  "review_projection_sha256": "94bb50db55157aa0f533b126e5c4bc725ac137ec4b8f1c6446938c8463a78588",
+  "review_json_file_sha256": "e208589ba1d444175a842173c6e266366097af68a2b1dbf288484ca19b2974e4",
+  "workbook_sha256": "8a463c46d3a9e19171a3194435f45c7fc463f24ed3cd84a72d863fb4c859370c",
+  "sheets": {
+    "字段与条件规则": 1090,
+    "操作与影响": 17,
+    "本次变化": 8
+  },
+  "freeze_panes": "D6",
+  "tables_and_status_validation": "one each per sheet",
+  "formulas": 0,
+  "error_cells": 0,
+  "maximum_cell_characters": 6380,
+  "feedback_test": {
+    "seeded": 6,
+    "retained_exactly": 6,
+    "deleted_definition_opinion_retained_in_changes": 1,
+    "all_three_sheets_reordered": true,
+    "literal_PENDING_unchanged": true,
+    "tested_review_projection_sha256": "ba49b6fd9d7606a323fb00399b2151a232ee98401b65d0a352fc955ea3973c8e"
+  },
+  "evaluation_states": {
+    "READY": 585,
+    "BLOCKED": 505
+  },
+  "problem_codes": {
+    "PENDING": 328,
+    "CONDITIONAL_LOCKING": 8,
+    "SOURCE_NOT_ALLOWED": 207,
+    "PENDING_LOCKING": 459,
+    "NO_LEGAL_SOURCES": 6
+  },
+  "native_office_validation": false
+}

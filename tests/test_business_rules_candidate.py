@@ -125,13 +125,14 @@ class CandidateLoaderTests(unittest.TestCase):
                     self.load_one(package(fields=[field(
                         "VALUE", kind=kind, default={"state": "FIXED", "value": value},
                     )]))
-        for value in ("1.5", "1e-1", 1.5):
+        for value in ("1.5", "1e-1", "100e-2", "1e-0", "1e+2", 1.5):
             with self.subTest(integer_value=value), self.assertRaisesRegex(CandidateBundleError, "integral"):
                 self.load_one(package(fields=[field(
                     "COUNT", kind="integer", default={"state": "FIXED", "value": value},
                 )]))
         accepted = self.load_one(package(fields=[
             field("COUNT", kind="integer", default={"state": "FIXED", "value": "1.000"}),
+            field("JSON_NUMBER_COUNT", kind="integer", default={"state": "FIXED", "value": 1.0}),
             field("AMOUNT", kind="quantity", default={"state": "FIXED", "value": "1.234567890123456789"}),
         ]))
         self.assertEqual(accepted.primary.document["fields"][0]["default"]["value"], "1.000")
@@ -150,6 +151,38 @@ class CandidateLoaderTests(unittest.TestCase):
                 policies=[policy],
             ))
 
+    def test_policy_branch_values_are_terminal_and_match_the_declared_property(self):
+        for property_name, field_property, nested_value in (
+            ("default", "default", {"state": "POLICY", "policy_id": "nested"}),
+            ("source_qualification", "source_qualification", {"state": "POLICY", "policy_id": "nested"}),
+        ):
+            with self.subTest(property=property_name), self.assertRaisesRegex(CandidateBundleError, "terminal; nested POLICY"):
+                self.load_one(package(
+                    fields=[field("FIELD", **{
+                        field_property: {"state": "POLICY", "policy_id": "outer"},
+                    })],
+                    policies=[{
+                        "id": "outer", "property": property_name, "strategy": "UNIQUE_CONTEXT_MATCH",
+                        "branches": [{
+                            "id": "branch", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                            "value": nested_value,
+                        }],
+                    }],
+                ))
+
+        mismatched = {
+            "id": "default-with-source-value", "property": "default",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                "id": "branch", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                "value": {"state": "FIXED", "values": ["MEASURED"]},
+            }],
+        }
+        with self.assertRaisesRegex(CandidateBundleError, "requires exactly"):
+            self.load_one(package(
+                fields=[field("FIELD", default={"state": "POLICY", "policy_id": mismatched["id"]})],
+                policies=[mismatched],
+            ))
+
     def test_no_legal_sources_and_pending_block_only_selected_field(self):
         doc = package(fields=[
             field("ELECTRICITY", source_qualification={"state": "PENDING", "reason": "Issue014 pending"}),
@@ -166,6 +199,260 @@ class CandidateLoaderTests(unittest.TestCase):
         self.assertEqual(fuel["status"], "READY")
         with self.assertRaisesRegex(CandidateBundleError, "unknown fields"):
             bundle.apply_context(field_ids=["UNREGISTERED"])
+
+    def test_no_legal_source_policy_blocks_only_its_field_and_keeps_reason(self):
+        policy = {
+            "id": "electricity-source", "property": "source_qualification",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                "id": "no-legal-source", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                "value": {"state": "NO_LEGAL_SOURCES", "reason": "No applicable electricity source is registered"},
+            }],
+        }
+        bundle = self.load_one(package(
+            fields=[
+                field("ELECTRICITY", source_qualification={"state": "POLICY", "policy_id": "electricity-source"}),
+                field("FUEL"),
+            ],
+            policies=[policy],
+        ))
+        electricity = bundle.apply_context({"origin": "CUSTOM"}, field_ids=["ELECTRICITY"])["outcomes"]["test.common:ELECTRICITY"]
+        fuel = bundle.apply_context(field_ids=["FUEL"])["outcomes"]["test.common:FUEL"]
+        self.assertEqual(electricity["status"], "BLOCKED")
+        self.assertEqual(electricity["source_qualification"]["status"], "NO_LEGAL_SOURCES")
+        self.assertEqual(electricity["source_qualification"]["message"], "No applicable electricity source is registered")
+        self.assertEqual(fuel["status"], "READY")
+
+    def test_provided_business_source_must_be_in_resolved_field_qualification(self):
+        source_policy = {
+            "id": "fgd-multi-source", "property": "source_qualification",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                "id": "CUSTOM_FGD_MEASURED",
+                "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                "value": {"state": "FIXED", "values": ["MEASURED"]},
+            }],
+        }
+        bundle = self.load_one(package(
+            fields=[
+                field("FGD_MULTI_GROUP_2", kind="quantity",
+                      source_qualification={"state": "POLICY", "policy_id": "fgd-multi-source"}),
+                field("FUEL_FIELD", source_qualification={"state": "FIXED", "values": ["STANDARD_DEFAULT"]}),
+                field("NO_SOURCE_FIELD", source_qualification={
+                    "state": "NOT_APPLICABLE", "reason": "No source selector applies",
+                }),
+                field("PENDING_SOURCE_FIELD", source_qualification={
+                    "state": "PENDING", "reason": "Source qualification needs evidence",
+                }),
+            ],
+            policies=[source_policy],
+        ))
+
+        illegal = bundle.apply_context(
+            {"origin": "CUSTOM", "business_source": "STANDARD_DEFAULT"},
+        )["outcomes"]
+        multi = illegal["test.common:FGD_MULTI_GROUP_2"]
+        self.assertEqual(multi["status"], "BLOCKED")
+        source_problem = next(problem for problem in multi["problems"] if problem["code"] == "SOURCE_NOT_ALLOWED")
+        self.assertEqual(source_problem["entry_key"], "test.common:FGD_MULTI_GROUP_2")
+        self.assertEqual(source_problem["property"], "source_qualification")
+        self.assertEqual(source_problem["business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(source_problem["allowed_sources"], ["MEASURED"])
+        self.assertEqual(illegal["test.common:FUEL_FIELD"]["status"], "READY")
+        self.assertEqual(illegal["test.common:NO_SOURCE_FIELD"]["status"], "READY")
+        pending = illegal["test.common:PENDING_SOURCE_FIELD"]
+        self.assertEqual(pending["status"], "BLOCKED")
+        self.assertNotIn("SOURCE_NOT_ALLOWED", {problem["code"] for problem in pending["problems"]})
+
+        no_source_context = bundle.apply_context(
+            {"origin": "CUSTOM"}, field_ids=["FGD_MULTI_GROUP_2"],
+        )["outcomes"]["test.common:FGD_MULTI_GROUP_2"]
+        self.assertEqual(no_source_context["status"], "READY")
+        allowed = bundle.apply_context(
+            {"origin": "CUSTOM", "business_source": "MEASURED"}, field_ids=["FGD_MULTI_GROUP_2"],
+        )["outcomes"]["test.common:FGD_MULTI_GROUP_2"]
+        self.assertEqual(allowed["status"], "READY")
+
+    def test_locking_policy_expands_joint_conditions_and_resolves_concrete_states(self):
+        default_policy = {
+            "id": "default-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [
+                {"id": "DEFAULT_CUSTOM", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                 "value": {"state": "FIXED", "value": "custom default"}},
+                {"id": "DEFAULT_CATALOG", "when": {"tags": {"origin": "CATALOG"}, "ranges": {}},
+                 "value": {"state": "FIXED", "value": "catalog default"}},
+            ],
+        }
+        source_policy = {
+            "id": "source-policy", "property": "source_qualification", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [
+                {"id": "SOURCE_CUSTOM", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                 "value": {"state": "FIXED", "values": ["MEASURED"]}},
+                {"id": "SOURCE_CATALOG", "when": {"tags": {"origin": "CATALOG"}, "ranges": {}},
+                 "value": {"state": "FIXED", "values": ["STANDARD_DEFAULT"]}},
+            ],
+        }
+        locking_policy = {
+            "id": "parameter-locking", "property": "locking", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "MEASURED_LOCKING",
+                "when": {"tags": {"business_source": "MEASURED"}, "ranges": {}},
+                "value": {
+                    "value": {"state": "EDITABLE", "reason": "Measured values are editable"},
+                    "source": {"state": "LOCKED", "reason": "Source identity is retained"},
+                },
+            }],
+        }
+        policies = [default_policy, source_policy, locking_policy]
+        bundle = self.load_one(package(
+            fields=[field(
+                "PARAMETER", kind="text",
+                default={"state": "POLICY", "policy_id": "default-policy"},
+                source_qualification={"state": "POLICY", "policy_id": "source-policy"},
+                locking={"state": "POLICY", "policy_id": "parameter-locking"},
+            )],
+            policies=policies,
+        ))
+        evaluated = bundle.apply_context(
+            {"origin": "CUSTOM", "business_source": "MEASURED"}, field_ids=["PARAMETER"],
+        )["outcomes"]["test.common:PARAMETER"]
+        self.assertEqual(evaluated["status"], "READY")
+        self.assertEqual(evaluated["locking"]["value"]["state"], "EDITABLE")
+        self.assertEqual(evaluated["locking"]["source"]["state"], "LOCKED")
+        unresolved = bundle.apply_context(field_ids=["PARAMETER"])["outcomes"]["test.common:PARAMETER"]
+        self.assertEqual(unresolved["locking_outcome"]["status"], "MISSING_CONTEXT")
+        self.assertEqual(unresolved["status"], "BLOCKED")
+
+        rows = bundle.review_rows()["fields"]
+        self.assertEqual(len(rows), 2)
+        resolved_rows = [row for row in rows if row["condition_status"] == "INTERSECTED"]
+        self.assertEqual(len(resolved_rows), 2)
+        for row in resolved_rows:
+            self.assertEqual(set(row["condition_ids"]), {"default", "source_qualification", "locking"})
+            self.assertIn("test.common|r1|PARAMETER|COMBINED|", row["review_key"])
+            self.assertEqual(row["locking_outcome"]["status"], "RESOLVED")
+            self.assertEqual(row["locking"]["value"]["state"], "EDITABLE")
+            if row["condition_ids"]["source_qualification"] == "SOURCE_CUSTOM":
+                self.assertEqual(row["evaluation_status"], "READY")
+            else:
+                self.assertEqual(row["evaluation_status"], "BLOCKED")
+                self.assertIn("SOURCE_NOT_ALLOWED", {
+                    problem["code"] for problem in row["evaluation_problems"]
+                })
+
+    def test_review_reports_each_uncomposable_branch_once(self):
+        default_policy = {
+            "id": "default-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [
+                {"id": "CUSTOM", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                 "value": {"state": "FIXED", "value": "custom"}},
+                {"id": "CATALOG", "when": {"tags": {"origin": "CATALOG"}, "ranges": {}},
+                 "value": {"state": "FIXED", "value": "catalog"}},
+            ],
+        }
+        source_policy = {
+            "id": "source-policy", "property": "source_qualification", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "CUSTOM_SOURCE", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                "value": {"state": "FIXED", "values": ["MEASURED"]},
+            }],
+        }
+        bundle = self.load_one(package(
+            fields=[field("FIELD", kind="text",
+                          default={"state": "POLICY", "policy_id": "default-policy"},
+                          source_qualification={"state": "POLICY", "policy_id": "source-policy"})],
+            policies=[default_policy, source_policy],
+        ))
+        rows = bundle.review_rows()["fields"]
+        diagnostics = [row for row in rows if row["condition_status"] == "UNCOMPOSABLE_BRANCH"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(diagnostics), 1)
+        self.assertEqual(diagnostics[0]["uncomposable_branch"]["branch_id"], "CATALOG")
+        self.assertEqual(diagnostics[0]["condition"]["tags"], {"origin": "CATALOG"})
+        self.assertEqual(diagnostics[0]["condition_ids"], {"default": "CATALOG"})
+        self.assertEqual(diagnostics[0]["evaluation_status"], "UNCOMPOSABLE_BRANCH")
+
+    def test_condition_intersection_respects_open_range_boundaries(self):
+        bundle = self.load_one(package())
+        empty_count, error = bundle._intersect_conditions([
+            {"tags": {}, "ranges": {"carbonate_component_count": {"min": "1", "include_min": False}}},
+            {"tags": {}, "ranges": {"carbonate_component_count": {"max": "2", "include_max": False}}},
+        ])
+        self.assertIsNone(empty_count)
+        self.assertIn("no non-negative integer", error)
+        integer_overlap, error = bundle._intersect_conditions([
+            {"tags": {}, "ranges": {"carbonate_component_count": {"min": "1", "include_min": False}}},
+            {"tags": {}, "ranges": {"carbonate_component_count": {"max": "3", "include_max": False}}},
+        ])
+        self.assertIsNone(error)
+        representative = bundle._representative_context(integer_overlap)
+        self.assertEqual(representative["carbonate_component_count"], Decimal("2"))
+        self.assertEqual(representative["carbonate_component_count"] % 1, 0)
+        empty, error = bundle._intersect_conditions([
+            {"tags": {}, "ranges": {"carbonate_component_count": {"min": "2.000", "include_min": False}}},
+            {"tags": {}, "ranges": {"carbonate_component_count": {"max": "2", "include_max": True}}},
+        ])
+        self.assertIsNone(empty)
+        self.assertIn("boundary is excluded", error)
+        for invalid_count in (Decimal("1.5"), Decimal("-1")):
+            with self.subTest(count=invalid_count), self.assertRaisesRegex(CandidateBundleError, "non-negative integer count"):
+                bundle.apply_context({"carbonate_component_count": invalid_count})
+
+    def test_count_range_conditions_require_nonnegative_integer_domain(self):
+        policy = {
+            "id": "count-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "empty-integer-interval",
+                "when": {"tags": {}, "ranges": {"carbonate_component_count": {
+                    "min": "1", "include_min": False, "max": "2", "include_max": False,
+                }}},
+                "value": {"state": "FIXED", "value": "x"},
+            }],
+        }
+        with self.assertRaisesRegex(CandidateBundleError, "no non-negative integer"):
+            self.load_one(package(
+                fields=[field("COUNTED", kind="text", default={"state": "POLICY", "policy_id": "count-policy"})],
+                policies=[policy],
+            ))
+
+        policy["branches"][0]["when"]["ranges"]["carbonate_component_count"]["min"] = "1.5"
+        with self.assertRaisesRegex(CandidateBundleError, "non-negative integer literals"):
+            self.load_one(package(
+                fields=[field("COUNTED", kind="text", default={"state": "POLICY", "policy_id": "count-policy"})],
+                policies=[policy],
+            ))
+
+    def test_explicit_empty_text_default_is_distinct_from_missing_and_nontext_blank(self):
+        direct = self.load_one(package(fields=[field(
+            "EMPTY_TEXT", kind="text", default={"state": "FIXED", "value": ""},
+        )]))
+        outcome = direct.apply_context()["outcomes"]["test.common:EMPTY_TEXT"]
+        self.assertEqual(outcome["status"], "READY")
+        self.assertEqual(outcome["default"]["value"]["value"], "")
+        policy = {
+            "id": "empty-text", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "empty", "when": {"tags": {"origin": "CUSTOM"}, "ranges": {}},
+                "value": {"state": "FIXED", "value": ""},
+            }],
+        }
+        policy_bundle = self.load_one(package(
+            fields=[field("POLICY_EMPTY_TEXT", kind="text", default={"state": "POLICY", "policy_id": "empty-text"})],
+            policies=[policy],
+        ))
+        policy_outcome = policy_bundle.apply_context({"origin": "CUSTOM"})["outcomes"]["test.common:POLICY_EMPTY_TEXT"]
+        self.assertEqual(policy_outcome["default"]["value"]["value"], "")
+        for kind in ("enum", "quantity", "integer", "boolean"):
+            with self.subTest(kind=kind), self.assertRaises(CandidateBundleError):
+                self.load_one(package(fields=[field(kind, kind=kind, default={"state": "FIXED", "value": ""})]))
+        with self.assertRaises(CandidateBundleError):
+            self.load_one(package(fields=[field("WHITESPACE", kind="text", default={"state": "FIXED", "value": " "})]))
+
+    def test_review_json_serializes_large_integers_as_exact_strings(self):
+        from packages.application.business_rules_candidate import _json_safe
+        self.assertEqual(_json_safe(2**53), str(2**53))
+        self.assertEqual(_json_safe(-(2**80)), str(-(2**80)))
+        self.assertEqual(_json_safe(2**53 - 1), 2**53 - 1)
+        self.assertIs(_json_safe(True), True)
+        self.assertEqual(_json_safe({"large": 2**53}), {"large": str(2**53)})
 
     def test_bare_field_id_is_ambiguous_across_selected_packages(self):
         common = package(
@@ -209,12 +496,12 @@ class CandidateLoaderTests(unittest.TestCase):
         with self.assertRaisesRegex(CandidateBundleError, "context key is not registered"):
             self.load_one(package(fields=[field("F", source_qualification={"state": "POLICY", "policy_id": "p"})], policies=[typo]))
 
-    def test_review_exports_condition_and_decimal_representative_ignores_ambient_precision(self):
+    def test_review_exports_integer_count_condition_and_representative_ignores_ambient_precision(self):
         condition = {
             "tags": {"binding_status": "ABSENT"},
             "ranges": {"carbonate_component_count": {
-                "min": "1.0000000000000000000000000000000001", "include_min": False,
-                "max": "1.0000000000000000000000000000000003", "include_max": False,
+                "min": "1", "include_min": False,
+                "max": "3", "include_max": False,
             }},
         }
         policy = {
@@ -228,6 +515,8 @@ class CandidateLoaderTests(unittest.TestCase):
             context.prec = 2
             rows = bundle.review_rows()["fields"]
         self.assertEqual(rows[0]["condition"], condition)
+        self.assertEqual(rows[0]["condition"]["ranges"]["carbonate_component_count"]["min"], "1")
+        self.assertEqual(rows[0]["condition"]["ranges"]["carbonate_component_count"]["max"], "3")
         self.assertEqual(rows[0]["default"]["value"], "matched")
         self.assertEqual(rows[0]["evaluation_status"], "READY")
         self.assertTrue(all(p["entry_key"] == "test.common:F" for p in rows[0]["evaluation_problems"]))
