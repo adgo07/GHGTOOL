@@ -134,3 +134,24 @@ class CandidateBusinessPathTests(unittest.TestCase):
                         "选择实测/计算后不得把目录缺省当作当前来源默认值")
                     self.assertEqual(out["locking"]["value"]["state"],"EDITABLE")
                     self.assertEqual(out["status"],"READY")
+
+    def test_verified_binding_keeps_identity_when_software_applicability_is_pending(self):
+        cases=[
+            ("2","electricity_emission_factor_regional_average","binding-electricity_regional_average_2023_01","CONVENTIONAL",{"region":"华北"}),
+            ("4","electricity_emission_factor_national_average_excluding_market_nonfossil","binding-electricity_national_average_excluding_market_nonfossil_2023_01","CONVENTIONAL",{}),
+            ("5","electricity_emission_factor_national_fossil","binding-electricity_national_fossil_2023_01","FOSSIL",{}),
+        ]
+        for table,parameter,binding,attribute,extra in cases:
+            for direction in ("PURCHASED","EXPORTED"):
+                with self.subTest(table=table,direction=direction):
+                    context=dict(origin="CATALOG",binding_status="VERIFIED",business_source="STANDARD_DEFAULT",
+                        source_path="CATALOGUE_TABLE_"+table,parameter_id=parameter,binding_id=binding,
+                        catalog_table=table,direction=direction,**extra)
+                    if direction=="PURCHASED":context["attribute"]=attribute
+                    out=self.outcome("electricity.factor",**context)
+                    self.assertEqual(out["status"],"BLOCKED")
+                    for prop in ("default","source_qualification"):
+                        self.assertEqual(out[prop]["status"],"PENDING")
+                        self.assertIn(binding,out[prop]["condition_id"],
+                            "来源登记VERIFIED应保留精确绑定，不得退成缺绑定兜底")
+                        self.assertIn("PR46",out[prop]["value"]["reason"])

@@ -4774,7 +4774,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -4796,7 +4796,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -4817,7 +4817,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -4839,7 +4839,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -4860,7 +4860,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -4882,7 +4882,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -4903,7 +4903,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -4925,7 +4925,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -4946,7 +4946,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -4968,7 +4968,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -4989,7 +4989,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -5011,7 +5011,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -5032,7 +5032,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -5054,7 +5054,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -6365,7 +6365,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -6386,7 +6386,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -6406,7 +6406,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -6427,7 +6427,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -6839,7 +6839,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -6860,7 +6860,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -6881,7 +6881,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -6901,7 +6901,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -6921,7 +6921,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -6942,7 +6942,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -6963,7 +6963,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -6983,7 +6983,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7003,7 +7003,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7024,7 +7024,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7045,7 +7045,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7065,7 +7065,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7085,7 +7085,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7106,7 +7106,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7127,7 +7127,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7147,7 +7147,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7167,7 +7167,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7188,7 +7188,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7209,7 +7209,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7229,7 +7229,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7249,7 +7249,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7270,7 +7270,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7291,7 +7291,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7311,7 +7311,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7331,7 +7331,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7352,7 +7352,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -7373,7 +7373,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -7393,7 +7393,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -9873,7 +9873,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -9893,7 +9893,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -9913,7 +9913,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -9932,7 +9932,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -9951,7 +9951,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -9971,7 +9971,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -9991,7 +9991,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -10010,7 +10010,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -10671,7 +10671,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10692,7 +10692,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10712,7 +10712,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10733,7 +10733,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10753,7 +10753,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10774,7 +10774,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10794,7 +10794,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10815,7 +10815,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10835,7 +10835,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10856,7 +10856,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10876,7 +10876,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10897,7 +10897,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -10917,7 +10917,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -10938,7 +10938,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -12308,7 +12308,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -12328,7 +12328,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -12347,7 +12347,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -12367,7 +12367,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -20617,7 +20617,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20645,7 +20645,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20673,7 +20673,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20701,7 +20701,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20728,7 +20728,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20755,7 +20755,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20782,7 +20782,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20810,7 +20810,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20838,7 +20838,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20866,7 +20866,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20893,7 +20893,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20920,7 +20920,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -20947,7 +20947,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -20975,7 +20975,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21003,7 +21003,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21031,7 +21031,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21058,7 +21058,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21085,7 +21085,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21112,7 +21112,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21140,7 +21140,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21168,7 +21168,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21196,7 +21196,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21223,7 +21223,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21250,7 +21250,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21277,7 +21277,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21305,7 +21305,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21333,7 +21333,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21361,7 +21361,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21388,7 +21388,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21415,7 +21415,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21442,7 +21442,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21470,7 +21470,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21498,7 +21498,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21526,7 +21526,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21553,7 +21553,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21580,7 +21580,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21607,7 +21607,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21635,7 +21635,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21663,7 +21663,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -21691,7 +21691,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21718,7 +21718,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -21745,7 +21745,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_2",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_regional_average",
@@ -26722,7 +26722,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -26749,7 +26749,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -26776,7 +26776,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "PURCHASED",
               "attribute": "CONVENTIONAL",
@@ -26803,7 +26803,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -26829,7 +26829,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -26855,7 +26855,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_4",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil",
@@ -26881,7 +26881,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -26908,7 +26908,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -26935,7 +26935,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "PURCHASED",
               "attribute": "FOSSIL",
@@ -26962,7 +26962,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -26988,7 +26988,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
@@ -27014,7 +27014,7 @@
           "when": {
             "tags": {
               "origin": "CATALOG",
-              "binding_status": "PENDING",
+              "binding_status": "VERIFIED",
               "source_path": "CATALOGUE_TABLE_5",
               "direction": "EXPORTED",
               "parameter_id": "electricity_emission_factor_national_fossil",
