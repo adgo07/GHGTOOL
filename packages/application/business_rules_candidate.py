@@ -3,6 +3,11 @@
 This module is intentionally not imported by production application modules. It
 validates a fixed candidate bundle and delegates rule composition to the existing
 G05 domain resolver without changing its production defaults.
+
+CandidateBundle.initialize_context() is a read-only initialization probe. It accepts
+only NEW_SELECTION, CONFIRMED_IDENTITY_CHANGE, and RESELECT_AFTER_LEAVE; restore,
+import, blur, refresh, and same-identity confirmation must preserve current sources.
+It does not implement or connect a production UI lifecycle/state machine.
 """
 from __future__ import annotations
 
@@ -35,6 +40,12 @@ from packages.core import (
 SCHEMA_VERSION = "1.2"
 _TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
 _SOURCE_STATES = {"STANDARD_DEFAULT", "CALCULATED", "MEASURED"}
+_INITIALIZATION_TRIGGERS = {
+    "NEW_SELECTION", "CONFIRMED_IDENTITY_CHANGE", "RESELECT_AFTER_LEAVE",
+}
+_NON_INITIALIZATION_TRIGGERS = {
+    "RESTORE", "IMPORT", "CONFIRM_SAME_IDENTITY", "BLUR", "REFRESH_CANDIDATES",
+}
 _LOCK_STATES = {"EDITABLE", "LOCKED", "CONDITIONAL", "NOT_APPLICABLE", "PENDING"}
 _PACKAGE_KINDS = {"COMMON", "INDUSTRY", "SOFTWARE"}
 _FIELD_KINDS = {"text", "quantity", "percentage", "integer", "enum", "boolean",
@@ -93,12 +104,18 @@ _SOURCE_SHAPES = {
     "POLICY": {"state", "policy_id"},
     "PENDING": {"state", "reason"},
 }
+_DEFAULT_SOURCE_SHAPES = {
+    "NONE": {"state", "reason"},
+    "FIXED": {"state", "source", "reason"},
+    "POLICY": {"state", "policy_id"},
+    "PENDING": {"state", "reason"},
+}
 _PACKAGE_FIELDS = {
     "schema_version", "rule_set_id", "kind", "revision", "base", "dependency", "status",
     "groups", "adopts", "rules", "policies", "fields", "operations", "changes",
 }
 _FIELD_KEYS = {
-    "id", "name", "kind", "unit", "source_qualification", "default", "locking",
+    "id", "name", "kind", "unit", "source_qualification", "default_source", "default", "locking",
     "channel_projections", "basis", "consumers", "cases", "pending", "rule_ids",
 }
 _OPERATION_KEYS = {
@@ -324,6 +341,24 @@ def _validate_state(value: Any, path: str, *, source: bool = False,
     return dict(obj)
 
 
+def _validate_default_source(value: Any, path: str, *, allow_policy: bool = True) -> dict[str, Any]:
+    obj = _object(value, path)
+    state = _enum(obj.get("state"), _DEFAULT_SOURCE_SHAPES, f"{path}.state")
+    expected = _DEFAULT_SOURCE_SHAPES[state]
+    if set(obj) != expected:
+        _fail(path, f"state {state} requires exactly: {', '.join(sorted(expected))}")
+    if state in {"NONE", "PENDING"}:
+        _text(obj["reason"], f"{path}.reason")
+    elif state == "FIXED":
+        _enum(obj["source"], _SOURCE_STATES, f"{path}.source")
+        _text(obj["reason"], f"{path}.reason")
+    elif state == "POLICY":
+        if not allow_policy:
+            _fail(path, "default_source policy branches must be terminal; nested POLICY is not supported")
+        _token(obj["policy_id"], f"{path}.policy_id")
+    return dict(obj)
+
+
 def _validate_locking(value: Any, path: str, *, allow_policy: bool = True) -> dict[str, Any]:
     obj = _object(value, path)
     if obj.get("state") == "POLICY":
@@ -404,7 +439,7 @@ def _validate_when(value: Any, path: str) -> dict[str, Any]:
 def _validate_policy(value: Any, path: str) -> dict[str, Any]:
     obj = _keys(value, {"id", "property", "strategy", "branches"}, path)
     policy_id = _token(obj["id"], f"{path}.id")
-    property_name = _enum(obj["property"], {"default", "source_qualification", "locking"}, f"{path}.property")
+    property_name = _enum(obj["property"], {"default_source", "default", "source_qualification", "locking"}, f"{path}.property")
     strategy = _enum(obj["strategy"], {"UNIQUE_CONTEXT_MATCH"}, f"{path}.strategy")
     if not isinstance(obj["branches"], list) or not obj["branches"]:
         _fail(f"{path}.branches", "must be a non-empty array")
@@ -419,6 +454,8 @@ def _validate_policy(value: Any, path: str) -> dict[str, Any]:
         seen.add(branch_id)
         if property_name == "locking":
             outcome = _validate_locking(branch["value"], f"{branch_path}.value", allow_policy=False)
+        elif property_name == "default_source":
+            outcome = _validate_default_source(branch["value"], f"{branch_path}.value", allow_policy=False)
         else:
             outcome = _validate_state(branch["value"], f"{branch_path}.value",
                                       source=property_name == "source_qualification",
@@ -426,7 +463,10 @@ def _validate_policy(value: Any, path: str) -> dict[str, Any]:
                                       allow_empty_string=property_name == "default")
             if outcome["state"] == "POLICY":
                 _fail(f"{branch_path}.value.state", "policy branch values must be terminal; nested POLICY is not supported")
-        branches.append({"id": branch_id, "when": _validate_when(branch["when"], f"{branch_path}.when"),
+        when = _validate_when(branch["when"], f"{branch_path}.when")
+        if property_name == "default_source" and "business_source" in when["tags"]:
+            _fail(f"{branch_path}.when.tags.business_source", "default_source policy cannot depend on the source it selects")
+        branches.append({"id": branch_id, "when": when,
                          "value": outcome})
     return {"id": policy_id, "property": property_name, "strategy": strategy, "branches": branches}
 
@@ -855,6 +895,7 @@ class CandidateBundle:
             local_problems: list[dict[str, Any]] = []
             state_map: dict[str, Any] = {}
             for property_name, source in (
+                ("default_source", field["default_source"]),
                 ("default", field["default"]),
                 ("source_qualification", field["source_qualification"]),
             ):
@@ -872,7 +913,9 @@ class CandidateBundle:
                         "policy_id": None, "message": source.get("reason"),
                     }
                 state_map[property_name] = outcome
-                if outcome["status"] != "RESOLVED":
+                # A default source is a candidate for explicit initialization. It is
+                # informational here and never changes or gates an existing context.
+                if property_name != "default_source" and outcome["status"] != "RESOLVED":
                     local_problems.append({
                         "code": outcome["status"], "entry_key": entry_key, "field_id": field_id,
                         "rule_set_id": package.rule_set_id, "property": property_name,
@@ -934,6 +977,140 @@ class CandidateBundle:
                 "problems": local_problems,
             }
         return {"status": overall, "outcomes": outcomes, "problems": problems}
+
+    def initialize_context(
+        self,
+        context: Mapping[str, Any] | None = None,
+        *,
+        field_ids: Iterable[str],
+        event: str,
+    ) -> dict[str, Any]:
+        """Evaluate an explicit new-selection source initialization without mutating production state.
+
+Only a true new selection, confirmed identity change, or explicit re-selection
+after leaving may use this candidate helper. Restore/import/refresh/blur and
+same-identity confirmation are deliberately rejected. A pre-existing source
+is preserved for NEW_SELECTION; identity-change and re-selection events require
+a fresh target context so a stale source cannot carry over.
+        """
+        if isinstance(event, str) and event in _NON_INITIALIZATION_TRIGGERS:
+            raise CandidateBundleError(f"event {event!r} must preserve existing source; initialization is forbidden")
+        event = _enum(event, _INITIALIZATION_TRIGGERS, "event")
+        requested_ids = tuple(field_ids)
+        if not requested_ids:
+            raise CandidateBundleError("field_ids: initialization requires at least one field")
+        current = {} if context is None else _object(dict(context), "context")
+        if (
+            "business_source" in current
+            and event in {"CONFIRMED_IDENTITY_CHANGE", "RESELECT_AFTER_LEAVE"}
+        ):
+            raise CandidateBundleError(
+                "PREEXISTING_SOURCE_REQUIRES_TARGET_CONTEXT: identity change and re-selection "
+                "must evaluate a fresh target context without a carried-over business_source"
+            )
+
+        # Reuse apply_context for strict context validation, field selection, source
+        # qualification and downstream resolution. This probe is read-only.
+        initial = self.apply_context(current, field_ids=requested_ids)
+        entries_by_key = {
+            f"{package.rule_set_id}:{field['id']}": (package, field)
+            for package, field in self._field_entries()
+        }
+        result: dict[str, Any] = {}
+        problems: list[dict[str, Any]] = []
+        for entry_key, initial_outcome in initial["outcomes"].items():
+            package, field = entries_by_key[entry_key]
+            default_outcome = initial_outcome["default_source"]
+            local_problems: list[dict[str, Any]] = []
+            candidate_source: str | None = None
+            selected_source: str | None = None
+            effective_context = dict(current)
+            evaluated_context = dict(current)
+
+            if "business_source" in current:
+                init_status = "PRESERVED"
+                selected_source = current["business_source"]
+                application = initial_outcome
+            elif default_outcome["status"] != "RESOLVED":
+                init_status = default_outcome["status"]
+                application = initial_outcome
+            else:
+                default_value = default_outcome.get("value")
+                state = default_value.get("state") if isinstance(default_value, Mapping) else None
+                if state == "NONE":
+                    init_status = "NO_AUTOMATIC_SOURCE"
+                    application = initial_outcome
+                elif state != "FIXED":
+                    init_status = "BLOCKED"
+                    application = initial_outcome
+                    local_problems.append({
+                        "code": "INVALID_DEFAULT_SOURCE_OUTCOME", "entry_key": entry_key,
+                        "field_id": field["id"], "rule_set_id": package.rule_set_id,
+                        "message": "default_source did not resolve to a terminal NONE or FIXED state",
+                    })
+                else:
+                    candidate_source = default_value["source"]
+                    candidate_context = dict(current)
+                    candidate_context["business_source"] = candidate_source
+                    evaluated_context = candidate_context
+                    application = self.apply_context(candidate_context, field_ids=[entry_key])["outcomes"][entry_key]
+                    qualification = application["source_qualification"]
+                    qualification_value = qualification.get("value")
+                    if (
+                        qualification["status"] == "RESOLVED"
+                        and isinstance(qualification_value, Mapping)
+                        and qualification_value.get("state") == "FIXED"
+                        and candidate_source in qualification_value["values"]
+                    ):
+                        init_status = "INITIALIZED"
+                        selected_source = candidate_source
+                        effective_context = candidate_context
+                    else:
+                        init_status = "BLOCKED"
+                        if (
+                            qualification["status"] == "RESOLVED"
+                            and isinstance(qualification_value, Mapping)
+                            and qualification_value.get("state") == "FIXED"
+                        ):
+                            code = "SOURCE_NOT_ALLOWED"
+                            message = (
+                                f"default source {candidate_source!r} is not among the field's legal sources "
+                                f"{qualification_value['values']!r}"
+                            )
+                        else:
+                            code = "SOURCE_QUALIFICATION_NOT_FIXED"
+                            message = qualification.get("message") or (
+                                "source initialization requires a resolved FIXED source qualification"
+                            )
+                        local_problems.append({
+                            "code": code, "entry_key": entry_key, "field_id": field["id"],
+                            "rule_set_id": package.rule_set_id, "property": "default_source",
+                            "candidate_business_source": candidate_source,
+                            "allowed_sources": (
+                                list(qualification_value["values"])
+                                if isinstance(qualification_value, Mapping)
+                                and qualification_value.get("state") == "FIXED" else None
+                            ),
+                            "message": message,
+                        })
+
+            problems.extend(local_problems)
+            result[entry_key] = {
+                "initialization_status": init_status,
+                "selected_business_source": selected_source,
+                "candidate_business_source": candidate_source,
+                "effective_context": effective_context,
+                "evaluated_context": evaluated_context,
+                "default_source": default_outcome,
+                "application": application,
+                "problems": local_problems,
+            }
+        return {
+            "status": "INITIALIZATION_EVALUATED",
+            "event": event,
+            "outcomes": result,
+            "problems": problems,
+        }
 
     def _representative_context(self, when: Mapping[str, Any]) -> dict[str, Any]:
         result: dict[str, Any] = dict(when["tags"])
@@ -1024,7 +1201,7 @@ class CandidateBundle:
         }
         for package, field in selected_entries:
             policies_by_property: dict[str, Mapping[str, Any]] = {}
-            for prop in ("default", "source_qualification", "locking"):
+            for prop in ("default_source", "default", "source_qualification", "locking"):
                 source = field[prop]
                 if source.get("state") == "POLICY":
                     policies_by_property[prop] = self._policy(package, source["policy_id"])
@@ -1040,6 +1217,20 @@ class CandidateBundle:
                 combined_when: dict[str, Any],
             ) -> None:
                 if index == len(property_order):
+                    default_source = field["default_source"]
+                    if default_source["state"] == "POLICY":
+                        default_source = chosen["default_source"]["value"]
+                    if (
+                        default_source.get("state") == "FIXED"
+                        and "business_source" not in combined_when["tags"]
+                    ):
+                        merged_when, conflict = self._intersect_conditions([
+                            combined_when,
+                            {"tags": {"business_source": default_source["source"]}, "ranges": {}},
+                        ])
+                        if conflict is not None:
+                            return
+                        combined_when = merged_when or {"tags": {}, "ranges": {}}
                     compatible_scenarios.append((dict(chosen), combined_when))
                     for chosen_prop, chosen_branch in chosen.items():
                         participating[chosen_prop].add(chosen_branch["id"])
@@ -1096,6 +1287,7 @@ class CandidateBundle:
                         "message": uncomposable["reason"],
                     }]
                     default_value = dict(field["default"])
+                    default_source_value = dict(field["default_source"])
                     source_value = dict(field["source_qualification"])
                     locking_value = dict(field["locking"])
                     locking_outcome = {
@@ -1106,9 +1298,28 @@ class CandidateBundle:
                     evaluation_status = "UNCOMPOSABLE_BRANCH"
                 else:
                     context = self._representative_context(merged_when or {"tags": {}, "ranges": {}})
-                    applied = self.apply_context(context, field_ids=[entry_key])
-                    outcome = applied["outcomes"][entry_key]
+                    source_conditions_are_explicit = any(
+                        branch["when"]["tags"].get("business_source") is not None
+                        for branch in branches_by_property.values()
+                    )
+                    selected_default_source = field["default_source"]
+                    if selected_default_source["state"] == "POLICY":
+                        selected_default_source = branches_by_property["default_source"]["value"]
+                    if (
+                        selected_default_source.get("state") == "FIXED"
+                        and not source_conditions_are_explicit
+                    ):
+                        # Let initialize_context exercise the candidate default-source
+                        # path; the source in the review condition is derived evidence.
+                        context.pop("business_source", None)
+                    initialized = self.initialize_context(
+                        context, field_ids=[entry_key], event="NEW_SELECTION",
+                    )
+                    initialization = initialized["outcomes"][entry_key]
+                    outcome = initialization["application"]
                     field_problems = outcome["problems"]
+                    field_problems = [*field_problems, *initialization["problems"]]
+                    default_source_value = outcome["default_source"]["value"]
                     default_value = outcome["default"]["value"]
                     source_value = outcome["source_qualification"]["value"]
                     locking_value = outcome["locking"]
@@ -1170,6 +1381,17 @@ class CandidateBundle:
                     "property": review_property,
                     "name": field["name"], "kind": field["kind"], "unit": field["unit"],
                     "source": source_value, "default": default_value,
+                    "default_source": default_source_value,
+                    "initialization_status": (
+                        "UNCOMPOSABLE_BRANCH" if uncomposable
+                        else initialization["initialization_status"]
+                    ),
+                    "selected_business_source": (
+                        None if uncomposable else initialization["selected_business_source"]
+                    ),
+                    "effective_context": (
+                        None if uncomposable else initialization["effective_context"]
+                    ),
                     "locking": locking_value, "locking_outcome": locking_outcome,
                     "channels": field["channel_projections"],
                     "basis": list(field["basis"]), "consumers": list(field["consumers"]),
@@ -1336,6 +1558,7 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
                                   allow_empty_string=field_kind == "text")
         _validate_default_for_kind(default, f"{item_path}.default.value", field_kind)
         _validate_state(field["source_qualification"], f"{item_path}.source_qualification", source=True)
+        _validate_default_source(field["default_source"], f"{item_path}.default_source")
         locking = _validate_locking(field["locking"], f"{item_path}.locking")
         if not isinstance(field["channel_projections"], list) or not field["channel_projections"]:
             _fail(f"{item_path}.channel_projections", "must be a non-empty array")
@@ -1355,14 +1578,13 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
             _string_array(field[name], f"{item_path}.{name}", minimum=1)
         _string_array(field["pending"], f"{item_path}.pending")
         _string_array(field["rule_ids"], f"{item_path}.rule_ids", tokens=True)
-        for state_name in ("default", "source_qualification"):
+        for state_name in ("default_source", "default", "source_qualification"):
             value_state = field[state_name]
             if value_state["state"] == "POLICY":
                 policy = policies.get(value_state["policy_id"])
                 if policy is None:
                     _fail(f"{item_path}.{state_name}.policy_id", "references unknown local policy")
-                expected_property = "default" if state_name == "default" else "source_qualification"
-                if policy["property"] != expected_property:
+                if policy["property"] != state_name:
                     _fail(f"{item_path}.{state_name}.policy_id", "policy property does not match field state")
                 if state_name == "default":
                     for branch in policy["branches"]:
@@ -1568,7 +1790,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 json.dumps(_json_safe(bundle.review_rows()), ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
-        else:
+        if args.review_json is None:
             review = bundle.review_rows()
             print(json.dumps({
                 "status": "VALID", "primary_rule_set_id": bundle.primary.rule_set_id,

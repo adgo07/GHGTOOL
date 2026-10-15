@@ -31,7 +31,7 @@ if(previous){
   }
 }
 const objectLabels={state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本实例组分数",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
-const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"标准缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"已核验适用",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法"};
+const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法"};
 function literalCell(value){ const raw=String(value??""); return raw.startsWith("=")?"'"+raw:raw; }
 function text(value){
   if(value===null || value===undefined) return "";
@@ -41,7 +41,7 @@ function text(value){
   const literal=stateLabels[raw]?`${stateLabels[raw]}（${raw}）`:raw;
   return literal.startsWith("=")?"'"+literal:literal;
 }
-const labels={key:"稳定审阅键",review_key:"稳定审阅键",revision:"规则修订",field_id:"字段ID",condition_id:"条件ID",condition:"条件与边界",context:"求值上下文",property:"属性",name:"业务名称",kind:"字段类型",unit:"单位",source:"允许来源",locking:"读写与来源锁定",source_qualification:"合法来源",default:"默认及绑定",channels:"渠道投影",channel_projections:"渠道名称与单位",basis:"依据",consumers:"实际消费者",cases:"案例",pending:"待处理项",operation_id:"操作ID",initial_context:"初始上下文",action:"触发动作",changes:"改变什么",preserves:"保留什么",invalidates:"失效依赖",confirmation:"重新确认",change_type:"变化类型",before:"基线",after:"候选",reason:"原因",rule_set_id:"规则集ID",policy_id:"策略ID",rule_ids:"关联规则",evaluation_status:"候选求值状态",evaluation_problems:"候选求值问题",definition_key:"原定义键",scope_note:"范围说明",projection_notes:"渠道约束与补充说明",visibility:"可见性盘点"};
+const labels={key:"稳定审阅键",review_key:"稳定审阅键",revision:"规则修订",field_id:"字段ID",condition_id:"条件ID",condition:"条件与边界",context:"求值上下文",property:"属性",name:"业务名称",kind:"字段类型",unit:"单位",source:"允许来源",locking:"读写与来源锁定",source_qualification:"合法来源",default:"数值默认及绑定",default_source:"默认来源",channels:"渠道投影",channel_projections:"渠道名称与单位",basis:"依据",consumers:"实际消费者",cases:"案例",pending:"待处理项",operation_id:"操作ID",initial_context:"初始上下文",action:"触发动作",changes:"改变什么",preserves:"保留什么",invalidates:"失效依赖",confirmation:"重新确认",change_type:"变化类型",before:"基线",after:"候选",reason:"原因",rule_set_id:"规则集ID",policy_id:"策略ID",rule_ids:"关联规则",evaluation_status:"候选求值状态",evaluation_problems:"候选求值问题",definition_key:"原定义键",scope_note:"范围说明",projection_notes:"渠道约束与补充说明",visibility:"可见性盘点",initialization_status:"初始化检查状态",selected_business_source:"选定来源",effective_context:"有效上下文"};
 const metadata=payload.metadata??{};
 let seen=0;
 for(const [name,records,tableName] of [["字段与条件规则",payload.fields,"FieldsReview"],["操作与影响",payload.operations,"OperationsReview"],["本次变化",payload.changes,"ChangesReview"]]){
@@ -61,7 +61,7 @@ for(const [name,records,tableName] of [["字段与条件规则",payload.fields,"
   }
   const present=[...new Set(rows.flatMap(r=>Object.keys(r)).filter(k=>k!=="preserved_feedback"))];
   const preferred=name==="字段与条件规则"
-    ? ["name","field_id","unit","condition","source","default","locking","visibility","channels","kind","condition_id","basis","consumers","cases","pending"]
+    ? ["name","field_id","unit","condition","source","default_source","default","locking","visibility","channels","kind","condition_id","basis","consumers","cases","pending"]
     : name==="操作与影响"
       ? ["name","operation_id","initial_context","action","changes","preserves","invalidates","confirmation","basis","cases","pending"]
       : ["change_type","before","after","reason","basis","pending"];
@@ -91,7 +91,7 @@ for(const [name,records,tableName] of [["字段与条件规则",payload.fields,"
   table.showFilterButton=true;
   sheet.getRangeByIndexes(4,0,matrix.length,1).format.columnWidth=26;
   sheet.getRangeByIndexes(4,1,matrix.length,1).format.columnWidth=34;
-  for(const [key,width] of [["unit",18],["condition",48],["source",38],["default",38],["locking",48],["visibility",42],["channels",65],["basis",75],["consumers",75],["cases",75],["projection_notes",90]]){
+  for(const [key,width] of [["unit",18],["condition",48],["source",38],["default_source",34],["default",38],["locking",48],["visibility",42],["channels",65],["basis",75],["consumers",75],["cases",75],["projection_notes",90]]){
     const index=keys.indexOf(key);
     if(index>=0) sheet.getRangeByIndexes(4,index,matrix.length,1).format.columnWidth=width;
   }

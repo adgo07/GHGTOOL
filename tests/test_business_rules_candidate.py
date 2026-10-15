@@ -19,6 +19,7 @@ def field(field_id="FIELD_1", **overrides):
     value = {
         "id": field_id, "name": field_id, "kind": "text", "unit": "none",
         "source_qualification": {"state": "FIXED", "values": ["MEASURED"]},
+        "default_source": {"state": "NONE", "reason": "No automatic source is registered for this synthetic field"},
         "default": {"state": "NONE"},
         "locking": {
             "value": {"state": "EDITABLE", "reason": "Editable by user"},
@@ -109,6 +110,157 @@ class CandidateLoaderTests(unittest.TestCase):
             self.load_one(package(fields=[field("F", source_qualification={"state": "FIXED", "values": []})]))
         with self.assertRaises(CandidateBundleError):
             self.load_one(package(fields=[field("F", kind="future_kind")]))
+
+    def test_default_source_requires_an_explicit_terminal_or_policy_state(self):
+        bundle = self.load_one(package(fields=[field(
+            "F", default_source={"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "Synthetic choice"},
+        )]))
+        outcome = bundle.apply_context()["outcomes"]["test.common:F"]["default_source"]
+        self.assertEqual(outcome["value"]["source"], "STANDARD_DEFAULT")
+        for invalid in (None, "", [], {}, {"state": "FIXED", "source": "MEASURED"},
+                        {"state": "FIXED", "source": "UNKNOWN", "reason": "why"},
+                        {"state": "NONE"}, {"state": "PENDING", "reason": "  "}):
+            with self.subTest(default_source=invalid), self.assertRaises(CandidateBundleError):
+                self.load_one(package(fields=[field("F", default_source=invalid)]))
+        missing = package(fields=[field("F")])
+        del missing["fields"][0]["default_source"]
+        with self.assertRaisesRegex(CandidateBundleError, "missing required keys"):
+            self.load_one(missing)
+
+    def test_default_source_policy_is_terminal_typed_and_independent_of_selected_source(self):
+        policy = {
+            "id": "default-source-policy", "property": "default_source",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                "id": "catalog", "when": {"tags": {"origin": "CATALOG"}, "ranges": {}},
+                "value": {"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "Catalog default"},
+            }],
+        }
+        good = self.load_one(package(
+            fields=[field("F", default_source={"state": "POLICY", "policy_id": policy["id"]})],
+            policies=[policy],
+        ))
+        self.assertEqual(
+            good.apply_context({"origin": "CATALOG"})["outcomes"]["test.common:F"]["default_source"]["value"]["source"],
+            "STANDARD_DEFAULT",
+        )
+        missing = good.initialize_context(field_ids=["F"], event="NEW_SELECTION")["outcomes"]["test.common:F"]
+        self.assertEqual(missing["initialization_status"], "MISSING_CONTEXT")
+        self.assertIsNone(missing["selected_business_source"])
+
+        nested = json.loads(json.dumps(policy))
+        nested["branches"][0]["value"] = {"state": "POLICY", "policy_id": "next"}
+        with self.assertRaisesRegex(CandidateBundleError, "must be terminal"):
+            self.load_one(package(
+                fields=[field("F", default_source={"state": "POLICY", "policy_id": policy["id"]})],
+                policies=[nested],
+            ))
+        self_ref = json.loads(json.dumps(policy))
+        self_ref["branches"][0]["when"]["tags"] = {"business_source": "MEASURED"}
+        with self.assertRaisesRegex(CandidateBundleError, "cannot depend on the source it selects"):
+            self.load_one(package(
+                fields=[field("F", default_source={"state": "POLICY", "policy_id": policy["id"]})],
+                policies=[self_ref],
+            ))
+        wrong_property = json.loads(json.dumps(policy))
+        wrong_property["property"] = "default"
+        wrong_property["branches"][0]["value"] = {"state": "FIXED", "value": "a string default"}
+        with self.assertRaisesRegex(CandidateBundleError, "policy property does not match"):
+            self.load_one(package(
+                fields=[field("F", default_source={"state": "POLICY", "policy_id": policy["id"]})],
+                policies=[wrong_property],
+            ))
+
+    def test_initialize_context_uses_explicit_source_default_and_preserves_existing_source(self):
+        default_policy = {
+            "id": "numeric-default", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "standard", "when": {"tags": {"business_source": "STANDARD_DEFAULT"}, "ranges": {}},
+                "value": {"state": "FIXED", "value": "catalog default"},
+            }],
+        }
+        locking_policy = {
+            "id": "source-locking", "property": "locking", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [{
+                "id": "standard", "when": {"tags": {"business_source": "STANDARD_DEFAULT"}, "ranges": {}},
+                "value": {
+                    "value": {"state": "LOCKED", "reason": "Standard default is locked"},
+                    "source": {"state": "LOCKED", "reason": "Source is fixed"},
+                },
+            }],
+        }
+        bundle = self.load_one(package(fields=[
+            field(
+                "PARAM", kind="text",
+                source_qualification={"state": "FIXED", "values": ["MEASURED", "STANDARD_DEFAULT"]},
+                default_source={"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "Explicit standard priority"},
+                default={"state": "POLICY", "policy_id": "numeric-default"},
+                locking={"state": "POLICY", "policy_id": "source-locking"},
+            ),
+            field(
+                "FUEL", source_qualification={"state": "FIXED", "values": ["STANDARD_DEFAULT", "MEASURED"]},
+                default_source={"state": "FIXED", "source": "MEASURED", "reason": "Synthetic measured default"},
+            ),
+        ], policies=[default_policy, locking_policy]))
+
+        new_context = {}
+        initialized = bundle.initialize_context(new_context, field_ids=["PARAM"], event="NEW_SELECTION")
+        self.assertEqual(new_context, {})
+        param = initialized["outcomes"]["test.common:PARAM"]
+        self.assertEqual(param["initialization_status"], "INITIALIZED")
+        self.assertEqual(param["selected_business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(param["effective_context"]["business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(param["application"]["default"]["value"]["value"], "catalog default")
+        self.assertEqual(param["application"]["locking"]["value"]["state"], "LOCKED")
+
+        # A multi-field probe evaluates independent sources per field, without
+        # mutating one shared context or letting the first field's choice leak.
+        multiple = bundle.initialize_context(field_ids=["PARAM", "FUEL"], event="RESELECT_AFTER_LEAVE")
+        self.assertEqual(multiple["outcomes"]["test.common:PARAM"]["selected_business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(multiple["outcomes"]["test.common:FUEL"]["selected_business_source"], "MEASURED")
+        self.assertEqual(multiple["outcomes"]["test.common:FUEL"]["effective_context"]["business_source"], "MEASURED")
+
+        preserved = bundle.initialize_context(
+            {"business_source": "MEASURED"}, field_ids=["PARAM"], event="NEW_SELECTION",
+        )["outcomes"]["test.common:PARAM"]
+        self.assertEqual(preserved["initialization_status"], "PRESERVED")
+        self.assertEqual(preserved["selected_business_source"], "MEASURED")
+        self.assertEqual(preserved["effective_context"]["business_source"], "MEASURED")
+        self.assertEqual(preserved["application"]["default"]["status"], "MISSING_CONTEXT")
+        self.assertIsNone(preserved["application"]["default"]["value"])
+        changed = bundle.initialize_context(
+            {}, field_ids=["PARAM"], event="CONFIRMED_IDENTITY_CHANGE",
+        )["outcomes"]["test.common:PARAM"]
+        self.assertEqual(changed["initialization_status"], "INITIALIZED")
+        self.assertEqual(changed["selected_business_source"], "STANDARD_DEFAULT")
+        for trigger in ("CONFIRMED_IDENTITY_CHANGE", "RESELECT_AFTER_LEAVE"):
+            stale_context = {"business_source": "MEASURED"}
+            original_context = dict(stale_context)
+            with self.subTest(event=trigger), self.assertRaisesRegex(
+                CandidateBundleError, "PREEXISTING_SOURCE_REQUIRES_TARGET_CONTEXT",
+            ):
+                bundle.initialize_context(stale_context, field_ids=["PARAM"], event=trigger)
+            self.assertEqual(stale_context, original_context)
+        for trigger in ("RESTORE", "IMPORT", "CONFIRM_SAME_IDENTITY", "BLUR", "REFRESH_CANDIDATES"):
+            with self.subTest(event=trigger), self.assertRaisesRegex(CandidateBundleError, "initialization is forbidden"):
+                bundle.initialize_context(field_ids=["PARAM"], event=trigger)
+
+    def test_initialize_context_rejects_illegal_default_source_field_locally(self):
+        bundle = self.load_one(package(fields=[
+            field("ILLEGAL", source_qualification={"state": "FIXED", "values": ["MEASURED"]},
+                  default_source={"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "Intentional negative"}),
+            field("UNRELATED", default_source={"state": "FIXED", "source": "MEASURED", "reason": "Valid"}),
+            field("NO_AUTO", default_source={"state": "NONE", "reason": "User chooses source"}),
+            field("PENDING", default_source={"state": "PENDING", "reason": "Pending evidence"}),
+        ]))
+        result = bundle.initialize_context(field_ids=["ILLEGAL", "UNRELATED", "NO_AUTO", "PENDING"], event="NEW_SELECTION")
+        self.assertEqual(result["outcomes"]["test.common:ILLEGAL"]["initialization_status"], "BLOCKED")
+        problem = result["outcomes"]["test.common:ILLEGAL"]["problems"][0]
+        self.assertEqual(problem["code"], "SOURCE_NOT_ALLOWED")
+        self.assertEqual(problem["allowed_sources"], ["MEASURED"])
+        self.assertEqual(result["outcomes"]["test.common:UNRELATED"]["initialization_status"], "INITIALIZED")
+        self.assertEqual(result["outcomes"]["test.common:NO_AUTO"]["initialization_status"], "NO_AUTOMATIC_SOURCE")
+        self.assertEqual(result["outcomes"]["test.common:NO_AUTO"]["selected_business_source"], None)
+        self.assertEqual(result["outcomes"]["test.common:PENDING"]["initialization_status"], "PENDING")
 
     def test_boolean_default_is_kind_aware(self):
         bundle = self.load_one(package(fields=[field("FLAG", kind="boolean", default={"state": "FIXED", "value": False})]))
@@ -370,6 +522,124 @@ class CandidateLoaderTests(unittest.TestCase):
         self.assertEqual(diagnostics[0]["condition_ids"], {"default": "CATALOG"})
         self.assertEqual(diagnostics[0]["evaluation_status"], "UNCOMPOSABLE_BRANCH")
 
+    def test_review_composes_default_source_policy_with_source_dependent_properties(self):
+        policies = [
+            {
+                "id": "default-source-policy", "property": "default_source",
+                "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                    "id": "CATALOG_SOURCE", "when": {"tags": {"origin": "CATALOG"}, "ranges": {}},
+                    "value": {"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "Catalog path"},
+                }],
+            },
+            {
+                "id": "default-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+                "branches": [
+                    {"id": "STANDARD_DEFAULT", "when": {"tags": {"business_source": "STANDARD_DEFAULT"}, "ranges": {}},
+                     "value": {"state": "FIXED", "value": "standard"}},
+                    {"id": "MEASURED", "when": {"tags": {"business_source": "MEASURED"}, "ranges": {}},
+                     "value": {"state": "FIXED", "value": "measured"}},
+                ],
+            },
+            {
+                "id": "locking-policy", "property": "locking", "strategy": "UNIQUE_CONTEXT_MATCH",
+                "branches": [{
+                    "id": "STANDARD_DEFAULT", "when": {"tags": {"business_source": "STANDARD_DEFAULT"}, "ranges": {}},
+                    "value": {
+                        "value": {"state": "LOCKED", "reason": "Default value is locked"},
+                        "source": {"state": "LOCKED", "reason": "Source is fixed"},
+                    },
+                }],
+            },
+        ]
+        bundle = self.load_one(package(
+            fields=[field(
+                "PARAMETER",
+                source_qualification={"state": "FIXED", "values": ["STANDARD_DEFAULT"]},
+                default_source={"state": "POLICY", "policy_id": "default-source-policy"},
+                default={"state": "POLICY", "policy_id": "default-policy"},
+                locking={"state": "POLICY", "policy_id": "locking-policy"},
+            )],
+            policies=policies,
+        ))
+        rows = bundle.review_rows()["fields"]
+        good = next(row for row in rows if row["condition_status"] == "INTERSECTED")
+        self.assertEqual(good["condition"]["tags"]["business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(good["default_source"]["source"], "STANDARD_DEFAULT")
+        self.assertEqual(good["selected_business_source"], "STANDARD_DEFAULT")
+        self.assertEqual(good["initialization_status"], "PRESERVED")
+        self.assertEqual(good["evaluation_status"], "READY")
+        diagnostics = [row for row in rows if row["condition_status"] == "UNCOMPOSABLE_BRANCH"]
+        self.assertEqual(len(diagnostics), 1)
+        self.assertEqual(diagnostics[0]["condition_ids"], {"default": "MEASURED"})
+        self.assertEqual(diagnostics[0]["evaluation_status"], "UNCOMPOSABLE_BRANCH")
+
+    def test_review_keeps_explicit_current_source_branches_independent_of_default_source(self):
+        source_values = ("STANDARD_DEFAULT", "MEASURED")
+
+        def source_dependent_policies():
+            defaults = {
+                "id": "default-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+                "branches": [
+                    {"id": source, "when": {"tags": {"business_source": source}, "ranges": {}},
+                     "value": {"state": "FIXED", "value": source.lower()}}
+                    for source in source_values
+                ],
+            }
+            locking = {
+                "id": "locking-policy", "property": "locking", "strategy": "UNIQUE_CONTEXT_MATCH",
+                "branches": [
+                    {"id": source, "when": {"tags": {"business_source": source}, "ranges": {}},
+                     "value": {
+                         "value": {"state": "EDITABLE", "reason": f"Editable for {source}"},
+                         "source": {"state": "EDITABLE", "reason": f"Selectable for {source}"},
+                     }}
+                    for source in source_values
+                ],
+            }
+            return [defaults, locking]
+
+        cases = (
+            ("MEASURED", ["MEASURED"], "STANDARD_DEFAULT", "BLOCKED"),
+            ("STANDARD_DEFAULT", ["MEASURED"], "MEASURED", "READY"),
+        )
+        for default_source, allowed_sources, explicit_source, expected_status in cases:
+            with self.subTest(default_source=default_source, explicit_source=explicit_source):
+                bundle = self.load_one(package(
+                    fields=[field(
+                        "PARAMETER",
+                        source_qualification={"state": "FIXED", "values": allowed_sources},
+                        default_source={"state": "FIXED", "source": default_source,
+                                        "reason": "Initialization choice only"},
+                        default={"state": "POLICY", "policy_id": "default-policy"},
+                        locking={"state": "POLICY", "policy_id": "locking-policy"},
+                    )],
+                    policies=source_dependent_policies(),
+                ))
+                rows = bundle.review_rows()["fields"]
+                by_source = {
+                    row["condition"]["tags"]["business_source"]: row
+                    for row in rows
+                    if row["condition_status"] == "INTERSECTED"
+                }
+                self.assertEqual(set(by_source), set(source_values))
+                self.assertEqual(by_source["STANDARD_DEFAULT"]["evaluation_status"], "BLOCKED")
+                self.assertTrue(any(
+                    problem["code"] == "SOURCE_NOT_ALLOWED"
+                    for problem in by_source["STANDARD_DEFAULT"]["evaluation_problems"]
+                ))
+                self.assertEqual(by_source["MEASURED"]["evaluation_status"], "READY")
+                selected = by_source[explicit_source]
+                self.assertEqual(selected["default_source"]["source"], default_source)
+                self.assertEqual(selected["selected_business_source"], explicit_source)
+                self.assertEqual(selected["initialization_status"], "PRESERVED")
+                self.assertEqual(selected["evaluation_status"], expected_status)
+                if expected_status == "BLOCKED":
+                    self.assertTrue(any(
+                        problem["code"] == "SOURCE_NOT_ALLOWED"
+                        for problem in selected["evaluation_problems"]
+                    ))
+                self.assertFalse(any(row["condition_status"] == "UNCOMPOSABLE_BRANCH" for row in rows))
+
     def test_condition_intersection_respects_open_range_boundaries(self):
         bundle = self.load_one(package())
         empty_count, error = bundle._intersect_conditions([
@@ -581,7 +851,11 @@ class CandidateLoaderTests(unittest.TestCase):
     def test_decimal_json_number_retains_full_precision(self):
         path = self.directory / "decimal.json"
         raw = json.dumps(package(fields=[field("F", kind="quantity")]), separators=(",", ":"))
-        raw = raw.replace('"state":"NONE"', '"state":"FIXED","value":0.123456789012345678901234567890123456789', 1)
+        raw = raw.replace(
+            '"default":{"state":"NONE"}',
+            '"default":{"state":"FIXED","value":0.123456789012345678901234567890123456789}',
+            1,
+        )
         path.write_text(raw, encoding="utf-8")
         value = load_bundle([path]).primary.document["fields"][0]["default"]["value"]
         self.assertIsInstance(value, Decimal)
@@ -740,7 +1014,10 @@ class CandidateLoaderTests(unittest.TestCase):
             load_bundle(paths, primary_rule_set_id="industry.primary")
 
     def test_cli_review_json_and_production_import_boundary(self):
-        package_path = self.write(package(fields=[field("F")]))
+        package_path = self.write(package(fields=[field(
+            "F", source_qualification={"state": "FIXED", "values": ["STANDARD_DEFAULT"]},
+            default_source={"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "CLI fixture"},
+        )]))
         review_path = self.directory / "review.json"
         completed = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_business_rules_candidate.py"),
@@ -748,7 +1025,10 @@ class CandidateLoaderTests(unittest.TestCase):
             cwd=ROOT, capture_output=True, text=True, check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(json.loads(review_path.read_text(encoding="utf-8"))["metadata"]["rule_set_id"], "test.common")
+        review = json.loads(review_path.read_text(encoding="utf-8"))
+        self.assertEqual(review["metadata"]["rule_set_id"], "test.common")
+        self.assertEqual(review["fields"][0]["default_source"]["state"], "FIXED")
+        self.assertEqual(review["fields"][0]["selected_business_source"], "STANDARD_DEFAULT")
         for folder in (ROOT / "apps", ROOT / "packages"):
             for source in folder.rglob("*.py"):
                 if source.name == "business_rules_candidate.py":

@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-15-a1",
+  "revision": "candidate-2026-10-15-a2",
   "base": "Review-only software policy; no production adoption.",
   "dependency": [
     {
@@ -24,6 +24,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -70,6 +74,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -114,6 +122,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -160,6 +172,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -204,6 +220,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -250,6 +270,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -299,6 +323,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -346,6 +374,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -395,6 +427,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -442,6 +478,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -491,6 +531,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -538,6 +582,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -587,6 +635,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -634,6 +686,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -683,6 +739,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -730,6 +790,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -779,6 +843,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -827,6 +895,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -873,6 +945,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -918,6 +994,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -967,6 +1047,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1014,6 +1098,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1063,6 +1151,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1110,6 +1202,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1159,6 +1255,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1206,6 +1306,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1255,6 +1359,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1302,6 +1410,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1351,6 +1463,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1398,6 +1514,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1447,6 +1567,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1494,6 +1618,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1543,6 +1671,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1590,6 +1722,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1639,6 +1775,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1686,6 +1826,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1735,6 +1879,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1783,6 +1931,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -1828,6 +1980,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -1872,6 +2028,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -1921,6 +2081,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -1968,6 +2132,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2017,6 +2185,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2064,6 +2236,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2113,6 +2289,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2160,6 +2340,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2209,6 +2393,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2256,6 +2444,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2305,6 +2497,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -2350,6 +2546,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -2394,6 +2594,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2443,6 +2647,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2490,6 +2698,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2539,6 +2751,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2586,6 +2802,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2635,6 +2855,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2682,6 +2906,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2731,6 +2959,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2779,6 +3011,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -2824,6 +3060,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -2868,6 +3108,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -2917,6 +3161,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -2964,6 +3212,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3013,6 +3265,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3060,6 +3316,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3109,6 +3369,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3156,6 +3420,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3205,6 +3473,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3252,6 +3524,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3301,6 +3577,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3348,6 +3628,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3397,6 +3681,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3444,6 +3732,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3493,6 +3785,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3540,6 +3836,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -3589,6 +3889,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -3637,6 +3941,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -3682,6 +3990,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -3729,6 +4041,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -3774,6 +4090,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -3821,6 +4141,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -3866,6 +4190,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -3913,6 +4241,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -3958,6 +4290,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4007,6 +4343,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4055,6 +4395,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "calcination-1"
@@ -4100,6 +4444,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4149,6 +4497,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4196,6 +4548,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4245,6 +4601,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4292,6 +4652,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4341,6 +4705,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4388,6 +4756,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4437,6 +4809,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4484,6 +4860,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4533,6 +4913,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -4580,6 +4964,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4629,6 +5017,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -4674,6 +5066,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -4721,6 +5117,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -4766,6 +5166,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -4813,6 +5217,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -4858,6 +5266,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -4905,6 +5317,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -4950,6 +5366,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -4999,6 +5419,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5047,6 +5471,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "baking-1"
@@ -5092,6 +5520,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5141,6 +5573,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5188,6 +5624,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5237,6 +5677,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5284,6 +5728,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5333,6 +5781,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5380,6 +5832,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5429,6 +5885,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5476,6 +5936,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5525,6 +5989,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5573,6 +6041,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -5618,6 +6090,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -5665,6 +6141,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "RECEIVED"
@@ -5710,6 +6190,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -5757,6 +6241,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -5802,6 +6290,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -5849,6 +6341,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -5894,6 +6390,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -5943,6 +6443,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -5991,6 +6495,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "graphitization-1"
@@ -6036,6 +6544,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6085,6 +6597,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6132,6 +6648,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6181,6 +6701,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6228,6 +6752,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6277,6 +6805,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6324,6 +6856,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6373,6 +6909,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "fume-1"
@@ -6418,6 +6958,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6467,6 +7011,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6514,6 +7062,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6563,6 +7115,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6610,6 +7166,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6659,6 +7219,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -6707,6 +7271,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "fgd-1"
@@ -6752,6 +7320,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -6801,6 +7373,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -6845,6 +7421,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -6891,6 +7471,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -6935,6 +7519,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -6981,6 +7569,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -7030,6 +7622,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7074,6 +7670,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -7120,6 +7720,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7164,6 +7768,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -7210,6 +7818,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7254,6 +7866,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -7300,6 +7916,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7345,6 +7965,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7389,6 +8013,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -7436,6 +8064,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "NOT_PROVIDED"
@@ -7481,6 +8113,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -7530,6 +8166,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -7577,6 +8217,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -7626,6 +8270,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -7674,6 +8322,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7719,6 +8371,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7763,6 +8419,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -7812,6 +8472,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "MWh"
@@ -7857,6 +8521,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -7906,6 +8574,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7951,6 +8623,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -7995,6 +8671,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -8044,6 +8724,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -8092,6 +8776,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "kg"
@@ -8138,6 +8826,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "SATURATED"
@@ -8183,6 +8875,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -8232,6 +8928,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -8279,6 +8979,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -8328,6 +9032,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -8375,6 +9083,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -8424,6 +9136,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -8472,6 +9188,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -8517,6 +9237,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -8561,6 +9285,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -8608,6 +9336,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "PRIMARY"
@@ -8653,6 +9385,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -8702,6 +9438,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -8750,6 +9490,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -8794,6 +9538,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -8840,6 +9588,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -8884,6 +9636,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -8931,6 +9687,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "EVID-CAR-PDF-2024-LOCAL"
@@ -8977,6 +9737,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "SM01-2026-09-13-R6"
@@ -9022,6 +9786,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9071,6 +9839,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "按 GB/T 32151.34-2024 映射采用。"
@@ -9116,6 +9888,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9165,6 +9941,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -9212,6 +9992,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9261,6 +10045,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9305,6 +10093,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -9351,6 +10143,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9395,6 +10191,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9444,6 +10244,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -9492,6 +10296,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9536,6 +10344,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -9582,6 +10394,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9627,6 +10443,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9671,6 +10491,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9720,6 +10544,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "MEASURED"
@@ -9765,6 +10593,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -9814,6 +10646,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "MEASURED"
@@ -9860,6 +10696,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9904,6 +10744,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -9950,6 +10794,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -9994,6 +10842,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10040,6 +10892,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10084,6 +10940,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10130,6 +10990,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10175,6 +11039,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10219,6 +11087,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -10268,6 +11140,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -10315,6 +11191,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -10364,6 +11244,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -10412,6 +11296,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10457,6 +11345,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10504,6 +11396,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10549,6 +11445,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10596,6 +11496,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10641,6 +11545,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10688,6 +11596,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10733,6 +11645,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -10783,6 +11699,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -10831,6 +11751,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -10881,6 +11805,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -10924,6 +11852,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -10969,6 +11901,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11012,6 +11948,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11057,6 +11997,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11100,6 +12044,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11145,6 +12093,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11188,6 +12140,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -11236,6 +12192,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11279,6 +12239,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11324,6 +12288,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11367,6 +12335,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11412,6 +12384,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11455,6 +12431,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11500,6 +12480,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11543,6 +12527,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11588,6 +12576,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11631,6 +12623,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11676,6 +12672,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11719,6 +12719,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11764,6 +12768,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11807,6 +12815,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -11852,6 +12864,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11896,6 +12912,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -11939,6 +12959,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -11987,6 +13011,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -12033,6 +13061,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -12081,6 +13113,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -12127,6 +13163,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -12175,6 +13215,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12218,6 +13262,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -12263,6 +13311,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12306,6 +13358,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -12351,6 +13407,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12394,6 +13454,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -12439,6 +13503,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": "tCO2"
@@ -12483,6 +13551,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -12531,6 +13603,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -12577,6 +13653,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -12625,6 +13705,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -12672,6 +13756,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12715,6 +13803,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -12760,6 +13852,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12803,6 +13899,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -12848,6 +13948,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -12891,6 +13995,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -12939,6 +14047,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -12986,6 +14098,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13029,6 +14145,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13074,6 +14194,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13117,6 +14241,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13162,6 +14290,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13205,6 +14337,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -13251,6 +14387,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13294,6 +14434,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13339,6 +14483,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13382,6 +14530,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13427,6 +14579,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13470,6 +14626,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13515,6 +14675,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13558,6 +14722,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13603,6 +14771,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13646,6 +14818,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13691,6 +14867,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13734,6 +14914,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -13779,6 +14963,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -13822,6 +15010,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -13867,6 +15059,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -13915,6 +15111,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -13961,6 +15161,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14009,6 +15213,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": ""
@@ -14053,6 +15261,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14101,6 +15313,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -14148,6 +15364,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14191,6 +15411,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14239,6 +15463,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14282,6 +15510,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -14327,6 +15559,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14370,6 +15606,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -14415,6 +15655,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": false
@@ -14459,6 +15703,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14507,6 +15755,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -14553,6 +15805,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14601,6 +15857,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -14647,6 +15907,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14695,6 +15959,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "PENDING",
         "reason": "Domain default is a complex/collection value not representable as scalar in schema 1.2."
@@ -14742,6 +16010,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14785,6 +16057,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -14830,6 +16106,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14873,6 +16153,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -14921,6 +16205,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -14965,6 +16253,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -15011,6 +16303,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -15055,6 +16351,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -15101,6 +16401,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -15145,6 +16449,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -15191,6 +16499,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -15235,6 +16547,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "NONE"
@@ -15281,6 +16597,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "NONE"
       },
@@ -15325,6 +16645,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "PENDING",
@@ -15374,6 +16698,10 @@
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
       },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
+      },
       "default": {
         "state": "FIXED",
         "value": ""
@@ -15419,6 +16747,10 @@
       "source_qualification": {
         "state": "NOT_APPLICABLE",
         "reason": "not a parameter-source selector; any source identity is separately represented by this wrapper's source_kind/source_id fields."
+      },
+      "default_source": {
+        "state": "NONE",
+        "reason": "此Domain/Record/Report/状态/版本/包装投影不是可选参数来源字段；它不独立初始化数值来源。"
       },
       "default": {
         "state": "FIXED",
@@ -15467,30 +16799,38 @@
         "channel": "GUI",
         "object": "new accounting page / empty ProjectWorkspace"
       },
-      "action": "打开新核算页或执行新建重置时建立空白工作区与默认行：能源/过程类别按现有初始模型提供空行；只有明确识别并确认Catalog对象后才应用该对象的参数缺省。",
+      "action": "新建核算页时建立空白Canonical草稿和默认行。仅新确认对象触发NEW_SELECTION；真正更换身份触发CONFIRMED_IDENTITY_CHANGE，离开后重新选择触发RESELECT_AFTER_LEAVE。按独立default_source策略决定唯一初始来源；FIXED仅设一个来源，NONE保持未选，PENDING保持待核。不从允许来源列表首项推断，不将数值default与初始来源混为一谈。",
       "changes": [
-        "新工作区的空白Canonical输入/默认空行"
+        "新工作区的空白Canonical输入/默认空行",
+        "仅对NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE或RESELECT_AFTER_LEAVE，按明确default_source应用一个来源；NONE不自动选来源，PENDING不初始化",
+        "仅numeric default策略有可用绑定时才读取对应Catalog参数；来源选择本身不复制数值"
       ],
       "preserves": [
         "既有正式Record",
-        "Catalog与参数绑定"
+        "Catalog与参数绑定",
+        "不属于新/切换身份的既有行及其草稿"
       ],
       "invalidates": [
         "重置时当前草稿及重复行按现有确认流程处理"
       ],
       "confirmation": [
-        "关闭/重置且存在未保存更改时遵循现有保存/放弃/取消流程"
+        "关闭/重置且存在未保存更改时遵循现有保存/放弃/取消流程",
+        "新身份必须经过明确的对象确认后才初始化来源"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage.__init__",
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._reset_for_new_accounting",
-        "packages/application/project_workspaces.py:ProjectWorkspaceService.new_workspace"
+        "packages/application/project_workspaces.py:ProjectWorkspaceService.new_workspace",
+        "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy",
+        "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1"
       ],
       "cases": [
         "tests/test_uat03_page.py::UAT03AccountingPageV2Tests.test_new_accounting_reset_keeps_one_row_per_energy_family",
         "tests/test_g06_page.py::G06PageTests.test_new_accounting_reset_removes_secondary_business_rows"
       ],
-      "pending": [],
+      "pending": [
+        "A只定义初始化语义；当前main/PR46生产路径保持不变，后续实现需由Owner另行指示。"
+      ],
       "rule_ids": []
     },
     {
@@ -15501,18 +16841,19 @@
         "channel": "GUI",
         "object": "editable fuel/material name selector"
       },
-      "action": "PR46的NameSelector将键入文本作为待确认草稿，只有确认后才匹配Catalog身份或作为自定义标签继续。main使用的可编辑FuelType combo会在文本变更时refresh行；两者不是同一已部署行为。",
+      "action": "编辑未确认名称只更新名称草稿，不改变Canonical Catalog身份、不应用numeric default或default_source；输入相同文本、失焦或候选刷新不触发初始化。",
       "changes": [
-        "当前行名称文本或已确认身份"
+        "尚未确认的显示名称/搜索草稿"
       ],
       "preserves": [
-        "PR46路径中未确认时已有来源/参数草稿"
+        "已确认Catalog身份、来源、数值、计量路径及其来源草稿",
+        "其他业务行和正式Record"
       ],
       "invalidates": [
-        "只有确认对象身份切换时才按对象切换规则更新参数"
+        "不使已确认Canonical业务数据失效"
       ],
       "confirmation": [
-        "PR46在确认名称时提交对象身份；main即时refresh仍在生产"
+        "仅明确确认新身份时进入switch_catalog_identity；若确认后身份相同则进入confirm_same_catalog_identity"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:_FuelRow.fuel_type",
@@ -15537,28 +16878,31 @@
         "channel": "GUI",
         "object": "fuel row already confirmed to a Catalog identity"
       },
-      "action": "用户再次确认当前同一Catalog身份时，PR46按其显式确认规则重置默认参数/计量方式；该动作独立于名称草稿编辑和切换到不同Catalog身份。",
+      "action": "重复确认与当前已确认对象相同的Catalog身份时，只完成确认/焦点状态；不重新应用numeric default或default_source、不重置参数或计量方式。名称编辑、失焦和候选刷新同样不是新身份选择。",
       "changes": [
-        "PR46确认后的参数来源/默认值与basis"
+        "确认/焦点呈现状态；Canonical业务数据不变"
       ],
       "preserves": [
-        "其它燃料行及正式Record"
+        "已确认Catalog身份及其已确认实测值、当前来源选择、计量方式/路径、该来源草稿和证据",
+        "其他业务行及正式Record"
       ],
       "invalidates": [
-        "该行原参数来源和计量basis按重复确认规则更新"
+        "不清空或重置当前参数、来源、计量方式或来源草稿；不替换数值来源证据"
       ],
       "confirmation": [
-        "同一身份再次确认本身是有业务影响的显式确认"
+        "同身份确认、失焦和候选刷新不是身份变更，不触发新建初始化"
       ],
       "basis": [
         "PR46:packages/ui/name_selector.py:NameSelector.confirm_name",
-        "PR46:packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._on_fuel_type_changed"
+        "PR46:packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._on_fuel_type_changed",
+        "历史PR46行为：重复确认曾按显式确认规则重置参数/计量基准；该事实只作旧行为依据，当前A目标按批准方案保留已确认Canonical数据。",
+        "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1"
       ],
       "cases": [
-        "PR46:tests/test_pr46_fuel_confirmation.py::FuelConfirmationTests.test_confirming_same_catalog_fuel_resets_parameters_and_basis"
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_same_identity_target_preserves_confirmed_values_and_separates_old_behavior"
       ],
       "pending": [
-        "重复确认语义仅PR46实现，main仍由原combobox refresh路径处理。"
+        "这是A候选目标定义/审阅期望，不代表main或PR46控件行为已经改造；待Owner后续指示B/N。"
       ],
       "rule_ids": []
     },
@@ -15570,29 +16914,37 @@
         "channel": "GUI",
         "object": "fuel row with Catalog identity A and parameter evidence"
       },
-      "action": "确认切换到另一个Catalog对象后，按新对象绑定重新取参数；不借用旧对象的factor/parameter identity。",
+      "action": "确认从身份A切到身份B，或先离开已确认身份再重新选择时，按新身份执行CONFIRMED_IDENTITY_CHANGE/RESELECT_AFTER_LEAVE初始化。只使用新身份的真实Resolver绑定、numeric default和default_source；同身份动作必须走confirm_same_catalog_identity，不得借用A的参数身份或数值。",
       "changes": [
-        "该行已确认Catalog身份及新对象Resolver匹配的参数"
+        "将当前行的已确认Catalog身份改为B",
+        "基于B的精确绑定重新确定参数值与初始来源；若离开后重选，则对被重选身份执行新的选择初始化",
+        "来源为NONE时保持未选，PENDING时保持待核，不把允许来源数组首项当作默认"
       ],
       "preserves": [
-        "其它业务行与未触及核算单元"
+        "其他业务行、未触及核算单元及正式Record",
+        "旧身份绑定与历史来源证据仍可追溯，不重标为新身份来源"
       ],
       "invalidates": [
-        "旧对象特定参数/来源草稿按身份切换策略更新"
+        "不把A对象特定的参数值、factor/parameter identity、计量路径或选定来源转移给B",
+        "身份离开后旧行草稿不作为重选时的新身份初始化值"
       ],
       "confirmation": [
-        "通过明确对象身份确认入口提交切换；PR46另测同身份重复确认"
+        "必须明确确认身份B；先离开身份A后再重选也触发该身份自己的初始化",
+        "离开后重选回原身份仍按RESELECT_AFTER_LEAVE触发该身份初始化；在未离开前同身份重复确认不触发"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._on_fuel_type_changed",
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._refresh_fuel_row",
-        "packages/core/parameter_resolution.py:ParameterResolver.resolve"
+        "packages/core/parameter_resolution.py:ParameterResolver.resolve",
+        "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1"
       ],
       "cases": [
         "tests/test_uat03_formal_workflow.py::UAT03FormalWorkflowTests.test_catalog_manual_catalog_switch_freezes_actual_factor_without_borrowed_identity",
         "PR46:tests/test_pr46_fuel_confirmation.py::FuelConfirmationTests.test_new_confirmed_fuel_does_not_inherit_legacy_direct_source"
       ],
-      "pending": [],
+      "pending": [
+        "A登记目标转换语义；生产消费者仍需Owner后续指示才可变更。"
+      ],
       "rule_ids": []
     },
     {
@@ -15603,18 +16955,19 @@
         "channel": "GUI",
         "object": "parameter with selectable STANDARD_DEFAULT/CALCULATED/MEASURED sources"
       },
-      "action": "切换来源时按字段/origin资格应用来源政策；PR46对手工来源维护独立草稿并可恢复Catalog缺省证据，不把手工值重标为标准值。",
+      "action": "用户明确切换字段参数来源时，只切换到该来源自己的已保存草稿/证据；首次选择的新来源只有在操作是新身份选择且default_source明确给出单一来源时才初始化。来源切换本身不重用Catalog数值，也不把已录实测值改标为标准值。",
       "changes": [
-        "当前来源选择及所选来源对应的输入草稿"
+        "当前字段的活动来源选择及其对应值/依据草稿"
       ],
       "preserves": [
-        "未选来源的手工草稿、Catalog身份和证据引用"
+        "其他来源的既有草稿和证据",
+        "Catalog绑定身份、其他参数与业务行"
       ],
       "invalidates": [
-        "仅更新当前行参数的有效选择"
+        "原活动来源值不再作为当前来源值参与本次计算，但保留为独立草稿"
       ],
       "confirmation": [
-        "无匹配binding的STANDARD_DEFAULT不可借用其它对象factor"
+        "来源选择必须来自source_qualification允许项；FIXED初始来源不代表以后禁止显式切换，除非locking另有规定"
       ],
       "basis": [
         "PR46:packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._on_fuel_source_mode_changed",
@@ -15639,18 +16992,19 @@
         "channel": "GUI",
         "object": "FuelInput.path + direct/carbon-content basis"
       },
-      "action": "按FuelPath解析活动量和含碳量单位/匹配参数。保留已录活动量字面值但不静默换算；DIRECT只用对应活动量基准的实测直接含碳量，不读取LHV/FCh；HEAT是保留的Domain路径，当前main GUI不提供为新核算选择。",
+      "action": "用户更换燃料计量路径或质量/体积计量方式时，重新确定符合新路径的参数身份和单位；不将旧路径值静默换算或冒充新路径默认，DIRECT路径只使用实测直接含碳，HEAT路径按FCh语义。该动作不等同同身份重复确认。",
       "changes": [
-        "活动量/含碳量的路径语义及单位标签"
+        "当前燃料计量路径/活动量单位和由该路径限定的含碳量/LHV/FCh参数语义"
       ],
       "preserves": [
-        "切换路径前的数值字面值与另一来源草稿（PR46具体测试范围）"
+        "用户原始活动量字面值及其原单位证据",
+        "同路径来源草稿与其他业务行"
       ],
       "invalidates": [
-        "旧路径参数binding/单位不作为新路径身份；不自动换算数值"
+        "与新路径不兼容的当前参数选择/验证结果；不删除隔离来源草稿"
       ],
       "confirmation": [
-        "更换Catalog计量方式不重新解释非空活动量；PR46有明示测试"
+        "用户明确切换计量路径/单位；若对象身份同时变化，则先处理新身份初始化"
       ],
       "basis": [
         "packages/standards/carbon_material.py:FuelInput.__post_init__",
@@ -15675,18 +17029,19 @@
         "channel": "GUI",
         "object": "fuel/process/energy rows and FGD carbonate components"
       },
-      "action": "按稳定row/instance identity增删燃料、能源、过程和FGD组分；单/多组分FGD按各自binding/source资格处理。现有首行保留行为独立记录。",
+      "action": "按稳定行/组分身份增删业务行。FGD单组分且I精确绑定时可用STANDARD_DEFAULT；多组分I按MEASURED；无绑定时不依赖允许来源数组顺序。新增组分和重选身份按新选择条件初始化，已有行恢复不重复初始化。",
       "changes": [
-        "当前工作区行/组分集合"
+        "用户明确增删的重复行/组分和相应活动状态"
       ],
       "preserves": [
-        "其他组别和核算单元的独立行identity；历史Record不随未正式计算的编辑变化"
+        "其他行和未修改行的值、来源、证据、身份",
+        "项目中已保存草稿与正式Record"
       ],
       "invalidates": [
-        "只移除明确选中的未正式保存行/组分"
+        "被移除行不参与当前计算；组分数量改变后重新验证I来源资格/locking"
       ],
       "confirmation": [
-        "首个燃料行不能删除；Record删除另需二次确认并审计"
+        "首行保护与现有增删确认保持；单/多组分语义按候选来源资格政策明确解析"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._add_fuel_row",
@@ -15716,18 +17071,20 @@
         "channel": "PROJECT_WORKSPACE",
         "object": "saved canonical input / pending recovery snapshot"
       },
-      "action": "打开已保存项目或跨启动恢复时恢复序列化Canonical Input和溯源状态，不把恢复当成新建初始化；不覆盖恢复的来源选择、非空值或PR46未确认名称。",
+      "action": "打开已保存项目或跨启动恢复时只恢复序列化Canonical Input、来源与provenance；RESTORE不得触发default_source或numeric default初始化，不覆盖恢复值、当前来源、路径、证据或PR46未确认名称。",
       "changes": [
         "恢复当前project/unit的Canonical Input和最近保存的provenance"
       ],
       "preserves": [
-        "来源/数值草稿、单位、证据、pending name、正式Record链接"
+        "来源/数值草稿、单位、证据、pending name、正式Record链接",
+        "已有参数来源选择和其测量值，不因Catalog更新而重置"
       ],
       "invalidates": [
-        "仅显式升级/迁移且用户确认后可按未来B流程改codec"
+        "仅显式升级/迁移且Owner另行批准后可按未来流程改变codec"
       ],
       "confirmation": [
-        "损坏JSON显示安全错误，不静默重置为空白输入"
+        "损坏JSON显示安全错误，不静默重置为空白输入",
+        "RESTORE不是NEW_SELECTION或RESELECT_AFTER_LEAVE，不应用任何default_source"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._restore_form_state",
@@ -15751,32 +17108,29 @@
         "channel": "PRESENTATION",
         "object": "existing in-memory input/ProjectWorkspace"
       },
-      "action": "刷新目录展示、展开/折叠项目单元、切换来源卡片和页面导航只改变view state；用户未明确编辑或保存时不改Canonical业务值。",
+      "action": "纯页面导航、折叠/展开和不触碰Canonical值的view刷新仅改变presentation state；活动源INVOLVED/NOT_INVOLVED切换属于独立toggle_emission_source业务操作。",
       "changes": [
-        "Presentation visibility/active page only"
+        "当前页面、折叠/展开和纯展示刷新状态"
       ],
       "preserves": [
-        "当前ProjectWorkspace中的Canonical输入、行identity与来源草稿"
+        "当前ProjectWorkspace中的Canonical输入、活动状态、行identity与来源草稿"
       ],
       "invalidates": [
-        "不自行清空业务字段"
+        "不自行清空业务字段、不标脏输入、不使计算结果stale"
       ],
       "confirmation": [
-        "导航/折叠不替代显式保存或放弃确认"
+        "导航/折叠/纯展示刷新不替代显式保存或放弃确认"
       ],
       "basis": [
-        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._toggle_source_group",
-        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._refresh_fuel_defaults",
-        "packages/ui/shell.py:AppShell.navigate"
+        "packages/ui/shell.py:AppShell.navigate",
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._refresh_source_cards"
       ],
       "cases": [
         "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_navigation_keeps_card_inputs_in_memory",
-        "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_multiple_electricity_details_survive_source_toggle_and_stay_independent",
-        "tests/test_uat03_page.py::UAT03AccountingPageV2Tests.test_project_unit_controls_are_attached_and_folded_by_default",
-        "PR46:tests/test_pr46_fuel_confirmation.py::FuelConfirmationTests.test_header_and_top_switch_share_state_and_keep_input"
+        "tests/test_uat03_page.py::UAT03AccountingPageV2Tests.test_project_unit_controls_are_attached_and_folded_by_default"
       ],
       "pending": [
-        "测试覆盖具体主界面状态转换，不表示所有可能的导航/refresh组合均已核验。"
+        "仅上述纯视图消费者按当前用例核验；未逐项核实的其它运行态显隐/刷新组合仍为PENDING。"
       ],
       "rule_ids": []
     },
@@ -15856,19 +17210,21 @@
         "channel": "EXCEL_ADAPTER",
         "object": "AppendixB workbook"
       },
-      "action": "校验模板、工作表、单元格与公式缓存后逐单元构造同一Canonical Input并调用共享Preview Use Case；预览阶段不写项目或Record。",
+      "action": "IMPORT只校验已批准模板、工作表、单元格与公式缓存，并逐核算单元构造同一Canonical Input后调用共享Preview Use Case；导入/预览不触发default_source或numeric default初始化，不把缺失字段自动填成来源/目录数值。",
       "changes": [
-        "逐核算单元的导入诊断与预览结果"
+        "逐核算单元的导入诊断与预览结果；仅Excel中明确给出的值、来源和单位进入预览Canonical Input"
       ],
       "preserves": [
         "正式Record",
-        "用户项目已保存内容"
+        "用户项目已保存内容",
+        "导入行明确提供的来源、值、单位、证据和空值状态"
       ],
       "invalidates": [
-        "仅在用户之后明确保存Canonical项目时改变项目草稿"
+        "仅在用户之后明确保存Canonical项目时改变项目草稿；IMPORT本身不得重置或初始化来源"
       ],
       "confirmation": [
-        "导入失败或致命错误阻断该单元预览"
+        "导入失败或致命错误阻断该单元预览",
+        "IMPORT不属于NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE或RESELECT_AFTER_LEAVE"
       ],
       "basis": [
         "packages/excel/appendix_b.py:AppendixBWorkbookImporter.import_preview",
@@ -15889,7 +17245,7 @@
         "channel": "PROJECT_WORKSPACE",
         "object": "ProjectWorkspace"
       },
-      "action": "以独立projects.sqlite保存项目工作区与Canonical Input；重新打开或跨启动恢复保留当前草稿、输入单位、来源和证据，不创建正式Record。",
+      "action": "以独立projects.sqlite保存项目工作区与Canonical Input；重新打开或跨启动恢复仅恢复已保存草稿、输入单位、来源和证据，不创建正式Record。RESTORE/IMPORT只解码或载入已有Canonical Input，不触发default_source或numeric default初始化。",
       "changes": [
         "ProjectWorkspace草稿与最近保存的溯源状态"
       ],
@@ -15901,7 +17257,8 @@
         "仅当前项目草稿"
       ],
       "confirmation": [
-        "删除项目需用户明确操作"
+        "删除项目需用户明确操作",
+        "恢复/导入、同身份确认、失焦或候选刷新不应用新建缺省；只有显式新建、确认身份真正改变或离开后重新选择才进入新上下文初始化。"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._save_project",
@@ -16052,6 +17409,50 @@
         "Electricity Table 2/4/5 applicability remains PENDING until PR46@77d36a1/Issue010 is integrated; source registration review_status is recorded separately."
       ],
       "rule_ids": []
+    },
+    {
+      "key": "review.operation.toggle_emission_source",
+      "operation_id": "toggle_emission_source",
+      "name": "启用或停用排放活动源",
+      "initial_context": {
+        "channel": "GUI",
+        "object": "EmissionSourceState / source card"
+      },
+      "action": "用户明确点击活动源开关时，把所选源状态设为INVOLVED或NOT_INVOLVED；这是Canonical业务输入变化，不是导航、折叠或纯展示刷新。CarbonMaterialAccountingPage._toggle_source_group调用_mark_input_dirty，后续计算按EmissionSourceState决定纳入或排除该活动源。",
+      "changes": [
+        "EmissionSourceState.status 在INVOLVED与NOT_INVOLVED之间变更",
+        "调用_mark_input_dirty后Canonical输入标脏（dirty），本次已有计算结果标记stale"
+      ],
+      "preserves": [
+        "被启停源的行草稿、数值、证据、身份和来源不因状态切换而删除",
+        "其他源状态、其他行草稿与已保存项目内容",
+        "不可变正式Record"
+      ],
+      "invalidates": [
+        "当前输入校验与CalculationResult/结果展示变为stale，直到按新活动状态重新核算",
+        "依赖当前输入的正式计算/Word入口在重新核算前保持不可用"
+      ],
+      "confirmation": [
+        "开关本身是明确业务动作；沿用当前UI点击，不另造确认或状态机",
+        "启用不自动创建活动量或测量值；停用不删除草稿"
+      ],
+      "basis": [
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._toggle_source_group",
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._source_states",
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._mark_input_dirty",
+        "packages/standards/carbon_material.py:CarbonMaterialInput.source_states"
+      ],
+      "cases": [
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_source_enablement_is_business_state_and_views_have_no_toggle_consumer",
+        "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_eight_source_toggles_default_disabled_and_map_to_ten_domain_sources",
+        "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_enable_maps_existing_domain_state_without_creating_activity_data",
+        "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_disabling_and_reenabling_source_preserves_values_and_domain_parity",
+        "tests/test_uir02_source_cards.py::UIR02SourceCardTests.test_multiple_electricity_details_survive_source_toggle_and_stay_independent"
+      ],
+      "pending": [
+        "A将业务启停与presentation-only视图分开描述；生产状态机/控件不由A改造。"
+      ],
+      "rule_ids": []
     }
   ],
   "changes": [
@@ -16104,8 +17505,8 @@
       "key": "review.change.candidate_bundle",
       "change_type": "CANDIDATE_ONLY_RULE_ASSETS",
       "before": "main has no review-only canonical business-rule bundle/strict candidate loader on the production input path.",
-      "after": "A adds COMMON/INDUSTRY/SOFTWARE candidate JSON assets, fixed C01 adoption, 109 legacy GUI FieldSpec projections plus 11 industry parameter-policy fields, 333 Domain/Record/ReportModel projections, 648 context-specific locking branches, and a review-only loader/review workbook; no production wiring.",
-      "reason": "A packages existing G05 snapshots plus current field/source/consumer metadata for review; production GUI, Excel, Domain, project, Record and Word paths remain unchanged.",
+      "after": "A adds COMMON/INDUSTRY/SOFTWARE candidate JSON assets at revision a2, fixed C01 adoption, 109 legacy GUI FieldSpec projections plus 11 target parameter fields, 453 total field objects (120 Industry + 333 software), 41 Industry policies including 11 initial-source policies, 18 operations, 12 change records, and the review-only loader/review workbook; no production wiring.",
+      "reason": "A packages the existing G05 snapshot and audited field/source/consumer metadata for review; production GUI, Excel, Domain, project, Record and Word paths remain unchanged.",
       "basis": [
         "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json:rules",
         "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:adopts",
@@ -16151,7 +17552,7 @@
       "change_type": "NO_PRODUCTION_SWITCH",
       "before": "Production reads existing FieldSpec, Catalog/Resolver, Domain Calculator, project codec, Excel adapter and frozen Record/Word path.",
       "after": "A adds review assets/loader only; no old production field or consumer is removed, redirected, rewritten or migrated.",
-      "reason": "方案A is a candidate review package and does not cut production; candidate evidence must be accepted before a separate B migration changes any consumer.",
+      "reason": "方案A是候选审阅包，不切生产。A独立复验通过后停止；任何B/N实施必须等待Owner后续明确指令。",
       "basis": [
         "A-only candidate loader: packages/application/business_rules_candidate.py:load_bundle",
         "packages/ui/field_specs.py:FIELD_SPECS",
@@ -16159,21 +17560,84 @@
         "packages/application/canonical_input_codec.py:encode_canonical_input"
       ],
       "pending": [
-        "B may propose staged consumer adoption after review; it is not implemented by A."
+        "当前A不修改生产消费者；复验PASS后停止，不自动进入B/N。只有Owner另行明确指示后才可继续。"
       ]
     },
     {
       "key": "review.change.approved_business_adjustments",
       "change_type": "B_HANDOFF_NOT_IMPLEMENTED",
       "before": "Current main behaviors remain active.",
-      "after": "Approved standard-business-rule alignment decisions, input transition distinctions, explicit-source/locking matrix and no-formula-cache-as-activity rule are represented for A review; any production behavior change is B work.",
-      "reason": "Candidate policy is not active production behavior. B must implement only approved, evidence-backed changes after review while preserving source lineage and immutable Record semantics.",
+      "after": "Approved standard-business-rule alignment decisions, same-identity/new-identity/import/restore distinctions, explicit default_source/source/locking matrix, source-involvement operation and no-formula-cache-as-activity rule are represented for A review; production behavior remains unchanged.",
+      "reason": "Candidate policies are review-only. After A acceptance work completes, stop; any later production implementation requires a separate explicit Owner instruction.",
       "basis": [
         "approved_plan:GHGTOOL_标准业务规则统一_最终实施方案_V1.2_批准版.md#§7/§7.1/§9/§11",
         "docs/architecture/business-rules/CONSUMER_INVENTORY.md:重要操作与待接管边界"
       ],
       "pending": [
-        "A does not implement or claim production execution of B changes."
+        "A does not implement production changes; do not auto-start B/N after A PASS."
+      ]
+    },
+    {
+      "key": "review.change.same_identity_confirmation",
+      "change_type": "IDENTITY_CONFIRMATION_SEMANTICS",
+      "before": "PR46@77d36a1的重复同一Catalog身份确认会重置该燃料参数/计量基准；main使用不同的可编辑combobox路径。该项是旧实现事实。",
+      "after": "A候选按V1.2 §7.1区分同身份再次确认与真正身份变化：同身份/失焦/候选刷新保留已确认值、来源、计量路径和草稿；A→B或离开后重选才按新身份初始化；恢复/导入不初始化。",
+      "reason": "独立验收A-R1指出旧行为事实误放在目标changes。A资产现在把旧PR46重置行为限于历史basis，目标变化只记录批准的同身份保留语义；没有改生产消费者。",
+      "basis": [
+        "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1",
+        "PR46:tests/test_pr46_fuel_confirmation.py::FuelConfirmationTests.test_confirming_same_catalog_fuel_resets_parameters_and_basis",
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_same_identity_target_preserves_confirmed_values_and_separates_old_behavior"
+      ],
+      "pending": [
+        "同身份保留为A候选目标；main/PR46生产控件未更改，后续切换需Owner另行指示。"
+      ]
+    },
+    {
+      "key": "review.change.initial_source_policy",
+      "change_type": "EXPLICIT_INITIAL_SOURCE_POLICY",
+      "before": "候选字段区分数值default/source qualification/locking，但未独立表达新对象首次选择的来源；允许来源多项时存在被误读为默认首项的风险。",
+      "after": "Industry 11个稳定参数目标字段增加default_source属性与逐条件政策：仅NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE、RESELECT_AFTER_LEAVE触发；terminal结果是单一FIXED来源、NONE或PENDING。技术/legacy镜像字段显式NONE；numeric default、来源资格、锁定保持独立。",
+      "reason": "落实V1.2 §7.1的首次默认来源行为并与数值Catalog默认分开。custom/unbound LHV/FCh和无绑定EF1不自动选来源；氧化率/直接碳/材料/FGD/heat按已核现行政策明确；表2/4/5和Issue014仍PENDING。",
+      "basis": [
+        "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1",
+        "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy",
+        "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:policies"
+      ],
+      "pending": [
+        "A只定义候选初始来源语义，不实现GUI/Excel/Domain状态机或更改历史Project。"
+      ]
+    },
+    {
+      "key": "review.change.channel_units",
+      "change_type": "CHANNEL_UNIT_AND_CONVERSION_PROJECTIONS",
+      "before": "FOx/FGD百分比输入的GUI/Excel投影曾误标为ratio；物料原始输入与归一化ratio混在单一单位描述；热量旧FieldSpec domain_unit kg曾被当作当前输入单位；电力上下文字段曾被误标为因子数值通道。",
+      "after": "候选投影按真实阶段分开：FOx/I/TR GUI+Excel为%且Domain ratio；MaterialInputLine固定碳/挥发分原始输入为%并说明归一化后ratio；HeatInput/GUI/Excel保留t且calculator按现有UnitService转换kg；电力因子数值控件与context/identity字段分开。",
+      "reason": "按main与PR46真实UI、Excel模板/importer、Domain和Calculator链修正通道单位，不改百分数换算、单位转换或计算语义。",
+      "basis": [
+        "packages/ui/field_specs.py:FIELD_SPECS",
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._UnifiedEnergyRow",
+        "packages/excel/appendix_b.py:AppendixBWorkbookImporter._parse_heat",
+        "packages/standards/carbon_material.py:CarbonMaterialCalculator._quantity",
+        "packages/standards/carbon_material_normalization.py:normalize_material_inputs",
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_channel_units_match_percent_inputs_and_raw_material_stage"
+      ],
+      "pending": [
+        "A仅修审阅投影；未改实际UI、Excel、Domain、Calculator或模板。"
+      ]
+    },
+    {
+      "key": "review.change.source_involvement_semantics",
+      "change_type": "EMISSION_SOURCE_INVOLVEMENT_OPERATION",
+      "before": "活动源卡片切换曾与导航/折叠混列在presentation_only_views，被描述为纯展示变化。",
+      "after": "A把toggle_emission_source单列为Canonical业务操作：将EmissionSourceState设为INVOLVED/NOT_INVOLVED、标脏输入并使既有结果stale；行草稿保留，计算按状态纳入/排除。presentation_only_views仅含导航、折叠及纯展示刷新。",
+      "reason": "main实际_toggle_source_group调用_mark_input_dirty并映射活动源状态；A修正操作分类与消费者盘点，不改生产UI。",
+      "basis": [
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._toggle_source_group",
+        "packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._mark_input_dirty",
+        "tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_source_enablement_is_business_state_and_views_have_no_toggle_consumer"
+      ],
+      "pending": [
+        "A只登记业务语义；生产调用链与状态机保持现状，后续需Owner另行指示。"
       ]
     }
   ]
