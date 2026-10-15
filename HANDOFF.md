@@ -189,3 +189,7 @@ PF01范围约束：
 P3-C（PR #42）与P3-E（PR #43）均已完成独立验收；本次整合在同一main内同时保留RecordLibraryPage双页签业务展示与ExcelImportPage四区操作路径。记录页面只做Presentation，Excel页面继续使用EXB01的安全解析、Preview、显式项目保存和正式UseCase。Word导出仍复用公共服务，不重算历史。
 
 完整代码和验证证据分别见 `docs/ui/p3-c/ACCEPTANCE.md`、`docs/ui/p3-e/ACCEPTANCE.md` 及各自PR的Checks。本阶段不宣称已完成原生Windows人工DPI验收、Excel/WPS回导验收或RS04/RS05门禁。
+
+## 当前追加工作包：业务规则统一A
+
+以[批准V1.2全文](docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md)和STANDARD_SEMANTICS_POLICY为输入。C01固定版本显式采用、C02保留合法企业电力输入已批准，不重复确认。A分支建立在最新main，PR46仍未合并；其字段来源修订作为明确依赖盘点，不在A接管生产。A出口为完整字段/条件/操作审阅表、实际消费者与旧路径清单、候选加载负例与版本采用证据。完成后更新状态/报告并停止等待独立验收；不越过A进入B，不自行合并。母版重排/Word全面美化不作为本包前置。

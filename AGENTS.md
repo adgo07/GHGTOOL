@@ -258,3 +258,5 @@ Stage A 标准整理 → Stage B 软件接入设计 → Stage C 实现 → Stage
 **不作为长期治理负担**（Git history 已可恢复）：最近若干 commit 的全部 SHA、每个小步骤的 `origin/main` SHA、全部历史 PR 中间 head、历史阶段 SHA 清单、本地中央 clone 相对 locked SHA 的普通治理文件差异清单。
 
 原则：**SHA 用于确定权威对象与可追溯性，不用于制造流程仪式。** 中央 Policy 要求的当前 head / baseline SHA 继续记录。
+
+标准业务语义统一的模块内入口：[STANDARD_SEMANTICS_POLICY.md](STANDARD_SEMANTICS_POLICY.md)；批准全文见该文件引用。当前A包不切生产、不修改中央Frozen。
