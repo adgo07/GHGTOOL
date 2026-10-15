@@ -116,7 +116,7 @@ _PACKAGE_FIELDS = {
 }
 _FIELD_KEYS = {
     "id", "name", "kind", "unit", "source_qualification", "default_source", "default", "locking",
-    "channel_projections", "basis", "consumers", "cases", "pending", "rule_ids",
+    "channel_projections", "basis", "consumers", "cases", "pending", "rule_ids", "mapping_refs",
 }
 _OPERATION_KEYS = {
     "key", "operation_id", "name", "initial_context", "action", "changes", "preserves",
@@ -1188,17 +1188,207 @@ a fresh target context so a stale source cannot carry over.
             ranges[key] = merged
         return {"tags": tags, "ranges": ranges}, None
 
-    def review_rows(self) -> dict[str, Any]:
-        """Return flat review rows with branch conditions and field-local outcomes."""
-        field_rows: list[dict[str, Any]] = []
+    @staticmethod
+    def _summary_key(value: Any) -> str:
+        return json.dumps(_json_safe(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+    @classmethod
+    def _compact_condition_groups(cls, whens: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+        exact_keys = {"parameter_id", "binding_id", "province", "region"}
+        buckets: dict[tuple[str, tuple[str, ...]], dict[str, Any]] = {}
+        for when in whens:
+            all_tags = dict(when["tags"])
+            exact = {key: all_tags.pop(key) for key in sorted(exact_keys) if key in all_tags}
+            tags = all_tags
+            ranges = dict(when["ranges"])
+            dimensions = tuple(sorted(exact))
+            base = {"tags": tags, "ranges": ranges}
+            bucket_key = (cls._summary_key(base), dimensions)
+            bucket = buckets.setdefault(bucket_key, {
+                "base": base, "dimensions": list(dimensions), "exact_combinations": {},
+            })
+            if exact:
+                bucket["exact_combinations"][cls._summary_key(exact)] = exact
+
+        summaries: list[dict[str, Any]] = []
+        for bucket in buckets.values():
+            summary = {
+                "tags": bucket["base"]["tags"],
+                "ranges": bucket["base"]["ranges"],
+                "exact_matches": None,
+            }
+            combinations = bucket["exact_combinations"]
+            if combinations:
+                summary["exact_matches"] = {
+                    "dimensions": bucket["dimensions"],
+                    "combination_count": len(combinations),
+                    "matching_rule": (
+                        "Each use still requires one exact registered combination; values across dimensions "
+                        "are not interchangeable. Full IDs and combinations are in technical_review_rows()."
+                    ),
+                }
+            elif not summary["tags"] and not summary["ranges"]:
+                summary["unconditional"] = True
+            summaries.append(summary)
+        return summaries
+
+    def _compact_property_summary(
+        self, package: CandidatePackage, field: Mapping[str, Any], property_name: str,
+    ) -> dict[str, Any]:
+        definition = field[property_name]
+        property_state = definition.get("state", "FIXED" if property_name == "locking" else None)
+        if property_state == "POLICY":
+            policy = self._policy(package, definition["policy_id"])
+            outcomes = [
+                (branch["value"], branch["when"])
+                for branch in policy["branches"]
+            ]
+        else:
+            outcomes = [(definition, {"tags": {}, "ranges": {}})]
+
+        grouped: dict[str, dict[str, Any]] = {}
+        for outcome, when in outcomes:
+            if property_name == "locking":
+                semantic = {
+                    "value_state": outcome["value"]["state"],
+                    "source_state": outcome["source"]["state"],
+                }
+            elif property_name == "default" and outcome["state"] == "BINDING":
+                semantic = {"state": "BINDING"}
+            else:
+                semantic = {key: value for key, value in outcome.items() if key != "reason"}
+            key = self._summary_key(semantic)
+            group = grouped.setdefault(key, {
+                "outcome": _json_safe(semantic), "_whens": [], "_reasons": set(),
+                "_value_reasons": set(), "_source_reasons": set(),
+                "_parameter_ids": set(),
+            })
+            group["_whens"].append(when)
+            if property_name == "locking":
+                if outcome["value"].get("reason"):
+                    group["_value_reasons"].add(outcome["value"]["reason"])
+                if outcome["source"].get("reason"):
+                    group["_source_reasons"].add(outcome["source"]["reason"])
+            elif outcome.get("reason"):
+                group["_reasons"].add(outcome["reason"])
+            if property_name == "default" and outcome["state"] == "BINDING":
+                group["_parameter_ids"].add(outcome["parameter_id"])
+
+        groups: list[dict[str, Any]] = []
+        for group in grouped.values():
+            row = {
+                "outcome": group["outcome"],
+                "conditions": self._compact_condition_groups(group["_whens"]),
+            }
+            reason_texts = (
+                group["_reasons"] | group["_value_reasons"] | group["_source_reasons"]
+            )
+            if reason_texts:
+                row["reason_count"] = len(reason_texts)
+                row["reason_note"] = (
+                    "Distinct reason text is omitted from this compact view; the count does not select a "
+                    "representative reason. Full text remains in technical_review_rows()."
+                )
+            if group["_parameter_ids"]:
+                row["folded_references"] = {
+                    "parameter_id": {
+                        "count": len(group["_parameter_ids"]),
+                        "meaning": (
+                            "Uses the exact bound parameter identity; numeric values are resolved from that "
+                            "binding and are not copied into this summary. Full IDs are in technical_review_rows()."
+                        ),
+                    },
+                }
+            groups.append(row)
+
+        grouping_notes = {
+            "source_qualification": (
+                "Distinct legal-source sets stay in separate groups; their values are never unioned."
+            ),
+            "default_source": (
+                "This is a new-selection candidate only; it does not replace an existing current source."
+            ),
+            "default": (
+                "Terminal defaults are grouped only by identical result; BINDING rows show exact identity counts."
+            ),
+            "locking": (
+                "Locking groups use the value/source states; repeated reason text does not split a group."
+            ),
+        }
+        return {
+            "property": property_name,
+            "state": property_state,
+            "groups": groups,
+            "grouping_note": grouping_notes[property_name],
+        }
+
+    def _review_operation_change_rows(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         operation_rows: list[dict[str, Any]] = []
         change_rows: list[dict[str, Any]] = []
-        selected_entries = self._field_entries()
-        selected_packages = self._selected_packages()
         adopted_common = {
             item["rule_set_id"]: set(item["rule_ids"])
             for item in self.primary.document["adopts"]
         }
+        for package in self._selected_packages():
+            operations = package.document["operations"]
+            if package.kind == "COMMON" and package.rule_set_id in adopted_common and package is not self.primary:
+                allowed = adopted_common[package.rule_set_id]
+                operations = [
+                    operation for operation in operations
+                    if operation["rule_ids"] and set(operation["rule_ids"]) <= allowed
+                ]
+            for operation in operations:
+                row = dict(operation)
+                row.update({
+                    "review_key": f"operation|{package.rule_set_id}|{package.revision}|{operation['operation_id']}",
+                    "revision": package.revision, "rule_set_id": package.rule_set_id,
+                })
+                operation_rows.append(row)
+            for change in package.document["changes"]:
+                row = dict(change)
+                row.update({
+                    "review_key": f"change|{package.rule_set_id}|{package.revision}|{change['key']}",
+                    "revision": package.revision, "rule_set_id": package.rule_set_id,
+                    "scope_note": "Package change log; common-package entries may include non-adopted rules.",
+                })
+                change_rows.append(row)
+        return operation_rows, change_rows
+
+    def review_rows(self) -> dict[str, Any]:
+        """Return one compact business summary row per selected field."""
+        field_rows: list[dict[str, Any]] = []
+        for package, field in self._field_entries():
+            key = f"field|{package.rule_set_id}|{package.revision}|{field['id']}|SUMMARY"
+            field_rows.append({
+                "key": key, "review_key": key, "revision": package.revision,
+                "rule_set_id": package.rule_set_id, "field_id": field["id"],
+                "name": field["name"], "kind": field["kind"], "unit": field["unit"],
+                "source": self._compact_property_summary(package, field, "source_qualification"),
+                "default_source": self._compact_property_summary(package, field, "default_source"),
+                "default": self._compact_property_summary(package, field, "default"),
+                "locking": self._compact_property_summary(package, field, "locking"),
+                "basis": list(field["basis"]), "pending": list(field["pending"]),
+                "rule_ids": list(field["rule_ids"]),
+                "mapping_refs": list(field.get("mapping_refs", ())),
+                "summary_note": (
+                    "Property conditions are summarized independently. Multiple conditions still require "
+                    "simultaneous exact matching and are evaluated only by apply_context()."
+                ),
+            })
+        operation_rows, change_rows = self._review_operation_change_rows()
+        return {
+            "metadata": {
+                "revision": self.primary.revision, "base": self.primary.document["base"],
+                "dependency": list(self.primary.document["dependency"]),
+                "status": self.primary.document["status"], "rule_set_id": self.primary.rule_set_id,
+            },
+            "fields": field_rows, "operations": operation_rows, "changes": change_rows,
+        }
+
+    def technical_review_rows(self) -> dict[str, Any]:
+        """Return the full branch-condition matrix for tests and technical diagnosis only."""
+        field_rows: list[dict[str, Any]] = []
+        selected_entries = self._field_entries()
         for package, field in selected_entries:
             policies_by_property: dict[str, Mapping[str, Any]] = {}
             for prop in ("default_source", "default", "source_qualification", "locking"):
@@ -1398,29 +1588,7 @@ a fresh target context so a stale source cannot carry over.
                     "cases": list(field["cases"]), "pending": pending, "rule_ids": list(field["rule_ids"]),
                     "evaluation_status": evaluation_status, "evaluation_problems": field_problems,
                 })
-        for package in selected_packages:
-            operations = package.document["operations"]
-            if package.kind == "COMMON" and package.rule_set_id in adopted_common and package is not self.primary:
-                allowed = adopted_common[package.rule_set_id]
-                operations = [
-                    operation for operation in operations
-                    if operation["rule_ids"] and set(operation["rule_ids"]) <= allowed
-                ]
-            for operation in operations:
-                row = dict(operation)
-                row.update({
-                    "review_key": f"operation|{package.rule_set_id}|{package.revision}|{operation['operation_id']}",
-                    "revision": package.revision, "rule_set_id": package.rule_set_id,
-                })
-                operation_rows.append(row)
-            for change in package.document["changes"]:
-                row = dict(change)
-                row.update({
-                    "review_key": f"change|{package.rule_set_id}|{package.revision}|{change['key']}",
-                    "revision": package.revision, "rule_set_id": package.rule_set_id,
-                    "scope_note": "Package change log; common-package entries may include non-adopted rules.",
-                })
-                change_rows.append(row)
+        operation_rows, change_rows = self._review_operation_change_rows()
         return {
             "metadata": {
                 "revision": self.primary.revision, "base": self.primary.document["base"],
@@ -1545,7 +1713,8 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
     field_ids: set[str] = set()
     for index, item in enumerate(doc["fields"]):
         item_path = f"{path}.fields[{index}]"
-        field = _keys(item, _FIELD_KEYS, item_path)
+        field_keys = _FIELD_KEYS if "mapping_refs" in _object(item, item_path) else _FIELD_KEYS - {"mapping_refs"}
+        field = _keys(item, field_keys, item_path)
         field_id = _token(field["id"], f"{item_path}.id")
         if field_id in field_ids:
             _fail(f"{item_path}.id", "duplicate field ID")
@@ -1578,6 +1747,8 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
             _string_array(field[name], f"{item_path}.{name}", minimum=1)
         _string_array(field["pending"], f"{item_path}.pending")
         _string_array(field["rule_ids"], f"{item_path}.rule_ids", tokens=True)
+        if "mapping_refs" in field:
+            _string_array(field["mapping_refs"], f"{item_path}.mapping_refs", minimum=1, tokens=True)
         for state_name in ("default_source", "default", "source_qualification"):
             value_state = field[state_name]
             if value_state["state"] == "POLICY":

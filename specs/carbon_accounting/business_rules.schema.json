@@ -111,6 +111,7 @@
 "required":["id","name","kind","unit","source_qualification","default_source","default","locking","channel_projections","basis","consumers","cases","pending","rule_ids"],
 "properties":{
 "id":{"$ref":"#/$defs/token"},"name":{"$ref":"#/$defs/nonBlank"},
+"mapping_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/token"}},
 "kind":{"enum":["text","quantity","percentage","integer","enum","boolean","readonly_parameter","metadata","status","report"]},
 "unit":{"$ref":"#/$defs/nonBlank"},"source_qualification":{"$ref":"#/$defs/sourceState"},"default_source":{"$ref":"#/$defs/defaultSourceState"},"default":{"$ref":"#/$defs/defaultState"},"locking":{"$ref":"#/$defs/locking"},
 "channel_projections":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/projection"}},

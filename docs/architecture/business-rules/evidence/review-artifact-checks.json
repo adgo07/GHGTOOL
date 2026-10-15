@@ -1,36 +1,27 @@
 {
   "candidate_only": true,
-  "review_projection_sha256": "7f56056df731938e390ae2415b3a51740ddc5f1f7aa21516a80a1e474b86e1a4",
-  "review_json_file_sha256": "6b286677c37b3317647726ae4d89d2be20b806a81ee84598385a4a3395624d5b",
-  "workbook_sha256": "5bd80a288f6373b88746dc9995caf1d38e28c286db0a471b8c2bb53d6e3f5cc5",
+  "review_projection_sha256": "e346d967f661c9bbf72acb78844d8a6ae15fe76458f8502e2393b5e3b2a9a221",
+  "review_json_file_sha256": "cc1c3826f06f2a8f24a61c203c2b61626a0682b6bfa098510cc34f5dd67b4e4b",
+  "workbook_sha256": "af33f39650ad152bc550212d3bcecc24857bfe2ebddb9d10f892ac5ee313185c",
   "sheets": {
-    "字段与条件规则": 1090,
-    "操作与影响": 18,
-    "本次变化": 12
+    "业务规则": 11,
+    "操作与影响": 17,
+    "本次变化": 8
   },
   "freeze_panes": "D6",
   "tables_and_status_validation": "one each per sheet",
   "formulas": 0,
   "error_cells": 0,
-  "maximum_cell_characters": 4049,
+  "maximum_cell_characters": 482,
   "feedback_test": {
     "seeded": 6,
     "retained_exactly": 6,
     "deleted_definition_opinion_retained_in_changes": 1,
     "all_three_sheets_reordered": true,
     "literal_PENDING_unchanged": true,
-    "tested_review_projection_sha256": "7e40aa7ed2140de82432c9aebf3dd82403e6beb2aede3dc0123635d053d7ca49"
+    "tested_review_projection_sha256": "653f748da86fd46b03778450eb5066e561cba30d663d1570cf47daa7ea56075e"
   },
-  "evaluation_states": {
-    "READY": 585,
-    "BLOCKED": 505
-  },
-  "problem_codes": {
-    "PENDING": 328,
-    "CONDITIONAL_LOCKING": 8,
-    "SOURCE_NOT_ALLOWED": 207,
-    "PENDING_LOCKING": 459,
-    "NO_LEGAL_SOURCES": 6
-  },
+  "review_mode": "compact_business_summary",
+  "mirror_definitions_removed": 442,
   "native_office_validation": false
 }

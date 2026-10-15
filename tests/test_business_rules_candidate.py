@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from decimal import Decimal, localcontext
 from pathlib import Path
+from unittest.mock import patch
 
 from packages.application.business_rules_candidate import CandidateBundleError, load_bundle
 
@@ -110,6 +111,21 @@ class CandidateLoaderTests(unittest.TestCase):
             self.load_one(package(fields=[field("F", source_qualification={"state": "FIXED", "values": []})]))
         with self.assertRaises(CandidateBundleError):
             self.load_one(package(fields=[field("F", kind="future_kind")]))
+
+    def test_mapping_refs_are_optional_nonempty_tokens_and_visible_in_compact_rows(self):
+        without_refs = self.load_one(package(fields=[field("NO_REFS")]))
+        self.assertEqual(without_refs.review_rows()["fields"][0]["mapping_refs"], [])
+
+        with_refs = self.load_one(package(fields=[field(
+            "MAPPED", mapping_refs=["CAR-FLD-FUEL-001", "CAR-FLD-FUEL-002"],
+        )]))
+        self.assertEqual(
+            with_refs.review_rows()["fields"][0]["mapping_refs"],
+            ["CAR-FLD-FUEL-001", "CAR-FLD-FUEL-002"],
+        )
+        for invalid in ([], [""], ["bad value"], ["CAR-FLD-1", "CAR-FLD-1"]):
+            with self.subTest(mapping_refs=invalid), self.assertRaises(CandidateBundleError):
+                self.load_one(package(fields=[field("INVALID", mapping_refs=invalid)]))
 
     def test_default_source_requires_an_explicit_terminal_or_policy_state(self):
         bundle = self.load_one(package(fields=[field(
@@ -473,7 +489,7 @@ class CandidateLoaderTests(unittest.TestCase):
         self.assertEqual(unresolved["locking_outcome"]["status"], "MISSING_CONTEXT")
         self.assertEqual(unresolved["status"], "BLOCKED")
 
-        rows = bundle.review_rows()["fields"]
+        rows = bundle.technical_review_rows()["fields"]
         self.assertEqual(len(rows), 2)
         resolved_rows = [row for row in rows if row["condition_status"] == "INTERSECTED"]
         self.assertEqual(len(resolved_rows), 2)
@@ -513,7 +529,7 @@ class CandidateLoaderTests(unittest.TestCase):
                           source_qualification={"state": "POLICY", "policy_id": "source-policy"})],
             policies=[default_policy, source_policy],
         ))
-        rows = bundle.review_rows()["fields"]
+        rows = bundle.technical_review_rows()["fields"]
         diagnostics = [row for row in rows if row["condition_status"] == "UNCOMPOSABLE_BRANCH"]
         self.assertEqual(len(rows), 2)
         self.assertEqual(len(diagnostics), 1)
@@ -521,6 +537,95 @@ class CandidateLoaderTests(unittest.TestCase):
         self.assertEqual(diagnostics[0]["condition"]["tags"], {"origin": "CATALOG"})
         self.assertEqual(diagnostics[0]["condition_ids"], {"default": "CATALOG"})
         self.assertEqual(diagnostics[0]["evaluation_status"], "UNCOMPOSABLE_BRANCH")
+
+    def test_compact_review_groups_terminal_outputs_and_preserves_technical_matrix(self):
+        conditions = [
+            {"id": "CATALOG_1", "when": {"tags": {
+                "origin": "CATALOG", "parameter_id": "par-1", "binding_id": "bind-1",
+            }, "ranges": {}}, "parameter_id": "par-1", "binding_id": "bind-1"},
+            {"id": "CATALOG_2", "when": {"tags": {
+                "origin": "CATALOG", "parameter_id": "par-2", "binding_id": "bind-2",
+            }, "ranges": {}}, "parameter_id": "par-2", "binding_id": "bind-2"},
+            {"id": "CUSTOM_3", "when": {"tags": {
+                "origin": "CUSTOM", "parameter_id": "par-3", "binding_id": "bind-3",
+            }, "ranges": {}}, "parameter_id": "par-3", "binding_id": "bind-3"},
+        ]
+        source_policy = {
+            "id": "source-policy", "property": "source_qualification",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [
+                {"id": item["id"], "when": item["when"], "value": {
+                    "state": "FIXED",
+                    "values": ["STANDARD_DEFAULT", "MEASURED"] if item["id"].startswith("CATALOG") else ["MEASURED"],
+                }}
+                for item in conditions
+            ],
+        }
+        default_policy = {
+            "id": "default-policy", "property": "default", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [
+                {"id": item["id"], "when": item["when"], "value": {
+                    "state": "BINDING", "parameter_id": item["parameter_id"],
+                }}
+                for item in conditions
+            ],
+        }
+        locking_policy = {
+            "id": "locking-policy", "property": "locking", "strategy": "UNIQUE_CONTEXT_MATCH",
+            "branches": [
+                {"id": item["id"], "when": item["when"], "value": {
+                    "value": {"state": "LOCKED", "reason": f"Value evidence {item['id']}"},
+                    "source": {"state": "LOCKED", "reason": f"Source evidence {item['id']}"},
+                }}
+                for item in conditions
+            ],
+        }
+        bundle = self.load_one(package(fields=[field(
+            "TARGET", source_qualification={"state": "POLICY", "policy_id": "source-policy"},
+            default={"state": "POLICY", "policy_id": "default-policy"},
+            locking={"state": "POLICY", "policy_id": "locking-policy"},
+        )], policies=[source_policy, default_policy, locking_policy]))
+
+        with patch.object(
+            type(bundle), "technical_review_rows",
+            side_effect=AssertionError("compact review must not evaluate the full matrix"),
+        ):
+            compact = bundle.review_rows()
+        self.assertEqual(len(compact["fields"]), 1)
+        row = compact["fields"][0]
+        self.assertEqual(row["review_key"], "field|test.common|r1|TARGET|SUMMARY")
+        self.assertFalse({"channels", "consumers", "cases"} & set(row))
+        source_groups = row["source"]["groups"]
+        self.assertEqual(len(source_groups), 2)
+        source_values = [group["outcome"]["values"] for group in source_groups]
+        self.assertEqual(source_values, [
+            ["STANDARD_DEFAULT", "MEASURED"], ["MEASURED"],
+        ])
+        catalog_condition = source_groups[0]["conditions"][0]
+        self.assertEqual(catalog_condition["tags"], {"origin": "CATALOG"})
+        self.assertEqual(len(source_groups[0]["conditions"]), 1)
+        self.assertEqual(catalog_condition["exact_matches"]["combination_count"], 2)
+        self.assertIn("not interchangeable", catalog_condition["exact_matches"]["matching_rule"])
+        self.assertNotIn("par-1", json.dumps(row))
+        self.assertNotIn("bind-1", json.dumps(row))
+        self.assertNotIn("Value evidence", json.dumps(row))
+        self.assertNotIn("Source evidence", json.dumps(row))
+        for property_name in ("source", "default_source", "default", "locking"):
+            self.assertTrue(all("reasons" not in group for group in row[property_name]["groups"]))
+
+        binding_group = row["default"]["groups"][0]
+        self.assertEqual(binding_group["outcome"], {"state": "BINDING"})
+        self.assertEqual(binding_group["folded_references"]["parameter_id"]["count"], 3)
+        lock_group = row["locking"]["groups"][0]
+        self.assertEqual(lock_group["outcome"], {"value_state": "LOCKED", "source_state": "LOCKED"})
+        self.assertEqual(lock_group["reason_count"], 6)
+        self.assertIn("does not select a representative reason", lock_group["reason_note"])
+
+        technical = bundle.technical_review_rows()
+        self.assertEqual(len(technical["fields"]), 3)
+        self.assertIn("par-1", json.dumps(technical["fields"]))
+        self.assertIn("bind-1", json.dumps(technical["fields"]))
+        self.assertIn("Value evidence CATALOG_1", json.dumps(technical["fields"]))
+        self.assertIn("Source evidence CATALOG_1", json.dumps(technical["fields"]))
 
     def test_review_composes_default_source_policy_with_source_dependent_properties(self):
         policies = [
@@ -561,7 +666,7 @@ class CandidateLoaderTests(unittest.TestCase):
             )],
             policies=policies,
         ))
-        rows = bundle.review_rows()["fields"]
+        rows = bundle.technical_review_rows()["fields"]
         good = next(row for row in rows if row["condition_status"] == "INTERSECTED")
         self.assertEqual(good["condition"]["tags"]["business_source"], "STANDARD_DEFAULT")
         self.assertEqual(good["default_source"]["source"], "STANDARD_DEFAULT")
@@ -615,7 +720,7 @@ class CandidateLoaderTests(unittest.TestCase):
                     )],
                     policies=source_dependent_policies(),
                 ))
-                rows = bundle.review_rows()["fields"]
+                rows = bundle.technical_review_rows()["fields"]
                 by_source = {
                     row["condition"]["tags"]["business_source"]: row
                     for row in rows
@@ -783,7 +888,7 @@ class CandidateLoaderTests(unittest.TestCase):
         ))
         with localcontext() as context:
             context.prec = 2
-            rows = bundle.review_rows()["fields"]
+            rows = bundle.technical_review_rows()["fields"]
         self.assertEqual(rows[0]["condition"], condition)
         self.assertEqual(rows[0]["condition"]["ranges"]["carbonate_component_count"]["min"], "1")
         self.assertEqual(rows[0]["condition"]["ranges"]["carbonate_component_count"]["max"], "3")
@@ -1027,8 +1132,12 @@ class CandidateLoaderTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         review = json.loads(review_path.read_text(encoding="utf-8"))
         self.assertEqual(review["metadata"]["rule_set_id"], "test.common")
-        self.assertEqual(review["fields"][0]["default_source"]["state"], "FIXED")
-        self.assertEqual(review["fields"][0]["selected_business_source"], "STANDARD_DEFAULT")
+        default_source = review["fields"][0]["default_source"]
+        self.assertEqual(default_source["state"], "FIXED")
+        self.assertEqual(default_source["groups"][0]["outcome"], {
+            "state": "FIXED", "source": "STANDARD_DEFAULT",
+        })
+        self.assertNotIn("selected_business_source", review["fields"][0])
         for folder in (ROOT / "apps", ROOT / "packages"):
             for source in folder.rglob("*.py"):
                 if source.name == "business_rules_candidate.py":

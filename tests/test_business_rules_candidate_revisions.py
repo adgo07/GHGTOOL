@@ -10,7 +10,6 @@ from packages.core.decimal_policy import DecimalPolicy
 from packages.core.units import UnitService
 from packages.standards.carbon_material import HeatInput
 from packages.standards.carbon_material_normalization import MaterialInputLine, MaterialRole, normalize_material_inputs
-from packages.ui.field_specs import FIELD_SPECS, FieldDataType
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'data-source/carbon_accounting/business-rules'
@@ -41,16 +40,15 @@ class CandidateRevisionExpectations(unittest.TestCase):
         corrections=[c for c in software['changes'] if 'same' in str(c).lower() or '同一身份' in str(c) or '同身份' in str(c)]
         self.assertTrue(corrections,'同身份重置旧事实与批准目标应有具体差异记录')
 
-    def test_source_enablement_is_business_state_and_views_have_no_toggle_consumer(self):
+    def test_source_enablement_is_business_state_and_pure_views_are_not_policy(self):
         ops={o['operation_id']:o for o in self.documents()[2]['operations']}
-        toggle=ops['toggle_emission_source'];view=ops['presentation_only_views']
+        toggle=ops['toggle_emission_source'];self.assertNotIn('presentation_only_views',ops)
         changes='\n'.join(toggle['changes']);invalidates='\n'.join(toggle['invalidates'])
         self.assertIn('INVOLVED',changes);self.assertIn('NOT_INVOLVED',changes)
         self.assertRegex(changes,r'(dirty|变脏|输入脏|标脏)')
         self.assertRegex(invalidates,r'(结果|result)')
         self.assertRegex('\n'.join(toggle['preserves']),r'(草稿|draft)')
         self.assertTrue(any('_toggle_source_group' in c for c in toggle['basis']))
-        self.assertFalse(any('_toggle_source_group' in c for c in view['basis']))
         tree=ast.parse((ROOT/'packages/ui/carbon_material_page.py').read_text(encoding='utf-8'))
         method=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='_toggle_source_group')
         self.assertTrue(any(isinstance(n,ast.Attribute) and n.attr=='_mark_input_dirty' for n in ast.walk(method)))
@@ -64,46 +62,16 @@ class CandidateRevisionExpectations(unittest.TestCase):
                 if p['channel'] in {'GUI','EXCEL'}:
                     with self.subTest(field=field_id,binding=p['binding']):self.assertEqual(p['unit'],'%')
             if field_id.startswith('material.'):
-                raw=[p for p in f['channel_projections'] if p['binding'].startswith('domain:MaterialInputLine.')]
+                raw=[p for p in f['channel_projections'] if p['channel']=='DOMAIN']
                 self.assertTrue(raw)
-                self.assertTrue(all(p['unit']=='%' for p in raw),'原始物料证据入口仍是百分数')
+                self.assertTrue(all(p['unit']=='%' for p in raw),'原始成分证据保留百分数；现有服务再归一化')
             else:
                 self.assertEqual(f['unit'],'ratio')
                 self.assertTrue(all(p['unit']=='ratio' for p in f['channel_projections'] if p['channel']=='DOMAIN'))
-        for f in fields.values():
-            for p in f['channel_projections']:
-                key=p['binding'].removeprefix('field_specs:')
-                if p['channel']=='GUI' and key in FIELD_SPECS and FIELD_SPECS[key].data_type is FieldDataType.PERCENTAGE:
-                    with self.subTest(field=f['id'],binding=p['binding']):self.assertEqual(p['unit'],'%')
-        for field_id in ('heat_amount','exported_heat_amount'):
-            self.assertTrue(any(p['channel']=='GUI' and p['unit']=='t' for p in fields[field_id]['channel_projections']),
-                '实际蒸汽录入为t，不能把Calculator归一化kg当成当前控件单位')
-        for field_id,actual_consumers in (
-                ('fuel_activity',('_FuelRow','FuelInput','AppendixBWorkbookImporter')),
-                ('electricity.amount',('_UnifiedEnergyRow','ElectricityConsumptionDetail','AppendixBWorkbookImporter')),
-                ('exported_electricity_amount',('_UnifiedEnergyRow','ElectricityOutputLine','AppendixBWorkbookImporter'))):
-            consumers='\n'.join(fields[field_id]['consumers'])
-            for consumer in actual_consumers:self.assertIn(consumer,consumers)
-        page_tree=ast.parse((ROOT/'packages/ui/carbon_material_page.py').read_text(encoding='utf-8'))
-        self.assertTrue({'_FuelRow','_UnifiedEnergyRow'} <= {
-            n.name for n in page_tree.body if isinstance(n,ast.ClassDef)})
+        # 纯界面/序列化属性的重命名不再要求同步到业务政策。
         for f in fields.values():
             for projection in f['channel_projections']:
-                self.assertNotIn('CarbonMaterialAccountingPage._FuelRow',projection['binding'])
-                self.assertNotIn('CarbonMaterialAccountingPage._UnifiedEnergyRow',projection['binding'])
-        fuel=fields['fuel_activity']['channel_projections']
-        self.assertTrue({'GUI','EXCEL','DOMAIN'} <= {p['channel'] for p in fuel})
-        self.assertTrue(any(p['binding']=='domain:FuelInput.activity' for p in fuel))
-        self.assertTrue(any(p['channel']=='GUI' and '_FuelRow.activity' in p['binding'] for p in fuel))
-        for field_id,domain_binding in (
-                ('electricity.amount','domain:ElectricityConsumptionDetail.electricity_amount'),
-                ('exported_electricity_amount','domain:ElectricityOutputLine.amount')):
-            projections=fields[field_id]['channel_projections']
-            self.assertTrue({'GUI','EXCEL','DOMAIN'} <= {p['channel'] for p in projections})
-            self.assertTrue(any(p['binding']==domain_binding and p['unit']=='MWh' for p in projections))
-            self.assertTrue(any(p['channel']=='GUI' and '_UnifiedEnergyRow.amount' in p['binding']
-                                and p['unit']=='MWh' for p in projections))
-            self.assertTrue(all(p['unit']=='MWh' for p in projections))
+                self.assertEqual(projection['binding'],'business:'+f['id'])
         w=load_workbook(ROOT/'resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx',read_only=True)
         try:
             for sheet,cell in [('B.2','H3'),('B.7','D2'),('B.7','F2')]:self.assertIn('%',w[sheet][cell].value)

@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 from decimal import Decimal
 
-from packages.ui.field_specs import FIELD_SPECS
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/"data-source/carbon_accounting/business-rules"
@@ -21,44 +20,32 @@ class CandidateAssetCoverageTests(unittest.TestCase):
     def test_approved_plan_bytes_remain_identical(self):
         self.assertEqual(hashlib.sha256(PLAN.read_bytes()).hexdigest(),"98abf84ea7f7af3887d60c3c1e128c272d73ccbf73892d76581ad1771bfad876")
 
-    def test_every_current_ui_field_has_auditable_candidate_metadata(self):
-        fields=[f for d in self.documents() for f in d["fields"]]
-        by_id={f["id"]:f for f in fields}
-        self.assertEqual(len(by_id),len(fields),"字段身份不能重复")
-        self.assertTrue(set(FIELD_SPECS)<=set(by_id),"不能用代表样例冒充完整109字段覆盖")
-        for key in FIELD_SPECS:
-            field=by_id[key]
-            with self.subTest(field=key):
-                self.assertTrue(field["basis"])
-                self.assertTrue(field["consumers"])
-                self.assertTrue(field["cases"])
-                self.assertTrue(field["locking"])
-                self.assertTrue(any(p["channel"]=="GUI" and key in p["binding"] for p in field["channel_projections"]))
+    def test_business_policies_link_existing_mapping_without_internal_mirrors(self):
+        documents=self.documents()
+        fields=[f for d in documents for f in d['fields']]
+        self.assertTrue(fields)
+        self.assertEqual(documents[2]['fields'],[], '软件内部属性不是长期业务政策')
+        mapping=(ROOT/'specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md').read_text(encoding='utf-8')
+        for field in fields:
+            with self.subTest(field=field['id']):
+                self.assertFalse(field['id'].startswith('domain.'))
+                self.assertTrue(field['mapping_refs'])
+                for reference in field['mapping_refs']:self.assertIn('`'+reference+'`',mapping)
+                self.assertTrue(all(p['binding']=='business:'+field['id'] for p in field['channel_projections']))
+                self.assertTrue(field['basis'])
 
-    def test_current_input_evidence_record_and_report_fields_are_inventoried(self):
-        from dataclasses import fields as dataclass_fields
-        from packages.standards import carbon_material as domain
-        from packages.standards import carbon_material_normalization as normalization
-        from packages.core import models
-        from packages.core.parameter_resolution import ElectricityConsumptionDetail
-        from packages.application.reporting import model as reporting
-        inventory={projection["binding"] for doc in self.documents() for field in doc["fields"]
-                   for projection in field["channel_projections"]}
-        classes=[getattr(domain,name) for name in (
-            "CarbonMaterialInput","FuelInput","CalcinationInput","BakingInput","GraphitizationInput",
-            "FumeIncinerationInput","FGDInput","CarbonateComponent","ElectricityOutputLine","HeatInput",
-            "CarbonReportingData","ActivityDataEvidence","MeasuredFactorEvidence","InputValue",
-            "ParameterValue","EmissionSourceState","CalculationTrace","ReportQualification",
-            "SteamEnthalpyEvaluation","CarbonMaterialCalculationEvidence","CarbonMaterialCalculationOutcome")]
-        classes += [normalization.MaterialAmount,normalization.MaterialInputLine,ElectricityConsumptionDetail]
-        classes += [getattr(models,name) for name in ("AccountingInput","AccountingRecord","CalculationResult",
-                    "CalculationLine","ParameterSnapshot","AccountingPeriod","EmissionSourceSelection")]
-        classes += [getattr(reporting,name) for name in ("ReportModel","ReportCell","ReportRow","ReportTable","ReportSection")]
-        for klass in classes:
-            for field in dataclass_fields(klass):
-                binding=f"domain:{klass.__name__}.{field.name}"
-                with self.subTest(binding=binding):
-                    self.assertIn(binding,inventory,"不能以109个GUI字段代替来源、项目、结果和报告投影盘点")
+    def test_default_review_is_business_summary_and_matrix_is_developer_only(self):
+        from packages.application.business_rules_candidate import load_bundle
+        paths=(SOURCE/'common/gbt_32150_2025.json',SOURCE/'standards/gbt_32151_34_2024.json',SOURCE/'software_policy.json')
+        bundle=load_bundle(paths)
+        review=bundle.review_rows()
+        defined={f['id'] for d in self.documents() for f in d['fields']}
+        self.assertEqual({f['field_id'] for f in review['fields']},defined)
+        self.assertEqual(len(review['fields']),len(defined))
+        self.assertGreater(len(bundle.technical_review_rows()['fields']),len(review['fields']))
+        for row in review['fields']:
+            self.assertFalse({'channels','consumers','cases','condition_id','evaluation_status'} & row.keys())
+            self.assertTrue(row['mapping_refs'])
 
     def test_candidate_has_no_production_import(self):
         for folder in (ROOT/"apps",ROOT/"packages"):
@@ -123,7 +110,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
         self.assertTrue(path.is_file(),"必须提供实际生成的三页审阅表")
         workbook=load_workbook(path,read_only=True,data_only=False)
         try:
-            self.assertEqual(workbook.sheetnames,["字段与条件规则","操作与影响","本次变化"])
+            self.assertEqual(workbook.sheetnames,["业务规则","操作与影响","本次变化"])
             for name,kind in zip(workbook.sheetnames,("fields","operations","changes")):
                 self.assertTrue(review[kind],f"{name}不能只建空页")
                 sheet=workbook[name]
@@ -160,7 +147,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
     def test_actual_candidate_property_branches_are_structurally_composable(self):
         from packages.application.business_rules_candidate import load_bundle
         paths=(SOURCE/"common/gbt_32150_2025.json",SOURCE/"standards/gbt_32151_34_2024.json",SOURCE/"software_policy.json")
-        rows=load_bundle(paths).review_rows()["fields"]
+        rows=load_bundle(paths).technical_review_rows()["fields"]
         unexpected=[(row["field_id"],row.get("condition_id"),row["evaluation_status"])
                     for row in rows if row["evaluation_status"] not in {"READY","BLOCKED"}]
         self.assertEqual(unexpected,[],
