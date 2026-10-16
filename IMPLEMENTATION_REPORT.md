@@ -1,3 +1,5 @@
+> 当前执行为文末R11；下方R9/R10段保留为历史证据。
+
 > 当前R10执行见文末追加；下方R9和019确认是截至c0d849a的历史实施证据，不覆盖Owner最新014/018/020软件决定。原文件已备份。
 
 # PR47集中有限修复实施报告
@@ -102,3 +104,44 @@ Table实际A5:Y34、A5:U26、A5:T16，最大行高392/200/104pt，0公式/错误
 真实失败记录：候选迭代曾有rule_id缺引用，改为既有Mapping文案关联；一次64项有向量`.0704`/`0.0704`格式断言不匹配，另一次缺“段间求和”文案，保留业务断言并补齐后64/64，最终联合86/86。正式20首次通过后，为默认synthetic新增全ID检查发现旧详情沿用compact groups formatter漏fixture-lhv，未删断言，改为full递归渲染后最终20及16都重跑通过。一次批量文档整体替换被自动审批拒绝（可能覆盖已有证据）；没有执行，改为先备份并局部追加，历史证据完整保留。一次普通工具审批超时重试成功，不当作代码缺陷。
 
 本轮未本地全量/Windows构建，旧#233/#234不背书最终工具head；最新CI另在原PR精确记录。原生缺项继续保留。独立AI仅就实际读到的diff/产物作审查，不能冒称“方案设计本轮验收已通过”。提交原PR后送回，停止等待最终验收，不合并47/46、不进入46/B/N。
+
+
+## 2026-10-17 PR47 R11集中修正（当前）
+
+依据Owner给出的总体问题清单及联合验证证据，先修候选源定义与操作语义，再经现有投影生成同版本Excel/HTML。引用JSON仅作复核证据，不另立业务真值源。当前分支codex/ghg-business-rules-a，基线main b0c1aa723391772f9aef026b4c0a8619eb61a65b；中央lock ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。本任务不涉及中央公共Contract修改；仅落实014/018/020及既有软件决定，不新增解释、标准范围、生产接入或数据库迁移。
+
+1. LHV/FCh仅缺省/实测为合法来源；各28个旧CALCULATED锁定理由改为纠错权限，负例仍受阻且留在技术详情。
+2. DIRECT允许计算/实测，默认实测；操作明确按质量/体积直接含碳量，不重复消费LHV/FCh，不新增估算器。
+3. LHV普通单位只留质量/体积对应单位；HEAT旧身份仅历史兼容，不作为普通入口。
+4. 显式切默认仍经现有Resolver、当前采用上下文及精确绑定，无绑定清空；实测/计算草稿隔离，初始化/同身份/恢复/切换分开，历史不重贴身份。
+5. 外部CO₂纳入且留空为独立待补充状态，炭素部分可完成；未纳入/空/0/正值/非法值分开，ET不变、补充只合计一次。
+6. 未确认名称草稿在正式计算前走既有确认/取消，不逐字重置身份。
+7. 待处理列区分历史身份、缺绑定、非法来源、遗留企业路径及专业事实；OTHER为已批准产品选项，不再呈现为待Owner审批。
+8. 开发只读目录快照经现有Repository/查询服务核对I=90%、TR=100%、热力因子0.11，保存数值词法、单位、资产/绑定/来源表/条款页码/版本/有效期；注册数值核对不替代运行时Resolver。缺快照明确“目录参考值未核对”。Word仅关联既有Mapping与报告Schema，未新造WORD消费者，实际DOCX仍待后续专项验证。
+9. HTML先显示合法来源、默认/初始来源、当前来源、两类编辑权限、最终规则状态与原因，原始技术信息渐进展开；READY仅规则组合资格，不代表正式输入齐全。
+10. 烟气按同源实例/计量边界的分段适用参数汇总；无缺口完整覆盖可年度汇总，有缺口只报覆盖小计。T_i为d，小时÷24一次再消费原式×24；同源重叠拒绝，不同源同期不去重，不年化外推。
+11. 按对象设置意见下拉：字段整体+四属性、操作整体+操作、变化整体；旧不适用意见保留待映射，整体意见不要求HTML条件。
+12. 技术身份八列折叠但仍在原Table，业务与意见列保留可见；变化摘要中文，详情标题按业务条件而非COMBINED。仍61行（29/21/11），649技术组合（281有效/368受阻），442个条件意见作用域全部保留；三表范围A5:Y34/A5:U26/A5:T16。
+
+本轮按用户确认关闭后再次独占读取，原表SHA与R10备份一致，已保存意见0条；原四项交付另存备份后，正式四项产物已替换为本轮验证版本，未混入QA意见。源定义、Catalog、生产能力与历史证据边界分别核验，正式产物待本轮联合验证收口后替换。
+
+原生Office：Owner本轮已按Esc停止computer use且未重新授权，不再次操作，也不用程序重存冒充原生验证。旧R10测试/CI不替本轮背书。最终命令与真实数量在本节后续补充及原PR送验评论记录。
+
+
+### R11最终本地验证与缺项
+
+源及操作修正独立提交：`f8cd6af`。随后普通变更文句中文收口仍先写回源，再导出投影、生成交付。最终受验head以原PR47本轮送验评论及GitHub exact-head结果为准；不以parent或旧R10 CI冒充。
+
+- `python scripts/validate_business_rules_candidate.py --review-json build/business-rules-authoring/review-r11.json --technical-review-json build/business-rules-authoring/technical-r11.json --catalog-snapshot build/business-rules-authoring/catalog-r11.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json`：exit 0；三份输出同源绑定。
+- `node scripts/build_business_rules_review.mjs --input build/business-rules-authoring/review-r11.json --details build/business-rules-authoring/technical-r11.json --catalog-snapshot build/business-rules-authoring/catalog-r11.json --output build/business-rules-authoring/r11-review/业务规则审阅表.xlsx --previous build/business-rules-authoring/review-before-r11-user.xlsx --node-modules <bundled packages> --definition-root . --python <现有Python3.12>`：exit 0，61行，保留意见0条。使用既有artifact-tool 2.8.94，不新增生产依赖；标准库仅补工具公开API不支持的列隐藏/分组属性，不重绘或修改表内容。
+- `node scripts/test_business_rules_review.mjs --input build/business-rules-authoring/review-r11.json --technical-input build/business-rules-authoring/technical-r11.json --node-modules <bundled packages> --output build/business-rules-authoring/r11-review/review-feedback-fixture.json`：**25/25 PASS**（23主场景+2方向隔离），6次可见HTML条件输入；既有20场景保留、新增5场景。整体操作及变化意见从真实工作簿合法下拉填入，不要求HTML整体scope。
+- `python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q`：正式交付路径 **98/98，0 failure/0 error，8.849s**。此前分开执行79/79规则及数值、19/19临时产物资产测试均过。
+- `python scripts/business_rules_review_hashes.py --root . --checks docs/architecture/business-rules/evidence/review-artifact-checks.json`：4个定义资产LF哈希核验通过；audit-r11实际OOXML校验PASS，最高行高216/344/120pt，零公式/零错误单元格。Node语法、CLI Python语法、`git diff --check`通过。
+- 三页变更预览、普通字段及电力行已用ArtifactTool生成并视检；这是开发渲染，不是原生Windows/Office验收。
+- Luna/max独立只读复审未发现阻断业务语义问题；指出HTML标题重复与C01英文原因遗漏，均已修正并重生成。最新C01源至工作簿中文原因另有实际单元格断言通过。静态复审不冒充原生Office或完整生产验收。
+
+真实中间失败：生成时发现精确绑定读取位置错误、OOXML命名空间前缀不兼容，均修后成功；79项首轮1项旧英文显示断言失败，修正中文断言后79通过；夹具新增意见与旧意见误用同稳定行导致覆盖，隔离fixture行后最终25通过；资产模块中间19项出现27个subtest failures（旧checks哈希及旧普通视图假设），保留关键资格/条件断言并按本轮已批准视图调整后最终19通过。这些是中间失败，不以最终通过抹去，也不写成正式Calculator失败。
+
+最终projection LF SHA256：`e2a3834605c66d4783455e3d293e8fdceaa3824fc2c34159de0b46cb7ad27d0b`；XLSX原字节：`752885cfe03587d22f039eee15e4be85285a24b205d9f07afc070f2dab0bda7f`；HTML：`24b97fe3973a00472dbecf33d1f80f731a71fa761400686e408dc0c033f7d012`；生成器：`44c2ec530e5025494a3988dbe0a0ab58aabc07118d49f1790a8e6e82e6057115`。精确身份及目录快照随正式checks保存。
+
+尚未闭合：本轮原生Excel/WPS打开/意见保存重开/排序和实际DOCX验证未执行；前者受Owner停止computer use约束，后者不在候选包实施范围。最终head Windows CI须以原PR本轮实际运行结果补证，当前本地记录不宣称GitHub Actions已通过。生产Resolver/UI/Word接入、正式计算业务验收及B/N均未实施；等待独立验收，不合并。

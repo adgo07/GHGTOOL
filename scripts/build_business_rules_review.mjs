@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 let FileBlob, SpreadsheetFile, Workbook;
@@ -123,6 +124,53 @@ if(detailsInput){
   }
   if(detailsPayload.metadata?.source_compact_sha256!==reviewHash)throw new Error("Technical details are bound to another compact projection");
 }
+const snapshotPath=option("--catalog-snapshot");
+const catalogSnapshot=snapshotPath?JSON.parse(await fs.readFile(snapshotPath,"utf8")):null;
+if(catalogSnapshot){
+  if(catalogSnapshot.status!=="CHECKED"||catalogSnapshot.source_compact_sha256!==reviewHash)throw new Error("目录数值快照未核对或不属于当前投影");
+  const catalogPath=option("--catalog-source",path.resolve(definitionRoot??process.cwd(),"data-source/carbon_accounting/catalog.json"));
+  const raw=await fs.readFile(catalogPath);new TextDecoder("utf8",{fatal:true}).decode(raw);
+  const hash=createHash("sha256").update(raw.toString("utf8").replace(/\r\n/g,"\n")).digest("hex");
+  if(hash!==catalogSnapshot.catalog.canonical_source_lf_sha256||JSON.parse(raw).manifest.data_version!==catalogSnapshot.catalog.data_version)throw new Error("目录快照与当前Canonical目录不一致");
+}
+function catalogReference(row){
+  const entry=catalogSnapshot?.entries?.[row.field_id];
+  if(!entry)return null;
+  const matches=(detailsPayload.fields??[]).some(r=>r.field_id===row.field_id&&r.policy_branch_values?.default?.state==="BINDING"&&r.condition?.tags?.binding_id===entry.binding_id&&r.policy_branch_values.default.parameter_id===entry.parameter_id);
+  if(!matches)throw new Error("目录数值快照的精确绑定不在当前字段定义中："+row.field_id);
+  return entry;
+}
+function catalogReferenceText(row){
+  const hasBound=row.default?.state==="BINDING"||row.default?.groups?.some(g=>g.outcome.state==="BINDING");
+  if(!hasBound)return "本组合不采用目录数值默认。";
+  const e=catalogReference(row);if(!e)return "目录参考值未核对（未提供本版只读快照）；ID存在不等于数值验证。";
+  const display=e.unit==="ratio"?new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(e.value)*100)+"%":e.value+" "+e.unit;
+  return display+"；"+(e.article??e.binding_location??e.source_table_location??"")+"；"+e.source_id+" / "+(e.source_version??"")+"；目录"+catalogSnapshot.catalog.data_version+"；绑定"+e.binding_id;
+}
+function technicalRowsFor(row){
+  const scope=String(row.stable_condition??"").match(/^source_path=([^;]+);direction=(.+)$/);
+  return (detailsPayload.fields??[]).filter(r=>r.field_id===row.field_id&&r.rule_set_id===row.rule_set_id&&(!scope||conditionAllows(r.condition??r.context??{},scope[1],scope[2])));
+}
+function visibleProperty(row,prop){
+  const summary=row[prop];if(!summary?.groups)return summary;
+  const actual=prop==="source"?"source_qualification":prop;
+  const ready=technicalRowsFor(row).filter(r=>r.evaluation_status==="READY");
+  return {...summary,groups:summary.groups.map(g=>({...g,conditions:g.conditions.filter(c=>ready.some(r=>{
+    const when=r.conditions_by_property?.[actual]??{};
+    return Object.entries(c.tags??{}).every(([key,v])=>[v].flat().includes(when.tags?.[key]))&&JSON.stringify(canonical(c.ranges??{}))===JSON.stringify(canonical(when.ranges??{}));
+  }))})).filter(g=>g.conditions.length)};
+}
+function pendingPresentation(row){
+  const all=technicalRowsFor(row),notes=new Set(row.pending??[]);
+  if(!all.some(r=>r.evaluation_status==="READY"))notes.add("当前路径无有效规则组合；完整原因/纠错入口见详情。");
+  if(all.some(r=>(r.effective_context??r.context??r.condition?.tags)?.origin==="LEGACY_UNSPECIFIED"))notes.add("历史身份：保留可读；采用前核对真实对象与来源。");
+  if(all.some(r=>(r.effective_context??r.context??r.condition?.tags)?.binding_status==="ABSENT"))notes.add("缺绑定：缺省不可借用；依字段规则补值，不是新来源或待Owner审批。");
+  if(all.some(r=>(r.effective_context??r.context??r.condition?.tags)?.binding_status==="PENDING"))notes.add("绑定适用性待核；不能以已有数字替代资格。");
+  if(all.some(r=>r.source_eligibility?.status==="NOT_ALLOWED"||(r.evaluation_problems??[]).some(p=>p.code==="SOURCE_NOT_ALLOWED")))notes.add("非法来源组合保留作纠错，不是获准路径；见详情。");
+  if(row.stable_condition?.includes("ARBITRARY_OVERRIDE"))notes.add("其他来源已批准；需显式选择并填有效数值，规则READY不代表输入完整。");
+  if(/SUPPLY_UNIT_MEASURED|ENTERPRISE_MEASURED|ENTERPRISE_CALCULATED/.test(row.stable_condition??""))notes.add("遗留企业路径：当前限制仅该路径，不阻断目录或已批准其他来源。");
+  return [...notes].join("\n")||"规则求值不等于完整正式输入可计算；必要数值/单位仍须核验。";
+}
 const priorFeedback=[];
 if(previous){
   const prior=await SpreadsheetFile.importXlsx(await FileBlob.load(previous));
@@ -239,6 +287,11 @@ for(const old of priorFeedback){
       feedback:old,link_state:"待映射",fingerprints:oldFingerprints,detail_locator:detailsName+"#review-scope"});
   }
 }
+const changeTitles={CANDIDATE_ONLY_RULE_ASSETS:"候选规则资产",C01_FIXED_VERSION_ADOPTION:"固定版本通则采用",ELECTRICITY_SOURCE_QUALIFICATION:"电力来源资格",IDENTITY_CONFIRMATION_SEMANTICS:"身份确认行为",EXPLICIT_INITIAL_SOURCE_POLICY:"明确初始来源",CHANNEL_UNIT_AND_CONVERSION_PROJECTIONS:"渠道单位与换算",EMISSION_SOURCE_INVOLVEMENT_OPERATION:"排放源启停",MAPPING_R8_ALIGNMENT:"映射批准决定对齐",COMPATIBILITY_IMPACT_SCOPE:"兼容影响范围",CALCINATION_ROLE_CONTENT_EXPANSION:"煅烧输出角色含量展开",FUME_MONITORING_SEGMENT_AGGREGATION:"烟气监测分段汇总"};
+function changeText(row,key){
+  if(key==="change_type")return changeTitles[row.change_type]??row.change_type;
+  return text(row[key]);
+}
 const technicalHeaders=["意见针对属性","意见针对条件","原审阅版本","原审阅投影","意见关联状态","稳定审阅键","内容指纹","意见基线指纹","原投影键","当前投影键","规则修订"];
 let seen=0;
 const manifests=[];
@@ -257,7 +310,17 @@ for(const group of groups){
     const notes=(prior?.feedback??["","",""]).map(literalCell);
     const tech=[prior?.property??"整体",prior?.condition??"当前行",prior?.originalRevision??row.revision??metadata.revision,
       prior?.originalHash??reviewHash,row.link_state??"",key,JSON.stringify(row.fingerprints),prior?(prior.baselineFingerprints||"{}"):JSON.stringify(row.fingerprints),prior?.originKey??row.review_key??row.key,row.review_key??row.key,row.revision??metadata.revision];
-    matrix.push(keys.map(k=>k==="unit"?unitText(row[k]):text(row[k])).concat(notes,tech.map(literalCell)));
+    matrix.push(keys.map(k=>{
+      if(k==="unit")return unitText(row[k]);
+      if(kind==="change")return changeText(row,k);
+      if(kind==="field"&&propertyKeys.includes(k)){
+        const normal=visibleProperty(row,k);let value=text(normal)||"此路径无有效普通组合；见待处理项及详情。";
+        if(k==="default"&&normal?.groups?.some(g=>g.outcome.state==="BINDING"))value+="\n只读目录核对："+catalogReferenceText(row);
+        return value;
+      }
+      if(kind==="field"&&k==="pending")return pendingPresentation(row);
+      return text(row[k]);
+    }).concat(notes,tech.map(literalCell)));
   }
   const sheet=wb.worksheets.add(name);sheet.showGridLines=false;
   sheet.getRange("A1").values=[["审阅数据SHA256："+reviewHash]];
@@ -280,7 +343,7 @@ for(const group of groups){
   const table=sheet.tables.add(tableRef,true,tableName);table.showFilterButton=true;
   sheet.getRangeByIndexes(5,keys.length,Math.max(1,rows.length),5).format.fill="#FFF4D6";
   sheet.getRangeByIndexes(5,keys.length+1,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["待处理","已落实","需决定","保留"]}};
-  sheet.getRangeByIndexes(5,metadataStart,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["整体","允许来源","默认来源","数值默认","读写锁定","操作"]}};
+  sheet.getRangeByIndexes(5,metadataStart,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:kind==="field"?["整体","允许来源","默认来源","数值默认","读写锁定"]:kind==="operation"?["整体","操作"]:["整体"]}};
   sheet.getRangeByIndexes(5,metadataStart+4,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["继续关联","需复核","待映射","已复核本版"]}};
   sheet.freezePanes.freezeRows(5);sheet.freezePanes.freezeColumns(3);
   // Only human-readable business/feedback columns affect height; long identity/hash evidence stays single-line.
@@ -312,34 +375,98 @@ function detailText(value){
   // Full details never reuse the compact groups formatter, which omits exact binding IDs.
   if(value===null||value===undefined)return "";
   if(Array.isArray(value))return value.map(detailText).join("\n");
-  if(typeof value==="object")return Object.entries(value).map(([key,item])=>(labels[key]??objectLabels[key]??key)+": "+detailText(item)).join("\n").replace(/[ \t]+$/gm,"");
+  if(typeof value==="object")return Object.entries(value).map(([key,item])=>key+": "+detailText(item)).join("\n").replace(/[ \t]+$/gm,"");
   return text(value);
 }
+function detailBusinessSummary(row){
+  const source=row.source??{},lock=row.locking??{};
+  const legal=source.state==="FIXED"?(source.values??[]).map(v=>stateLabels[v]??v).join(" / "):stateLabels[source.state]??source.state??"未核对";
+  const initial=row.default_source?.state==="FIXED"?stateLabels[row.default_source.source]??row.default_source.source:row.default_source?.reason??"无自动默认来源";
+  const current=stateLabels[row.selected_business_source]??row.selected_business_source??"未选择";
+  const reasons=[row.source_eligibility?.reason,row.source_correction?.reason,...(row.evaluation_problems??[]).map(x=>x.message)].filter(Boolean);
+  const values=[["合法来源",legal],["默认来源/初始来源",initial],["当前来源",current],["数值可编辑性",stateLabels[lock.value?.state]??lock.value?.state??"见条件"],["来源选择可编辑性",stateLabels[lock.source?.state]??lock.source?.state??"见条件"],["规则组合求值状态",(stateLabels[row.evaluation_status]??row.evaluation_status??"未求值")+"；仅规则资格，不代表完整正式输入可计算"],["原因/纠错边界",[...new Set(reasons)].join("；")||"按本组合条件核验，不将编辑权限当作合法来源"],["只读目录默认核对",catalogReferenceText(row)]];
+  return '<dl>'+values.map(([k,v])=>'<dt>'+escapeHtml(k)+'</dt><dd>'+escapeHtml(v)+'</dd>').join('')+'</dl>';
+}
+function kindForDetail(id){return id.split("|")[0];}
+function detailTitle(row,index){
+  const c=row.effective_context??row.context??row.condition?.tags??{};
+  const businessKeys=["origin","source_path","direction","attribute","binding_status","material_calculation_path"];
+  const context=conditionText({tags:Object.fromEntries(businessKeys.filter(k=>c[k]!==undefined).map(k=>[k,c[k]])),ranges:row.condition?.ranges??{}});
+  const current=stateLabels[row.selected_business_source]??row.selected_business_source??"未选择来源";
+  const status=row.evaluation_status==="READY"?"规则组合有效（非输入完成）":"规则受阻/待核";
+  return "条件"+(index+1)+"："+context+" · 当前来源："+current+" · "+status;
+}
 let html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>业务规则审阅同源详情</title><style>body{font:16px/1.6 "Microsoft YaHei",sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#243746}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7fa;padding:14px}summary{cursor:pointer;font-weight:bold;padding:10px}section{border-bottom:1px solid #ddd}</style><h1>业务规则审阅同源详情</h1><p>候选未接生产；本文件由同一生成器和候选定义派生，不是第二真值源。</p><section id="review-scope"><h2>视图范围与审阅方式</h2><p>主表按业务概念汇总，电力按输入方式及方向拆分；不恢复442内部镜像或千行条件主表。此处保留各渠道、消费者、案例、完整条件、绑定与理由。意见可针对整体或指定属性；无明确条件映射时保留待映射。跨版本内容变化必须复核。</p><p>兼容影响：本轮候选未接生产，不改正式输入codec、批准模板、报告结构、DB迁移或历史Record。历史电力证据见ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md；electricity-paths.json中的旧head保持历史身份，不能作为当前R8重验结果。</p><p>正式投影SHA256：'+reviewHash+'；详情输入SHA256：'+digest(detailsPayload)+'</p></section>';
-html+=' <nav><h2>对象目录</h2><ul>'+[...detailGroups].map(([id,rows])=>'<li><a href="#'+escapeHtml(encodeURIComponent(id))+'">'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</a></li>').join('')+'</ul></nav>';
+html+=' <nav><h2>对象目录</h2><ul>'+[...detailGroups].map(([id,rows])=>'<li><a href="#'+escapeHtml(encodeURIComponent(id))+'">'+escapeHtml(rows[0].name??changeTitles[rows[0].change_type]??rows[0].change_type??id)+'</a></li>').join('')+'</ul></nav>';
 for(const [id,rows] of detailGroups){
-  html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';
+  html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??changeTitles[rows[0].change_type]??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';
   const opinionRows=groups.flatMap(g=>g.rows).filter(r=>r.object_identity===id&&r.visible_opinion_scopes?.length);
   if(opinionRows.length){
     html+='<h3>条件意见：合法条件值</h3><p>整体意见仍可用。条件意见请在表中选择下方属性，再逐条复制对应合法条件值到“意见针对条件”；主表合并后的适用说明不是可输入的条件标识。</p>';
     for(const row of opinionRows){html+='<details><summary>'+escapeHtml(row.name??row.stable_condition)+'</summary>';
-      for(const scope of row.visible_opinion_scopes)html+='<p>'+escapeHtml(scope.property)+'</p><pre data-review-row="'+escapeHtml(encodeURIComponent(row.stable_key))+'" data-review-property="'+escapeHtml(scope.property)+'">'+escapeHtml(scope.condition)+'</pre>';
+      for(const scope of row.visible_opinion_scopes)html+='<p>'+escapeHtml(({"允许来源":"合法来源（意见属性：允许来源）","默认来源":"默认来源/初始来源","数值默认":"数值默认","读写锁定":"数值/来源选择可编辑性（意见属性：读写锁定）"})[scope.property]??scope.property)+'</p><pre data-review-row="'+escapeHtml(encodeURIComponent(row.stable_key))+'" data-review-property="'+escapeHtml(scope.property)+'">'+escapeHtml(scope.condition)+'</pre>';
       html+='</details>';
     }
   }
   // Share identical object-level values once; each condition retains every differing value.
   const shared=rows.length>1?Object.fromEntries(Object.entries(rows[0]).filter(([key,value])=>rows.every(r=>JSON.stringify(canonical(r[key]))===JSON.stringify(canonical(value))))):{};
   if(Object.keys(shared).length)html+='<details><summary>各条件共用信息（与下方逐条信息合并阅读）</summary><pre>'+escapeHtml(detailText(shared))+'</pre></details>';
-  for(const row of rows){const unique=Object.fromEntries(Object.entries(row).filter(([key])=>!Object.hasOwn(shared,key)));
-    html+='<details><summary>'+escapeHtml(row.condition_id??row.property??row.operation_id??row.review_key??"详情")+'</summary><pre>'+escapeHtml(detailText(unique))+'</pre></details>';
+  for(const [detailIndex,row] of rows.entries()){const unique=Object.fromEntries(Object.entries(row).filter(([key])=>!Object.hasOwn(shared,key)));
+    html+='<details><summary>'+escapeHtml(kindForDetail(id)==='field'?detailTitle(row,detailIndex):row.name??changeTitles[row.change_type]??row.change_type??row.operation_id??row.review_key??'详情')+'</summary>'+(kindForDetail(id)==='field'?detailBusinessSummary(row):'')+'<details><summary>原始技术信息（保留完整身份与条件）</summary><pre>'+escapeHtml(detailText(unique))+'</pre></details></details>';
   }
+  const reference=catalogReference(rows[0]);
+  if(reference)html+='<details><summary>已核对目录参考值与精确来源定位（只读）</summary><p>注册数值核对不替代运行时按核算期间和采用上下文执行Resolver；有效期间按下列登记原样保留。</p><pre>'+escapeHtml(JSON.stringify(reference,null,2))+'</pre></details>';
   html+='</section>';
 }
-html+='</html>';
+html+='<section><h2>Word报告关联与验收边界</h2><p>既有映射：specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §13.1；既有报告结构：specs/reporting/GB_T_32151_34_2024_REPORT_SCHEMA.md「附录B业务结构」「RPT02批准表式映射」。这里只关联既有冻结记录报告能力，不新增WORD字段消费者。实际DOCX数值、表式与分页仍需后续报告专项验收；本审阅表不构成DOCX验收。</p></section></html>';
 await fs.mkdir(path.dirname(output),{recursive:true});
 await fs.writeFile(path.join(path.dirname(output),detailsName),html.replace(/[ \t]+$/gm,""),"utf8");
 await (await SpreadsheetFile.exportXlsx(wb)).save(output);
-await fs.writeFile(path.join(path.dirname(output),"review-view-manifest.json"),JSON.stringify({view_revision:"compact-business-v2",definition_assets_hash_policy:"UTF8_TEXT_CRLF_TO_LF_SHA256",definition_assets_sha256:definitionAssets,projection_sha256:reviewHash,generator:"scripts/build_business_rules_review.mjs",details:detailsName,details_revision:detailsPayload.metadata?.revision,details_counts:Object.fromEntries(["fields","operations","changes"].map(k=>[k,detailsPayload[k]?.length??0])),details_sha256:digest(detailsPayload),details_projection_bound:detailsPayload.metadata?.source_compact_sha256===reviewHash,tables:manifests,retained_feedback:priorFeedback.length},null,2)+"\n","utf8");
+
+// The bundled artifact tool has no documented column hiding/outline API.
+// Use only Python's standard OOXML ZIP/XML libraries for these presentation attributes.
+const foldScript=String.raw`
+from pathlib import Path
+import sys,zipfile,re,xml.etree.ElementTree as ET
+from xml.sax.saxutils import quoteattr
+p=Path(sys.argv[1]); ns={'m':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+with zipfile.ZipFile(p) as z:
+    entries=[(i,z.read(i.filename)) for i in z.infolist()]
+shared=[]
+for info,data in entries:
+    if info.filename=='xl/sharedStrings.xml':
+        shared=[''.join(x.itertext()) for x in ET.fromstring(data)]
+hidden={'原审阅版本','原审阅投影','稳定审阅键','内容指纹','意见基线指纹','原投影键','当前投影键','规则修订'}
+changed=[]
+for info,data in entries:
+    if re.fullmatch(r'xl/worksheets/sheet\d+\.xml',info.filename):
+        raw=data.decode('utf8'); root=ET.fromstring(raw); headers={}
+        for c in root.findall("m:sheetData/m:row[@r='5']/m:c",ns):
+            address=c.attrib['r']; col=0
+            for ch in re.match('[A-Z]+',address)[0]: col=col*26+ord(ch)-64
+            value=c.find('m:v',ns)
+            headers[col]=shared[int(value.text)] if c.attrib.get('t')=='s' else ''.join(c.find('m:is',ns).itertext()) if c.find('m:is',ns) is not None else value.text if value is not None else ''
+        cols=root.find('m:cols',ns)
+        if cols is None or not hidden.issubset(set(headers.values())): raise ValueError('Review technical columns not found')
+        prefix=re.search(r'<((?:[\w]+:)?)cols\b',raw).group(1)
+        parts=[]
+        for coldef in cols:
+            for index in range(int(coldef.attrib['min']),int(coldef.attrib['max'])+1):
+                attrs=dict(coldef.attrib);attrs.update(min=str(index),max=str(index))
+                if headers.get(index) in hidden: attrs.update(hidden='1',outlineLevel='1')
+                parts.append('<'+prefix+'col '+ ' '.join(k+'='+quoteattr(v) for k,v in attrs.items())+'/>')
+        raw,count=re.subn(r'<(?:[\w]+:)?cols\b[^>]*>.*?</(?:[\w]+:)?cols>',lambda _: '<'+prefix+'cols>'+''.join(parts)+'</'+prefix+'cols>',raw,count=1,flags=re.S)
+        if count!=1: raise ValueError('Unsupported worksheet cols representation')
+        raw=re.sub(r'<(?:[\w]+:)?sheetFormatPr\b[^>]*/>',lambda m:m[0][:-2]+' outlineLevelCol="1"/>',raw,count=1)
+        data=raw.encode('utf8')
+    changed.append((info,data))
+with zipfile.ZipFile(p,'w') as z:
+    for info,data in changed:z.writestr(info,data)
+`;
+const fold=spawnSync(option("--python",process.env.PYTHON??"python"),["-c",foldScript,output],{encoding:"utf8"});
+if(fold.error||fold.status!==0)throw new Error("技术列折叠失败；请用 --python 指定已有Python运行时（只用标准库，无新增生产依赖）："+(fold.error?.message??fold.stderr));
+
+await fs.writeFile(path.join(path.dirname(output),"review-view-manifest.json"),JSON.stringify({view_revision:"compact-business-v2",definition_assets_hash_policy:"UTF8_TEXT_CRLF_TO_LF_SHA256",definition_assets_sha256:definitionAssets,projection_sha256:reviewHash,generator:"scripts/build_business_rules_review.mjs",details:detailsName,details_revision:detailsPayload.metadata?.revision,details_counts:Object.fromEntries(["fields","operations","changes"].map(k=>[k,detailsPayload[k]?.length??0])),details_sha256:digest(detailsPayload),details_projection_bound:detailsPayload.metadata?.source_compact_sha256===reviewHash,catalog_snapshot:catalogSnapshot?{catalog:catalogSnapshot.catalog,entries:catalogSnapshot.entries}:null,tables:manifests,retained_feedback:priorFeedback.length},null,2)+"\n","utf8");
 if(!option("--skip-preview")){
  for(const name of ["业务规则","操作与影响","本次变化"]){const im=await wb.render({sheetName:name,range:"A1:G8",scale:1,format:"png"});await fs.writeFile(path.join(path.dirname(output),name+".png"),new Uint8Array(await im.arrayBuffer()));}
  const powerStart=groups[0].rows.findIndex(r=>r.field_id==="electricity.factor");

@@ -756,7 +756,7 @@
     {
       "key": "review.change.candidate_bundle",
       "change_type": "CANDIDATE_ONLY_RULE_ASSETS",
-      "before": "原主线没有供审阅的统一业务规则边界及严格加载入口。",
+      "before": "原主线没有供审阅的统一候选业务规则包及严格加载入口。",
       "after": "仅保留11个跨入口业务政策概念与来源/默认/锁定策略；移除109个GUI现状镜像和333个内部属性投影。技术条件组合由严格测试检查，不要求Owner逐行批准。",
       "reason": "按Owner最新减负授权收缩候选执行表达；标准映射及有效决定才是业务权威，生成Excel只是审阅视图。",
       "basis": [
@@ -772,9 +772,9 @@
     {
       "key": "review.change.fixed_c01_adoption",
       "change_type": "C01_FIXED_VERSION_ADOPTION",
-      "before": "No explicit candidate adoption ledger.",
-      "after": "Industry candidate explicitly adopts the approved fixed GB/T 32150—2025 C01 scope/revision and current Common groups; no wildcard/default expansion.",
-      "reason": "C01 fixes the adoption scope/version for A review. It does not resolve each field Optional/required decision or other professional applicability questions.",
+      "before": "原候选未显式登记固定版本的通则采用。",
+      "after": "行业候选明确采用已批准的GB/T 32150—2025固定C01范围、修订及共同规则组，不使用通配或默认扩展。",
+      "reason": "C01只固定A审阅的采用范围与版本；不替代各字段选填或必填决定，也不解决其他专业适用问题。",
       "basis": [
         "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:adopts",
         "docs/architecture/business-rules/CONSUMER_INVENTORY.md:C01固定采用"
@@ -786,7 +786,7 @@
     {
       "key": "review.change.electricity_applicability",
       "change_type": "ELECTRICITY_SOURCE_QUALIFICATION",
-      "before": "main G05 snapshot records source-rule facts but does not encode the full PR46/Issue010 regional and five-parameter applicability policy.",
+      "before": "旧规则快照保留来源事实，尚未完整表达已批准的地区及电力五表适用政策。",
       "after": "R10按电力字段专属路径表达：普通默认仍为目录；用户显式选择OTHER后可填写库外电力因子。OTHER无Catalog/source binding ID、无预填数值且不自动MEASURED；适用性/有效年份/来源依据为非阻断提醒，来源说明选填。必要值、有限性与合法单位/量纲硬校验保持；燃料及其他字段不开放OTHER。",
       "reason": "同步Owner 2026-10-16批准的Issue014软件产品选择。标准来源适用关系的原文事实与技术判断继续保留；产品选项不构成发布机构解释或专业等价证明。",
       "basis": [

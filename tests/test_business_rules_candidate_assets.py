@@ -1,14 +1,28 @@
 """Independent asset coverage checks for A; no production adoption."""
 import ast
 import hashlib
+import html
 import json
+import os
+import posixpath
+import re
+import subprocess
+import sys
+import tempfile
 import unittest
+import urllib.parse
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 from decimal import Decimal
 
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/"data-source/carbon_accounting/business-rules"
+REVIEW_ARTIFACT_ROOT = Path(os.environ.get(
+    "GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR",
+    ROOT / "docs/architecture/business-rules/evidence",
+))
 PLAN=ROOT/"docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md"
 
 class CandidateAssetCoverageTests(unittest.TestCase):
@@ -63,7 +77,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
             verify_definition_assets,
         )
 
-        checks_path = ROOT / "docs/architecture/business-rules/evidence/review-artifact-checks.json"
+        checks_path = REVIEW_ARTIFACT_ROOT / "review-artifact-checks.json"
         checks = json.loads(checks_path.read_text(encoding="utf-8"))
         self.assertEqual(checks["definition_assets_hash_policy"], DEFINITION_ASSET_HASH_POLICY)
         self.assertEqual(set(checks["definition_assets_sha256"]), set(EXPECTED_DEFINITION_ASSETS))
@@ -71,10 +85,10 @@ class CandidateAssetCoverageTests(unittest.TestCase):
 
     def test_review_workbook_hash_uses_raw_xlsx_bytes(self):
         checks = json.loads(
-            (ROOT / "docs/architecture/business-rules/evidence/review-artifact-checks.json")
+            (REVIEW_ARTIFACT_ROOT / "review-artifact-checks.json")
             .read_text(encoding="utf-8")
         )
-        workbook_path = ROOT / "docs/architecture/business-rules/evidence/业务规则审阅表.xlsx"
+        workbook_path = REVIEW_ARTIFACT_ROOT / "业务规则审阅表.xlsx"
         self.assertEqual(checks["workbook_sha256"], hashlib.sha256(workbook_path.read_bytes()).hexdigest())
 
     def test_approved_plan_bytes_remain_identical(self):
@@ -166,7 +180,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
         paths=(SOURCE/"common/gbt_32150_2025.json",SOURCE/"standards/gbt_32151_34_2024.json",SOURCE/"software_policy.json")
         review=_json_safe(load_bundle(paths).review_rows())
         expected_hash=hashlib.sha256((json.dumps(review,ensure_ascii=False,indent=2)+"\n").encode("utf-8")).hexdigest()
-        path=ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx"
+        path=REVIEW_ARTIFACT_ROOT/"业务规则审阅表.xlsx"
         self.assertTrue(path.is_file(),"必须提供实际生成的三页审阅表")
         workbook=load_workbook(path,read_only=True,data_only=False)
         try:
@@ -198,7 +212,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
 
     def test_generated_locking_distinguishes_catalog_and_unbound_measurements(self):
         from openpyxl import load_workbook
-        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        book=load_workbook(REVIEW_ARTIFACT_ROOT/"业务规则审阅表.xlsx",read_only=True)
         try:
             sheet=book["业务规则"]
             rows={row[0]:row for row in sheet.iter_rows(min_row=6,values_only=True)}
@@ -224,35 +238,53 @@ class CandidateAssetCoverageTests(unittest.TestCase):
 
     def test_generated_default_and_large_condition_groups_keep_business_conditions(self):
         from openpyxl import load_workbook
-        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        book=load_workbook(REVIEW_ARTIFACT_ROOT/"业务规则审阅表.xlsx",read_only=True)
         try:
             rows={row[0]:row for row in book["业务规则"].iter_rows(min_row=6,values_only=True)}
+            no_valid_combo="此路径无有效普通组合；见待处理项及详情。"
             for name,row in rows.items():
                 for column in (3,4,5,6):
                     for block in row[column].split("\n\n"):
                         with self.subTest(name=name,column=column):
-                            self.assertIn("\n适用：",block)
+                            if block == no_valid_combo:
+                                self.assertNotIn("\n适用：",block)
+                                self.assertNotIn("可填写/选择",block)
+                                continue
+                            self.assertIn("\n适用：",block, "合法分支必须显示适用条件")
                             self.assertNotIn("技术组合由测试核验",block)
             defaults=rows["燃料碳氧化率FOx"][5].split("\n\n")
             bound=next(b for b in defaults if b.startswith("缺省路径"))
             self.assertIn("绑定资格=来源登记已核验",bound)
             self.assertIn("当前来源=缺省值",bound)
             unbound=next(b for b in defaults if b.startswith("不自动填写"))
-            self.assertIn("绑定资格=无适用绑定",unbound)
             self.assertIn("当前来源=实测值",unbound)
-            # These groups contain more than six conditions in the actual projection.
-            for column in (5,6):
-                power="\n".join(row[column] for name,row in rows.items() if name.startswith("购入/输出电力因子"))
-                for condition in ("目录表1","目录表2","目录表3","目录表4","目录表5","供电单位实测","企业实测","企业计算","非化石购电零排放","方向=购入","方向=输出"):
-                    self.assertIn(condition,power)
-                self.assertNotIn("SUPPLY_UNIT_MEASURED",power)
+            self.assertIn("目录参考值未核对",unbound)
+            self.assertNotIn("绑定资格=",unbound, "未提供目录快照时不应暗示已核验绑定资格")
+
+            details=(REVIEW_ARTIFACT_ROOT/"业务规则审阅详情.html").read_text(encoding="utf-8")
+            electricity_conditions=[
+                html.unescape(condition)
+                for key,_,condition in re.findall(
+                    r'<pre data-review-row="([^"]+)" data-review-property="([^"]+)">([\s\S]*?)</pre>',
+                    details,
+                )
+                if "electricity.factor" in urllib.parse.unquote(html.unescape(key))
+            ]
+            power="\n".join(electricity_conditions)
+            for condition in ("目录表1","目录表2","目录表3","目录表4","目录表5","供电单位实测","企业实测","企业计算","非化石购电零排放","方向=购入","方向=输出"):
+                self.assertIn(condition,power)
+            self.assertNotIn("SUPPLY_UNIT_MEASURED",power)
+            self.assertTrue(any("方向=输出" in condition and "绑定资格=无适用绑定" in condition
+                                for condition in electricity_conditions), "HTML须保留非法来源组合以支持复核")
+            self.assertTrue(any("非化石购电零排放" in condition and "方向=购入" in condition
+                                for condition in electricity_conditions), "HTML须保留仅购入方向的非化石零排放条件")
         finally:
             book.close()
 
     def test_actual_tables_keep_business_feedback_and_identity_together(self):
         from openpyxl import load_workbook
         from openpyxl.utils.cell import range_boundaries
-        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx")
+        book=load_workbook(REVIEW_ARTIFACT_ROOT/"业务规则审阅表.xlsx")
         try:
             for sheet in book:
                 headers=[c.value for c in sheet[5]]
@@ -271,7 +303,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
 
     def test_critical_operation_conditions_and_same_source_details_are_visible(self):
         from openpyxl import load_workbook
-        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        book=load_workbook(REVIEW_ARTIFACT_ROOT/"业务规则审阅表.xlsx",read_only=True)
         try:
             sheet=book["操作与影响"];headers=[c.value for c in sheet[5]]
             rows=list(sheet.iter_rows(min_row=6,values_only=True))
@@ -286,12 +318,232 @@ class CandidateAssetCoverageTests(unittest.TestCase):
             scope=fch[field_headers.index("业务条件")]
             for term in ("质量","体积","热值","不新增HEAT"):
                 self.assertIn(term,scope)
-            html=(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅详情.html").read_text(encoding="utf-8")
+            html=(REVIEW_ARTIFACT_ROOT/"业务规则审阅详情.html").read_text(encoding="utf-8")
             self.assertIn("field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor",html)
             self.assertIn("正式投影SHA256",html)
-            checks=json.loads((ROOT/"docs/architecture/business-rules/evidence/review-artifact-checks.json").read_text(encoding="utf-8"))
+            checks=json.loads((REVIEW_ARTIFACT_ROOT/"review-artifact-checks.json").read_text(encoding="utf-8"))
             self.assertEqual(checks["generator_sha256"],hashlib.sha256((ROOT/"scripts/build_business_rules_review.mjs").read_bytes()).hexdigest())
         finally:book.close()
+
+    def test_workbook_uses_object_specific_dropdowns_and_real_ooxml_column_hiding(self):
+        from openpyxl import load_workbook
+        from openpyxl.utils.cell import range_boundaries
+
+        workbook_path = REVIEW_ARTIFACT_ROOT / "业务规则审阅表.xlsx"
+        expected_scopes = {
+            "业务规则": ["整体", "允许来源", "默认来源", "数值默认", "读写锁定"],
+            "操作与影响": ["整体", "操作"],
+            "本次变化": ["整体"],
+        }
+        hidden_names = {
+            "原审阅版本", "原审阅投影", "稳定审阅键", "内容指纹", "意见基线指纹",
+            "原投影键", "当前投影键", "规则修订",
+        }
+        visible_required = {
+            "业务规则": {"审阅意见", "处理状态", "审阅编号", "意见针对属性", "意见针对条件", "意见关联状态", "业务条件"},
+            "操作与影响": {"审阅意见", "处理状态", "审阅编号", "意见针对属性", "意见针对条件", "意见关联状态", "触发条件与处理"},
+            "本次变化": {"审阅意见", "处理状态", "审阅编号", "意见针对属性", "意见针对条件", "意见关联状态", "变化类型"},
+        }
+        ns = {
+            "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+            "rel": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+            "pkg": "http://schemas.openxmlformats.org/package/2006/relationships",
+        }
+        book = load_workbook(workbook_path, read_only=False, data_only=False)
+        try:
+            self.assertEqual(book.sheetnames, ["业务规则", "操作与影响", "本次变化"])
+            with zipfile.ZipFile(workbook_path) as archive:
+                workbook_xml = ET.fromstring(archive.read("xl/workbook.xml"))
+                relations_xml = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+                relationships = {item.attrib["Id"]: item.attrib["Target"] for item in relations_xml.findall("pkg:Relationship", ns)}
+                part_by_sheet = {}
+                for item in workbook_xml.findall("main:sheets/main:sheet", ns):
+                    target = relationships[item.attrib[f"{{{ns['rel']}}}id"]]
+                    part_by_sheet[item.attrib["name"]] = target.lstrip("/") if target.startswith("/") else posixpath.normpath(posixpath.join("xl", target))
+
+                for sheet_name, allowed in expected_scopes.items():
+                    with self.subTest(sheet=sheet_name):
+                        sheet = book[sheet_name]
+                        headers = [cell.value for cell in sheet[5]]
+                        self.assertTrue(visible_required[sheet_name] <= set(headers))
+                        self.assertTrue(hidden_names <= set(headers))
+                        self.assertEqual(len(sheet.tables), 1)
+                        table = next(iter(sheet.tables.values()))
+                        _, top, right, bottom = range_boundaries(table.ref)
+                        self.assertEqual((top, right, bottom), (5, len(headers), sheet.max_row))
+
+                        property_column = headers.index("意见针对属性") + 1
+                        sheet_xml = ET.fromstring(archive.read(part_by_sheet[sheet_name]))
+                        validations = sheet_xml.findall("main:dataValidations/main:dataValidation", ns)
+                        matching = []
+                        for validation in validations:
+                            refs = validation.attrib.get("sqref", "").split()
+                            cells = [range_boundaries(ref) for ref in refs]
+                            if any(left == property_column and right == property_column for left, _, right, _ in cells):
+                                matching.append((validation, cells))
+                        self.assertEqual(len(matching), 1, "scope dropdown must be encoded in worksheet OOXML")
+                        validation, cells = matching[0]
+                        self.assertEqual(validation.attrib.get("type"), "list")
+                        self.assertEqual(cells, [(property_column, 6, property_column, sheet.max_row)])
+                        formula = validation.findtext("main:formula1", namespaces=ns)
+                        self.assertIsNotNone(formula)
+                        self.assertTrue(formula.startswith('"') and formula.endswith('"'), formula)
+                        self.assertEqual(formula[1:-1].split(","), allowed)
+
+                        hidden_columns = set()
+                        outlined_columns = set()
+                        for col in sheet_xml.findall("main:cols/main:col", ns):
+                            for index in range(int(col.attrib["min"]), int(col.attrib["max"]) + 1):
+                                if col.attrib.get("hidden") in {"1", "true"}:
+                                    hidden_columns.add(index)
+                                if int(col.attrib.get("outlineLevel", "0")) > 0:
+                                    outlined_columns.add(index)
+                        expected_hidden = {i + 1 for i, header in enumerate(headers) if header in hidden_names}
+                        self.assertEqual(hidden_columns, expected_hidden, "only technical identity/fingerprint columns may be hidden")
+                        self.assertEqual(outlined_columns, expected_hidden, "hidden technical columns must be expandable groups")
+        finally:
+            book.close()
+
+    def test_historical_visible_scope_set_matches_workbook_in_both_directions(self):
+        from openpyxl import load_workbook
+
+        workbook_path = REVIEW_ARTIFACT_ROOT / "业务规则审阅表.xlsx"
+        html_path = REVIEW_ARTIFACT_ROOT / "业务规则审阅详情.html"
+        text = html_path.read_text(encoding="utf-8")
+        visible = [
+            (urllib.parse.unquote(html.unescape(key)), html.unescape(prop), html.unescape(condition))
+            for key, prop, condition in re.findall(
+                r'<pre data-review-row="([^"]+)" data-review-property="([^"]+)">([\s\S]*?)</pre>', text
+            )
+        ]
+        self.assertEqual(len(visible), 442, "the historical 442 visible condition scopes remain the compatibility baseline")
+        self.assertEqual(len(visible), len(set(visible)), "visible condition scopes must remain unique")
+
+        workbook = load_workbook(workbook_path, read_only=True, data_only=False)
+        try:
+            sheet = workbook["业务规则"]
+            headers = [cell.value for cell in sheet[5]]
+            stable_index = headers.index("稳定审阅键")
+            fingerprint_index = headers.index("内容指纹")
+            projected = set()
+            for row in sheet.iter_rows(min_row=6, values_only=True):
+                stable_key = row[stable_index]
+                if not stable_key:
+                    continue
+                fingerprints = json.loads(row[fingerprint_index])
+                for key in fingerprints:
+                    if "@@" in key:
+                        prop, condition = key.split("@@", 1)
+                        projected.add((stable_key, prop, condition))
+            self.assertEqual(set(visible), projected, "HTML and workbook scope fingerprints must correspond bidirectionally")
+        finally:
+            workbook.close()
+
+    def test_catalog_snapshot_checks_mapping_values_and_exact_catalog_bindings(self):
+        from packages.application.catalog_queries import CatalogQueryService
+        from packages.persistence.catalog_builder import build_catalog_database
+        from packages.persistence.catalog_repository import SQLiteCatalogRepository
+
+        catalog_source = ROOT / "data-source/carbon_accounting/catalog.json"
+        mapping = (ROOT / "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md").read_text(encoding="utf-8")
+        lines = mapping.splitlines()
+
+        def line_for(reference):
+            return next(line for line in lines if f"`{reference}`" in line)
+
+        ratio_line = line_for("CAR-FLD-P04B-I")
+        conversion_line = line_for("CAR-FLD-P04B-TR")
+        heat_line = line_for("CAR-PAR-C3-HEAT-011")
+        ratio_match = re.search(r"新建初始化\s*([0-9]+(?:\.[0-9]+)?)%", ratio_line)
+        conversion_match = re.search(r"新建初始化\s*([0-9]+(?:\.[0-9]+)?)%", conversion_line)
+        heat_match = re.search(r"\|\s*([0-9]+(?:\.[0-9]+)?)\s*[；;]", heat_line)
+        self.assertIsNotNone(ratio_match, ratio_line)
+        self.assertIsNotNone(conversion_match, conversion_line)
+        self.assertIsNotNone(heat_match, heat_line)
+        expected = {
+            "fgd.ratio": (Decimal(ratio_match.group(1)) / Decimal(100), "ratio"),
+            "fgd.conversion": (Decimal(conversion_match.group(1)) / Decimal(100), "ratio"),
+            "heat.factor": (Decimal(heat_match.group(1)), "tCO₂/GJ"),
+        }
+
+        with tempfile.TemporaryDirectory(prefix="r11-catalog-snapshot-test-") as directory:
+            root = Path(directory)
+            review_path = root / "review.json"
+            technical_path = root / "technical.json"
+            snapshot_path = root / "catalog-snapshot.json"
+            candidate_paths = (
+                SOURCE / "common/gbt_32150_2025.json",
+                SOURCE / "standards/gbt_32151_34_2024.json",
+                SOURCE / "software_policy.json",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/validate_business_rules_candidate.py"),
+                    "--review-json", str(review_path),
+                    "--technical-review-json", str(technical_path),
+                    "--catalog-snapshot", str(snapshot_path),
+                    "--catalog-source", str(catalog_source),
+                    *(str(path) for path in candidate_paths),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            technical = json.loads(technical_path.read_text(encoding="utf-8"))
+            self.assertEqual(snapshot["schema_version"], 1)
+            self.assertEqual(snapshot["status"], "CHECKED")
+            self.assertEqual(snapshot["source_compact_sha256"], technical["metadata"]["source_compact_sha256"])
+            self.assertEqual(snapshot["catalog"]["canonical_source_lf_sha256"],
+                             hashlib.sha256(catalog_source.read_bytes().replace(b"\r\n", b"\n")).hexdigest())
+            self.assertTrue(snapshot["catalog"]["data_version"])
+            self.assertEqual(set(snapshot["entries"]), set(expected))
+
+            with tempfile.TemporaryDirectory(prefix="r11-catalog-snapshot-db-") as database_directory:
+                database_path = Path(database_directory) / "catalog.sqlite"
+                build_catalog_database(source_path=catalog_source, output_path=database_path)
+                repository = SQLiteCatalogRepository(database_path)
+                service = CatalogQueryService(repository)
+                assets = service.list_reference_data_assets()
+                bindings = service.list_reference_data_bindings()
+                source_tables = service.list_source_tables()
+                sources = service.list_sources()
+                parameters = repository.list_parameters()
+                for field_id, (expected_value, expected_unit) in expected.items():
+                    with self.subTest(field=field_id):
+                        entry = snapshot["entries"][field_id]
+                        matching_technical = [
+                            row for row in technical["fields"]
+                            if row.get("field_id") == field_id
+                            and (row.get("policy_branch_values") or {}).get("default", {}).get("state") == "BINDING"
+                        ]
+                        self.assertTrue(matching_technical, "candidate technical projection must identify the BINDING branch")
+                        identities = set()
+                        for row in matching_technical:
+                            tags = (row.get("conditions_by_property") or {}).get("default", {}).get("tags", {})
+                            identities.add((row["policy_branch_values"]["default"]["parameter_id"], tags.get("binding_id")))
+                        self.assertEqual(identities, {(entry["parameter_id"], entry["binding_id"])})
+
+                        self.assertEqual(Decimal(entry["value"]), expected_value, "catalog value must match the approved Mapping")
+                        self.assertEqual(entry["unit"], expected_unit)
+                        binding = next(item for item in bindings if item.binding_id == entry["binding_id"])
+                        asset = next(item for item in assets if item.asset_id == entry["asset_id"])
+                        parameter = next(item for item in parameters if item.parameter_id == entry["parameter_id"])
+                        table = next(item for item in source_tables if item.source_table_id == entry["source_table_id"])
+                        source = next(item for item in sources if item.source_id == entry["source_id"])
+                        self.assertEqual(binding.asset_id, asset.asset_id)
+                        self.assertEqual(binding.source_table_id, table.source_table_id)
+                        self.assertEqual(table.source_id, source.source_id)
+                        self.assertEqual(asset.parameter_id, parameter.parameter_id)
+                        self.assertEqual(asset.value, Decimal(entry["value"]))
+                        self.assertEqual(asset.unit, entry["unit"])
+                        self.assertEqual(entry["source_version"], source.version)
+                        self.assertEqual(entry["source_table_number"], table.display_number)
+                        self.assertEqual(entry["review_status"], "VERIFIED")
+                        self.assertIn(entry["candidate_standard_id"], binding.applicable_standard_ids)
 
     def test_all_packages_remain_candidate_and_reference_explicit_revisions(self):
         for doc in self.documents():

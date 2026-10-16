@@ -1,22 +1,22 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_projection_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
-  "review_json_file_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
-  "workbook_sha256": "e7c21d48d49a4637c64b361bf20cc9e9f0c84e70125d8ab006024f7313e6c028",
+  "review_projection_sha256": "e2a3834605c66d4783455e3d293e8fdceaa3824fc2c34159de0b46cb7ad27d0b",
+  "review_json_file_sha256": "74e2ac26951cdabc583b1eb6db9cbfe094e1f7be83c2c106dc7f74597aafa924",
+  "workbook_sha256": "752885cfe03587d22f039eee15e4be85285a24b205d9f07afc070f2dab0bda7f",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
+  "generator_sha256": "44c2ec530e5025494a3988dbe0a0ab58aabc07118d49f1790a8e6e82e6057115",
   "fixture_script": "scripts/test_business_rules_review.mjs",
-  "fixture_script_sha256": "1e7f4846fc872f36c16450979ef1bd36788064c618b8ac247fc4efda0154966f",
+  "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "41cf54cb85b186d022c5ef50aeab2e0cfb6131109f8d853b195977e17b6cef70",
-  "details_source_revision": "candidate-2026-10-16-r10",
+  "details_file_sha256": "24b97fe3973a00472dbecf33d1f80f731a71fa761400686e408dc0c033f7d012",
+  "details_source_revision": "candidate-2026-10-17-r11",
   "details_source_counts": {
-    "fields": 646,
+    "fields": 649,
     "operations": 21,
     "changes": 11
   },
-  "details_semantic_sha256": "f227054cdff48286d97072fe00d81d96012901147818cec9dae6cbddfb4e67c6",
+  "details_semantic_sha256": "5d411a4730adfd6fe005662ef403d26dd75b971e2135152f31a8247438f8a18f",
   "details_projection_bound": true,
   "sheets": {
     "业务规则": 29,
@@ -53,7 +53,7 @@
         "当前投影键",
         "规则修订"
       ],
-      "maximum_row_height_points": 392.0,
+      "maximum_row_height_points": 216.0,
       "data_validations": 3
     },
     "操作与影响": {
@@ -81,7 +81,7 @@
         "当前投影键",
         "规则修订"
       ],
-      "maximum_row_height_points": 200.0,
+      "maximum_row_height_points": 344.0,
       "data_validations": 3
     },
     "本次变化": {
@@ -108,7 +108,7 @@
         "当前投影键",
         "规则修订"
       ],
-      "maximum_row_height_points": 104.0,
+      "maximum_row_height_points": 120.0,
       "data_validations": 3
     }
   },
@@ -117,7 +117,7 @@
   "formulas": 0,
   "error_cells": 0,
   "maximum_cell_characters": 3087,
-  "maximum_row_height_points": 392.0,
+  "maximum_row_height_points": 344.0,
   "mirror_definitions_removed": 442,
   "view_scope": {
     "source_business_concepts": 11,
@@ -130,9 +130,9 @@
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "5e61ce393102aafa15c87a295763e00826abf25cd6d2dd43578cff22ae7bdb91",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "a9bba9435fba8c0647ff6bdfd3e557563f6c97f8496bb5bd9fa929fbf286113d",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "63b707487c038fe8cdbfe7c85a74de54b070cc5ffa65a200efd6d4d8955b494e"
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "3affa17d469cdf42ddb012a903668b3f0c6e413c682cd6ff06c8ead743321255",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "10c9792de221d2d9277d47e08feb633503a28747a52cc69fa464765b28f16666",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "c3bd016e421b2a2373a9f3343450803cdd33cfabe82dd5082c440db4ca0c12a4"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",
@@ -143,80 +143,212 @@
     "roundtrip_distinction": "test_business_rules_excel_evidence覆盖构造OOXML缓存；原生Excel/WPS保存另列，不互相替代"
   },
   "native_office_validation": false,
-  "native_scope": {
-    "status": "NOT_COMPLETED",
-    "completed": [
-      "工具初始化",
-      "枚举Excel应用",
-      "复制独立临时文件"
-    ],
-    "not_run": [
-      "打开工作簿",
-      "填写意见",
-      "表头排序",
-      "保存关闭",
-      "原生长行显示"
-    ],
-    "reason": "sky.launch_app未返回；根代理中止长时间无返回的子代理后，工具报告aborted by user after 2079.6s。该措辞不表示Owner主动取消。",
-    "user_file_modified": false,
-    "process_terminated": false,
-    "temporary_copy": "native-review.xlsx（40766字节，未编辑复制品，不作通过证据）",
-    "independent_attempt": "另次独立验收报告Computer Use app approval timed out；仍未形成原生打开/编辑/保存证据。"
+  "native_scope": "尚待独立原生副本验证结果，未冒称已验证",
+  "technical_combinations": {
+    "total": 649,
+    "READY": 281,
+    "BLOCKED": 368
+  },
+  "catalog_snapshot": {
+    "catalog": {
+      "catalog_id": "qingzhou-carbon-catalog",
+      "data_version": "2026.10.08-electricity2023.1",
+      "canonical_source_lf_sha256": "567bdbf9b956e7fbe5f0f1ce3d56f47b945d1534098743d84060de8de5c434e3"
+    },
+    "entries": {
+      "fgd.ratio": {
+        "field_id": "fgd.ratio",
+        "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
+        "policy_id": "default.fgd_ratio",
+        "branch_id": "fgd_i_one_bound",
+        "parameter_id": "car-par-p04b-i",
+        "binding_id": "binding-fgd_carbonate_content_default_gbt32151_34_2024",
+        "candidate_standard_id": "gbt_32151_34_2024",
+        "asset_id": "asset-fgd_carbonate_content_default_gbt32151_34_2024",
+        "asset_version": "1",
+        "value": "0.90",
+        "unit": "ratio",
+        "source_value": "0.90",
+        "source_unit": "ratio",
+        "normalized_value": "0.90",
+        "normalized_unit": "ratio",
+        "source_id": "SRC-32151-34-2024",
+        "source_version": "2024",
+        "source_table_id": "tab-32151-34-5252",
+        "source_table_number": "5.2.5.2",
+        "source_table_title": "脱硫缺省参数",
+        "source_table_location": "GB/T 32151.34—2024 第5.2.5.2条；PDF第14页；印刷页6",
+        "binding_location": "第5.2.5.2条；PDF第14页；印刷页6",
+        "article": "5.2.5.2",
+        "pdf_pages": [
+          14
+        ],
+        "printed_pages": [
+          6
+        ],
+        "factor_year": 2024,
+        "valid_from": null,
+        "valid_to": null,
+        "review_status": "VERIFIED",
+        "applicable_standard_ids": [
+          "gbt_32151_34_2024"
+        ]
+      },
+      "fgd.conversion": {
+        "field_id": "fgd.conversion",
+        "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
+        "policy_id": "default.fgd_conversion",
+        "branch_id": "fgd_tr_bound",
+        "parameter_id": "car-par-p04b-tr",
+        "binding_id": "binding-fgd_conversion_rate_default_gbt32151_34_2024",
+        "candidate_standard_id": "gbt_32151_34_2024",
+        "asset_id": "asset-fgd_conversion_rate_default_gbt32151_34_2024",
+        "asset_version": "1",
+        "value": "1",
+        "unit": "ratio",
+        "source_value": "1",
+        "source_unit": "ratio",
+        "normalized_value": "1",
+        "normalized_unit": "ratio",
+        "source_id": "SRC-32151-34-2024",
+        "source_version": "2024",
+        "source_table_id": "tab-32151-34-5252",
+        "source_table_number": "5.2.5.2",
+        "source_table_title": "脱硫缺省参数",
+        "source_table_location": "GB/T 32151.34—2024 第5.2.5.2条；PDF第14页；印刷页6",
+        "binding_location": "第5.2.5.2条；PDF第14页；印刷页6",
+        "article": "5.2.5.2",
+        "pdf_pages": [
+          14
+        ],
+        "printed_pages": [
+          6
+        ],
+        "factor_year": 2024,
+        "valid_from": null,
+        "valid_to": null,
+        "review_status": "VERIFIED",
+        "applicable_standard_ids": [
+          "gbt_32151_34_2024"
+        ]
+      },
+      "heat.factor": {
+        "field_id": "heat.factor",
+        "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
+        "policy_id": "default.heat_factor",
+        "branch_id": "heat_default_catalog_bound",
+        "parameter_id": "heat_emission_factor_default",
+        "binding_id": "binding-heat_default_2025",
+        "candidate_standard_id": "gbt_32151_34_2024",
+        "asset_id": "asset-heat_default_2025",
+        "asset_version": "1",
+        "value": "0.11",
+        "unit": "tCO₂/GJ",
+        "source_value": "0.11",
+        "source_unit": "tCO₂/GJ",
+        "normalized_value": "0.11",
+        "normalized_unit": "tCO₂/GJ",
+        "source_id": "SRC-32150-2025",
+        "source_version": "2025",
+        "source_table_id": "tab-32150-756-757",
+        "source_table_number": "7.5.6～7.5.7",
+        "source_table_title": "无实测时的供热因子缺省值",
+        "source_table_location": "GB/T 32150—2025 第7.5.6～7.5.7条；PDF第16页",
+        "binding_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
+        "article": "7.5.6～7.5.7",
+        "pdf_pages": [
+          16
+        ],
+        "printed_pages": [],
+        "factor_year": 2025,
+        "valid_from": "2026-07-01",
+        "valid_to": null,
+        "review_status": "VERIFIED",
+        "applicable_standard_ids": [
+          "gbt_32150_2025",
+          "gbt_32151_34_2024"
+        ]
+      }
+    }
+  },
+  "catalog_snapshot_values": {
+    "fgd.ratio": "0.90",
+    "fgd.conversion": "1",
+    "heat.factor": "0.11"
+  },
+  "condition_scopes": {
+    "count": 442,
+    "unique": 442,
+    "source": "R11同源详情HTML"
+  },
+  "xlsx_review_controls": {
+    "technical_columns_hidden_and_grouped": {
+      "业务规则": [
+        "原审阅版本",
+        "原审阅投影",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ],
+      "操作与影响": [
+        "原审阅版本",
+        "原审阅投影",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ],
+      "本次变化": [
+        "原审阅版本",
+        "原审阅投影",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ]
+    },
+    "object_specific_scope_dropdowns": {
+      "业务规则": {
+        "range": "O6:O34",
+        "values": [
+          "整体",
+          "允许来源",
+          "默认来源",
+          "数值默认",
+          "读写锁定"
+        ]
+      },
+      "操作与影响": {
+        "range": "K6:K26",
+        "values": [
+          "整体",
+          "操作"
+        ]
+      },
+      "本次变化": {
+        "range": "J6:J16",
+        "values": [
+          "整体"
+        ]
+      }
+    }
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "ad4faf3ed73416cde95b99edc5921efc5aac76f214c04648ba7ee78959a12f4b",
-    "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/review-current.json --technical-input build/technical-current.json --node-modules <load_workspace_dependencies返回的packages目录> --output build/review-feedback-fixture-current.json",
+    "report_sha256": "0558f1ffbbd84d321047508e1b160919711566ee8dbfc441f9291db12af096d8",
+    "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/business-rules-authoring/review-r11.json --technical-input build/business-rules-authoring/technical-r11.json --node-modules <load_workspace_dependencies返回的Node.js packages目录> --output build/business-rules-authoring/r11-review/review-feedback-fixture.json",
     "method": "真实Table.getRange数据范围反转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象，具体选取与版本/删除/属性/技术详情变更见fixture报告",
     "status": "PASS",
-    "actual_scenario_count": 20,
+    "actual_scenario_count": 25,
     "input_mode": "formal compact and technical projection",
-    "formal_projection_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
-    "command_chain": [
-      "python scripts/validate_business_rules_candidate.py --review-json build/review-current.json --technical-review-json build/technical-current.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json",
-      "node scripts/build_business_rules_review.mjs --input build/review-current.json --details build/technical-current.json --definition-root . --node-modules <load_workspace_dependencies返回的packages目录> --output build/业务规则审阅表.xlsx",
-      "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/review-current.json --technical-input build/technical-current.json --node-modules <同上开发packages目录> --output build/review-feedback-fixture-current.json",
-      "python scripts/business_rules_review_hashes.py --root . --checks build/review-view-manifest.json"
-    ],
-    "scenario_counts": {
-      "formal": 20,
-      "synthetic_smoke": 16,
-      "visible_scope_new": 2,
-      "difference": "正式输入含技术绑定与购入/输出隔离4项；无输入synthetic不包含它们，不能替代正式复验。"
-    }
-  },
-  "review_json_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
-  "projection_exporter": "scripts/validate_business_rules_candidate.py --review-json build/review-current.json --technical-review-json build/technical-current.json <三份固定候选源文件>",
-  "projection_exporter_sha256": "de21fe28ae0b0e8bbdd9b59604e463575c2ed313558bce3c765c01c976048262",
-  "implementation_parent_sha": "31456c60c87d04a391e83e6396fcad19c639e6d8",
-  "final_head_evidence": "原PR47最新提交及送验评论；不把语义批准parent冒充最终工具head",
-  "development_dependency": {
-    "name": "@oai/artifact-tool",
-    "version": "2.8.94",
-    "source": "Codex load_workspace_dependencies bundled Node.js packages",
-    "production_dependency": false,
-    "explicit_path_invalid": "失败，不静默改选其他bundle",
-    "ci_scope": "Python验证已提交XLSX结构/哈希；当前Windows CI不执行JS完整再生。"
-  },
-  "details_compression": {
-    "previous_bytes": 5131235,
-    "current_bytes": 3965395,
-    "method": "同一对象完全相同键值提取共用信息，各条件完整保留差异；专用full details递归渲染不走compact groups摘要。"
-  },
-  "user_workbook_backup": {
-    "sha256": "88cfeecb349ed05cf07b705d7a38cd391d7883107e022add9bca85d8c0c35018",
-    "saved_feedback_rows": 0,
-    "owner_closed_before_regeneration": true,
-    "qa_feedback_in_formal": false
-  },
-  "synthetic_smoke": {
-    "status": "PASS",
-    "actual_scenario_count": 16,
-    "input_mode": "synthetic smoke only; excludes technical binding/direction scenarios",
-    "builder_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
-    "artifact_tool_version": "2.8.94",
-    "command": "node scripts/test_business_rules_review.mjs --node-modules <开发bundle packages目录> --output build/synthetic-smoke.json",
-    "report_sha256": "94502532f965450eab534902f044fe0aa21141accdf8216868ed00bd52845794"
+    "formal_projection_sha256": "e2a3834605c66d4783455e3d293e8fdceaa3824fc2c34159de0b46cb7ad27d0b"
   }
 }

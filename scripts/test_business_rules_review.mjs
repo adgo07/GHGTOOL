@@ -247,11 +247,24 @@ function makeFixture(base, sourceDetails) {
     unknownAttribute: "fixture.unknown_attribute",
     unknownCondition: "fixture.unknown_condition",
     electricity: sourcePower.field_id,
+    directoryScope: "fixture.directory_scope",
+    customScope: "fixture.custom_scope",
+    purchasedScope: "fixture.visible_electricity_purchased",
+    exportedScope: "fixture.visible_electricity_exported",
+    overallOperation: "fixture.overall_operation",
   };
   function build(revision, changed) {
     const same = clone(sourceField);
     const electric = clone(sourcePower);
     trimElectricity(electric, contexts);
+    const directoryScope = cloneField(sourceField, ids.directoryScope, "目录对象可见范围目标");
+    const customScope = cloneField(sourceField, ids.customScope, "自定义可见范围目标");
+    const purchasedScope = cloneField(sourcePower, sourcePower.field_id, "购入电力可见范围目标");
+    purchasedScope.rule_set_id = ids.purchasedScope;
+    trimElectricity(purchasedScope, [contexts[0]]);
+    const exportedScope = cloneField(sourcePower, sourcePower.field_id, "输出电力可见范围目标");
+    exportedScope.rule_set_id = ids.exportedScope;
+    trimElectricity(exportedScope, [contexts[1]]);
     const sourceTarget = cloneField(sourceField, ids.sourceTarget, "允许来源目标");
     const defaultTarget = cloneField(sourceField, ids.defaultTarget, "数值默认目标");
     const conditionTarget = cloneField(sourceField, ids.conditionTarget, "条件属性目标");
@@ -275,14 +288,16 @@ function makeFixture(base, sourceDetails) {
       mutateLocking(conditionTarget);
       moveCondition(conditionMoved);
     }
-    const fields = [same, electric, sourceTarget, defaultTarget, conditionTarget, conditionMoved,
-      technicalTarget, technicalConditionTarget];
+    const fields = [same, electric, directoryScope, customScope, purchasedScope, exportedScope,
+      sourceTarget, defaultTarget, conditionTarget, conditionMoved, technicalTarget, technicalConditionTarget];
     if (revision === revisionV1) fields.push(deleted);
     fields.push(legacySummary, legacyCondition, unknownAttribute, unknownCondition);
+    const overallOperation = clone(sourceOperation);
+    overallOperation.operation_id = ids.overallOperation;
     const result = {
       metadata: { ...(base.metadata || {}), revision, status: "FIXTURE_ONLY" },
       fields,
-      operations: [clone(sourceOperation)],
+      operations: [clone(sourceOperation), overallOperation],
       changes: [clone(sourceChange)],
     };
     setRevision(result, revision);
@@ -290,13 +305,20 @@ function makeFixture(base, sourceDetails) {
   }
   const v1 = build(revisionV1, false);
   const v2 = build(revisionV2, true);
-  const rows = new Map(v1.fields.map((row) => [row.field_id, row]));
+  const rows = new Map();
+  for (const row of v1.fields) if (!rows.has(row.field_id)) rows.set(row.field_id, row);
+  const purchasedScopeRow = v1.fields.find((row) => row.rule_set_id === ids.purchasedScope);
+  const exportedScopeRow = v1.fields.find((row) => row.rule_set_id === ids.exportedScope);
   const suffix = (context) => "source_path=" + context.sourcePath + ";direction=" + context.direction;
   const cases = [
     { id: "same-content-field", sheet: "业务规则", key: fieldStableKey(rows.get(ids.same)), property: "整体", condition: "整体", expected: "继续关联" },
     { id: "allowed-source-unaffected-by-default-change", sheet: "业务规则", key: fieldStableKey(rows.get(ids.sourceTarget)), property: "允许来源", condition: "当前行", expected: "继续关联" },
     { id: "numeric-default-changed", sheet: "业务规则", key: fieldStableKey(rows.get(ids.defaultTarget)), property: "数值默认", condition: "当前行", expected: "需复核" },
     { id: "condition-scope-keeps-default-opinion", sheet: "业务规则", key: fieldStableKey(rows.get(ids.conditionTarget)), property: "数值默认", condition: "__AUTO__", expected: "继续关联" },
+    { id: "visible-directory-object-scope", sheet: "业务规则", key: fieldStableKey(rows.get(ids.directoryScope)), property: "允许来源", condition: "__AUTO_VISIBLE__对象类别=目录对象", expected: "继续关联", input_source: "rendered HTML directory-object condition" },
+    { id: "visible-custom-object-scope", sheet: "业务规则", key: fieldStableKey(rows.get(ids.customScope)), property: "允许来源", condition: "__AUTO_VISIBLE__对象类别=自定义", expected: "继续关联", input_source: "rendered HTML custom-object condition" },
+    { id: "visible-electricity-purchased-scope", sheet: "业务规则", key: fieldStableKey(purchasedScopeRow, suffix(contexts[0])), property: "默认来源", condition: "__AUTO_VISIBLE__方向=购入", expected: "继续关联", input_source: "rendered HTML purchased-electricity condition" },
+    { id: "visible-electricity-exported-scope", sheet: "业务规则", key: fieldStableKey(exportedScopeRow, suffix(contexts[1])), property: "默认来源", condition: "__AUTO_VISIBLE__方向=输出", expected: "需复核", input_source: "rendered HTML exported-electricity condition" },
     { id: "changed-condition-is-retained", sheet: "业务规则", key: fieldStableKey(rows.get(ids.conditionMoved)), property: "数值默认", condition: "__AUTO__", expected: "待映射", retention: true },
     ...(sourceDetails ? [
       { id: "technical-binding-property-change", sheet: "业务规则", key: fieldStableKey(rows.get(ids.technicalTarget)), property: "默认来源", condition: "当前行", expected: "需复核" },
@@ -310,7 +332,8 @@ function makeFixture(base, sourceDetails) {
     { id: "electricity-purchased-stable-row", sheet: "业务规则", key: fieldStableKey(rows.get(ids.electricity), suffix(contexts[0])), property: "整体", condition: "当前行", expected: "继续关联" },
     { id: "electricity-export-legacy-summary-ambiguous", sheet: "业务规则", key: fieldStableKey(rows.get(ids.electricity), suffix(contexts[1])), property: "整体", condition: "整体", expected: "待映射", retention: true, override: fieldProjection(rows.get(ids.electricity), revisionV1) },
     { id: "operation-property-target", sheet: "操作与影响", key: "operation|" + v1.operations[0].rule_set_id + "|" + v1.operations[0].operation_id + "|整体", property: "操作", condition: "当前行", expected: "继续关联" },
-    { id: "change-overall-feedback", sheet: "本次变化", key: "change|" + v1.changes[0].rule_set_id + "|" + v1.changes[0].key + "|整体", property: "整体", condition: "整体", expected: "继续关联" },
+    { id: "operation-overall-workbook-scope", sheet: "操作与影响", key: "operation|" + v1.operations[1].rule_set_id + "|" + ids.overallOperation + "|整体", property: "整体", condition: "整体", expected: "继续关联", input_source: "actual workbook operation row and allowed dropdown value" },
+    { id: "change-overall-feedback", sheet: "本次变化", key: "change|" + v1.changes[0].rule_set_id + "|" + v1.changes[0].key + "|整体", property: "整体", condition: "整体", expected: "继续关联", input_source: "actual workbook change row and allowed dropdown value" },
   ];
   const directionIsolationCases = sourceDetails ? [
     { id: "electricity-purchased-technical-isolation", sheet: "业务规则", key: fieldStableKey(rows.get(ids.electricity), suffix(contexts[0])), property: "默认来源", condition: "当前行", expected: "继续关联" },
@@ -321,6 +344,7 @@ function makeFixture(base, sourceDetails) {
     selected: {
       non_electric_field_id: sourceField.field_id,
       electricity_field_id: sourcePower.field_id,
+      visible_scope_fixture_ids: [ids.directoryScope, ids.customScope, ids.purchasedScope, ids.exportedScope],
       electricity_contexts: contexts.map((item) => ({ source_path: item.sourcePath, direction: item.direction })),
       operation_id: sourceOperation.operation_id,
       change_id: sourceChange.key,
@@ -379,8 +403,8 @@ function applyTechnicalOnlyMutations(sourceDetails, payload, fixture, details) {
   if (!sourceDetails) return [];
   const log = [];
   const generalReplacement = alternateBinding(sourceDetails, null, null, null, fixture.selected.non_electric_field_id);
-  const mutateOne = (fieldId, conditionPredicate, label, replacement = generalReplacement) => {
-    const allRows = details.fields.filter((row) => row.field_id === fieldId);
+  const mutateOne = (fieldId, conditionPredicate, label, replacement = generalReplacement, ruleSetId = null) => {
+    const allRows = details.fields.filter((row) => row.field_id === fieldId && (!ruleSetId || row.rule_set_id === ruleSetId));
     const candidates = allRows.filter((row) => {
       const when = row.conditions_by_property?.default_source;
       return when?.tags?.binding_id && when.tags.parameter_id &&
@@ -418,9 +442,11 @@ function applyTechnicalOnlyMutations(sourceDetails, payload, fixture, details) {
   const exported = fixture.contexts.find((item) => item.direction === "EXPORTED");
   assert.ok(exported, "Electricity fixture must include EXPORTED context");
   const exportReplacement = alternateBinding(sourceDetails, "electricity.factor", "EXPORTED", exported.sourcePath);
-  mutateOne(fixture.ids.electricity,
-    (when) => when.tags.source_path === exported.sourcePath && when.tags.direction === exported.direction,
+  const exportedCondition = (when) => when.tags.source_path === exported.sourcePath && when.tags.direction === exported.direction;
+  mutateOne(fixture.ids.electricity, exportedCondition,
     "electricity-exported-context-only", exportReplacement);
+  mutateOne(fixture.ids.electricity, exportedCondition,
+    "visible-exported-electricity-scope", exportReplacement, fixture.ids.exportedScope);
   return log;
 }
 
@@ -445,8 +471,12 @@ function makeDetails(sourceDetails, payload, fixture, technicalOnly = false) {
   };
   for (const row of payload.fields) {
     const sourceId = row.field_id.startsWith("fixture.") ? sourceFieldId : row.field_id;
-    const sourceRows = technicalRows(sourceDetails.fields || [], "field", sourceId,
-      row.field_id === "electricity.factor" ? fixture.contexts : undefined);
+    const contexts = row.field_id === fixture.ids.electricity
+      ? fixture.contexts
+      : row.rule_set_id === fixture.ids.purchasedScope ? [fixture.contexts[0]]
+      : row.rule_set_id === fixture.ids.exportedScope ? [fixture.contexts[1]]
+      : undefined;
+    const sourceRows = technicalRows(sourceDetails.fields || [], "field", sourceId, contexts);
     for (const source of sourceRows) {
       const copy = clone(source);
       copy.field_id = row.field_id;
@@ -458,9 +488,13 @@ function makeDetails(sourceDetails, payload, fixture, technicalOnly = false) {
     }
   }
   for (const row of payload.operations) {
-    const sourceRows = technicalRows(sourceDetails.operations || [], "operation", row.operation_id);
+    const sourceId = row.operation_id === fixture.ids.overallOperation
+      ? fixture.selected.operation_id
+      : row.operation_id;
+    const sourceRows = technicalRows(sourceDetails.operations || [], "operation", sourceId);
     for (const source of sourceRows.length ? sourceRows : [row]) {
-      result.operations.push({ ...clone(source), rule_set_id: row.rule_set_id, revision: payload.metadata.revision, review_key: row.review_key });
+      result.operations.push({ ...clone(source), operation_id: row.operation_id,
+        rule_set_id: row.rule_set_id, revision: payload.metadata.revision, review_key: row.review_key });
     }
   }
   for (const row of payload.changes) {
@@ -542,10 +576,14 @@ async function seedAndReverse(artifact, workbookPath, fixture, tempRoot) {
     const idx = table.idx;
     const fingerprints = JSON.parse(String(row[idx["内容指纹"]]));
     let condition = item.condition;
-    if (condition === "__AUTO__" || condition === "__AUTO_PROPERTY__") {
-      const visible=visibleScopes.find(v=>v.key===item.key&&v.property===item.property);
-      assert.ok(visible,item.id+" needs a condition from the actual visible HTML, not hidden fingerprints");
-      condition=visible.condition;
+    const visibleSelector = condition.startsWith("__AUTO_VISIBLE__")
+      ? condition.slice("__AUTO_VISIBLE__".length)
+      : null;
+    if (condition === "__AUTO__" || condition === "__AUTO_PROPERTY__" || visibleSelector !== null) {
+      let matches=visibleScopes.filter(v=>v.key===item.key&&v.property===item.property);
+      if (visibleSelector !== null) matches=matches.filter(v=>v.condition.includes(visibleSelector));
+      assert.ok(matches.length,item.id+" needs the requested condition from the actual visible HTML, not hidden fingerprints");
+      condition=matches[0].condition;
       assert.ok(Object.hasOwn(fingerprints,scopeKey(item.property,condition)),"Visible condition must map exactly to a registered scope");
     }
     const oldKey = item.override || item.key;
@@ -605,10 +643,13 @@ async function seedAndReverse(artifact, workbookPath, fixture, tempRoot) {
 }
 
 function currentProjection(payload, item) {
-  if (item.sheet === "操作与影响") return payload.operations[0].review_key;
-  if (item.sheet === "本次变化") return payload.changes[0].review_key;
-  const fieldId = item.key.split("|")[2];
-  return payload.fields.find((row) => row.field_id === fieldId)?.review_key;
+  if (item.sheet === "操作与影响") {
+    const operationId = item.key.split("|")[2];
+    return payload.operations.find((row) => row.operation_id === operationId)?.review_key;
+  }
+  if (item.sheet === "本次变化") return payload.changes.find((row) => row.key === item.key.split("|")[2])?.review_key;
+  const [, ruleSetId, fieldId] = item.key.split("|");
+  return payload.fields.find((row) => row.rule_set_id === ruleSetId && row.field_id === fieldId)?.review_key;
 }
 
 async function verifyOutput(artifact, workbookPath, detailsPath, detailsPayload, fixture, seeded) {
@@ -685,6 +726,7 @@ async function verifyOutput(artifact, workbookPath, detailsPath, detailsPayload,
     results.push({
       id: expected.id,
       association_status: expected.expected,
+      input_source: expected.input_source || "fixture-entered opinion scope",
       sheet: found.sheetName,
       stable_key: row[idx["稳定审阅键"]],
       original_projection_key: row[idx["原投影键"]],
@@ -708,6 +750,8 @@ async function verifyOutput(artifact, workbookPath, detailsPath, detailsPayload,
 
   const detailsHash = canonicalHash(detailsPayload);
   assert.ok(html.includes("详情输入SHA256：" + detailsHash), "HTML must carry the digest of the exact details JSON");
+  assert.ok(html.includes("目录参考值未核对"),
+    "A build without --catalog-snapshot must tell reviewers that catalog values are not checked");
   const manifestPath = path.join(path.dirname(workbookPath), "review-view-manifest.json");
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
   assert.equal(manifest.details_projection_bound, true, "Manifest must bind technical details to this fixture projection");
@@ -855,7 +899,7 @@ async function main() {
   const visibleReviewed=await feedbackRow(artifact,changedPair.output,visibleOpinion.opinionId);
   assert.equal(visibleReviewed.status,"需复核","The copied visible scope must require review when its content changes");
   assert.equal(visibleReviewed.opinion,visibleOpinion.opinion);
-  const visibleResults=[{id:"visible-condition-copy-unchanged",status:visibleUnchanged.status,input_source:"rendered HTML legal condition"},{id:"visible-condition-copy-changed",status:visibleReviewed.status,input_source:"same visible condition; changed scoped outcome"}];
+  const visibleResults=[{id:"visible-condition-copy-unchanged",status:visibleUnchanged.status,input_source:"rendered HTML legal condition"},{id:"visible-condition-copy-changed",status:visibleReviewed.status,input_source:"same rendered HTML condition; changed scoped outcome"}];
 
   let directionSeededResult = null;
   let directionVerified = { results: [], tableRefs: {} };
@@ -946,6 +990,7 @@ async function main() {
     { type: "electricity-context-split", object: fixture.ids.electricity, contexts: fixture.selected.electricity_contexts, expected: "PURCHASED continues; ambiguous SUMMARY retained" },
     { type: "reverse-table-data-save-and-reopen", sheets: ["业务规则", "操作与影响", "本次变化"], expected: "feedback remains attached to the same business row" },
   ];
+  const executedCases = [...verified.results, ...directionVerified.results, ...visibleResults];
   const report = {
     status: "PASS",
     builder_sha256: builderHash,
@@ -956,9 +1001,10 @@ async function main() {
     fixture_projection_v1_sha256: v1Pair.projectionHash,
     fixture_projection_v2_sha256: v2Pair.projectionHash,
     fixture_details_sha256: verified.detailsHash,
-    actual_scenario_count: verified.results.length + directionVerified.results.length + visibleResults.length,
+    actual_scenario_count: executedCases.length,
     input_mode: sourceDetails ? "formal compact and technical projection" : "synthetic smoke only; excludes technical binding/direction scenarios",
     visible_scope_scenario_count: visibleResults.length,
+    actual_html_scope_input_count: executedCases.filter((item) => String(item.input_source || "").includes("HTML")).length,
     main_scenario_count: verified.results.length + visibleResults.length,
     direction_isolation_scenario_count: directionVerified.results.length,
     details_projection_bound: verified.manifest.details_projection_bound,
@@ -968,7 +1014,7 @@ async function main() {
       deleted_fixture_field_id: fixture.ids.deleted,
     },
     mutation_list: mutations,
-    cases: [...verified.results, ...directionVerified.results, ...visibleResults],
+    cases: executedCases,
     table_sheets: verified.sheetNames,
     previous_table_refs: seededResult.tableRefs,
     output_table_refs: verified.tableRefs,
