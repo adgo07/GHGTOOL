@@ -1,14 +1,17 @@
 {
   "status": "PASS",
-  "builder_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
-  "builder_copy_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
-  "formal_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a",
-  "formal_details_sha256": "198ba7eb2972300dbbe2b7bee9c3c04971e4be33a27e160b829718c69e558295",
-  "fixture_projection_v1_sha256": "d1cdbe7a32418c76e45d9580ecb45373177bcab64bb0fc0cee2e1fda9fc184ec",
-  "fixture_projection_v2_sha256": "caddac9e78772cd48c2d495b293a823f18d47ee6822bed1bd96c0aa55b62fc56",
-  "fixture_details_sha256": "3f3aaa3ce8159e33164052662fc39b88d48c47f2197a6720fa22bf649ab75869",
-  "actual_scenario_count": 18,
-  "main_scenario_count": 16,
+  "builder_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
+  "artifact_tool_version": "2.8.94",
+  "builder_copy_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
+  "formal_projection_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
+  "formal_details_sha256": "c3aadf3d59ba9b14511927bf1ef4eb9c673b96364f97136b7c2891148902d994",
+  "fixture_projection_v1_sha256": "8f3bb69213d2ee6c557470a756180ce71240d99c8ae689cf370cdad2fe943dec",
+  "fixture_projection_v2_sha256": "b27c6e3506bc1ab829bbcde35b7ded91cb6d1334e4e1a9b20ece5a268e6a0303",
+  "fixture_details_sha256": "c41874346d939ee976f41b72c72ad3c7752e3e3a753ca27ca201cb96b9533058",
+  "actual_scenario_count": 20,
+  "input_mode": "formal compact and technical projection",
+  "visible_scope_scenario_count": 2,
+  "main_scenario_count": 18,
   "direction_isolation_scenario_count": 2,
   "details_projection_bound": true,
   "selected_object_ids": {
@@ -24,8 +27,8 @@
         "direction": "EXPORTED"
       }
     ],
-    "operation_id": "initialize_new_accounting",
-    "change_id": "review.change.candidate_bundle",
+    "operation_id": "calculate_calcination_role_carbon",
+    "change_id": "review.change.calcination_role_carbon",
     "synthetic_source": false,
     "legacy_fixture_field_ids": [
       "fixture.legacy_summary",
@@ -369,17 +372,17 @@
       "id": "operation-property-target",
       "association_status": "继续关联",
       "sheet": "操作与影响",
-      "stable_key": "operation|qz.carbon_accounting.software_policy|initialize_new_accounting|整体",
-      "original_projection_key": "operation|qz.carbon_accounting.software_policy|fixture-v1|initialize_new_accounting",
-      "current_projection_key": "operation|qz.carbon_accounting.software_policy|fixture-v2|initialize_new_accounting"
+      "stable_key": "operation|qz.carbon_accounting.industry.gbt_32151_34_2024|calculate_calcination_role_carbon|整体",
+      "original_projection_key": "operation|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|calculate_calcination_role_carbon",
+      "current_projection_key": "operation|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|calculate_calcination_role_carbon"
     },
     {
       "id": "change-overall-feedback",
       "association_status": "继续关联",
       "sheet": "本次变化",
-      "stable_key": "change|qz.carbon_accounting.software_policy|review.change.candidate_bundle|整体",
-      "original_projection_key": "change|qz.carbon_accounting.software_policy|fixture-v1|review.change.candidate_bundle",
-      "current_projection_key": "change|qz.carbon_accounting.software_policy|fixture-v2|review.change.candidate_bundle"
+      "stable_key": "change|qz.carbon_accounting.industry.gbt_32151_34_2024|review.change.calcination_role_carbon|整体",
+      "original_projection_key": "change|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|review.change.calcination_role_carbon",
+      "current_projection_key": "change|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|review.change.calcination_role_carbon"
     },
     {
       "id": "electricity-purchased-technical-isolation",
@@ -396,6 +399,16 @@
       "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=EXPORTED",
       "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
       "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+    },
+    {
+      "id": "visible-condition-copy-unchanged",
+      "status": "继续关联",
+      "input_source": "rendered HTML legal condition"
+    },
+    {
+      "id": "visible-condition-copy-changed",
+      "status": "需复核",
+      "input_source": "same visible condition; changed scoped outcome"
     }
   ],
   "table_sheets": [

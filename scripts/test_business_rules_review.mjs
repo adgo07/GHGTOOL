@@ -476,15 +476,12 @@ function makeDetails(sourceDetails, payload, fixture, technicalOnly = false) {
 }
 
 async function findNodeModules(explicitPath) {
-  const candidates = [
-    explicitPath ? path.resolve(explicitPath) : null,
-    process.env.ARTIFACT_TOOL_NODE_MODULES,
-    ...String(process.env.NODE_PATH || "").split(path.delimiter).filter(Boolean),
-    path.join(repoRoot, "build", "business-rules-authoring", "node_modules"),
-    path.join(repoRoot, "node_modules"),
-    path.resolve(path.dirname(process.execPath), "..", "node_modules"),
-    path.join(os.homedir(), ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "node", "node_modules"),
-  ].filter(Boolean);
+  if(explicitPath){
+    const candidate=path.resolve(explicitPath);
+    try {await fs.access(path.join(candidate,"@oai","artifact-tool","package.json"));return candidate;}
+    catch(error){throw new Error("显式 --node-modules 路径缺少 @oai/artifact-tool，未回退到其他bundle："+candidate,{cause:error});}
+  }
+  const candidates = [process.env.ARTIFACT_TOOL_NODE_MODULES,path.resolve(path.dirname(process.execPath),"..","node_modules")].filter(Boolean);
   for (const candidate of candidates) {
     try {
       await fs.access(path.join(candidate, "@oai", "artifact-tool"));
@@ -493,7 +490,7 @@ async function findNodeModules(explicitPath) {
       // Continue to the next bundled runtime location.
     }
   }
-  throw new Error("Cannot find bundled @oai/artifact-tool node_modules; checked " + candidates.join("; "));
+  throw new Error("缺少开发工具 @oai/artifact-tool；请调用 load_workspace_dependencies 获取 packages 目录并以 --node-modules 明确传入。它不是产品运行依赖。检查位置："+candidates.join("; "));
 }
 
 async function loadArtifactTool(tempRoot) {
@@ -536,22 +533,20 @@ function scopeKey(property, condition) {
 async function seedAndReverse(artifact, workbookPath, fixture, tempRoot) {
   const workbook = await artifact.SpreadsheetFile.importXlsx(await artifact.FileBlob.load(workbookPath));
   const seeded = new Map();
+  const visibleHtml=await fs.readFile(path.join(path.dirname(workbookPath),"业务规则审阅详情.html"),"utf8");
+  const decodeHtml=value=>value.replaceAll("&quot;",'"').replaceAll("&gt;",">").replaceAll("&lt;","<").replaceAll("&amp;","&");
+  const visibleScopes=[...visibleHtml.matchAll(/<pre data-review-row="([^"]+)" data-review-property="([^"]+)">([\s\S]*?)<\/pre>/g)].map(m=>({key:decodeURIComponent(decodeHtml(m[1])),property:decodeHtml(m[2]),condition:decodeHtml(m[3])}));
   for (const item of fixture.cases) {
     const table = await tableFor(workbook, item.sheet);
     const row = findStableRow(table, item.key);
     const idx = table.idx;
     const fingerprints = JSON.parse(String(row[idx["内容指纹"]]));
     let condition = item.condition;
-    if (condition === "__AUTO__") {
-      const key = Object.keys(fingerprints).find((value) => value.startsWith("数值默认@@"));
-      assert.ok(key, item.id + " needs a default condition fingerprint");
-      condition = key.slice("数值默认@@".length);
-    } else if (condition === "__AUTO_PROPERTY__") {
-      const propertyLabels = { "允许来源": "允许来源", "默认来源": "默认来源", "数值默认": "数值默认", "读写锁定": "读写锁定" };
-      const prefix = (propertyLabels[item.property] || item.property) + "@@";
-      const key = Object.keys(fingerprints).find((value) => value.startsWith(prefix));
-      assert.ok(key, item.id + " needs an exact condition fingerprint for " + item.property);
-      condition = key.slice(prefix.length);
+    if (condition === "__AUTO__" || condition === "__AUTO_PROPERTY__") {
+      const visible=visibleScopes.find(v=>v.key===item.key&&v.property===item.property);
+      assert.ok(visible,item.id+" needs a condition from the actual visible HTML, not hidden fingerprints");
+      condition=visible.condition;
+      assert.ok(Object.hasOwn(fingerprints,scopeKey(item.property,condition)),"Visible condition must map exactly to a registered scope");
     }
     const oldKey = item.override || item.key;
     const originalProjection = item.override || row[idx["当前投影键"]];
@@ -705,6 +700,12 @@ async function verifyOutput(artifact, workbookPath, detailsPath, detailsPayload,
   assert.ok(html.includes('id="review-scope"'));
   assert.ok(html.includes('id="' + detailIdentity + '"'));
   assert.ok(html.includes("fixture-details-marker"));
+  const detailIds=new Set();
+  const collectIds=value=>{if(Array.isArray(value)){value.forEach(collectIds);return;}if(!value||typeof value!=="object")return;for(const [key,item] of Object.entries(value)){if(["parameter_id","binding_id","field_id","condition_id"].includes(key)&&typeof item==="string"&&item)detailIds.add(item);collectIds(item);}};
+  collectIds(detailsPayload);
+  const escaped=value=>value.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+  for(const id of detailIds)assert.ok(html.includes(escaped(id)),"Shared/unique HTML must preserve detail identity "+id);
+
   const detailsHash = canonicalHash(detailsPayload);
   assert.ok(html.includes("详情输入SHA256：" + detailsHash), "HTML must carry the digest of the exact details JSON");
   const manifestPath = path.join(path.dirname(workbookPath), "review-view-manifest.json");
@@ -714,6 +715,9 @@ async function verifyOutput(artifact, workbookPath, detailsPath, detailsPayload,
   for (const entry of outputRows) {
     if (String(entry.row[entry.idx["稳定审阅键"]]).startsWith("retention|")) continue;
     assert.ok(String(entry.row[entry.idx["同源详情入口"]] || "").startsWith("业务规则审阅详情.html#"));
+    const locator=String(entry.row[entry.idx["同源详情入口"]]);
+    const identity=decodeURIComponent(locator.slice(locator.indexOf("#")+1));
+    assert.ok(html.includes('id="'+escaped(identity)+'"'),"Every workbook detail locator must resolve to an HTML object");
   }
   return { results, sheetNames, detailsHash, tableRefs, manifest };
 }
@@ -791,6 +795,7 @@ async function main() {
   let sourceDetails = null;
   let formalHash = null;
   let technicalHash = null;
+  if (Boolean(inputPath)!==Boolean(technicalPath)) throw new Error("正式复验必须同时传 --input 与 --technical-input；无输入仅为 synthetic smoke，不能替代正式20场景。");
   if (inputPath) {
     const sourceText = await fs.readFile(inputPath, "utf8");
     base = JSON.parse(sourceText);
@@ -801,6 +806,7 @@ async function main() {
       technicalHash = normalizedFileHash(detailsText);
     }
   } else {
+    process.stderr.write("提示：无正式投影输入，本次只运行synthetic smoke，场景数与正式输入不同；详见PREFLIGHT。\n");
     base = syntheticPayload();
   }
   const fixture = makeFixture(base, sourceDetails);
@@ -834,6 +840,22 @@ async function main() {
   await runBuilder(copiedBuilder, v2Pair.input, v2Pair.detailsPath, v2Pair.output, workspace, seededResult.previousPath);
   const verified = await verifyOutput(artifact, v2Pair.output, path.join(v2Pair.outDir, "业务规则审阅详情.html"),
     detailsV2, fixture, seededResult.seeded);
+
+  // Exercise the user's visible copy/paste entry before and after a targeted content change.
+  const visibleOpinion=seededResult.seeded.get("condition-scope-keeps-default-opinion");
+  assert.ok(visibleOpinion?.condition,"Visible-entry case must have copied a rendered legal condition");
+  const unchangedPair=await writeFixturePair(runDirectory,"visible-unchanged",fixture.v1,makeDetails(sourceDetails,fixture.v1,fixture));
+  await runBuilder(copiedBuilder,unchangedPair.input,unchangedPair.detailsPath,unchangedPair.output,workspace,seededResult.previousPath);
+  const visibleUnchanged=await feedbackRow(artifact,unchangedPair.output,visibleOpinion.opinionId);
+  assert.equal(visibleUnchanged.status,"继续关联","Copied visible condition must associate when rules are unchanged");
+  const visibleChanged=clone(fixture.v1);
+  mutateDefault(visibleChanged.fields.find(r=>r.field_id===fixture.ids.conditionTarget).default,"visible-condition-content-change");
+  const changedPair=await writeFixturePair(runDirectory,"visible-changed",visibleChanged,makeDetails(sourceDetails,visibleChanged,fixture));
+  await runBuilder(copiedBuilder,changedPair.input,changedPair.detailsPath,changedPair.output,workspace,seededResult.previousPath);
+  const visibleReviewed=await feedbackRow(artifact,changedPair.output,visibleOpinion.opinionId);
+  assert.equal(visibleReviewed.status,"需复核","The copied visible scope must require review when its content changes");
+  assert.equal(visibleReviewed.opinion,visibleOpinion.opinion);
+  const visibleResults=[{id:"visible-condition-copy-unchanged",status:visibleUnchanged.status,input_source:"rendered HTML legal condition"},{id:"visible-condition-copy-changed",status:visibleReviewed.status,input_source:"same visible condition; changed scoped outcome"}];
 
   let directionSeededResult = null;
   let directionVerified = { results: [], tableRefs: {} };
@@ -927,14 +949,17 @@ async function main() {
   const report = {
     status: "PASS",
     builder_sha256: builderHash,
+    artifact_tool_version: JSON.parse(await fs.readFile(path.join(nodeModulesPath,"@oai","artifact-tool","package.json"),"utf8")).version,
     builder_copy_sha256: sha256(await fs.readFile(copiedBuilder)),
     formal_projection_sha256: formalHash,
     formal_details_sha256: technicalHash,
     fixture_projection_v1_sha256: v1Pair.projectionHash,
     fixture_projection_v2_sha256: v2Pair.projectionHash,
     fixture_details_sha256: verified.detailsHash,
-    actual_scenario_count: verified.results.length + directionVerified.results.length,
-    main_scenario_count: verified.results.length,
+    actual_scenario_count: verified.results.length + directionVerified.results.length + visibleResults.length,
+    input_mode: sourceDetails ? "formal compact and technical projection" : "synthetic smoke only; excludes technical binding/direction scenarios",
+    visible_scope_scenario_count: visibleResults.length,
+    main_scenario_count: verified.results.length + visibleResults.length,
     direction_isolation_scenario_count: directionVerified.results.length,
     details_projection_bound: verified.manifest.details_projection_bound,
     selected_object_ids: {
@@ -943,7 +968,7 @@ async function main() {
       deleted_fixture_field_id: fixture.ids.deleted,
     },
     mutation_list: mutations,
-    cases: [...verified.results, ...directionVerified.results],
+    cases: [...verified.results, ...directionVerified.results, ...visibleResults],
     table_sheets: verified.sheetNames,
     previous_table_refs: seededResult.tableRefs,
     output_table_refs: verified.tableRefs,

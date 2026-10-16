@@ -17,6 +17,66 @@ class CandidateAssetCoverageTests(unittest.TestCase):
         self.assertTrue(all(p.is_file() for p in paths), "三份候选Canonical资产必须齐全")
         return [json.loads(p.read_text(encoding="utf-8"),parse_float=Decimal) for p in paths]
 
+    def test_definition_text_hash_normalizes_crlf_and_rejects_changed_content(self):
+        import shutil
+        import tempfile
+
+        from scripts.business_rules_review_hashes import (
+            DEFINITION_ASSET_HASH_POLICY,
+            EXPECTED_DEFINITION_ASSETS,
+            definition_text_sha256,
+            verify_definition_assets,
+        )
+
+        raw = (ROOT / EXPECTED_DEFINITION_ASSETS[0]).read_bytes()
+        lf_bytes = raw.replace(b"\r\n", b"\n")
+        crlf_bytes = lf_bytes.replace(b"\n", b"\r\n")
+        self.assertEqual(definition_text_sha256(lf_bytes), definition_text_sha256(crlf_bytes))
+        self.assertNotEqual(definition_text_sha256(lf_bytes), definition_text_sha256(lf_bytes + b" "))
+
+        checks = {
+            "definition_assets_hash_policy": DEFINITION_ASSET_HASH_POLICY,
+            "definition_assets_sha256": {
+                relative: definition_text_sha256((ROOT / relative).read_bytes())
+                for relative in EXPECTED_DEFINITION_ASSETS
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            changed_root = Path(directory)
+            for relative in EXPECTED_DEFINITION_ASSETS:
+                source = ROOT / relative
+                destination = changed_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, destination)
+            self.assertEqual(verify_definition_assets(changed_root, checks), len(EXPECTED_DEFINITION_ASSETS))
+            changed = changed_root / EXPECTED_DEFINITION_ASSETS[0]
+            changed_definition = json.loads(changed.read_text(encoding="utf-8"))
+            changed_definition["revision"] += ".modified"
+            changed.write_text(json.dumps(changed_definition, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                verify_definition_assets(changed_root, checks)
+
+    def test_registered_definition_asset_hashes_match_checked_in_manifest(self):
+        from scripts.business_rules_review_hashes import (
+            DEFINITION_ASSET_HASH_POLICY,
+            EXPECTED_DEFINITION_ASSETS,
+            verify_definition_assets,
+        )
+
+        checks_path = ROOT / "docs/architecture/business-rules/evidence/review-artifact-checks.json"
+        checks = json.loads(checks_path.read_text(encoding="utf-8"))
+        self.assertEqual(checks["definition_assets_hash_policy"], DEFINITION_ASSET_HASH_POLICY)
+        self.assertEqual(set(checks["definition_assets_sha256"]), set(EXPECTED_DEFINITION_ASSETS))
+        self.assertEqual(verify_definition_assets(ROOT, checks), len(EXPECTED_DEFINITION_ASSETS))
+
+    def test_review_workbook_hash_uses_raw_xlsx_bytes(self):
+        checks = json.loads(
+            (ROOT / "docs/architecture/business-rules/evidence/review-artifact-checks.json")
+            .read_text(encoding="utf-8")
+        )
+        workbook_path = ROOT / "docs/architecture/business-rules/evidence/业务规则审阅表.xlsx"
+        self.assertEqual(checks["workbook_sha256"], hashlib.sha256(workbook_path.read_bytes()).hexdigest())
+
     def test_approved_plan_bytes_remain_identical(self):
         self.assertEqual(hashlib.sha256(PLAN.read_bytes()).hexdigest(),"98abf84ea7f7af3887d60c3c1e128c272d73ccbf73892d76581ad1771bfad876")
 

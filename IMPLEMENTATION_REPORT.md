@@ -1,3 +1,5 @@
+> 当前R10执行见文末追加；下方R9和019确认是截至c0d849a的历史实施证据，不覆盖Owner最新014/018/020软件决定。原文件已备份。
+
 # PR47集中有限修复实施报告
 
 本轮修复审阅产物的排序身份安全、可读性、跨版本意见延续及必要业务表达，并对已合并R8作有限澄清。原434c106的A通过结论已撤回，旧71项/CI #232不替本轮背书；本报告不宣称新head验收PASS或生产已接入。
@@ -68,3 +70,35 @@ node scripts/test_business_rules_review.mjs --input build/review-r9.json --techn
 本次仅六份文档/证据文件；3217.8、3593.2及C.4/C.5全部转录原值保持，未填替代值，仍按017采用iapws.IAPWS97且无旧表回退。工作簿、HTML、源JSON、正式Calculator、依赖、DB及历史Record未改，不重建工作簿。checks仅同步当前Mapping SHA。
 
 定向命令：`python -m unittest tests.test_business_rules_candidate_assets tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q`；22/22，0fail/0error，3.155s。另以Git前版逐字核对C.4/C.5转录代码块、R8两条历史修订行、工作簿SHA及六文件diff范围，diff检查通过。未重新跑18场景fixture、全量或Windows构建，因实现及工作簿未变；f07d398的CI #233两job成功是上一head证据，新文档head CI另核实。原生Office缺项仍保留，不合并47/46、不进46/B/N。
+
+
+## R10追加：Owner决定与审阅复现修复（2026-10-16）
+
+已实际读取Owner原始消息01a14529-a1b9-7262-b6c4-a4f8dfaf3fb3及PR47_独立复验报告_c0d849a.md全文。同一origin/原PR47分支、fetch后main b0c1aa7，开工head c0d849a；中央lock ee5feb0cc34dbd99790500fadd0c4c932e202a20未变。本任务不涉及中央公共Contract修改；分层、高精度exact业务比较和历史Record不漂移等既有MUST/MUST NOT继续适用。
+
+014、018、020已先登记Owner软件决定，台账18项RESOLVED/0 OPEN，不宣称发布机构解释或标准专业等价。018按CC/UCC/DU各自收到基含量展开碳量，其他系数/项保持；020按不重叠监测段及配套Q/QVar/该段时长独立算后汇总，不回填全年/年化/外推，未覆盖不默零或伪完整；014默认目录，电力专属OTHER来源可填写、说明选填、提醒非阻断，不冒充实测或目录ID，不免除必要值/有限性/合法单位校验。本包只Mapping/候选表达，不改正式Calculator、依赖、数据库或历史Record。原文差异、旧表错误转录及历史当时OPEN修订保持。
+
+R01改为同源HTML逐条可复制的明确合法条件值，主表提示不再要求复制合并适用文本；整体意见保留。fixture从实际可见输出复制条件再填写，验证未改继续关联、改对应内容需复核。N1定义资产仅CRLF转LF哈希，generator自动读取固定四资产，Python校验逐项真实验证及负例；XLSX原字节哈希。N2现有PREFLIGHT补先导出compact+technical再生成/复验的完整命令；N3显式开发bundle路径与版本、缺失/错误路径报错，Python已提交XLSX结构和哈希可进CI，JS再生不是当前CI步骤；不加生产依赖。N4 HTML将同对象完全相同字段只展示一次，逐条件保留差异，保持完整信息、同源hash、定位和离线入口。
+
+用户已保存关闭正式审阅表，独占确认后备份最新文件；SHA88cfeecb349ed05cf07b705d7a38cd391d7883107e022add9bca85d8c0c35018，三页已保存反馈0条。保护意见与锁，不将QA意见混入正式产物。最终验证：正式输入20/20、无输入synthetic16/16均在最终生成器4f504105上实际通过；显式错误依赖路径负例通过。七模块联合86/86，0fail/0error，5.644s。原生Office缺项保留，不冒称本轮独立验收通过，不合并47/46、不进46/B/N。
+
+
+### R10最终命令及证据
+
+Python短名为既有Python3.12虚拟环境；Node为load_workspace_dependencies已发现的bundled Node，--node-modules为其packages目录。没有npm/pip新增生产依赖。完整面向干净checkout的变量发现和步骤见现有PREFLIGHT，不依赖预存的build输入；本次实际从三份源文件新导出到build/business-rules-authoring。
+
+```powershell
+python scripts/validate_business_rules_candidate.py --review-json build/business-rules-authoring/review-r10.json --technical-review-json build/business-rules-authoring/technical-r10.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json
+node scripts/build_business_rules_review.mjs --node-modules <已发现packages目录> --input build/business-rules-authoring/review-r10.json --details build/business-rules-authoring/technical-r10.json --definition-root . --previous build/business-rules-authoring/review-before-r10-user.xlsx --output build/business-rules-authoring/r10-review/业务规则审阅表.xlsx
+node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --node-modules <同上> --input build/business-rules-authoring/review-r10.json --technical-input build/business-rules-authoring/technical-r10.json --output build/business-rules-authoring/r10-review/review-feedback-fixture.json
+python scripts/business_rules_review_hashes.py --root . --checks docs/architecture/business-rules/evidence/review-artifact-checks.json
+python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q
+```
+
+真实结果：生成61行（业务29、操作21、变化11）；正式fixture20/20（主18含可见入口2、方向隔离2），synthetic16/16不含实际技术绑定/方向4项，分别运行，不混算为36个正式场景。四定义LF哈希逐项验证通过；LF/CRLF等价、实际改定义revision失配及XLSX原字节hash测试通过；Schema本身及三份真实规则包0错误，两个Node语法检查和改动Python compileall通过。最终联合86/86（5.644s）；语义批准独立提交31456c60c87d04a391e83e6396fcad19c639e6d8前定向68/68（1.609s）。独立Decimal四例由子代理实际运行4/4，不冒充生产Calculator数值验收。
+
+Table实际A5:Y34、A5:U26、A5:T16，最大行高392/200/104pt，0公式/错误格。脱硫I及两条新操作已区域渲染视检，不冒充Office。详情HTML5,131,235→3,965,395字节，减少约22.7%，仅审阅派生产物减少，不宣称产品exe包体或运行速度改善。产物身份见checks：工作簿e7c21d48d49a4637c64b361bf20cc9e9f0c84e70125d8ab006024f7313e6c028；生成器4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b；定义和投影SHA由实际文件自动采集，非手抄替换。
+
+真实失败记录：候选迭代曾有rule_id缺引用，改为既有Mapping文案关联；一次64项有向量`.0704`/`0.0704`格式断言不匹配，另一次缺“段间求和”文案，保留业务断言并补齐后64/64，最终联合86/86。正式20首次通过后，为默认synthetic新增全ID检查发现旧详情沿用compact groups formatter漏fixture-lhv，未删断言，改为full递归渲染后最终20及16都重跑通过。一次批量文档整体替换被自动审批拒绝（可能覆盖已有证据）；没有执行，改为先备份并局部追加，历史证据完整保留。一次普通工具审批超时重试成功，不当作代码缺陷。
+
+本轮未本地全量/Windows构建，旧#233/#234不背书最终工具head；最新CI另在原PR精确记录。原生缺项继续保留。独立AI仅就实际读到的diff/产物作审查，不能冒称“方案设计本轮验收已通过”。提交原PR后送回，停止等待最终验收，不合并47/46、不进入46/B/N。

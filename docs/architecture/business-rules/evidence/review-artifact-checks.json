@@ -1,27 +1,27 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a",
-  "review_json_file_sha256": "94b705dd6f19e97745c10c7fb3ffb09f055194fc792fbc2671f456b0beaeb3d7",
-  "workbook_sha256": "88cfeecb349ed05cf07b705d7a38cd391d7883107e022add9bca85d8c0c35018",
+  "review_projection_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
+  "review_json_file_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
+  "workbook_sha256": "e7c21d48d49a4637c64b361bf20cc9e9f0c84e70125d8ab006024f7313e6c028",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
+  "generator_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
   "fixture_script": "scripts/test_business_rules_review.mjs",
-  "fixture_script_sha256": "9aeb8f5baa359226ff17763695248831b5958242ae0d0caf6cfdf40ae3c42e5d",
+  "fixture_script_sha256": "1e7f4846fc872f36c16450979ef1bd36788064c618b8ac247fc4efda0154966f",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "27cf5c20382b176088bb8adfdb36972d5bd9a11aa1df50943e84431524dc73e5",
-  "details_source_revision": "candidate-2026-10-16-r9",
+  "details_file_sha256": "41cf54cb85b186d022c5ef50aeab2e0cfb6131109f8d853b195977e17b6cef70",
+  "details_source_revision": "candidate-2026-10-16-r10",
   "details_source_counts": {
     "fields": 646,
-    "operations": 19,
-    "changes": 9
+    "operations": 21,
+    "changes": 11
   },
-  "details_semantic_sha256": "bd492a3406e1b26fbb0a5b36031946ff2c6928d6cf7314f01a921dc555180f94",
+  "details_semantic_sha256": "f227054cdff48286d97072fe00d81d96012901147818cec9dae6cbddfb4e67c6",
   "details_projection_bound": true,
   "sheets": {
     "业务规则": 29,
-    "操作与影响": 19,
-    "本次变化": 9
+    "操作与影响": 21,
+    "本次变化": 11
   },
   "table_ranges": {
     "业务规则": {
@@ -57,7 +57,7 @@
       "data_validations": 3
     },
     "操作与影响": {
-      "range": "A5:U24",
+      "range": "A5:U26",
       "columns": [
         "业务名称",
         "触发条件与处理",
@@ -81,11 +81,11 @@
         "当前投影键",
         "规则修订"
       ],
-      "maximum_row_height_points": 184.0,
+      "maximum_row_height_points": 200.0,
       "data_validations": 3
     },
     "本次变化": {
-      "range": "A5:T14",
+      "range": "A5:T16",
       "columns": [
         "变化类型",
         "基线",
@@ -121,17 +121,18 @@
   "mirror_definitions_removed": 442,
   "view_scope": {
     "source_business_concepts": 11,
-    "power_rows": "按真实输入路径与方向分成19条，不作为新增业务对象",
+    "power_rows": "按真实输入路径与方向拆分，不作为新增业务对象",
     "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
     "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
     "omitted_from_main": "442内部镜像、重复技术组合，不恢复1090行主表",
     "compatibility": "候选未接生产；codec/模板/DB迁移/正式Record/报告结构未改。映射澄清已独立提交。"
   },
+  "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "932b0dcfb1a2ec3a1699523dd5cbea4a9af8471b73c3d668256b13f9c0ce618f",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "4e45c974cdbb47ebbeb7e325be689940b5fa748e6d64097c313f1f41e317af2b",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "0a8d42c853f8c01209ac895c99089d01a13fe5e4a13651c560215f4004da030c"
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "5e61ce393102aafa15c87a295763e00826abf25cd6d2dd43578cff22ae7bdb91",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "a9bba9435fba8c0647ff6bdfd3e557563f6c97f8496bb5bd9fa929fbf286113d",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "63b707487c038fe8cdbfe7c85a74de54b070cc5ffa65a200efd6d4d8955b494e"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",
@@ -159,20 +160,63 @@
     "reason": "sky.launch_app未返回；根代理中止长时间无返回的子代理后，工具报告aborted by user after 2079.6s。该措辞不表示Owner主动取消。",
     "user_file_modified": false,
     "process_terminated": false,
-    "temporary_copy": "native-review.xlsx（40766字节，未编辑复制品，不作通过证据）"
+    "temporary_copy": "native-review.xlsx（40766字节，未编辑复制品，不作通过证据）",
+    "independent_attempt": "另次独立验收报告Computer Use app approval timed out；仍未形成原生打开/编辑/保存证据。"
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "7cf57404ca4b27785dd6500f7e93f0d937348183c43e9546678c1b1807dfbc61",
-    "command": "node scripts/test_business_rules_review.mjs --input build/review-r9.json --technical-input build/technical-r9.json --output build/review-feedback-fixture.json",
+    "report_sha256": "ad4faf3ed73416cde95b99edc5921efc5aac76f214c04648ba7ee78959a12f4b",
+    "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/review-current.json --technical-input build/technical-current.json --node-modules <load_workspace_dependencies返回的packages目录> --output build/review-feedback-fixture-current.json",
     "method": "真实Table.getRange数据范围反转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象，具体选取与版本/删除/属性/技术详情变更见fixture报告",
     "status": "PASS",
-    "actual_scenario_count": 18,
-    "formal_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a"
+    "actual_scenario_count": 20,
+    "input_mode": "formal compact and technical projection",
+    "formal_projection_sha256": "bd1032fc03ea359709d01b8ae927c619a53b567a3ff7999e5bd101d5723d29b9",
+    "command_chain": [
+      "python scripts/validate_business_rules_candidate.py --review-json build/review-current.json --technical-review-json build/technical-current.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json",
+      "node scripts/build_business_rules_review.mjs --input build/review-current.json --details build/technical-current.json --definition-root . --node-modules <load_workspace_dependencies返回的packages目录> --output build/业务规则审阅表.xlsx",
+      "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/review-current.json --technical-input build/technical-current.json --node-modules <同上开发packages目录> --output build/review-feedback-fixture-current.json",
+      "python scripts/business_rules_review_hashes.py --root . --checks build/review-view-manifest.json"
+    ],
+    "scenario_counts": {
+      "formal": 20,
+      "synthetic_smoke": 16,
+      "visible_scope_new": 2,
+      "difference": "正式输入含技术绑定与购入/输出隔离4项；无输入synthetic不包含它们，不能替代正式复验。"
+    }
   },
-  "projection_exporter": "scripts/validate_business_rules_candidate.py --review-json ... --technical-review-json ...",
-  "projection_exporter_sha256": "ea5154ed12393e5405884a9e02081a4fde03d262f12cd8ac7cb6c9befc5933ca",
-  "implementation_parent_sha": "412d3ac3a9569dfa79b706267eae1cf5b08d1bee",
-  "final_head_evidence": "原PR47最新提交与送验评论，避免把产物内parent冒充最终head"
+  "review_json_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
+  "projection_exporter": "scripts/validate_business_rules_candidate.py --review-json build/review-current.json --technical-review-json build/technical-current.json <三份固定候选源文件>",
+  "projection_exporter_sha256": "de21fe28ae0b0e8bbdd9b59604e463575c2ed313558bce3c765c01c976048262",
+  "implementation_parent_sha": "31456c60c87d04a391e83e6396fcad19c639e6d8",
+  "final_head_evidence": "原PR47最新提交及送验评论；不把语义批准parent冒充最终工具head",
+  "development_dependency": {
+    "name": "@oai/artifact-tool",
+    "version": "2.8.94",
+    "source": "Codex load_workspace_dependencies bundled Node.js packages",
+    "production_dependency": false,
+    "explicit_path_invalid": "失败，不静默改选其他bundle",
+    "ci_scope": "Python验证已提交XLSX结构/哈希；当前Windows CI不执行JS完整再生。"
+  },
+  "details_compression": {
+    "previous_bytes": 5131235,
+    "current_bytes": 3965395,
+    "method": "同一对象完全相同键值提取共用信息，各条件完整保留差异；专用full details递归渲染不走compact groups摘要。"
+  },
+  "user_workbook_backup": {
+    "sha256": "88cfeecb349ed05cf07b705d7a38cd391d7883107e022add9bca85d8c0c35018",
+    "saved_feedback_rows": 0,
+    "owner_closed_before_regeneration": true,
+    "qa_feedback_in_formal": false
+  },
+  "synthetic_smoke": {
+    "status": "PASS",
+    "actual_scenario_count": 16,
+    "input_mode": "synthetic smoke only; excludes technical binding/direction scenarios",
+    "builder_sha256": "4f504105aa6a08876a8bfd147b0d8207629f4648524e283a547f9a98e4c52a6b",
+    "artifact_tool_version": "2.8.94",
+    "command": "node scripts/test_business_rules_review.mjs --node-modules <开发bundle packages目录> --output build/synthetic-smoke.json",
+    "report_sha256": "94502532f965450eab534902f044fe0aa21141accdf8216868ed00bd52845794"
+  }
 }

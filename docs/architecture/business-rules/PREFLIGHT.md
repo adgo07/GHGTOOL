@@ -15,3 +15,45 @@ PR46经GitHub实时读取：open、未合并，head77d36a155323bc82199cb516c4ac5
 A只增加本模块候选源、加载与审阅工具，不涉及中央公共Contract修改、不实施新Workspace/Record公共格式、不修改DB/公式/Runtime资源或正式产品支持范围。未发现与locked Frozen冲突；无需中央Contract升级。新014为本行业专业适用关系OPEN，仅停受影响企业电力路径资格落地，不阻断A及已核验路径。C01/C02按012/013登记为已批准决定。
 
 A出口：完整消费者与旧路径盘点、字段/条件/操作审阅、候选严格加载与负例证据，提交独立验收后停止。B先燃料完整链、N专项均未开始；不自行合并任何PR。
+
+## 当前候选审阅复现（开发流程）
+
+以下步骤从当前三份候选定义生成投影、生成审阅工作簿和同源详情，并运行基于正式投影的意见往返夹具。命令面向仓库根目录的 Windows PowerShell。生成输出写入忽略目录 `build/`。
+
+`@oai/artifact-tool` 是 JavaScript 审阅工作簿生成与往返夹具使用的开发依赖，来自 Codex 工作区开发 bundle；不是产品运行依赖，不要安装进程序环境或加入 `pyproject.toml`。当前工作区可通过 Codex Desktop 的 `load_workspace_dependencies` 查询 Node.js executable 与 Node.js packages 路径；本次读取到该 bundle 的 package metadata 版本为 `2.8.94`。把返回的本机路径粘贴到变量中，并将 packages 根目录显式传给夹具：
+
+```powershell
+$node = Read-Host "粘贴 load_workspace_dependencies 返回的 Node.js executable 路径"
+$nodeModules = Read-Host "粘贴 load_workspace_dependencies 返回的 Node.js packages 路径"
+
+python scripts/validate_business_rules_candidate.py --review-json build/review-current.json --technical-review-json build/technical-current.json data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json data-source/carbon_accounting/business-rules/software_policy.json
+
+& $node @(
+  "scripts/build_business_rules_review.mjs",
+  "--input", "build/review-current.json",
+  "--details", "build/technical-current.json",
+  "--output", "build/业务规则审阅表.xlsx",
+  "--node-modules", $nodeModules,
+  "--definition-root", "."
+)
+if ($LASTEXITCODE -ne 0) { throw "审阅工作簿生成失败：$LASTEXITCODE" }
+
+python scripts/business_rules_review_hashes.py --root . --checks build/review-view-manifest.json
+python scripts/business_rules_review_hashes.py --root . --checks docs/architecture/business-rules/evidence/review-artifact-checks.json
+
+& $node @(
+  "scripts/test_business_rules_review.mjs",
+  "--builder", "scripts/build_business_rules_review.mjs",
+  "--input", "build/review-current.json",
+  "--technical-input", "build/technical-current.json",
+  "--node-modules", $nodeModules,
+  "--output", "build/review-feedback-fixture-current.json"
+)
+if ($LASTEXITCODE -ne 0) { throw "正式投影意见往返夹具失败：$LASTEXITCODE" }
+
+python -m unittest tests.test_business_rules_candidate_assets -v
+```
+
+夹具显式读取当前正式投影及同源技术详情，期望正式输入模式产生 **20 个场景**。省略 `--input` 时运行的是 **16 个 synthetic smoke 场景**，不能替代正式投影夹具。缺少 `@oai/artifact-tool` 时，应按脚本提示显式提供该开发 bundle 的 `node_modules` 根目录；不要通过查看 package 内部实现或把它安装为产品依赖来排障。
+
+GitHub Actions 的 Windows / Python 3.12 全量单元测试步骤会运行 `tests.test_business_rules_candidate_assets`。该模块已有审阅表三页结构、表范围和投影内容哈希检查；本次增加的定义资产清单及原始 XLSX 字节哈希断言也随该测试模块进入全量套件。此处没有声称这些新增断言已在当前 head 的 GitHub Actions 上执行。JavaScript 往返夹具使用 Codex 开发 bundle，不是当前 Windows CI 步骤；Python 资产哈希和 XLSX 结构检查仍可由 CI 验证。上述 `review-view-manifest.json` 与正式 checks 对 UTF-8 文本资产仅把 CRLF 换成 LF 后计算 SHA-256，不排序或重排 JSON；XLSX 工作簿 SHA-256 按原始二进制字节计算。

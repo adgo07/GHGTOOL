@@ -2,7 +2,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { FileBlob, SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+let FileBlob, SpreadsheetFile, Workbook;
+try {
+  const at=process.argv.indexOf("--node-modules"), modules=at<0?null:process.argv[at+1];
+  const specifier=modules?pathToFileURL(createRequire(path.join(path.resolve(modules),"..","__review_loader__.cjs")).resolve("@oai/artifact-tool")).href:"@oai/artifact-tool";
+  ({FileBlob,SpreadsheetFile,Workbook}=await import(specifier));
+}
+catch(error) { throw new Error("审阅开发工具 @oai/artifact-tool 不可用。请先调用 load_workspace_dependencies 获取 bundled Node/module 路径，以 --node-modules 明确传入 packages 路径并按 PREFLIGHT 步骤运行；无需安装或更改生产依赖。原始错误："+error.message,{cause:error}); }
 
 const args = process.argv.slice(2);
 function option(key, fallback) { const i=args.indexOf(key); return i<0?fallback:args[i+1]; }
@@ -14,7 +22,7 @@ const payload=JSON.parse(reviewText);
 const wb=Workbook.create();
 const feedbackHeaders=["审阅意见","处理状态","审阅编号"];
 const objectLabels={object:"业务对象",state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本批有效组分数",material_calculation_path:"已定义物料换算路径",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
-const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",DEFINED_RECEIVED_BASIS_CONVERSION:"已批准收到基换算（仍核必要数值/基准）",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"库外自行填写（输入方式，非来源类别）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
+const stateLabels={OTHER:"其他来源",NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",DEFINED_RECEIVED_BASIS_CONVERSION:"已批准收到基换算（仍核必要数值/基准）",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"库外自行填写（输入方式，非来源类别）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
 function literalCell(value){ const raw=String(value??""); return raw.startsWith("=")?"'"+raw:raw; }
 function text(value){
   if(value===null || value===undefined) return "";
@@ -91,6 +99,15 @@ function unitText(value){
   return value==="ratio" ? "比值（0～1）；界面/Excel用百分数（%）" : text(value);
 }
 const metadata=payload.metadata??{};
+const definitionRoot=option("--definition-root");
+const definitionAssets={};
+if(definitionRoot){
+  for(const rel of ["data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json","data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json","data-source/carbon_accounting/business-rules/software_policy.json","specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md"]){
+    const bytes=await fs.readFile(path.resolve(definitionRoot,rel));
+    new TextDecoder("utf-8",{fatal:true}).decode(bytes);
+    definitionAssets[rel]=createHash("sha256").update(bytes.toString("utf8").replace(/\r\n/g,"\n"),"utf8").digest("hex");
+  }
+}
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
 const digest=value=>createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
 const semanticSummary=value=>Array.isArray(value)?value.map(semanticSummary).sort((a,b)=>(JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0)):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(k=>[k,semanticSummary(value[k])])):value;
@@ -191,6 +208,7 @@ for(const group of groups)for(const row of group.rows){
     conditionScopes.get(key).push({outcome:g.outcome,condition:c,technical:technicalProperty(row,prop,c)});
   }
   for(const [key,value] of conditionScopes)row.fingerprints[key]=digest(semanticSummary(value));
+  row.visible_opinion_scopes=[...conditionScopes.keys()].map(key=>{const at=key.indexOf("@@");return {property:key.slice(0,at),condition:key.slice(at+2)};});
 }
 const current=new Map(groups.flatMap(g=>g.rows.map(r=>[r.stable_key,r])));
 const claimed=new Set();
@@ -244,7 +262,7 @@ for(const group of groups){
   const sheet=wb.worksheets.add(name);sheet.showGridLines=false;
   sheet.getRange("A1").values=[["审阅数据SHA256："+reviewHash]];
   sheet.getRange("A2").values=[[name+" · 紧凑审阅V2"]];
-  sheet.getRange("A3").values=[["候选修订："+(metadata.revision??"")+"；未接生产。整体意见可直接填写；条件可复制属性中的适用条件；需复核须人工确认本版，不自动清除。"]];
+  sheet.getRange("A3").values=[["候选修订："+(metadata.revision??"")+"；未接生产。整体意见可直接填写；条件意见请复制同源HTML中本行“合法条件值”，不要复制合并适用说明；需复核须人工确认本版，不自动清除。"]];
   sheet.getRange("A4").values=[["业务、意见和身份同属一个Table；打开同目录HTML后按对象目录或旁列定位查看详情。无生产codec/模板/数据库/历史Record兼容变化。"]];
   sheet.getRange("A1:A4").format.font={name:"Microsoft YaHei",size:10,color:"#555555"};
   sheet.getRange("A2").format.font={name:"Microsoft YaHei",size:15,bold:true,color:"#23445E"};
@@ -286,14 +304,42 @@ const detailGroups=new Map();
 for(const [kind,rows] of [["field",detailsPayload.fields??[]],["operation",detailsPayload.operations??[]],["change",detailsPayload.changes??[]]]){
   for(const row of rows){const id=baseIdentity(row,kind);if(!detailGroups.has(id))detailGroups.set(id,[]);detailGroups.get(id).push(row);}
 }
+for(const group of groups)for(const row of group.rows){
+  if(row.object_identity.startsWith("retention|"))continue;
+  if(!detailGroups.has(row.object_identity))throw new Error("同源详情缺少工作簿定位对象："+row.object_identity);
+}
+function detailText(value){
+  // Full details never reuse the compact groups formatter, which omits exact binding IDs.
+  if(value===null||value===undefined)return "";
+  if(Array.isArray(value))return value.map(detailText).join("\n");
+  if(typeof value==="object")return Object.entries(value).map(([key,item])=>(labels[key]??objectLabels[key]??key)+": "+detailText(item)).join("\n").replace(/[ \t]+$/gm,"");
+  return text(value);
+}
 let html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>业务规则审阅同源详情</title><style>body{font:16px/1.6 "Microsoft YaHei",sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#243746}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7fa;padding:14px}summary{cursor:pointer;font-weight:bold;padding:10px}section{border-bottom:1px solid #ddd}</style><h1>业务规则审阅同源详情</h1><p>候选未接生产；本文件由同一生成器和候选定义派生，不是第二真值源。</p><section id="review-scope"><h2>视图范围与审阅方式</h2><p>主表按业务概念汇总，电力按输入方式及方向拆分；不恢复442内部镜像或千行条件主表。此处保留各渠道、消费者、案例、完整条件、绑定与理由。意见可针对整体或指定属性；无明确条件映射时保留待映射。跨版本内容变化必须复核。</p><p>兼容影响：本轮候选未接生产，不改正式输入codec、批准模板、报告结构、DB迁移或历史Record。历史电力证据见ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md；electricity-paths.json中的旧head保持历史身份，不能作为当前R8重验结果。</p><p>正式投影SHA256：'+reviewHash+'；详情输入SHA256：'+digest(detailsPayload)+'</p></section>';
 html+=' <nav><h2>对象目录</h2><ul>'+[...detailGroups].map(([id,rows])=>'<li><a href="#'+escapeHtml(encodeURIComponent(id))+'">'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</a></li>').join('')+'</ul></nav>';
-for(const [id,rows] of detailGroups){html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';for(const row of rows)html+='<details><summary>'+escapeHtml(row.condition_id??row.property??row.operation_id??row.review_key??"详情")+'</summary><pre>'+escapeHtml(text(row))+'</pre></details>';html+='</section>';}
+for(const [id,rows] of detailGroups){
+  html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';
+  const opinionRows=groups.flatMap(g=>g.rows).filter(r=>r.object_identity===id&&r.visible_opinion_scopes?.length);
+  if(opinionRows.length){
+    html+='<h3>条件意见：合法条件值</h3><p>整体意见仍可用。条件意见请在表中选择下方属性，再逐条复制对应合法条件值到“意见针对条件”；主表合并后的适用说明不是可输入的条件标识。</p>';
+    for(const row of opinionRows){html+='<details><summary>'+escapeHtml(row.name??row.stable_condition)+'</summary>';
+      for(const scope of row.visible_opinion_scopes)html+='<p>'+escapeHtml(scope.property)+'</p><pre data-review-row="'+escapeHtml(encodeURIComponent(row.stable_key))+'" data-review-property="'+escapeHtml(scope.property)+'">'+escapeHtml(scope.condition)+'</pre>';
+      html+='</details>';
+    }
+  }
+  // Share identical object-level values once; each condition retains every differing value.
+  const shared=rows.length>1?Object.fromEntries(Object.entries(rows[0]).filter(([key,value])=>rows.every(r=>JSON.stringify(canonical(r[key]))===JSON.stringify(canonical(value))))):{};
+  if(Object.keys(shared).length)html+='<details><summary>各条件共用信息（与下方逐条信息合并阅读）</summary><pre>'+escapeHtml(detailText(shared))+'</pre></details>';
+  for(const row of rows){const unique=Object.fromEntries(Object.entries(row).filter(([key])=>!Object.hasOwn(shared,key)));
+    html+='<details><summary>'+escapeHtml(row.condition_id??row.property??row.operation_id??row.review_key??"详情")+'</summary><pre>'+escapeHtml(detailText(unique))+'</pre></details>';
+  }
+  html+='</section>';
+}
 html+='</html>';
 await fs.mkdir(path.dirname(output),{recursive:true});
 await fs.writeFile(path.join(path.dirname(output),detailsName),html.replace(/[ \t]+$/gm,""),"utf8");
 await (await SpreadsheetFile.exportXlsx(wb)).save(output);
-await fs.writeFile(path.join(path.dirname(output),"review-view-manifest.json"),JSON.stringify({view_revision:"compact-business-v2",projection_sha256:reviewHash,generator:"scripts/build_business_rules_review.mjs",details:detailsName,details_revision:detailsPayload.metadata?.revision,details_counts:Object.fromEntries(["fields","operations","changes"].map(k=>[k,detailsPayload[k]?.length??0])),details_sha256:digest(detailsPayload),details_projection_bound:detailsPayload.metadata?.source_compact_sha256===reviewHash,tables:manifests,retained_feedback:priorFeedback.length},null,2)+"\n","utf8");
+await fs.writeFile(path.join(path.dirname(output),"review-view-manifest.json"),JSON.stringify({view_revision:"compact-business-v2",definition_assets_hash_policy:"UTF8_TEXT_CRLF_TO_LF_SHA256",definition_assets_sha256:definitionAssets,projection_sha256:reviewHash,generator:"scripts/build_business_rules_review.mjs",details:detailsName,details_revision:detailsPayload.metadata?.revision,details_counts:Object.fromEntries(["fields","operations","changes"].map(k=>[k,detailsPayload[k]?.length??0])),details_sha256:digest(detailsPayload),details_projection_bound:detailsPayload.metadata?.source_compact_sha256===reviewHash,tables:manifests,retained_feedback:priorFeedback.length},null,2)+"\n","utf8");
 if(!option("--skip-preview")){
  for(const name of ["业务规则","操作与影响","本次变化"]){const im=await wb.render({sheetName:name,range:"A1:G8",scale:1,format:"png"});await fs.writeFile(path.join(path.dirname(output),name+".png"),new Uint8Array(await im.arrayBuffer()));}
  const powerStart=groups[0].rows.findIndex(r=>r.field_id==="electricity.factor");
