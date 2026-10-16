@@ -1,191 +1,93 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
-状态：**CURRENT HANDOFF**
-最后更新：2026-10-10（P3-C PR #42 与 P3-E PR #43 已独立验收；先后集成入main）
-Module ID：`qz.carbon_accounting`
-当前 Reference Standard：`GB/T 32151.34—2024`
+状态：**原 PR47 合并前有限小修**
+最后更新：2026-10-17
+Module ID：qz.carbon_accounting
+当前 Reference Standard：GB/T 32151.34—2024
 
-> 本文件是**当前阶段实施交接**，不是历史全文档案。
-> 产品级后续路线以 `REFERENCE_STANDARD_ROADMAP.md` 为准；长期硬规则以 `AGENTS.md` 为准。
-> G00～G08、UIR01～UIR04、Post-V1、N01-C/R1、Numeric v1 adoption 的完整过程保存在 Git history 与 `docs/governance/*`，本文件不再复制。
+本文件是当前阶段交接，不是历史档案。产品路线以 REFERENCE_STANDARD_ROADMAP.md 为准，长期约束以 AGENTS.md 为准，当前执行状态以 TASK_STATE.md 为准。历史过程可由 Git history 恢复，本文件不保留旧状态覆盖段。
 
-## 1. 本文件的作用与边界
+## 1. 当前工作包与真实证据
 
-| 文件 | 管什么 |
-|---|---|
-| `AGENTS.md` | 本仓长期硬规则与中央治理入口 |
-| `platform-lock.json` + `PLATFORM_BASELINE.md` | 锁定的中央 Frozen 基线与 Carbon Numeric Profile |
-| `REFERENCE_STANDARD_ROADMAP.md` | 唯一当前产品路线（GHG-RS01～RS06+） |
-| **本文件** | **当前阶段的实施范围、约束与门禁** |
-| `TASK_STATE.md` | 当前执行状态与最近稳定断点 |
-| `IMPLEMENTATION_REPORT.md` | 当前/最近一个正式工作包的实施报告 |
+当前在既有 PR47 上做合并前有限小修，包含两个 JSON 的 base / 11 个 basis 人读澄清、现有 HTML 范围提示、checks 生成脚本入仓与复现步骤；审阅产物已按当前源定义同源重生，最终哈希与新 head / CI 由送验评论定位。不接生产、不合并 PR。已核验修复基线为 4e7306992335e213fc0c3baf897022dd174e3acf；origin/main 已同步至 b0c1aa723391772f9aef026b4c0a8619eb61a65b。中央 platform-lock.json 仍锁定 ee5feb0cc34dbd99790500fadd0c4c932e202a20。
 
-规则：
+本次有限小修的本地 Python 3.12 七模块联合100/100通过，0 failure、0 error，20.347秒；联合套件内正式交付路径资产20/20通过；此前单独资产命令20/20、14.136秒。25个本地 ArtifactTool 意见回收场景通过；新Python CLI测试验证无Node运行、真实Canonical输入、意见保留和混源拒绝。61行（29/21/11）、649技术组合（281有效、368受阻）、442个唯一意见范围保留。原批准V1.2及固定历史电力证据字节不变。
 
-1. 历史阶段正文已从本文件移除，其权威副本在 Git history 与 `docs/governance/*`；
-2. 确需引用的少量仍有长期价值的产品决定，只以“当前有效结论”形式保留（见第 3 节），不复制历史过程；
-3. 任何历史文档都不得覆盖当前文件的口径；
-4. 本文件不写固定绝对路径（`C:\` / `D:\` / `E:\` / `G:\`）作为仓库身份；仓库身份以 GitHub owner/repository + `git origin` 为准。
+独立Luna/max静态复核确认混源HTML检查缺口已关闭，无剩余阻断。CI239在cp1252终端输出处失败（565项：564通过、1失败、0错误）；仅修开发CLI输出并在既有测试显式验证cp1252，重新本地联合100项通过。最终新head及其Windows CI由送验评论确认；不使用旧CI237或失败的239为本次背书，本地未声明完整构建或全软件重验。
 
-## 2. 当前阶段
+审阅表原生 Office 验证为 **NOT_RUN / DEFERRED**。Owner 已同意延期至下一阶段首次正式使用审阅表之前；届时只需小范围完成原生打开、填写意见、表头排序、保存重开和意见回收。此项是延期，不是通过或豁免；CU Esc 仍有效，不自动启动 computer use，也不因此要求全软件重验。
 
-- **已合并基础：** UAT03 PR37、P3-AB PR38、RPT02 PR39、EXB01 PR40、P3-DF PR41均已进入`main`。附录B输入与RPT02冻结Record Word报告继续作为正式能力；P3-DF只影响新建核算与参数因子库Presentation。
-- **已完成的Phase 3界面包：** P3-C PR #42 统一核算记录列表和双页签详情；P3-E PR #43 统一EXB01附录B导入页面的四个操作区域。两者由同一main基线独立开发，本次整合时保留双方Presentation改动。
-- **仅限Presentation：** 记录列表可搜索、状态筛选并可完整访问；独立详情只有“基本信息与结果”“输入数据与计算依据”两个页签，第二页签连续展示；普通界面移除审计详情入口，继续保留底层Trace、Provenance及审计证据。
-- **操作与报告：** 删除仍二次确认并审计保留；Word复用已合并PR37/RPT02公共入口，报告模型、模板、渲染器及导出语义不变。
-- **保护边界：** 不改正式Record、Calculator、Canonical、数据库Schema及历史快照，不改EXB01业务导入器、RPT02报告模型/renderer、参数因子库或中央Frozen规则。
-- **验证边界：** 两PR原Head各自Windows CI通过；合并集成后的PR #43以新Head CI为准。原生鼠标/键盘/系统DPI人工验证及Excel/WPS保存回导的既有OPEN事项不因本次整合自动关闭。
+## 2. 业务语义、候选与审阅范围
 
-既有PF01、RS03与UAT03软件决定继续有效，相关007/008解释不变。以下长期产品决定继续适用。
+标准事实、技术判断与软件决定由现行 R11 Mapping（R8 为 PR48 合并历史基线）及 STANDARD_ISSUES_REGISTER.md 分开表达。014、018、019、020 的 Owner 批准软件决定继续有效；019 中的原文错误确认是软件决定，不是官方勘误。机器 CANDIDATE 仅表示执行接入尚未完成。PR47 候选、审阅投影及消费者替换仍未接生产；不改变公式、标准范围、Numeric 或历史记录，也不据此宣布标准正式支持。
 
-PF01范围约束：
+Owner 已决定减轻审阅负担：该决定取代原批准 V1.2 第 11 节的全字段可见性盘点要求。不得恢复 GUI 镜像；纯导航、折叠和 advanced 展示设置不作为业务来源规则。仍影响业务适用性的条件必须按 Mapping / STANDARD_SEMANTICS_POLICY.md 记录并执行；减负决定不免除这些条件，也不修改原批准 V1.2 文件。
 
-```text
-1. 来源文件、来源表、参数概念、参考数据资产、来源绑定各自保留明确责任；
-2. 相同值可共用不可变数据资产并绑定多处独立来源定位；不同值创建新资产版本，不设置来源权重；
-3. Resolver继续决定计算候选与默认值；目录页面只读，不能成为计算真值源；
-4. C.4/C.5蒸汽表从版本化Domain Calculator只读展示，不复制第二份数值表；
-5. Catalog数据库仅增量新增注册表，不重写Project或历史Record。
-6. 本次期间裁定不修改正式公式、Resolver Selection Policy或既有历史Record；须覆盖完全早于、跨实施日、实施日后三类非阻断Warning回归，并确认自身有效期数据仍按期间筛选。
-```
+本任务不涉及中央公共 Contract 修改。Frozen 中央基线保持不变；标准台账不新增、不关闭或重释问题。
 
-## 3. 当前有效的长期产品决定（提炼保留）
+## 3. 当前有效的长期产品决定
 
 ### 3.1 产品范围
 
 - 当前只交付一个碳核算 Windows 程序；工程结构保留未来 Monorepo 与公共 packages 的扩展位置。
-- 第一条完整业务链只实现 `GB/T 32150—2025` 通用规则 + `GB/T 32151.34—2024` 炭素材料模块。
-- 其余计划标准只允许出现在标准目录中并显示“核算模块待开发”，本阶段不得实现、猜测或复用其计算规则。
-- `GB/T 32150—2025` 作为通用规则层，不作为独立行业核算页面。
-- 遇其他行业活动或上下游运输只提示需要其他标准，不得猜算、套算或并入当前结果。
-- 标准全文与本地 PDF 不进入程序包；“打开标准原文”只能调用官方网址。
+- 第一条完整业务链只实现 GB/T 32150—2025 通用规则与 GB/T 32151.34—2024 炭素材料模块。
+- 其余计划标准只允许出现在标准目录并标记核算模块待开发，本阶段不得实现、猜测或复用其计算规则。
+- GB/T 32150—2025 作为通用规则层，不作为独立行业核算页面。
+- 其他行业活动或上下游运输提示需要适用标准；不得猜算、套算或并入当前标准结果。
+- 标准全文与本地 PDF 不进入程序包；打开标准原文只能调用官方网址。
 
 ### 3.2 数值与单位
 
-- 输入数值先以字符串接收并严格解析，禁止先转二进制浮点再进入领域层。
-- Domain 使用十进制高精度类型；中间步骤不舍入（标准明确要求除外）；界面默认显示 2 位小数。
-- 正式业务比较使用 **full-value exact comparison**；`is_close()` / numerical tolerance 只用于测试与非判定性验证。
+- 输入先以字符串接收并严格解析，禁止先转二进制浮点再进入领域层。
+- Domain 使用十进制高精度；中间步骤不舍入（标准明确要求除外）；界面默认显示 2 位小数。
+- 正式业务比较使用 full-value exact comparison；is_close() / numerical tolerance 只用于测试与非判定性验证。
 - Display rounding 只是 Presentation，不得回流 calculation / comparison。
-- Carbon Numeric Profile：`GHGTOOL_CARBON_DECIMAL40_CURRENT`（p40 / `ROUND_HALF_UP`），是**项目专属 Profile，不是平台默认**。
-- `44/12`、`44/16` 是 quantity transformation 使用的 stoichiometric / standard-formula coefficient；GWP 是 characterization / equivalence factor。三者都**不是** ordinary unit conversion multiplier。
-- 单位换算只能通过 `UnitService`；算法模块不得散落手写换算常数。
+- Carbon Numeric Profile 为 GHGTOOL_CARBON_DECIMAL40_CURRENT（p40 / ROUND_HALF_UP），是项目专属 Profile，不是平台默认。
+- 44/12、44/16 是 quantity transformation 使用的 stoichiometric / standard-formula coefficient；GWP 是 characterization / equivalence factor。三者都不是 ordinary unit conversion multiplier。
+- 单位换算通过 UnitService；算法模块不散落手写换算常数。
 
 ### 3.3 未计算输入与记录生命周期
 
-本节描述当前真实行为；任何“离开页面即提示未计算数据丢失”的表述都是已废弃的旧 G07 语义，不再是本仓当前规则。
+- 未点击计算前不生成 Record；同一运行期内离开新建核算页面不弹确认框，返回后输入完整保留。
+- 明确保存的项目与未完成输入写入独立 projects.sqlite，可在应用重启后恢复。
+- 关闭软件时只在存在尚未保存的项目修改时询问保存、放弃或取消；项目内多个核算单元使用各自状态，不做隐式合并或分摊。
+- 致命校验失败不生成 Record；成功计算立即新增不可编辑 Record，状态仅为 COMPLETED 或 COMPLETED_WITH_WARNINGS。
+- 历史 Record 只读，不原地修改或覆盖；再次计算必须新增 Record。删除须二次确认并留审计日志。
+- 正式 Record 保存输入、结果、参数快照、有效规则集与审计信息；Catalog 或算法升级不得使历史记录漂移。
 
-- 未点击计算前不生成 Record；输入保持在页面状态中。
-- **在同一运行期内离开新建核算页面不弹确认框，输入完整保留**：切换到其他页面再返回后，企业名、核算期、边界、排放源状态、燃料与多电力明细等输入仍然存在（回归：`tests/test_g07_records.py::test_leaving_uncomputed_page_preserves_every_input_without_confirmation`）。
-- 明确保存的项目与未完成输入写入独立 `projects.sqlite`，可在应用重启后恢复。
-- 关闭软件时只在存在**尚未保存的项目修改**时询问“保存 / 放弃 / 取消”；没有未保存修改或没有项目服务时直接关闭（回归：`tests/test_g07_records.py::test_closing_uncomputed_page_closes_without_confirmation`）。
-- 项目内多个核算单元之间切换使用各自的单元状态，不做隐式合并或分摊。
+### 3.4 数据存储与 Project / .qzproj
 
-记录生命周期本身保持不变：
+- Canonical Source 是可校验 JSON；SQLite 是 Windows 查询与部署格式。
+- 数据库物理隔离：catalog.sqlite 存官方标准与参数，user.sqlite 存用户设置，records.sqlite 存成功核算记录，projects.sqlite 存可变项目与未完成输入。
+- 当前不提供 .qzproj 可移植项目文件；本地项目保存已支持，通过独立 projects.sqlite 恢复。
+- 可变 Project / Workspace 状态只写入 projects.sqlite 与独立迁移目录 / Repository，不混入不可变 records.sqlite。
+- 删除项目或单元不得级联删除 Record 或审计；runtime form_state 只是 Presentation State，不作为跨平台 Workspace Contract。
 
-- 致命校验失败：不执行完整计算，**不生成** Record。
-- 成功计算：立即写入一条新的不可编辑 Record；无警告为 `COMPLETED`，有非致命警告为 `COMPLETED_WITH_WARNINGS`。
-- 历史 Record 只读，不允许原地修改或覆盖；再次计算必须新增 Record。
-- 删除必须二次确认并留审计日志，不得直接修改历史记录。
-- 正式 Record 保存输入、结果、参数快照、有效规则集与审计信息；Catalog / 算法升级不得使历史 Record 自动漂移。
+### 3.5 Excel 与报告
 
-### 3.4 数据存储与 Project / `.qzproj`
-
-- Canonical Source 是可校验的 JSON（`data-source/carbon_accounting/catalog.json`）；SQLite 只是 Windows 查询与部署格式。
-- 数据库物理隔离：`catalog.sqlite`（官方标准与参数）、`user.sqlite`（用户设置）、`records.sqlite`（成功核算记录）、`projects.sqlite`（可变项目与未完成输入）。
-- **Project 保存与 `.qzproj` 是两件事，必须区分**：
-
-```text
-.qzproj 可移植项目文件：当前仍不提供（公共交换格式尚未冻结）
-本地项目保存：已支持，使用独立 projects.sqlite（含未完成输入跨启动恢复）
-```
-
-- 可变 Project / Workspace 状态只写入 `projects.sqlite` 及独立迁移目录 / Repository，**不得混入**不可变 `records.sqlite`。
-- 项目或单元删除不得级联删除 Record 或审计。
-- runtime `form_state` 只是 Presentation State（含 Qt `objectName()`、`currentIndex()`），不得作为跨平台 Workspace Contract。
-
-### 3.5 Excel 的当前状态与最终定位
-
-- **当前状态**：附录B工作簿先严格校验与整体预览，预览不持有Record Repository；用户明确保存有效输入为本地项目，再由同一正式Application UseCase核算、追加Record。项目恢复无需原始Excel文件；修正输入应重新预览工作簿并保存新项目，不把Canonical输入丢失地映射到Qt表单。
-- **最终定位**：Excel是输入 Adapter（含输入模板导出），与GUI共用Canonical Input → Application → Domain / Calculator → Result；报告输出只消费已保存Record的冻结ReportModel。
-- EXB01已通过PR #40合并并完成代码及发布自动验证；其原生Excel/WPS保存回导仍OPEN；Excel词法策略是模块内实现，中央Excel Numeric交换保持OPEN / PARTIAL。PR #27保留历史意图、CLOSED / UNMERGED，不移植旧V1 runtime或四页规范。
+- Excel 输入 Adapter 对真实工作簿严格校验并整体预览；预览不持有 Record Repository。用户明确保存有效输入为本地项目后，再由同一正式 Application UseCase 核算并追加 Record。
+- 项目恢复不依赖原始 Excel 文件；修正输入应重新预览工作簿并保存新项目，不把 Canonical 输入丢失地映射到 Qt 表单。
+- Excel 是输入 Adapter，与 GUI 共用 Canonical Input → Application → Domain / Calculator → Result；不形成第二套算法，不新增结果 Excel 导出。
+- Word 报告只消费已保存 Record 的冻结 ReportModel，不重算历史。
+- EXB01 输入工作簿经原生 Excel / WPS 保存后回导仍未验证，按 [路线中的 RS03 Excel 正式闭环](REFERENCE_STANDARD_ROADMAP.md) 单独跟踪；这与本次审阅表原生 Office 检查不同，不能由其延期状态一并豁免。
 
 ### 3.6 架构与分层
 
-- 保持 Presentation / Application / Domain / Infrastructure 分层；Domain 不得依赖 PySide6、SQLite、Windows API、页面控件或桌面弹窗。
-- 数据访问通过 Repository 接口。
-- 正式核算由 Application UseCase 编排，并要求显式注入正式 Record Repository；纯 Domain Calculator 不持有Repository。预览通过无Repository的 Preview UseCase；SQLite Repository 由 apps 组合根构造，UI不得创建持久化Adapter或隐式降级为内存保存。
-- Canonical-first **不等于**所有碳核算算法都必须 JSON DSL 化：复杂标准公式、查表/插值允许保留在版本化 Domain Calculator 中。
+- 保持 Presentation / Application / Domain / Infrastructure 分层；Domain 不依赖 PySide6、SQLite、Windows API、页面控件或桌面弹窗。
+- 数据访问通过 Repository 接口。正式核算由 Application UseCase 编排并显式注入 Record Repository；纯 Domain Calculator 不持有 Repository。
+- SQLite Repository 由 apps 组合根构造；UI 不创建持久化 Adapter 或隐式降级为内存保存。预览通过无 Repository 的 Preview UseCase。
+- Canonical-first 不要求所有碳核算算法 JSON DSL 化；复杂标准公式、查表与插值允许保留在版本化 Domain Calculator 中。
 
-## 4. 阶段执行流程（每次启动一个 Goal）
+### 3.7 参数因子资产与期间判断
 
-```text
-开始
-  → 从最新 origin/main 创建任务分支
-  → 读取 AGENTS.md / REFERENCE_STANDARD_ROADMAP.md / TASK_STATE.md / STANDARD_ISSUES_REGISTER.md
-  → 按 platform-lock.json 的 locked SHA 读取相关 Frozen Contract
-  → 执行平台 / Contract 预检查（见 AGENTS.md）
-  → 只实施本阶段范围
+- 来源文件、来源表、参数概念、参考数据资产与来源绑定各自保留明确责任。相同值可共用不可变数据资产并绑定多处独立来源定位；不同值使用单独资产版本，不设来源权重。
+- Resolver 是计算候选与默认值的唯一入口；目录页面只读，不能成为计算真值源。
+- 蒸汽焓按现行 Mapping §9.7 / GHG-STD-32151-34-017 的已批准软件决定：后续新自动焓采用 `iapws.IAPWS97`；C.4 / C.5 及旧查表/内插仅保留为历史证据，不允许旧表回退。生产接入仍待 PR46；合法独立已知焓路径保留，不因辅助自动求焓失败误阻断，不静默改选来源。本次只整理交接，不安装依赖、不改生产或历史 Record。
+- Catalog 数据库仅增量新增注册表，不重写 Project 或历史 Record。
+- 对完全早于、跨越及晚于实施日的三个期间分别作非阻断 Warning 分类；自身有效期内的参数仍按现有适用期间筛选。期间裁定不改正式公式、Resolver Selection Policy 或历史 Record。
 
-实施
-  → 小工作包、小测试、小提交
-  → 不覆盖用户已有修改；不使用破坏性 Git 操作
-  → 不修改、删除或覆盖 计算表/ 中的用户参考文件
+## 4. 执行边界
 
-结束
-  → 更新 TASK_STATE.md（当前状态文件，不追加历史流水账）
-  → 重写 IMPLEMENTATION_REPORT.md 为本次工作包报告
-  → 运行本阶段要求的验证命令并记录真实结果
-  → 提交、推送分支、创建目标为 main 的 PR
-  → 等待最新 PR head 的 Windows / Python 3.12 GitHub Actions
-  → 停止，等待独立验收
-```
-
-## 5. 测试层级与证据纪律
-
-| 层级 | 内容 |
-|---|---|
-| L1 | 本工作包定向单元测试 |
-| L2 | 相关模块回归（Calculator / Record / UI / 持久化） |
-| L3 | 全量 `unittest discover`、`compileall`、`pip check`、Canonical 校验、数据库从零初始化、（涉及交付时）standalone 构建与发布审计 |
-
-证据纪律：
-
-- 以磁盘、Git 与测试结果为准，不得以上一次对话的文字推断完成状态；
-- 不得只写“测试通过”，必须记录命令、通过/失败数量、未执行项与原因；
-- 必须明确区分**本地执行**与**GitHub Actions 执行**的证据来源，不得冒充本地运行；
-- 报告中的检查结论必须绑定被检查的 commit / PR head。
-
-## 6. 停止并上报条件
-
-遇下列情况停止相关工作，不得自行作重大决定：
-
-- 标准原文存在真实歧义，需要选择软件解释；
-- 会改变正式业务计算结果或标准适用范围；
-- 会改变正式产品范围；
-- 需要破坏性数据库迁移；
-- 需要修改已经采用的 Frozen Contract；
-- 文档内部或与实际代码存在关键冲突；
-- 原始标准或官方来源无法支持准备录入的值；
-- 需要新增一级模块或主要依赖（影响架构或另外两套软件时必须先确认）；
-- 无法满足当前阶段验收条件；
-- 测试证明批准方案存在逻辑错误。
-
-上报格式：
-
-```md
-## BLOCKED
-
-问题：
-证据：
-为什么不能按原方案继续：
-可选方案 A：
-可选方案 B：
-建议：
-需要决策的具体问题：
-```
-
-## 7. 当前阶段范围声明
-
-P3-C（PR #42）与P3-E（PR #43）均已完成独立验收；本次整合在同一main内同时保留RecordLibraryPage双页签业务展示与ExcelImportPage四区操作路径。记录页面只做Presentation，Excel页面继续使用EXB01的安全解析、Preview、显式项目保存和正式UseCase。Word导出仍复用公共服务，不重算历史。
-
-完整代码和验证证据分别见 `docs/ui/p3-c/ACCEPTANCE.md`、`docs/ui/p3-e/ACCEPTANCE.md` 及各自PR的Checks。本阶段不宣称已完成原生Windows人工DPI验收、Excel/WPS回导验收或RS04/RS05门禁。
+- 本地候选与正式生产能力分开；不改正式 Calculator、数据库迁移、不可变 Record、历史兼容行为或用户参考文件。
+- PR47 不由执行代理合并；最终合并由源会话负责。PR46、B、N 未授权启动。
+- 本次有限小修的新 head 与 CI 须在最终送验评论中确认。Office 延期项在下一阶段首次正式使用审阅表之前完成，不扩大为全软件重验。
