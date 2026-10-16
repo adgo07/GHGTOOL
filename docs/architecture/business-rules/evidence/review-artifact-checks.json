@@ -1,27 +1,178 @@
 {
   "candidate_only": true,
-  "review_projection_sha256": "966b195c679952d3d542658be3c661ad2a7e328473ac6d0f27f1f08be190c459",
-  "review_json_file_sha256": "394dcb39f516229b9eeb5842213e009823c8c7fc1e10fbdaa3aecf3ab3010703",
-  "workbook_sha256": "03ff175623a82f2112496e81f2787a97eeb6d69cee9f3d79d05b1dd81d0f29d6",
-  "sheets": {
-    "业务规则": 11,
-    "操作与影响": 19,
-    "本次变化": 8
+  "review_mode": "compact_business_v2",
+  "review_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a",
+  "review_json_file_sha256": "94b705dd6f19e97745c10c7fb3ffb09f055194fc792fbc2671f456b0beaeb3d7",
+  "workbook_sha256": "88cfeecb349ed05cf07b705d7a38cd391d7883107e022add9bca85d8c0c35018",
+  "generator": "scripts/build_business_rules_review.mjs",
+  "generator_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
+  "fixture_script": "scripts/test_business_rules_review.mjs",
+  "fixture_script_sha256": "9aeb8f5baa359226ff17763695248831b5958242ae0d0caf6cfdf40ae3c42e5d",
+  "details_file": "业务规则审阅详情.html",
+  "details_file_sha256": "27cf5c20382b176088bb8adfdb36972d5bd9a11aa1df50943e84431524dc73e5",
+  "details_source_revision": "candidate-2026-10-16-r9",
+  "details_source_counts": {
+    "fields": 646,
+    "operations": 19,
+    "changes": 9
   },
+  "details_semantic_sha256": "bd492a3406e1b26fbb0a5b36031946ff2c6928d6cf7314f01a921dc555180f94",
+  "details_projection_bound": true,
+  "sheets": {
+    "业务规则": 29,
+    "操作与影响": 19,
+    "本次变化": 9
+  },
+  "table_ranges": {
+    "业务规则": {
+      "range": "A5:Y34",
+      "columns": [
+        "业务名称",
+        "既有映射关联",
+        "单位",
+        "允许来源",
+        "默认来源",
+        "数值默认及绑定",
+        "读写与来源锁定",
+        "待处理项",
+        "依据",
+        "业务条件",
+        "同源详情入口",
+        "审阅意见",
+        "处理状态",
+        "审阅编号",
+        "意见针对属性",
+        "意见针对条件",
+        "原审阅版本",
+        "原审阅投影",
+        "意见关联状态",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ],
+      "maximum_row_height_points": 392.0,
+      "data_validations": 3
+    },
+    "操作与影响": {
+      "range": "A5:U24",
+      "columns": [
+        "业务名称",
+        "触发条件与处理",
+        "改变什么",
+        "保留什么",
+        "失效依赖",
+        "待处理项",
+        "同源详情入口",
+        "审阅意见",
+        "处理状态",
+        "审阅编号",
+        "意见针对属性",
+        "意见针对条件",
+        "原审阅版本",
+        "原审阅投影",
+        "意见关联状态",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ],
+      "maximum_row_height_points": 184.0,
+      "data_validations": 3
+    },
+    "本次变化": {
+      "range": "A5:T14",
+      "columns": [
+        "变化类型",
+        "基线",
+        "候选",
+        "原因",
+        "待处理项",
+        "同源详情入口",
+        "审阅意见",
+        "处理状态",
+        "审阅编号",
+        "意见针对属性",
+        "意见针对条件",
+        "原审阅版本",
+        "原审阅投影",
+        "意见关联状态",
+        "稳定审阅键",
+        "内容指纹",
+        "意见基线指纹",
+        "原投影键",
+        "当前投影键",
+        "规则修订"
+      ],
+      "maximum_row_height_points": 104.0,
+      "data_validations": 3
+    }
+  },
+  "opinion_and_identity_columns_in_table": true,
   "freeze_panes": "D6",
-  "tables_and_status_validation": "one each per sheet",
   "formulas": 0,
   "error_cells": 0,
-  "maximum_cell_characters": 1910,
-  "feedback_test": {
-    "seeded": 6,
-    "retained_exactly": 6,
-    "deleted_definition_opinion_retained_in_changes": 1,
-    "all_three_sheets_reordered": true,
-    "literal_PENDING_unchanged": true,
-    "tested_review_projection_sha256": "87f8f1c17017916b3db11b019de607009d09f9ec3dc0277295ca0b9a11ccb841"
-  },
-  "review_mode": "compact_business_summary",
+  "maximum_cell_characters": 3087,
+  "maximum_row_height_points": 392.0,
   "mirror_definitions_removed": 442,
-  "native_office_validation": false
+  "view_scope": {
+    "source_business_concepts": 11,
+    "power_rows": "按真实输入路径与方向分成19条，不作为新增业务对象",
+    "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
+    "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
+    "omitted_from_main": "442内部镜像、重复技术组合，不恢复1090行主表",
+    "compatibility": "候选未接生产；codec/模板/DB迁移/正式Record/报告结构未改。映射澄清已独立提交。"
+  },
+  "definition_assets_sha256": {
+    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "932b0dcfb1a2ec3a1699523dd5cbea4a9af8471b73c3d668256b13f9c0ce618f",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "4e45c974cdbb47ebbeb7e325be689940b5fa748e6d64097c313f1f41e317af2b",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "d8989a363319b0f404f99d12c5da70cf9c36157ee425d50e7bb3adc07c0f6fcf"
+  },
+  "historical_electricity_evidence": {
+    "file": "electricity-paths.json",
+    "sha256": "b3671b78a65ee56347d39ddea51b5a5d866e5499e6b44246ad76df2540d0c6f2",
+    "as_of": "2026-10-15",
+    "observed_head": "d279f505951b68750db133cf4279b2b76e0323bb",
+    "scope": "固定历史观察，不把旧head/状态伪更新成当前验证；现行政策见R8及010/014",
+    "roundtrip_distinction": "test_business_rules_excel_evidence覆盖构造OOXML缓存；原生Excel/WPS保存另列，不互相替代"
+  },
+  "native_office_validation": false,
+  "native_scope": {
+    "status": "NOT_COMPLETED",
+    "completed": [
+      "工具初始化",
+      "枚举Excel应用",
+      "复制独立临时文件"
+    ],
+    "not_run": [
+      "打开工作簿",
+      "填写意见",
+      "表头排序",
+      "保存关闭",
+      "原生长行显示"
+    ],
+    "reason": "sky.launch_app未返回；根代理中止长时间无返回的子代理后，工具报告aborted by user after 2079.6s。该措辞不表示Owner主动取消。",
+    "user_file_modified": false,
+    "process_terminated": false,
+    "temporary_copy": "native-review.xlsx（40766字节，未编辑复制品，不作通过证据）"
+  },
+  "feedback_test": {
+    "report": "review-feedback-fixture.json",
+    "report_sha256": "7cf57404ca4b27785dd6500f7e93f0d937348183c43e9546678c1b1807dfbc61",
+    "command": "node scripts/test_business_rules_review.mjs --input build/review-r9.json --technical-input build/technical-r9.json --output build/review-feedback-fixture.json",
+    "method": "真实Table.getRange数据范围反转、ArtifactTool导出/重开/再生成；不冒充原生排序",
+    "input_relation": "从本轮真实投影选择对象，具体选取与版本/删除/属性/技术详情变更见fixture报告",
+    "status": "PASS",
+    "actual_scenario_count": 18,
+    "formal_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a"
+  },
+  "projection_exporter": "scripts/validate_business_rules_candidate.py --review-json ... --technical-review-json ...",
+  "projection_exporter_sha256": "ea5154ed12393e5405884a9e02081a4fde03d262f12cd8ac7cb6c9befc5933ca",
+  "implementation_parent_sha": "412d3ac3a9569dfa79b706267eae1cf5b08d1bee",
+  "final_head_evidence": "原PR47最新提交与送验评论，避免把产物内parent冒充最终head"
 }

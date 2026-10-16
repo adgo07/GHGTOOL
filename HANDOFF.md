@@ -1,7 +1,7 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
 状态：**CURRENT HANDOFF**
-最后更新：2026-10-16（PR48已合并；PR47按R8收敛候选，验收前不修PR46）
+最后更新：2026-10-16（PR48已合并；PR47集中有限修复待重新验收，不修PR46）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`
 
@@ -28,6 +28,8 @@ Module ID：`qz.carbon_accounting`
 4. 本文件不写固定绝对路径（`C:\` / `D:\` / `E:\` / `G:\`）作为仓库身份；仓库身份以 GitHub owner/repository + `git origin` 为准。
 
 ## 本轮现行交接（取代下方旧阶段执行状态）
+
+本轮434c106的A通过结论已撤回；R8小澄清独立提交412d3ac，当前候选r9、紧凑视图V2及18场景fixture待新head独立验收。原生Excel启动未完成，不冒称排序/保存通过；即使A通过仍等Owner确认，不合并、不启动46/B/N。
 
 PR48已合并，Mapping基线b0c1aa723391772f9aef026b4c0a8619eb61a65b；唯一业务依据为当前Mapping及问题台账，原V1.2字节/旧审阅及验收保持历史定位。PR47复用现有候选、测试和派生审阅，不接生产、不实现iapws、不修PR46、不重复442镜像退出，不另建长期规则体系或25组总账。
 

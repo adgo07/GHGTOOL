@@ -12,6 +12,7 @@ It does not implement or connect a production UI lifecycle/state machine.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -1967,17 +1968,21 @@ def _json_safe(value: Any) -> Any:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate and inspect a review-only business-rule candidate bundle.")
     parser.add_argument("--review-json", type=Path, help="write stable review rows as JSON")
+    parser.add_argument("--technical-review-json", type=Path, help="write same-source details bound to the compact projection SHA256")
     parser.add_argument("--primary-rule-set-id", help="select a primary package when multiple are loaded")
     parser.add_argument("paths", nargs="+", type=Path, help="fixed JSON package files in the closed bundle")
     args = parser.parse_args(argv)
     try:
         bundle = load_bundle(args.paths, primary_rule_set_id=args.primary_rule_set_id)
+        review_text = json.dumps(_json_safe(bundle.review_rows()), ensure_ascii=False, indent=2) + "\n"
         if args.review_json:
             args.review_json.parent.mkdir(parents=True, exist_ok=True)
-            args.review_json.write_text(
-                json.dumps(_json_safe(bundle.review_rows()), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
+            args.review_json.write_text(review_text, encoding="utf-8")
+        if args.technical_review_json:
+            technical = _json_safe(bundle.technical_review_rows())
+            technical["metadata"]["source_compact_sha256"] = hashlib.sha256(review_text.encode("utf-8")).hexdigest()
+            args.technical_review_json.parent.mkdir(parents=True, exist_ok=True)
+            args.technical_review_json.write_text(json.dumps(technical, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if args.review_json is None:
             review = bundle.review_rows()
             print(json.dumps({

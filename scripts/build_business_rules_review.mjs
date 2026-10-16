@@ -7,31 +7,13 @@ import { FileBlob, SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 const args = process.argv.slice(2);
 function option(key, fallback) { const i=args.indexOf(key); return i<0?fallback:args[i+1]; }
 const input=option("--input"), output=option("--output"), previous=option("--previous");
-if(!input || !output) throw new Error("Required: --input candidate-review.json --output review.xlsx [--previous review.xlsx]");
+if(!input || !output) throw new Error("Required: --input candidate-review.json --details technical-review.json --output review.xlsx [--previous review.xlsx]");
 const reviewText=await fs.readFile(input,"utf8");
 const reviewHash=createHash("sha256").update(reviewText.replace(/\r\n/g,"\n"),"utf8").digest("hex");
 const payload=JSON.parse(reviewText);
 const wb=Workbook.create();
-const comments=new Map();
 const feedbackHeaders=["审阅意见","处理状态","审阅编号"];
-if(previous){
-  const prior=await SpreadsheetFile.importXlsx(await FileBlob.load(previous));
-  for(const name of ["业务规则","操作与影响","本次变化"]){
-    let sheet;
-    try { sheet=prior.worksheets.getItem(name); } catch (error) { if(name!=="业务规则") throw error; sheet=prior.worksheets.getItem("字段与条件规则"); }
-    const matrix=sheet.getUsedRange().values;
-    const index=matrix.findIndex(r=>r.includes("稳定审阅键"));
-    if(index<0) throw new Error(`Previous review lacks stable keys: ${name}`);
-    const header=matrix[index], keyCol=header.indexOf("稳定审阅键");
-    for(const row of matrix.slice(index+1)){
-      const key=row[keyCol];
-      if(!key) continue;
-      const feedback=feedbackHeaders.map(h=>row[header.indexOf(h)]??"");
-      if(feedback.some(v=>v!=="")) comments.set(String(key),feedback);
-    }
-  }
-}
-const objectLabels={state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本批有效组分数",material_calculation_path:"已定义物料换算路径",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
+const objectLabels={object:"业务对象",state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本批有效组分数",material_calculation_path:"已定义物料换算路径",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
 const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",DEFINED_RECEIVED_BASIS_CONVERSION:"已批准收到基换算（仍核必要数值/基准）",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"库外自行填写（输入方式，非来源类别）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
 function literalCell(value){ const raw=String(value??""); return raw.startsWith("=")?"'"+raw:raw; }
 function text(value){
@@ -39,7 +21,7 @@ function text(value){
   if(Array.isArray(value)) return value.map(text).join("\n");
   if(typeof value==="object" && Array.isArray(value.groups)) return summaryText(value);
   if(typeof value==="object") return Object.entries(value).map(([k,v])=>`${objectLabels[k]??k}: ${text(v)}`).join("\n");
-  const raw=String(value).replaceAll("Canonical","统一输入").replaceAll("Catalog","参数库").replaceAll("Record","正式记录").replaceAll("numeric default","数值默认").replaceAll("default_source","初始来源");
+  const raw=String(value).replaceAll("Canonical","统一输入").replaceAll("Catalog","参数库").replaceAll("Record","正式记录").replaceAll("正式正式记录","正式记录").replaceAll("统一输入输入","统一输入").replaceAll("numeric default","数值默认").replaceAll("default_source","初始来源");
   const literal=stateLabels[raw]?`${stateLabels[raw]}（${raw}）`:raw;
   return literal.startsWith("=")?"'"+literal:literal;
 }
@@ -109,78 +91,212 @@ function unitText(value){
   return value==="ratio" ? "比值（0～1）；界面/Excel用百分数（%）" : text(value);
 }
 const metadata=payload.metadata??{};
-let seen=0;
-for(const [name,records,tableName] of [["业务规则",payload.fields,"FieldsReview"],["操作与影响",payload.operations,"OperationsReview"],["本次变化",payload.changes,"ChangesReview"]]){
-  if(!Array.isArray(records)) throw new Error(`Review JSON missing ${name} rows`);
-  const rows=records.map(r=>{ const row={...r};
-    if(Array.isArray(row.channels)){
-      row.visibility=row.channels.map(p=>{
-        const marker=String(p.notes??"").match(/可见性[：:]([^\n]*)/);
-        return `${p.channel} / ${p.binding}: ${marker?marker[1]:"见渠道说明（未独立声明控件显隐）"}`;
-      });
-      row.projection_notes=row.channels.map(p=>`${p.channel} / ${p.binding}: ${p.notes??""}`);
-      row.channels=row.channels.map(({notes,...projection})=>projection);
-    } if(row.review_key && row.key!==undefined){ if(row.key!==row.review_key) row.definition_key=row.key; delete row.key; } return row; });
-  if(name==="本次变化"){
-    const retained=new Set([...(payload.fields??[]),...(payload.operations??[]),...rows].map(r=>String(r.review_key??r.key??"")));
-    for(const [key,feedback] of comments){if(!retained.has(key))rows.push({review_key:key,change_type:"未完成审阅意见保留",reason:"对应行已变化，请按稳定ID复核",preserved_feedback:feedback});}
+const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
+const digest=value=>createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
+const semanticSummary=value=>Array.isArray(value)?value.map(semanticSummary).sort((a,b)=>(JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0)):value&&typeof value==="object"?Object.fromEntries(Object.keys(value).sort().map(k=>[k,semanticSummary(value[k])])):value;
+const propertyKeys=["source","default_source","default","locking"];
+const propertyLabels={source:"允许来源",default_source:"默认来源",default:"数值默认",locking:"读写锁定"};
+const detailsInput=option("--details");
+if(!detailsInput)throw new Error("Required: --details same-source technical-review.json with source_compact_sha256");
+const detailsPayload=detailsInput?JSON.parse(await fs.readFile(detailsInput,"utf8")):payload;
+const detailsName="业务规则审阅详情.html";
+if(detailsInput){
+  for(const key of ["revision","base","dependency"]){
+    if(JSON.stringify(canonical(metadata[key]))!==JSON.stringify(canonical(detailsPayload.metadata?.[key])))throw new Error("Technical details do not match compact projection: "+key);
   }
-  const present=[...new Set(rows.flatMap(r=>Object.keys(r)).filter(k=>k!=="preserved_feedback"))];
-  const preferred=name==="业务规则"
-    ? ["name","mapping_refs","unit","source","default_source","default","locking","pending","basis","review_key"]
-    : name==="操作与影响"
-      ? ["name","changes","preserves","invalidates","pending","review_key"]
-      : ["change_type","before","after","reason","pending","review_key"];
-  const keys=preferred.filter(k=>present.includes(k) && k!=="review_key" && k!=="key");
-  const matrix=[keys.map(k=>labels[k]??k).concat(["",...feedbackHeaders,"稳定审阅键"])];
-  const unique=new Set();
+  if(detailsPayload.metadata?.source_compact_sha256!==reviewHash)throw new Error("Technical details are bound to another compact projection");
+}
+const priorFeedback=[];
+if(previous){
+  const prior=await SpreadsheetFile.importXlsx(await FileBlob.load(previous));
+  for(const name of ["业务规则","操作与影响","本次变化"]){
+    let sheet;try{sheet=prior.worksheets.getItem(name);}catch(error){if(name!=="业务规则")throw error;sheet=prior.worksheets.getItem("字段与条件规则");}
+    const matrix=sheet.getUsedRange().values, index=matrix.findIndex(r=>r.includes("稳定审阅键"));
+    if(index<0)throw new Error("Previous review lacks stable keys: "+name);
+    const header=matrix[index], get=(row,h)=>header.includes(h)?row[header.indexOf(h)]:"";
+    for(const row of matrix.slice(index+1)){
+      const key=String(get(row,"稳定审阅键")??"");
+      const feedback=feedbackHeaders.map(h=>get(row,h)??"");
+      if(!key||!feedback.some(v=>v!==""))continue;
+      priorFeedback.push({key,feedback,property:get(row,"意见针对属性")||"整体",
+        condition:get(row,"意见针对条件")||"当前行",originalRevision:get(row,"原审阅版本")||key.split("|")[2],
+        originalHash:get(row,"原审阅投影")||String(matrix[0]?.[0]??"").replace("审阅数据SHA256：",""),
+        fingerprints:get(row,"内容指纹"),baselineFingerprints:get(row,"意见基线指纹")||get(row,"内容指纹"),linkState:get(row,"意见关联状态"),originKey:get(row,"原投影键")||key});
+    }
+  }
+}
+function baseIdentity(row,kind){return kind+"|"+row.rule_set_id+"|"+(row.field_id??row.operation_id??row.key);}
+function conditionAllows(condition,sourcePath,direction){
+  const tags=condition.tags??{};
+  return (!tags.source_path||[tags.source_path].flat().includes(sourcePath))&&
+    (!tags.direction||[tags.direction].flat().includes(direction));
+}
+function splitFields(fields){
+  return fields.flatMap(row=>{
+    if(row.field_id!=="electricity.factor"){
+      const scopeNotes=row.field_id==="fuel.fch"?[...new Set((detailsPayload.fields??[]).filter(r=>r.field_id===row.field_id).flatMap(r=>r.channels??[]).map(c=>c.notes).filter(Boolean))].join("\n"):"";
+      return [{...row,stable_condition:"整体",business_condition:"整体；具体适用条件见各属性"+(scopeNotes?"\n"+scopeNotes:""),stable_key:baseIdentity(row,"field")+"|整体"}];
+    }
+    const contexts=new Map();
+    for(const prop of propertyKeys)for(const group of row[prop].groups)for(const c of group.conditions){
+      const paths=[c.tags?.source_path].flat().filter(Boolean), directions=[c.tags?.direction].flat().filter(Boolean);
+      for(const p of paths)for(const d of directions)contexts.set(p+"|"+d,{p,d});
+    }
+    return [...contexts.values()].sort((a,b)=>(a.p+a.d).localeCompare(b.p+b.d)).map(({p,d})=>{
+      const part={...row,stable_condition:"source_path="+p+";direction="+d,
+        business_condition:(stateLabels[d]??d)+" / "+(stateLabels[p]??p)};
+      for(const prop of propertyKeys)part[prop]={...row[prop],groups:row[prop].groups.map(g=>({...g,conditions:g.conditions.filter(c=>conditionAllows(c,p,d))})).filter(g=>g.conditions.length)};
+      part.name=row.name+"（"+part.business_condition+"）";
+      part.stable_key=baseIdentity(row,"field")+"|"+part.stable_condition;
+      return part;
+    });
+  });
+}
+function technicalProperty(row,prop,compactCondition){
+  const actualProp=prop==="source"?"source_qualification":prop;
+  const scope=String(row.stable_condition??"").match(/^source_path=([^;]+);direction=(.+)$/);
+  const values=[];
+  for(const candidate of detailsPayload.fields??[]){
+    if(candidate.field_id!==row.field_id||candidate.rule_set_id!==row.rule_set_id||!candidate.policy_branch_values)continue;
+    const when=candidate.conditions_by_property?.[actualProp];
+    if(!when)continue;
+    if(scope&&!conditionAllows(when,scope[1],scope[2]))continue;
+    if(compactCondition){
+      if(!Object.entries(compactCondition.tags??{}).every(([k,v])=>[v].flat().includes(when.tags?.[k])))continue;
+      if(JSON.stringify(canonical(compactCondition.ranges??{}))!==JSON.stringify(canonical(when.ranges??{})))continue;
+    }
+    values.push(JSON.stringify(semanticSummary({condition:when,value:candidate.policy_branch_values[actualProp]})));
+  }
+  return [...new Set(values)].sort();
+}
+const groups=[
+  {name:"业务规则",kind:"field",rows:splitFields(payload.fields),table:"FieldsReview"},
+  {name:"操作与影响",kind:"operation",rows:payload.operations.map(r=>({...r,stable_key:baseIdentity(r,"operation")+"|整体",stable_condition:"整体"})),table:"OperationsReview"},
+  {name:"本次变化",kind:"change",rows:payload.changes.map(r=>({...r,stable_key:baseIdentity(r,"change")+"|整体",stable_condition:"整体"})),table:"ChangesReview"},
+];
+for(const group of groups)for(const row of group.rows){
+  row.object_identity=baseIdentity(row,group.kind);
+  row.detail_locator=detailsName+"#"+encodeURIComponent(row.object_identity);
+  if(group.kind==="operation")row.trigger="初始条件："+text(row.initial_context)+"\n触发与处理："+text(row.action)+"\n确认/取消："+text(row.confirmation);
+  const ignored=new Set(["review_key","revision","key","stable_key","detail_locator"]);
+  const content=Object.fromEntries(Object.entries(row).filter(([k])=>!ignored.has(k)));
+  for(const prop of propertyKeys)if(content[prop])content[prop]=semanticSummary(content[prop]);
+  row.fingerprints={"整体":digest([content,propertyKeys.map(p=>technicalProperty(row,p))])};
+  for(const prop of propertyKeys)if(row[prop])row.fingerprints[propertyLabels[prop]]=digest([semanticSummary(row[prop]),row.stable_condition,technicalProperty(row,prop)]);
+  if(group.kind==="operation")row.fingerprints["操作"]=digest([row.initial_context,row.action,row.changes,row.preserves,row.invalidates,row.confirmation]);
+  const conditionScopes=new Map();
+  for(const prop of propertyKeys)for(const g of row[prop]?.groups??[])for(const c of g.conditions??[]){
+    const label=conditionText(c), key=propertyLabels[prop]+"@@"+label;
+    if(!conditionScopes.has(key))conditionScopes.set(key,[]);
+    conditionScopes.get(key).push({outcome:g.outcome,condition:c,technical:technicalProperty(row,prop,c)});
+  }
+  for(const [key,value] of conditionScopes)row.fingerprints[key]=digest(semanticSummary(value));
+}
+const current=new Map(groups.flatMap(g=>g.rows.map(r=>[r.stable_key,r])));
+const claimed=new Set();
+for(const old of priorFeedback){
+  let row=current.get(old.key), legacy=false;
+  if(!row){
+    const parts=old.key.split("|");
+    // Legacy SUMMARY keys carry a revision; only map when the whole object has one unambiguous row.
+    if((parts[0]==="field"&&parts.length===5&&parts[4]==="SUMMARY")||(["operation","change"].includes(parts[0])&&parts.length===4)){
+      const candidates=[...current.values()].filter(r=>r.object_identity===parts[0]+"|"+parts[1]+"|"+parts[3]);
+      if(candidates.length===1){row=candidates[0];legacy=true;}
+    }
+  }
+  let oldFingerprints={};try{oldFingerprints=JSON.parse(old.baselineFingerprints||"{}");}catch{}
+  const scopeKey=old.property+(["当前行","整体"].includes(old.condition)?"":"@@"+old.condition);
+  const applicable=row&&!claimed.has(row.stable_key)&&Object.hasOwn(row.fingerprints,scopeKey);
+  if(applicable){
+    row.feedback=old;
+    let priorCurrent={};try{priorCurrent=JSON.parse(old.fingerprints||"{}");}catch{}
+    const confirmed=old.linkState==="已复核本版"&&priorCurrent[scopeKey]===row.fingerprints[scopeKey];
+    if(confirmed)old.baselineFingerprints=JSON.stringify(row.fingerprints);
+    row.link_state=confirmed?"继续关联":!legacy&&old.linkState!=="需复核"&&oldFingerprints[scopeKey]===row.fingerprints[scopeKey]?"继续关联":"需复核";
+    claimed.add(row.stable_key);
+  }else{
+    groups[2].rows.push({stable_key:"retention|"+digest([old.originKey,old.feedback,priorFeedback.indexOf(old)]),
+      object_identity:"retention|"+old.key,stable_condition:"待映射",review_key:old.originKey,revision:metadata.revision,
+      change_type:"未完成审阅意见保留",reason:"对象删除、条件/属性无法唯一确认或旧整体拆分；保留原意见，待映射，不猜测适用范围。",
+      feedback:old,link_state:"待映射",fingerprints:oldFingerprints,detail_locator:detailsName+"#review-scope"});
+  }
+}
+const technicalHeaders=["意见针对属性","意见针对条件","原审阅版本","原审阅投影","意见关联状态","稳定审阅键","内容指纹","意见基线指纹","原投影键","当前投影键","规则修订"];
+let seen=0;
+const manifests=[];
+for(const group of groups){
+  const {name,kind,rows,table:tableName}=group;
+  const keys=kind==="field"
+    ? ["name","mapping_refs","unit","source","default_source","default","locking","pending","basis","business_condition","detail_locator"]
+    :kind==="operation"?["name","trigger","changes","preserves","invalidates","pending","detail_locator"]
+    :["change_type","before","after","reason","pending","detail_locator"];
+  const displayLabels={...labels,business_condition:"业务条件",detail_locator:"同源详情入口",trigger:"触发条件与处理"};
+  const headers=keys.map(k=>displayLabels[k]??k).concat(feedbackHeaders,technicalHeaders);
+  const matrix=[headers], unique=new Set();
   for(const row of rows){
-    const key=String(row.review_key??row.key??"");
-    if(!key || unique.has(key)) throw new Error(`Missing/duplicate review key: ${name} ${key}`);
-    unique.add(key);
-    matrix.push(keys.map(k=>k==="unit"?unitText(row[k]):text(row[k])).concat(["",...(comments.get(key)??row.preserved_feedback??["","",""]).map(literalCell),key]));
+    const key=row.stable_key;if(!key||unique.has(key))throw new Error("Missing/duplicate stable identity: "+key);unique.add(key);
+    const prior=row.feedback;
+    const notes=(prior?.feedback??["","",""]).map(literalCell);
+    const tech=[prior?.property??"整体",prior?.condition??"当前行",prior?.originalRevision??row.revision??metadata.revision,
+      prior?.originalHash??reviewHash,row.link_state??"",key,JSON.stringify(row.fingerprints),prior?(prior.baselineFingerprints||"{}"):JSON.stringify(row.fingerprints),prior?.originKey??row.review_key??row.key,row.review_key??row.key,row.revision??metadata.revision];
+    matrix.push(keys.map(k=>k==="unit"?unitText(row[k]):text(row[k])).concat(notes,tech.map(literalCell)));
   }
   const sheet=wb.worksheets.add(name);sheet.showGridLines=false;
-  sheet.getRange("A1").values=[[`审阅数据SHA256：${reviewHash}`]];
-  sheet.getRange("A1").format.font={name:"Microsoft YaHei",size:9,color:"#666666"};
-  sheet.getRange("A2").values=[[name]];
-  sheet.getRange("A2").format.font={name:"Microsoft YaHei",size:14,bold:true};
-  sheet.getRange("A3").values=[[`A包候选 · ${text(metadata.revision??metadata.rule_set??"1.0")} · 不切生产`]];
-  sheet.getRange("A4").values=[["已合并R8业务政策摘要；候选未接生产。业务条件保留，黄色列保留审阅意见。"]];
-  const range=sheet.getRangeByIndexes(4,0,matrix.length,matrix[0].length);
-  range.values=matrix;
-  range.format.font={name:"Microsoft YaHei",size:11};
-  range.format.verticalAlignment="top";range.format.wrapText=true;
-  range.format.columnWidth=30;range.format.rowHeight=108;
-  const table=sheet.tables.add(`A5:${columnName(keys.length)}${matrix.length+4}`,true,tableName);
-  table.showFilterButton=true;
-  sheet.getRangeByIndexes(4,0,matrix.length,1).format.columnWidth=26;
-  sheet.getRangeByIndexes(4,1,matrix.length,1).format.columnWidth=34;
-  for(const [key,width] of [["mapping_refs",36],["unit",18],["condition",48],["source",38],["default_source",34],["default",38],["locking",48],["visibility",42],["channels",65],["basis",75],["consumers",75],["cases",75],["projection_notes",90]]){
-    const index=keys.indexOf(key);
-    if(index>=0) sheet.getRangeByIndexes(4,index,matrix.length,1).format.columnWidth=width;
+  sheet.getRange("A1").values=[["审阅数据SHA256："+reviewHash]];
+  sheet.getRange("A2").values=[[name+" · 紧凑审阅V2"]];
+  sheet.getRange("A3").values=[["候选修订："+(metadata.revision??"")+"；未接生产。整体意见可直接填写；条件可复制属性中的适用条件；需复核须人工确认本版，不自动清除。"]];
+  sheet.getRange("A4").values=[["业务、意见和身份同属一个Table；打开同目录HTML后按对象目录或旁列定位查看详情。无生产codec/模板/数据库/历史Record兼容变化。"]];
+  sheet.getRange("A1:A4").format.font={name:"Microsoft YaHei",size:10,color:"#555555"};
+  sheet.getRange("A2").format.font={name:"Microsoft YaHei",size:15,bold:true,color:"#23445E"};
+  const range=sheet.getRangeByIndexes(4,0,matrix.length,headers.length);
+  range.values=matrix;range.format.font={name:"Microsoft YaHei",size:11};range.format.wrapText=true;range.format.verticalAlignment="top";
+  range.format.columnWidth=55;range.format.rowHeight=80;
+  sheet.getRangeByIndexes(4,0,matrix.length,1).format.columnWidth=32;
+  if(kind==="field"){sheet.getRangeByIndexes(4,1,matrix.length,2).format.columnWidth=30;sheet.getRangeByIndexes(4,3,matrix.length,4).format.columnWidth=70;}
+  if(kind==="operation"){sheet.getRangeByIndexes(4,1,matrix.length,1).format.columnWidth=90;}
+  const metadataStart=keys.length+feedbackHeaders.length;
+  sheet.getRangeByIndexes(4,metadataStart,matrix.length,technicalHeaders.length).format.columnWidth=28;
+  sheet.getRangeByIndexes(4,metadataStart+5,matrix.length,6).format.wrapText=false;
+  sheet.getRangeByIndexes(4,metadataStart+5,matrix.length,6).format.font={name:"Microsoft YaHei",size:9,color:"#777777"};
+  const tableRef="A5:"+columnName(headers.length)+(matrix.length+4);
+  const table=sheet.tables.add(tableRef,true,tableName);table.showFilterButton=true;
+  sheet.getRangeByIndexes(5,keys.length,Math.max(1,rows.length),5).format.fill="#FFF4D6";
+  sheet.getRangeByIndexes(5,keys.length+1,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["待处理","已落实","需决定","保留"]}};
+  sheet.getRangeByIndexes(5,metadataStart,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["整体","允许来源","默认来源","数值默认","读写锁定","操作"]}};
+  sheet.getRangeByIndexes(5,metadataStart+4,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["继续关联","需复核","待映射","已复核本版"]}};
+  sheet.freezePanes.freezeRows(5);sheet.freezePanes.freezeColumns(3);
+  // Only human-readable business/feedback columns affect height; long identity/hash evidence stays single-line.
+  for(let i=1;i<matrix.length;i++){
+    let lineCount=1;
+    for(let j=0;j<metadataStart+5;j++){
+      const width=j===0?32:kind==="field"&&j<3?30:kind==="field"&&j>=3&&j<=6?70:kind==="operation"&&j===1?90:j>=metadataStart?28:55;
+      const lines=String(matrix[i][j]??"").split("\n").reduce((n,line)=>n+Math.max(1,Math.ceil([...line].reduce((sum,c)=>sum+(c.charCodeAt(0)>=0x2e80?2:1),0)/(width-5))),0);
+      lineCount=Math.max(lineCount,lines);
+    }
+    const height=Math.max(80,lineCount*16+8);
+    if(height>409)throw new Error("Readable row needs further splitting: "+name+"!"+(i+5)+" ("+height+")");
+    sheet.getRangeByIndexes(i+4,0,1,headers.length).format.rowHeight=height;
   }
-  const header=sheet.getRangeByIndexes(4,0,1,matrix[0].length);
-  header.format.fill="#23445E";header.format.font={name:"Microsoft YaHei",size:11,color:"#FFFFFF",bold:true};header.format.rowHeight=36;
-  const feedback=sheet.getRangeByIndexes(5,keys.length+1,Math.max(1,rows.length),3);
-  feedback.format.fill="#FFF4D6";
-  sheet.getRangeByIndexes(5,keys.length+2,Math.max(1,rows.length),1).dataValidation={rule:{type:"list",values:["待处理","已落实","需决定","保留"]}};
-  sheet.freezePanes.freezeRows(5);sheet.freezePanes.freezeColumns(Math.min(3,keys.length));
-  const keyIndex=keys.length+1+feedbackHeaders.length;
-  if(keyIndex>=0) { const keyRange=sheet.getRangeByIndexes(5,keyIndex,Math.max(1,rows.length),1); keyRange.format.wrapText=true; keyRange.format.columnWidth=70; keyRange.format.font={name:"Microsoft YaHei",size:9,color:"#777777"}; }
-  range.format.autofitRows();
-  header.format.rowHeight=36;
-  sheet.tabColor="#23445E";
-  seen+=rows.length;
+  const header=sheet.getRangeByIndexes(4,0,1,headers.length);header.format.fill="#23445E";header.format.font={name:"Microsoft YaHei",size:11,color:"#FFFFFF",bold:true};header.format.rowHeight=42;
+  sheet.tabColor="#23445E";seen+=rows.length;manifests.push({sheet:name,table:tableRef,rows:rows.length,headers});
 }
 function columnName(n){let s="";while(n){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26);}return s;}
-wb.recalculate();
-await fs.mkdir(path.dirname(output),{recursive:true});
-console.log((await wb.inspect({kind:"table",range:"业务规则!A5:H8",include:"values",tableMaxRows:4,tableMaxCols:8,maxChars:1800})).ndjson);
-console.log((await wb.inspect({kind:"match",searchTerm:"#REF!|#DIV/0!|#VALUE!|#NAME\\?|#NUM!|#SPILL!",options:{useRegex:true,maxResults:10},maxChars:1000})).ndjson);
-for(const name of ["业务规则","操作与影响","本次变化"]){
-  const image=await wb.render({sheetName:name,range:"A1:H8",scale:1,format:"png"});
-  await fs.writeFile(path.join(path.dirname(output),`${name}.png`),new Uint8Array(await image.arrayBuffer()));
+function escapeHtml(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
+const detailGroups=new Map();
+for(const [kind,rows] of [["field",detailsPayload.fields??[]],["operation",detailsPayload.operations??[]],["change",detailsPayload.changes??[]]]){
+  for(const row of rows){const id=baseIdentity(row,kind);if(!detailGroups.has(id))detailGroups.set(id,[]);detailGroups.get(id).push(row);}
 }
+let html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>业务规则审阅同源详情</title><style>body{font:16px/1.6 "Microsoft YaHei",sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#243746}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7fa;padding:14px}summary{cursor:pointer;font-weight:bold;padding:10px}section{border-bottom:1px solid #ddd}</style><h1>业务规则审阅同源详情</h1><p>候选未接生产；本文件由同一生成器和候选定义派生，不是第二真值源。</p><section id="review-scope"><h2>视图范围与审阅方式</h2><p>主表按业务概念汇总，电力按输入方式及方向拆分；不恢复442内部镜像或千行条件主表。此处保留各渠道、消费者、案例、完整条件、绑定与理由。意见可针对整体或指定属性；无明确条件映射时保留待映射。跨版本内容变化必须复核。</p><p>兼容影响：本轮候选未接生产，不改正式输入codec、批准模板、报告结构、DB迁移或历史Record。历史电力证据见ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md；electricity-paths.json中的旧head保持历史身份，不能作为当前R8重验结果。</p><p>正式投影SHA256：'+reviewHash+'；详情输入SHA256：'+digest(detailsPayload)+'</p></section>';
+html+=' <nav><h2>对象目录</h2><ul>'+[...detailGroups].map(([id,rows])=>'<li><a href="#'+escapeHtml(encodeURIComponent(id))+'">'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</a></li>').join('')+'</ul></nav>';
+for(const [id,rows] of detailGroups){html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';for(const row of rows)html+='<details><summary>'+escapeHtml(row.condition_id??row.property??row.operation_id??row.review_key??"详情")+'</summary><pre>'+escapeHtml(text(row))+'</pre></details>';html+='</section>';}
+html+='</html>';
+await fs.mkdir(path.dirname(output),{recursive:true});
+await fs.writeFile(path.join(path.dirname(output),detailsName),html.replace(/[ \t]+$/gm,""),"utf8");
 await (await SpreadsheetFile.exportXlsx(wb)).save(output);
-console.log(JSON.stringify({status:"PASS",sheets:3,review_rows:seen,retained_feedback:comments.size,output}));
+await fs.writeFile(path.join(path.dirname(output),"review-view-manifest.json"),JSON.stringify({view_revision:"compact-business-v2",projection_sha256:reviewHash,generator:"scripts/build_business_rules_review.mjs",details:detailsName,details_revision:detailsPayload.metadata?.revision,details_counts:Object.fromEntries(["fields","operations","changes"].map(k=>[k,detailsPayload[k]?.length??0])),details_sha256:digest(detailsPayload),details_projection_bound:detailsPayload.metadata?.source_compact_sha256===reviewHash,tables:manifests,retained_feedback:priorFeedback.length},null,2)+"\n","utf8");
+if(!option("--skip-preview")){
+ for(const name of ["业务规则","操作与影响","本次变化"]){const im=await wb.render({sheetName:name,range:"A1:G8",scale:1,format:"png"});await fs.writeFile(path.join(path.dirname(output),name+".png"),new Uint8Array(await im.arrayBuffer()));}
+ const powerStart=groups[0].rows.findIndex(r=>r.field_id==="electricity.factor");
+ if(powerStart>=0){const im=await wb.render({sheetName:"业务规则",range:"A"+(powerStart+6)+":G"+(powerStart+7),scale:1,format:"png"});await fs.writeFile(path.join(path.dirname(output),"电力长行.png"),new Uint8Array(await im.arrayBuffer()));}
+}
+console.log(JSON.stringify({status:"GENERATED",sheets:3,review_rows:seen,retained_feedback:priorFeedback.length,output,details:detailsName}));

@@ -122,8 +122,8 @@ class CandidateAssetCoverageTests(unittest.TestCase):
                 data=[row for row in sheet.iter_rows(min_row=6,values_only=True) if row[key_column]]
                 keys=[row[key_column] for row in data]
                 expected={r["review_key"] for r in review[kind]}
-                self.assertTrue(expected<=set(keys))
-                extra=set(keys)-expected
+                self.assertTrue(expected<={row[headers.index("当前投影键")] for row in data})
+                extra={row[key_column] for row in data if row[headers.index("当前投影键")] not in expected}
                 if extra:
                     self.assertEqual(kind,"changes","旧修订意见只应进入明确的保留变化行")
                     category=headers.index("变化类型")
@@ -182,12 +182,56 @@ class CandidateAssetCoverageTests(unittest.TestCase):
             self.assertIn("当前来源=实测值",unbound)
             # These groups contain more than six conditions in the actual projection.
             for column in (5,6):
-                power=rows["购入/输出电力因子"][column]
+                power="\n".join(row[column] for name,row in rows.items() if name.startswith("购入/输出电力因子"))
                 for condition in ("目录表1","目录表2","目录表3","目录表4","目录表5","供电单位实测","企业实测","企业计算","非化石购电零排放","方向=购入","方向=输出"):
                     self.assertIn(condition,power)
                 self.assertNotIn("SUPPLY_UNIT_MEASURED",power)
         finally:
             book.close()
+
+    def test_actual_tables_keep_business_feedback_and_identity_together(self):
+        from openpyxl import load_workbook
+        from openpyxl.utils.cell import range_boundaries
+        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx")
+        try:
+            for sheet in book:
+                headers=[c.value for c in sheet[5]]
+                self.assertTrue(all(isinstance(h,str) and h for h in headers))
+                self.assertEqual(len(sheet.tables),1)
+                table=next(iter(sheet.tables.values()))
+                left,top,right,bottom=range_boundaries(table.ref)
+                self.assertEqual((left,top,right,bottom),(1,5,len(headers),sheet.max_row))
+                for h in ("审阅意见","处理状态","审阅编号","稳定审阅键","意见针对属性","意见针对条件","原审阅版本","原审阅投影","意见关联状态","内容指纹","意见基线指纹"):
+                    self.assertLessEqual(headers.index(h)+1,right)
+                for i,d in sheet.row_dimensions.items():
+                    if d.height is not None:self.assertLessEqual(d.height,409,(sheet.title,i,d.height))
+                for row in sheet.iter_rows(min_row=6,values_only=True):
+                    self.assertLess(len(str(row[headers.index("内容指纹")])),32767)
+        finally:book.close()
+
+    def test_critical_operation_conditions_and_same_source_details_are_visible(self):
+        from openpyxl import load_workbook
+        book=load_workbook(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅表.xlsx",read_only=True)
+        try:
+            sheet=book["操作与影响"];headers=[c.value for c in sheet[5]]
+            rows=list(sheet.iter_rows(min_row=6,values_only=True))
+            for operation,terms in (("capture_external_co2_supplement",("同一","空白","0","tCO₂")),("resolve_steam_enthalpy",("已知焓","自动","不"))):
+                row=next(r for r in rows if operation in r[headers.index("稳定审阅键")])
+                visible=row[headers.index("触发条件与处理")]
+                self.assertTrue(all(term in visible for term in terms),(operation,visible))
+                self.assertIn("初始条件",visible);self.assertIn("确认/取消",visible)
+            fields=book["业务规则"];field_headers=[c.value for c in fields[5]]
+            fch=next(r for r in fields.iter_rows(min_row=6,values_only=True) if r[0]=="单位热值含碳量FCh")
+            self.assertEqual(fch[field_headers.index("单位")],"tC/GJ")
+            scope=fch[field_headers.index("业务条件")]
+            for term in ("质量","体积","热值","不新增HEAT"):
+                self.assertIn(term,scope)
+            html=(ROOT/"docs/architecture/business-rules/evidence/业务规则审阅详情.html").read_text(encoding="utf-8")
+            self.assertIn("field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor",html)
+            self.assertIn("正式投影SHA256",html)
+            checks=json.loads((ROOT/"docs/architecture/business-rules/evidence/review-artifact-checks.json").read_text(encoding="utf-8"))
+            self.assertEqual(checks["generator_sha256"],hashlib.sha256((ROOT/"scripts/build_business_rules_review.mjs").read_bytes()).hexdigest())
+        finally:book.close()
 
     def test_all_packages_remain_candidate_and_reference_explicit_revisions(self):
         for doc in self.documents():

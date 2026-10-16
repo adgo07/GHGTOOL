@@ -1,0 +1,502 @@
+{
+  "status": "PASS",
+  "builder_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
+  "builder_copy_sha256": "68a6b5f1a4325391eaec71c13633a645ffe3c3c6711c9322349528785e4d8d13",
+  "formal_projection_sha256": "7b38a82ef8fd4478fe4221e139b1074c35eb24b542ad0470c76819725561eb3a",
+  "formal_details_sha256": "198ba7eb2972300dbbe2b7bee9c3c04971e4be33a27e160b829718c69e558295",
+  "fixture_projection_v1_sha256": "d1cdbe7a32418c76e45d9580ecb45373177bcab64bb0fc0cee2e1fda9fc184ec",
+  "fixture_projection_v2_sha256": "caddac9e78772cd48c2d495b293a823f18d47ee6822bed1bd96c0aa55b62fc56",
+  "fixture_details_sha256": "3f3aaa3ce8159e33164052662fc39b88d48c47f2197a6720fa22bf649ab75869",
+  "actual_scenario_count": 18,
+  "main_scenario_count": 16,
+  "direction_isolation_scenario_count": 2,
+  "details_projection_bound": true,
+  "selected_object_ids": {
+    "non_electric_field_id": "fuel.lhv",
+    "electricity_field_id": "electricity.factor",
+    "electricity_contexts": [
+      {
+        "source_path": "CATALOGUE_TABLE_1",
+        "direction": "PURCHASED"
+      },
+      {
+        "source_path": "CATALOGUE_TABLE_1",
+        "direction": "EXPORTED"
+      }
+    ],
+    "operation_id": "initialize_new_accounting",
+    "change_id": "review.change.candidate_bundle",
+    "synthetic_source": false,
+    "legacy_fixture_field_ids": [
+      "fixture.legacy_summary",
+      "fixture.legacy_condition"
+    ],
+    "deleted_fixture_field_id": "fixture.deleted_object"
+  },
+  "mutation_list": [
+    {
+      "type": "revision-only",
+      "object": "fuel.lhv",
+      "from": "fixture-v1",
+      "to": "fixture-v2",
+      "expected": "继续关联"
+    },
+    {
+      "type": "unrelated-property-change",
+      "object": "fixture.source_target",
+      "changed_property": "数值默认",
+      "opinion_property": "允许来源",
+      "expected": "继续关联"
+    },
+    {
+      "type": "targeted-property-change",
+      "object": "fixture.default_target",
+      "changed_property": "数值默认",
+      "opinion_property": "数值默认",
+      "expected": "需复核"
+    },
+    {
+      "type": "sticky-review-across-two-regenerations",
+      "object": "fixture.default_target",
+      "states": [
+        "需复核",
+        "需复核",
+        "需复核"
+      ],
+      "expected": "需复核, 需复核, 需复核"
+    },
+    {
+      "type": "explicit-confirmation-of-current-hash",
+      "object": "fixture.default_target",
+      "status": "继续关联",
+      "expected": "更新意见基线后继续关联"
+    },
+    {
+      "type": "stale-explicit-confirmation",
+      "object": "fixture.default_target",
+      "status": "需复核",
+      "expected": "新内容仍需复核"
+    },
+    {
+      "type": "condition-fingerprint-isolation",
+      "object": "fixture.condition_target",
+      "changed_property": "读写锁定",
+      "opinion_property": "数值默认",
+      "expected": "继续关联"
+    },
+    {
+      "type": "condition-text-change",
+      "object": "fixture.condition_moved",
+      "expected": "待映射"
+    },
+    {
+      "type": "technical-only-binding-and-reason-change-property-target",
+      "object": "fixture.technical_target",
+      "compact_summary_unchanged": true,
+      "technical_mutations": [
+        {
+          "scenario": "technical-property-target",
+          "fixture_field_id": "fixture.technical_target",
+          "changed_property": "default_source",
+          "technical_rows": 87,
+          "binding_rows_before_after": [
+            78,
+            78
+          ],
+          "replacement_binding_is_from_real_source_row": true,
+          "before": {
+            "binding_id": "binding-anthracite_lhv_gbt32151_34_c1",
+            "parameter_id": "anthracite_lhv",
+            "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。"
+          },
+          "after": {
+            "binding_id": "binding-anthracite_carbon_content_gbt32151_34_c1",
+            "parameter_id": "anthracite_carbon_content",
+            "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。（fixture technical binding review: technical-property-target）"
+          }
+        }
+      ],
+      "expected": "需复核"
+    },
+    {
+      "type": "technical-only-binding-and-reason-change-exact-condition",
+      "object": "fixture.technical_condition_target",
+      "compact_summary_unchanged": true,
+      "technical_mutations": [
+        {
+          "scenario": "technical-exact-condition-target",
+          "fixture_field_id": "fixture.technical_condition_target",
+          "changed_property": "default_source",
+          "technical_rows": 87,
+          "binding_rows_before_after": [
+            78,
+            78
+          ],
+          "replacement_binding_is_from_real_source_row": true,
+          "before": {
+            "binding_id": "binding-anthracite_lhv_gbt32151_34_c1",
+            "parameter_id": "anthracite_lhv",
+            "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。"
+          },
+          "after": {
+            "binding_id": "binding-anthracite_carbon_content_gbt32151_34_c1",
+            "parameter_id": "anthracite_carbon_content",
+            "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。（fixture technical binding review: technical-exact-condition-target）"
+          }
+        }
+      ],
+      "expected": "需复核"
+    },
+    {
+      "type": "technical-only-electricity-direction-isolation",
+      "object": "electricity.factor",
+      "changed_direction": "EXPORTED",
+      "unchanged_direction": "PURCHASED",
+      "feedback_results": [
+        {
+          "id": "electricity-purchased-technical-isolation",
+          "association_status": "继续关联",
+          "sheet": "业务规则",
+          "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=PURCHASED",
+          "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+          "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+        },
+        {
+          "id": "electricity-exported-technical-isolation",
+          "association_status": "需复核",
+          "sheet": "业务规则",
+          "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=EXPORTED",
+          "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+          "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+        }
+      ],
+      "technical_mutations": [
+        {
+          "scenario": "electricity-exported-context-only",
+          "fixture_field_id": "electricity.factor",
+          "changed_property": "default_source",
+          "technical_rows": 12,
+          "binding_rows_before_after": [
+            6,
+            6
+          ],
+          "replacement_binding_is_from_real_source_row": true,
+          "before": {
+            "binding_id": "binding-electricity_national_average_2023",
+            "parameter_id": "electricity_emission_factor_national",
+            "reason": "已核目录来源路径的新选择采用STANDARD_DEFAULT；购入/输出方向保持分支独立，非化石零因子仅购入；参数值仍从Catalog读取。"
+          },
+          "after": {
+            "binding_id": "binding-electricity_regional_average_2023_01",
+            "parameter_id": "electricity_emission_factor_regional_average",
+            "reason": "已核目录来源路径的新选择采用STANDARD_DEFAULT；购入/输出方向保持分支独立，非化石零因子仅购入；参数值仍从Catalog读取。（fixture technical binding review: electricity-exported-context-only）"
+          }
+        }
+      ],
+      "expected": "EXPORTED需复核; PURCHASED继续关联"
+    },
+    {
+      "type": "reverse-technical-row-order",
+      "collections": [
+        "fields",
+        "operations",
+        "changes"
+      ],
+      "expected": "same-content-field continues association"
+    },
+    {
+      "type": "object-deletion",
+      "object": "fixture.deleted_object",
+      "expected": "待映射; feedback status and number preserved"
+    },
+    {
+      "type": "legacy-summary-unique-field",
+      "object": "fixture.legacy_summary",
+      "expected": "unique mapping; needs review"
+    },
+    {
+      "type": "legacy-condition-level",
+      "object": "fixture.legacy_condition",
+      "expected": "retained for mapping; no guessed target"
+    },
+    {
+      "type": "unknown-attribute-and-condition",
+      "objects": [
+        "fixture.unknown_attribute",
+        "fixture.unknown_condition"
+      ],
+      "expected": "待映射"
+    },
+    {
+      "type": "electricity-context-split",
+      "object": "electricity.factor",
+      "contexts": [
+        {
+          "source_path": "CATALOGUE_TABLE_1",
+          "direction": "PURCHASED"
+        },
+        {
+          "source_path": "CATALOGUE_TABLE_1",
+          "direction": "EXPORTED"
+        }
+      ],
+      "expected": "PURCHASED continues; ambiguous SUMMARY retained"
+    },
+    {
+      "type": "reverse-table-data-save-and-reopen",
+      "sheets": [
+        "业务规则",
+        "操作与影响",
+        "本次变化"
+      ],
+      "expected": "feedback remains attached to the same business row"
+    }
+  ],
+  "cases": [
+    {
+      "id": "same-content-field",
+      "association_status": "继续关联",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fuel.lhv|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fuel.lhv|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fuel.lhv|SUMMARY"
+    },
+    {
+      "id": "allowed-source-unaffected-by-default-change",
+      "association_status": "继续关联",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.source_target|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.source_target|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.source_target|SUMMARY"
+    },
+    {
+      "id": "numeric-default-changed",
+      "association_status": "需复核",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.default_target|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.default_target|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.default_target|SUMMARY"
+    },
+    {
+      "id": "condition-scope-keeps-default-opinion",
+      "association_status": "继续关联",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.condition_target|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.condition_target|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.condition_target|SUMMARY"
+    },
+    {
+      "id": "changed-condition-is-retained",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|8a3b42338dbb2f9cb806b8c52eeba617fca022b32fc655013c1e294b069e0028",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.condition_moved|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.condition_moved|SUMMARY"
+    },
+    {
+      "id": "technical-binding-property-change",
+      "association_status": "需复核",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.technical_target|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.technical_target|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.technical_target|SUMMARY"
+    },
+    {
+      "id": "technical-binding-exact-condition-change",
+      "association_status": "需复核",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.technical_condition_target|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.technical_condition_target|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.technical_condition_target|SUMMARY"
+    },
+    {
+      "id": "deleted-object-is-retained",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|a984a1c91494b389bf0723de2631fd43f495bc736e28d8218a29da768d1d995a",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.deleted_object|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.deleted_object|SUMMARY"
+    },
+    {
+      "id": "legacy-summary-unique-field",
+      "association_status": "需复核",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture.legacy_summary|整体",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.legacy_summary|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|fixture.legacy_summary|SUMMARY"
+    },
+    {
+      "id": "legacy-condition-level-not-guessed",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|0d9703a071113ce9c2bd6b8fb9762e7ec634d97176bc60ad07d2d0d33bfd1d41",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.legacy_condition|COMBINED|legacy-condition-id",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.legacy_condition|COMBINED|legacy-condition-id"
+    },
+    {
+      "id": "unknown-attribute-is-retained",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|518a1bf3cffd87908a515fcca21820b920cede5742618709da68ad0c04336304",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.unknown_attribute|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.unknown_attribute|SUMMARY"
+    },
+    {
+      "id": "unknown-condition-is-retained",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|4a2b68b0e86175951959b1b434d35340d93c23592ae957434406eacf9f01261a",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.unknown_condition|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|fixture.unknown_condition|SUMMARY"
+    },
+    {
+      "id": "electricity-purchased-stable-row",
+      "association_status": "继续关联",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=PURCHASED",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+    },
+    {
+      "id": "electricity-export-legacy-summary-ambiguous",
+      "association_status": "待映射",
+      "sheet": "本次变化",
+      "stable_key": "retention|344ec810092ff814667a13a7ad63ab9454bce0273eaf06fd184e80b24c6118b9",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY"
+    },
+    {
+      "id": "operation-property-target",
+      "association_status": "继续关联",
+      "sheet": "操作与影响",
+      "stable_key": "operation|qz.carbon_accounting.software_policy|initialize_new_accounting|整体",
+      "original_projection_key": "operation|qz.carbon_accounting.software_policy|fixture-v1|initialize_new_accounting",
+      "current_projection_key": "operation|qz.carbon_accounting.software_policy|fixture-v2|initialize_new_accounting"
+    },
+    {
+      "id": "change-overall-feedback",
+      "association_status": "继续关联",
+      "sheet": "本次变化",
+      "stable_key": "change|qz.carbon_accounting.software_policy|review.change.candidate_bundle|整体",
+      "original_projection_key": "change|qz.carbon_accounting.software_policy|fixture-v1|review.change.candidate_bundle",
+      "current_projection_key": "change|qz.carbon_accounting.software_policy|fixture-v2|review.change.candidate_bundle"
+    },
+    {
+      "id": "electricity-purchased-technical-isolation",
+      "association_status": "继续关联",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=PURCHASED",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+    },
+    {
+      "id": "electricity-exported-technical-isolation",
+      "association_status": "需复核",
+      "sheet": "业务规则",
+      "stable_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|electricity.factor|source_path=CATALOGUE_TABLE_1;direction=EXPORTED",
+      "original_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v1|electricity.factor|SUMMARY",
+      "current_projection_key": "field|qz.carbon_accounting.industry.gbt_32151_34_2024|fixture-v2|electricity.factor|SUMMARY"
+    }
+  ],
+  "table_sheets": [
+    "业务规则",
+    "操作与影响",
+    "本次变化"
+  ],
+  "previous_table_refs": {
+    "业务规则": "A5:Y19",
+    "操作与影响": "A5:U6",
+    "本次变化": "A5:T6"
+  },
+  "output_table_refs": {
+    "业务规则": "A5:Y18",
+    "操作与影响": "A5:U6",
+    "本次变化": "A5:T12"
+  },
+  "direction_isolation_output_table_refs": {
+    "业务规则": "A5:Y18",
+    "操作与影响": "A5:U6",
+    "本次变化": "A5:T6"
+  },
+  "sticky_review": {
+    "second_generation": "需复核",
+    "third_generation": "需复核",
+    "explicit_confirmation": "继续关联",
+    "stale_confirmation_after_new_change": "需复核",
+    "original_opinion_revision_preserved": true,
+    "original_opinion_projection_preserved": true
+  },
+  "table_reversal_verified": true,
+  "technical_rows_reversed": true,
+  "technical_only_summary_unchanged": true,
+  "technical_mutations": [
+    {
+      "scenario": "technical-property-target",
+      "fixture_field_id": "fixture.technical_target",
+      "changed_property": "default_source",
+      "technical_rows": 87,
+      "binding_rows_before_after": [
+        78,
+        78
+      ],
+      "replacement_binding_is_from_real_source_row": true,
+      "before": {
+        "binding_id": "binding-anthracite_lhv_gbt32151_34_c1",
+        "parameter_id": "anthracite_lhv",
+        "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。"
+      },
+      "after": {
+        "binding_id": "binding-anthracite_carbon_content_gbt32151_34_c1",
+        "parameter_id": "anthracite_carbon_content",
+        "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。（fixture technical binding review: technical-property-target）"
+      }
+    },
+    {
+      "scenario": "technical-exact-condition-target",
+      "fixture_field_id": "fixture.technical_condition_target",
+      "changed_property": "default_source",
+      "technical_rows": 87,
+      "binding_rows_before_after": [
+        78,
+        78
+      ],
+      "replacement_binding_is_from_real_source_row": true,
+      "before": {
+        "binding_id": "binding-anthracite_lhv_gbt32151_34_c1",
+        "parameter_id": "anthracite_lhv",
+        "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。"
+      },
+      "after": {
+        "binding_id": "binding-anthracite_carbon_content_gbt32151_34_c1",
+        "parameter_id": "anthracite_carbon_content",
+        "reason": "精确Catalog绑定的新选择采用STANDARD_DEFAULT；数值仍单独从已登记Catalog/Resolver读取。（fixture technical binding review: technical-exact-condition-target）"
+      }
+    },
+    {
+      "scenario": "electricity-exported-context-only",
+      "fixture_field_id": "electricity.factor",
+      "changed_property": "default_source",
+      "technical_rows": 12,
+      "binding_rows_before_after": [
+        6,
+        6
+      ],
+      "replacement_binding_is_from_real_source_row": true,
+      "before": {
+        "binding_id": "binding-electricity_national_average_2023",
+        "parameter_id": "electricity_emission_factor_national",
+        "reason": "已核目录来源路径的新选择采用STANDARD_DEFAULT；购入/输出方向保持分支独立，非化石零因子仅购入；参数值仍从Catalog读取。"
+      },
+      "after": {
+        "binding_id": "binding-electricity_regional_average_2023_01",
+        "parameter_id": "electricity_emission_factor_regional_average",
+        "reason": "已核目录来源路径的新选择采用STANDARD_DEFAULT；购入/输出方向保持分支独立，非化石零因子仅购入；参数值仍从Catalog读取。（fixture technical binding review: electricity-exported-context-only）"
+      }
+    }
+  ],
+  "xlsx_saved_and_reopened": true,
+  "test_engine": "@oai/artifact-tool xlsx export/import; native Excel/WPS was not run",
+  "official_workbook_modified": false,
+  "temporary_workbooks_removed": true,
+  "temp_directory": null
+}

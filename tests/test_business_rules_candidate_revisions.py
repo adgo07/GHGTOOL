@@ -45,7 +45,7 @@ class CandidateRevisionExpectations(unittest.TestCase):
         toggle=ops['toggle_emission_source'];self.assertNotIn('presentation_only_views',ops)
         changes='\n'.join(toggle['changes']);invalidates='\n'.join(toggle['invalidates'])
         self.assertIn('INVOLVED',changes);self.assertIn('NOT_INVOLVED',changes)
-        self.assertRegex(changes,r'(dirty|变脏|输入脏|标脏)')
+        self.assertRegex(changes,r'(dirty|变脏|输入脏|标脏|已修改)')
         self.assertRegex(invalidates,r'(结果|result)')
         self.assertRegex('\n'.join(toggle['preserves']),r'(草稿|draft)')
         self.assertTrue(any('_toggle_source_group' in c for c in toggle['basis']))

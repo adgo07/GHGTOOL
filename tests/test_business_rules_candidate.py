@@ -1124,14 +1124,20 @@ class CandidateLoaderTests(unittest.TestCase):
             default_source={"state": "FIXED", "source": "STANDARD_DEFAULT", "reason": "CLI fixture"},
         )]))
         review_path = self.directory / "review.json"
+        technical_path = self.directory / "technical.json"
         completed = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_business_rules_candidate.py"),
-             "--review-json", str(review_path), str(package_path)],
+             "--review-json", str(review_path), "--technical-review-json", str(technical_path), str(package_path)],
             cwd=ROOT, capture_output=True, text=True, check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         review = json.loads(review_path.read_text(encoding="utf-8"))
         self.assertEqual(review["metadata"]["rule_set_id"], "test.common")
+        import hashlib
+        technical=json.loads(technical_path.read_text(encoding="utf-8"))
+        self.assertEqual(technical["metadata"]["source_compact_sha256"],hashlib.sha256(review_path.read_text(encoding="utf-8").encode("utf-8")).hexdigest())
+        self.assertEqual(technical["metadata"]["revision"],review["metadata"]["revision"])
+        self.assertTrue(technical["fields"])
         default_source = review["fields"][0]["default_source"]
         self.assertEqual(default_source["state"], "FIXED")
         self.assertEqual(default_source["groups"][0]["outcome"], {

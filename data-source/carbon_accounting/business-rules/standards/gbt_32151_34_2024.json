@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-16-r8",
+  "revision": "candidate-2026-10-16-r9",
   "base": "R8-FINAL已批准执行政策；G05固定规则快照仍源自main@204dded5；此包仅为CANDIDATE，尚非生产接入。",
   "dependency": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-16-r8"
+      "revision": "candidate-2026-10-16-r9"
     }
   ],
   "status": "CANDIDATE",
@@ -32923,7 +32923,7 @@
       "id": "fuel.fch",
       "name": "单位热值含碳量FCh",
       "kind": "quantity",
-      "unit": "tC/GJ (HEAT path)",
+      "unit": "tC/GJ",
       "default": {
         "state": "POLICY",
         "policy_id": "default.fuel_fch"
@@ -32944,23 +32944,23 @@
         {
           "channel": "GUI",
           "label": "单位热值含碳量FCh",
-          "unit": "tC/GJ (HEAT path)",
+          "unit": "tC/GJ",
           "binding": "business:fuel.fch",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "FCh用于按热值路径取得燃料含碳量；活动量可按质量或体积输入并经相应发热量换算；不新增HEAT活动量入口。业务绑定与既有映射字段关联见mapping_refs。"
         },
         {
           "channel": "EXCEL",
           "label": "单位热值含碳量FCh",
-          "unit": "tC/GJ (HEAT path)",
+          "unit": "tC/GJ",
           "binding": "business:fuel.fch",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "FCh用于按热值路径取得燃料含碳量；活动量可按质量或体积输入并经相应发热量换算；不新增HEAT活动量入口。业务绑定与既有映射字段关联见mapping_refs。"
         },
         {
           "channel": "DOMAIN",
           "label": "单位热值含碳量FCh",
-          "unit": "tC/GJ (HEAT path)",
+          "unit": "tC/GJ",
           "binding": "business:fuel.fch",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "FCh用于按热值路径取得燃料含碳量；活动量可按质量或体积输入并经相应发热量换算；不新增HEAT活动量入口。业务绑定与既有映射字段关联见mapping_refs。"
         }
       ],
       "basis": [
