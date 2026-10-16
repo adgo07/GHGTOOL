@@ -1,4 +1,4 @@
-"""Independent expectations from approved V1.2 and actual channel/unit consumers."""
+"""Independent R8 expectations and actual channel/unit consumers; no production adoption."""
 import ast
 import json
 import unittest
@@ -118,9 +118,9 @@ class CandidateRevisionExpectations(unittest.TestCase):
         for field in ('fuel.lhv','fuel.fch'):
             with self.subTest(field=field):
                 out=initialize(field,custom)
-                self.assertEqual(out['initialization_status'],'NO_AUTOMATIC_SOURCE')
-                self.assertIsNone(out['selected_business_source'])
-                self.assertNotIn('business_source',out['effective_context'])
+                self.assertEqual(out['initialization_status'],'INITIALIZED')
+                self.assertEqual(out['selected_business_source'],'MEASURED')
+                self.assertEqual(out['application']['default']['value'],{'state':'NONE'})
         for field in ('fuel.oxidation','fuel.direct_carbon','material.fixed_carbon','material.volatile_matter'):
             with self.subTest(field=field):
                 out=initialize(field,custom)

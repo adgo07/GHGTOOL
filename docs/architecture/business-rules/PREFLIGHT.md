@@ -1,3 +1,5 @@
+> 历史开工检查（2026-10-15原A基线）。保留当时检查与证据，不作当前政策；PR48合并后的本轮Contract/Mapping预检查见现有IMPLEMENTATION_REPORT。原中央锁定未升级。
+
 # 规则统一A包开工与Contract预检查
 
 日期：2026-10-15；仓库身份实核adgo07/GHGTOOL，默认分支main。成功fetch后main为204dded5d03853617f79a1f05693e89b619df9d1。独立工作树由该main创建，分支codex/ghg-business-rules-a。原主checkout为用户工作分支且有Excel及未跟踪资料，未切换、清理或覆盖。首轮非提权fetch因.git只读权限未写FETCH_HEAD，按允许范围重试后成功；这是执行权限问题，不是origin冲突。

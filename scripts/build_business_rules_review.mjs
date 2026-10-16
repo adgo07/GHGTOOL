@@ -31,8 +31,8 @@ if(previous){
     }
   }
 }
-const objectLabels={state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本实例组分数",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
-const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"任意覆盖路径（现有候选未开放）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
+const objectLabels={state:"状态",reason:"理由",values:"允许来源",value:"值",source:"来源",parameter_id:"参数ID",binding_id:"绑定ID",tags:"匹配条件",ranges:"范围与边界",origin:"对象类别",binding_status:"绑定资格",business_source:"当前来源",direction:"方向",attribute:"电力属性",source_path:"因子路径",catalog_table:"来源表",province:"省份",region:"区域",min:"下界",max:"上界",include_min:"包含下界",include_max:"包含上界",carbonate_component_count:"本批有效组分数",material_calculation_path:"已定义物料换算路径",channel:"渠道",label:"渠道名称",unit:"单位",binding:"控件/模型绑定"};
+const stateLabels={NONE:"无自动默认",NOT_APPLICABLE:"不适用",NO_LEGAL_SOURCES:"无合法来源",FIXED:"固定定义",BINDING:"引用参数绑定",POLICY:"登记策略",PENDING:"待核验",EDITABLE:"可填写/选择",LOCKED:"只读",CONDITIONAL:"条件待展开",STANDARD_DEFAULT:"缺省值",CALCULATED:"计算值",MEASURED:"实测值",CATALOG:"目录对象",CUSTOM:"自定义",LEGACY_UNSPECIFIED:"历史身份未确认",PURCHASED:"购入",EXPORTED:"输出",CONVENTIONAL:"常规电力",NONFOSSIL:"非化石",FOSSIL:"化石",VERIFIED:"来源登记已核验",ABSENT:"无适用绑定",READY:"可用",BLOCKED:"受阻",RESOLVED:"已求值",SOURCE_NOT_ALLOWED:"所选来源不合法",DEFINED_RECEIVED_BASIS_CONVERSION:"已批准收到基换算（仍核必要数值/基准）",SUPPLY_UNIT_MEASURED:"供电单位实测",ENTERPRISE_MEASURED:"企业实测",ENTERPRISE_CALCULATED:"企业计算",ARBITRARY_OVERRIDE:"库外自行填写（输入方式，非来源类别）",NONFOSSIL_ZERO:"非化石购电零排放",CATALOGUE_TABLE_1:"目录表1",CATALOGUE_TABLE_2:"目录表2",CATALOGUE_TABLE_3:"目录表3",CATALOGUE_TABLE_4:"目录表4",CATALOGUE_TABLE_5:"目录表5"};
 function literalCell(value){ const raw=String(value??""); return raw.startsWith("=")?"'"+raw:raw; }
 function text(value){
   if(value===null || value===undefined) return "";
@@ -97,7 +97,8 @@ function summaryText(summary){
       else if(value.state==="PENDING") result="适用性未完成核对，暂不自动填写";
     }
     if(result===undefined){
-      if(value.state==="FIXED") result=value.values?value.values.map(v=>stateLabels[v]??v).join(" / "):value.source?(stateLabels[value.source]??value.source):text(value.value);
+      if(summary.property==="source_qualification" && value.state==="NOT_APPLICABLE") result="本路径无需选择来源类别；不得冒用缺省/计算/实测";
+      else if(value.state==="FIXED") result=value.values?value.values.map(v=>stateLabels[v]??v).join(" / "):value.source?(stateLabels[value.source]??value.source):text(value.value);
       else if(value.state==="BINDING") result="按适用精确绑定从参数与因子库读取";
       else result=stateLabels[value.state]??value.state;
     }
@@ -145,7 +146,7 @@ for(const [name,records,tableName] of [["业务规则",payload.fields,"FieldsRev
   sheet.getRange("A2").values=[[name]];
   sheet.getRange("A2").format.font={name:"Microsoft YaHei",size:14,bold:true};
   sheet.getRange("A3").values=[[`A包候选 · ${text(metadata.revision??metadata.rule_set??"1.0")} · 不切生产`]];
-  sheet.getRange("A4").values=[["现有业务政策摘要；最终对齐等待映射批准。技术组合由测试核验，黄色列保留审阅意见。"]];
+  sheet.getRange("A4").values=[["已合并R8业务政策摘要；候选未接生产。业务条件保留，黄色列保留审阅意见。"]];
   const range=sheet.getRangeByIndexes(4,0,matrix.length,matrix[0].length);
   range.values=matrix;
   range.format.font={name:"Microsoft YaHei",size:11};

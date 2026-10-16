@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-15-compact1",
+  "revision": "candidate-2026-10-16-r8",
   "base": "Review-only software policy; no production adoption.",
   "dependency": [
     {
@@ -473,27 +473,34 @@
         "channel": "APPLICATION",
         "object": "validated Canonical Input"
       },
-      "action": "致命校验通过后共享Application调用Domain Calculator，持久化输入、结果、参数快照、规则与证据；每次成功核算追加新Record，致命失败不产生正式Record。",
+      "action": "仅在必要值、单位/量纲、数量基准、选定方法及目录身份等致命校验通过后，由共享Application调用Domain Calculator；每次成功核算各追加一条新Record。缺证明/附件或未审核只产生提醒与留白，不替代必要校验。按Issue015只对明确边界归属购入热力或已计燃料；边界/计量或既计项目不明时先澄清，不猜算、不自动置零。外部CO₂仅在单独输入操作纳入且有合法值时另列一次冻结补充合计，不进入ES/EI/ET。",
       "changes": [
-        "一条COMPLETED或COMPLETED_WITH_WARNINGS正式Record"
+        "每次成功核算新增一条COMPLETED或COMPLETED_WITH_WARNINGS正式Record，并冻结本次输入、结果、参数快照、规则与证据",
+        "若外部CO₂已纳入且有效，另冻结补充合计；ES、EI、ET保持不变"
       ],
       "preserves": [
-        "既有Record及其快照"
+        "既有Record及其快照",
+        "材料附件缺失/未审核只提醒；必要值、数量基准、方法和身份仍校验",
+        "未提供外部补充不表示活动不存在，旧Record不补造补充值"
       ],
       "invalidates": [
         "仅新增Record"
       ],
       "confirmation": [
-        "致命校验失败时不创建Record；软删除需二次确认并留审计"
+        "致命校验失败时不创建Record；软删除需二次确认并留审计",
+        "Issue015仅覆盖热源在边界外购入蒸汽与同边界燃料已计的明确情形；其余边界未明时不得猜算或自动置零"
       ],
       "basis": [
         "packages/application/carbon_accounting.py:CarbonAccountingUseCase.calculate",
         "packages/standards/carbon_material.py:CarbonMaterialCalculator.calculate",
-        "packages/persistence/records_repository.py:SQLiteRecordRepository.create"
+        "packages/persistence/records_repository.py:SQLiteRecordRepository.create",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§9.1, §11.1, TV-CAR-POL-004/005/006/007",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-015, -016"
       ],
       "cases": [
-        "tests/test_carbon_accounting_usecase.py::CarbonAccountingUseCaseTests.test_repeated_successes_append_new_records_and_blocked_outcome_is_unchanged",
-        "tests/test_carbon_accounting_usecase.py::CarbonAccountingUseCaseTests.test_saved_evidence_is_stable_across_later_calculations"
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-004/005 external supplement states and validation",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-006 heat boundary attribution",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-007 missing evidence with necessary inputs complete"
       ],
       "pending": [],
       "rule_ids": []
@@ -506,29 +513,35 @@
         "channel": "WORD_REPORT",
         "object": "saved AccountingRecord"
       },
-      "action": "读取已保存Record而不重新运行Calculator；ReportModel与附录B版面读取快照、单位、来源和缺失状态后渲染.docx。",
+      "action": "只读取已保存Record并渲染计算型Word，不重新运行Calculator或查询当前Catalog。若Record含冻结外部CO₂补充合计，则与ES/EI/ET分开原样读取；旧Record无该字段时维持原历史内容，不补造0。缺少证明附件或长说明可留提醒/空白；计算型Word不表示报告全文已核验。",
       "changes": [
-        "本次导出的Word文档及导出审计事件"
+        "生成本次Word文档及导出审计事件",
+        "存在时单独展示Record中已冻结的外部补充合计，不重算"
       ],
       "preserves": [
-        "冻结Record输入、结果、参数与规则快照"
+        "冻结Record输入、结果、参数与规则快照",
+        "ES/EI/ET与独立冻结的外部补充合计各自原样保留",
+        "旧Record缺少补充字段时不合成零值或改写历史"
       ],
       "invalidates": [
         "只新增导出产物/审计记录，不改Record"
       ],
       "confirmation": [
-        "不存在可用冻结Record时不得从当前未保存输入生成正式报告"
+        "不存在可用冻结Record时不得从当前未保存输入生成正式报告",
+        "证明材料或长说明缺失时保留必要提醒/留白，不声称报告全文已核验"
       ],
       "basis": [
         "packages/application/reporting/service.py:build_saved_record_report",
         "packages/application/reporting/model.py:build_report_model",
         "packages/application/reporting/appendix_b.py:build_appendix_b_sections",
-        "packages/infrastructure/reporting/word_renderer.py:render_report_docx"
+        "packages/infrastructure/reporting/word_renderer.py:render_report_docx",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§11.1, TV-CAR-POL-004/007",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-016"
       ],
       "cases": [
         "tests/test_rpt02_appendix_b.py::RPT02AppendixBTests.test_saved_report_uses_frozen_record_without_catalog_or_calculator",
-        "tests/test_rpt02_appendix_b.py::RPT02AppendixBTests.test_native_word_tables_are_editable_merged_and_repeat_headers",
-        "tests/test_uat03_formal_workflow.py::UAT03FormalWorkflowTests.test_word_entrypoint_uses_saved_record_and_is_disabled_after_input_changes"
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-004 old Record without supplement and frozen total",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-007 computational Word with missing evidence"
       ],
       "pending": [],
       "rule_ids": []
@@ -573,32 +586,38 @@
         "channel": "GUI_AND_DOMAIN",
         "object": "parameter field + context"
       },
-      "action": "按来源路径、参数类型/对象、企业与Catalog实际绑定分别解析numeric default、可选source及数值/来源读写状态；无绑定无数值兜底；未核实的Issue014路径保持待核验。",
+      "action": "按来源路径、参数对象、企业与Catalog实际绑定，逐字段解析数值默认、合法业务来源及数值/来源锁定；不跨字段推断来源，也不从无绑定借值。电力因子默认库内，允许录入库外值，适用性/年份仅作非阻断提醒，来源说明选填；库外值不得借用Catalog身份或标记为MEASURED。",
       "changes": [
-        "所选字段的默认来源、合法来源与锁定状态"
+        "所选字段的默认来源、合法来源与锁定状态",
+        "电力库外值的实际采用值与可选来源说明；不改变Catalog绑定或Catalog值"
       ],
       "preserves": [
-        "Catalog正式参数值与绑定真源"
+        "Catalog正式参数值与绑定真源",
+        "Issue014已批准的库外输入产品选择与其专业适用关系OPEN状态相互独立"
       ],
       "invalidates": [
         "仅确定该字段在当前核算上下文下的输入状态"
       ],
       "confirmation": [
-        "未命中唯一明确来源或Issue014供电单位实测/企业测算路径时阻断该选择"
+        "必要数值、单位/量纲、数量基准、定义方法和目录身份仍按各自条件校验；不能确定合法来源或必要值时阻断。证明材料缺失/未审核只提醒，不替代必要校验。",
+        "供电单位实测/企业测算适用关系仍待专业核验；该OPEN不阻断已批准的库外输入选择，用户输入不自动标记为MEASURED。"
       ],
       "basis": [
         "packages/application/carbon_accounting.py:create_g06_parameter_resolver",
         "packages/core/parameter_resolution.py:ParameterResolver.resolve",
-        "packages/standards/carbon_material.py:CarbonMaterialCalculator._resolve_parameter"
+        "packages/standards/carbon_material.py:CarbonMaterialCalculator._resolve_parameter",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§9.1, §9.8, §17.2 (R8)",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-014, -016"
       ],
       "cases": [
         "tests/test_uat03_formal_workflow.py::UAT03FormalWorkflowTests.test_catalog_manual_catalog_switch_freezes_actual_factor_without_borrowed_identity",
         "PR46:tests/test_pr46_parameter_source_policy.py::ParameterSourcePolicyTests.test_fuel_source_choices_are_field_and_origin_specific",
-        "PR46:tests/test_pr46_parameter_source_policy.py::CanonicalC2BindingTests.test_domain_resolves_registered_c2_source_for_all_eleven_identities"
+        "PR46:tests/test_pr46_parameter_source_policy.py::CanonicalC2BindingTests.test_domain_resolves_registered_c2_source_for_all_eleven_identities",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:Issue 014 current software decision"
       ],
       "pending": [
-        "Issue014 supply-unit measured/enterprise calculated paths remain PENDING.",
-        "Electricity Table 2/4/5 applicability remains PENDING until PR46@77d36a1/Issue010 is integrated; source registration review_status is recorded separately."
+        "Candidate-only: the updated decisions are not yet wired into the production parameter Resolver/UI.",
+        "Issue014 professional applicability remains OPEN only for supply-unit measured / enterprise-calculated paths; the out-of-catalog product choice is approved."
       ],
       "rule_ids": []
     },
@@ -645,6 +664,81 @@
         "A将业务启停与presentation-only视图分开描述；生产状态机/控件不由A改造。"
       ],
       "rule_ids": []
+    },
+    {
+      "key": "review.operation.capture_external_co2_supplement",
+      "operation_id": "capture_external_co2_supplement",
+      "name": "录入并冻结外部CO₂补充值",
+      "initial_context": {
+        "channel": "APPLICATION",
+        "object": "optional external CO₂ supplement for the current enterprise boundary and period"
+      },
+      "action": "仅接收同一企业汇总边界、同一期间且前述尚未计入的外部CO₂非负tCO₂值，可附可选短名称；不要求外部活动算法或证明附件。未纳入/禁用草稿不计入且不表示活动不存在；纳入但空白仍可完成炭素部分核算，补充合计待补且不造0；纳入真实0时单独形成ET+0；纳入合法值时只形成一次独立补充合计。",
+      "changes": [
+        "仅改变外部补充的纳入状态及其独立冻结合计",
+        "外部补充合计不并入、不覆盖ES、EI或ET"
+      ],
+      "preserves": [
+        "GB/T 32151.34原ES、EI、ET及其正式Record",
+        "其他行业和范围外上下游运输算法不进入本操作",
+        "未纳入状态不推断外部活动不存在"
+      ],
+      "invalidates": [
+        "仅本次未保存输入的结果；成功核算后补充值与合计随Record冻结"
+      ],
+      "confirmation": [
+        "必要时校验同企业边界、同核算期间及前述未计入；已知范围外、期间不符或重复项目为ERROR",
+        "负值、非有限值、非tCO₂单位或缺少必需值/基准为ERROR；不以材料提醒放行",
+        "纳入但空白不得转成0；禁用草稿不参与校验或合计"
+      ],
+      "basis": [
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§11.1, CAR-SUP-OTHER-ACTIVITY-CO2, CAR-VAL-EXTERNAL-CO2-INPUT",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-016"
+      ],
+      "cases": [
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-004",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-005"
+      ],
+      "pending": [
+        "Candidate-only operation boundary; production input, Record, Excel/Word integration and formal acceptance remain future work."
+      ],
+      "rule_ids": []
+    },
+    {
+      "key": "review.operation.resolve_steam_enthalpy",
+      "operation_id": "resolve_steam_enthalpy",
+      "name": "蒸汽自动焓路径候选边界",
+      "initial_context": {
+        "channel": "APPLICATION",
+        "object": "purchased steam with declared state and either known enthalpy or eligible automatic inputs"
+      },
+      "action": "仅登记后续自动焓路径边界：项目选择iapws.IAPWS97作为候选技术落点，输入状态和必要参数须明确并校验有效域。C.4/C.5仅为历史证据，不回退旧表或矩形插值。用户独立提供且合法的已知焓单独校验；自动辅助失败不改变或阻断该已知焓路径。本候选不实现或安装IAPWS依赖，也不声称生产数值Profile/Conformance已完成。",
+      "changes": [
+        "仅描述未来自动焓候选路径及其边界，不改变本次生产计算"
+      ],
+      "preserves": [
+        "合法独立已知焓与自动求焓路径分开",
+        "历史Record及其已保存的焓来源/数值"
+      ],
+      "invalidates": [
+        "自动路径输入状态仅影响依赖自动焓的未保存结果"
+      ],
+      "confirmation": [
+        "压力基准、温度、蒸汽状态和必要参数不明或与状态不相容时需校验/澄清，不猜值、不外推",
+        "已知焓须按必要数值、单位和状态校验；自动辅助失败不得触发旧表回退"
+      ],
+      "basis": [
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§9.7, CAR-FLD-HEAT-PURCHASED-HM, CAR-VAL-STEAM-STATE",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-017"
+      ],
+      "cases": [
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-011 old-table interpolation is not used",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:TV-CAR-POL-012 legal known enthalpy survives auxiliary failure"
+      ],
+      "pending": [
+        "Candidate-only: no dependency installation or production implementation; property subprofile, fixed dependency version, independent numeric references and Conformance remain outstanding."
+      ],
+      "rule_ids": []
     }
   ],
   "changes": [
@@ -682,15 +776,16 @@
       "key": "review.change.electricity_applicability",
       "change_type": "ELECTRICITY_SOURCE_QUALIFICATION",
       "before": "main G05 snapshot records source-rule facts but does not encode the full PR46/Issue010 regional and five-parameter applicability policy.",
-      "after": "A separates source-binding registration review from .34 software applicability: main Table 1 and verified Table 3 paths remain qualified; Table 2/4/5 paths and Issue014 supply-unit measured/enterprise calculated paths remain PENDING.",
-      "reason": "现存候选仍保留原严格适用分支。本轮只做收缩，不接管生产；Owner关于库外电力因子、非阻断核实提醒和来源选填的最新决定已批准，见HANDOFF，待映射任务协调后再落实，不再请求重复批准。来源登记VERIFIED与软件适用性继续分开。",
+      "after": "R8按分路径表达电力来源资格与软件选择：默认库内，允许库外输入，适用性/年份为非阻断提醒，来源说明选填；不得借用Catalog身份或自动标记MEASURED。供电单位实测/企业测算适用关系另保持Issue014专业OPEN。",
+      "reason": "同步已批准的Issue014库外输入产品选择与R8 Mapping；产品决定不等于专业适用性结论，来源登记状态也不代替软件来源资格。",
       "basis": [
         "docs/architecture/business-rules/ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md:table/regional qualification evidence",
         "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:default.electricity_factor",
         "PR46:tests/test_exb01_ingress.py::AppendixBIngressIntegrationTests.test_b8_exact_factor_values_select_all_five_verified_table_bases"
       ],
       "pending": [
-        "既有PR46/Issue010目录组合与最新Owner外部因子决定等待映射/实现对齐；不是Owner产品选择未定。"
+        "Candidate-only; production Resolver/UI integration remains future work.",
+        "Issue014 professional review remains OPEN only for supply-unit measured / enterprise-calculated applicability; the out-of-catalog product choice is approved."
       ]
     },
     {
@@ -713,7 +808,7 @@
       "change_type": "EXPLICIT_INITIAL_SOURCE_POLICY",
       "before": "候选字段区分数值default/source qualification/locking，但未独立表达新对象首次选择的来源；允许来源多项时存在被误读为默认首项的风险。 PR47@252a71d把无匹配EF1初始化误写为NONE，正式复验按Owner既有明确决定退回。",
       "after": "Industry 11个稳定参数目标字段增加default_source属性与逐条件政策：仅NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE、RESELECT_AFTER_LEAVE触发；terminal结果是单一FIXED来源、NONE或PENDING。技术/legacy镜像字段显式NONE；numeric default、来源资格、锁定保持独立。",
-      "reason": "落实V1.2 §7.1的首次默认来源行为并与数值Catalog默认分开。custom/unbound LHV/FCh不自动选来源；无匹配碳酸盐EF1按Owner已批准决定默认MEASURED、numeric default为NONE并由用户填写；氧化率/直接碳/材料/FGD/heat按已核现行政策明确；表2/4/5和Issue014仍PENDING。",
+      "reason": "按R8 Mapping逐字段登记新对象首次来源，不将数值Catalog默认与业务来源混为一谈。无目录匹配碳酸盐EF的实测来源决定及必要数值校验按已批准口径执行；电力库外输入产品选择已批准，Issue014仅保留特定供电单位实测/企业测算路径的专业OPEN。",
       "basis": [
         "approved_plan:APPROVED_IMPLEMENTATION_V1_2#§7.1",
         "PR46:packages/standards/carbon_material_input_policy.py:parameter_source_policy",
@@ -721,7 +816,7 @@
         "Owner已批准的无目录匹配碳酸盐EF默认实测决定；tests/test_business_rules_candidate_revisions.py::CandidateRevisionExpectations.test_unmatched_carbonate_initializes_measured_without_numeric_default"
       ],
       "pending": [
-        "A只定义候选初始来源语义，不实现GUI/Excel/Domain状态机或更改历史Project。"
+        "A候选仅记录初始来源语义，不实现GUI/Excel/Domain状态机或修改历史Project。"
       ]
     },
     {
@@ -759,17 +854,17 @@
     },
     {
       "key": "review.change.mapping_alignment",
-      "change_type": "MAPPING_REVIEW_PENDING",
+      "change_type": "MAPPING_R8_ALIGNMENT",
       "before": "原A出口要求完整内部字段盘点和上千技术组合审阅。",
-      "after": "默认只展示业务政策、关键操作与变化；关联已有Mapping ID。最终规则一致性等待并行映射核验和Owner批准。",
-      "reason": "不把代码现状升格为标准，不新增平行规范，不根据旧A PASS宣称新规则最终就绪。",
+      "after": "本候选按已完成的R8 Mapping和Issue 015/016/017批准决定同步关键操作；Mapping承担标准业务含义权威，候选只保留跨入口政策和操作摘要。",
+      "reason": "R8 Mapping已完成本轮最终整理；本次只是同步候选审阅表达，不产生第二套Mapping，不改已批准V1.2历史文件，也不自动采用到生产。",
       "basis": [
-        "Owner最新收敛第一步授权；HANDOFF当前工作包说明",
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md（本任务只读）"
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:R8 §9.1, §9.7, §9.8, §11.1, TV-CAR-POL-004/005/006/007/011/012",
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-014, -015, -016, -017"
       ],
       "pending": [
-        "并行映射复核及Owner最终批准；本步不改Mapping/标准问题台账、不接生产。",
-        "烟气焚烧P04A来源政策未纳入现有11项候选，不得套用fuel.*；等待映射核验明确。"
+        "Candidate-only; production implementation, numerical/Word acceptance and formal adoption remain separate later work.",
+        "P04A烟气焚烧专属来源政策未纳入本压缩候选；生产接入应按R8逐字段确认，不沿用fuel.*来源政策。"
       ]
     }
   ]

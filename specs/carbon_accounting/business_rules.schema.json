@@ -92,7 +92,8 @@
 "component_mode":{"enum":["DIRECT","FCH"]},"source_path":{"enum":["CATALOGUE_TABLE_1","CATALOGUE_TABLE_2","CATALOGUE_TABLE_3","CATALOGUE_TABLE_4","CATALOGUE_TABLE_5","NONFOSSIL_ZERO","SUPPLY_UNIT_MEASURED","ENTERPRISE_MEASURED","ENTERPRISE_CALCULATED","ARBITRARY_OVERRIDE"]},
 "direction":{"enum":["PURCHASED","EXPORTED"]},"attribute":{"enum":["CONVENTIONAL","NONFOSSIL","FOSSIL"]},"catalog_table":{"enum":["1","2","3","4","5"]},
 "region":{"$ref":"#/$defs/nonBlank"},"province":{"$ref":"#/$defs/nonBlank"},"standard_id":{"$ref":"#/$defs/token"},
-"period_type":{"enum":["ANNUAL","MONTHLY","CUSTOM"]},"fuel_path":{"enum":["MASS","VOLUME","HEAT"]}
+"period_type":{"enum":["ANNUAL","MONTHLY","CUSTOM"]},"fuel_path":{"enum":["MASS","VOLUME","HEAT"]},
+"material_calculation_path":{"enum":["DEFINED_RECEIVED_BASIS_CONVERSION"]}
 }},
 "ranges":{"type":"object","additionalProperties":false,"properties":{"carbonate_component_count":{"$ref":"#/$defs/countRange"}}}
 },

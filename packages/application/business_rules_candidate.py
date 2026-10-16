@@ -72,6 +72,7 @@ _CONTEXT_ENUMS = {
     "catalog_table": {"1", "2", "3", "4", "5"},
     "period_type": {"ANNUAL", "MONTHLY", "CUSTOM"},
     "fuel_path": {"MASS", "VOLUME", "HEAT"},
+    "material_calculation_path": {"DEFINED_RECEIVED_BASIS_CONVERSION"},
 }
 _CONTEXT_TEXT_KEYS = {"parameter_id", "binding_id", "standard_id", "region", "province"}
 _CONTEXT_TOKEN_KEYS = {"parameter_id", "binding_id", "standard_id"}
@@ -924,6 +925,22 @@ class CandidateBundle:
             source_outcome = state_map["source_qualification"]
             resolved_source = source_outcome.get("value")
             if (
+                "business_source" in current
+                and source_outcome["status"] == "RESOLVED"
+                and isinstance(resolved_source, Mapping)
+                and resolved_source.get("state") == "NOT_APPLICABLE"
+                and source_outcome.get("policy_id") is not None
+            ):
+                local_problems.append({
+                    "code": "SOURCE_NOT_APPLICABLE", "entry_key": entry_key, "field_id": field_id,
+                    "rule_set_id": package.rule_set_id, "property": "source_qualification",
+                    "business_source": current["business_source"],
+                    "message": (
+                        "this input path has no business_source selection; omit business_source "
+                        "instead of inferring a measured, calculated, or standard-default source"
+                    ),
+                })
+            elif (
                 "business_source" in current
                 and source_outcome["status"] == "RESOLVED"
                 and isinstance(resolved_source, Mapping)

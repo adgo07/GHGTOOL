@@ -155,10 +155,10 @@ class CandidateAssetCoverageTests(unittest.TestCase):
                     self.assertNotIn("绑定资格=来源登记已核验",locked)
                     self.assertEqual(rows[name][2],"比值（0～1）；界面/Excel用百分数（%）")
             carbonate=rows["脱硫碳酸盐含量I"][6].split("\n\n")
-            self.assertIn("本实例组分数=1",next(b for b in carbonate if b.startswith("数值可填写/选择，来源可填写/选择")))
+            self.assertIn("本批有效组分数=1",next(b for b in carbonate if b.startswith("数值可填写/选择，来源可填写/选择")))
             locked=next(b for b in carbonate if b.startswith("数值可填写/选择，来源只读"))
-            self.assertIn("本实例组分数=1",locked)
-            self.assertIn("本实例组分数≥2",locked)
+            self.assertIn("本批有效组分数=1",locked)
+            self.assertIn("本批有效组分数≥2",locked)
         finally:
             book.close()
 

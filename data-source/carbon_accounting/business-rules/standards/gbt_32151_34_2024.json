@@ -2,8 +2,8 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-15-compact1",
-  "base": "GB/T 32151.34-2024 G05 industry snapshot at main base 204dded5; CANDIDATE only.",
+  "revision": "candidate-2026-10-16-r8",
+  "base": "R8-FINAL已批准执行政策；G05固定规则快照仍源自main@204dded5；此包仅为CANDIDATE，尚非生产接入。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
@@ -11,7 +11,7 @@
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-15-compact1"
+      "revision": "candidate-2026-10-16-r8"
     }
   ],
   "status": "CANDIDATE",
@@ -1110,7 +1110,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1130,7 +1129,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1150,7 +1148,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1170,7 +1167,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1190,7 +1186,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1210,7 +1205,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1230,7 +1224,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1250,7 +1243,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1270,7 +1262,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1290,7 +1281,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1310,7 +1300,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1330,7 +1319,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1350,7 +1338,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1370,7 +1357,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1390,7 +1376,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1410,7 +1395,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1430,7 +1414,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1450,7 +1433,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1470,7 +1452,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1490,7 +1471,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1510,7 +1490,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1530,7 +1509,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1550,7 +1528,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1570,7 +1547,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1590,7 +1566,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1610,7 +1585,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1627,7 +1601,6 @@
           "value": {
             "state": "FIXED",
             "values": [
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -1644,7 +1617,6 @@
           "value": {
             "state": "FIXED",
             "values": [
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2201,7 +2173,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2221,7 +2192,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2241,7 +2211,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2261,7 +2230,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2281,7 +2249,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2301,7 +2268,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2321,7 +2287,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2341,7 +2306,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2361,7 +2325,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2381,7 +2344,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2401,7 +2363,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2421,7 +2382,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2441,7 +2401,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2461,7 +2420,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2481,7 +2439,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2501,7 +2458,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2521,7 +2477,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2541,7 +2496,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2561,7 +2515,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2581,7 +2534,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2601,7 +2553,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2621,7 +2572,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2641,7 +2591,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2661,7 +2610,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2681,7 +2629,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2701,7 +2648,6 @@
             "state": "FIXED",
             "values": [
               "STANDARD_DEFAULT",
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2718,7 +2664,6 @@
           "value": {
             "state": "FIXED",
             "values": [
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -2735,7 +2680,6 @@
           "value": {
             "state": "FIXED",
             "values": [
-              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -3835,6 +3779,7 @@
           "value": {
             "state": "FIXED",
             "values": [
+              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -3850,6 +3795,7 @@
           "value": {
             "state": "FIXED",
             "values": [
+              "CALCULATED",
               "MEASURED"
             ]
           }
@@ -3880,15 +3826,49 @@
           "id": "material_fixed_carbon_measured",
           "when": {
             "tags": {
-              "binding_status": "ABSENT"
+              "binding_status": "ABSENT",
+              "business_source": "MEASURED"
             },
             "ranges": {}
           },
           "value": {
             "state": "FIXED",
             "values": [
-              "MEASURED"
+              "MEASURED",
+              "CALCULATED"
             ]
+          }
+        },
+        {
+          "id": "material_fixed_carbon_conversion_calculated",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "CALCULATED",
+              "material_calculation_path": "DEFINED_RECEIVED_BASIS_CONVERSION"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "FIXED",
+            "values": [
+              "MEASURED",
+              "CALCULATED"
+            ]
+          }
+        },
+        {
+          "id": "material_fixed_carbon_no_standard_default",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "STANDARD_DEFAULT"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "原料固定碳含量无适用的行业标准缺省来源；须选择实测，或在已定义收到基换算路径下选择计算。"
           }
         }
       ]
@@ -3902,15 +3882,49 @@
           "id": "material_volatile_matter_measured",
           "when": {
             "tags": {
-              "binding_status": "ABSENT"
+              "binding_status": "ABSENT",
+              "business_source": "MEASURED"
             },
             "ranges": {}
           },
           "value": {
             "state": "FIXED",
             "values": [
-              "MEASURED"
+              "MEASURED",
+              "CALCULATED"
             ]
+          }
+        },
+        {
+          "id": "material_volatile_matter_conversion_calculated",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "CALCULATED",
+              "material_calculation_path": "DEFINED_RECEIVED_BASIS_CONVERSION"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "FIXED",
+            "values": [
+              "MEASURED",
+              "CALCULATED"
+            ]
+          }
+        },
+        {
+          "id": "material_volatile_matter_no_standard_default",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "STANDARD_DEFAULT"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "原料挥发分含量无适用的行业标准缺省来源；须选择实测，或在已定义收到基换算路径下选择计算。"
           }
         }
       ]
@@ -4787,8 +4801,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4808,8 +4822,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4830,8 +4844,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4851,8 +4865,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4873,8 +4887,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4894,8 +4908,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4916,8 +4930,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4937,8 +4951,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4959,8 +4973,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -4980,8 +4994,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -5002,8 +5016,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -5023,8 +5037,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -5045,8 +5059,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -5066,8 +5080,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6377,8 +6391,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -6397,8 +6411,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -6418,8 +6432,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -6438,8 +6452,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -6729,34 +6743,6 @@
           }
         },
         {
-          "id": "elec_override",
-          "when": {
-            "tags": {
-              "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "PURCHASED",
-              "business_source": "MEASURED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "state": "NONE"
-          }
-        },
-        {
-          "id": "elec_override_out",
-          "when": {
-            "tags": {
-              "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "MEASURED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "state": "NONE"
-          }
-        },
-        {
           "id": "elec_default_none_for_lock_electricity_factor_001_calculated",
           "when": {
             "tags": {
@@ -6852,7 +6838,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6873,7 +6860,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6893,7 +6881,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6913,7 +6902,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6934,7 +6924,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6955,7 +6946,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6975,7 +6967,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -6995,7 +6988,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7016,7 +7010,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7037,7 +7032,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7057,7 +7053,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7077,7 +7074,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7098,7 +7096,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7119,7 +7118,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7139,7 +7139,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7159,7 +7160,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7180,7 +7182,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7201,7 +7204,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7221,7 +7225,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7241,7 +7246,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7262,7 +7268,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7283,7 +7290,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7303,7 +7311,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7323,7 +7332,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7344,7 +7354,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7365,7 +7376,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7385,7 +7397,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -7405,7 +7418,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_regional_average"
           }
         },
         {
@@ -9885,7 +9899,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -9905,7 +9920,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -9924,7 +9940,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -9943,7 +9960,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_average_excluding_market_nonfossil"
           }
         },
         {
@@ -9963,7 +9981,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -9983,7 +10002,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -10002,7 +10022,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -10021,7 +10042,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE"
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
           }
         },
         {
@@ -10561,12 +10583,12 @@
           }
         },
         {
-          "id": "elec_default_none_for_lock_electricity_factor_099_standard_default",
+          "id": "elec_override_purchase_conventional_none",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
               "direction": "PURCHASED",
-              "business_source": "STANDARD_DEFAULT"
+              "attribute": "CONVENTIONAL"
             },
             "ranges": {}
           },
@@ -10575,12 +10597,12 @@
           }
         },
         {
-          "id": "elec_default_none_for_lock_electricity_factor_099_calculated",
+          "id": "elec_override_purchase_fossil_none",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
               "direction": "PURCHASED",
-              "business_source": "CALCULATED"
+              "attribute": "FOSSIL"
             },
             "ranges": {}
           },
@@ -10589,12 +10611,12 @@
           }
         },
         {
-          "id": "elec_default_none_for_lock_electricity_factor_100_standard_default",
+          "id": "elec_override_purchase_nonfossil_none",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "STANDARD_DEFAULT"
+              "direction": "PURCHASED",
+              "attribute": "NONFOSSIL"
             },
             "ranges": {}
           },
@@ -10603,12 +10625,11 @@
           }
         },
         {
-          "id": "elec_default_none_for_lock_electricity_factor_100_calculated",
+          "id": "elec_override_export_none",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "CALCULATED"
+              "direction": "EXPORTED"
             },
             "ranges": {}
           },
@@ -10683,8 +10704,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10703,8 +10726,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10724,8 +10749,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10744,8 +10771,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10765,8 +10794,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10785,8 +10816,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10806,8 +10839,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10826,8 +10861,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10847,8 +10884,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10867,8 +10906,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10888,8 +10929,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10908,8 +10951,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10929,8 +10974,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -10949,8 +10996,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -12319,8 +12368,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -12338,8 +12389,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -12358,8 +12411,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -12377,8 +12432,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
+            ]
           }
         },
         {
@@ -12652,17 +12709,48 @@
           }
         },
         {
-          "id": "elec_src_override",
+          "id": "elec_src_override_purchase_conventional",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "PURCHASED"
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NOT_APPLICABLE",
+            "reason": "常规购入电力的库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
+          }
+        },
+        {
+          "id": "elec_src_override_purchase_fossil",
+          "when": {
+            "tags": {
+              "source_path": "ARBITRARY_OVERRIDE",
+              "direction": "PURCHASED",
+              "attribute": "FOSSIL"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NOT_APPLICABLE",
+            "reason": "化石购入电力的库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
+          }
+        },
+        {
+          "id": "elec_src_override_purchase_nonfossil",
+          "when": {
+            "tags": {
+              "source_path": "ARBITRARY_OVERRIDE",
+              "direction": "PURCHASED",
+              "attribute": "NONFOSSIL"
             },
             "ranges": {}
           },
           "value": {
             "state": "NO_LEGAL_SOURCES",
-            "reason": "C02 excludes arbitrary manual factor override."
+            "reason": "购入非化石电力须由适用的真实非化石零因子身份与绑定表达；库外手填不能替代该零因子，也不得自动继承零值。"
           }
         },
         {
@@ -12675,8 +12763,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "NO_LEGAL_SOURCES",
-            "reason": "C02 excludes arbitrary manual factor override."
+            "state": "NOT_APPLICABLE",
+            "reason": "EXPORTED库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
           }
         }
       ]
@@ -12789,12 +12877,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 direct_catalog。当前选择 CALCULATED 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "state": "EDITABLE",
+              "reason": "FCm/FCV的合法实测或企业计算值由企业输入并保留必要依据。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 direct_catalog。当前选择不合格，但存在合法来源可切换。"
+              "reason": "FCm/FCV存在实测和经核验合法计算两种来源，可切换。"
             }
           }
         },
@@ -12810,11 +12898,11 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "实测来源的数值由企业提供、可编辑，并保留来源证据。"
+              "reason": "FCm/FCV的合法实测或企业计算值由企业输入并保留必要依据。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 direct_catalog。当前分支只允许 MEASURED，来源选择锁定。"
+              "state": "EDITABLE",
+              "reason": "FCm/FCV存在实测和经核验合法计算两种来源，可切换。"
             }
           }
         },
@@ -12849,12 +12937,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 direct_custom。当前选择 CALCULATED 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "state": "EDITABLE",
+              "reason": "FCm/FCV的合法实测或企业计算值由企业输入并保留必要依据。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 direct_custom。当前选择不合格，但存在合法来源可切换。"
+              "reason": "FCm/FCV存在实测和经核验合法计算两种来源，可切换。"
             }
           }
         },
@@ -12870,11 +12958,11 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "实测来源的数值由企业提供、可编辑，并保留来源证据。"
+              "reason": "FCm/FCV的合法实测或企业计算值由企业输入并保留必要依据。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 direct_custom。当前分支只允许 MEASURED，来源选择锁定。"
+              "state": "EDITABLE",
+              "reason": "FCm/FCV存在实测和经核验合法计算两种来源，可切换。"
             }
           }
         },
@@ -18927,31 +19015,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 material_fixed_carbon_measured。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "reason": "材料字段没有适用的行业标准缺省值。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 material_fixed_carbon_measured。当前选择不合格，但存在合法来源可切换。"
-            }
-          }
-        },
-        {
-          "id": "lock_material_fixed_carbon_001_calculated",
-          "when": {
-            "tags": {
-              "binding_status": "ABSENT",
-              "business_source": "CALCULATED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 material_fixed_carbon_measured。当前选择 CALCULATED 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
-            },
-            "source": {
-              "state": "EDITABLE",
-              "reason": "来源资格分支 material_fixed_carbon_measured。当前选择不合格，但存在合法来源可切换。"
+              "reason": "可切换为实测；计算来源仅在定义路径可用时开放。"
             }
           }
         },
@@ -18967,11 +19035,32 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "实测来源的数值由企业提供、可编辑，并保留来源证据。"
+              "reason": "合法收到基实测值由企业提供；缺少附件/长说明不改变数值资格。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 material_fixed_carbon_measured。当前分支只允许 MEASURED，来源选择锁定。"
+              "state": "EDITABLE",
+              "reason": "可切换至已定义的收到基换算计算路径；选择计算时仍须提供精确方法标签和必要数据。"
+            }
+          }
+        },
+        {
+          "id": "lock_material_fixed_carbon_calculated_defined_conversion",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "CALCULATED",
+              "material_calculation_path": "DEFINED_RECEIVED_BASIS_CONVERSION"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "value": {
+              "state": "EDITABLE",
+              "reason": "此标签只表示可用已定义收到基换算路径，不代表已提供必要数量/性质；缺水分、基准或数值时消费者仍须阻断。"
+            },
+            "source": {
+              "state": "EDITABLE",
+              "reason": "定义换算路径同时允许实测/计算两种来源切换。"
             }
           }
         }
@@ -18994,31 +19083,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 material_volatile_matter_measured。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "reason": "材料字段没有适用的行业标准缺省值。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 material_volatile_matter_measured。当前选择不合格，但存在合法来源可切换。"
-            }
-          }
-        },
-        {
-          "id": "lock_material_volatile_matter_001_calculated",
-          "when": {
-            "tags": {
-              "binding_status": "ABSENT",
-              "business_source": "CALCULATED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 material_volatile_matter_measured。当前选择 CALCULATED 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
-            },
-            "source": {
-              "state": "EDITABLE",
-              "reason": "来源资格分支 material_volatile_matter_measured。当前选择不合格，但存在合法来源可切换。"
+              "reason": "可切换为实测；计算来源仅在定义路径可用时开放。"
             }
           }
         },
@@ -19034,11 +19103,32 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "实测来源的数值由企业提供、可编辑，并保留来源证据。"
+              "reason": "合法收到基实测值由企业提供；缺少附件/长说明不改变数值资格。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 material_volatile_matter_measured。当前分支只允许 MEASURED，来源选择锁定。"
+              "state": "EDITABLE",
+              "reason": "可切换至已定义的收到基换算计算路径；选择计算时仍须提供精确方法标签和必要数据。"
+            }
+          }
+        },
+        {
+          "id": "lock_material_volatile_matter_calculated_defined_conversion",
+          "when": {
+            "tags": {
+              "binding_status": "ABSENT",
+              "business_source": "CALCULATED",
+              "material_calculation_path": "DEFINED_RECEIVED_BASIS_CONVERSION"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "value": {
+              "state": "EDITABLE",
+              "reason": "此标签只表示可用已定义收到基换算路径，不代表已提供必要数量/性质；缺水分、基准或数值时消费者仍须阻断。"
+            },
+            "source": {
+              "state": "EDITABLE",
+              "reason": "定义换算路径同时允许实测/计算两种来源切换。"
             }
           }
         }
@@ -20472,11 +20562,11 @@
           "value": {
             "value": {
               "state": "LOCKED",
-              "reason": "所选标准缺省值的数值只读；实际值仅由Catalog/Resolver提供。"
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
               "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_2023_purchased。当前分支只允许 STANDARD_DEFAULT，来源选择锁定。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20552,11 +20642,11 @@
           "value": {
             "value": {
               "state": "LOCKED",
-              "reason": "所选标准缺省值的数值只读；实际值仅由Catalog/Resolver提供。"
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
               "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_2023_exported。当前分支只允许 STANDARD_DEFAULT，来源选择锁定。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20631,12 +20721,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20660,11 +20750,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20688,11 +20778,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20714,12 +20804,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20742,11 +20832,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20769,11 +20859,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20796,12 +20886,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20825,11 +20915,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20853,11 +20943,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20879,12 +20969,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20907,11 +20997,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20934,11 +21024,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_02_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -20961,12 +21051,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -20990,11 +21080,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21018,11 +21108,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21044,12 +21134,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21072,11 +21162,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21099,11 +21189,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_03_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21126,12 +21216,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21155,11 +21245,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21183,11 +21273,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21209,12 +21299,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21237,11 +21327,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21264,11 +21354,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_04_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21291,12 +21381,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21320,11 +21410,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21348,11 +21438,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21374,12 +21464,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21402,11 +21492,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21429,11 +21519,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_05_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21456,12 +21546,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21485,11 +21575,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21513,11 +21603,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21539,12 +21629,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21567,11 +21657,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21594,11 +21684,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_06_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21621,12 +21711,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21650,11 +21740,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21678,11 +21768,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21704,12 +21794,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -21732,11 +21822,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -21759,11 +21849,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_regional_average_2023_07_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26735,12 +26825,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -26763,11 +26853,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26790,11 +26880,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26815,12 +26905,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -26842,11 +26932,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26868,11 +26958,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_average_excluding_market_nonfossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26894,12 +26984,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -26922,11 +27012,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26949,11 +27039,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -26974,12 +27064,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -27001,11 +27091,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -27027,11 +27117,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_binding-electricity_national_fossil_2023_01_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
             }
           }
         },
@@ -27504,12 +27594,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_missing_1_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_missing_1_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -27570,12 +27660,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_missing_1_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 elec_src_missing_1_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
             }
           }
         },
@@ -28218,128 +28308,85 @@
           }
         },
         {
-          "id": "lock_electricity_factor_099_standard_default",
+          "id": "lock_electricity_factor_override_purchase_conventional",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
               "direction": "PURCHASED",
-              "business_source": "STANDARD_DEFAULT"
+              "attribute": "CONVENTIONAL"
             },
             "ranges": {}
           },
           "value": {
             "value": {
-              "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有合法来源，不提供可编辑/缺省数值。"
+              "state": "EDITABLE",
+              "reason": "库外用户填写的数值由企业输入；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有任何合法来源，来源选择不可用。"
+              "state": "NOT_APPLICABLE",
+              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
             }
           }
         },
         {
-          "id": "lock_electricity_factor_099_calculated",
+          "id": "lock_electricity_factor_override_purchase_fossil",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
               "direction": "PURCHASED",
-              "business_source": "CALCULATED"
+              "attribute": "FOSSIL"
             },
             "ranges": {}
           },
           "value": {
             "value": {
-              "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有合法来源，不提供可编辑/缺省数值。"
+              "state": "EDITABLE",
+              "reason": "明确标记为化石属性的购入电力由企业填写；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有任何合法来源，来源选择不可用。"
+              "state": "NOT_APPLICABLE",
+              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
             }
           }
         },
         {
-          "id": "lock_electricity_factor_099_measured",
+          "id": "lock_electricity_factor_override_purchase_nonfossil",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
               "direction": "PURCHASED",
-              "business_source": "MEASURED"
+              "attribute": "NONFOSSIL"
             },
             "ranges": {}
           },
           "value": {
             "value": {
-              "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有合法来源，不提供可编辑/缺省数值。"
+              "state": "LOCKED",
+              "reason": "库外手填不能替代购入非化石电力的真实适用零因子身份或数值。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override。当前上下文没有任何合法来源，来源选择不可用。"
+              "state": "NOT_APPLICABLE",
+              "reason": "该库外输入渠道没有三类business_source选择；零因子须由独立真实身份与绑定表达。"
             }
           }
         },
         {
-          "id": "lock_electricity_factor_100_standard_default",
+          "id": "lock_electricity_factor_override_exported",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "STANDARD_DEFAULT"
+              "direction": "EXPORTED"
             },
             "ranges": {}
           },
           "value": {
             "value": {
-              "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有合法来源，不提供可编辑/缺省数值。"
+              "state": "EDITABLE",
+              "reason": "库外用户填写的数值由企业输入；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有任何合法来源，来源选择不可用。"
-            }
-          }
-        },
-        {
-          "id": "lock_electricity_factor_100_calculated",
-          "when": {
-            "tags": {
-              "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "CALCULATED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "value": {
               "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有合法来源，不提供可编辑/缺省数值。"
-            },
-            "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有任何合法来源，来源选择不可用。"
-            }
-          }
-        },
-        {
-          "id": "lock_electricity_factor_100_measured",
-          "when": {
-            "tags": {
-              "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "EXPORTED",
-              "business_source": "MEASURED"
-            },
-            "ranges": {}
-          },
-          "value": {
-            "value": {
-              "state": "NOT_APPLICABLE",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有合法来源，不提供可编辑/缺省数值。"
-            },
-            "source": {
-              "state": "LOCKED",
-              "reason": "来源资格分支 elec_src_override_out。当前上下文没有任何合法来源，来源选择不可用。"
+              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
             }
           }
         }
@@ -28764,8 +28811,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28784,8 +28832,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28805,8 +28854,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28825,8 +28875,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28846,8 +28897,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28866,8 +28918,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28887,8 +28940,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28907,8 +28961,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28928,8 +28983,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28948,8 +29004,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28969,8 +29026,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -28989,8 +29047,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -29010,8 +29069,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -29030,8 +29090,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -30340,8 +30401,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -30359,8 +30421,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -30379,8 +30442,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -30398,8 +30462,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "来源绑定登记的review_status为VERIFIED，但.34软件适用依赖PR46@77d36a1/Issue010五参数Rule+地区FactorApplicability；A尚未纳入该目标组合。"
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         },
         {
@@ -30672,17 +30737,48 @@
           }
         },
         {
-          "id": "init_elec_src_override",
+          "id": "init_elec_src_override_purchase_conventional",
           "when": {
             "tags": {
               "source_path": "ARBITRARY_OVERRIDE",
-              "direction": "PURCHASED"
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL"
             },
             "ranges": {}
           },
           "value": {
             "state": "NONE",
-            "reason": "来源资格明确排除当前路径；来源资格继续阻断，不提供默认来源。"
+            "reason": "常规购入电力库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
+          }
+        },
+        {
+          "id": "init_elec_src_override_purchase_fossil",
+          "when": {
+            "tags": {
+              "source_path": "ARBITRARY_OVERRIDE",
+              "direction": "PURCHASED",
+              "attribute": "FOSSIL"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NONE",
+            "reason": "化石购入电力库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
+          }
+        },
+        {
+          "id": "init_elec_src_override_purchase_nonfossil",
+          "when": {
+            "tags": {
+              "source_path": "ARBITRARY_OVERRIDE",
+              "direction": "PURCHASED",
+              "attribute": "NONFOSSIL"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "NONE",
+            "reason": "库外手填不得作为购入非化石电力的真实零因子身份或数值依据；不预填来源或零值。"
           }
         },
         {
@@ -30696,7 +30792,7 @@
           },
           "value": {
             "state": "NONE",
-            "reason": "来源资格明确排除当前路径；来源资格继续阻断，不提供默认来源。"
+            "reason": "库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
           }
         }
       ]
@@ -31566,8 +31662,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE",
-            "reason": "Catalog/custom未绑定上下文不自动选择CALCULATED或MEASURED中的任一项；用户需明确选择，且来源资格仍单独约束。"
+            "state": "FIXED",
+            "source": "MEASURED",
+            "reason": "无精确C.1缺省绑定时仅允许实测；初始来源为实测，数值仍待企业提供，不借用相近燃料缺省。"
           }
         },
         {
@@ -31580,8 +31677,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE",
-            "reason": "Catalog/custom未绑定上下文不自动选择CALCULATED或MEASURED中的任一项；用户需明确选择，且来源资格仍单独约束。"
+            "state": "FIXED",
+            "source": "MEASURED",
+            "reason": "无精确C.1缺省绑定时仅允许实测；初始来源为实测，数值仍待企业提供，不借用相近燃料缺省。"
           }
         },
         {
@@ -32057,8 +32155,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE",
-            "reason": "Catalog/custom未绑定上下文不自动选择CALCULATED或MEASURED中的任一项；用户需明确选择，且来源资格仍单独约束。"
+            "state": "FIXED",
+            "source": "MEASURED",
+            "reason": "无精确C.1缺省绑定时仅允许实测；初始来源为实测，数值仍待企业提供，不借用相近燃料缺省。"
           }
         },
         {
@@ -32071,8 +32170,9 @@
             "ranges": {}
           },
           "value": {
-            "state": "NONE",
-            "reason": "Catalog/custom未绑定上下文不自动选择CALCULATED或MEASURED中的任一项；用户需明确选择，且来源资格仍单独约束。"
+            "state": "FIXED",
+            "source": "MEASURED",
+            "reason": "无精确C.1缺省绑定时仅允许实测；初始来源为实测，数值仍待企业提供，不借用相近燃料缺省。"
           }
         },
         {
@@ -32740,7 +32840,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32802,7 +32902,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32864,7 +32964,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32925,7 +33025,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32985,7 +33085,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33052,7 +33152,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33117,7 +33217,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33178,7 +33278,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33240,7 +33340,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33301,7 +33401,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33367,7 +33467,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；并行复核中，最终对齐待批准）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
