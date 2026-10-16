@@ -145,3 +145,28 @@ Table实际A5:Y34、A5:U26、A5:T16，最大行高392/200/104pt，0公式/错误
 最终projection LF SHA256：`e2a3834605c66d4783455e3d293e8fdceaa3824fc2c34159de0b46cb7ad27d0b`；XLSX原字节：`752885cfe03587d22f039eee15e4be85285a24b205d9f07afc070f2dab0bda7f`；HTML：`24b97fe3973a00472dbecf33d1f80f731a71fa761400686e408dc0c033f7d012`；生成器：`44c2ec530e5025494a3988dbe0a0ab58aabc07118d49f1790a8e6e82e6057115`。精确身份及目录快照随正式checks保存。
 
 尚未闭合：本轮原生Excel/WPS打开/意见保存重开/排序和实际DOCX验证未执行；前者受Owner停止computer use约束，后者不在候选包实施范围。最终head Windows CI须以原PR本轮实际运行结果补证，当前本地记录不宣称GitHub Actions已通过。生产Resolver/UI/Word接入、正式计算业务验收及B/N均未实施；等待独立验收，不合并。
+
+
+## 2026-10-17 R11唯一残留定向收口（本次）
+
+Owner明确授权按《业务规则审阅表4_R11_联合复核结论》只修来源资格与锁定同步，不重开上轮12项。开工实核origin adgo07/GHGTOOL，原PR47分支codex/ghg-business-rules-a，起始head `0ebd93e65f0b8249afe888103aa8d72a0d7ceed0`，工作区干净，fetch成功。中央lock `ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变；本任务不涉及中央公共Contract。没有新增Standard Issue或软件解释，不改Mapping、专业决定、公式、标准范围、生产能力、46/B/N或历史Record。
+
+根因：LHV/FCh无适用绑定的有效资格已为单项MEASURED，锁定模板仍保留旧多来源理由；技术分支和紧凑摘要又各自读取原模板状态。修复只涉及这两个字段的CUSTOM/CATALOG且ABSENT路径：现有apply_context消费有效source_qualification.values，在合法唯一来源时锁定来源、数值仍可填，非法历史输入保持原身份及BLOCKED、来源允许纠错；定义中移除过时允许集合，不再维护第二份来源清单。policy_branch_values.locking直接读取当前求值，紧凑摘要也复用同一apply_context结果，而不是单独手写正确状态。原DTO模板沿用现有结构，不新增规范、枚举或规则框架。
+
+Luna/max独立只读对比确认：恰好12个技术组合变化（2字段×2对象×3来源），4个合法实测READY、数值EDITABLE/来源LOCKED；8个非法缺省/计算仍BLOCKED且来源可纠错；其余637组合完全不变。compact只有两字段locking摘要变化，operations/changes未变。工作簿业务可见变化仅G7/G8；两行从152增至184pt，仍低于409，三页最高216/344/120pt不变。649组合/281 READY/368 BLOCKED、61稳定行、三Table、各8技术列折叠和442意见scope保留。三项目录条目数值/定位未变，仅绑定新投影身份。
+
+执行与真实结果：
+
+- `python -m unittest tests.test_business_rules_candidate_paths -v`：13/13，1.178s，0failure/0error；新增一项测试内覆盖12组合，比较有效资格、apply_context、policy_branch_values及review_rows。
+- 现有wrapper导出 `build/business-rules-authoring/review-r11-locking-fix.json`、`technical-r11-locking-fix.json`、`catalog-r11-locking-fix.json`；现有builder消费上述文件和只读原表备份，输出安全新目录 `build/business-rules-authoring/r11-locking-fix/业务规则审阅表.xlsx`及HTML/manifest；exit 0，61行、retained_feedback=0。生成器和fixture源码未改，不手改附件。
+- `node scripts/test_business_rules_review.mjs --input build/business-rules-authoring/review-r11-locking-fix.json --technical-input build/business-rules-authoring/technical-r11-locking-fix.json --node-modules <现有bundled packages> --output build/business-rules-authoring/r11-locking-fix/review-feedback-fixture.json`：25/25（23主+2方向），6个实际HTML条件输入。
+- 另用旧实际R11表的两个独立ArtifactTool副本种入意见，再经原builder回收：LHV“读写锁定”意见保留为需复核（对应指纹变）；“允许来源”意见继续关联（对应指纹未变）；状态、属性、条件、原版本/投影/键均保留，每份retained_feedback=1。QA仅在忽略目录，不混入正式表；这不是原生Office验证。
+- 复用既有本地audit-r11，仅在内存替换临时输入/输出路径，不新增审计工具或长期台账；四件套结构、目录快照、442scope和指纹/哈希核验PASS。
+- `$env:GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR='build/business-rules-authoring/r11-locking-fix'` 后执行现有七模块联合 `python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q`：99/99，9.454s，0failure/0error。
+- 再次独占原表并核对仍为旧SHA752885cf…、已保存意见0条，与备份一致后，将四件套替换到原正式evidence目录；`python -m unittest tests.test_business_rules_candidate_assets -q`：19/19，5.062s；`python scripts/business_rules_review_hashes.py --root . --checks docs/architecture/business-rules/evidence/review-artifact-checks.json`：4个定义资产通过。`git diff --check`通过。
+
+修复过程的第一版13项路径测试通过，但实际渲染及独立复核发现compact尚读原模板；已在同一残留范围补齐摘要消费求值并重跑上述最终验证，不以中间测试PASS冒充完整链已修。原附件未修改，旧正式四件套及报告已备份；正式原表未有锁，实际独占读写成功，未删锁或终止进程。
+
+最终projection LF SHA：`cfbb643ea6c9510809a294160078c4ef36852afdb2213a6dbceb140804de60ba`。正式四件套SHA：XLSX `c4155edea6d0884b2463a0a7a578e1af1ff1712bad753bc7ea28432be86fb879`；HTML `e8a7add8a07e84fe88d02b78772ef36f60bb35a9103ceeedbec27ba333c006d0`；checks `ba017175f01f2f04cf89de3e1852c15901b97ed7deeda0facef8ae7d8874ee1b`；fixture `195a02f367a167659fdc6e99bea658ae3e27575419b83179796aea4ad138c21e`。
+
+原生Computer Use的Esc停止继续有效，本轮未启动桌面；原生Excel/WPS仍PENDING，不视作豁免或PASS。原PR47推送后的最新head与CI必须以本次最终送验评论补证；旧head0ebd的563测试/CI236不替本补丁背书。等待源会话独立验收，不合并，不启动其它包。

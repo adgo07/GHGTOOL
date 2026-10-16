@@ -49,6 +49,8 @@ _NON_INITIALIZATION_TRIGGERS = {
     "RESTORE", "IMPORT", "CONFIRM_SAME_IDENTITY", "BLUR", "REFRESH_CANDIDATES",
 }
 _LOCK_STATES = {"EDITABLE", "LOCKED", "CONDITIONAL", "NOT_APPLICABLE", "PENDING"}
+_UNBOUND_FUEL_SOURCE_LOCK_FIELDS = frozenset({"fuel.lhv", "fuel.fch"})
+
 _REVIEW_READINESS_SCOPE = "CANDIDATE_RULE_POLICY_EVALUATION_ONLY"
 _REVIEW_READINESS_NOTE = (
     "READY仅表示候选规则对当前上下文可求值；不表示必需数值和属性已填写、"
@@ -135,6 +137,17 @@ _CHANGE_KEYS = {"key", "change_type", "before", "after", "reason", "basis", "pen
 
 class CandidateBundleError(ValueError):
     """Raised when candidate JSON is incomplete, ambiguous, or unsafe to apply."""
+
+
+def _uses_unbound_fuel_source_qualification(
+    field_id: str, context: Mapping[str, Any] | None,
+) -> bool:
+    return (
+        field_id in _UNBOUND_FUEL_SOURCE_LOCK_FIELDS
+        and isinstance(context, Mapping)
+        and context.get("origin") in {"CUSTOM", "CATALOG"}
+        and context.get("binding_status") == "ABSENT"
+    )
 
 
 def _fail(path: str, message: str) -> None:
@@ -1005,6 +1018,34 @@ class CandidateBundle:
                     f"{invalid_source_message}请先选择合法来源，再继续使用该字段数值。"
                 )
                 locking_outcome = {**locking_outcome, "value": locking}
+            qualification_value = source_outcome.get("value")
+            qualified_sources = (
+                qualification_value.get("values", [])
+                if isinstance(qualification_value, Mapping)
+                and qualification_value.get("state") == "FIXED" else []
+            )
+            selected_source = current.get("business_source")
+            if (
+                _uses_unbound_fuel_source_qualification(field_id, current)
+                and source_outcome["status"] == "RESOLVED"
+                and len(qualified_sources) == 1
+                and selected_source is not None
+                and isinstance(locking, Mapping)
+                and isinstance(locking.get("source"), Mapping)
+            ):
+                source_is_qualified = selected_source in qualified_sources
+                locking = {
+                    **locking,
+                    "source": {
+                        "state": "LOCKED" if source_is_qualified else "EDITABLE",
+                        "reason": (
+                            "当前有效来源资格仅包含一个合法来源；来源选择已锁定。"
+                            if source_is_qualified else
+                            "当前选择不属于有效来源资格；来源选择仍可编辑，以便纠正。"
+                        ),
+                    },
+                }
+                locking_outcome = {**locking_outcome, "value": locking}
             if locking_outcome["status"] != "RESOLVED":
                 local_problems.append({
                     "code": locking_outcome["status"], "entry_key": entry_key, "field_id": field_id,
@@ -1302,6 +1343,14 @@ a fresh target context so a stale source cannot carry over.
 
         grouped: dict[str, dict[str, Any]] = {}
         for outcome, when in outcomes:
+            if (
+                property_name == "locking"
+                and _uses_unbound_fuel_source_qualification(field["id"], when["tags"])
+            ):
+                context = self._representative_context(when)
+                entry_key = f"{package.rule_set_id}:{field['id']}"
+                application = self.apply_context(context, field_ids=[entry_key])["outcomes"][entry_key]
+                outcome = application["locking"]
             if property_name == "locking":
                 semantic = {
                     "value_state": outcome["value"]["state"],
@@ -1653,6 +1702,14 @@ a fresh target context so a stale source cannot carry over.
                         "tags": {"business_source": "OTHER"}, "ranges": {},
                     }
                     branch_values["source_selection"] = {"state": "FIXED", "source": "OTHER"}
+
+                if (
+                    uncomposable is None
+                    and _uses_unbound_fuel_source_qualification(
+                        field["id"], initialization["effective_context"],
+                    )
+                ):
+                    branch_values["locking"] = locking_value
 
                 if uncomposable is not None:
                     source_eligibility = {

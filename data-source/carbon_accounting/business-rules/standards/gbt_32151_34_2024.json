@@ -14846,11 +14846,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 fuel_lhv_src_custom。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['CALCULATED', 'MEASURED'] 中；需先选择合法来源。"
+              "reason": "当前来源不属于此条件下的有效来源资格；需先选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_custom。当前选择不合格，但存在合法来源可切换。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -14871,7 +14871,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_custom。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -14892,7 +14892,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_custom。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -14909,11 +14909,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 fuel_lhv_src_absent。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['CALCULATED', 'MEASURED'] 中；需先选择合法来源。"
+              "reason": "当前来源不属于此条件下的有效来源资格；需先选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_absent。当前选择不合格，但存在合法来源可切换。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -14934,7 +14934,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_absent。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -14955,7 +14955,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_lhv_src_absent。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16836,11 +16836,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 fuel_fch_src_custom。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['CALCULATED', 'MEASURED'] 中；需先选择合法来源。"
+              "reason": "当前来源不属于此条件下的有效来源资格；需先选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_custom。当前选择不合格，但存在合法来源可切换。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16861,7 +16861,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_custom。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16882,7 +16882,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_custom。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16899,11 +16899,11 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 fuel_fch_src_absent。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['CALCULATED', 'MEASURED'] 中；需先选择合法来源。"
+              "reason": "当前来源不属于此条件下的有效来源资格；需先选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_absent。当前选择不合格，但存在合法来源可切换。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16924,7 +16924,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_absent。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },
@@ -16945,7 +16945,7 @@
             },
             "source": {
               "state": "EDITABLE",
-              "reason": "来源资格分支 fuel_fch_src_absent。当前分支允许多种来源，可切换；选定来源的数值状态见本分支。"
+              "reason": "来源选择状态由当前有效来源资格派生。"
             }
           }
         },

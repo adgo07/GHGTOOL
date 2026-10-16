@@ -79,6 +79,74 @@ class CandidateBusinessPathTests(unittest.TestCase):
                 self.assertIn("纠正当前输入", reason)
                 self.assertIn("不表示该来源已获准", reason)
 
+    def test_unbound_lhv_fch_locking_follows_effective_source_qualification(self):
+        rows = self.bundle.technical_review_rows()["fields"]
+        summaries = {
+            row["field_id"]: row for row in self.bundle.review_rows()["fields"]
+        }
+        for field in ("fuel.lhv", "fuel.fch"):
+            for origin in ("CUSTOM", "CATALOG"):
+                for source in ("MEASURED", "STANDARD_DEFAULT", "CALCULATED"):
+                    with self.subTest(field=field, origin=origin, source=source):
+                        context = {
+                            "origin": origin, "binding_status": "ABSENT",
+                            "business_source": source,
+                        }
+                        outcome = self.outcome(field, **context)
+                        qualification = outcome["source_qualification"]["value"]
+                        self.assertEqual(qualification["values"], ["MEASURED"])
+                        self.assertEqual(
+                            outcome["status"], "READY" if source == "MEASURED" else "BLOCKED",
+                        )
+                        self.assertEqual(
+                            outcome["locking"]["value"]["state"],
+                            "EDITABLE" if source == "MEASURED" or source == "CALCULATED" else "PENDING",
+                        )
+                        self.assertEqual(
+                            outcome["locking"]["source"]["state"],
+                            "LOCKED" if source == "MEASURED" else "EDITABLE",
+                        )
+                        self.assertIn("有效来源资格", outcome["locking"]["source"]["reason"])
+                        self.assertNotIn("允许多种来源", outcome["locking"]["source"]["reason"])
+
+                        matches = [row for row in rows if (
+                            row["field_id"] == field
+                            and row["effective_context"] is not None
+                            and row["effective_context"].get("origin") == origin
+                            and row["effective_context"].get("binding_status") == "ABSENT"
+                            and row["selected_business_source"] == source
+                        )]
+                        self.assertEqual(len(matches), 1)
+                        row = matches[0]
+                        self.assertEqual(row["source_eligibility"]["allowed_sources"], ["MEASURED"])
+                        self.assertEqual(
+                            row["source_eligibility"]["status"],
+                            "QUALIFIED" if source == "MEASURED" else "NOT_ALLOWED",
+                        )
+                        self.assertEqual(
+                            row["policy_branch_values"]["source_qualification"], qualification,
+                        )
+                        self.assertEqual(row["policy_branch_values"]["locking"], row["locking"])
+                        self.assertEqual(row["locking"], outcome["locking"])
+
+                        matching_summary_groups = [
+                            group for group in summaries[field]["locking"]["groups"]
+                            if any(
+                                condition["tags"].get("origin") == origin
+                                and condition["tags"].get("binding_status") == "ABSENT"
+                                and condition["tags"].get("business_source") == source
+                                for condition in group["conditions"]
+                            )
+                        ]
+                        self.assertEqual(len(matching_summary_groups), 1)
+                        summary_outcome = matching_summary_groups[0]["outcome"]
+                        self.assertEqual(
+                            summary_outcome["source_state"], outcome["locking"]["source"]["state"],
+                        )
+                        self.assertEqual(
+                            summary_outcome["value_state"], outcome["locking"]["value"]["state"],
+                        )
+
     def test_fcm_fcv_keep_legal_calculated_source(self):
         for origin in ("CATALOG", "CUSTOM"):
             for source in ("CALCULATED", "MEASURED"):
