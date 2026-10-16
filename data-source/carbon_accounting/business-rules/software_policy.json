@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-16-r10",
+  "revision": "candidate-2026-10-17-r11",
   "base": "Review-only software policy; no production adoption.",
   "dependency": [
     {
@@ -67,7 +67,7 @@
         "channel": "GUI",
         "object": "燃料/物料名称编辑与确认控件"
       },
-      "action": "编辑尚未确认的名称只更新显示名称草稿，不改变已确认的参数库身份，也不应用数值默认或default_source。重复输入相同文本、失去焦点或刷新候选列表均不触发初始化。",
+      "action": "编辑尚未确认的名称只更新显示名称草稿，不改变已确认的参数库身份，也不应用数值默认或default_source；不因每次按键、相同文本、失去焦点或刷新候选列表而清空参数或触发初始化。",
       "changes": [
         "尚未确认的显示名称和搜索草稿"
       ],
@@ -79,7 +79,8 @@
         "已确认的规范化业务数据保持有效"
       ],
       "confirmation": [
-        "只有明确确认新身份时才进入switch_catalog_identity；确认后身份未变时进入confirm_same_catalog_identity"
+        "正式核算前使用现有确认/取消交互处理未确认名称：确认新身份后进入switch_catalog_identity，确认仍为同一身份则进入confirm_same_catalog_identity；取消后仍显示并使用原已确认身份。",
+        "不得显示未确认的新名称却按旧身份正式核算；不增加新的身份状态平台。"
       ],
       "basis": [
         "packages/ui/carbon_material_page.py:_FuelRow.fuel_type",
@@ -116,7 +117,8 @@
         "不清空或重置当前参数、来源、计量方式或来源草稿；不替换数值来源证据"
       ],
       "confirmation": [
-        "同身份确认、失去焦点和刷新候选列表都不是身份变更，不触发新建初始化"
+        "同身份确认、失去焦点和刷新候选列表都不是身份变更，不触发新建初始化。",
+        "同身份确认不应用数值默认或default_source，不重置参数、单位、计量路径或来源草稿。"
       ],
       "basis": [
         "PR46:packages/ui/name_selector.py:NameSelector.confirm_name",
@@ -181,7 +183,7 @@
         "channel": "GUI",
         "object": "来源可选为STANDARD_DEFAULT、CALCULATED或MEASURED的参数字段"
       },
-      "action": "用户明确切换参数来源时，只恢复该来源自己的已保存草稿和证据。只有操作属于新身份选择且default_source明确给出单一来源时，首次选择的新来源才初始化。来源切换本身不复用参数库数值，也不把已录入的实测值改标为标准值。",
+      "action": "用户明确切换参数来源时，切到MEASURED/CALCULATED只恢复仍适用于同一参数对象、字段、单位和来源的有效草稿及证据；没有该来源草稿时留空待填，不把其他对象或单位的值挪来，也不把缺省值换标签。用户明确切回STANDARD_DEFAULT时，由现有Resolver按当前采用版本和完整核算上下文解析该对象/字段/单位的适用绑定并取绑定值；无适用绑定时明确提示缺少缺省绑定，不借用其他对象的绑定或补零。这是来源切换；新对象初始化、同身份确认和RESTORE各按各自操作处理。",
       "changes": [
         "当前字段的活动来源选择及其对应数值/依据草稿"
       ],
@@ -193,7 +195,9 @@
         "原活动来源的值不再作为当前来源值参与本次计算，但仍保留为独立草稿"
       ],
       "confirmation": [
-        "所选来源必须属于source_qualification允许项；FIXED初始来源不代表以后禁止显式切换，除非锁定规则另有规定"
+        "MEASURED/CALCULATED等目标来源须属于该字段在当前上下文中的source_qualification允许项；只恢复同对象、同字段、同单位、同来源的有效草稿，缺少草稿时不伪造值。",
+        "显式切回STANDARD_DEFAULT时才按当前采用版本/上下文重新解析适用绑定；无绑定给出明确缺省不可用提示，不借值或补零。",
+        "新身份首次初始化只由NEW_SELECTION、CONFIRMED_IDENTITY_CHANGE或RESELECT_AFTER_LEAVE相应规则触发；同身份确认和RESTORE不触发默认初始化。"
       ],
       "basis": [
         "PR46:packages/ui/carbon_material_page.py:CarbonMaterialAccountingPage._on_fuel_source_mode_changed",
@@ -218,7 +222,7 @@
         "channel": "GUI",
         "object": "燃料输入路径与含碳量/热值计量基准"
       },
-      "action": "用户更换燃料计量路径或质量/体积单位时，重新确定适用于新路径的参数身份和单位；不静默换算旧路径值，也不冒充新路径默认值。DIRECT路径使用实测直接含碳量；使用FCh的热值计算路径按质量或体积活动量经发热量换算。此操作与重复确认同一身份不同，本候选不增设HEAT活动量入口。",
+      "action": "用户更换燃料计量路径或质量/体积单位时，重新确定适用于新路径的参数身份和单位；不静默换算旧路径值，也不冒充新路径默认值。DIRECT路径使用fuel.direct_carbon字段在当前对象、路径和单位下由该字段source_qualification允许的单位质量/体积直接含碳量，不重复乘低位发热量或FCh。使用FCh的热值计算路径按质量或体积活动量经低位发热量换算。此操作与重复确认同一身份不同，本候选不增设HEAT活动量入口。",
       "changes": [
         "当前燃料计量路径、活动量单位，以及该路径对应的含碳量/LHV/FCh参数语义"
       ],
@@ -473,7 +477,7 @@
         "channel": "APPLICATION",
         "object": "已通过必要校验的规范化输入"
       },
-      "action": "只有必要数值、单位/量纲、数量基准、选定方法及参数库身份等致命校验全部通过后，共享应用层才调用领域计算器；每次成功核算新增一条正式核算记录。证明/附件缺失或尚未审核只产生提醒与留白，不替代必要校验。根据Issue015，只处理边界归属明确的购入蒸汽或同边界已计燃料；边界、计量或是否已计入不明时先澄清，不猜算、不自动置零。外部CO₂只在单独补充操作中纳入且有合法值时，另列一次冻结合计，不并入ES/EI/ET。",
+      "action": "只有必要数值、单位/量纲、数量基准、选定方法及参数库身份等致命校验全部通过后，共享应用层才调用领域计算器；每次成功核算新增一条正式核算记录。正式核算前若存在未确认名称草稿，先用现有确认/取消交互处理：确认新身份后按其身份初始化，取消则保留原已确认身份；未决时不调用核算，避免显示新名称却按旧身份计算。证明/附件缺失或尚未审核只产生提醒与留白，不替代必要校验。根据Issue015，只处理边界归属明确的购入蒸汽或同边界已计燃料；边界、计量或是否已计入不明时先澄清，不猜算、不自动置零。外部CO₂只在单独补充操作中纳入且有合法值时，另列一次冻结合计，不并入ES/EI/ET；已纳入但空白的补充合计待补，不阻断有效的炭素部分核算。",
       "changes": [
         "每次成功核算新增一条状态为COMPLETED或COMPLETED_WITH_WARNINGS的正式核算记录，并冻结本次输入、结果、参数快照、规则与证据",
         "若外部CO₂已纳入且合法，另行冻结补充合计；ES、EI、ET保持不变"
@@ -488,7 +492,8 @@
       ],
       "confirmation": [
         "致命校验失败时不创建记录；软删除必须二次确认并保留审计",
-        "Issue015只覆盖边界外购入蒸汽与同边界燃料已计等明确情形；其他边界未明时不得猜算或自动置零"
+        "Issue015只覆盖边界外购入蒸汽与同边界燃料已计等明确情形；其他边界未明时不得猜算或自动置零",
+        "未确认名称草稿必须先用现有确认/取消交互处理；未决时不得以原身份生成Record并展示未确认的新名称，不新增身份状态平台。"
       ],
       "basis": [
         "packages/application/carbon_accounting.py:CarbonAccountingUseCase.calculate",
@@ -586,21 +591,25 @@
         "channel": "GUI_AND_DOMAIN",
         "object": "当前核算上下文中的参数字段"
       },
-      "action": "依据来源路径、参数对象和真实绑定逐字段解析数值默认、合法业务来源及数值/来源锁定；电力因子的常规默认仍为目录来源。仅在electricity.factor的库外路径显式选择电力专属OTHER后才可填写库外因子；OTHER不自动预选、不预填值、不赋目录参数/source binding ID，也不自动标记为MEASURED。对来源适用性、有效年份/地区和来源依据显示非阻断核实提醒；来源说明文字选填，留空不阻断。必要数值、有限性与合法单位/量纲仍按硬校验执行，OTHER不绕过校验；不因此开放燃料或其他字段的OTHER。",
+      "action": "按当前采用的标准/通则版本和完整核算上下文，调用现有Resolver，逐字段核对参数对象、字段、单位及真实适用绑定，解析数值默认、合法业务来源与数值/来源锁定。用户明确将当前来源切回STANDARD_DEFAULT时，重新解析当前对象的适用绑定并采用绑定值；无适用绑定时明确提示缺少适用缺省，不借用其他对象或来源的绑定，也不回填0。新身份初始化时的default_source与数值默认分别处理；同身份确认、RESTORE和显式来源切换不互相冒充。电力因子的常规默认仍为目录来源。仅在electricity.factor的库外路径显式选择电力专属OTHER后才可填写库外因子；OTHER不自动预选、不预填值、不赋目录参数/source binding ID，也不自动标记为MEASURED。对来源适用性、有效年份/地区和来源依据显示非阻断核实提醒；来源说明文字选填，留空不阻断。必要数值、有限性与合法单位/量纲仍按硬校验执行，OTHER不绕过校验；不因此开放燃料或其他字段的OTHER。",
       "changes": [
-        "所选字段的默认来源、合法来源和锁定状态",
+        "所选字段在当前版本和核算上下文下的真实适用绑定、数值默认、合法来源和锁定状态",
+        "显式切回STANDARD_DEFAULT时解析所得绑定值；无适用绑定时呈现明确的不可用状态，不产生替代数值",
         "电力字段显式选择OTHER后的库外值及可选来源说明；不改变参数库绑定、参数库值或来源身份"
       ],
       "preserves": [
         "参数库登记的正式参数值、默认目录路径与来源绑定真源",
+        "其他对象、字段、单位和手填来源各自的有效草稿及证据，不跨对象借值、不改标来源",
         "标准/通则来源依据差异的事实与技术判断；本软件选项不表示专业等价或行业认可"
       ],
       "invalidates": [
         "只确定该字段在当前核算上下文中的输入状态"
       ],
       "confirmation": [
-        "必要值、有限性、合法单位/量纲、数量基准和定义方法仍分别校验；缺失必要值或非法数值/单位时阻断核算。来源说明可空。",
-        "OTHER只适用于electricity.factor的显式库外来源选择；不得沿用Catalog/source binding ID、伪称MEASURED或扩成燃料及其他字段的来源资格。"
+        "STANDARD_DEFAULT仅在当前采用版本和完整上下文中存在适用绑定时可取得目录值；无绑定必须明确提示，不能借用其他对象/字段/单位的值或回填0。",
+        "必要值、有限性、合法单位/量纲、数量基准和定义方法仍分别校验；缺失必要值或非法数值/单位时阻断核算。外部CO₂补充的纳入空白按其专门规则保持待补，不属于炭素部分缺失必需值；来源说明可空。",
+        "OTHER只适用于electricity.factor的显式库外来源选择；不得沿用Catalog/source binding ID、伪称MEASURED或扩成燃料及其他字段的来源资格。",
+        "新身份初始化、同身份确认、RESTORE和显式来源切换是不同操作；RESTORE不重新初始化default_source或数值默认。"
       ],
       "basis": [
         "packages/application/carbon_accounting.py:create_g06_parameter_resolver",
@@ -688,9 +697,10 @@
         "只影响本次未保存输入的结果；成功核算后补充值与合计随记录冻结"
       ],
       "confirmation": [
-        "必要时校验同一企业边界、同一核算期间及前述未计入状态；已知范围外、期间不符或重复项目均为ERROR",
-        "负值、非有限值、非tCO₂单位或缺少必需值/基准均为ERROR；不得以材料提醒放行",
-        "纳入但空白不得转成0；禁用草稿不参与校验或合计"
+        "已纳入外部补充但数值空白时只将该补充合计标为待补；这不构成炭素部分核算的缺失必需值，也不造0。",
+        "核心炭素输入自身缺少必需值/基准时仍为ERROR；外部补充实际填写后，其负值、非有限值、非tCO₂单位或无效数值基准为ERROR。",
+        "必要时校验同一企业边界、同一核算期间及前述未计入状态；已知范围外、期间不符或重复项目均为ERROR。",
+        "禁用草稿不参与校验或合计；纳入真实0和纳入合法正值分别形成一次独立补充合计。"
       ],
       "basis": [
         "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:§11.1, CAR-SUP-OTHER-ACTIVITY-CO2, CAR-VAL-EXTERNAL-CO2-INPUT",
@@ -746,7 +756,7 @@
     {
       "key": "review.change.candidate_bundle",
       "change_type": "CANDIDATE_ONLY_RULE_ASSETS",
-      "before": "main has no review-only canonical business-rule bundle/strict candidate loader on the production input path.",
+      "before": "原主线没有供审阅的统一业务规则边界及严格加载入口。",
       "after": "仅保留11个跨入口业务政策概念与来源/默认/锁定策略；移除109个GUI现状镜像和333个内部属性投影。技术条件组合由严格测试检查，不要求Owner逐行批准。",
       "reason": "按Owner最新减负授权收缩候选执行表达；标准映射及有效决定才是业务权威，生成Excel只是审阅视图。",
       "basis": [
@@ -756,7 +766,7 @@
         "A-only candidate loader: packages/application/business_rules_candidate.py:load_bundle"
       ],
       "pending": [
-        "Candidate JSON is review-only and is not a production source of truth until separate B migration and acceptance."
+        "候选JSON仅用于审阅；独立B阶段迁移与验收完成前，不作为生产真值源。"
       ]
     },
     {
@@ -770,7 +780,7 @@
         "docs/architecture/business-rules/CONSUMER_INVENTORY.md:C01固定采用"
       ],
       "pending": [
-        "Candidate-only; no production policy source switch."
+        "仅候选审阅；未切换生产政策来源。"
       ]
     },
     {
@@ -785,7 +795,7 @@
         "PR46:tests/test_exb01_ingress.py::AppendixBIngressIntegrationTests.test_b8_exact_factor_values_select_all_five_verified_table_bases"
       ],
       "pending": [
-        "Candidate-only; production Resolver/UI integration remains future work.",
+        "仅候选审阅；生产Resolver与界面接入仍为后续任务。",
         "后续生产接入仍需落实显式OTHER选择、可选来源说明与非阻断提醒；不得扩展为其他字段来源资格。"
       ]
     },
@@ -864,7 +874,7 @@
         "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-014, -015, -016, -017"
       ],
       "pending": [
-        "Candidate-only; production implementation, numerical/Word acceptance and formal adoption remain separate later work.",
+        "仅候选审阅；生产实现、数值及Word验收、正式采用留在后续独立任务。",
         "P04A烟气焚烧专属来源政策未纳入本压缩候选；生产接入应按R8逐字段确认，不沿用fuel.*来源政策。"
       ]
     },

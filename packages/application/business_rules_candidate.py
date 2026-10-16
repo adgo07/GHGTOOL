@@ -49,6 +49,11 @@ _NON_INITIALIZATION_TRIGGERS = {
     "RESTORE", "IMPORT", "CONFIRM_SAME_IDENTITY", "BLUR", "REFRESH_CANDIDATES",
 }
 _LOCK_STATES = {"EDITABLE", "LOCKED", "CONDITIONAL", "NOT_APPLICABLE", "PENDING"}
+_REVIEW_READINESS_SCOPE = "CANDIDATE_RULE_POLICY_EVALUATION_ONLY"
+_REVIEW_READINESS_NOTE = (
+    "READY仅表示候选规则对当前上下文可求值；不表示必需数值和属性已填写、"
+    "完整正式输入已通过校验或可以生成正式记录。"
+)
 _PACKAGE_KINDS = {"COMMON", "INDUSTRY", "SOFTWARE"}
 _FIELD_KINDS = {"text", "quantity", "percentage", "integer", "enum", "boolean",
                 "readonly_parameter", "metadata", "status", "report"}
@@ -926,6 +931,24 @@ class CandidateBundle:
                     })
             source_outcome = state_map["source_qualification"]
             resolved_source = source_outcome.get("value")
+            invalid_source_message: str | None = None
+            if (
+                source_outcome["status"] == "MISSING_CONTEXT"
+                and isinstance(current.get("source_path"), str)
+                and current["source_path"].startswith("CATALOGUE_TABLE_")
+            ):
+                source_reason = (
+                    "当前目录表路径的来源身份或绑定信息不完整、不匹配，未能确认与所选目录表、方向及适用属性/地区"
+                    "精确对应的目录绑定；该路径保持阻断，不回退其他目录值、实测来源或零值。"
+                )
+                source_outcome = {**source_outcome, "message": source_reason}
+                state_map["source_qualification"] = source_outcome
+                for problem in local_problems:
+                    if (
+                        problem.get("code") == "MISSING_CONTEXT"
+                        and problem.get("property") == "source_qualification"
+                    ):
+                        problem["message"] = source_reason
             if (
                 "business_source" in current
                 and source_outcome["status"] == "RESOLVED"
@@ -950,14 +973,15 @@ class CandidateBundle:
                 and current["business_source"] not in resolved_source["values"]
             ):
                 allowed_sources = list(resolved_source["values"])
+                invalid_source_message = (
+                    f"当前来源“{current['business_source']}”不在此字段当前条件下的有效来源集合中；"
+                    f"允许来源：{'、'.join(allowed_sources)}。"
+                )
                 local_problems.append({
                     "code": "SOURCE_NOT_ALLOWED", "entry_key": entry_key, "field_id": field_id,
                     "rule_set_id": package.rule_set_id, "property": "source_qualification",
                     "business_source": current["business_source"], "allowed_sources": allowed_sources,
-                    "message": (
-                        f"business_source {current['business_source']!r} is not allowed for this field; "
-                        f"allowed sources are {allowed_sources!r}"
-                    ),
+                    "message": invalid_source_message,
                 })
             locking_source = field["locking"]
             if locking_source.get("state") == "POLICY":
@@ -970,6 +994,17 @@ class CandidateBundle:
                     "policy_id": None, "message": None,
                 }
             locking = locking_outcome["value"] if locking_outcome["status"] == "RESOLVED" else None
+            if (
+                invalid_source_message is not None
+                and isinstance(locking, Mapping)
+                and isinstance(locking.get("value"), Mapping)
+                and locking["value"].get("state") == "PENDING"
+            ):
+                locking = {key: dict(value) for key, value in locking.items()}
+                locking["value"]["reason"] = (
+                    f"{invalid_source_message}请先选择合法来源，再继续使用该字段数值。"
+                )
+                locking_outcome = {**locking_outcome, "value": locking}
             if locking_outcome["status"] != "RESOLVED":
                 local_problems.append({
                     "code": locking_outcome["status"], "entry_key": entry_key, "field_id": field_id,
@@ -1476,6 +1511,31 @@ a fresh target context so a stale source cannot carry over.
                         "reason": "This branch has no compatible conjunction with the other field policies.",
                     }))
 
+            # The allowed electricity override source is an explicit user choice.
+            # Keep the no-selection policy row and add a separate representative
+            # context for OTHER without extending any fuel-source enumeration.
+            if field["id"] == "electricity.factor":
+                explicit_other_scenarios = []
+                for branches, merged_when in compatible_scenarios:
+                    source_branch = branches.get("source_qualification")
+                    tags = (merged_when or {}).get("tags", {})
+                    source_result = source_branch.get("value") if source_branch else None
+                    if (
+                        tags.get("source_path") == "ARBITRARY_OVERRIDE"
+                        and "business_source" not in tags
+                        and isinstance(source_result, Mapping)
+                        and source_result.get("state") == "FIXED"
+                        and source_result.get("values") == ["OTHER"]
+                    ):
+                        selected_when, conflict = self._intersect_conditions([
+                            merged_when, {"tags": {"business_source": "OTHER"}, "ranges": {}},
+                        ])
+                        if conflict is None:
+                            explicit_other_scenarios.append((
+                                branches, selected_when or {"tags": {}, "ranges": {}}, None,
+                            ))
+                review_scenarios.extend(explicit_other_scenarios)
+
             for branches_by_property, merged_when, uncomposable in review_scenarios:
                 conditions_by_property = {
                     prop: branch["when"] for prop, branch in branches_by_property.items()
@@ -1504,6 +1564,11 @@ a fresh target context so a stale source cannot carry over.
                         "condition_id": None, "policy_id": None,
                         "message": uncomposable["reason"],
                     }
+                    source_outcome = {
+                        "status": "UNCOMPOSABLE_BRANCH", "value": None,
+                        "message": uncomposable["reason"],
+                    }
+                    selected_business_source = None
                     evaluation_status = "UNCOMPOSABLE_BRANCH"
                 else:
                     context = self._representative_context(merged_when or {"tags": {}, "ranges": {}})
@@ -1530,10 +1595,23 @@ a fresh target context so a stale source cannot carry over.
                     field_problems = [*field_problems, *initialization["problems"]]
                     default_source_value = outcome["default_source"]["value"]
                     default_value = outcome["default"]["value"]
-                    source_value = outcome["source_qualification"]["value"]
+                    source_outcome = outcome["source_qualification"]
+                    source_value = source_outcome["value"]
                     locking_value = outcome["locking"]
                     locking_outcome = outcome["locking_outcome"]
+                    selected_business_source = initialization["selected_business_source"]
                     evaluation_status = outcome["status"]
+
+                explicit_other_case = (
+                    uncomposable is None
+                    and field["id"] == "electricity.factor"
+                    and (merged_when or {}).get("tags", {}).get("source_path") == "ARBITRARY_OVERRIDE"
+                    and (merged_when or {}).get("tags", {}).get("business_source") == "OTHER"
+                    and not any(
+                        branch_when.get("tags", {}).get("business_source") is not None
+                        for branch_when in conditions_by_property.values()
+                    )
+                )
 
                 if uncomposable is not None:
                     review_property = "UNCOMPOSABLE"
@@ -1566,8 +1644,90 @@ a fresh target context so a stale source cannot carry over.
                         f"field|{package.rule_set_id}|{package.revision}|{field['id']}|"
                         f"COMBINED|{branch_signature}"
                     )
+                if explicit_other_case:
+                    review_property = "source_selection"
+                    policy_id = None
+                    condition_id = "OTHER"
+                    review_key = f"{review_key}|SELECTED_SOURCE=OTHER"
+                    conditions_by_property["source_selection"] = {
+                        "tags": {"business_source": "OTHER"}, "ranges": {},
+                    }
+                    branch_values["source_selection"] = {"state": "FIXED", "source": "OTHER"}
+
+                if uncomposable is not None:
+                    source_eligibility = {
+                        "status": "UNCOMPOSABLE", "selected_source": None,
+                        "allowed_sources": [], "reason": uncomposable["reason"],
+                    }
+                else:
+                    source_state = (
+                        source_value.get("state") if isinstance(source_value, Mapping) else None
+                    )
+                    allowed_sources = (
+                        list(source_value.get("values", []))
+                        if source_state == "FIXED" and isinstance(source_value, Mapping) else []
+                    )
+                    selected_source = selected_business_source
+                    if source_state == "FIXED":
+                        if selected_source is None:
+                            source_status = "NOT_SELECTED"
+                            default_reason = (
+                                default_source_value.get("reason")
+                                if isinstance(default_source_value, Mapping) else None
+                            )
+                            source_reason = default_reason or (
+                                "尚未显式选择来源；后续选择必须属于当前条件下的有效来源集合。"
+                            )
+                        elif selected_source in allowed_sources:
+                            source_status = "QUALIFIED"
+                            source_reason = (
+                                f"当前来源属于该条件下的有效来源集合：{'、'.join(allowed_sources)}。"
+                            )
+                        else:
+                            source_status = "NOT_ALLOWED"
+                            source_problem = next((
+                                problem for problem in field_problems
+                                if problem.get("code") == "SOURCE_NOT_ALLOWED"
+                            ), None)
+                            source_reason = (
+                                source_problem.get("message") if source_problem else
+                                f"当前来源不在该条件下的有效来源集合：{'、'.join(allowed_sources)}。"
+                            )
+                    else:
+                        source_status = source_state or source_outcome.get("status", "UNRESOLVED")
+                        source_reason = (
+                            source_value.get("reason") if isinstance(source_value, Mapping) else None
+                        ) or source_outcome.get("message")
+                    source_eligibility = {
+                        "status": source_status, "selected_source": selected_source,
+                        "allowed_sources": allowed_sources, "reason": source_reason,
+                    }
+
+                editable_properties = [
+                    prop for prop in ("value", "source")
+                    if (locking_value.get(prop) or {}).get("state") == "EDITABLE"
+                ] if isinstance(locking_value, Mapping) else []
+                correction_only = (
+                    source_eligibility["status"] == "NOT_ALLOWED" and bool(editable_properties)
+                )
+                source_correction = {
+                    "only_for_correction": correction_only,
+                    "editable_properties": editable_properties,
+                    "reason": (
+                        "EDITABLE仅表示可纠正当前输入或重新选择合法来源，不改变来源资格，也不表示当前来源已获准。"
+                        if correction_only else
+                        "可编辑状态不替代来源资格判断；所有来源选择仍须属于有效来源集合。"
+                    ),
+                }
                 pending = list(field["pending"])
                 pending.extend(f"{problem['code']}: {problem['message']}" for problem in field_problems)
+                condition_ids = (
+                    {uncomposable["property"]: uncomposable["branch_id"]}
+                    if uncomposable else
+                    {prop: branch["id"] for prop, branch in branches_by_property.items()}
+                )
+                if explicit_other_case:
+                    condition_ids["source_selection"] = "OTHER"
                 field_rows.append({
                     "key": review_key, "review_key": review_key, "revision": package.revision,
                     "rule_set_id": package.rule_set_id, "field_id": field["id"], "condition_id": condition_id,
@@ -1580,11 +1740,7 @@ a fresh target context so a stale source cannot carry over.
                     "conditions_by_property": conditions_by_property,
                     "policy_id": policy_id,
                     "policy_ids": {prop: policy["id"] for prop, policy in policies_by_property.items()},
-                    "condition_ids": (
-                        {uncomposable["property"]: uncomposable["branch_id"]}
-                        if uncomposable else
-                        {prop: branch["id"] for prop, branch in branches_by_property.items()}
-                    ),
+                    "condition_ids": condition_ids,
                     "uncomposable_branch": uncomposable,
                     "policy_branch_values": branch_values,
                     "property": review_property,
@@ -1595,9 +1751,11 @@ a fresh target context so a stale source cannot carry over.
                         "UNCOMPOSABLE_BRANCH" if uncomposable
                         else initialization["initialization_status"]
                     ),
-                    "selected_business_source": (
-                        None if uncomposable else initialization["selected_business_source"]
-                    ),
+                    "selected_business_source": selected_business_source,
+                    "source_eligibility": source_eligibility,
+                    "source_correction": source_correction,
+                    "readiness_scope": _REVIEW_READINESS_SCOPE,
+                    "readiness_note": _REVIEW_READINESS_NOTE,
                     "effective_context": (
                         None if uncomposable else initialization["effective_context"]
                     ),

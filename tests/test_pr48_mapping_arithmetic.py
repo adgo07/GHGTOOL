@@ -129,38 +129,114 @@ class CalcinationRoleCarbonExpansionTests(unittest.TestCase):
 
 
 class FumeMonitoringSegmentExampleTests(unittest.TestCase):
-    def test_two_segments_use_their_own_days_without_annualizing_gaps(self):
+    @staticmethod
+    def segment_result(q, qvar, hm, fch, fox, days):
+        # Independent Decimal expansion of Mapping §7.2/TV-CAR-POL-018, not production code.
+        return (
+            q * qvar * hm * fch * fox * days * Decimal("24")
+            * Decimal("44") / Decimal("12") * Decimal("1e-9")
+        )
+
+    def test_complete_annual_coverage_sums_valid_nonoverlapping_segments(self):
         with localcontext() as context:
             context.prec = 40
             context.rounding = ROUND_HALF_UP
 
+            intervals = ((0, 180), (180, 365))
+            segment_inputs = (
+                (Decimal("1000"), Decimal("1000"), Decimal("180")),
+                (Decimal("500"), Decimal("2000"), Decimal("185")),
+            )
             hm = Decimal("40")
             fch = Decimal("0.02")
             fox = Decimal("1")
-            segments = (
-                (Decimal("1000"), Decimal("1000"), Decimal("1")),
-                (Decimal("500"), Decimal("2000"), Decimal("2")),
-            )
-            report_period_days = Decimal("365")
-            # Both intervals belong to one smoke-source instance and one boundary.
-
             segment_results = [
-                q * qvar * hm * fch * fox * days * Decimal("24")
-                * Decimal("44") / Decimal("12") * Decimal("1e-9")
-                for q, qvar, days in segments
+                self.segment_result(q, qvar, hm, fch, fox, days)
+                for q, qvar, days in segment_inputs
             ]
-            covered_segment_total = sum(segment_results, Decimal("0"))
-            covered_days = sum((segment[2] for segment in segments), Decimal("0"))
-            annualized_value = (
-                covered_segment_total / covered_days * report_period_days
+            covered_total = sum(segment_results, Decimal("0"))
+            covered_days = sum((end - start for start, end in intervals), 0)
+            complete = (
+                intervals[0][0] == 0
+                and intervals[-1][1] == 365
+                and all(left[1] == right[0] for left, right in zip(intervals, intervals[1:]))
             )
 
-        self.assertEqual(segment_results, [Decimal("0.0704"), Decimal("0.1408")])
-        self.assertEqual(covered_days, Decimal("3"))
-        self.assertEqual(covered_segment_total, Decimal("0.2112"))
-        self.assertEqual(report_period_days, Decimal("365"))
-        self.assertNotEqual(covered_segment_total, annualized_value)
-        self.assertEqual(annualized_value, Decimal("25.696"))
+        self.assertTrue(complete)
+        self.assertEqual(covered_days, 365)
+        self.assertEqual(segment_results, [Decimal("12.672"), Decimal("13.024")])
+        self.assertEqual(covered_total, Decimal("25.696"))
+
+    def test_gap_keeps_covered_segment_subtotal_without_annualizing_or_zero_fill(self):
+        with localcontext() as context:
+            context.prec = 40
+            context.rounding = ROUND_HALF_UP
+
+            intervals = ((0, 180), (185, 365))
+            segment_inputs = (
+                (Decimal("1000"), Decimal("1000"), Decimal("180")),
+                (Decimal("500"), Decimal("2000"), Decimal("180")),
+            )
+            hm = Decimal("40")
+            fch = Decimal("0.02")
+            fox = Decimal("1")
+            segment_results = [
+                self.segment_result(q, qvar, hm, fch, fox, days)
+                for q, qvar, days in segment_inputs
+            ]
+            covered_total = sum(segment_results, Decimal("0"))
+            covered_days = sum((end - start for start, end in intervals), 0)
+            has_gap = intervals[0][1] < intervals[1][0]
+
+        self.assertTrue(has_gap)
+        self.assertEqual(covered_days, 360)
+        self.assertEqual(segment_results, [Decimal("12.672"), Decimal("12.672")])
+        self.assertEqual(covered_total, Decimal("25.344"))
+        self.assertNotEqual(covered_total, Decimal("25.696"))
+
+    def test_overlap_is_invalid_within_one_instance_but_other_instances_can_be_concurrent(self):
+        same_instance = ((0, 190), (180, 365))
+        overlap_days = min(same_instance[0][1], same_instance[1][1]) - max(
+            same_instance[0][0], same_instance[1][0]
+        )
+        self.assertEqual(overlap_days, 10)
+
+        with localcontext() as context:
+            context.prec = 40
+            context.rounding = ROUND_HALF_UP
+
+            report_period = (0, 365)
+            instances = {
+                "source-A": (report_period, Decimal("1000"), Decimal("1000")),
+                "source-B": (report_period, Decimal("500"), Decimal("1000")),
+            }
+            totals = {
+                source: self.segment_result(
+                    q, qvar, Decimal("40"), Decimal("0.02"), Decimal("1"), Decimal("365")
+                )
+                for source, (interval, q, qvar) in instances.items()
+            }
+            combined = sum(totals.values(), Decimal("0"))
+
+        self.assertEqual(instances["source-A"][0], instances["source-B"][0])
+        self.assertEqual(totals, {"source-A": Decimal("25.696"), "source-B": Decimal("12.848")})
+        self.assertEqual(combined, Decimal("38.544"))
+
+    def test_hour_input_is_normalized_to_days_once_before_formula_uses_times_24(self):
+        with localcontext() as context:
+            context.prec = 40
+            context.rounding = ROUND_HALF_UP
+
+            entered_hours = Decimal("24")
+            segment_days = entered_hours / Decimal("24")
+            result = self.segment_result(
+                Decimal("1000"), Decimal("1000"), Decimal("40"),
+                Decimal("0.02"), Decimal("1"), segment_days,
+            )
+
+        self.assertEqual(segment_days, Decimal("1"))
+        self.assertEqual(result, Decimal("0.0704"))
+        self.assertNotEqual(result, Decimal("1.6896"))
 
 
 if __name__ == "__main__":

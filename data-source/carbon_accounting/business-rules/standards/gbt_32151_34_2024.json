@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-16-r10",
+  "revision": "candidate-2026-10-17-r11",
   "base": "R8-FINAL已批准执行政策；G05固定规则快照仍源自main@204dded5；此包仅为CANDIDATE，尚非生产接入。",
   "dependency": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-16-r10"
+      "revision": "candidate-2026-10-17-r11"
     }
   ],
   "status": "CANDIDATE",
@@ -6579,7 +6579,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6595,7 +6595,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6611,7 +6611,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6627,7 +6627,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6643,7 +6643,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6659,7 +6659,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6675,7 +6675,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6691,7 +6691,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6707,7 +6707,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6723,7 +6723,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -6739,7 +6739,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "Separate nonfossil zero binding is absent; no fallback."
+            "reason": "缺少独立适用的购入非化石电力零因子绑定；该路径保持阻断，不回退到其他目录因子或库外OTHER。"
           }
         },
         {
@@ -12469,8 +12469,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12483,8 +12483,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12497,8 +12497,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12511,8 +12511,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12525,8 +12525,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12539,8 +12539,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NO_LEGAL_SOURCES",
+            "reason": "这是保留的历史/技术对照身份，不属于R11当前允许的电力来源集合。当前可填写库外值须显式选择电力专属OTHER；不得把遗留企业或供电单位路径自动重标为OTHER或MEASURED。"
           }
         },
         {
@@ -12555,7 +12555,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12570,7 +12570,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12585,7 +12585,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12600,7 +12600,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12615,7 +12615,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12630,7 +12630,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12645,7 +12645,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12660,7 +12660,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12675,7 +12675,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12690,7 +12690,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -12705,7 +12705,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "Separate nonfossil zero binding is absent."
+            "reason": "缺少独立适用的购入非化石电力零因子绑定；该路径保持阻断，不回退到其他目录因子或库外OTHER。"
           }
         },
         {
@@ -12864,7 +12864,7 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 direct_catalog。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "reason": "来源资格结果判定当前选择不符合该条件下的有效来源集合；请按该结果选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
@@ -12924,7 +12924,7 @@
           "value": {
             "value": {
               "state": "PENDING",
-              "reason": "来源资格分支 direct_custom。当前选择 STANDARD_DEFAULT 不在允许来源集合 ['MEASURED'] 中；需先选择合法来源。"
+              "reason": "来源资格结果判定当前选择不符合该条件下的有效来源集合；请按该结果选择合法来源。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13077,7 +13077,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13146,7 +13146,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13215,7 +13215,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13284,7 +13284,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13353,7 +13353,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13422,7 +13422,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13491,7 +13491,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13560,7 +13560,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13629,7 +13629,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13698,7 +13698,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13767,7 +13767,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13836,7 +13836,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13905,7 +13905,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -13974,7 +13974,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14043,7 +14043,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14112,7 +14112,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14181,7 +14181,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14250,7 +14250,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14319,7 +14319,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14388,7 +14388,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14457,7 +14457,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14526,7 +14526,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14595,7 +14595,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14664,7 +14664,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14733,7 +14733,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14802,7 +14802,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14867,7 +14867,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -14930,7 +14930,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15067,7 +15067,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15136,7 +15136,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15205,7 +15205,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15274,7 +15274,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15343,7 +15343,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15412,7 +15412,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15481,7 +15481,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15550,7 +15550,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15619,7 +15619,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15688,7 +15688,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15757,7 +15757,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15826,7 +15826,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15895,7 +15895,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -15964,7 +15964,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16033,7 +16033,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16102,7 +16102,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16171,7 +16171,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16240,7 +16240,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16309,7 +16309,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16378,7 +16378,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16447,7 +16447,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16516,7 +16516,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16585,7 +16585,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16654,7 +16654,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16723,7 +16723,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16792,7 +16792,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16857,7 +16857,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -16920,7 +16920,7 @@
           "value": {
             "value": {
               "state": "EDITABLE",
-              "reason": "已确认路径允许录入CALCULATED值。"
+              "reason": "数值可编辑仅用于纠正当前输入；当前来源仍须满足该字段生效的合法来源集合，编辑状态不表示该来源已获准。"
             },
             "source": {
               "state": "EDITABLE",
@@ -27221,12 +27221,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27242,12 +27242,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27263,12 +27263,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27284,12 +27284,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27305,12 +27305,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27326,12 +27326,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_supply_unit_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27347,12 +27347,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27368,12 +27368,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27389,12 +27389,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27410,12 +27410,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27431,12 +27431,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27452,12 +27452,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_measured_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27473,12 +27473,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27494,12 +27494,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27515,12 +27515,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_purchased。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27536,12 +27536,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27557,12 +27557,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -27578,12 +27578,12 @@
           },
           "value": {
             "value": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，数值读写状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             },
             "source": {
-              "state": "PENDING",
-              "reason": "来源资格分支 pending_enterprise_calculated_exported。来源资格尚未核实，来源选择状态保持待核。"
+              "state": "LOCKED",
+              "reason": "此保留历史身份在R11候选中没有合法电力来源；当前数值和来源选择均不可用于计算。请按实际适用路径重新录入，禁止把遗留身份直接重标为OTHER或MEASURED。"
             }
           }
         },
@@ -30503,8 +30503,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30517,8 +30517,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30531,8 +30531,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30545,8 +30545,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30559,8 +30559,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30573,8 +30573,8 @@
             "ranges": {}
           },
           "value": {
-            "state": "PENDING",
-            "reason": "Issue014 OPEN; only the selected unverified enterprise/supply-unit path is pending."
+            "state": "NONE",
+            "reason": "该历史身份路径不自动选择来源，不属于R11当前可用的电力输入路径；须使用适用的目录绑定或用户显式选择的电力专属OTHER。"
           }
         },
         {
@@ -30589,7 +30589,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30604,7 +30604,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30619,7 +30619,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30634,7 +30634,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30649,7 +30649,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30664,7 +30664,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30679,7 +30679,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30694,7 +30694,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30709,7 +30709,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30724,7 +30724,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "No exact catalog binding; no fallback."
+            "reason": "当前上下文没有与所选目录表、方向及适用属性/地区精确匹配的目录绑定；仅阻断该目录路径，不回退其他目录值、实测来源或零值。"
           }
         },
         {
@@ -30739,7 +30739,7 @@
           },
           "value": {
             "state": "PENDING",
-            "reason": "Separate nonfossil zero binding is absent."
+            "reason": "缺少独立适用的购入非化石电力零因子绑定；该路径保持阻断，不回退到其他目录因子或库外OTHER。"
           }
         },
         {
@@ -31178,7 +31178,7 @@
           "value": {
             "state": "FIXED",
             "source": "MEASURED",
-            "reason": "V1.2 §7.1与现行来源规则明确此路径为实测；此属性只设初始来源，不提供数值或放宽来源资格。"
+            "reason": "新建上下文默认选择MEASURED；该默认只设初始来源，不提供数值，也不改变当前路径的合法来源集合。"
           }
         },
         {
@@ -31192,7 +31192,7 @@
           "value": {
             "state": "FIXED",
             "source": "MEASURED",
-            "reason": "V1.2 §7.1与现行来源规则明确此路径为实测；此属性只设初始来源，不提供数值或放宽来源资格。"
+            "reason": "新建上下文默认选择MEASURED；该默认只设初始来源，不提供数值，也不改变当前路径的合法来源集合。"
           }
         },
         {
@@ -31206,7 +31206,7 @@
           "value": {
             "state": "FIXED",
             "source": "MEASURED",
-            "reason": "V1.2 §7.1与现行来源规则明确此路径为实测；此属性只设初始来源，不提供数值或放宽来源资格。"
+            "reason": "新建上下文默认选择MEASURED；该默认只设初始来源，不提供数值，也不改变当前路径的合法来源集合。"
           }
         }
       ]
@@ -32867,7 +32867,7 @@
       "id": "fuel.lhv",
       "name": "燃料低位发热量",
       "kind": "quantity",
-      "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³; HEAT: GJ/GJ when supplied",
+      "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³",
       "default": {
         "state": "POLICY",
         "policy_id": "default.fuel_lhv"
@@ -32888,23 +32888,23 @@
         {
           "channel": "GUI",
           "label": "燃料低位发热量",
-          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³; HEAT: GJ/GJ when supplied",
+          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³",
           "binding": "business:fuel.lhv",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。历史兼容：既有HEAT路径数据及历史记录保持可读；当前不新增HEAT活动量输入入口，也不把GJ/GJ作为低位发热量普通填报单位。"
         },
         {
           "channel": "EXCEL",
           "label": "燃料低位发热量",
-          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³; HEAT: GJ/GJ when supplied",
+          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³",
           "binding": "business:fuel.lhv",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。历史兼容：既有HEAT路径数据及历史记录保持可读；当前不新增HEAT活动量输入入口，也不把GJ/GJ作为低位发热量普通填报单位。"
         },
         {
           "channel": "DOMAIN",
           "label": "燃料低位发热量",
-          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³; HEAT: GJ/GJ when supplied",
+          "unit": "MASS: GJ/t; VOLUME: GJ/10⁴Nm³",
           "binding": "business:fuel.lhv",
-          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。"
+          "notes": "逻辑业务渠道与单位表达，binding引用本业务概念，不复制控件/类/序列化属性。既有映射字段关联见mapping_refs。历史兼容：既有HEAT路径数据及历史记录保持可读；当前不新增HEAT活动量输入入口，也不把GJ/GJ作为低位发热量普通填报单位。"
         }
       ],
       "basis": [
@@ -33541,33 +33541,37 @@
         "channel": "GUI_AND_EXCEL",
         "object": "P04A烟气焚烧监测段及报告期覆盖信息"
       },
-      "action": "R10候选对应CAR-FML-FUME-INCINERATION-001：在同一烟气排放源实例、同一计量边界内，对各互不重叠监测段i分别使用本段Q_i、QVar_i与T_i，结合既有HM、FCh、FOx及式(9)其余项独立求值，再汇总。T_i为该段时长并使用T_i×24；全年报告时长另行记录，不回填到监测段。不同真实设备或排放源实例可存在同时段监测，各自独立计算并汇总，不跨实例去重。此为Owner批准的软件执行表达，不是标准新增的分段公式。",
+      "action": "R11候选对应CAR-FML-FUME-INCINERATION-001：每个监测段分别使用该段Q_i、QVar_i和T_i求值并汇总。T_i的Canonical单位为d；小时录入先按小时数÷24归一一次为d，再按既有式(9)中的T_i×24计算，不得重复换算。HM/FCh/FOx仅当同一数值适用于该段时共用，不跨段借用。同一烟气排放源实例、同一计量边界内监测段不得重叠；存在缺口时仍可计算已覆盖段小计，但年度覆盖不完整，不得称为完整全年结果；有效分段完整覆盖年度报告期时可标为完整年度覆盖。不同适用设备或排放源实例的同时段分别计算并汇总，不跨实例去重。报告期时长另行记录，不回填、不年化、不外推。此为Owner批准的软件执行解释，不是标准新增公式。",
       "changes": [
-        "同一烟气排放源实例、同一计量边界内的每个不重叠监测段独立计算Q/QVar/时长对应的式(9)排放量，再进行段间求和。",
-        "全年报告时长与分段监测时长分开记录；不以全年时长回填监测段。",
-        "不同真实设备或排放源实例的同时段分别计算后汇总，不作为重叠段去重。"
+        "同一烟气排放源实例、同一计量边界内的监测段不得重叠；每段独立使用本段Q/QVar/T及本段适用的HM/FCh/FOx求值，再汇总。",
+        "若以小时录入段时长，先除以24一次转换为T_i的d单位，再应用式(9)的T_i×24；不重复转换。",
+        "缺口不阻断已覆盖段小计，但年度完整覆盖资格不成立；有效分段完整覆盖年度报告期时可以表述为完整年度覆盖。",
+        "不同适用设备或排放源实例的同时段分别计算后求和，不以时间重合为由跨实例去重。"
       ],
       "preserves": [
         "CAR-FML-FUME-INCINERATION-001及CAR-FLD-P04A-Q、CAR-FLD-P04A-QVAR、CAR-FLD-P04A-T既有字段概念",
         "标准式(9)印刷原文、其他燃料源的年度时长语义及未涉及源的规则"
       ],
       "invalidates": [
-        "不同监测段的Q、QVar或时长不得跨段混用；不重叠约束仅适用于同一烟气排放源实例、同一计量边界。",
-        "不同真实设备/排放源实例可有同时段排放，应各自计算并汇总，不跨对象去重。",
-        "未覆盖区间保持未覆盖，不默认为0；分段合计不得称为完整全年结果。",
-        "不得进行全年回填、年化或外推。"
+        "同一烟气排放源实例、同一计量边界内的重叠监测段属于输入错误；不同实例的同时段不按重叠错误处理。",
+        "监测段的Q、QVar、T及适用的HM/FCh/FOx不得跨段混用；仅同一数值对当前段适用时才可共用。",
+        "未覆盖区间仍未覆盖且不得默认为0；有缺口时只报告已覆盖段合计，不称完整全年。完整有效覆盖年度报告期时不因分段形式而排除年度结果。",
+        "不得用全年时长回填监测段时长、重复对小时换算、年化或外推。"
       ],
       "confirmation": [
-        "同一排放源实例、同一计量边界内每段独立求值后汇总；全年报告覆盖另行表达，不替代段时长。",
-        "不同设备或真实源实例的同时段分别计算，不以时间相同为由去重。",
+        "同一排放源实例、同一计量边界内的监测段不得重叠；有缺口时可算已覆盖段，不得标完整全年；完整覆盖年度报告期时可标完整年度覆盖。",
+        "不同适用设备或真实源实例的同时段分别计算并汇总，不以时间相同为由去重。",
+        "T_i以d为Canonical单位；小时输入先÷24一次，再按既有式(9)执行×24，避免重复换算。",
+        "HM/FCh/FOx仅在同一数值适用于该监测段时共用，不跨段借用。",
         "这是Owner批准的软件执行解释，不表述为标准新增公式或发布机构解释。"
       ],
       "basis": [
         "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-020",
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:R10 §7.2 / §8 / §12 / TV-CAR-POL-017"
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:R11 §7.2 / §8 / §12 / TV-CAR-POL-017"
       ],
       "cases": [
-        "TV-CAR-POL-017"
+        "TV-CAR-POL-017",
+        "TV-CAR-POL-018"
       ],
       "pending": [
         "候选仅记录分段语义；未实现或接入正式Calculator，未改生产代码和历史Record。"
@@ -33587,21 +33591,21 @@
         "TV-CAR-POL-016"
       ],
       "pending": [
-        "Candidate-only; formal Calculator implementation and acceptance remain separate."
+        "仅候选审阅；正式Calculator实现与验收仍需后续独立完成。"
       ]
     },
     {
       "key": "review.change.fume_monitoring_segments",
       "change_type": "FUME_MONITORING_SEGMENT_AGGREGATION",
       "before": "R8候选要求P04A的Q/QVar覆盖与T一致，未批准不一致监测覆盖的处理。",
-      "after": "R10候选仅在同一烟气排放源实例、同一计量边界内要求监测段不重叠；各段独立使用本段Q/QVar/T求值并求和。不同真实设备/源实例的同时段各自计算汇总，不跨对象去重；全年另行表达，未覆盖不默零或称完整全年，不回填、年化或外推。",
-      "reason": "落实Owner对Issue020的软件实施解释；不改变其他来源的年度时长语义，不改式(9)印刷原文。",
+      "after": "R11候选在同一烟气源实例和计量边界内拒绝重叠段；有效段分别使用本段Q/QVar/T及适用的HM/FCh/FOx求值。小时录入先÷24一次得到d单位T_i，再按式(9)的T_i×24，不重复换算。有缺口仍可计算已覆盖段，但年度覆盖不完整；完整覆盖年度报告期可称完整年度覆盖。不同适用实例的同时段各自计算并汇总，不跨实例去重。不默零、不回填、不年化或外推；保持式(9)原文。",
+      "reason": "落实Owner对Issue020的软件实施解释并补齐审阅清单要求的覆盖条件、时长单位和段内参数适用边界；不改变其他来源的年度时长语义，不改式(9)印刷原文。",
       "basis": [
         "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-020",
         "TV-CAR-POL-017"
       ],
       "pending": [
-        "Candidate-only; formal Calculator implementation and acceptance remain separate."
+        "仅候选审阅；正式Calculator实现与验收仍需后续独立完成。"
       ]
     }
   ]

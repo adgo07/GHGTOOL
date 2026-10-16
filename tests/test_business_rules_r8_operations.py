@@ -34,8 +34,8 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         )
 
     def test_candidate_revision_and_operation_schema(self):
-        self.assertEqual(self.policy["revision"], "candidate-2026-10-16-r10")
-        self.assertEqual(self.standard["revision"], "candidate-2026-10-16-r10")
+        self.assertEqual(self.policy["revision"], "candidate-2026-10-17-r11")
+        self.assertEqual(self.standard["revision"], "candidate-2026-10-17-r11")
         self.assertIn(
             {"rule_set_id": "qz.carbon_accounting.software_policy", "revision": self.policy["revision"]},
             self.standard["dependency"],
@@ -82,6 +82,65 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         self.assertIn("只读取已保存记录", report["action"])
         self.assertIn("不重新计算", report["action"])
 
+    def test_direct_fuel_path_uses_field_qualification_without_double_heat_conversion(self):
+        operation = self.text("change_fuel_path_unit")
+        for expected in (
+            "fuel.direct_carbon", "source_qualification", "单位质量/体积直接含碳量",
+            "不重复乘低位发热量或FCh",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, operation)
+        self.assertNotIn("DIRECT路径使用实测直接含碳量", operation)
+
+        field = next(item for item in self.standard["fields"] if item["id"] == "fuel.direct_carbon")
+        self.assertEqual(field["unit"], "MASS: tC/t; VOLUME: tC/10^4Nm3")
+        qualification = next(
+            item for item in self.standard["policies"]
+            if item["id"] == field["source_qualification"]["policy_id"]
+        )
+        allowed_by_origin = {
+            branch["when"]["tags"]["origin"]: set(branch["value"]["values"])
+            for branch in qualification["branches"]
+        }
+        self.assertEqual(allowed_by_origin["CATALOG"], {"CALCULATED", "MEASURED"})
+        self.assertEqual(allowed_by_origin["CUSTOM"], {"CALCULATED", "MEASURED"})
+        self.assertEqual(allowed_by_origin["LEGACY_UNSPECIFIED"], {"MEASURED"})
+
+    def test_source_switch_restores_scoped_draft_and_resolves_default_binding_explicitly(self):
+        resolver = self.text("resolve_parameter_source")
+        for expected in (
+            "现有Resolver", "当前采用的标准/通则版本", "完整核算上下文", "真实适用绑定",
+            "无适用绑定", "不借用其他对象", "不回填0",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, resolver)
+
+        switch = self.text("switch_source_isolated_draft")
+        for expected in (
+            "同一参数对象、字段、单位和来源的有效草稿", "显式切回STANDARD_DEFAULT",
+            "新对象初始化、同身份确认和RESTORE各按各自操作处理",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, switch)
+
+        same_identity = self.text("confirm_same_catalog_identity")
+        restore = self.text("restore_without_default_init")
+        self.assertIn("不触发新建初始化", same_identity)
+        self.assertIn("RESTORE不触发default_source或数值默认初始化", restore)
+
+    def test_unconfirmed_name_requires_existing_confirm_or_cancel_before_calculation(self):
+        edit = self.text("edit_name_draft")
+        formal = self.text("formal_calculation_append_record")
+        same_identity = self.text("confirm_same_catalog_identity")
+        self.assertIn("不因每次按键", edit)
+        self.assertIn("现有确认/取消交互", edit)
+        self.assertIn("确认新身份后进入switch_catalog_identity", edit)
+        self.assertIn("取消后仍显示并使用原已确认身份", edit)
+        for expected in ("未确认名称草稿", "未决时不调用核算", "显示新名称却按旧身份"):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, formal)
+        self.assertIn("同身份确认不应用数值默认或default_source", same_identity)
+
     def test_fch_unit_and_scope_do_not_create_a_heat_activity_entry(self):
         fch = {field["id"]: field for field in self.standard["fields"]}["fuel.fch"]
         self.assertEqual(fch["unit"], "tC/GJ")
@@ -127,26 +186,40 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
                 self.assertIn(expected, text)
         changes = {item["key"]: item for item in self.standard["changes"]}
         self.assertIn("按CC/UCC/DU各自质量", changes["review.change.calcination_role_carbon"]["after"])
-        self.assertIn("formal Calculator", changes["review.change.calcination_role_carbon"]["pending"][0])
+        self.assertIn("正式Calculator实现与验收仍需后续独立完成", changes["review.change.calcination_role_carbon"]["pending"][0])
         vector = self.vector("TV-CAR-POL-016")
         for expected in ("WFC-C[CC]=.8", "WFC-C[UCC]=.4", "WFC-C[DU]=.25",
                          "226.8291666666666666666666666666666666667", "162.6625"):
             self.assertIn(expected, vector)
 
-    def test_issue020_p04a_segments_remain_separate_from_annual_coverage(self):
+    def test_issue020_p04a_segments_separate_calculation_from_annual_coverage(self):
         text = self.text("aggregate_fume_monitoring_segments")
         for expected in (
             "CAR-FML-FUME-INCINERATION-001", "CAR-FLD-P04A-Q", "CAR-FLD-P04A-QVAR",
-            "CAR-FLD-P04A-T", "同一烟气排放源实例、同一计量边界", "互不重叠监测段", "本段Q_i、QVar_i与T_i",
-            "段间求和", "全年报告时长另行记录", "不同真实设备/排放源实例可有同时段", "不跨对象去重", "不回填", "未覆盖区间保持未覆盖",
-            "不默认为0", "不得称为完整全年结果", "不得进行全年回填、年化或外推",
-            "不表述为标准新增公式",
+            "CAR-FLD-P04A-T", "同一烟气排放源实例", "同一计量边界", "监测段不得重叠",
+            "T_i", "小时", "÷24", "归一一次", "×24", "适用于该段",
+            "不同适用设备或排放源实例", "同时段", "分别计算并汇总", "不跨实例去重",
+            "存在缺口", "仍可计算已覆盖段", "年度覆盖不完整", "不得默认为0",
+            "不年化", "不外推", "不表述为标准新增公式",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
-        vector = self.vector("TV-CAR-POL-017")
+
+        vector017 = self.vector("TV-CAR-POL-017")
         for expected in (".0704tCO₂", ".1408tCO₂", ".2112tCO₂", "不把未覆盖期默认为零"):
-            self.assertIn(expected, vector)
+            self.assertIn(expected, vector017)
+        vector018 = self.vector("TV-CAR-POL-018")
+        for expected in (
+            "完整覆盖", "空档", "重叠10d", "同期独立监测", "同实例/同边界重叠为ERROR",
+            "仍可计算已覆盖段合计", "24h÷24=1d", "式(9)乘`24`一次",
+            "不表示生产Calculator已接管",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, vector018)
+
+        operation = self.standard_operations["aggregate_fume_monitoring_segments"]
+        self.assertTrue(any("R11" in basis for basis in operation["basis"]))
+        self.assertTrue({"TV-CAR-POL-017", "TV-CAR-POL-018"} <= set(operation["cases"]))
 
     def test_issue015_heat_attribution_does_not_guess_unclear_boundary(self):
         vector = self.vector("TV-CAR-POL-006")
@@ -170,8 +243,8 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
                 self.assertIn(expected, vector005)
         text = self.text("capture_external_co2_supplement")
         self.assertIn("当前企业汇总边界和核算期间下可选的外部CO₂补充输入", text)
-        for expected in ("同一企业汇总边界", "同一期间", "非负tCO₂", "纳入但空白",
-                         "不造0", "纳入真实0", "一次独立补充合计",
+        for expected in ("同一企业汇总边界", "同一期间", "非负tCO₂", "纳入但留空时",
+                         "补充合计保持待补", "不造0", "纳入真实0", "一次独立补充合计",
                          "不并入、不覆盖ES、EI或ET", "非有限值", "ERROR"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
@@ -181,6 +254,12 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         self.assertIn("不重新计算", report)
         self.assertIn("旧记录无该字段", report)
         self.assertIn("不补造0", report)
+        confirmation = "\n".join(self.operations["capture_external_co2_supplement"]["confirmation"])
+        self.assertIn("空白时只将该补充合计标为待补", confirmation)
+        self.assertIn("不构成炭素部分核算的缺失必需值", confirmation)
+        self.assertIn("核心炭素输入自身缺少必需值/基准时仍为ERROR", confirmation)
+        self.assertIn("补充实际填写后", confirmation)
+        self.assertNotIn("纳入但空白仍为ERROR", confirmation)
 
     def test_material_reminders_and_iapws_candidate_boundary(self):
         vector007 = self.vector("TV-CAR-POL-007")

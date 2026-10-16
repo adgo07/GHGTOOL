@@ -17,6 +17,14 @@ class CandidateBusinessPathTests(unittest.TestCase):
             SOURCE / "software_policy.json",
         ])
 
+    def test_candidate_and_software_dependency_are_pinned_to_r11(self):
+        self.assertEqual(self.bundle.primary.revision, "candidate-2026-10-17-r11")
+        dependency = next(
+            item for item in self.bundle.primary.document["dependency"]
+            if item["rule_set_id"] == "qz.carbon_accounting.software_policy"
+        )
+        self.assertEqual(dependency["revision"], "candidate-2026-10-17-r11")
+
     def outcome(self, field, **context):
         result = self.bundle.apply_context(context, field_ids=[field])
         self.assertEqual(len(result["outcomes"]), 1)
@@ -60,18 +68,48 @@ class CandidateBusinessPathTests(unittest.TestCase):
                 self.assertEqual(measured["locking"]["value"]["state"], "EDITABLE")
             calculated = self.outcome(field, **context, business_source="CALCULATED")
             self.assertEqual(calculated["status"], "BLOCKED")
+            if field in {"fuel.lhv", "fuel.fch"}:
+                self.assertEqual(
+                    calculated["source_qualification"]["value"]["values"],
+                    ["STANDARD_DEFAULT", "MEASURED"],
+                )
+                problem = next(p for p in calculated["problems"] if p["code"] == "SOURCE_NOT_ALLOWED")
+                self.assertIn("允许来源：STANDARD_DEFAULT、MEASURED", problem["message"])
+                reason = calculated["locking"]["value"]["reason"]
+                self.assertIn("纠正当前输入", reason)
+                self.assertIn("不表示该来源已获准", reason)
 
     def test_fcm_fcv_keep_legal_calculated_source(self):
         for origin in ("CATALOG", "CUSTOM"):
-            out = self.outcome(
-                "fuel.direct_carbon", origin=origin, binding_status="ABSENT",
-                business_source="CALCULATED",
-            )
-            self.assertEqual(out["status"], "READY")
-            self.assertEqual(out["source_qualification"]["value"]["values"], ["CALCULATED", "MEASURED"])
-            self.assertEqual(out["default"]["value"], {"state": "NONE"})
-            self.assertEqual(out["locking"]["value"]["state"], "EDITABLE")
-            self.assertEqual(out["locking"]["source"]["state"], "EDITABLE")
+            for source in ("CALCULATED", "MEASURED"):
+                out = self.outcome(
+                    "fuel.direct_carbon", origin=origin, binding_status="ABSENT",
+                    business_source=source,
+                )
+                self.assertEqual(out["status"], "READY")
+                self.assertEqual(out["source_qualification"]["value"]["values"], ["CALCULATED", "MEASURED"])
+                self.assertEqual(out["default"]["value"], {"state": "NONE"})
+                self.assertEqual(out["locking"]["value"]["state"], "EDITABLE")
+                self.assertEqual(out["locking"]["source"]["state"], "EDITABLE")
+
+        rejected_default = self.outcome(
+            "fuel.direct_carbon", origin="CUSTOM", binding_status="ABSENT",
+            business_source="STANDARD_DEFAULT",
+        )
+        self.assertEqual(rejected_default["status"], "BLOCKED")
+        allowed = rejected_default["source_qualification"]["value"]["values"]
+        self.assertEqual(allowed, ["CALCULATED", "MEASURED"])
+        problem = next(p for p in rejected_default["problems"] if p["code"] == "SOURCE_NOT_ALLOWED")
+        self.assertEqual(problem["allowed_sources"], allowed)
+        self.assertIn("允许来源：CALCULATED、MEASURED", problem["message"])
+        self.assertIn("允许来源：CALCULATED、MEASURED", rejected_default["locking"]["value"]["reason"])
+
+        initialized = self.bundle.initialize_context(
+            {"origin": "CUSTOM", "binding_status": "ABSENT"},
+            field_ids=["fuel.direct_carbon"], event="NEW_SELECTION",
+        )["outcomes"]["qz.carbon_accounting.industry.gbt_32151_34_2024:fuel.direct_carbon"]
+        self.assertEqual(initialized["selected_business_source"], "MEASURED")
+        self.assertIn("不改变当前路径的合法来源集合", initialized["default_source"]["value"]["reason"])
 
     def test_material_calculation_requires_a_defined_supported_path(self):
         for field in ("material.fixed_carbon", "material.volatile_matter"):
@@ -204,6 +242,9 @@ class CandidateBusinessPathTests(unittest.TestCase):
         )
         self.assertEqual(wrong_region["status"], "BLOCKED")
         self.assertNotEqual((wrong_region["default"]["value"] or {}).get("state"), "BINDING")
+        mismatch_reason = wrong_region["source_qualification"]["message"]
+        self.assertIn("精确对应的目录绑定", mismatch_reason)
+        self.assertIn("不回退其他目录值", mismatch_reason)
 
     def test_nonfossil_zero_is_purchase_only_and_is_not_an_override_alias(self):
         purchase = self.outcome(
@@ -303,7 +344,7 @@ class CandidateBusinessPathTests(unittest.TestCase):
         self.assertEqual(forged_export["status"], "BLOCKED")
         self.assertIn("SOURCE_NOT_ALLOWED", {p["code"] for p in forged_export["problems"]})
 
-    def test_issue014_professional_paths_remain_separate_and_pending(self):
+    def test_issue014_legacy_paths_are_classified_as_unavailable_not_owner_pending(self):
         for path in ("SUPPLY_UNIT_MEASURED", "ENTERPRISE_MEASURED", "ENTERPRISE_CALCULATED"):
             for direction in ("PURCHASED", "EXPORTED"):
                 with self.subTest(path=path, direction=direction):
@@ -312,7 +353,75 @@ class CandidateBusinessPathTests(unittest.TestCase):
                         business_source="MEASURED",
                     )
                     self.assertEqual(out["status"], "BLOCKED")
-                    self.assertEqual(out["source_qualification"]["status"], "PENDING")
+                    self.assertEqual(out["source_qualification"]["status"], "NO_LEGAL_SOURCES")
+                    self.assertEqual(out["default_source"]["value"]["state"], "NONE")
+                    self.assertEqual(out["locking"]["value"]["state"], "LOCKED")
+                    self.assertEqual(out["locking"]["source"]["state"], "LOCKED")
+                    reason = out["source_qualification"]["value"]["reason"]
+                    self.assertIn("不属于R11当前允许的电力来源集合", reason)
+                    self.assertIn("不得把遗留企业或供电单位路径自动重标", reason)
+                    self.assertNotIn("Issue014 OPEN", reason)
+                    self.assertNotIn("尚未核实", out["locking"]["value"]["reason"])
+
+    def test_lhv_units_exclude_heat_entry_and_preserve_historical_readability(self):
+        field = next(f for f in self.bundle.primary.document["fields"] if f["id"] == "fuel.lhv")
+        self.assertEqual(field["unit"], "MASS: GJ/t; VOLUME: GJ/10⁴Nm³")
+        self.assertNotIn("HEAT:", field["unit"])
+        for projection in field["channel_projections"]:
+            self.assertNotIn("HEAT:", projection["unit"])
+            self.assertIn("历史记录保持可读", projection["notes"])
+            self.assertIn("不新增HEAT活动量输入入口", projection["notes"])
+
+    def test_candidate_technical_rows_show_final_source_eligibility_and_readiness_scope(self):
+        no_selection = self.outcome(
+            "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="PURCHASED",
+            attribute="CONVENTIONAL", origin="CUSTOM", binding_status="ABSENT",
+        )
+        self.assertEqual(no_selection["status"], "READY")
+        self.assertEqual(no_selection["source_qualification"]["value"]["values"], ["OTHER"])
+        self.assertEqual(no_selection["default_source"]["value"]["state"], "NONE")
+
+        rows = self.bundle.technical_review_rows()["fields"]
+        not_selected = next(
+            row for row in rows
+            if row["field_id"] == "electricity.factor"
+            and row["effective_context"]
+            and row["effective_context"].get("source_path") == "ARBITRARY_OVERRIDE"
+            and row["effective_context"].get("direction") == "PURCHASED"
+            and row["effective_context"].get("attribute") == "CONVENTIONAL"
+            and row["initialization_status"] == "NO_AUTOMATIC_SOURCE"
+        )
+        self.assertEqual(not_selected["evaluation_status"], "READY")
+        self.assertEqual(not_selected["source_eligibility"]["status"], "NOT_SELECTED")
+        self.assertEqual(not_selected["source_eligibility"]["allowed_sources"], ["OTHER"])
+
+        selected = next(
+            row for row in rows
+            if row["field_id"] == "electricity.factor"
+            and row["effective_context"]
+            and row["effective_context"].get("source_path") == "ARBITRARY_OVERRIDE"
+            and row["effective_context"].get("direction") == "PURCHASED"
+            and row["effective_context"].get("attribute") == "CONVENTIONAL"
+            and row["selected_business_source"] == "OTHER"
+        )
+        self.assertEqual(selected["evaluation_status"], "READY")
+        self.assertEqual(selected["property"], "source_selection")
+        self.assertEqual(selected["source_eligibility"]["status"], "QUALIFIED")
+        self.assertEqual(selected["source_eligibility"]["selected_source"], "OTHER")
+        self.assertEqual(selected["source_eligibility"]["allowed_sources"], ["OTHER"])
+        self.assertEqual(selected["readiness_scope"], "CANDIDATE_RULE_POLICY_EVALUATION_ONLY")
+        self.assertIn("完整正式输入已通过校验", selected["readiness_note"])
+        self.assertIn("可以生成正式记录", selected["readiness_note"])
+
+        lhv_calculated = next(
+            row for row in rows
+            if row["field_id"] == "fuel.lhv"
+            and row["selected_business_source"] == "CALCULATED"
+            and row["evaluation_status"] == "BLOCKED"
+        )
+        self.assertEqual(lhv_calculated["source_eligibility"]["status"], "NOT_ALLOWED")
+        self.assertTrue(lhv_calculated["source_correction"]["only_for_correction"])
+        self.assertIn("不表示当前来源已获准", lhv_calculated["source_correction"]["reason"])
 
     def test_heat_measured_source_takes_priority_without_an_empty_value_fallback(self):
         context = dict(
