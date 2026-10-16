@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-16-r9",
+  "revision": "candidate-2026-10-16-r10",
   "base": "R8-FINAL已批准执行政策；G05固定规则快照仍源自main@204dded5；此包仅为CANDIDATE，尚非生产接入。",
   "dependency": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-16-r9"
+      "revision": "candidate-2026-10-16-r10"
     }
   ],
   "status": "CANDIDATE",
@@ -12719,8 +12719,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "NOT_APPLICABLE",
-            "reason": "常规购入电力的库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
+            "state": "FIXED",
+            "values": [
+              "OTHER"
+            ]
           }
         },
         {
@@ -12734,8 +12736,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "NOT_APPLICABLE",
-            "reason": "化石购入电力的库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
+            "state": "FIXED",
+            "values": [
+              "OTHER"
+            ]
           }
         },
         {
@@ -12763,8 +12767,10 @@
             "ranges": {}
           },
           "value": {
-            "state": "NOT_APPLICABLE",
-            "reason": "EXPORTED库外用户填写路径不属于STANDARD_DEFAULT/CALCULATED/MEASURED三类来源选择；不得自动标为实测。"
+            "state": "FIXED",
+            "values": [
+              "OTHER"
+            ]
           }
         }
       ]
@@ -28323,8 +28329,8 @@
               "reason": "库外用户填写的数值由企业输入；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "NOT_APPLICABLE",
-              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
+              "state": "EDITABLE",
+              "reason": "用户可显式选择电力专属OTHER；不得借用Catalog/source binding ID或自动标为MEASURED。"
             }
           }
         },
@@ -28344,8 +28350,8 @@
               "reason": "明确标记为化石属性的购入电力由企业填写；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "NOT_APPLICABLE",
-              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
+              "state": "EDITABLE",
+              "reason": "用户可显式选择电力专属OTHER；不得借用Catalog/source binding ID或自动标为MEASURED。"
             }
           }
         },
@@ -28385,8 +28391,8 @@
               "reason": "库外用户填写的数值由企业输入；仍须执行必要有限性、单位和范围校验。"
             },
             "source": {
-              "state": "NOT_APPLICABLE",
-              "reason": "本输入渠道没有三类business_source选择；不得推断为MEASURED。"
+              "state": "EDITABLE",
+              "reason": "用户可显式选择电力专属OTHER；不得借用Catalog/source binding ID或自动标为MEASURED。"
             }
           }
         }
@@ -30748,7 +30754,7 @@
           },
           "value": {
             "state": "NONE",
-            "reason": "常规购入电力库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
+            "reason": "常规来源仍以目录为默认；只有用户显式选择电力专属OTHER后才填写库外值。OTHER不自动预选、不预填数值或目录来源身份；来源说明可选且留空不阻断。"
           }
         },
         {
@@ -30763,7 +30769,7 @@
           },
           "value": {
             "state": "NONE",
-            "reason": "化石购入电力库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
+            "reason": "常规来源仍以目录为默认；只有用户显式选择电力专属OTHER后才填写库外值。OTHER不自动预选、不预填数值或目录来源身份；来源说明可选且留空不阻断。"
           }
         },
         {
@@ -30778,7 +30784,7 @@
           },
           "value": {
             "state": "NONE",
-            "reason": "库外手填不得作为购入非化石电力的真实零因子身份或数值依据；不预填来源或零值。"
+            "reason": "常规来源仍以目录为默认；只有用户显式选择电力专属OTHER后才填写库外值。OTHER不自动预选、不预填数值或目录来源身份；来源说明可选且留空不阻断。"
           }
         },
         {
@@ -30792,7 +30798,7 @@
           },
           "value": {
             "state": "NONE",
-            "reason": "库外用户填写路径直接承载用户数值，不选择三类业务来源，也不预填目录默认来源；适用性/年份按014作整体非阻断核实提醒。"
+            "reason": "常规来源仍以目录为默认；只有用户显式选择电力专属OTHER后才填写库外值。OTHER不自动预选、不预填数值或目录来源身份；来源说明可选且留空不阻断。"
           }
         }
       ]
@@ -33489,6 +33495,114 @@
       ]
     }
   ],
-  "operations": [],
-  "changes": []
+  "operations": [
+    {
+      "key": "review.operation.calcination_role_carbon",
+      "operation_id": "calculate_calcination_role_carbon",
+      "name": "按煅烧输出角色含量表达式(6)碳量",
+      "initial_context": {
+        "channel": "GUI_AND_EXCEL",
+        "object": "煅烧输入中CC、UCC、DU输出量及P01收到基固定碳含量"
+      },
+      "action": "R10候选对应CAR-FML-CALCINATION-001的式(6)软件表达：将标准印刷式中的共同输出项表达为CC×WFC-C[CC] + UCC×WFC-C[UCC] + DU×WFC-C[DU]后并入原式；方括号表示既有CAR-FLD-P01-WFC-C字段概念按输出角色索引的收到基含量，不新增字段ID或标准变量。挥发分项、收到基基准、K1、44/12、44/16及其他系数保持不变，标准印刷式转录不改。",
+      "changes": [
+        "CC、UCC、DU分别按自身质量×对应角色WFC-C形成碳量后求和。",
+        "三个角色含量相同时，该输出项退化为原式的(CC+UCC+DU)×WFC-C。"
+      ],
+      "preserves": [
+        "标准式(6)印刷原文及其转录",
+        "收到基基准、GC×WFC原料项、挥发分项、K1、44/12、44/16和其余系数",
+        "既有CAR-FLD-P01-WFC-C概念；不创建角色专属字段ID"
+      ],
+      "invalidates": [
+        "CC、UCC、DU含量不同时，不再把一个共同WFC-C值套用于全部输出角色。"
+      ],
+      "confirmation": [
+        "含量按CC/UCC/DU各自输出角色取值；不得以跨角色平均含量替代。",
+        "这是Owner批准的软件实施解释，不表述为标准原式改写或发布机构解释。"
+      ],
+      "basis": [
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-018",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:R10 §5.2.2 / TV-CAR-POL-016"
+      ],
+      "cases": [
+        "TV-CAR-POL-016"
+      ],
+      "pending": [
+        "候选仅记录公式语义；未实现或接入正式Calculator，未改生产代码和历史Record。"
+      ],
+      "rule_ids": []
+    },
+    {
+      "key": "review.operation.aggregate_fume_monitoring_segments",
+      "operation_id": "aggregate_fume_monitoring_segments",
+      "name": "按非重叠监测段计算并汇总P04A烟气排放",
+      "initial_context": {
+        "channel": "GUI_AND_EXCEL",
+        "object": "P04A烟气焚烧监测段及报告期覆盖信息"
+      },
+      "action": "R10候选对应CAR-FML-FUME-INCINERATION-001：在同一烟气排放源实例、同一计量边界内，对各互不重叠监测段i分别使用本段Q_i、QVar_i与T_i，结合既有HM、FCh、FOx及式(9)其余项独立求值，再汇总。T_i为该段时长并使用T_i×24；全年报告时长另行记录，不回填到监测段。不同真实设备或排放源实例可存在同时段监测，各自独立计算并汇总，不跨实例去重。此为Owner批准的软件执行表达，不是标准新增的分段公式。",
+      "changes": [
+        "同一烟气排放源实例、同一计量边界内的每个不重叠监测段独立计算Q/QVar/时长对应的式(9)排放量，再进行段间求和。",
+        "全年报告时长与分段监测时长分开记录；不以全年时长回填监测段。",
+        "不同真实设备或排放源实例的同时段分别计算后汇总，不作为重叠段去重。"
+      ],
+      "preserves": [
+        "CAR-FML-FUME-INCINERATION-001及CAR-FLD-P04A-Q、CAR-FLD-P04A-QVAR、CAR-FLD-P04A-T既有字段概念",
+        "标准式(9)印刷原文、其他燃料源的年度时长语义及未涉及源的规则"
+      ],
+      "invalidates": [
+        "不同监测段的Q、QVar或时长不得跨段混用；不重叠约束仅适用于同一烟气排放源实例、同一计量边界。",
+        "不同真实设备/排放源实例可有同时段排放，应各自计算并汇总，不跨对象去重。",
+        "未覆盖区间保持未覆盖，不默认为0；分段合计不得称为完整全年结果。",
+        "不得进行全年回填、年化或外推。"
+      ],
+      "confirmation": [
+        "同一排放源实例、同一计量边界内每段独立求值后汇总；全年报告覆盖另行表达，不替代段时长。",
+        "不同设备或真实源实例的同时段分别计算，不以时间相同为由去重。",
+        "这是Owner批准的软件执行解释，不表述为标准新增公式或发布机构解释。"
+      ],
+      "basis": [
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-020",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:R10 §7.2 / §8 / §12 / TV-CAR-POL-017"
+      ],
+      "cases": [
+        "TV-CAR-POL-017"
+      ],
+      "pending": [
+        "候选仅记录分段语义；未实现或接入正式Calculator，未改生产代码和历史Record。"
+      ],
+      "rule_ids": []
+    }
+  ],
+  "changes": [
+    {
+      "key": "review.change.calcination_role_carbon",
+      "change_type": "CALCINATION_ROLE_CONTENT_EXPANSION",
+      "before": "R8候选保留式(6)印刷的共同WFC-C输出项，未批准CC/UCC/DU含量不同的分项展开。",
+      "after": "R10候选按CC/UCC/DU各自质量×既有WFC-C字段概念的对应角色含量形成碳量并求和；其他基准和系数不变，印刷式不改。",
+      "reason": "落实Owner对Issue018的软件解释；不是标准公式修订，不创建新字段ID或生产算法。",
+      "basis": [
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-018",
+        "TV-CAR-POL-016"
+      ],
+      "pending": [
+        "Candidate-only; formal Calculator implementation and acceptance remain separate."
+      ]
+    },
+    {
+      "key": "review.change.fume_monitoring_segments",
+      "change_type": "FUME_MONITORING_SEGMENT_AGGREGATION",
+      "before": "R8候选要求P04A的Q/QVar覆盖与T一致，未批准不一致监测覆盖的处理。",
+      "after": "R10候选仅在同一烟气排放源实例、同一计量边界内要求监测段不重叠；各段独立使用本段Q/QVar/T求值并求和。不同真实设备/源实例的同时段各自计算汇总，不跨对象去重；全年另行表达，未覆盖不默零或称完整全年，不回填、年化或外推。",
+      "reason": "落实Owner对Issue020的软件实施解释；不改变其他来源的年度时长语义，不改式(9)印刷原文。",
+      "basis": [
+        "STANDARD_ISSUES_REGISTER.md:GHG-STD-32151-34-020",
+        "TV-CAR-POL-017"
+      ],
+      "pending": [
+        "Candidate-only; formal Calculator implementation and acceptance remain separate."
+      ]
+    }
+  ]
 }

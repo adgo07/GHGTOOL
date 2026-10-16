@@ -66,7 +66,7 @@
 "sourceState":{"oneOf":[
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"NOT_APPLICABLE"},"reason":{"$ref":"#/$defs/nonBlank"}}},
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"NO_LEGAL_SOURCES"},"reason":{"$ref":"#/$defs/nonBlank"}}},
-{"type":"object","additionalProperties":false,"required":["state","values"],"properties":{"state":{"const":"FIXED"},"values":{"type":"array","minItems":1,"uniqueItems":true,"items":{"enum":["STANDARD_DEFAULT","CALCULATED","MEASURED"]}}}},
+{"type":"object","additionalProperties":false,"required":["state","values"],"properties":{"state":{"const":"FIXED"},"values":{"type":"array","minItems":1,"uniqueItems":true,"items":{"enum":["STANDARD_DEFAULT","CALCULATED","MEASURED","OTHER"]}}}},
 {"type":"object","additionalProperties":false,"required":["state","policy_id"],"properties":{"state":{"const":"POLICY"},"policy_id":{"$ref":"#/$defs/token"}}},
 {"type":"object","additionalProperties":false,"required":["state","reason"],"properties":{"state":{"const":"PENDING"},"reason":{"$ref":"#/$defs/nonBlank"}}}
 ]},
@@ -88,7 +88,7 @@
 "type":"object","additionalProperties":false,"required":["tags","ranges"],
 "properties":{
 "tags":{"type":"object","additionalProperties":false,"properties":{
-"origin":{"enum":["CATALOG","CUSTOM","LEGACY_UNSPECIFIED"]},"business_source":{"enum":["STANDARD_DEFAULT","CALCULATED","MEASURED"]},"binding_status":{"enum":["VERIFIED","ABSENT","PENDING"]},"parameter_id":{"$ref":"#/$defs/token"},"binding_id":{"$ref":"#/$defs/token"},
+"origin":{"enum":["CATALOG","CUSTOM","LEGACY_UNSPECIFIED"]},"business_source":{"enum":["STANDARD_DEFAULT","CALCULATED","MEASURED","OTHER"]},"binding_status":{"enum":["VERIFIED","ABSENT","PENDING"]},"parameter_id":{"$ref":"#/$defs/token"},"binding_id":{"$ref":"#/$defs/token"},
 "component_mode":{"enum":["DIRECT","FCH"]},"source_path":{"enum":["CATALOGUE_TABLE_1","CATALOGUE_TABLE_2","CATALOGUE_TABLE_3","CATALOGUE_TABLE_4","CATALOGUE_TABLE_5","NONFOSSIL_ZERO","SUPPLY_UNIT_MEASURED","ENTERPRISE_MEASURED","ENTERPRISE_CALCULATED","ARBITRARY_OVERRIDE"]},
 "direction":{"enum":["PURCHASED","EXPORTED"]},"attribute":{"enum":["CONVENTIONAL","NONFOSSIL","FOSSIL"]},"catalog_table":{"enum":["1","2","3","4","5"]},
 "region":{"$ref":"#/$defs/nonBlank"},"province":{"$ref":"#/$defs/nonBlank"},"standard_id":{"$ref":"#/$defs/token"},

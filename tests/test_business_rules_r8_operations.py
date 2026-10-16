@@ -15,7 +15,9 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         cls.policy = json.loads((SOURCE / "software_policy.json").read_text(encoding="utf-8"))
         cls.standard = json.loads(STANDARD.read_text(encoding="utf-8"))
         cls.mapping = MAPPING.read_text(encoding="utf-8")
-        cls.operations = {item["operation_id"]: item for item in cls.policy["operations"]}
+        cls.policy_operations = {item["operation_id"]: item for item in cls.policy["operations"]}
+        cls.standard_operations = {item["operation_id"]: item for item in cls.standard["operations"]}
+        cls.operations = {**cls.policy_operations, **cls.standard_operations}
 
     def vector(self, vector_id):
         return next(line for line in self.mapping.splitlines() if vector_id in line)
@@ -32,8 +34,8 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         )
 
     def test_candidate_revision_and_operation_schema(self):
-        self.assertEqual(self.policy["revision"], "candidate-2026-10-16-r9")
-        self.assertEqual(self.standard["revision"], "candidate-2026-10-16-r9")
+        self.assertEqual(self.policy["revision"], "candidate-2026-10-16-r10")
+        self.assertEqual(self.standard["revision"], "candidate-2026-10-16-r10")
         self.assertIn(
             {"rule_set_id": "qz.carbon_accounting.software_policy", "revision": self.policy["revision"]},
             self.standard["dependency"],
@@ -55,8 +57,13 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
             "key", "operation_id", "name", "initial_context", "action", "changes",
             "preserves", "invalidates", "confirmation", "basis", "cases", "pending", "rule_ids",
         }
-        self.assertEqual(len(self.operations), len(self.policy["operations"]))
-        for operation in self.policy["operations"]:
+        self.assertTrue({
+            "calculate_calcination_role_carbon",
+            "aggregate_fume_monitoring_segments",
+        } <= self.standard_operations.keys())
+        self.assertEqual(len(self.policy_operations), len(self.policy["operations"]))
+        all_operations = self.policy["operations"] + self.standard["operations"]
+        for operation in all_operations:
             with self.subTest(operation=operation["operation_id"]):
                 self.assertEqual(set(operation), required_operation_keys)
 
@@ -87,24 +94,59 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
                 self.assertIn("不新增HEAT活动量入口", projection["notes"])
 
     def test_review_text_has_no_duplicate_chinese_translation_terms(self):
-        for operation in self.policy["operations"]:
+        for operation in self.policy["operations"] + self.standard["operations"]:
             rendered = self.text(operation["operation_id"]).replace("Canonical", "统一输入").replace("Record", "正式记录")
             with self.subTest(operation=operation["operation_id"]):
                 self.assertNotIn("统一输入输入", rendered)
                 self.assertNotIn("正式正式记录", rendered)
 
-    def test_issue014_product_choice_is_separate_from_professional_open(self):
+    def test_issue014_explicit_electricity_other_choice_preserves_validation_and_identity(self):
         text = self.text("resolve_parameter_source")
-        for expected in ("库外值", "电力因子默认采用库内值", "非阻断提醒", "来源说明可留空",
-                         "不得借用参数库身份", "不自动标记为MEASURED",
-                         "专业核验", "OPEN事项不阻断已批准的库外输入选择"):
+        for expected in ("electricity.factor", "OTHER", "常规默认仍为目录来源", "非阻断核实提醒",
+                         "来源说明文字选填", "留空不阻断", "不赋目录参数/source binding ID",
+                         "不自动标记为MEASURED", "有限性", "合法单位/量纲", "OTHER不绕过校验",
+                         "不因此开放燃料或其他字段的OTHER"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
         changes = {item["key"]: item for item in self.policy["changes"]}
         alignment = changes["review.change.electricity_applicability"]
-        self.assertIn("out-of-catalog product choice is approved", alignment["pending"][1])
-        self.assertNotIn("Table 2/4/5 paths and Issue014 supply-unit", text)
+        self.assertIn("显式选择OTHER", alignment["after"])
+        self.assertIn("专业等价证明", alignment["reason"])
         self.assertNotIn("等待映射/实现对齐", str(alignment))
+        self.assertNotIn("专业OPEN", text)
+
+    def test_issue018_calcination_uses_role_indexed_existing_content_field(self):
+        text = self.text("calculate_calcination_role_carbon")
+        for expected in (
+            "CAR-FML-CALCINATION-001", "CAR-FLD-P01-WFC-C",
+            "CC×WFC-C[CC]", "UCC×WFC-C[UCC]", "DU×WFC-C[DU]",
+            "收到基", "挥发分项", "K1", "44/12", "44/16",
+            "不新增字段ID", "标准印刷式转录不改", "不表述为标准原式改写",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        changes = {item["key"]: item for item in self.standard["changes"]}
+        self.assertIn("按CC/UCC/DU各自质量", changes["review.change.calcination_role_carbon"]["after"])
+        self.assertIn("formal Calculator", changes["review.change.calcination_role_carbon"]["pending"][0])
+        vector = self.vector("TV-CAR-POL-016")
+        for expected in ("WFC-C[CC]=.8", "WFC-C[UCC]=.4", "WFC-C[DU]=.25",
+                         "226.8291666666666666666666666666666666667", "162.6625"):
+            self.assertIn(expected, vector)
+
+    def test_issue020_p04a_segments_remain_separate_from_annual_coverage(self):
+        text = self.text("aggregate_fume_monitoring_segments")
+        for expected in (
+            "CAR-FML-FUME-INCINERATION-001", "CAR-FLD-P04A-Q", "CAR-FLD-P04A-QVAR",
+            "CAR-FLD-P04A-T", "同一烟气排放源实例、同一计量边界", "互不重叠监测段", "本段Q_i、QVar_i与T_i",
+            "段间求和", "全年报告时长另行记录", "不同真实设备/排放源实例可有同时段", "不跨对象去重", "不回填", "未覆盖区间保持未覆盖",
+            "不默认为0", "不得称为完整全年结果", "不得进行全年回填、年化或外推",
+            "不表述为标准新增公式",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        vector = self.vector("TV-CAR-POL-017")
+        for expected in (".0704tCO₂", ".1408tCO₂", ".2112tCO₂", "不把未覆盖期默认为零"):
+            self.assertIn(expected, vector)
 
     def test_issue015_heat_attribution_does_not_guess_unclear_boundary(self):
         vector = self.vector("TV-CAR-POL-006")

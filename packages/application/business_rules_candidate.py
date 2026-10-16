@@ -40,7 +40,8 @@ from packages.core import (
 
 SCHEMA_VERSION = "1.2"
 _TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
-_SOURCE_STATES = {"STANDARD_DEFAULT", "CALCULATED", "MEASURED"}
+_DEFAULT_SOURCE_STATES = {"STANDARD_DEFAULT", "CALCULATED", "MEASURED"}
+_SOURCE_STATES = _DEFAULT_SOURCE_STATES | {"OTHER"}
 _INITIALIZATION_TRIGGERS = {
     "NEW_SELECTION", "CONFIRMED_IDENTITY_CHANGE", "RESELECT_AFTER_LEAVE",
 }
@@ -61,7 +62,7 @@ _INTEGER_DECIMAL_LITERAL = re.compile(r"-?(0|[1-9][0-9]*)(\.0+)?")
 _COUNT_BOUND_LITERAL = re.compile(r"(0|[1-9][0-9]*)(\.0+)?")
 _CONTEXT_ENUMS = {
     "origin": {"CATALOG", "CUSTOM", "LEGACY_UNSPECIFIED"},
-    "business_source": {"STANDARD_DEFAULT", "CALCULATED", "MEASURED"},
+    "business_source": _SOURCE_STATES,
     "binding_status": {"VERIFIED", "ABSENT", "PENDING"},
     "component_mode": {"DIRECT", "FCH"},
     "source_path": {"CATALOGUE_TABLE_1", "CATALOGUE_TABLE_2", "CATALOGUE_TABLE_3",
@@ -352,7 +353,7 @@ def _validate_default_source(value: Any, path: str, *, allow_policy: bool = True
     if state in {"NONE", "PENDING"}:
         _text(obj["reason"], f"{path}.reason")
     elif state == "FIXED":
-        _enum(obj["source"], _SOURCE_STATES, f"{path}.source")
+        _enum(obj["source"], _DEFAULT_SOURCE_STATES, f"{path}.source")
         _text(obj["reason"], f"{path}.reason")
     elif state == "POLICY":
         if not allow_policy:
@@ -1729,6 +1730,7 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
         policies[policy["id"]] = policy
 
     field_ids: set[str] = set()
+    policy_field_references: dict[str, set[str]] = {}
     for index, item in enumerate(doc["fields"]):
         item_path = f"{path}.fields[{index}]"
         field_keys = _FIELD_KEYS if "mapping_refs" in _object(item, item_path) else _FIELD_KEYS - {"mapping_refs"}
@@ -1744,7 +1746,14 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
                                   allow_boolean=field_kind == "boolean",
                                   allow_empty_string=field_kind == "text")
         _validate_default_for_kind(default, f"{item_path}.default.value", field_kind)
-        _validate_state(field["source_qualification"], f"{item_path}.source_qualification", source=True)
+        source_qualification = _validate_state(
+            field["source_qualification"], f"{item_path}.source_qualification", source=True
+        )
+        if (source_qualification["state"] == "FIXED"
+                and "OTHER" in source_qualification["values"]
+                and field_id != "electricity.factor"):
+            _fail(f"{item_path}.source_qualification.values",
+                  "OTHER is only valid for field electricity.factor")
         _validate_default_source(field["default_source"], f"{item_path}.default_source")
         locking = _validate_locking(field["locking"], f"{item_path}.locking")
         if not isinstance(field["channel_projections"], list) or not field["channel_projections"]:
@@ -1775,6 +1784,7 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
                     _fail(f"{item_path}.{state_name}.policy_id", "references unknown local policy")
                 if policy["property"] != state_name:
                     _fail(f"{item_path}.{state_name}.policy_id", "policy property does not match field state")
+                policy_field_references.setdefault(policy["id"], set()).add(field_id)
                 if state_name == "default":
                     for branch in policy["branches"]:
                         branch_value = branch["value"]
@@ -1790,6 +1800,20 @@ def _parse_package(path: Path, raw: Mapping[str, Any]) -> CandidatePackage:
                 _fail(f"{item_path}.locking.policy_id", "references unknown local policy")
             if policy["property"] != "locking":
                 _fail(f"{item_path}.locking.policy_id", "policy property does not match field locking")
+            policy_field_references.setdefault(policy["id"], set()).add(field_id)
+    for policy_id, policy in policies.items():
+        has_other = any(
+            branch["when"]["tags"].get("business_source") == "OTHER"
+            or (
+                policy["property"] == "source_qualification"
+                and branch["value"].get("state") == "FIXED"
+                and "OTHER" in branch["value"].get("values", [])
+            )
+            for branch in policy["branches"]
+        )
+        if has_other and policy_field_references.get(policy_id) != {"electricity.factor"}:
+            _fail(f"{path}.policies.{policy_id}",
+                  "OTHER is only valid for field electricity.factor")
     operation_ids: set[str] = set()
     operation_keys: set[str] = set()
     for index, item in enumerate(doc["operations"]):

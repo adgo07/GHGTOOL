@@ -112,6 +112,43 @@ class CandidateLoaderTests(unittest.TestCase):
         with self.assertRaises(CandidateBundleError):
             self.load_one(package(fields=[field("F", kind="future_kind")]))
 
+    def test_other_source_option_is_electricity_factor_only_and_never_auto_selected(self):
+        allowed = self.load_one(package(fields=[field(
+            "electricity.factor",
+            source_qualification={"state": "FIXED", "values": ["OTHER"]},
+        )]))
+        self.assertEqual(
+            allowed.apply_context({"business_source": "OTHER"})["outcomes"]["test.common:electricity.factor"][
+                "source_qualification"
+            ]["value"],
+            {"state": "FIXED", "values": ["OTHER"]},
+        )
+
+        with self.assertRaisesRegex(CandidateBundleError, "OTHER is only valid for field electricity.factor"):
+            self.load_one(package(fields=[field(
+                "fuel.fch",
+                source_qualification={"state": "FIXED", "values": ["OTHER"]},
+            )]))
+
+        fuel_source_policy = {
+            "id": "fuel-source-policy", "property": "source_qualification",
+            "strategy": "UNIQUE_CONTEXT_MATCH", "branches": [{
+                "id": "OTHER", "when": {"tags": {"business_source": "OTHER"}, "ranges": {}},
+                "value": {"state": "FIXED", "values": ["MEASURED"]},
+            }],
+        }
+        with self.assertRaisesRegex(CandidateBundleError, "OTHER is only valid for field electricity.factor"):
+            self.load_one(package(
+                fields=[field("fuel.fch", source_qualification={"state": "POLICY", "policy_id": "fuel-source-policy"})],
+                policies=[fuel_source_policy],
+            ))
+
+        with self.assertRaises(CandidateBundleError):
+            self.load_one(package(fields=[field(
+                "electricity.factor",
+                default_source={"state": "FIXED", "source": "OTHER", "reason": "must be explicit"},
+            )]))
+
     def test_mapping_refs_are_optional_nonempty_tokens_and_visible_in_compact_rows(self):
         without_refs = self.load_one(package(fields=[field("NO_REFS")]))
         self.assertEqual(without_refs.review_rows()["fields"][0]["mapping_refs"], [])

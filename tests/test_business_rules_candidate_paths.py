@@ -229,23 +229,36 @@ class CandidateBusinessPathTests(unittest.TestCase):
 
         for attribute in ("CONVENTIONAL", "FOSSIL"):
             with self.subTest(manual_purchase_attribute=attribute):
+                base = dict(origin="CUSTOM", binding_status="ABSENT")
                 override = self.outcome(
                     "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="PURCHASED",
-                    attribute=attribute,
+                    attribute=attribute, **base,
                 )
                 self.assertEqual(override["status"], "READY")
-                self.assertEqual(override["source_qualification"]["value"]["state"], "NOT_APPLICABLE")
+                self.assertEqual(
+                    override["source_qualification"]["value"],
+                    {"state": "FIXED", "values": ["OTHER"]},
+                )
                 self.assertEqual(override["default_source"]["value"]["state"], "NONE")
                 self.assertEqual(override["default"]["value"], {"state": "NONE"})
                 self.assertEqual(override["locking"]["value"]["state"], "EDITABLE")
-                self.assertEqual(override["locking"]["source"]["state"], "NOT_APPLICABLE")
+                self.assertEqual(override["locking"]["source"]["state"], "EDITABLE")
 
-                forged = self.outcome(
-                    "electricity.factor", source_path="ARBITRARY_OVERRIDE",
-                    direction="PURCHASED", attribute=attribute, business_source="MEASURED",
+                selected_other = self.outcome(
+                    "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="PURCHASED",
+                    attribute=attribute, business_source="OTHER", **base,
                 )
-                self.assertEqual(forged["status"], "BLOCKED")
-                self.assertIn("SOURCE_NOT_APPLICABLE", {p["code"] for p in forged["problems"]})
+                self.assertEqual(selected_other["status"], "READY")
+                self.assertEqual(selected_other["source_qualification"]["value"]["values"], ["OTHER"])
+                self.assertEqual(selected_other["default"]["value"], {"state": "NONE"})
+
+                for source in ("STANDARD_DEFAULT", "CALCULATED", "MEASURED"):
+                    forged = self.outcome(
+                        "electricity.factor", source_path="ARBITRARY_OVERRIDE",
+                        direction="PURCHASED", attribute=attribute, business_source=source, **base,
+                    )
+                    self.assertEqual(forged["status"], "BLOCKED")
+                    self.assertIn("SOURCE_NOT_ALLOWED", {p["code"] for p in forged["problems"]})
 
         missing_attribute = self.outcome(
             "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="PURCHASED",
@@ -255,7 +268,7 @@ class CandidateBusinessPathTests(unittest.TestCase):
 
         nonfossil_manual = self.outcome(
             "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="PURCHASED",
-            attribute="NONFOSSIL",
+            attribute="NONFOSSIL", origin="CUSTOM", binding_status="ABSENT",
         )
         self.assertEqual(nonfossil_manual["status"], "BLOCKED")
         self.assertEqual(nonfossil_manual["source_qualification"]["value"]["state"], "NO_LEGAL_SOURCES")
@@ -264,19 +277,31 @@ class CandidateBusinessPathTests(unittest.TestCase):
 
         exported_manual = self.outcome(
             "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="EXPORTED",
-            attribute="NONFOSSIL",
+            attribute="NONFOSSIL", origin="CUSTOM", binding_status="ABSENT",
         )
         self.assertEqual(exported_manual["status"], "READY")
-        self.assertEqual(exported_manual["source_qualification"]["value"]["state"], "NOT_APPLICABLE")
+        self.assertEqual(
+            exported_manual["source_qualification"]["value"],
+            {"state": "FIXED", "values": ["OTHER"]},
+        )
+        self.assertEqual(exported_manual["default_source"]["value"]["state"], "NONE")
         self.assertEqual(exported_manual["default"]["value"], {"state": "NONE"})
         self.assertEqual(exported_manual["locking"]["value"]["state"], "EDITABLE")
+        self.assertEqual(exported_manual["locking"]["source"]["state"], "EDITABLE")
+
+        selected_export = self.outcome(
+            "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="EXPORTED",
+            attribute="NONFOSSIL", business_source="OTHER", origin="CUSTOM", binding_status="ABSENT",
+        )
+        self.assertEqual(selected_export["status"], "READY")
+        self.assertEqual(selected_export["source_qualification"]["value"]["values"], ["OTHER"])
 
         forged_export = self.outcome(
             "electricity.factor", source_path="ARBITRARY_OVERRIDE", direction="EXPORTED",
-            attribute="NONFOSSIL", business_source="MEASURED",
+            attribute="NONFOSSIL", business_source="MEASURED", origin="CUSTOM", binding_status="ABSENT",
         )
         self.assertEqual(forged_export["status"], "BLOCKED")
-        self.assertIn("SOURCE_NOT_APPLICABLE", {p["code"] for p in forged_export["problems"]})
+        self.assertIn("SOURCE_NOT_ALLOWED", {p["code"] for p in forged_export["problems"]})
 
     def test_issue014_professional_paths_remain_separate_and_pending(self):
         for path in ("SUPPLY_UNIT_MEASURED", "ENTERPRISE_MEASURED", "ENTERPRISE_CALCULATED"):

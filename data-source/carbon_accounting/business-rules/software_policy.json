@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-16-r9",
+  "revision": "candidate-2026-10-16-r10",
   "base": "Review-only software policy; no production adoption.",
   "dependency": [
     {
@@ -586,21 +586,21 @@
         "channel": "GUI_AND_DOMAIN",
         "object": "当前核算上下文中的参数字段"
       },
-      "action": "依据来源路径、参数对象、企业和参数库实际绑定，逐字段解析数值默认、合法业务来源及数值/来源锁定；不跨字段推断来源，也不从无绑定对象借值。电力因子默认采用库内值，同时允许录入库外值；适用性和年份仅作非阻断提醒，来源说明可留空。库外值不得借用参数库身份，也不因手工填写而自动标记为MEASURED；来源未确认时如实保留，不新增专业来源或企业因子计算资格。",
+      "action": "依据来源路径、参数对象和真实绑定逐字段解析数值默认、合法业务来源及数值/来源锁定；电力因子的常规默认仍为目录来源。仅在electricity.factor的库外路径显式选择电力专属OTHER后才可填写库外因子；OTHER不自动预选、不预填值、不赋目录参数/source binding ID，也不自动标记为MEASURED。对来源适用性、有效年份/地区和来源依据显示非阻断核实提醒；来源说明文字选填，留空不阻断。必要数值、有限性与合法单位/量纲仍按硬校验执行，OTHER不绕过校验；不因此开放燃料或其他字段的OTHER。",
       "changes": [
         "所选字段的默认来源、合法来源和锁定状态",
-        "电力库外值的实际采用值及可选来源说明；不改变参数库绑定或参数库值"
+        "电力字段显式选择OTHER后的库外值及可选来源说明；不改变参数库绑定、参数库值或来源身份"
       ],
       "preserves": [
-        "参数库登记的正式参数值与来源绑定真源",
-        "Issue014已批准的库外输入产品选择与其专业适用关系OPEN状态相互独立"
+        "参数库登记的正式参数值、默认目录路径与来源绑定真源",
+        "标准/通则来源依据差异的事实与技术判断；本软件选项不表示专业等价或行业认可"
       ],
       "invalidates": [
         "只确定该字段在当前核算上下文中的输入状态"
       ],
       "confirmation": [
-        "必要数值、单位/量纲、数量基准、定义方法和参数库身份仍分别校验；无法确定合法来源或必要值时阻断核算。证明材料缺失或未审核只产生提醒，不替代必要校验。",
-        "供电单位实测值/企业测算值的适用关系仍待专业核验；该OPEN事项不阻断已批准的库外输入选择，用户输入不自动标记为MEASURED。"
+        "必要值、有限性、合法单位/量纲、数量基准和定义方法仍分别校验；缺失必要值或非法数值/单位时阻断核算。来源说明可空。",
+        "OTHER只适用于electricity.factor的显式库外来源选择；不得沿用Catalog/source binding ID、伪称MEASURED或扩成燃料及其他字段的来源资格。"
       ],
       "basis": [
         "packages/application/carbon_accounting.py:create_g06_parameter_resolver",
@@ -616,8 +616,8 @@
         "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md:Issue 014 current software decision"
       ],
       "pending": [
-        "候选决定尚未接入生产参数解析器或界面。",
-        "Issue014专业适用性仍只对供电单位实测值/企业测算路径保持OPEN；库外输入产品选择已获批准。"
+        "本候选未接入生产解析器或界面。",
+        "014的标准/专业依据差异按台账保留为事实与判断；本软件选择不宣称专业等价。"
       ],
       "rule_ids": []
     },
@@ -777,8 +777,8 @@
       "key": "review.change.electricity_applicability",
       "change_type": "ELECTRICITY_SOURCE_QUALIFICATION",
       "before": "main G05 snapshot records source-rule facts but does not encode the full PR46/Issue010 regional and five-parameter applicability policy.",
-      "after": "R8按分路径表达电力来源资格与软件选择：默认库内，允许库外输入，适用性/年份为非阻断提醒，来源说明选填；不得借用Catalog身份或自动标记MEASURED。供电单位实测/企业测算适用关系另保持Issue014专业OPEN。",
-      "reason": "同步已批准的Issue014库外输入产品选择与R8 Mapping；产品决定不等于专业适用性结论，来源登记状态也不代替软件来源资格。",
+      "after": "R10按电力字段专属路径表达：普通默认仍为目录；用户显式选择OTHER后可填写库外电力因子。OTHER无Catalog/source binding ID、无预填数值且不自动MEASURED；适用性/有效年份/来源依据为非阻断提醒，来源说明选填。必要值、有限性与合法单位/量纲硬校验保持；燃料及其他字段不开放OTHER。",
+      "reason": "同步Owner 2026-10-16批准的Issue014软件产品选择。标准来源适用关系的原文事实与技术判断继续保留；产品选项不构成发布机构解释或专业等价证明。",
       "basis": [
         "docs/architecture/business-rules/ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md:table/regional qualification evidence",
         "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json:default.electricity_factor",
@@ -786,7 +786,7 @@
       ],
       "pending": [
         "Candidate-only; production Resolver/UI integration remains future work.",
-        "Issue014 professional review remains OPEN only for supply-unit measured / enterprise-calculated applicability; the out-of-catalog product choice is approved."
+        "后续生产接入仍需落实显式OTHER选择、可选来源说明与非阻断提醒；不得扩展为其他字段来源资格。"
       ]
     },
     {
