@@ -12,7 +12,7 @@
 
 1. **基线和候选身份。** 两份 JSON 共修改 2 个 `base`、11 个字段 `basis` 人读说明。递归比较已确认没有其他 JSON 叶值变化；R8 是已合并历史基线，当前 R11 含有效批准的软件决定；CANDIDATE 仅表示执行接入尚未完成。未改允许来源、条件、绑定、锁定、公式或适用范围。
 2. **审阅范围。** 在现有 `STANDARD_SEMANTICS_POLICY.md` 第7节登记 Owner 简化决定取代原 V1.2 第11节的全字段可见性盘点，原批准文件字节不变。纯导航、折叠和 advanced 展示不作为业务来源规则；业务适用条件仍由 Mapping / 策略约束。现有 HTML 范围说明引用该段，不恢复 GUI 镜像。
-3. **当前状态。** 重写 `TASK_STATE.md` 和 `HANDOFF.md`，删除层叠旧覆盖段，保留当前有效产品、PF01、Project / Record、EXB01 等边界。原审阅表 Office 检查延期与 EXB01 原生保存回导未验证是两件事，不互相豁免。
+3. **当前状态。** 重写 `TASK_STATE.md` 和 `HANDOFF.md`，删除层叠旧覆盖段，保留当前有效产品、PF01、Project / Record、EXB01 等边界。原审阅表 Office 检查延期与 EXB01 原生保存回导未验证是两件事，不互相豁免。最终检查又校正 HANDOFF §3.7 的旧蒸汽表措辞，定向引用 Mapping §9.7 / 017：后续新自动焓采用 iapws.IAPWS97，C.4/C.5仅历史且不回退，生产接入待PR46，合法独立已知焓保留；不改变该专业决定或生产。
 4. **检查复现。** 将被忽略目录里的必要审阅检查收拢为 `scripts/business_rules_review_checks.py`，复用现有 Python/openpyxl 读取与定义哈希检查，提供 root/stage/input/output/previous 参数，不新增生产依赖、检查框架或 CI Node 安装。`PREFLIGHT.md` 给出从干净 checkout 生成投影、工作簿、夹具和 checks 的命令。
 5. **原有接口。** `review_mode=compact_business_v2` 与 `manifest.view_revision=compact-business-v2` 保留为既有序列化命名别名；详情定位仍是文本路径与锚点。程序统计实际意见行数，不把0写死；意见内容、身份、条件与跨版本复核由既有25场景 JavaScript 夹具验证。
 
@@ -22,7 +22,7 @@
 
 ## 验证与证据来源
 
-最终本地命令及实际结果在提交前记录；新 head 的 GitHub Actions 另在原 PR 最终送验评论记录，不将其写成本地执行。
+以下本地100/20/25与四件套检查对应047210f的代码和产物；后续只同步HANDOFF/TASK_STATE/本报告的017既有决定文案，未重复本地业务测试。该文档补丁运行git diff --check及独立只读复核；新 head 的 GitHub Actions 另在原 PR 最终送验评论记录，不将其写成本地执行。
 
 - `python scripts/validate_business_rules_candidate.py --review-json ... --technical-review-json ... --catalog-snapshot ... --catalog-source data-source/carbon_accounting/catalog.json <三份候选JSON>`：成功生成当前同源投影、技术详情和目录快照，exit 0。
 - `node scripts/build_business_rules_review.mjs --input ... --details ... --catalog-snapshot ... --output ... --previous <备份原表> --node-modules <bundled路径> --definition-root . --python <Python3.12>`：成功，3 Sheet / 61行 / retained_feedback 0；现有 ArtifactTool 渲染视检，布局未变。
