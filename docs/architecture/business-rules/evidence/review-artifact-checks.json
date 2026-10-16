@@ -1,23 +1,27 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_projection_sha256": "cfbb643ea6c9510809a294160078c4ef36852afdb2213a6dbceb140804de60ba",
-  "review_json_file_sha256": "b8377978cbb51309b7c401a3e566f1e3f572464defa275a69b4dda2d802a06dc",
-  "workbook_sha256": "c4155edea6d0884b2463a0a7a578e1af1ff1712bad753bc7ea28432be86fb879",
+  "review_json_file_sha256": "8989a7b964fd690f81736dc79e1708c1027967746f717742e575d66911ae9721",
+  "workbook_sha256": "f85f2bd7e2351cf53af5f9af619054e803682e7f8a41ad7ebd76409ecf769e6a",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "44c2ec530e5025494a3988dbe0a0ab58aabc07118d49f1790a8e6e82e6057115",
+  "generator_sha256": "66f78a8ab47220ecef3d947a272855e1a9f4dc7956b1ac725f30a9ee1440a0bb",
   "fixture_script": "scripts/test_business_rules_review.mjs",
   "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "e8a7add8a07e84fe88d02b78772ef36f60bb35a9103ceeedbec27ba333c006d0",
+  "details_file_sha256": "05c7f43545c50eb468b2bef477d23550148b9d9a991ab6e7aed2b7fb63400b1b",
   "details_source_revision": "candidate-2026-10-17-r11",
   "details_source_counts": {
     "fields": 649,
     "operations": 21,
     "changes": 11
   },
-  "details_semantic_sha256": "b8f9907a089713d696c317f8d06e43e407da4c268935a66aa3d0298eeb97b186",
+  "details_semantic_sha256": "330d6b2781910aa4343a9b59fbbbf4bcf5949ff8de1c278a48e84f3bba6e69dd",
   "details_projection_bound": true,
+  "serialization_aliases": {
+    "review_mode": "compact_business_v2",
+    "manifest.view_revision": "compact-business-v2",
+    "meaning": "既有序列化命名别名；保留各自接口和值，不据此改变业务语义。"
+  },
   "sheets": {
     "业务规则": 29,
     "操作与影响": 21,
@@ -118,20 +122,18 @@
   "error_cells": 0,
   "maximum_cell_characters": 3087,
   "maximum_row_height_points": 344.0,
-  "mirror_definitions_removed": 442,
   "view_scope": {
-    "source_business_concepts": 11,
     "power_rows": "按真实输入路径与方向拆分，不作为新增业务对象",
     "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
     "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
-    "omitted_from_main": "442内部镜像、重复技术组合，不恢复1090行主表",
+    "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
     "compatibility": "候选未接生产；codec/模板/DB迁移/正式Record/报告结构未改。映射澄清已独立提交。"
   },
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "cf6eade214fb5f46575b22c72214617f376d53777c13a9a7045be4b60bf69fe6",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "10c9792de221d2d9277d47e08feb633503a28747a52cc69fa464765b28f16666",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "d3917226d0ce9f30c3426a46d245e843cde04c57434e9d6dce852c3be737beb3",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "d3ad88176c860959cc98639b3b31cb8c6842a68f7a5cf35a9426bc6ead00403b",
     "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "c3bd016e421b2a2373a9f3343450803cdd33cfabe82dd5082c440db4ca0c12a4"
   },
   "historical_electricity_evidence": {
@@ -139,15 +141,23 @@
     "sha256": "b3671b78a65ee56347d39ddea51b5a5d866e5499e6b44246ad76df2540d0c6f2",
     "as_of": "2026-10-15",
     "observed_head": "d279f505951b68750db133cf4279b2b76e0323bb",
-    "scope": "固定历史观察，不把旧head/状态伪更新成当前验证；现行政策见R8及010/014",
-    "roundtrip_distinction": "test_business_rules_excel_evidence覆盖构造OOXML缓存；原生Excel/WPS保存另列，不互相替代"
+    "scope": "固定历史观察，不把旧head/状态伪更新成当前验证；现行口径以当前仓库Mapping和有效Owner软件决定为准。",
+    "roundtrip_distinction": "test_business_rules_excel_evidence覆盖构造OOXML缓存；原生Excel/WPS保存回导另列，不互相替代"
   },
   "native_office_validation": false,
-  "native_scope": "尚待独立原生副本验证结果，未冒称已验证",
-  "technical_combinations": {
-    "total": 649,
-    "READY": 281,
-    "BLOCKED": 368
+  "native_office_status": "NOT_RUN",
+  "native_office_deferral": "DEFERRED",
+  "native_scope": "Owner允许延至下阶段首次正式使用审阅表前完成原生Excel/WPS副本验证；本次未运行，不记为PASS或豁免，不启动CU。",
+  "feedback_retention": {
+    "manifest_retained_feedback": 0,
+    "workbook_feedback_rows": 0,
+    "previous_workbook_feedback_rows": 0,
+    "status": "VERIFIED"
+  },
+  "condition_scopes": {
+    "count": 442,
+    "unique": 442,
+    "source": "HTML与业务规则内容指纹双向核对；详情摘要绑定当前technical JSON"
   },
   "catalog_snapshot": {
     "catalog": {
@@ -276,79 +286,21 @@
     "fgd.conversion": "1",
     "heat.factor": "0.11"
   },
-  "condition_scopes": {
-    "count": 442,
-    "unique": 442,
-    "source": "R11同源详情HTML"
-  },
-  "xlsx_review_controls": {
-    "technical_columns_hidden_and_grouped": {
-      "业务规则": [
-        "原审阅版本",
-        "原审阅投影",
-        "稳定审阅键",
-        "内容指纹",
-        "意见基线指纹",
-        "原投影键",
-        "当前投影键",
-        "规则修订"
-      ],
-      "操作与影响": [
-        "原审阅版本",
-        "原审阅投影",
-        "稳定审阅键",
-        "内容指纹",
-        "意见基线指纹",
-        "原投影键",
-        "当前投影键",
-        "规则修订"
-      ],
-      "本次变化": [
-        "原审阅版本",
-        "原审阅投影",
-        "稳定审阅键",
-        "内容指纹",
-        "意见基线指纹",
-        "原投影键",
-        "当前投影键",
-        "规则修订"
-      ]
-    },
-    "object_specific_scope_dropdowns": {
-      "业务规则": {
-        "range": "O6:O34",
-        "values": [
-          "整体",
-          "允许来源",
-          "默认来源",
-          "数值默认",
-          "读写锁定"
-        ]
-      },
-      "操作与影响": {
-        "range": "K6:K26",
-        "values": [
-          "整体",
-          "操作"
-        ]
-      },
-      "本次变化": {
-        "range": "J6:J16",
-        "values": [
-          "整体"
-        ]
-      }
-    }
-  },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "195a02f367a167659fdc6e99bea658ae3e27575419b83179796aea4ad138c21e",
-    "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input build/business-rules-authoring/review-r11-locking-fix.json --technical-input build/business-rules-authoring/technical-r11-locking-fix.json --node-modules <load_workspace_dependencies返回的Node.js packages目录> --output build/business-rules-authoring/r11-locking-fix/review-feedback-fixture.json",
-    "method": "真实Table.getRange数据范围反转、ArtifactTool导出/重开/再生成；不冒充原生排序",
-    "input_relation": "从本轮真实投影选择对象，具体选取与版本/删除/属性/技术详情变更见fixture报告",
+    "report_sha256": "86119775c215eb6290b81b909aa68b0c710c25e1fefc3e52965aa4990ef2c313",
+    "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
+    "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
+    "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
     "status": "PASS",
     "actual_scenario_count": 25,
     "input_mode": "formal compact and technical projection",
-    "formal_projection_sha256": "cfbb643ea6c9510809a294160078c4ef36852afdb2213a6dbceb140804de60ba"
+    "formal_projection_sha256": "df5a801fb23f504fe0b2c5cf84c579139f8a6c2f7b2624853e47a7b456880b37",
+    "formal_details_sha256": "79ad08a3baa99583ac20e7e6b7d9a7ad5083b2a338ccfac816b1003fd8b93bbe"
+  },
+  "technical_combinations": {
+    "total": 649,
+    "READY": 281,
+    "BLOCKED": 368
   }
 }

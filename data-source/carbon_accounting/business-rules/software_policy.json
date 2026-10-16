@@ -3,7 +3,7 @@
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
   "revision": "candidate-2026-10-17-r11",
-  "base": "Review-only software policy; no production adoption.",
+  "base": "当前R11软件执行候选依据现行Mapping及Owner有效批准；PR48已合并R8仅为历史基线。CANDIDATE表示生产接入尚未完成，不撤销标准原文事实或已批准软件决定。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",

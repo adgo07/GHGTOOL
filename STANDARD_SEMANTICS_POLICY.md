@@ -1,6 +1,6 @@
 # 标准业务语义维护规则
 
-本文件是GB/T 32151.34—2024当前行业在既有REFERENCE_STANDARD_ROADMAP下的模块内维护规则，不是中央公共Contract、第二产品路线或标准全文。当前业务含义唯一依据为[PR48已合并R8 Mapping](specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md)及[问题台账](STANDARD_ISSUES_REGISTER.md)；机器候选仅表达其执行属性，不是第二业务权威。[原V1.2批准全文](docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md)保留原字节作历史证据，被R8/最新Owner决定取代的范围不继续约束当前候选。PR47不接生产。
+本文件是GB/T 32151.34—2024当前行业在既有 REFERENCE_STANDARD_ROADMAP 下的模块内维护规则，不是中央公共 Contract、第二产品路线或标准全文。当前业务含义唯一依据为[现行 R11 Mapping（R8 为 PR48 合并历史基线）](specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md)及[问题台账](STANDARD_ISSUES_REGISTER.md)；标准原文事实、技术判断和软件决定分别记录。014、018、019、020 的 Owner 批准软件决定继续有效；019 中的原文错误确认属于软件决定，不是官方勘误。机器 CANDIDATE 仅表示执行接入状态，PR47 候选尚未接生产，批准决定不等于生产接入或正式支持。[原 V1.2 批准全文](docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md)保留原字节。
 
 ## 1. 归属与采用
 
@@ -47,6 +47,8 @@ Excel受控模板修订与下载分开；下载仍复制经批准精确字节。
 ## 7. 审阅与交付
 
 一个生成审阅工作簿含字段条件、操作影响、基线差异。意见绑定规则修订、字段/条件/操作ID和属性，重新生成保留未完成意见；意见不成为运行规则。
+
+Owner已批准的审阅范围减负决定取代原V1.2第11节全字段可见性盘点要求；原V1.2全文保持原字节。不得恢复GUI镜像；纯导航、折叠和advanced展示设置不作为业务来源规则。凡影响业务适用性的条件，仍须按当前Mapping与本策略记录、求值和执行；此减负决定不豁免这些条件，也不改变标准解释、来源资格或计算结果。
 
 业务含义来自Mapping及批准决定，机器Canonical仅维护执行表达，审阅表和展开结果为派生物；因子数值仍在Catalog/Resolver。Report Schema保留结构、类型、版本、必填性和渠道投影，不能删成只有投影。即使模板/版本/资源登记以后收拢，原始来源、实际模板字节/表式、独立测试预期及真实发布产物仍须独立验证，不能全从被测配置生成期望。后续B只把精确清单内资源部署到包内，并复用build-manifest和既有发布审计；不得放开data-source、标准全文和用户数据。
 

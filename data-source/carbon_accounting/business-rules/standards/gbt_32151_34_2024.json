@@ -3,7 +3,7 @@
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
   "revision": "candidate-2026-10-17-r11",
-  "base": "R8-FINAL已批准执行政策；G05固定规则快照仍源自main@204dded5；此包仅为CANDIDATE，尚非生产接入。",
+  "base": "PR48已合并R8为历史映射基线；当前R11执行候选依据现行Mapping及Owner已批准014/018/019/020软件决定；G05固定规则快照仍源自main@204dded5。CANDIDATE表示执行接入尚未完成，不撤销标准原文事实或已批准软件决定。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
@@ -32846,7 +32846,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32908,7 +32908,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -32970,7 +32970,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33031,7 +33031,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33091,7 +33091,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33158,7 +33158,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33223,7 +33223,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33284,7 +33284,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33346,7 +33346,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33407,7 +33407,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [
@@ -33473,7 +33473,7 @@
         }
       ],
       "basis": [
-        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；依据已合并的PR48 Mapping）",
+        "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §8/§9（对应mapping_refs；当前R11映射，PR48已合并R8为历史基线）",
         "已批准软件决定及当前HANDOFF；机器定义仅执行表达，不另解释标准。"
       ],
       "consumers": [

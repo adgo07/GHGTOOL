@@ -561,3 +561,231 @@ class CandidateAssetCoverageTests(unittest.TestCase):
                     for row in rows if row["evaluation_status"] not in {"READY","BLOCKED"}]
         self.assertEqual(unexpected,[],
             "真实候选资产可明确阻断非法/待核来源，但不应留下策略间无法组合的结构缺项")
+
+
+    def test_review_checks_cli_binds_current_html_and_runs_without_node(self):
+        import shutil
+        import tempfile
+
+        from openpyxl import load_workbook
+
+        from scripts.business_rules_review_checks import _feedback_rows, semantic_json_sha256
+        from scripts.business_rules_review_hashes import (
+            DEFINITION_ASSET_HASH_POLICY,
+            EXPECTED_DEFINITION_ASSETS,
+            definition_text_sha256,
+        )
+
+        source_checks = json.loads(
+            (REVIEW_ARTIFACT_ROOT / "review-artifact-checks.json").read_text(encoding="utf-8")
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stage = root / "input" / "review-stage"
+            stage.mkdir(parents=True)
+            review_path = root / "review.json"
+            technical_path = root / "technical.json"
+            snapshot_path = root / "catalog-snapshot.json"
+            candidate_paths = (
+                SOURCE / "common/gbt_32150_2025.json",
+                SOURCE / "standards/gbt_32151_34_2024.json",
+                SOURCE / "software_policy.json",
+            )
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/validate_business_rules_candidate.py"),
+                    "--review-json", str(review_path),
+                    "--technical-review-json", str(technical_path),
+                    "--catalog-snapshot", str(snapshot_path),
+                    "--catalog-source", str(ROOT / "data-source/carbon_accounting/catalog.json"),
+                    *(str(path) for path in candidate_paths),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stdout + generated.stderr)
+
+            review_bytes = review_path.read_bytes()
+            projection = hashlib.sha256(review_bytes.replace(b"\r\n", b"\n")).hexdigest()
+            technical = json.loads(technical_path.read_text(encoding="utf-8"))
+            snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            self.assertEqual(technical["metadata"]["source_compact_sha256"], projection)
+
+            workbook_path = stage / "业务规则审阅表.xlsx"
+            details_path = stage / "业务规则审阅详情.html"
+            fixture_path = stage / "review-feedback-fixture.json"
+            for name, destination in (
+                ("业务规则审阅表.xlsx", workbook_path),
+                ("业务规则审阅详情.html", details_path),
+                ("review-feedback-fixture.json", fixture_path),
+            ):
+                shutil.copyfile(REVIEW_ARTIFACT_ROOT / name, destination)
+
+            workbook = load_workbook(workbook_path, data_only=False)
+            try:
+                for sheet in workbook.worksheets:
+                    self.assertEqual(sheet["A1"].value, "审阅数据SHA256：" + projection)
+                business_sheet = workbook["业务规则"]
+                headers = [cell.value for cell in business_sheet[5]]
+                opinion_column = headers.index("审阅意见") + 1
+                original_feedback = _feedback_rows(workbook_path)
+                empty_cell = next(
+                    (
+                        business_sheet.cell(row_number, opinion_column)
+                        for row_number in range(6, business_sheet.max_row + 1)
+                        if business_sheet.cell(row_number, opinion_column).value in (None, "")
+                    ),
+                    None,
+                )
+                self.assertIsNotNone(empty_cell, "the review workbook needs an empty feedback row")
+                empty_cell.value = "保留用户意见"
+                workbook.save(workbook_path)
+            finally:
+                workbook.close()
+            previous_path = root / "previous.xlsx"
+            shutil.copyfile(workbook_path, previous_path)
+            retained_feedback = _feedback_rows(workbook_path)
+            self.assertEqual(retained_feedback, original_feedback + 1)
+
+            asset_hashes = {
+                relative: definition_text_sha256((ROOT / relative).read_bytes())
+                for relative in EXPECTED_DEFINITION_ASSETS
+            }
+            manifest = {
+                "view_revision": "compact-business-v2",
+                "definition_assets_hash_policy": DEFINITION_ASSET_HASH_POLICY,
+                "definition_assets_sha256": asset_hashes,
+                "projection_sha256": projection,
+                "details": details_path.name,
+                "details_revision": technical["metadata"]["revision"],
+                "details_counts": {
+                    section: len(technical[section])
+                    for section in ("fields", "operations", "changes")
+                },
+                "details_sha256": semantic_json_sha256(technical),
+                "details_projection_bound": True,
+                "catalog_snapshot": {
+                    "catalog": snapshot["catalog"],
+                    "entries": snapshot["entries"],
+                },
+                "tables": [
+                    {
+                        "sheet": name,
+                        "table": source_checks["table_ranges"][name]["range"],
+                        "rows": source_checks["sheets"][name],
+                        "headers": source_checks["table_ranges"][name]["columns"],
+                    }
+                    for name in source_checks["sheets"]
+                ],
+                "retained_feedback": retained_feedback,
+            }
+            (stage / "review-view-manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            output_path = root / "nested" / "checks" / "review-artifact-checks.json"
+            python_path = str(Path(sys.executable).parent)
+            self.assertIsNone(shutil.which("node", path=python_path))
+            command = [
+                sys.executable,
+                str(ROOT / "scripts/business_rules_review_checks.py"),
+                "--root", str(ROOT),
+                "--stage", str(stage),
+                "--review-json", str(review_path),
+                "--technical-json", str(technical_path),
+                "--fixture", str(fixture_path),
+                "--output", str(output_path),
+                "--previous", str(previous_path),
+            ]
+            check_env = {**os.environ, "PATH": python_path}
+
+            def run_checks():
+                return subprocess.run(
+                    command,
+                    cwd=ROOT,
+                    env=check_env,
+                    capture_output=True,
+                    text=True,
+                )
+
+            completed = run_checks()
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            checks = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(checks["review_mode"], "compact_business_v2")
+            self.assertEqual(checks["serialization_aliases"]["manifest.view_revision"], "compact-business-v2")
+            self.assertEqual(checks["feedback_retention"]["manifest_retained_feedback"], retained_feedback)
+            self.assertEqual(checks["feedback_retention"]["workbook_feedback_rows"], retained_feedback)
+            self.assertEqual(checks["feedback_retention"]["previous_workbook_feedback_rows"], retained_feedback)
+            self.assertEqual(checks["feedback_test"]["formal_projection_sha256"], projection)
+            self.assertEqual(checks["feedback_test"]["formal_details_sha256"], hashlib.sha256(
+                technical_path.read_bytes().replace(b"\r\n", b"\n")
+            ).hexdigest())
+
+            original_fixture = fixture_path.read_bytes()
+            invalid_fixture = json.loads(original_fixture)
+            invalid_fixture["formal_projection_sha256"] = "0" * 64
+            fixture_path.write_text(json.dumps(invalid_fixture), encoding="utf-8")
+            try:
+                with self.subTest(rejected_binding="fixture projection"):
+                    rejected = run_checks()
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn("feedback fixture is not bound", rejected.stderr)
+            finally:
+                fixture_path.write_bytes(original_fixture)
+
+            original_technical = technical_path.read_bytes()
+            invalid_technical = json.loads(original_technical)
+            invalid_technical["metadata"]["source_compact_sha256"] = "0" * 64
+            technical_path.write_text(
+                json.dumps(invalid_technical, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            try:
+                with self.subTest(rejected_binding="technical source projection"):
+                    rejected = run_checks()
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn("not bound to this review projection", rejected.stderr)
+            finally:
+                technical_path.write_bytes(original_technical)
+
+            original_html = details_path.read_text(encoding="utf-8")
+            for label, pattern, message in (
+                ("mixed HTML projection", r"(?<=正式投影SHA256：)[0-9a-f]{64}", "details HTML projection SHA-256"),
+                ("mixed HTML semantic details", r"(?<=详情输入SHA256：)[0-9a-f]{64}", "details HTML semantic SHA-256"),
+            ):
+                mixed_html, substitutions = re.subn(pattern, "0" * 64, original_html, count=1)
+                self.assertEqual(substitutions, 1)
+                details_path.write_text(mixed_html, encoding="utf-8")
+                try:
+                    with self.subTest(rejected_mixed_source=label):
+                        rejected = run_checks()
+                        self.assertNotEqual(rejected.returncode, 0)
+                        self.assertIn(message, rejected.stderr)
+                finally:
+                    details_path.write_text(original_html, encoding="utf-8")
+
+            scope_match = re.search(
+                r'(<pre data-review-row="[^"]+" data-review-property="[^"]+">)([\s\S]*?)(</pre>)',
+                original_html,
+            )
+            self.assertIsNotNone(scope_match)
+            altered_scope = (
+                original_html[:scope_match.start()]
+                + scope_match.group(1)
+                + scope_match.group(2)
+                + " 混源"
+                + scope_match.group(3)
+                + original_html[scope_match.end():]
+            )
+            details_path.write_text(altered_scope, encoding="utf-8")
+            try:
+                with self.subTest(rejected_binding="HTML scope set"):
+                    rejected = run_checks()
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn("HTML scopes do not match business review fingerprints", rejected.stderr)
+            finally:
+                details_path.write_text(original_html, encoding="utf-8")

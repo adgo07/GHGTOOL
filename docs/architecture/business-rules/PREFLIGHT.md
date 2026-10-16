@@ -1,28 +1,12 @@
-> 历史开工检查（2026-10-15原A基线）。保留当时检查与证据，不作当前政策；PR48合并后的本轮Contract/Mapping预检查见现有IMPLEMENTATION_REPORT。原中央锁定未升级。
+# 业务规则候选审阅工具复现
 
-# 规则统一A包开工与Contract预检查
+> 历史开工检查记录于2026-10-15的基线，只作为历史证据；本节给出当前 R11 候选在干净 checkout 中的复现步骤。中央 Frozen baseline 仍以本仓 `platform-lock.json` 锁定的 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 为准，本任务不升级 Contract。
 
-日期：2026-10-15；仓库身份实核adgo07/GHGTOOL，默认分支main。成功fetch后main为204dded5d03853617f79a1f05693e89b619df9d1。独立工作树由该main创建，分支codex/ghg-business-rules-a。原主checkout为用户工作分支且有Excel及未跟踪资料，未切换、清理或覆盖。首轮非提权fetch因.git只读权限未写FETCH_HEAD，按允许范围重试后成功；这是执行权限问题，不是origin冲突。
+## 当前候选审阅复现
 
-PR46经GitHub实时读取：open、未合并，head77d36a155323bc82199cb516c4ac58a2e1c60309。A不并入PR46的生产改动；其字段政策/输入/报告成果是明确后续依赖，只作分层盘点。不把PR46的2.2.0模板/3.0.1布局误写为main当前资源。
+从 GHGTOOL 仓库根目录打开 Windows PowerShell。候选验证器生成紧凑审阅投影、同源技术详情和只读目录快照；工作簿 builder 消费这些输入并生成审阅表、同源 HTML 详情与 `review-view-manifest.json`；往返夹具按正式投影生成反馈场景；仓内 Python checks 工具核对工作簿结构、意见保留、候选来源及生成器绑定，并检查 HTML 内嵌的投影 SHA、technical semantic SHA 和工作簿 scope 指纹是否与本轮输入一致。
 
-已读取AGENTS、唯一路线、TASK_STATE、HANDOFF、标准问题台账、当前行业Mapping、报告架构/Schema、标准能力架构，以及完整批准V1.2（SHA98ABF84EA7F7AF3887D60C3C1E128C272D73CCBF73892D76581AD1771BFAD876）。批准全文已原字节收录；历史§1/§17不是本次检查结论。
-
-中央仓origin已验证adgo07/Qingzhou-contracts，不动其用户修改。按本仓lock ee5feb0cc34dbd99790500fadd0c4c932e202a20读取Architecture V2.1、Numeric v1及Profiles v1；当前已合并ACTIVE读取GUIDE_INDEX、UI指南v0.2、家族规格/验收清单v0.1。v0.1旧UI正文仅历史，不并行当当前依据。没有自动升级lock。
-
-适用MUST：分层与Domain平台独立、现有共享Calculator/Resolver、显式采用固定修订、业务decimal lossless解析、declared-profile consistency/ambient independence、full-value exact比较、项目与冻结Record分离、历史来源和结果不漂移。MUST NOT：binary float权威值、隐式修约/全局epsilon、显示回流、第二套算法、生产空定义降级、标准全文/用户数据打包。Carbon p40/HALF_UP是ALLOWED PROJECT DIFFERENCE而非平台统一默认。
-
-A只增加本模块候选源、加载与审阅工具，不涉及中央公共Contract修改、不实施新Workspace/Record公共格式、不修改DB/公式/Runtime资源或正式产品支持范围。未发现与locked Frozen冲突；无需中央Contract升级。新014为本行业专业适用关系OPEN，仅停受影响企业电力路径资格落地，不阻断A及已核验路径。C01/C02按012/013登记为已批准决定。
-
-A出口：完整消费者与旧路径盘点、字段/条件/操作审阅、候选严格加载与负例证据，提交独立验收后停止。B先燃料完整链、N专项均未开始；不自行合并任何PR。
-
-## 当前候选审阅复现（R11，开发流程）
-
-本节只描述当前 R11 候选的可复现命令；上方 2026-10-15 开工检查及既有证据作为历史保留。命令从仓库根目录的 Windows PowerShell 运行，生成物均写入被 Git 忽略的 `build/business-rules-authoring/`。
-
-先用固定的三份候选定义导出紧凑审阅投影、同源技术详情和独立目录快照。`catalog-snapshot` 是开发审阅用的只读核对结果：验证器按字段的精确绑定从 Canonical `catalog.json` 查询，builder 再消费该快照，并把目录版本、来源哈希、绑定和数值写入 `review-view-manifest.json`；快照不复制到正式资产或生产数据库。
-
-`@oai/artifact-tool` 是 JavaScript 审阅工作簿生成与往返夹具使用的开发依赖，来自 Codex 工作区开发 bundle，不是产品运行依赖。通过 `load_workspace_dependencies` 获取 Node.js executable、Node.js packages 根目录和 Python executable。builder 的 `--python` 只调用现有 Python 运行时的标准库，用于折叠审阅技术列；`audit-r11.py` 读回工作簿时使用工作区 Python bundle 已有的 `openpyxl`。不安装产品依赖。
+`@oai/artifact-tool` 只用于本地开发工作簿和 JavaScript 往返夹具，不是产品依赖。先调用 `load_workspace_dependencies`，把返回的 Node.js executable、Node.js packages 根目录和 Python executable 粘贴到提示中。builder 的 `--python` 使用该 Python 的标准库折叠技术列；`scripts/business_rules_review_checks.py` 使用现有 `openpyxl` 读取工作簿，不调用 Node，也不新增产品依赖。
 
 ```powershell
 $work = "build/business-rules-authoring"
@@ -31,6 +15,7 @@ New-Item -ItemType Directory -Force -Path $stage | Out-Null
 $node = Read-Host "粘贴 load_workspace_dependencies 返回的 Node.js executable 路径"
 $nodeModules = Read-Host "粘贴 load_workspace_dependencies 返回的 Node.js packages 路径"
 $python = Read-Host "粘贴 load_workspace_dependencies 返回的 Python executable 路径"
+$previous = Read-Host "如需保留上一版审阅意见，粘贴上一版工作簿路径；没有则留空"
 
 & $python scripts/validate_business_rules_candidate.py `
   --review-json "$work/review-r11.json" `
@@ -42,7 +27,7 @@ $python = Read-Host "粘贴 load_workspace_dependencies 返回的 Python executa
   data-source/carbon_accounting/business-rules/software_policy.json
 if ($LASTEXITCODE -ne 0) { throw "候选验证或目录快照导出失败：$LASTEXITCODE" }
 
-& $node @(
+$builderArgs = @(
   "scripts/build_business_rules_review.mjs",
   "--input", "$work/review-r11.json",
   "--details", "$work/technical-r11.json",
@@ -52,9 +37,13 @@ if ($LASTEXITCODE -ne 0) { throw "候选验证或目录快照导出失败：$LAS
   "--definition-root", ".",
   "--python", $python
 )
+if ($previous) { $builderArgs += @("--previous", $previous) }
+& $node @builderArgs
 if ($LASTEXITCODE -ne 0) { throw "R11 审阅工作簿生成失败：$LASTEXITCODE" }
 
-& $python scripts/business_rules_review_hashes.py --root . --checks "$stage/review-view-manifest.json"
+& $python scripts/business_rules_review_hashes.py `
+  --root . `
+  --checks "$stage/review-view-manifest.json"
 if ($LASTEXITCODE -ne 0) { throw "R11 投影/资产哈希检查失败：$LASTEXITCODE" }
 
 & $node @(
@@ -67,14 +56,37 @@ if ($LASTEXITCODE -ne 0) { throw "R11 投影/资产哈希检查失败：$LASTEXI
 )
 if ($LASTEXITCODE -ne 0) { throw "R11 正式投影意见往返夹具失败：$LASTEXITCODE" }
 
-& $python build/business-rules-authoring/audit-r11.py "$stage/review-feedback-fixture.json"
+$checksArgs = @(
+  "scripts/business_rules_review_checks.py",
+  "--root", ".",
+  "--stage", $stage,
+  "--review-json", "$work/review-r11.json",
+  "--technical-json", "$work/technical-r11.json",
+  "--fixture", "$stage/review-feedback-fixture.json",
+  "--output", "$stage/review-artifact-checks.json"
+)
+if ($previous) { $checksArgs += @("--previous", $previous) }
+& $python @checksArgs
 if ($LASTEXITCODE -ne 0) { throw "R11 工作簿结构与证据摘要检查失败：$LASTEXITCODE" }
 
-& $python -m unittest tests.test_business_rules_candidate_assets -v
+$reviewArtifactDirBefore = $env:GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR
+try {
+  $env:GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR = $stage
+  & $python -m unittest tests.test_business_rules_candidate_assets -v
+  if ($LASTEXITCODE -ne 0) { throw "业务规则候选资产 Python 测试失败：$LASTEXITCODE" }
+} finally {
+  if ($null -eq $reviewArtifactDirBefore) {
+    Remove-Item Env:GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR -ErrorAction SilentlyContinue
+  } else {
+    $env:GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR = $reviewArtifactDirBefore
+  }
+}
 ```
 
-已核实的正式投影夹具报告为 `status=PASS`、`actual_scenario_count=25`，其中主场景 23 项、方向隔离 2 项；本轮新增 5 项可见条件/操作克隆场景，原有 20 项保留。场景数应以运行报告的 `actual_scenario_count` 为准。无正式输入的 synthetic smoke 仅作补充，不能替代此正式投影夹具；本节不固定其场景数。
+所有默认生成物都位于被 Git 忽略的 `build/business-rules-authoring/`。Checks CLI 的 `--root`、`--stage`、`--review-json`、`--technical-json`、`--fixture` 和 `--output` 均可传入其他路径；输出目录不存在时会自动建立。若有上一版审阅表，builder 与 checks CLI 都传入同一个 `--previous`，checks 只比较上一版工作簿、生成 manifest 的 `retained_feedback` 与新工作簿实际非空意见行数；意见内容及跨版本关联由 JavaScript 往返夹具验证，不以行数冒充内容核验，也不清空或假设意见为空。复现测试把 `$stage` 设为 `GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR`，确保测试读取本轮生成的资产。
 
-`audit-r11.py` 位于忽略的 `build/` 目录，只写入该目录下的临时审计摘要。它核对 R11 `manifest.catalog_snapshot` 的三项值、649 个技术组合（281 READY、368 BLOCKED）、442 个唯一条件作用域，以及技术列隐藏/可展开和各对象属性下拉验证。该摘要不覆盖正式审阅资产、状态报告或用户工作簿。
+`review-view-manifest.json` 的 `view_revision=compact-business-v2` 与 checks 文件的 `review_mode=compact_business_v2` 是各自既有接口中的序列化命名别名。生成器保留这两个字段及原值，不据此改变业务语义。Manifest 的工作簿行数、技术组合数量、目录快照值和意见数量均按本轮实际输入核验；文本资产哈希仅将 CRLF 归一为 LF，工作簿哈希按原始字节计算。
 
-GitHub Actions 的 Windows / Python 3.12 全量单元测试步骤会运行 `tests.test_business_rules_candidate_assets`；本地审阅工作簿生成与 JavaScript 往返夹具使用 Codex 工作区开发 bundle，不声称由当前 CI 执行。`review-view-manifest.json` 对 UTF-8 文本资产仅把 CRLF 归一为 LF 后计算 SHA-256，不重排 JSON；工作簿 SHA-256 按原始二进制字节计算。
+正式投影往返夹具会在报告中记录 `actual_scenario_count`；当前 R11 夹具为25个场景，实际结果以本轮生成的 fixture 报告为准。该 JavaScript 夹具与本地工作簿生成使用 Codex 工作区开发 bundle；GitHub Actions 的 Windows / Python 3.12 工作流运行 Python 测试，不应把它描述为执行了本地 JavaScript 夹具。
+
+原生 Excel/WPS 副本验证目前为 `NOT_RUN` / `DEFERRED`。Owner 允许延至下阶段首次正式使用审阅表前完成；此状态不表示 `PASS` 或豁免，本次不启动 CU。
