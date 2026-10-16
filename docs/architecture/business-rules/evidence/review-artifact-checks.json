@@ -131,7 +131,7 @@
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
     "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "932b0dcfb1a2ec3a1699523dd5cbea4a9af8471b73c3d668256b13f9c0ce618f",
     "data-source/carbon_accounting/business-rules/software_policy.json": "4e45c974cdbb47ebbeb7e325be689940b5fa748e6d64097c313f1f41e317af2b",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "d8989a363319b0f404f99d12c5da70cf9c36157ee425d50e7bb3adc07c0f6fcf"
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "0a8d42c853f8c01209ac895c99089d01a13fe5e4a13651c560215f4004da030c"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",

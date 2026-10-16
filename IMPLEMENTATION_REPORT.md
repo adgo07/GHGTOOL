@@ -8,7 +8,7 @@
 
 中央locked SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。Architecture V2.1、Numeric v1/Profiles v1继续适用：分层、共享Calculator/Resolver、声明Profile及ambient independence、高精度exact业务比较、显示修约不回流、可变Project与不可变Record分离及历史不漂移；不得第二算法、epsilon正式判定、自动升级Frozen。本任务不涉及中央公共Contract修改，无新中央冲突/采用。映射澄清不修改正式公式、原表或Numeric；独立Decimal例显式使用本项目p40/HALF_UP，不称平台默认。
 
-Standard Issue：有，保留010及012—019身份；014产品输入选择已批准而专业问题OPEN，018/019OPEN不关闭。新增020为式(9)时间覆盖局部OPEN，仅登记同覆盖原则，不把T改成运行天数，不发明汇总算法。本轮细化已批准解释的执行表达，不新增专业来源或正式计算解释。
+Standard Issue：有，保留010及012—019身份；014产品输入选择已批准而专业问题OPEN，018保持OPEN；019已按Owner2026-10-16确认两处原文错误并RESOLVED（仅软件决定，非官方勘误）。新增020为式(9)时间覆盖局部OPEN，仅登记同覆盖原则，不把T改成运行天数，不发明汇总算法。本轮细化已批准解释的执行表达，不新增专业来源或正式计算解释。
 
 ## 修改内容与边界
 
@@ -58,4 +58,13 @@ node scripts/test_business_rules_review.mjs --input build/review-r9.json --techn
 
 本轮未本地执行完整全量/Windows构建；新head Windows CI须另核实并与本地结果区分，不继承#232。实际长电力行及23/24关键操作已ArtifactTool渲染检查，中文余量不足曾调整布局后复看；不等同Office显示验收。
 
-本轮向原PR47提交、自动送方案设计独立验收，然后停止。无新的Owner业务选择；014专业、018、019、020仍OPEN。即使A通过也等待Owner确认，不合并47/46，不启动46/B/N；原生缺项与最终CI状态由验收明确处理，不擅自宣布完整PASS。
+本轮向原PR47提交、自动送方案设计独立验收，然后停止。无新的Owner业务选择；019按Owner确认已RESOLVED；014专业、018、020仍OPEN。即使A通过也等待Owner确认，不合并47/46，不启动46/B/N；原生缺项与最终CI状态由验收明确处理，不擅自宣布完整PASS。
+
+
+## 019追加确认与定向校验（2026-10-16）
+
+已实际读取方案设计会话中Owner原始消息01a1450e-757d-7cd0-9252-4eace7bfc081：确认400℃/0.5MPa、550℃/0.01MPa原标准信息错误，软件依然以iapws库为准。Mapping §9.6/9.7及019据此同步，019 RESOLVED限Owner软件决定，不宣称发布机构官方勘误；当前RESOLVED15/OPEN3（014专业、018、020）。历史R8发布及复核时019 OPEN修订记录不改，追加本轮确认。
+
+本次仅六份文档/证据文件；3217.8、3593.2及C.4/C.5全部转录原值保持，未填替代值，仍按017采用iapws.IAPWS97且无旧表回退。工作簿、HTML、源JSON、正式Calculator、依赖、DB及历史Record未改，不重建工作簿。checks仅同步当前Mapping SHA。
+
+定向命令：`python -m unittest tests.test_business_rules_candidate_assets tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q`；22/22，0fail/0error，3.155s。另以Git前版逐字核对C.4/C.5转录代码块、R8两条历史修订行、工作簿SHA及六文件diff范围，diff检查通过。未重新跑18场景fixture、全量或Windows构建，因实现及工作簿未变；f07d398的CI #233两job成功是上一head证据，新文档head CI另核实。原生Office缺项仍保留，不合并47/46、不进46/B/N。
