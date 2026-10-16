@@ -22,18 +22,24 @@
 
 ## 验证与证据来源
 
-以下本地100/20/25与四件套检查对应047210f的代码和产物；后续只同步HANDOFF/TASK_STATE/本报告的017既有决定文案，未重复本地业务测试。该文档补丁运行git diff --check及独立只读复核；新 head 的 GitHub Actions 另在原 PR 最终送验评论记录，不将其写成本地执行。
+最新本地100项联合在正式产物路径重跑，其中含20项资产检查；25场景JavaScript夹具对应未改动的投影/builder/四件套，未因终端编码修复重复重生。此前单独资产命令20项14.136秒与047210f代码/产物绑定；CI239失败及后续编码修复如实分列。新head的GitHub Actions另在原PR最终送验评论记录，不将其写成本地执行。
 
 - `python scripts/validate_business_rules_candidate.py --review-json ... --technical-review-json ... --catalog-snapshot ... --catalog-source data-source/carbon_accounting/catalog.json <三份候选JSON>`：成功生成当前同源投影、技术详情和目录快照，exit 0。
 - `node scripts/build_business_rules_review.mjs --input ... --details ... --catalog-snapshot ... --output ... --previous <备份原表> --node-modules <bundled路径> --definition-root . --python <Python3.12>`：成功，3 Sheet / 61行 / retained_feedback 0；现有 ArtifactTool 渲染视检，布局未变。
 - `node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input ... --technical-input ... --node-modules <bundled路径> --output ...`：25/25 PASS（23主场景+2方向隔离），6次实际 HTML 条件输入；这是本地 bundled ArtifactTool 验证，不是 Windows CI 或原生 Office 验证。
 - `python scripts/business_rules_review_checks.py --root . --stage ... --review-json ... --technical-json ... --fixture ... --output ... --previous <备份原表>`：PASS；61行、649组合、442唯一范围、意见0/0/0，同源绑定通过。
 - `python scripts/business_rules_review_hashes.py --root . --checks <stage>/review-view-manifest.json`：4/4 定义资产 LF 哈希通过。
-- `GHG_BUSINESS_RULES_REVIEW_ARTIFACT_DIR=<stage>; python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -v`：最终100/100通过，0 failure、0 error，20.402秒；新增 Python CLI 无 Node 测试覆盖嵌套临时输出、意见保留及混源拒绝。
-- `python -m unittest tests.test_business_rules_candidate_assets -q`（正式交付路径）：最终20/20通过，0 failure、0 error，14.136秒。
+- `python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_candidate_revisions tests.test_business_rules_r8_operations tests.test_pr48_mapping_arithmetic -q`（无资产目录覆盖，读取正式交付路径）：最终100/100通过，0 failure、0 error，20.347秒；新增 Python CLI 无 Node 测试覆盖嵌套临时输出、意见保留及混源拒绝。
+- `python -m unittest tests.test_business_rules_candidate_assets -q`（正式交付路径）：此前单独20/20通过，0 failure、0 error，14.136秒；最新正式路径100项联合仍包含这20项并通过，不额外重复单跑。
 - `git diff --check`：通过；仅 Git 的 CRLF 标准化提示。独立 Luna/max 依据实际 diff 和最终工具静态复核，确认混源 HTML 缺口关闭、无剩余阻断；独立代理没有另跑测试。
 
 当前正式投影 LF SHA256：`df5a801fb23f504fe0b2c5cf84c579139f8a6c2f7b2624853e47a7b456880b37`。正式四件套 SHA256：XLSX `f85f2bd7e2351cf53af5f9af619054e803682e7f8a41ad7ebd76409ecf769e6a`；HTML `05c7f43545c50eb468b2bef477d23550148b9d9a991ab6e7aed2b7fb63400b1b`；checks `948f77f4d8605129a6f70752c1304a0377c4ae174ec735f1cf96da2b43e51d7e`；fixture `86119775c215eb6290b81b909aa68b0c710c25e1fefc3e52965aa4990ef2c313`。精确 head 与新 CI 由最终送验评论记录。
+
+## CI239实际失败与修复
+
+`d0866560f147bea735087af9fcbec5370df9fc05`对应[CI239](https://github.com/adgo07/GHGTOOL/actions/runs/38963647355)：merge-ref `83b66dbac073eeca75ab46846a7c871de05445ac` 全量565项，564通过、1失败、0错误，745.469秒。唯一失败是新增CLI测试：Windows cp1252重定向输出无法打印中文JSON，`UnicodeEncodeError`；前置检查通过，exact-head standalone job跳过，无该轮构建或上传证据。
+
+修复仅为开发CLI终端JSON使用ASCII转义，文件仍UTF-8；既有无Node回归显式使用cp1252，最新正式路径100项重跑通过。没有改变检查语义、业务结果或四件套字节。最终新head重跑CI，不能以239或旧237代替。
 
 ## 未执行与停止边界
 

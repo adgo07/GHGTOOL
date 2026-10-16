@@ -594,7 +594,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError, KeyError) as exc:
         parser.exit(2, f"business-rule review checks failed: {exc}\n")
-    print(json.dumps(result, ensure_ascii=False))
+    # ASCII JSON remains readable by tools under redirected Windows legacy code pages.
+    print(json.dumps(result, ensure_ascii=True))
     return 0
 
 

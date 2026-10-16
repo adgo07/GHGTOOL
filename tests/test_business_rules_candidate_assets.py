@@ -701,7 +701,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
                 "--output", str(output_path),
                 "--previous", str(previous_path),
             ]
-            check_env = {**os.environ, "PATH": python_path}
+            check_env = {**os.environ, "PATH": python_path, "PYTHONIOENCODING": "cp1252"}
 
             def run_checks():
                 return subprocess.run(
