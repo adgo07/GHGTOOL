@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import unicodedata
+from typing import Mapping
 
 
 class InputOrigin(str, Enum):
@@ -71,6 +72,9 @@ class ParameterSourcePolicy:
     basis: str | None
     short_label: str
     resolver_bound: bool
+    value_locked: bool = False
+    source_locked: bool = False
+    outcome_status: str = "READY"
 
 
 _SOURCE_POLICY_FIELDS = {
@@ -93,6 +97,8 @@ def parameter_source_policy(
     has_resolver_binding: bool = False,
     carbonate_component_count: int = 1,
     input_basis: str | None = None,
+    resolved_context: Mapping[str, str] | None = None,
+    business_source: str | None = None,
 ) -> ParameterSourcePolicy:
     """Return the approved per-field source choices, defaults, and binding scope.
 
@@ -111,38 +117,39 @@ def parameter_source_policy(
         raise ValueError("carbonate_component_count must be at least one")
     bound = bool(has_resolver_binding)
 
-    if field_id == "fuel.direct_carbon":
-        allowed, default, locked, binding, context, basis, label = (
-            (MEASURED,), MEASURED, False, False, origin_value, "DIRECT", "直接含碳量",
-        )
-    elif field_id == "fuel.lhv":
-        catalog = origin_value == InputOrigin.CATALOG.value
-        allowed = ((STANDARD_DEFAULT, CALCULATED, MEASURED) if catalog and bound
-                   else (CALCULATED, MEASURED))
-        default = STANDARD_DEFAULT if catalog and bound else None
-        locked = default == STANDARD_DEFAULT
-        binding = catalog
-        context, basis, label = origin_value, "HEAT_CONTENT", "低位发热量"
-    elif field_id == "fuel.fch":
-        catalog = origin_value == InputOrigin.CATALOG.value
-        if origin_value == InputOrigin.LEGACY_UNSPECIFIED.value:
-            allowed, default = (), None
-        elif catalog and bound:
-            allowed, default = (STANDARD_DEFAULT, CALCULATED, MEASURED), STANDARD_DEFAULT
-        elif catalog:
-            allowed, default = (CALCULATED, MEASURED), None
+    if field_id.startswith("fuel."):
+        from .carbon_material_business_policy import evaluate_fuel_power_field
+
+        if resolved_context is None:
+            if bound:
+                raise ValueError("燃料缺省资格需要真实Resolver绑定上下文，不能只传布尔标记。")
+            current = {"origin": origin_value}
+            if field_id != "fuel.direct_carbon":
+                current["binding_status"] = "PENDING" if origin_value == "LEGACY_UNSPECIFIED" else "ABSENT"
         else:
-            allowed, default = (CALCULATED, MEASURED), None
-        locked = default == STANDARD_DEFAULT
-        binding = catalog
-        context, basis, label = origin_value, "HEAT_CONTENT", "单位热值含碳量 FCh"
-    elif field_id == "fuel.oxidation":
-        catalog = origin_value == InputOrigin.CATALOG.value
-        allowed = ((STANDARD_DEFAULT, MEASURED) if catalog and bound else (MEASURED,))
-        default = STANDARD_DEFAULT if catalog and bound else MEASURED
-        locked = default == STANDARD_DEFAULT
-        binding = catalog
-        context, basis, label = origin_value, None, "碳氧化率 FOx"
+            current = dict(resolved_context)
+            if current.get("origin") != origin_value:
+                raise ValueError("燃料来源上下文与确认身份不一致。")
+        initial = evaluate_fuel_power_field(field_id, current)
+        qualification = initial["source_qualification"].get("value") or {}
+        allowed = tuple(qualification.get("values", ())) if qualification.get("state") == "FIXED" else ()
+        initial_source = initial["default_source"].get("value") or {}
+        default = initial_source.get("source") if initial_source.get("state") == "FIXED" else None
+        selected = business_source if business_source is not None else default
+        if selected is not None:
+            current["business_source"] = STANDARD_DEFAULT if selected == "STANDARD_SPECIFIED" else selected
+        effective = evaluate_fuel_power_field(field_id, current)
+        value_lock = effective["locking"].get("value", {}).get("state")
+        source_lock = effective["locking"].get("source", {}).get("state")
+        label = {"fuel.direct_carbon": "直接含碳量", "fuel.lhv": "低位发热量",
+                 "fuel.fch": "单位热值含碳量 FCh", "fuel.oxidation": "碳氧化率 FOx"}[field_id]
+        return ParameterSourcePolicy(
+            field_id, allowed, default, default == STANDARD_DEFAULT,
+            origin_value == "CATALOG" and field_id != "fuel.direct_carbon", origin_value,
+            "DIRECT" if field_id == "fuel.direct_carbon" else "HEAT_CONTENT" if field_id in {"fuel.lhv", "fuel.fch"} else None,
+            label, current.get("binding_status") == "VERIFIED", value_lock == "LOCKED",
+            source_lock == "LOCKED", effective["status"],
+        )
     elif field_id in {"material.fixed_carbon", "material.volatile_matter"}:
         allowed, default, locked, binding = (MEASURED,), MEASURED, False, False
         context = "APPENDIX_B_MEASURED_SOURCE"
@@ -192,6 +199,7 @@ def validate_parameter_source_policy(
     has_resolver_binding: bool = False,
     carbonate_component_count: int = 1,
     input_basis: str | None = None,
+    resolved_context: Mapping[str, str] | None = None,
 ) -> tuple[str, str, str] | None:
     """Return a stable validation tuple when a selected source is inapplicable.
 
@@ -207,6 +215,8 @@ def validate_parameter_source_policy(
         has_resolver_binding=has_resolver_binding,
         carbonate_component_count=carbonate_component_count,
         input_basis=input_basis,
+        resolved_context=resolved_context,
+        business_source=source_kind,
     )
     normalized = STANDARD_DEFAULT if source_kind == "STANDARD_SPECIFIED" else source_kind
     if field_id == "fuel.fch" and origin in {InputOrigin.LEGACY_UNSPECIFIED, InputOrigin.LEGACY_UNSPECIFIED.value}:
@@ -232,13 +242,17 @@ class FuelInputPolicy:
 
 
 def fuel_input_policy(origin: InputOrigin, *, direct_carbon: bool, heat_activity: bool = False,
-                      carbon_source_kind: str | None = None) -> FuelInputPolicy:
+                      carbon_source_kind: str | None = None,
+                      resolved_context: Mapping[str, str] | None = None) -> FuelInputPolicy:
     required = ("carbon_content", "oxidation_rate")
     if not direct_carbon and not heat_activity:
         required = ("lower_heating_value", *required)
-    explicit_fch = carbon_source_kind in {"CALCULATED", "MEASURED", "USER_DEFINED"}
-    fch_editable = origin is InputOrigin.CUSTOM or (not direct_carbon and explicit_fch)
-    return FuelInputPolicy(required, origin is InputOrigin.CATALOG, fch_editable)
+    policy = parameter_source_policy(
+        "fuel.direct_carbon" if direct_carbon else "fuel.fch", origin=origin,
+        resolved_context=resolved_context, business_source=carbon_source_kind,
+    )
+    return FuelInputPolicy(required, origin is InputOrigin.CATALOG, not policy.value_locked)
+
 
 
 def infer_fuel_origin(fuel_type: str | None, explicit: InputOrigin | None = None) -> InputOrigin:

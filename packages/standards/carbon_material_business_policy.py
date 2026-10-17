@@ -40,6 +40,18 @@ def _document() -> dict[str, Any]:
         raise BusinessPolicyConfigurationError("燃料与电力业务规则资源缺失或损坏。") from exc
 
 
+def fuel_power_policy_identity() -> dict[str, Any]:
+    """Freeze only the adopted field subset and exact execution resource identity."""
+    document = _document()
+    return {
+        "adoption_id": ADOPTION_ID,
+        "resource_sha256": RUNTIME_SHA256,
+        "adopted_fields": sorted(document["fields"]),
+        "sources": [{key: source[key] for key in ("rule_set_id", "revision", "sha256")}
+                    for source in document["sources"]],
+    }
+
+
 def evaluate_fuel_power_field(field_id: str, context: Mapping[str, Any]) -> dict[str, Any]:
     """Return the same four-property final outcome as the review evaluator.
 

@@ -35,22 +35,38 @@ from packages.standards.carbon_material_normalization import (
 
 
 class ParameterSourcePolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.directory = tempfile.TemporaryDirectory()
+        cls.catalog = SQLiteCatalogRepository(build_catalog_database(output_path=Path(cls.directory.name) / "catalog.sqlite"))
+        cls.resolver = create_g06_parameter_resolver(cls.catalog)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.directory.cleanup()
+
+    def fuel_context(self, field_id):
+        from packages.standards.carbon_material_business_policy import fuel_source_context
+        return fuel_source_context(field_id, resolver=self.resolver, origin=InputOrigin.CATALOG,
+            subject_id="natural_gas", accounting_period=AccountingPeriod(PeriodType.ANNUAL, date(2026,1,1), date(2026,12,31)))
     def test_fuel_source_choices_are_field_and_origin_specific(self) -> None:
         catalog_fch = parameter_source_policy(
             "fuel.fch", origin=InputOrigin.CATALOG, has_resolver_binding=True,
+            resolved_context=self.fuel_context("fuel.fch"),
         )
-        self.assertEqual(catalog_fch.allowed_sources, ("STANDARD_DEFAULT", "CALCULATED", "MEASURED"))
+        self.assertEqual(catalog_fch.allowed_sources, ("STANDARD_DEFAULT", "MEASURED"))
         self.assertEqual(catalog_fch.default_source, "STANDARD_DEFAULT")
         self.assertTrue(catalog_fch.default_locked)
         self.assertTrue(catalog_fch.binding_required)
 
         custom_fch = parameter_source_policy("fuel.fch", origin=InputOrigin.CUSTOM)
-        self.assertEqual(custom_fch.allowed_sources, ("CALCULATED", "MEASURED"))
-        self.assertIsNone(custom_fch.default_source)
+        self.assertEqual(custom_fch.allowed_sources, ("MEASURED",))
+        self.assertEqual(custom_fch.default_source, "MEASURED")
         self.assertFalse(custom_fch.default_locked)
 
         catalog_oxidation = parameter_source_policy(
             "fuel.oxidation", origin=InputOrigin.CATALOG, has_resolver_binding=True,
+            resolved_context=self.fuel_context("fuel.oxidation"),
         )
         self.assertEqual(catalog_oxidation.allowed_sources, ("STANDARD_DEFAULT", "MEASURED"))
         self.assertNotIn("CALCULATED", catalog_oxidation.allowed_sources)
@@ -63,13 +79,13 @@ class ParameterSourcePolicyTests(unittest.TestCase):
         self.assertFalse(custom_oxidation.default_locked)
 
         direct = parameter_source_policy("fuel.direct_carbon", origin=InputOrigin.CUSTOM)
-        self.assertEqual(direct.allowed_sources, ("MEASURED",))
+        self.assertEqual(direct.allowed_sources, ("CALCULATED", "MEASURED"))
         self.assertEqual(direct.default_source, "MEASURED")
         self.assertEqual(direct.basis, "DIRECT")
 
         custom_lhv = parameter_source_policy("fuel.lhv", origin=InputOrigin.CUSTOM)
-        self.assertEqual(custom_lhv.allowed_sources, ("CALCULATED", "MEASURED"))
-        self.assertIsNone(custom_lhv.default_source)
+        self.assertEqual(custom_lhv.allowed_sources, ("MEASURED",))
+        self.assertEqual(custom_lhv.default_source, "MEASURED")
 
     def test_material_fields_and_fgd_fields_follow_independent_mapping(self) -> None:
         for field_id in ("material.fixed_carbon", "material.volatile_matter"):

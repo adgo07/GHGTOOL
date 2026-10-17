@@ -899,13 +899,12 @@ class ParameterResolver:
                 "当前规则集存在未解决冲突，不能形成用户填报因子的正式快照。",
                 context.parameter_id,
             ))
-        if override.source_reference is None:
-            problems.append(self._problem(
-                "GEN-VAL-USER-OVERRIDE-SOURCE-MISSING",
-                IssueLevel.WARNING,
-                "用户填报的电力因子未记录来源说明；本次按输入值计算并保留为手动覆盖。",
-                context.parameter_id,
-            ))
+        problems.append(self._problem(
+            "GEN-VAL-USER-OVERRIDE-REVIEW",
+            IssueLevel.WARNING,
+            "请核实其他来源电力因子的适用性与有效年份；来源说明选填，本次按填写值计算。",
+            context.parameter_id,
+        ))
         if any(problem.level is IssueLevel.ERROR for problem in problems):
             return ParameterResolution(
                 context=context, recommended=None, alternatives=(), historical=(),

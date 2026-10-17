@@ -7,6 +7,10 @@ calculation evidence. Record persistence and adapters live outside this module.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_business_policy import (
+    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity,
+)
+
 from packages.standards.carbon_material_input_policy import (
     InputOrigin,
     carbonate_c2_identity,
@@ -1473,6 +1477,7 @@ class CarbonMaterialCalculator:
             "standard": {"standard_id": STANDARD_ID, "version": self.standard_version},
             "mapping": {"version": MAPPING_VERSION, "status": "FROZEN"},
             "calculator": {"algorithm_version": ALGORITHM_VERSION},
+            "adopted_business_policy": fuel_power_policy_identity(),
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -1831,6 +1836,28 @@ class CarbonMaterialCalculator:
                 return None
         return candidate
 
+    def _electricity_source_policy_invalid(self, resolution, *, direction, attribute,
+                                          problems, field_id, other=False) -> bool:
+        if other:
+            context = {"source_path": "ARBITRARY_OVERRIDE", "direction": direction,
+                       "attribute": attribute, "business_source": "OTHER"}
+        elif self.parameter_resolver is None or resolution is None:
+            context = {"origin": "CATALOG", "binding_status": "PENDING",
+                       "direction": direction, "attribute": attribute}
+        else:
+            context = electricity_source_context(self.parameter_resolver, resolution,
+                                                 direction=direction, attribute=attribute)
+            context["business_source"] = "STANDARD_DEFAULT"
+        outcome = evaluate_fuel_power_field("electricity.factor", context)
+        if outcome["status"] == "READY":
+            return False
+        problems.append(_problem(
+            "CAR-VAL-ELECTRICITY-SOURCE-POLICY", IssueLevel.ERROR,
+            "所选电力因子的来源身份、方向、属性或适用绑定尚未核实，请重新选择；不自动改用其他因子。",
+            field_id,
+        ))
+        return True
+
     def _fuel_default_binding(
         self,
         value: ParameterValue | None,
@@ -1838,32 +1865,27 @@ class CarbonMaterialCalculator:
         parameter_type: ParameterType,
         accounting_period: AccountingPeriod,
     ):
-        if value is None or not subject_id:
+        if value is None or not subject_id or self.parameter_resolver is None:
             return None
-        if self.parameter_resolver is None:
+        field_id = {
+            ParameterType.LOWER_HEATING_VALUE: "fuel.lhv",
+            ParameterType.CARBON_CONTENT_PER_HEAT: "fuel.fch",
+            ParameterType.OXIDATION_RATE: "fuel.oxidation",
+        }[parameter_type]
+        context = fuel_source_context(
+            field_id, resolver=self.parameter_resolver, origin=InputOrigin.CATALOG,
+            subject_id=subject_id, accounting_period=accounting_period,
+            selected_factor_id=value.factor_id,
+        )
+        if context.get("binding_status") != "VERIFIED" or context.get("parameter_id") != value.parameter_id:
             return None
-        parameter = self.parameter_resolver.repository.get_parameter(value.parameter_id)
-        if (
-            parameter is None
-            or parameter.parameter_id != value.parameter_id
-            or parameter.subject_id != subject_id
-            or parameter.parameter_type is not parameter_type
-        ):
-            return None
-        candidate = self._resolved_source_factor(value.parameter_id, subject_id, parameter_type, accounting_period)
-        if (
-            candidate is None
-            or candidate.parameter_id != value.parameter_id
-            or candidate.subject_id != subject_id
-            or candidate.parameter_type is not parameter_type
-            or candidate.value_type is not ValueType.STANDARD_DEFAULT
-            or candidate.source_id != "SRC-32151-34-2024"
-            or candidate.source_location is None
-            or "附录C表C.1" not in candidate.source_location
-            or STANDARD_ID not in candidate.applicable_standard_ids
-        ):
-            return None
-        return candidate
+        resolution = self.parameter_resolver.resolve(ParameterResolutionContext(
+            parameter_id=value.parameter_id, standard_id=STANDARD_ID, accounting_period=accounting_period,
+            subject_id=subject_id, parameter_type=parameter_type, confirmed_factor_id=value.factor_id,
+            confirmation_reason="核对燃料当前明确选择" if value.factor_id else None,
+        ))
+        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
+        return resolution.recommended.factor if not resolution.blocked and resolution.recommended is not None else None
 
     def _factor_value_matches(self, value: ParameterValue, factor: object) -> bool:
         expected_source_kind = {
@@ -1957,6 +1979,7 @@ class CarbonMaterialCalculator:
         carbonate_component_count: int = 1,
         input_basis: str | None = None,
         problem_field_id: str | None = None,
+        resolved_context: Mapping[str, str] | None = None,
     ) -> bool:
         issue = validate_parameter_source_policy(
             field_id,
@@ -1965,6 +1988,7 @@ class CarbonMaterialCalculator:
             has_resolver_binding=has_resolver_binding,
             carbonate_component_count=carbonate_component_count,
             input_basis=input_basis,
+            resolved_context=resolved_context,
         )
         if issue is None:
             return False
@@ -2002,6 +2026,13 @@ class CarbonMaterialCalculator:
                 policy_fields.append(("fuel.lhv", item.lower_heating_value, binding_by_field["fuel.lhv"] is not None, "LHV"))
             policy_fields.append(("fuel.fch", item.carbon_content, binding_by_field["fuel.fch"] is not None, "CARBON"))
         policy_fields.append(("fuel.oxidation", item.oxidation_rate, binding_by_field["fuel.oxidation"] is not None, "FOX"))
+        source_contexts = {
+            field: fuel_source_context(
+                field, resolver=self.parameter_resolver, origin=origin,
+                subject_id=item.catalog_subject_id, accounting_period=accounting_period,
+                selected_factor_id=getattr(value, "factor_id", None),
+            ) for field, value, _bound, _suffix in policy_fields
+        }
         policy_invalid = False
         for policy_field, value, is_bound, suffix in policy_fields:
             row_field_id = f"CAR-FLD-F01-{item.fuel_id}-{suffix}"
@@ -2009,6 +2040,7 @@ class CarbonMaterialCalculator:
                 policy_field, value, problems, origin=origin, has_resolver_binding=is_bound,
                 input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
                 problem_field_id=row_field_id,
+                resolved_context=source_contexts[policy_field],
             )
         if policy_invalid:
             return None
@@ -2026,6 +2058,7 @@ class CarbonMaterialCalculator:
             if not matches:
                 label = parameter_source_policy(
                     policy_field, origin=origin, has_resolver_binding=is_bound,
+                    resolved_context=source_contexts[policy_field],
                     input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
                 ).short_label
                 problems.append(_problem(
@@ -2565,6 +2598,13 @@ class CarbonMaterialCalculator:
                     problems.extend(resolution.problems)
                     if resolution.blocked or resolution.snapshot is None or resolution.result is None or resolution.result.recommended is None:
                         continue
+                    if detail.acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
+                        attribute = "NONFOSSIL" if detail.attribute is ElectricityAttribute.NONFOSSIL else "FOSSIL" if detail.attribute is ElectricityAttribute.FOSSIL else "CONVENTIONAL"
+                        if self._electricity_source_policy_invalid(
+                            resolution.parameter_resolution, direction="PURCHASED", attribute=attribute,
+                            problems=problems, field_id=detail.detail_id, other=detail.factor_override is not None,
+                        ):
+                            continue
                     snapshots.append(resolution.snapshot)
                     quantity = self._quantity(InputValue(detail.electricity_amount, detail.electricity_unit), "MWh", detail.detail_id, problems)
                     if quantity is None:
@@ -2628,6 +2668,18 @@ class CarbonMaterialCalculator:
                         problems,
                         snapshot_at,
                     )
+                if factor_value is not None:
+                    other = factor is not None and factor.factor_id is None
+                    actual_resolution = None
+                    if not other and self.parameter_resolver is not None:
+                        checked_context = replace(parameter_context, confirmed_factor_id=factor.factor_id,
+                            confirmation_reason=factor.selection_reason) if factor is not None else parameter_context
+                        actual_resolution = self.parameter_resolver.resolve(checked_context)
+                    if self._electricity_source_policy_invalid(
+                        actual_resolution, direction="EXPORTED", attribute="CONVENTIONAL",
+                        problems=problems, field_id=line.line_id, other=other,
+                    ):
+                        continue
                 if quantity is not None and factor_value is not None:
                     amount = purchased_electricity_emission(quantity, factor_value)
                     exported_power_total += amount

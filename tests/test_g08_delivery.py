@@ -37,6 +37,7 @@ from scripts.inspect_release import (
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
     COMPATIBILITY_TEMPLATE_SHA256,
+    PRIOR_TEMPLATE_PATH,
     PREVIOUS_TEMPLATE_PATH,
     PREVIOUS_TEMPLATE_SHA256,
     REPORT_LAYOUT_PATH,
@@ -52,7 +53,7 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     runtime_rules = root / BUSINESS_RULES_PATH
     runtime_rules.parent.mkdir(parents=True, exist_ok=True)
     runtime_rules.write_bytes((PROJECT_ROOT / BUSINESS_RULES_PATH).read_bytes())
-    for relative in (APPROVED_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+    for relative in (APPROVED_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((PROJECT_ROOT / relative).read_bytes())

@@ -36,3 +36,29 @@
 候选六模块+runtime首次101项1failure/3error：450新范围尚用442旧断言，以及Excel未接完精确上下文的3error。更新范围验收并分离待接Excel后99/99，13.191s；Excel接线首次误用context.accounting_period及不存在的定向方法，3项/4error；改用实际context.period后Excel词法/cache2/2，2.815s。GUI消费者+draft首跑19项1failure为旧mock不影响真实producer，替换为真实过期绑定后19/19，14.046s。当前公共UI/Domain/Excel仍在接线中，不以这些局部通过声称整个B完成。
 
 新v5显式“直接计算值”渠道已获源技术核查；待实施。v4旧标签不重解释，旧资源原字节保留；v5原生回导NOT_RUN/OPEN，不借旧WPS证据。
+
+## 审批拒绝与未完成项
+
+自动审批拒绝v5跨文件脚本、已展示的单文件注册补丁，以及正式电力来源资格接线。均未执行/未应用；仅在build准备完整v5-complete.patch与electricity-formal-policy.patch并apply --check，等待Owner明确授权，不绕审查或交其他线程代执行。批准V1.2必要模板同步条款及源技术判断已核，但审核未接受跨会话转述作为当前具体授权。
+
+正式模板仍v4。候选v5移至忽略build，不让未登记资源进入当前正式打包；SHA65025da305cd8378b82183a4e58d8d93ea09b35196dc68279a66423ee7337805，旧v4 SHA不变。ArtifactTool首次编辑因allowBlank与rule组合不兼容失败，去掉该组合后成功；选择性OOXML仅改sheet2，custom验证API未提供，采用标准库定点保存并逐项读回，不重绘其他部件。新v5原生Office为NOT_RUN/OPEN。
+
+未受影响工作：014统一有无说明的非阻断适用性/年份提醒单测1/1，0.217s；同row购入/输出草稿及恢复单测1/1，1.797s；燃料已有四个lifecycle加完整电力channels联合9/9，11.125s。仍未运行本B最终全量/新head CI；不以基线705/CI242背书新范围。
+
+旧燃料政策/确认25项22.470s，4failure/2error，日志在忽略build/fuel-power1/legacy-policy-tests.log。多数为已批准R11取代的旧来源/重复确认期望，另发现新对象DIRECT未初始化来源及方向切换后旧负例需按隔离场景重验；具体修复与断言保留已备fuel-finalization.patch（未应用），该生产/测试操作也被自动审批拒绝，现等待三项完整明确授权。
+
+## 已批准补丁实际采用与回归断点
+
+Owner已直接批准完整三项范围。此前“待审批/正式仍v4/电力资格未采用”仅为历史阻断记录，已被本节取代。正式模板v5最终SHA256 `ce929968b8659889b0b6aba581b6782b96b8afcb8b378bc1b27c9768521e3d09`；旧v4 SHA保持 `e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f`。首候选A20空内容使真实结构识别返回2.1.0，已从ArtifactTool作者产物取回完整说明并同步哈希；除sheet2.xml外其他ZIP部件完全相同，独立3/3保护。
+
+实际修改包含模板注册/版本识别、fuel直接计算v5映射、受控打包与审计；燃料GUI身份/路径/来源草稿、完整来源资格和正式Domain接线；电力真实Resolver资格、可选说明和方向草稿；新Record既有provenance JSON增加实际采用子集身份。公式、Numeric、数据库、历史Record及Word renderer不变。
+
+本地执行（`.venv/Scripts/python.exe`，Qt offscreen）：
+- `-m unittest tests.test_b1_fuel_drafts tests.test_b1_fuel_consumers tests.test_b1_fuel_lifecycle tests.test_pr46_parameter_source_policy tests.test_pr46_fuel_confirmation tests.test_b_electricity_channels tests.test_fuel_power_runtime_policy tests.test_resolved_reference_bindings -q`：72项，2failure/0error，68.287s；两处实际缺陷修复后`tests.test_b1_fuel_lifecycle tests.test_pr46_fuel_confirmation tests.test_b_electricity_table5_policy`23/23，28.013s。
+- `-m unittest tests.test_fuel_power_template_v5 -q`：3/3，0.851s。
+- `-m unittest tests.test_fuel_power_runtime_policy tests.test_b1_fuel_lifecycle tests.test_fuel_power_template_v5 -q`：19/19，6.738s，含新Record子集身份及自定义质量DIRECT/CALCULATED、混填热值阻断。
+- `scripts/project_fuel_power_rules.py` PASS；`scripts/validate_canonical.py` PASS（9standards/12sources/102parameters/138factors）；`-m pip check` PASS。
+- 全量中发现旧测试LHV/FCh接受CALCULATED不符合现批准规则，两分支保留为精确位置拒绝与预览不计算断言，MEASURED精度仍保留；非化石零路径正式gate漏business_source，修复后三个相关测试3/3，3.354s。
+- `scripts/build_standalone.py --output-root build/fuel-power1-standalone`：exit0，本地Windows构建成功。`scripts/inspect_release.py build/fuel-power1-standalone/QingzhouCarbonAccounting`：PASS，272files。此为工作中快照，不能标为最终提交head的发布证据。
+
+未闭合：最终HEAD完整回归、构建/审计/归档/启动与GitHub Windows CI；v5原生Office仍NOT_RUN/OPEN；源会话最终独立验收尚未进行。不得自动合并。

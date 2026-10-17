@@ -195,3 +195,35 @@ class FuelLifecycleTests(unittest.TestCase):
         self.assertFalse(preview.units[0].can_calculate)
         self.assertTrue(preview.units[0].errors)
         self.assertEqual(self.records.list_all(), ())
+
+    def test_v5_custom_mass_direct_calculated_and_unused_heat_conflict(self):
+        repository = SQLiteCatalogRepository(build_catalog_database(output_path=self.root / "mass-catalog.sqlite"))
+        calculator = CarbonMaterialCalculator(parameter_resolver=create_g06_parameter_resolver(repository))
+        importer = AppendixBWorkbookImporter(preview_use_case=CarbonAccountingPreviewUseCase(calculator),
+                                            catalog_service=CatalogQueryService(repository))
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        sheet = workbook["B.2"]
+        for cell, value in {"A4": "企业混合燃料", "M4": "自定义", "B4": 10, "C4": "t", "D4": 0.3,
+                            "E4": "直接计算值", "I4": 98, "J4": "实测值"}.items():
+            sheet[cell] = value
+        path = self.root / "custom-mass-direct.xlsx"
+        workbook.save(path)
+        context = AppendixBImportContext(PERIOD, True, "燃料闭环企业")
+        preview = importer.import_preview(path, context=context)
+        self.assertTrue(preview.units[0].can_calculate, preview.units[0].errors)
+        self.assertEqual(self.records.list_all(), ())
+        value = self.project_round_trip(preview.units[0].input_value)
+        outcome = CarbonAccountingUseCase(calculator, record_repository=self.records).calculate(value)
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertEqual(outcome.result.total_amount, Decimal("10.78"))
+        self.assertIs(value.fuel_inputs[0].carbon_content.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertIsNone(value.fuel_inputs[0].lower_heating_value)
+        before = asdict(self.records.get(outcome.record.record_id))
+        sheet["F4"] = 42
+        workbook.save(path)
+        workbook.close()
+        invalid = importer.import_preview(path, context=context)
+        self.assertFalse(invalid.units[0].can_calculate)
+        self.assertTrue(any(problem.location == "B.2!F4" for problem in invalid.units[0].errors))
+        self.assertEqual(len(self.records.list_all()), 1)
+        self.assertEqual(asdict(self.records.get(outcome.record.record_id)), before)

@@ -97,7 +97,7 @@ class FuelConfirmationTests(unittest.TestCase):
         self.assertEqual(self.row.direct_carbon_source.currentData(), "PROJECT_SPECIFIED")
         self.assertEqual(self.page._fuel_source_mode(self.row, "direct_carbon"), "PROJECT_SPECIFIED")
         self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
-        self.assertEqual(control.values, frozenset({"MEASURED"}))
+        self.assertEqual(control.values, frozenset({"CALCULATED", "MEASURED"}))
 
     def test_typing_chinese_does_not_change_parameters_or_open_popup(self):
         self.select(FuelType.DIESEL)
@@ -110,17 +110,17 @@ class FuelConfirmationTests(unittest.TestCase):
         self.row.fuel_type.confirm_name()
         self.assertIsNone(self.page._fuel_option_for_row(self.row))
         self.assertEqual(self.row.carbon.text(),"")
-        self.assertIsNone(self.row.carbon_source.currentData())
+        self.assertEqual(self.row.carbon_source.currentData(), "MEASURED")
         self.assertIsNone(self.row.findChild(QCheckBox,"fuelCustomMode1"))
-    def test_confirming_same_catalog_fuel_resets_parameters_and_basis(self):
+    def test_confirming_same_catalog_fuel_preserves_parameters_and_basis(self):
         self.select(FuelType.NATURAL_GAS)
         self.row.lhv_source.setCurrentIndex(self.row.lhv_source.findData("MEASURED"))
         self.row.lower_heating_value.setText("400.123456789")
         self.row.carbon_basis.setCurrentIndex(self.row.carbon_basis.findData("DIRECT"))
         self.row.fuel_type.activated.emit(self.row.fuel_type.currentIndex())
-        self.assertEqual(self.row.lhv_source.currentData(),"STANDARD_DEFAULT")
-        self.assertEqual(self.row.lower_heating_value.text(),"389.31")
-        self.assertEqual(self.row.carbon_basis.currentData(),"HEAT_CONTENT")
+        self.assertEqual(self.row.lhv_source.currentData(),"MEASURED")
+        self.assertEqual(self.row.lower_heating_value.text(),"400.123456789")
+        self.assertEqual(self.row.carbon_basis.currentData(),"DIRECT")
         self.assertIsInstance(self.row.calculated_carbon_label,QLineEdit)
         self.assertTrue(self.row.calculated_carbon_label.isReadOnly())
         self.assertTrue(self.row.findChildren(QToolButton))
@@ -229,5 +229,9 @@ class FuelConfirmationTests(unittest.TestCase):
         with self.assertRaisesRegex(DomainValidationError,"明确选择"):
             self.page._electricity("enterprise.current",self.page._period(),render=False)
         row.kind.setCurrentIndex(row.kind.findData("exported_electricity"))
+        self.assertEqual(row.amount.text(), "")
+        self.assertEqual(self.page._exported_electricity(), ())
+        row.kind.setCurrentIndex(row.kind.findData("purchased_electricity"))
+        self.assertEqual(self.page._energy_row_state(row)["selected_factor_id"], "missing-historical-factor")
         with self.assertRaisesRegex(DomainValidationError,"明确选择"):
-            self.page._exported_electricity()
+            self.page._electricity("enterprise.current", self.page._period(), render=False)

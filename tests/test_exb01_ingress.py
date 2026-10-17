@@ -292,6 +292,12 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 workbook.save(path)
                 workbook.close()
                 unit = self.importer.import_preview(path, context=self._context()).units[0]
+                if source_label == "计算值":
+                    self.assertFalse(unit.can_calculate)
+                    self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!N4"),
+                                  {(e.code, e.location) for e in unit.errors})
+                    self.assertIsNone(unit.calculation)
+                    continue
                 self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
                 fch = unit.input_value.fuel_inputs[0].carbon_content
                 self.assertEqual(fch.source_kind, source_kind)
@@ -345,7 +351,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!J4"),
                       {(item.code,item.location) for item in blocked.errors})
 
-    def test_catalog_lhv_allows_explicit_calculated_and_measured_values(self) -> None:
+    def test_catalog_lhv_accepts_measured_and_rejects_calculated_source(self) -> None:
         entered = Decimal("389.312345678901")
         for source_label, source_kind in (("计算值", ParameterSourceKind.CALCULATED),
                                           ("实测值", ParameterSourceKind.MEASURED)):
@@ -361,6 +367,12 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
                 workbook.close()
                 rewrite_numeric_lexeme(path, "B.2", "F4", str(entered))
                 unit = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME)).units[0]
+                if source_label == "计算值":
+                    self.assertFalse(unit.can_calculate)
+                    self.assertIn(("CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE", "B.2!G4"),
+                                  {(e.code, e.location) for e in unit.errors})
+                    self.assertIsNone(unit.calculation)
+                    continue
                 self.assertTrue(unit.can_calculate, tuple((item.code,item.location) for item in unit.errors))
                 lhv = unit.input_value.fuel_inputs[0].lower_heating_value
                 self.assertEqual(lhv.value, entered)

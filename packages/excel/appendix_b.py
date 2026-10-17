@@ -212,11 +212,13 @@ def _user_parameter(value: Decimal, parameter_id: str, unit: str, location: str,
     )
 
 
+from packages.standards.carbon_material_business_policy import fuel_source_context
+
 _SOURCE_LABEL_KINDS = {"缺省值": STANDARD_DEFAULT, "计算值": CALCULATED, "实测值": MEASURED}
 
 
 def _validate_source_choice(field_id, source_label, *, origin, has_resolver_binding,
-                            errors, location, field_label, carbonate_component_count=1):
+                            errors, location, field_label, carbonate_component_count=1, resolved_context=None):
     source_kind = _SOURCE_LABEL_KINDS.get(source_label)
     if source_kind is None:
         return False
@@ -224,6 +226,7 @@ def _validate_source_choice(field_id, source_label, *, origin, has_resolver_bind
         field_id, source_kind, origin=origin,
         has_resolver_binding=has_resolver_binding,
         carbonate_component_count=carbonate_component_count,
+        resolved_context=resolved_context,
     )
     if issue is None:
         return True
@@ -493,9 +496,9 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
         from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0"}
-        policy_source_schema = template_version == "2.2.0"
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0"}
         def column(legacy_column):
             return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
 
@@ -533,7 +536,7 @@ class AppendixBWorkbookImporter:
             if path is None:
                 continue
             route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
-            if route not in {"计算值", "实测值"}:
+            if route not in ({"计算值", "实测值", "直接计算值"} if template_version == "2.3.0" else {"计算值", "实测值"}):
                 if route is not None:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
@@ -560,6 +563,7 @@ class AppendixBWorkbookImporter:
                         lhv_source_valid = _validate_source_choice(
                             "fuel.lhv", lhv_source, origin=origin,
                             has_resolver_binding=default_lhv is not None, errors=errors,
+                            resolved_context=fuel_source_context("fuel.lhv", resolver=getattr(self.queries, "resolver", None), origin=origin, subject_id=option.subject_id if option else None, accounting_period=context.period),
                             location=f"B.2!{column('F')}{row}", field_label="低位发热量来源",
                         )
                     if fch_source_label is None:
@@ -572,6 +576,7 @@ class AppendixBWorkbookImporter:
                         fch_source_valid = _validate_source_choice(
                             "fuel.fch", fch_source_label, origin=origin,
                             has_resolver_binding=default_carbon is not None, errors=errors,
+                            resolved_context=fuel_source_context("fuel.fch", resolver=getattr(self.queries, "resolver", None), origin=origin, subject_id=option.subject_id if option else None, accounting_period=context.period),
                             location=f"B.2!N{row}", field_label="单位热值含碳量来源",
                         )
                 if oxidation_source is None:
@@ -584,6 +589,7 @@ class AppendixBWorkbookImporter:
                     oxidation_source_valid = _validate_source_choice(
                         "fuel.oxidation", oxidation_source, origin=origin,
                         has_resolver_binding=default_oxidation is not None, errors=errors,
+                        resolved_context=fuel_source_context("fuel.oxidation", resolver=getattr(self.queries, "resolver", None), origin=origin, subject_id=option.subject_id if option else None, accounting_period=context.period),
                         location=f"B.2!{column('I')}{row}", field_label="碳氧化率来源",
                     )
             if explicit_source_schema and not policy_source_schema and route == "计算值":
@@ -620,7 +626,7 @@ class AppendixBWorkbookImporter:
             if current and not explicit_source_schema and origin is InputOrigin.CUSTOM and _has_value(sheet[f"{column('G')}{row}"]):
                 errors.append(ImportMessage("EXB01_CUSTOM_FCH_ADOPTED_CELL","自定义燃料不采用目录FCh，请清空H列并填写L列。",f"B.2!{column('G')}{row}","目录采用值"))
 
-            if route == "实测值":
+            if route in {"实测值", "直接计算值"}:
                 direct = reader.number(workbook, "B.2", f"{column('C')}{row}", errors, required=True, field_label="直接含碳量")
                 reader.observe_unused(workbook, "B.2", f"{column('E')}{row}", warnings, field_label="低位发热量", reason="实测直接含碳路径不采用低位发热量；原始数值保留为证据。")
                 reader.observe_unused(workbook, "B.2", f"{column('G')}{row}", warnings, field_label="单位热值含碳量", reason="实测直接含碳路径不采用单位热值含碳量；原始数值保留为证据。")
@@ -628,17 +634,21 @@ class AppendixBWorkbookImporter:
                     reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="其他来源FCh填写值",reason="直接含碳量路径不采用FCh。")
                 if explicit_source_schema:
                     reader.observe_unused(workbook,"B.2",f"N{row}",warnings,field_label="单位热值含碳量来源",reason="直接含碳量路径不采用FCh来源选择。")
+                if template_version == "2.3.0" and route == "直接计算值":
+                    for coordinate, name in ((f"{column('E')}{row}", "低位发热量"), (f"{column('G')}{row}", "FCh目录值"), (f"{column('K')}{row}", "FCh填写值")):
+                        if _has_value(sheet[coordinate]):
+                            errors.append(ImportMessage("EXB01_DIRECT_PATH_VALUE_CONFLICT", "直接计算含碳量路径不采用热值或FCh，请清空冲突数值。", f"B.2!{coordinate}", name))
                 lhv_parameter = None
                 direct_source_valid = True
                 if policy_source_schema and direct is not None:
                     issue = validate_parameter_source_policy(
-                        "fuel.direct_carbon", MEASURED, origin=origin,
+                        "fuel.direct_carbon", CALCULATED if route == "直接计算值" else MEASURED, origin=origin,
                     )
                     if issue is not None:
                         errors.append(ImportMessage(issue[1], issue[2], direct_cell, "直接含碳量"))
                         direct_source_valid = False
                 carbon_parameter = (
-                    _user_parameter(direct, f"enterprise_fuel_{unit_id}_{row}_carbon", FUEL_QUANTITIES[path.value].direct_carbon_unit, direct_cell, ParameterSourceKind.MEASURED)
+                    _user_parameter(direct, f"enterprise_fuel_{unit_id}_{row}_carbon", FUEL_QUANTITIES[path.value].direct_carbon_unit, direct_cell, ParameterSourceKind.CALCULATED if route == "直接计算值" else ParameterSourceKind.MEASURED)
                     if direct is not None and direct_source_valid else None
                 )
                 if direct is not None:
@@ -863,6 +873,14 @@ class AppendixBWorkbookImporter:
     def _warn_missing_source(warnings, location, label):
         warnings.append(ImportMessage("EXB01_SOURCE_REFERENCE_MISSING", "工作簿未提供外部来源说明；此提醒不阻断预览或计算。", location, label))
 
+    @staticmethod
+    def _warn_power_applicability(warnings, location):
+        warnings.append(ImportMessage(
+            "EXB01_ELECTRICITY_APPLICABILITY_REVIEW",
+            "请核对所用电力因子的适用范围与年份；来源说明可补充，此提醒不阻断核算。",
+            location, "电力排放因子",
+        ))
+
     def _parse_power(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id, enterprise_id):
         ws = workbook["B.8"]
         stop = next((r for r in range(3, ws.max_row + 1)
@@ -989,7 +1007,7 @@ class AppendixBWorkbookImporter:
                 override = None
                 if factor_value is not None and selected_id is None:
                     override = UserProvidedParameterValue(
-                        factor_value, resolver_unit, source_reference=f"B.8!D{row}",
+                        factor_value, resolver_unit, source_reference=None,
                         selection_reason=(
                             "附录B数值匹配多个目录因子口径，未自动绑定；请核对来源，暂作为用户提供参数。"
                             if len(matched_options) > 1
@@ -997,7 +1015,7 @@ class AppendixBWorkbookImporter:
                         ),
                     )
                     if len(matched_options) <= 1:
-                        self._warn_missing_source(warnings, f"B.8!D{row}", "电力排放因子")
+                        self._warn_power_applicability(warnings, f"B.8!D{row}")
                 elif factor_value is None and default is None:
                     errors.append(ImportMessage("EXB01_ELECTRICITY_FACTOR_UNRESOLVED", "当前期间和地区没有可用的核验电力因子；请补充地区或更正核算期间。", f"B.8!D{row}", "电力排放因子"))
                 purchased.append(ElectricityConsumptionDetail(
@@ -1061,7 +1079,7 @@ class AppendixBWorkbookImporter:
                     default, f"数值与当前 Resolver 核验的输出电力因子完全一致{output_attribute_note}。"
                 )
             else:
-                self._warn_missing_source(warnings, f"B.8!D{row}", "输出电力因子")
+                self._warn_power_applicability(warnings, f"B.8!D{row}")
                 parameter = _user_parameter(
                     factor_value, parameter_id, "tCO2/MWh", f"B.8!D{row}",
                     selection_reason=(
@@ -1184,7 +1202,7 @@ class AppendixBWorkbookImporter:
                 involved.add(SOURCE_EXPORTED_HEAT)
 
     def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
-        if template_version in {"2.0.0", "2.1.0", "2.2.0"}:
+        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}:
             from .appendix_b_processes import parse_process_sheets
             return parse_process_sheets(
                 self, workbook, context, reader, errors, warnings, outputs,
@@ -1362,9 +1380,9 @@ class AppendixBWorkbookImporter:
 
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0"}
-        policy_source_schema = template_version == "2.2.0"
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0"}
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}

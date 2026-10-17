@@ -17,6 +17,22 @@ from scripts.inspect_release import BUSINESS_RULES_PATH, inspect_release
 
 
 class FuelPowerRuntimePolicyTests(unittest.TestCase):
+    def test_formal_record_provenance_freezes_only_adopted_subset(self):
+        from packages.standards.carbon_material_business_policy import fuel_power_policy_identity, RUNTIME_SHA256
+        from packages.standards.carbon_material import CarbonMaterialCalculator
+        from packages.application.carbon_accounting import CarbonAccountingUseCase
+        from packages.persistence import InMemoryRecordRepository
+        from tests.test_b1_fuel_lifecycle import fuel_input
+        records = InMemoryRecordRepository()
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), records).calculate(fuel_input())
+        self.assertTrue(outcome.successful, outcome.problems)
+        expected = fuel_power_policy_identity()
+        self.assertEqual(expected["resource_sha256"], RUNTIME_SHA256)
+        self.assertEqual(set(expected["adopted_fields"]), set(ADOPTED_FIELDS))
+        self.assertEqual(__import__("json").loads(outcome.evidence.provenance_snapshot_json)["adopted_business_policy"], expected)
+        expected["adopted_fields"].append("not-adopted")
+        self.assertNotIn("not-adopted", fuel_power_policy_identity()["adopted_fields"])
+
     def test_projection_is_reproducible_and_limited_to_five_fields(self):
         verify_projection()
         document = _decode_resource((ROOT / RUNTIME_PATH).read_bytes())

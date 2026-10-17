@@ -6,6 +6,7 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_business_policy import fuel_source_context
 from packages.standards.carbon_material_input_policy import InputOrigin, parameter_source_policy, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS, SUPPORTED_STEAM_KINDS, FUEL_QUANTITIES, match_fuel_option
 
 from collections.abc import Callable, Mapping
@@ -494,7 +495,7 @@ class _UnifiedEnergyRow(QWidget):
         self.factor_mode = QComboBox(self.electricity_details)
         self.factor_mode.setObjectName(f"energyElectricityFactorMode{index}")
         self.factor_mode.addItem("选目录候选", "LIBRARY")
-        self.factor_mode.addItem("自行填写", "MANUAL")
+        self.factor_mode.addItem("其他来源", "MANUAL")
         self.factor_mode_choices = SegmentedChoiceControl(self.factor_mode, values={"LIBRARY", "MANUAL"})
         self.factor_mode_field = labeled_field("因子获取方式", self.factor_mode_choices)
         self.factor_selector = QComboBox(self.electricity_details)
@@ -1417,8 +1418,11 @@ class CarbonMaterialAccountingPage(BasePage):
         factor_option = row.factor_selector.currentData()
         factor = getattr(factor_option, "factor", None)
         selected_factor_id = getattr(factor, "factor_id", None) or getattr(row, "_unavailable_selected_factor_id", None)
+        if row.family == "electricity":
+            row._electricity_direction_drafts[row.kind.currentData()] = self._electricity_direction_state(row)
         return {
             "row_key": row.row_key,
+            "direction_drafts": {key: dict(value) for key, value in getattr(row, "_electricity_direction_drafts", {}).items()},
             "family": row.family,
             "line_id": row.line_id.text(),
             "kind": row.kind.currentData(),
@@ -1485,6 +1489,10 @@ class CarbonMaterialAccountingPage(BasePage):
             row_key = saved.get("row_key")
             if isinstance(row_key, str) and row_key:
                 row.row_key = row_key
+            saved_drafts = saved.get("direction_drafts", {})
+            row._electricity_direction_drafts = {key: dict(value) for key, value in saved_drafts.items()
+                if key in {"purchased_electricity", "exported_electricity"} and isinstance(value, dict)} if isinstance(saved_drafts, dict) else {}
+            row._active_electricity_direction = kind
             row.amount.setText(str(saved.get("amount", "")))
             attribute = saved.get("attribute")
             attribute_index = row.attribute.findData(attribute)
@@ -1705,10 +1713,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "legacy_custom_identity": row._legacy_custom_identity,
                 "confirmed_name": row._committed_name,
                 "activity_drafts": dict(row._activity_drafts),
-                "parameter_source_drafts": [
-                    {"field": field, "source": source, "value": value}
-                    for (field, source), value in row._parameter_source_drafts.items()
-                ],
+                "parameter_source_drafts": row.parameter_drafts.export(),
                 # Keep the legacy numeric indices for old workspace readers and
                 # persist the actual semantic source modes for V2 round-trips.
                 "lhv_source": row.lhv_source.currentIndex(),
@@ -1972,15 +1977,17 @@ class CarbonMaterialAccountingPage(BasePage):
             row.fuel_type.restore_confirmation(row._committed_name)
             row._last_path = getattr(row.path.currentData(), "value", row.path.currentData())
             row._activity_drafts = dict(stored.get("activity_drafts", {})) if isinstance(stored.get("activity_drafts", {}), dict) else {}
-            row._parameter_source_drafts.clear()
             saved_source_drafts = stored.get("parameter_source_drafts", [])
+            legacy_context = self._fuel_draft_context(row)
             if isinstance(saved_source_drafts, list):
-                for draft in saved_source_drafts:
-                    if (isinstance(draft, dict)
-                        and draft.get("field") in {"lhv", "carbon", "direct_carbon", "oxidation"}
-                        and draft.get("source") in {"STANDARD_DEFAULT", "CALCULATED", "MEASURED", "USER_DEFINED"}
-                        and isinstance(draft.get("value"), str)):
-                        row._parameter_source_drafts[(draft["field"], draft["source"])] = draft["value"]
+                saved_source_drafts = [
+                    {**draft, "identity": legacy_context[0], "path": legacy_context[1],
+                     "basis": self._fuel_draft_scope(legacy_context, draft.get("field"))[2]}
+                    if isinstance(draft, dict) and "identity" not in draft else draft
+                    for draft in saved_source_drafts
+                ]
+            row.parameter_drafts.restore(saved_source_drafts, legacy_context=legacy_context)
+            row._parameter_draft_context = legacy_context
             row._legacy_source_modes.clear()
             source_controls = (
                 ("lhv", row.lhv_source),
@@ -3034,7 +3041,9 @@ class CarbonMaterialAccountingPage(BasePage):
             row.enthalpy_mode, row.enthalpy, row.heat_factor_mode, row.measured_heat_factor, row.heat_source,
         ):
             self._wire_dirty_tracking(widget)
-        row.kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        row._electricity_direction_drafts = {}
+        row._active_electricity_direction = row.kind.currentData()
+        row.kind.currentIndexChanged.connect(lambda *_args, _row=row: self._on_energy_direction_changed(_row))
         row.kind.currentIndexChanged.connect(self._refresh_source_cards)
         row.geographic_level.currentIndexChanged.connect(
             lambda *_args, _row=row: self._on_energy_geographic_level_changed(_row)
@@ -3191,6 +3200,68 @@ class CarbonMaterialAccountingPage(BasePage):
         if row.legacy_attribute is None:
             return
         row.legacy_attribute = None
+        self._refresh_unified_energy_row(row)
+
+    def _electricity_direction_state(self, row: _UnifiedEnergyRow) -> dict[str, object]:
+        option = row.factor_selector.currentData()
+        factor_id = getattr(getattr(option, "factor", None), "factor_id", None) or getattr(row, "_unavailable_selected_factor_id", None)
+        return {
+            "amount": row.amount.text(), "attribute": self._energy_combo_value(row.attribute),
+            "geographic_level": self._energy_combo_value(row.geographic_level), "region": row.region.currentData(),
+            "factor_mode": row.factor_mode.currentData(), "selected_factor_id": factor_id,
+            "manual_factor": row.manual_factor.text(), "electricity_source": row.electricity_source.text(),
+            "legacy_measured_factor": row.legacy_measured_factor,
+            "legacy_attribute": getattr(row.legacy_attribute, "value", None),
+            "legacy_acquisition_mode": getattr(row.legacy_acquisition_mode, "value", None),
+        }
+
+    def _on_energy_direction_changed(self, row: _UnifiedEnergyRow) -> None:
+        if row.family != "electricity" or self._restoring_workspace:
+            self._refresh_unified_energy_row(row)
+            return
+        current = row.kind.currentData()
+        previous = getattr(row, "_active_electricity_direction", current)
+        drafts = getattr(row, "_electricity_direction_drafts", {})
+        if previous != current:
+            drafts[previous] = self._electricity_direction_state(row)
+            saved = drafts.get(current, {})
+            row._active_electricity_direction = current
+            row._electricity_direction_drafts = drafts
+            blockers = [QSignalBlocker(widget) for widget in (
+                row.attribute, row.geographic_level, row.region, row.factor_mode, row.factor_selector,
+                row.amount, row.manual_factor, row.electricity_source)]
+            row.amount.setText(str(saved.get("amount", "")))
+            row.manual_factor.setText(str(saved.get("manual_factor", "")))
+            row.electricity_source.setText(str(saved.get("electricity_source", "")))
+            row.legacy_measured_factor = saved.get("legacy_measured_factor") is True
+            for key, enum_type in (("legacy_attribute", ElectricityAttribute), ("legacy_acquisition_mode", ElectricityAcquisitionMode)):
+                try:
+                    setattr(row, key, enum_type(saved[key]) if saved.get(key) is not None else None)
+                except (TypeError, ValueError):
+                    setattr(row, key, None)
+            attribute = saved.get("attribute", ElectricityAttribute.ORDINARY.value)
+            try:
+                attribute = ElectricityAttribute(attribute)
+            except (TypeError, ValueError):
+                pass
+            index = row.attribute.findData(attribute)
+            row.attribute.setCurrentIndex(index if index >= 0 else 0)
+            row.geographic_level.setCurrentIndex(max(0, row.geographic_level.findData(saved.get("geographic_level", "全国"))))
+            row.factor_mode.setCurrentIndex(max(0, row.factor_mode.findData(saved.get("factor_mode", "LIBRARY"))))
+            row.factor_selector.setCurrentIndex(0)
+            row._unavailable_selected_factor_id = None
+            self._refresh_energy_region_options(row, region_value=saved.get("region"))
+            self._refresh_energy_factor_options(row)
+            selected = saved.get("selected_factor_id")
+            if selected:
+                index = next((i for i in range(row.factor_selector.count())
+                              if getattr(getattr(row.factor_selector.itemData(i), "factor", None), "factor_id", None) == selected), -1)
+                if index >= 0:
+                    row.factor_selector.setCurrentIndex(index)
+                else:
+                    row.factor_selector.setCurrentIndex(0)
+                    row._unavailable_selected_factor_id = selected
+            blockers.clear()
         self._refresh_unified_energy_row(row)
 
     def _refresh_unified_energy_row(self, row: _UnifiedEnergyRow) -> None:
@@ -3466,6 +3537,54 @@ class CarbonMaterialAccountingPage(BasePage):
         elif mode:
             row._legacy_source_modes[source_key] = mode
 
+    def _fuel_draft_context(self, row: _FuelRow) -> tuple[str, str, str]:
+        option = self._fuel_option_for_row(row)
+        identity = "CATALOG:" + option.subject_id if option is not None else "CUSTOM:" + normalized_name(row._committed_name)
+        return identity or "UNCONFIRMED", str(getattr(row.path.currentData(), "value", row.path.currentData())), "HEAT_CONTENT"
+
+    @staticmethod
+    def _fuel_draft_scope(context, field):
+        return context[0], context[1], "DIRECT" if field == "direct_carbon" else "COMMON" if field == "oxidation" else "HEAT_CONTENT"
+
+    def _capture_fuel_parameter_context(self, row: _FuelRow) -> None:
+        context = getattr(row, "_parameter_draft_context", self._fuel_draft_context(row))
+        for field, edit in (("lhv", row.lower_heating_value), ("carbon", row.carbon),
+                            ("direct_carbon", row.carbon_direct), ("oxidation", row.oxidation)):
+            mode = self._fuel_source_mode(row, field)
+            scope = self._fuel_draft_scope(context, field)
+            row.parameter_drafts.remember_selection(*scope, field, mode)
+            if mode is not None:
+                row.parameter_drafts.save(*scope, field, str(mode), edit.text())
+        row.parameter_drafts.save(context[0], context[1], "COMMON", "source_reference", "TEXT", row.source_reference.text())
+
+    def _activate_fuel_parameter_context(self, row: _FuelRow) -> None:
+        context = self._fuel_draft_context(row)
+        row._parameter_draft_context = context
+        row._legacy_source_modes.clear()
+        row._draft_explicit_unselected = set()
+        for field, combo, edit in (("lhv", row.lhv_source, row.lower_heating_value),
+                ("carbon", row.carbon_source, row.carbon), ("direct_carbon", row.direct_carbon_source, row.carbon_direct),
+                ("oxidation", row.oxidation_source, row.oxidation)):
+            scope = self._fuel_draft_scope(context, field)
+            mode = row.parameter_drafts.selection(*scope, field)
+            if mode == "":
+                row._draft_explicit_unselected.add(field)
+            blocker = QSignalBlocker(combo)
+            combo.setCurrentIndex(-1)
+            if mode:
+                self._restore_fuel_source_mode(row, field, mode)
+            edit.setText(row.parameter_drafts.load(*scope, field, mode) or "" if mode else "")
+            del blocker
+        row.source_reference.setText(row.parameter_drafts.load(context[0], context[1], "COMMON", "source_reference", "TEXT") or "")
+
+    def _fuel_policy_context(self, row: _FuelRow, field_id: str):
+        option = self._fuel_option_for_row(row)
+        return fuel_source_context(
+            field_id, resolver=getattr(self.calculator, "parameter_resolver", None),
+            origin=InputOrigin.CATALOG if option is not None else InputOrigin.CUSTOM,
+            subject_id=option.subject_id if option is not None else None, accounting_period=self._period(),
+        )
+
     def _on_fuel_source_mode_changed(self, row: _FuelRow, source_key: str) -> None:
         if self._restoring_workspace:
             return
@@ -3478,9 +3597,10 @@ class CarbonMaterialAccountingPage(BasePage):
         previous = row._active_source_modes.get(source_key)
         current = combo.currentData()
         if previous != current and previous is not None:
-            row._parameter_source_drafts[(source_key, str(previous))] = edit.text()
+            scope = self._fuel_draft_scope(getattr(row, "_parameter_draft_context", self._fuel_draft_context(row)), source_key)
+            row.parameter_drafts.save(*scope, source_key, str(previous), edit.text())
             if current != "STANDARD_DEFAULT":
-                edit.setText(row._parameter_source_drafts.get((source_key, str(current)), ""))
+                edit.setText(row.parameter_drafts.load(*scope, source_key, str(current)) or "")
         row._legacy_source_modes.pop(source_key, None)
         if source_key == "oxidation":
             row.oxidation_source.view().setRowHidden(
@@ -3542,30 +3662,37 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _on_fuel_path_changed(self, row: _FuelRow) -> None:
         if self._restoring_workspace:return
+        self._capture_fuel_parameter_context(row)
         self._preserve_fuel_activity_for_unit_change(row, row.path.currentData())
-        self._refresh_fuel_row(row)
+        self._activate_fuel_parameter_context(row)
+        self._refresh_fuel_row(row, initialize_defaults=True)
 
     def _on_fuel_type_changed(self, row: _FuelRow, *, initialize_defaults: bool = False) -> None:
         if self._restoring_workspace:return
         old_name = row._committed_name
-        row._committed_name = row.fuel_type.currentText().strip()
+        new_name = row.fuel_type.currentText().strip()
+        old_option = self._fuel_option_for_row(row)
+        new_option = match_fuel_option(row._fuel_options, new_name)
+        same_identity = (old_option is not None and new_option is not None and old_option.subject_id == new_option.subject_id) or (
+            old_option is None and new_option is None and normalized_name(old_name) == normalized_name(new_name))
+        if same_identity:
+            row._committed_name = new_name
+            self._refresh_fuel_row(row)
+            return
+        self._capture_fuel_parameter_context(row)
+        if row.activity.text().strip():
+            row._activity_drafts[f"{old_name}|{row._last_path}"] = row.activity.text()
+        row.activity.clear()
+        row._committed_name = new_name
         row._legacy_custom_identity = False
         standard_path = self._recommended_fuel_activity_path(row)
-        blockers = [QSignalBlocker(combo) for combo in (row.path,row.carbon_basis,row.lhv_source,row.carbon_source,row.oxidation_source)]
+        blockers = [QSignalBlocker(combo) for combo in (row.path, row.carbon_basis)]
         if standard_path is not None:
-            self._preserve_fuel_activity_for_unit_change(row, standard_path, old_name=old_name)
             row.path.setCurrentIndex(row.path.findData(standard_path))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("HEAT_CONTENT"))
-        row._legacy_source_modes.clear()
-        row._parameter_source_drafts.clear()
-        catalog = self._fuel_option_for_row(row) is not None
-        for combo in (row.lhv_source,row.carbon_source,row.oxidation_source):
-            combo.setCurrentIndex(combo.findData("STANDARD_DEFAULT") if catalog else -1)
-        row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
-        for edit in (row.lower_heating_value,row.carbon,row.oxidation,row.carbon_direct):edit.clear()
-        row.source_reference.clear()
         blockers.clear()
-        row._last_path = getattr(row.path.currentData(),"value",row.path.currentData())
+        row._last_path = getattr(row.path.currentData(), "value", row.path.currentData())
+        self._activate_fuel_parameter_context(row)
         self._refresh_fuel_row(row, initialize_defaults=True)
         self._refresh_fuel_activity_notice(row)
         self._mark_input_dirty()
@@ -3728,7 +3855,8 @@ class CarbonMaterialAccountingPage(BasePage):
         direct = row.carbon_basis.currentData() == "DIRECT"
         origin = InputOrigin.CATALOG if self._fuel_option_for_row(row) else InputOrigin.CUSTOM
         input_policy = fuel_input_policy(origin, direct_carbon=direct, heat_activity=path is FuelPath.HEAT,
-                                         carbon_source_kind=self._fuel_source_mode(row, "carbon"))
+                                         carbon_source_kind=self._fuel_source_mode(row, "direct_carbon" if direct else "carbon"),
+                                         resolved_context=self._fuel_policy_context(row, "fuel.direct_carbon" if direct else "fuel.fch"))
         factors = self._fuel_default_factors(row)
         lhv_factor, carbon_factor, oxidation_factor = factors if factors is not None else (None, None, None)
         default_values = {
@@ -3761,7 +3889,14 @@ class CarbonMaterialAccountingPage(BasePage):
             field_id = {"lhv": "fuel.lhv", "carbon": "fuel.fch", "oxidation": "fuel.oxidation"}[key]
             source_policy = parameter_source_policy(
                 field_id, origin=origin, has_resolver_binding=factor is not None,
+                resolved_context=self._fuel_policy_context(row, field_id), business_source=mode,
             )
+            if initialize_defaults and mode is None and key not in getattr(row, "_draft_explicit_unselected", set()):
+                mode = source_policy.default_source
+                blocker = QSignalBlocker(source_combo)
+                source_combo.setCurrentIndex(source_combo.findData(mode) if mode is not None else -1)
+                del blocker
+                modes[key] = mode
             self._apply_source_policy(source_combo, getattr(row, {"lhv": "lhv_control", "carbon": "carbon_control", "oxidation": "oxidation_control"}[key]), source_policy)
             user_index = source_combo.findData("USER_DEFINED")
             if user_index >= 0:
@@ -3792,21 +3927,28 @@ class CarbonMaterialAccountingPage(BasePage):
                         if index >= 0:
                             source_combo.setCurrentIndex(index)
                             modes[key] = fallback
-                edit.setReadOnly(key == "carbon" and not input_policy.fch_editable)
+                edit.setReadOnly(source_policy.value_locked)
             else:
-                edit.setReadOnly(key == "carbon" and not input_policy.fch_editable)
+                edit.setReadOnly(source_policy.value_locked)
 
+        if initialize_defaults and modes["direct_carbon"] is None and "direct_carbon" not in getattr(row, "_draft_explicit_unselected", set()):
+            direct_policy = parameter_source_policy("fuel.direct_carbon", origin=origin)
+            blocker = QSignalBlocker(row.direct_carbon_source)
+            row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData(direct_policy.default_source))
+            del blocker
+            modes["direct_carbon"] = direct_policy.default_source
         self._apply_source_policy(
             row.direct_carbon_source, row.direct_carbon_control,
-            parameter_source_policy("fuel.direct_carbon", origin=origin),
+            parameter_source_policy("fuel.direct_carbon", origin=origin, business_source=modes["direct_carbon"]),
         )
+        row._parameter_draft_context = self._fuel_draft_context(row)
         row._active_source_modes = {key: self._fuel_source_mode(row, key) for key in ("lhv", "carbon", "oxidation", "direct_carbon")}
         for control in row.findChildren(SegmentedChoiceControl):control._sync()
 
         direct_mode = modes["direct_carbon"]
         if direct_mode is None:
             direct_mode = "MEASURED"
-        row.direct_carbon_source.hide()
+        row.direct_carbon_source.setVisible(direct)
         row.oxidation_source.setVisible(True)
         row.parameter_summary.hide()
         row.carbon_basis_label.hide()

@@ -17,8 +17,10 @@ APPROVED_TEMPLATE_V2_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd69
 APPROVED_TEMPLATE_V2_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx"
 APPROVED_TEMPLATE_V3_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 APPROVED_TEMPLATE_V3_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx"
-APPROVED_TEMPLATE_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx"
+APPROVED_TEMPLATE_V4_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
+APPROVED_TEMPLATE_V4_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx"
+APPROVED_TEMPLATE_SHA256 = "ce929968b8659889b0b6aba581b6782b96b8afcb8b378bc1b27c9768521e3d09"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -38,7 +40,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.2.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.3.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -97,6 +99,7 @@ class ExcelTemplateService:
             and workbook["B.7"]["J2"].value == "因子来源"
         )
         current_note = workbook["B.2"]["A20"].value
+        is_v23 = is_v21 and isinstance(current_note, str) and current_note.startswith("燃料输入规则 V5：")
         is_v22 = (
             is_v21 and isinstance(current_note, str)
             and current_note.startswith("来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。")
@@ -121,9 +124,14 @@ class ExcelTemplateService:
                 if any(c.value is not None for row in sheet.iter_rows(max_row=end,min_col=width+1) for c in row):
                     raise ValueError(f"{name} 存在未登记的新增表头，请使用软件当前模板。")
             return "1.0.0"
-        if is_v22:
-            template_version = "2.2.0"
+        if is_v23:
+            template_version = "2.3.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif is_v22:
+            template_version = "2.2.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V4_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V4_SHA256:
+                raise ValueError("旧版2.2 Excel模板校验失败，无法安全读取该版本工作簿。")
         elif is_v21:
             template_version = "2.1.0"
             legacy_master = files("resources").joinpath(APPROVED_TEMPLATE_V3_RESOURCE)
