@@ -92,3 +92,9 @@ try {
 正式投影往返夹具会在报告中记录 `actual_scenario_count`；当前 R11 夹具为25个场景，实际结果以本轮生成的 fixture 报告为准。该 JavaScript 夹具与本地工作簿生成使用 Codex 工作区开发 bundle；GitHub Actions 的 Windows / Python 3.12 工作流运行 Python 测试，不应把它描述为执行了本地 JavaScript 夹具。
 
 原生 Excel/WPS 副本验证目前为 `NOT_RUN` / `DEFERRED`。Owner 允许延至下阶段首次正式使用审阅表前完成；此状态不表示 `PASS` 或豁免，本次不启动 CU。
+
+### 审阅作者脚本的原始字节换行约束
+
+仓库现有`.gitattributes`为`* text=auto eol=lf`，继续复用，不全仓renormalize。生成器/夹具的SHA是raw字节身份，区别于四定义资产的CRLF→LF规范化策略；作者工具写入这两个mjs时须显式保存UTF-8/LF，不能依赖Windows文本API默认换行。两脚本发现CRLF会在生成前拒绝，不生成错误raw身份，也不改为归一化hash掩盖问题。
+
+可只把`.gitattributes`、两个mjs通过`git -c core.autocrlf=true -c core.eol=crlf checkout-index --prefix=<隔离目录>/ -- <三文件>`检出，再核工作文件/index blob/隔离检出字节一致；人为CRLF副本须在Node执行时拒绝。四件套必须在约束满足后按前述流程机械重生。

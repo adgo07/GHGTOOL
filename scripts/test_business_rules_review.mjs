@@ -8,6 +8,9 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 
 const scriptPath = fileURLToPath(import.meta.url);
+if ((await fs.readFile(scriptPath)).includes("\r\n")) {
+  throw new Error("审阅夹具须按仓库LF换行保存；拒绝生成不匹配Git字节的raw哈希。");
+}
 const repoRoot = path.dirname(path.dirname(scriptPath));
 const args = parseArgs(process.argv.slice(2));
 const builderPath = args.builder ? path.resolve(args.builder) : path.join(repoRoot, "scripts", "build_business_rules_review.mjs");

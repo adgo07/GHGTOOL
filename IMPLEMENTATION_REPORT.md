@@ -133,3 +133,13 @@ F02初组（新来源+GUI整链+G08+模板，含误被发现的3项已导入F03�
 之后进一步补混合模板拒绝、歧义提示可见性、实际导入→Canonical→项目重开→Record→DOCX来源/方法分离断言，并缩短新说明文字后机械重生登记最终hash。以上小组不当作最终联合全过证据。最终提交后将一次联合执行F02/F03/材料链/项目UI/G08/模板与相关燃料电力/历史报告保护，实际命令与结果保留本地最终摘要和PR说明，不把修改前22项和修改后3项拼为最终25/25。随后只监测最终head CI，旧CI254仅背书db25234；必要失败修复另留历史。
 
 F01 cad63保留，F03本地小提交4440df7可追溯；本轮无专业解释/范围/Numeric/Frozen/DB迁移/Record变更。原生v6/v7 Office、真实鼠标IME/DPI、企业样例及商业发行仍OPEN，不启动CU，不合并或启动下一包。
+
+## CI254 作者脚本raw字节修复与最终对象（2026-10-18）
+
+9201ee2122ff5029601aa6ce1c5f925c9f3f720d上实际联合15模块136/136，186.323s（tmp/material-f02-f03-joint-final.log）；包含F02/F03最终生产实现，但未包含审阅资产模块，故不作全仓PASS。
+
+只读核CI254（db25234）实际826项824PASS/2FAIL/0ERROR，954.582s，standalone跳过。两个失败均因作者生成器raw字节绑定：本地builder有475个CRLF，SHA fb1ec2c6230903552da2c6b92375ff10eb332f92921055a4a2b2b716452f269a；Git/CI LF blob SHA76e088b5f7fbdfdf3ad02fd342101e9d7285a08d96f882ebbf6ce4bcf3d48bf5，导致generator_sha256和fixture绑定拒绝。本地旧30项通过不能替代该CI失败。
+
+复用已有.gitattributes全仓LF规定，不改全仓、不renormalize；作者工具保存两mjs为明确LF，并增加生成前CRLF拒绝guard，保持raw hash契约，不归一化或手盖hash。隔离checkout-index在core.autocrlf=true/core.eol=crlf下实际检出两脚本，工作字节/index blob/检出字节完全一致；两个刻意CRLF副本均被Node拒绝。证据tmp/review-byte-check/proof.json。当前builder raw SHA b3f2d4bf29e89791d3f0d67759d232b5dd12a4b43c436083d1707f253bcf8e0f，fixture script raw SHA128f8aedd34e8782e82efc4545fda72ef43dd212d93668a91a283df6d097db67。
+
+在上述LF字节上按PREFLIGHT重生审阅四件套，25/25场景PASS、意见0→0、652组合/450条件保持，兼容文字同步v6/v7。工作簿SHA9636c0355c0a2e45e061082b5611a367508d5861b6da58abd4cf1f7ffe16765c；映射及Canonical规则不改。最终提交后联合组增加candidate-assets/mapping-arithmetic/material-policy三模块，与F02/F03及相关保护同一head实际执行；最终数量/命令/新CI证据写本地摘要和PR说明，避免为结果记录不断制造新head。旧CI255只对应9201，不自动背书新head。

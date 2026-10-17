@@ -2,13 +2,13 @@
   "candidate_only": true,
   "review_mode": "compact_business_v2",
   "review_json_file_sha256": "12805e414e327a529f111a0ba44d44daf3aa00149bc7c8e1b40494c6faa92a87",
-  "workbook_sha256": "a47855f781c0c52f80c083d600dd11e5a0983e31e79927dcede090fae6c8375f",
+  "workbook_sha256": "9636c0355c0a2e45e061082b5611a367508d5861b6da58abd4cf1f7ffe16765c",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "fb1ec2c6230903552da2c6b92375ff10eb332f92921055a4a2b2b716452f269a",
+  "generator_sha256": "b3f2d4bf29e89791d3f0d67759d232b5dd12a4b43c436083d1707f253bcf8e0f",
   "fixture_script": "scripts/test_business_rules_review.mjs",
-  "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
+  "fixture_script_sha256": "128f8aedd34e8782e82efc4545fda72ef43dd212d93668a91a283df6d097db67",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "74b0048f54b2c5d1b3d70ab1cbe1847428fd1a9abc451d861131df947fc96b40",
+  "details_file_sha256": "a282c6473c2d2d83b23846e8bb646fd923eb6f02fc978b291be4bd631b524386",
   "details_source_revision": "adoption-2026-10-17-fuel-power1",
   "details_source_counts": {
     "fields": 652,
@@ -127,7 +127,7 @@
     "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
     "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
     "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
-    "compatibility": "审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6（B.3—B.5各增5列和1说明行）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。"
+    "compatibility": "审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6/v7（B.3—B.5各增5列和1说明行，v7另修来源文案）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。"
   },
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
@@ -288,7 +288,7 @@
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "211733249ebeba897d79e4c0cc152303b10e0fe03395703424ef9b0912bff79d",
+    "report_sha256": "fc8a3b3b0b2b04e4510de6167081fed048807e2f58253eb8a3d8079a4222ba95",
     "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
     "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
