@@ -145,3 +145,53 @@ class FuelLifecycleTests(unittest.TestCase):
         self.assertEqual(len(self.records.list_all()), 2)
         self.assertEqual(asdict(self.records.get(record.record_id)), before)
         self.assertEqual(build_saved_record_report(self.records, record), model)
+
+    def test_v5_excel_direct_calculated_project_record_and_word(self):
+        repository = SQLiteCatalogRepository(build_catalog_database(output_path=self.root / "catalog.sqlite"))
+        calculator = CarbonMaterialCalculator(parameter_resolver=create_g06_parameter_resolver(repository))
+        importer = AppendixBWorkbookImporter(preview_use_case=CarbonAccountingPreviewUseCase(calculator),
+                                            catalog_service=CatalogQueryService(repository))
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+        sheet = workbook["B.2"]
+        for cell, value in {"A14": "天然气", "B14": 1.25, "C14": "10⁴Nm³", "D14": 0.3,
+                            "E14": "直接计算值", "I14": 98, "J14": "实测值"}.items():
+            sheet[cell] = value
+        path = self.root / "直接计算燃料.xlsx"
+        workbook.save(path)
+        workbook.close()
+        preview = importer.import_preview(path, context=AppendixBImportContext(PERIOD, True, "燃料闭环企业"))
+        self.assertTrue(preview.units[0].can_calculate, preview.units[0].errors)
+        value = self.project_round_trip(preview.units[0].input_value)
+        self.assertIs(value.fuel_inputs[0].carbon_content.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertEqual(value.fuel_inputs[0].carbon_content.unit, "tC/10^4Nm3")
+        self.assertIsNone(value.fuel_inputs[0].lower_heating_value)
+        path.unlink()
+        outcome = CarbonAccountingUseCase(calculator, record_repository=self.records).calculate(value)
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertEqual(outcome.result.total_amount, Decimal("1.347500000000000000000000000000000000000"))
+        report = build_saved_record_report(self.records, outcome.record)
+        fuel_row = next(section for section in report.sections if section.section_id == "b2").tables[0].rows[0]
+        self.assertEqual(fuel_row.cells[3].value, "0.30")
+        self.assertEqual(fuel_row.cells[7].value, "不适用")
+        self.assertEqual(self.records.get_raw_input_snapshot(outcome.record.record_id)["fuel_inputs"][0]["carbon_content"]["source_kind"], "CALCULATED")
+        word = Document(BytesIO(render_report_docx(report)))
+        self.assertIn("天然气", "\n".join(cell.text for table in word.tables for row in table.rows for cell in row.cells))
+
+    def test_old_v4_cannot_silently_adopt_new_direct_calculated_label(self):
+        repository = SQLiteCatalogRepository(build_catalog_database(output_path=self.root / "catalog.sqlite"))
+        calculator = CarbonMaterialCalculator(parameter_resolver=create_g06_parameter_resolver(repository))
+        importer = AppendixBWorkbookImporter(preview_use_case=CarbonAccountingPreviewUseCase(calculator),
+                                            catalog_service=CatalogQueryService(repository))
+        old_path = Path(__file__).resolve().parents[1] / "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx"
+        workbook = load_workbook(old_path)
+        sheet = workbook["B.2"]
+        for cell, value in {"A14": "天然气", "B14": 1.25, "C14": "10⁴Nm³", "D14": 0.3,
+                            "E14": "直接计算值", "I14": 98, "J14": "实测值"}.items():
+            sheet[cell] = value
+        path = self.root / "旧v4错误标签.xlsx"
+        workbook.save(path)
+        workbook.close()
+        preview = importer.import_preview(path, context=AppendixBImportContext(PERIOD, True, "燃料闭环企业"))
+        self.assertFalse(preview.units[0].can_calculate)
+        self.assertTrue(preview.units[0].errors)
+        self.assertEqual(self.records.list_all(), ())
