@@ -162,6 +162,22 @@ def _remove_unpacked_docx_template(artifact: Path) -> None:
             shutil.rmtree(candidate_resolved)
 
 
+def _remove_unused_virtual_keyboard(artifact: Path) -> None:
+    """Exclude the unused GPL-only Qt virtual keyboard collected by the GUI hook.
+
+    Product uses Qt Widgets/native Windows input, with no VirtualKeyboard/QML
+    consumer. Actual PE inspection showed only this plugin imports its DLL.
+    A future consumer must resolve licensing before changing this package scope.
+    """
+    root = artifact.resolve()
+    for relative in ("PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll", "Qt6VirtualKeyboard.dll"):
+        candidate = artifact / relative
+        if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+            raise RuntimeError("refusing to remove an external Qt component")
+        if candidate.is_file():
+            candidate.unlink()
+
+
 def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> None:
     resource_root = project_root / "resources"
     expected_hashes = {
@@ -262,6 +278,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         _remove_incompatible_external_icu(artifact)
         _remove_hidden_release_placeholders(artifact)
         _remove_unpacked_docx_template(artifact)
+        _remove_unused_virtual_keyboard(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:

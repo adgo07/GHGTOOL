@@ -193,6 +193,10 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         relative = Path(path)
         normalized = relative.as_posix()
         lower = normalized.lower()
+        if "virtualkeyboard" in lower:
+            issues.append(f"unapproved GPL-only Qt Virtual Keyboard component: {normalized}")
+        if "iapws" in lower:
+            issues.append(f"unapproved iapws distribution component: {normalized}")
         if normalized.startswith("resources/") and normalized not in ALLOWED_RESOURCE_FILES:
             issues.append(f"unexpected resource file: {normalized}")
         parts = {part.lower() for part in relative.parts}

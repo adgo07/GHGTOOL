@@ -28,6 +28,7 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.ui.view_models import AppRoute
 from scripts.build_standalone import (
     _remove_unpacked_docx_template,
+    _remove_unused_virtual_keyboard,
     _validate_approved_template_inputs,
     _write_manifest,
 )
@@ -67,6 +68,26 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
 
 
 class G08DeliveryTests(unittest.TestCase):
+    def test_unused_virtual_keyboard_exclusion_keeps_native_qt_components(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            plugin=root/"PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll"
+            plugin.parent.mkdir(parents=True)
+            plugin.write_bytes(b"unused-plugin")
+            (root/"Qt6VirtualKeyboard.dll").write_bytes(b"unused-module")
+            (root/"Qt6Core.dll").write_bytes(b"needed-native-library")
+            _remove_unused_virtual_keyboard(root)
+            self.assertFalse(plugin.exists())
+            self.assertFalse((root/"Qt6VirtualKeyboard.dll").exists())
+            self.assertEqual((root/"Qt6Core.dll").read_bytes(),b"needed-native-library")
+
+    def test_package_audit_rejects_unapproved_copyleft_components(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/"Qt6VirtualKeyboard.dll").write_bytes(b"unexpected")
+            self.assertTrue(any("GPL-only Qt Virtual Keyboard" in issue for issue in inspect_release(root)))
+
+
     def test_project_database_startup_failure_is_explained_to_user(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             logger = unittest.mock.Mock()
