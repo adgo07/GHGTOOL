@@ -37,6 +37,7 @@ from packages.core.parameter_resolution import (
 from packages.core.rules import RuleOrigin
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.standards.carbon_material import (
+    ALGORITHM_VERSION,
     CarbonMaterialCalculator,
     CarbonMaterialInput,
     CarbonateComponent,
@@ -515,9 +516,10 @@ class UAT03RuleTests(unittest.TestCase):
             }
             for problem in outcome.problems
         ))
-        # Selection-rule behaviour changed under G06.2, even though Numeric
-        # conformance formula vectors stay unchanged.
-        self.assertIn("G06.2", outcome.algorithm_version)
+        # Current outcomes retain the actual Calculator identity; historical
+        # Numeric vectors keep their independently frozen version.
+        self.assertEqual(outcome.algorithm_version, ALGORITHM_VERSION)
+        self.assertEqual(outcome.result.algorithm_version, ALGORITHM_VERSION)
 
     def test_unbound_provincial_factors_are_not_candidates_for_any_region(self) -> None:
         provincial_assets = {

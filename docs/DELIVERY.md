@@ -84,3 +84,32 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 .\.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting
 .\.venv\Scripts\python.exe scripts\smoke_standalone.py dist\QingzhouCarbonAccounting
 ```
+
+
+## 2026-10-17 商业依赖预检查（本地材料包，非销售放行）
+
+Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研发/提交限制；不授权公开上传、商业发布或合并。本节来自真实Python3.12.14环境元数据；环境已安装不等于实际打包，最终实际包体清单须与该head构建manifest交叉核对。无购买许可、许可接受、正式专利/软著提交或对外分发。
+
+| 组件 | 当前实际版本/元数据许可 | 使用方式与仍需交付核对 |
+|---|---|---|
+| Python | 3.12.14 | 自包含解释器；PSF许可及捆绑组件通知需随实际包核对 |
+| PySide6 / Essentials / Addons / shiboken6 | 6.11.2；LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only | 应用只使用QtCore/Gui/Widgets/Svg；wheel装有Addons不代表销售包允许全部模块，实际DLL/插件逐项核对。许可证/通知、对应库源码提供方案、替换/重新链接条件、用户条款均尚待发布前完成 |
+| openpyxl / et_xmlfile | 3.1.5 / 2.0.0，MIT | 输入适配，须保留版权/许可通知；元数据未枚举license文件不能认为没有通知义务 |
+| python-docx / lxml / typing_extensions | 1.2.0 MIT / 6.1.3 BSD-3-Clause / 4.16.0 PSF-2.0 | Word渲染/解析；lxml内嵌libxml2/libxslt等依其LICENSES继续核对 |
+| PyInstaller / hooks-contrib | 6.22.3（GPL带打包例外）/2026.8 | 构建工具和运行bootloader边界分开；打包例外不覆盖第三方依赖许可，hooks许可文本单独留存核对 |
+| packaging / altgraph / pefile / pywin32-ctypes / setuptools | 26.3 /0.17.5 /2024.8.26 /0.2.3 /84.0.0 | 构建环境组件，不把所有已安装工具都宣称在包内。具体许可见各版本dist-info原文 |
+| iapws | 本环境未安装，产品依赖未声明 | 原017选择保持，不引入GPL依赖、不自动替换实现；自动焓分发方案后续单独核对 |
+| LOGO / SVG / 模板 / 因子数据 | 本仓既有资源 | 本次不新增第三方字体/图标；现有权利链、标准表式及数据再分发权限仍需Owner按真实来源核对，公开下载不代表无限授权 |
+
+官方原始依据：[Qt for Python商业使用](https://doc.qt.io/qtforpython-6/commercial/index.html)、[Qt许可与GPL-only模块](https://doc.qt.io/qt-6/licensing.html)、[Qt LGPL义务](https://www.qt.io/development/open-source-lgpl-obligations)、[PyInstaller 6.22.3例外正文](https://pyinstaller.org/en/v6.22.3/license.html)、[iapws发布许可](https://pypi.org/project/iapws/)。仅记录工程预检查；不将动态链接或可收费销售单独作为合规结论。面向客户的第三方通知/必要许可文本尚未完成，不宣称闭源销售资格已确认。
+
+当前版本组合见requirements-build.txt，固定安装组合供复建，不改变pyproject支持范围；构建仍记录实际版本与来源身份。新v6材料模板保留v2—v5原件，B.3—B.5各新增I—M共5辅助列和1说明行，母版下载仍验证后原字节复制。
+
+
+包体实证（本地2368380构建）：共267文件（manifest列266，manifest自身另计），自动收集13个Qt6 DLL和22个插件；其中`Qt6VirtualKeyboard.dll`及`PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll`被发现。原始PE import检查：只有该插件引用VirtualKeyboard DLL；应用源码没有VirtualKeyboard/QML消费者。依据[Qt 6.11原许可页](https://doc.qt.io/qt-6.11/licensing.html)的GPL模块列表，构建精确排除这两个未使用组件，包审计拒绝它们及未经放行的iapws，未替换GUI/物性实现，不影响原生Windows输入法代码路径；真实中文输入仍待人工验证。此原始预检查包不作为销售候选，原日志与清单仅保留本地。
+
+原始包未发现LICENSE/COPYING/NOTICE文件；打包排除两文件只解决已发现的未使用GPL模块混入，仍不表示全部许可义务完成。最终实际包组件/哈希、公开来源和未完成文本/源码提供/替换条件由本包报告逐项记录，发布前继续补齐第三方交付材料。
+
+CI251补充：实装Qt6.12将同一未使用VirtualKeyboard DLL收集到`PySide6/Qt6VirtualKeyboard.dll`；原审计成功拒绝漏排组件。构建排除列表只增加这个实证精确路径，旧root DLL/插件路径及边界保护保留。[Qt6.12官方许可页](https://doc.qt.io/qt-6.12/licensing.html)仍列VirtualKeyboard为GPL模块。未改依赖策略，6.12实包仍须独立审计；两种路径不等于允许任意Qt目录批量删除，原生IME仍NOT_RUN。
+
+F02受控来源修订：当前下载候选v7/2.5.0，SHA e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a。运行python -B -m scripts.project_appendix_b_v7 --write机械生成，省略--write核原字节一致；以固定旧v6为输入，仅变三个材料表XML的下拉/说明，旧v2—v6保持。来源统一计算值/实测值，方法独立；2.4旧方法来源文字仅输入兼容，新2.5拒绝该文字。当前候选需新head CI实包审计；旧CI252制品不是新版包，原生v6/v7 Office/IME仍OPEN，许可履约/商业发布未放行。

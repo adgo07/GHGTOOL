@@ -90,7 +90,7 @@ class ParameterSourcePolicyTests(unittest.TestCase):
     def test_material_fields_and_fgd_fields_follow_independent_mapping(self) -> None:
         for field_id in ("material.fixed_carbon", "material.volatile_matter"):
             policy = parameter_source_policy(field_id, input_basis="RECEIVED")
-            self.assertEqual(policy.allowed_sources, ("MEASURED",))
+            self.assertEqual(policy.allowed_sources, ("MEASURED", "CALCULATED"))
             self.assertEqual(policy.default_source, "MEASURED")
             self.assertEqual(policy.basis, "RECEIVED")
 

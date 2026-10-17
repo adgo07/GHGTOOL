@@ -91,7 +91,10 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                     self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
             for sheet,cell in (("B.2","H4"),("B.2","K4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
                 self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
-            self.assertEqual(self.service.validate_structure(workbook),"2.3.0")
+            for sheet in ("B.3", "B.4", "B.5"):
+                for col in "IJKLM":
+                    self.assertFalse(workbook[sheet][f"{col}4"].protection.locked, (sheet,col))
+            self.assertEqual(self.service.validate_structure(workbook),"2.5.0")
         finally:
             workbook.close()
 

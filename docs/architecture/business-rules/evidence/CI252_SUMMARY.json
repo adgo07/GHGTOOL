@@ -1,0 +1,31 @@
+{
+  "scope": "CI252历史通过证据，只背书d5205f5，不背书cad63或后续head；无需私仓访问可读取本文件，无token/源码/原始日志",
+  "run_id": 39042863497,
+  "run_number": 252,
+  "head": "d5205f5d345439ec72694caea2356f6dd85b91cb",
+  "merge": "72dde0648de3fa950890dbb97964a32e0a8ed8ff",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 117425688978,
+      "result": "success",
+      "tests": 820,
+      "seconds": 1171.684
+    },
+    {
+      "id": 117430235967,
+      "result": "success",
+      "g08_tests": 17,
+      "g08_seconds": 7.043,
+      "audit_files": 274,
+      "archive_visible_files": 275,
+      "isolated_starts": 2
+    }
+  ],
+  "artifact_id": 12105421197,
+  "artifact_zip_sha256": "751efa2885c4122f949c6a0d17dd7f422b567475c88726e5a2dfb4d5c4e5ae63",
+  "exe_sha256": "f9eeb56e369970ed859053ab227d489e94d241a277a65568cc0bbc5863539a3a",
+  "downloaded_package_pe_scanned": 129,
+  "virtual_keyboard_pe_references": 0,
+  "native_office_mouse_ime_dpi_enterprise": "OPEN"
+}

@@ -366,6 +366,8 @@ class AppendixBWorkbookImporter:
                     imported_at=imported_at,
                     canonical_path=canonical_path,
                     source=EXCEL_APPENDIX_B,
+                    # Freeze the verified master at ingress, never infer it at export.
+                    template_master_sha256=template.sha256 if template_version == template.template_version else None,
                 ),
                 units=(unit,),
                 warnings=tuple(warnings),
@@ -415,6 +417,9 @@ class AppendixBWorkbookImporter:
             "B.5":("DE" if workbook["B.5"]["C3"].value == "实际名称" else "CD"),
             "B.6":"ABCDEF", "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
         }
+        for name in ("B.3", "B.4", "B.5"):
+            if workbook[name]["I3"].value == "质量基准":
+                numeric_columns[name] += "K"
         for name,columns in numeric_columns.items():
             sheet=workbook[name]
             footer=next((row for row in range(3,sheet.max_row+1)
@@ -496,9 +501,9 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
         from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0"}
-        policy_source_schema = template_version in {"2.2.0", "2.3.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0"}
         def column(legacy_column):
             return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
 
@@ -536,7 +541,7 @@ class AppendixBWorkbookImporter:
             if path is None:
                 continue
             route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
-            if route not in ({"计算值", "实测值", "直接计算值"} if template_version == "2.3.0" else {"计算值", "实测值"}):
+            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0"} else {"计算值", "实测值"}):
                 if route is not None:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
@@ -634,7 +639,7 @@ class AppendixBWorkbookImporter:
                     reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="其他来源FCh填写值",reason="直接含碳量路径不采用FCh。")
                 if explicit_source_schema:
                     reader.observe_unused(workbook,"B.2",f"N{row}",warnings,field_label="单位热值含碳量来源",reason="直接含碳量路径不采用FCh来源选择。")
-                if template_version == "2.3.0" and route == "直接计算值":
+                if template_version in {"2.3.0", "2.4.0", "2.5.0"} and route == "直接计算值":
                     for coordinate, name in ((f"{column('E')}{row}", "低位发热量"), (f"{column('G')}{row}", "FCh目录值"), (f"{column('K')}{row}", "FCh填写值")):
                         if _has_value(sheet[coordinate]):
                             errors.append(ImportMessage("EXB01_DIRECT_PATH_VALUE_CONFLICT", "直接计算含碳量路径不采用热值或FCh，请清空冲突数值。", f"B.2!{coordinate}", name))
@@ -1202,7 +1207,7 @@ class AppendixBWorkbookImporter:
                 involved.add(SOURCE_EXPORTED_HEAT)
 
     def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
-        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}:
+        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"}:
             from .appendix_b_processes import parse_process_sheets
             return parse_process_sheets(
                 self, workbook, context, reader, errors, warnings, outputs,
@@ -1380,9 +1385,9 @@ class AppendixBWorkbookImporter:
 
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0"}
-        policy_source_schema = template_version in {"2.2.0", "2.3.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0"}
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}

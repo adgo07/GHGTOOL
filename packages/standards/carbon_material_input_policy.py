@@ -151,10 +151,21 @@ def parameter_source_policy(
             source_lock == "LOCKED", effective["status"],
         )
     elif field_id in {"material.fixed_carbon", "material.volatile_matter"}:
-        allowed, default, locked, binding = (MEASURED,), MEASURED, False, False
-        context = "APPENDIX_B_MEASURED_SOURCE"
-        basis = input_basis
-        label = "固定碳含量" if field_id.endswith("fixed_carbon") else "挥发分含量"
+        from .carbon_material_business_policy import evaluate_material_field
+        current = {"binding_status": "ABSENT", "business_source": business_source or MEASURED}
+        if input_basis == "DEFINED_RECEIVED_BASIS_CONVERSION":
+            current["material_calculation_path"] = input_basis
+        effective = evaluate_material_field(field_id, current)
+        qualification = effective["source_qualification"].get("value") or {}
+        allowed = tuple(qualification.get("values", ())) if qualification.get("state") == "FIXED" else ()
+        initial = effective["default_source"].get("value") or {}
+        return ParameterSourcePolicy(
+            field_id, allowed, initial.get("source"), False, False,
+            "RECEIVED_BASIS_MATERIAL", input_basis,
+            "固定碳含量" if field_id.endswith("fixed_carbon") else "挥发分含量", False,
+            effective["locking"].get("value", {}).get("state") == "LOCKED",
+            effective["locking"].get("source", {}).get("state") == "LOCKED", effective["status"],
+        )
     elif field_id == "fgd.ratio":
         single_component = carbonate_component_count == 1
         allowed = ((STANDARD_DEFAULT, MEASURED) if single_component and bound else (MEASURED,))

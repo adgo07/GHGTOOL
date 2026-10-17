@@ -28,11 +28,15 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.ui.view_models import AppRoute
 from scripts.build_standalone import (
     _remove_unpacked_docx_template,
+    _remove_unused_virtual_keyboard,
     _validate_approved_template_inputs,
     _write_manifest,
 )
 from scripts.inspect_release import (
     BUSINESS_RULES_PATH,
+    V5_TEMPLATE_PATH,
+    V6_TEMPLATE_PATH,
+    MATERIAL_RUNTIME_RESOURCE,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
@@ -53,7 +57,10 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     runtime_rules = root / BUSINESS_RULES_PATH
     runtime_rules.parent.mkdir(parents=True, exist_ok=True)
     runtime_rules.write_bytes((PROJECT_ROOT / BUSINESS_RULES_PATH).read_bytes())
-    for relative in (APPROVED_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+    material_rules = root / "resources" / MATERIAL_RUNTIME_RESOURCE
+    material_rules.parent.mkdir(parents=True, exist_ok=True)
+    material_rules.write_bytes((PROJECT_ROOT / "resources" / MATERIAL_RUNTIME_RESOURCE).read_bytes())
+    for relative in (APPROVED_TEMPLATE_PATH, V6_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((PROJECT_ROOT / relative).read_bytes())
@@ -62,6 +69,60 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
 
 
 class G08DeliveryTests(unittest.TestCase):
+    def test_unused_virtual_keyboard_exclusion_keeps_native_qt_components(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            plugin=root/"PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll"
+            plugin.parent.mkdir(parents=True)
+            plugin.write_bytes(b"unused-plugin")
+            (root/"Qt6VirtualKeyboard.dll").write_bytes(b"unused-module")
+            nested_module=root/"PySide6/Qt6VirtualKeyboard.dll"
+            nested_module.write_bytes(b"unused-module-qt612-layout")
+            native_input=root/"PySide6/plugins/platforminputcontexts/nativeinput.dll"
+            native_input.write_bytes(b"needed-native-input")
+            nested_core=root/"PySide6/Qt6Core.dll"
+            nested_core.write_bytes(b"needed-nested-native-library")
+            (root/"Qt6Core.dll").write_bytes(b"needed-native-library")
+            _remove_unused_virtual_keyboard(root)
+            self.assertFalse(plugin.exists())
+            self.assertFalse((root/"Qt6VirtualKeyboard.dll").exists())
+            self.assertFalse(nested_module.exists())
+            self.assertEqual(native_input.read_bytes(),b"needed-native-input")
+            self.assertEqual(nested_core.read_bytes(),b"needed-nested-native-library")
+            self.assertEqual((root/"Qt6Core.dll").read_bytes(),b"needed-native-library")
+
+    def test_virtual_keyboard_exclusion_rejects_external_or_symlink_candidate(self):
+        # Inject the two filesystem classifications without requiring Windows
+        # symlink privileges or creating links outside the test directory.
+        original_resolve = Path.resolve
+        original_is_symlink = Path.is_symlink
+        for guard in ("symlink", "outside-root"):
+            with self.subTest(guard=guard), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "artifact"
+                candidate = root / "PySide6/Qt6VirtualKeyboard.dll"
+                candidate.parent.mkdir(parents=True)
+                candidate.write_bytes(b"must-not-unlink")
+                outside = Path(directory) / "external.dll"
+                def resolve(path, *args, **kwargs):
+                    if guard == "outside-root" and path == candidate:
+                        return outside
+                    return original_resolve(path, *args, **kwargs)
+                def is_symlink(path):
+                    return (guard == "symlink" and path == candidate) or original_is_symlink(path)
+                with patch.object(Path, "resolve", resolve), patch.object(Path, "is_symlink", is_symlink):
+                    with patch.object(Path, "unlink") as unlink:
+                        with self.assertRaisesRegex(RuntimeError, "external Qt component"):
+                            _remove_unused_virtual_keyboard(root)
+                        unlink.assert_not_called()
+                self.assertEqual(candidate.read_bytes(), b"must-not-unlink")
+
+    def test_package_audit_rejects_unapproved_copyleft_components(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/"Qt6VirtualKeyboard.dll").write_bytes(b"unexpected")
+            self.assertTrue(any("GPL-only Qt Virtual Keyboard" in issue for issue in inspect_release(root)))
+
+
     def test_project_database_startup_failure_is_explained_to_user(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             logger = unittest.mock.Mock()
@@ -262,7 +323,7 @@ class G08DeliveryTests(unittest.TestCase):
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
-            self.assertEqual(layout["version"], "3.0.1")
+            self.assertEqual(layout["version"], "3.0.2")
             from packages.excel.templates import ExcelTemplateService
             self.assertEqual(layout["input_template_version"], ExcelTemplateService.default().get().template_version)
             self.assertEqual(layout["input_template_sha256"], APPROVED_TEMPLATE_SHA256)

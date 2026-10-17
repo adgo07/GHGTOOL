@@ -67,7 +67,7 @@ def decode_canonical_input(payload, *, standard_registry=None):
         codec=implementation.input_codec_factory()
     except (ValueError,TypeError) as exc:
         raise CanonicalInputCodecError("保存项目的标准或版本尚未开放。") from exc
-    if type(document["input_version"]) is not int or document["input_version"]!=codec.CANONICAL_INPUT_CODEC_VERSION:
+    if type(document["input_version"]) is not int or document["input_version"] not in getattr(codec,"SUPPORTED_INPUT_CODEC_VERSIONS",(codec.CANONICAL_INPUT_CODEC_VERSION,)):
         raise CanonicalInputCodecError("unsupported standard input version")
     value=codec.decode_canonical_input(json.dumps(document["payload"],ensure_ascii=False,allow_nan=False))
     if not implementation.accepts_input(value):

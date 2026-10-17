@@ -69,7 +69,7 @@ class P3EExcelImportPresentationTests(unittest.TestCase):
             ):
                 self.page.templateButton.click()
             self.assertEqual(destination.read_bytes(), ExcelTemplateService.default().read_bytes())
-            self.assertIn("2.3.0", dialog.call_args.args[2])
+            self.assertIn(ExcelTemplateService.default().get().template_version, dialog.call_args.args[2])
             self.assertEqual(success.call_args.args[-1], destination)
 
     def test_mixed_preview_shows_each_unit_and_cell_location(self) -> None:

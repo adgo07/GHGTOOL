@@ -59,7 +59,8 @@ from packages.standards.carbon_material_normalization import (
 )
 
 
-CANONICAL_INPUT_CODEC_VERSION = 1
+CANONICAL_INPUT_CODEC_VERSION = 2
+SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2)
 _CODEC_ID = "ghgtool.carbon_material_input"
 
 
@@ -232,12 +233,17 @@ def _decode_value(value: object) -> object:
             "graphitization_input": {"instance_name"},
             "fuel_input": {"origin", "catalog_subject_id"},
             "carbonate_component": {"origin"},
+            "carbon_material_input": {"material_execution_version"},
+            "material_input_line": {"mass_basis", "composition_basis", "moisture_received_percent",
+                                    "conversion_method", "fixed_carbon_unit", "volatile_matter_unit"},
         }.get(node["type"], set())
         missing_fields = declared_fields.difference(encoded_fields)
         if set(encoded_fields).difference(declared_fields) or not missing_fields.issubset(compatible_optional_fields):
             raise CanonicalInputCodecError(f"fields do not match {node['type']} schema")
+        defaults = {"material_execution_version": "MATERIAL_V1", "mass_basis": "RECEIVED",
+                    "composition_basis": "RECEIVED", "fixed_carbon_unit": "%", "volatile_matter_unit": "%"}
         for name in missing_fields:
-            encoded_fields[name] = None
+            encoded_fields[name] = defaults.get(name)
         decoded = {
             name: _decode_value(field_value)
             for name, field_value in encoded_fields.items()
@@ -295,7 +301,7 @@ def decode_canonical_input(payload: str) -> CarbonMaterialInput:
         raise CanonicalInputCodecError("invalid canonical input envelope")
     if document["codec"] != _CODEC_ID:
         raise CanonicalInputCodecError("unrecognized canonical input codec")
-    if type(document["version"]) is not int or document["version"] != CANONICAL_INPUT_CODEC_VERSION:
+    if type(document["version"]) is not int or document["version"] not in {1, CANONICAL_INPUT_CODEC_VERSION}:
         raise CanonicalInputCodecError("unsupported canonical input codec version")
     try:
         input_value = _decode_value(document["value"])

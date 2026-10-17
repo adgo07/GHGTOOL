@@ -138,10 +138,9 @@ def install_declared_decimal_context() -> None:
     calculator.calculate = calculate_with_declared_context
     setattr(calculator, _INSTALL_MARKER, True)
 
-    # The R1 authority change affects custom declared profiles and therefore
-    # receives a distinct algorithm version, even though the production p40
-    # formula mapping itself is unchanged.
-    carbon_material.ALGORITHM_VERSION = N01C_ALGORITHM_VERSION
+    # N01C_ALGORITHM_VERSION identifies the historical Numeric adoption evidence.
+    # The current Domain Calculator declares its own effective algorithm version;
+    # installing an unchanged numeric guard must not overwrite later business versions.
 
 
 __all__ = [

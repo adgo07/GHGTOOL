@@ -78,7 +78,9 @@ class NumericContractV1AdoptionTests(unittest.TestCase):
         self.assertEqual(contract["central_baseline_sha"], CENTRAL_NUMERIC_V1_SHA)
         self.assertEqual(profile["numeric_profile_id"], CARBON_PROFILE_ID)
         self.assertEqual(profile["numeric_contract_version"], "v1")
-        self.assertEqual(profile["calculator_version"], ALGORITHM_VERSION)
+        # This vector is frozen historical adoption evidence, not a mutable current-version registry.
+        from packages.standards._numeric_authority import N01C_ALGORITHM_VERSION
+        self.assertEqual(profile["calculator_version"], N01C_ALGORITHM_VERSION)
         self.assertEqual(profile["representation"], "decimal")
         self.assertEqual(profile["working_precision"], 40)
         self.assertEqual(profile["rounding_mode"], "ROUND_HALF_UP")
@@ -100,9 +102,11 @@ class NumericContractV1AdoptionTests(unittest.TestCase):
         self.assertTrue(outcome.successful)
         self.assertIsNotNone(outcome.result)
         self.assertIsNotNone(outcome.record)
-        self.assertEqual(outcome.algorithm_version, profile["calculator_version"])
-        self.assertEqual(outcome.result.algorithm_version, profile["calculator_version"])
-        self.assertEqual(outcome.record.algorithm_version, profile["calculator_version"])
+        self.assertEqual(outcome.algorithm_version, ALGORITHM_VERSION)
+        self.assertEqual(outcome.result.algorithm_version, ALGORITHM_VERSION)
+        self.assertEqual(outcome.record.algorithm_version, ALGORITHM_VERSION)
+        from packages.standards._numeric_authority import N01C_ALGORITHM_VERSION
+        self.assertEqual(profile["calculator_version"],N01C_ALGORITHM_VERSION)
         self.assertEqual(profile["numeric_contract_version"], "v1")
         self.assertEqual(profile["numeric_profile_id"], CARBON_PROFILE_ID)
 

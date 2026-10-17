@@ -1,4 +1,5 @@
 """V5 template resource and compatibility protections; no native Office claim."""
+from dataclasses import replace
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -6,14 +7,16 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from zipfile import ZipFile
 from openpyxl import load_workbook
-from packages.excel.templates import (ExcelTemplateService, APPENDIX_B_SHEETS,
- APPROVED_TEMPLATE_SHA256, APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_V4_RESOURCE,
+from packages.excel.templates import (ExcelTemplateService, APPENDIX_B_SHEETS, APPENDIX_B_TEMPLATE,
+ APPROVED_TEMPLATE_V5_SHA256 as APPROVED_TEMPLATE_SHA256, APPROVED_TEMPLATE_V5_RESOURCE as APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_V4_RESOURCE,
  APPROVED_TEMPLATE_V4_SHA256, APPROVED_TEMPLATE_V3_RESOURCE, APPROVED_TEMPLATE_V3_SHA256,
  APPROVED_TEMPLATE_V2_RESOURCE, APPROVED_TEMPLATE_V2_SHA256)
 
 class FuelPowerTemplateV5Tests(TestCase):
  def test_download_copies_exact_registered_bytes_and_recognizes_v5(self):
-  service=ExcelTemplateService.default()
+  # V5 is now a preserved historical resource; current default download is V6.
+  service=ExcelTemplateService((replace(APPENDIX_B_TEMPLATE,template_version="2.3.0",
+      resource_path=APPROVED_TEMPLATE_RESOURCE,sha256=APPROVED_TEMPLATE_SHA256),))
   content=service.read_bytes()
   self.assertEqual(sha256(content).hexdigest(),APPROVED_TEMPLATE_SHA256)
   with TemporaryDirectory() as tmp:

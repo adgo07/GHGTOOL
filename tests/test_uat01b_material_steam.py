@@ -135,7 +135,7 @@ class UAT01BMaterialNormalizationTests(unittest.TestCase):
         )
         self.assertTrue(outcome.successful, outcome.problems)
         calcination_trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-CALCINATION-001")
-        self.assertIn(("material.normalization_version", "CAR-MATERIAL-NORMALIZATION-V1"), calcination_trace.provenance)
+        self.assertIn(("material.normalization_version", "CAR-MATERIAL-NORMALIZATION-V2"), calcination_trace.provenance)
         result_by_source = {
             line.emission_source_id: line.amount
             for line in outcome.result.lines

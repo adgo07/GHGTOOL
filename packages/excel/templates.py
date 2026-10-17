@@ -19,8 +19,12 @@ APPROVED_TEMPLATE_V3_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502d
 APPROVED_TEMPLATE_V3_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx"
 APPROVED_TEMPLATE_V4_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
 APPROVED_TEMPLATE_V4_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx"
-APPROVED_TEMPLATE_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx"
+APPROVED_TEMPLATE_V5_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890"
+APPROVED_TEMPLATE_V5_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx"
+APPROVED_TEMPLATE_V6_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v6.xlsx"
+APPROVED_TEMPLATE_V6_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx"
+APPROVED_TEMPLATE_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -40,7 +44,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.3.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.5.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -127,9 +131,24 @@ class ExcelTemplateService:
                 if any(c.value is not None for row in sheet.iter_rows(max_row=end,min_col=width+1) for c in row):
                     raise ValueError(f"{name} 存在未登记的新增表头，请使用软件当前模板。")
             return "1.0.0"
-        if is_v23:
-            template_version = "2.3.0"
+        is_v24 = is_v23 and workbook["B.3"]["I3"].value == "质量基准"
+        v25_markers = [any(isinstance(row[0].value, str) and row[0].value.startswith("材料输入规则 V7（2.5.0）：")
+                           for row in workbook[name].iter_rows(min_col=1, max_col=1)) for name in ("B.3", "B.4", "B.5")]
+        if any(v25_markers) and (not all(v25_markers) or not is_v24):
+            raise ValueError("材料说明包含冲突模板版本，请使用完整受控模板。")
+        if all(v25_markers):
+            template_version = "2.5.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif is_v24:
+            template_version = "2.4.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V6_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V6_SHA256:
+                raise ValueError("旧版2.4材料模板校验失败。")
+        elif is_v23:
+            template_version = "2.3.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V5_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V5_SHA256:
+                raise ValueError("旧版2.3模板校验失败。")
         elif is_v22:
             template_version = "2.2.0"
             reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V4_RESOURCE).read_bytes()

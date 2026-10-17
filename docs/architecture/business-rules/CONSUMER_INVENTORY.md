@@ -1,3 +1,5 @@
+> 2026-10-17当前入口：PR46已合并、PR45已关闭。原表与PR45/46只读取证是固定历史观察；当前生产接管范围以TASK_STATE/IMPLEMENTATION_REPORT为准，不再把后续消费者写入责任归已收口PR46。
+
 > 本轮以PR48已合并R8为业务基线；以下运行消费者是既有main/PR46的固定观察，不代表候选已接生产。015已批准不再待决；014按Owner最新电力“其他来源”软件决定RESOLVED，原标准专业依据差异保留，不伪称等价。来源细则唯一见Mapping §9.1/9.8；五表软件选择另按台账010的固定批准与取代关系，旧候选PENDING描述由本轮R8政策取代。25组盘点只在实施报告定位，不另立总账。
 
 # 业务规则消费者简表
@@ -25,3 +27,12 @@
 详细技术条件仅供测试；内部属性不继续复制进JSON或默认审阅表，必要时由代码自动盘点。本表不维护逐个内部字段清单，不以字段数、条件行数或测试数代替Mapping覆盖结论。此任务没有切换、合并、修改或关闭PR45/PR46。
 
 Report Schema的结构、类型、版本、必填性及渠道投影仍有必要；业务含义引用Mapping，布局仅排版。资源登记不替代独立文件/来源和实际发布产物验证。
+
+
+## B-MATERIAL 当前消费者增量
+
+材料来源资格唯一提供者为`carbon_material_business_policy.evaluate_material_field`，从R11机械投影的`material.json`采用，不改原`fuel_power.json`身份。`parameter_source_policy`是薄适配；`normalize_material_inputs`在正式入口同样调用该资格并核必要基准/数值/方法。GUI不再保留“仅实测”隐藏来源，v6 Excel只映射原始输入，Domain统一归一化；旧模板只读取其明确历史表结构。
+
+`MATERIAL_V2`的煅烧输出直接消费`output_carbon_cc/ucc/du/total`，不经过跨角色wfc_c平均。旧wfc_c键仅`MATERIAL_V1`明确组合和原scalar共同含量入口保留兼容；未知组合不可正式执行，读取不补默认。旧项目的明确升级保留原输入副本/另存Canonical项目，取消不写回。Record冻结原行与收到基采用值，B.3—B.5/Word只读同Record Trace采用事实，不重算或回查目录。
+
+烟气专属分段模块仅在独立F分支准备，不在本材料包生产采用。脱硫/热力/外部CO₂及其余R11消费者留后续明确包，不因候选READY宣布已接管。
