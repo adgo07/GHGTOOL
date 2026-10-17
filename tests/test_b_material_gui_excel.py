@@ -88,6 +88,20 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 self.assertEqual(len(records.list_all()),2)
                 latest=records.list_all()[0]
                 self.assertEqual(latest.calculation_result.total_amount,gui_record.calculation_result.total_amount)
+                original_workspace=page._workspace
+                legacy_units=tuple(replace(unit,canonical_input=replace(unit.canonical_input,material_execution_version='MATERIAL_V1')) for unit in original_workspace.units)
+                legacy_workspace=replace(original_workspace,units=legacy_units)
+                projects.save(legacy_workspace);page.open_project(legacy_workspace.project_id)
+                count=len(projects.list_all())
+                with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.No):page._upgrade_material_project()
+                self.assertEqual(len(projects.list_all()),count)
+                self.assertEqual(page._workspace.project_id,legacy_workspace.project_id)
+                with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Yes):page._upgrade_material_project()
+                self.assertEqual(len(projects.list_all()),count+1)
+                self.assertIsNotNone(page._selected_unit())
+                self.assertEqual(page._selected_unit().canonical_input.material_execution_version,'MATERIAL_V2')
+                self.assertEqual(projects.get(legacy_workspace.project_id).units[0].canonical_input.material_execution_version,'MATERIAL_V1')
+                self.assertEqual(len(records.list_all()),2)
             finally:
                 with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.No):window.close()
                 window.deleteLater();self.app.processEvents()

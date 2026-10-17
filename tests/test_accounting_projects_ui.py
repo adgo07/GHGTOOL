@@ -489,12 +489,17 @@ class AccountingProjectUiTests(unittest.TestCase):
             material["role"].setCurrentIndex(material["role"].findData(role))
             for field, value in (("name", name), ("mass", mass), ("fixed_carbon", fixed), ("volatile_matter", volatile)):
                 material[field].setText(value)
+        # Construct a historical persisted-source fixture; ordinary switches now
+        # keep independent source drafts and must not relabel an existing value.
+        self.page._restoring_workspace = True
+        self.page._material_execution_version = "MATERIAL_V1"
         feed["fixed_carbon_source"].setCurrentIndex(
             feed["fixed_carbon_source"].findData(MaterialDataSource.CHEMICAL_CALCULATION)
         )
         product["volatile_matter_source"].setCurrentIndex(
             product["volatile_matter_source"].findData(MaterialDataSource.CHEMICAL_CALCULATION)
         )
+        self.page._restoring_workspace = False
         feed_id, product_id = feed["line_id"], product["line_id"]
         controls = self.page._material_controls["calcination"]
         for field, value in (
@@ -562,7 +567,7 @@ class AccountingProjectUiTests(unittest.TestCase):
 
         self.page._run_calculation()
         validation_text = "\n".join(tree_texts(self.page.validation_list))
-        self.assertIn("仅接受实测值来源", validation_text)
+        self.assertIn("当前材料规则", validation_text)
         self.assertTrue(self.page.result_card.isHidden())
         self.assertEqual(self.records.list_all(), ())
 

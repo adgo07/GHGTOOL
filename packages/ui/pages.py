@@ -3086,9 +3086,8 @@ class ExcelImportPage(BasePage):
             _LOGGER.exception("材料项目升级副本保存失败")
             self.status_label.setText("升级未完成，原项目保持不变。")
             return
-        self._workspace = upgraded
         self._refresh_saved_projects()
-        self._selected_unit_changed()
+        self.open_project(upgraded.project_id)
         self.status_label.setText("已保存材料规则升级副本；必要数据仍需校验，尚未生成核算记录。")
 
     def _calculate_selected_unit(self) -> None:
