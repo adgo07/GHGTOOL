@@ -101,6 +101,7 @@ class FuelConsumerTests(unittest.TestCase):
         previous.deleteLater()
         self.row = self.page._fuel_rows[0]
         self.select(FuelType.DIESEL)
+        self.assertEqual(self.page._fuel_option_for_row(self.row).subject_id, "diesel")
         for combo, edit in ((self.row.lhv_source, self.row.lower_heating_value),
                             (self.row.carbon_source, self.row.carbon),
                             (self.row.oxidation_source, self.row.oxidation)):
