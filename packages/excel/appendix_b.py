@@ -366,6 +366,8 @@ class AppendixBWorkbookImporter:
                     imported_at=imported_at,
                     canonical_path=canonical_path,
                     source=EXCEL_APPENDIX_B,
+                    # Freeze the verified master at ingress, never infer it at export.
+                    template_master_sha256=template.sha256 if template_version == template.template_version else None,
                 ),
                 units=(unit,),
                 warnings=tuple(warnings),

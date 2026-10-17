@@ -53,6 +53,26 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 for role,mass,carbon,volatile in [(Role.CALCINED_PRODUCT,'20','80','5'),(Role.UNDERBURN_RECOVERED,'30','40',''),(Role.CARBON_DUST,'10','25','')]:
                     row=byrole[role]
                     for key,text in [('name','同名'),('mass',mass),('fixed_carbon',carbon),('volatile_matter',volatile)]:row[key].setText(text)
+                # Names are business labels; line identity owns source/method drafts.
+                feed['name'].setText('更名草稿');feed['name'].editingFinished.emit()
+                self.assertEqual(feed['fixed_carbon_source'].currentData(),Source.CHEMICAL_CALCULATION)
+                self.assertEqual(feed['moisture_received_percent'].text(),'20')
+                feed['name'].setText('同名')
+                middle=gui._add_material_line(process,line_id='remove-middle')
+                survivor=gui._add_material_line(process,line_id='keep-after-middle',role_value=Role.CARBON_DUST)
+                survivor['name'].setText('同名');survivor['mass'].setText('0')
+                survivor['fixed_carbon_source'].setCurrentIndex(survivor['fixed_carbon_source'].findData(Source.CHEMICAL_CALCULATION))
+                survivor['fixed_carbon'].setText('90')
+                survivor['composition_basis'].setCurrentIndex(survivor['composition_basis'].findData('DRY'))
+                survivor['moisture_received_percent'].setText('20')
+                survivor['conversion_method'].setCurrentIndex(survivor['conversion_method'].findData('DRY_TO_RECEIVED_MOISTURE'))
+                gui._remove_material_line(process,middle['line_id'])
+                remaining=next(row for row in process['materials'] if row['line_id']=='keep-after-middle')
+                self.assertIs(remaining,survivor)
+                self.assertEqual(remaining['fixed_carbon'].text(),'90')
+                self.assertEqual(remaining['moisture_received_percent'].text(),'20')
+                self.assertEqual(remaining['composition_basis'].currentData(),'DRY')
+                gui._remove_material_line(process,survivor['line_id'])
                 identity=feed['line_id'];state=gui._capture_form_state()
                 workspace=projects.new_workspace('物料草稿');workspace=replace(workspace,units=(replace(workspace.units[0],form_state=state),));projects.save(workspace)
                 restored=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/'projects.sqlite')).get(workspace.project_id)
@@ -88,6 +108,16 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 self.assertEqual(len(records.list_all()),2)
                 latest=records.list_all()[0]
                 self.assertEqual(latest.calculation_result.total_amount,gui_record.calculation_result.total_amount)
+                imported_record=next(record for record in records.list_all() if record.record_id != gui_record.record_id)
+                ingress=records.get_raw_input_snapshot(imported_record.record_id)['ingress_provenance']['workbook']
+                self.assertEqual(ingress['template_master_sha256'],ExcelTemplateService.default().get().sha256)
+                self.assertNotEqual(ingress['template_master_sha256'],ingress['sha256'])
+                from packages.application.reporting import build_report_model
+                frozen_model=build_report_model(imported_record,records.get_raw_input_snapshot(imported_record.record_id),
+                    records.get_trace_snapshot(imported_record.record_id),records.get_provenance_snapshot(imported_record.record_id),
+                    records.get_reporting_snapshot(imported_record.record_id),records.get_report_qualification(imported_record.record_id))
+                self.assertEqual(frozen_model.input_template_version,'2.4.0')
+                self.assertEqual(frozen_model.input_template_sha256,ingress['template_master_sha256'])
                 original_workspace=page._workspace
                 legacy_units=tuple(replace(unit,canonical_input=replace(unit.canonical_input,material_execution_version='MATERIAL_V1')) for unit in original_workspace.units)
                 legacy_workspace=replace(original_workspace,units=legacy_units)

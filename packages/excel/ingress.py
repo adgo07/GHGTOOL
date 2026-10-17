@@ -39,6 +39,7 @@ class WorkbookProvenance:
     imported_at: datetime
     canonical_path: str | None = None
     source: str | None = None
+    template_master_sha256: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

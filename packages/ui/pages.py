@@ -2843,6 +2843,8 @@ class ExcelImportPage(BasePage):
                 "standard_version": preview.provenance.standard_version,
                 "ingress_policy_id": preview.provenance.ingress_policy_id,
                 "imported_at": preview.provenance.imported_at.isoformat(),
+                **({"template_master_sha256": preview.provenance.template_master_sha256}
+                   if getattr(preview.provenance,"template_master_sha256",None) is not None else {}),
                 **(
                     {"canonical_path": preview.provenance.canonical_path}
                     if getattr(preview.provenance, "canonical_path", None) is not None
