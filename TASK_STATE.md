@@ -1,6 +1,6 @@
 # 当前任务状态 — B-MATERIAL
 
-更新：2026-10-17。状态：LOCAL_IMPLEMENTED / 待独立验收。PR46已合并、PR45已关闭；原五字段及退修四项作为保护基线，固定历史报告不改写。
+更新：2026-10-18。状态：PR49六项意见修订中 / 新head待验收。PR46已合并、PR45已关闭；原五字段及退修四项作为保护基线，固定历史报告不改写。
 
 本包只落实已批准材料固定碳/挥发分、收到基换算及Issue018三工序整链，通过GUI/Excel/Canonical/SQLite重开/正式Record/冻结Word交付。V2是实施输入，唯一产品路线仍为REFERENCE_STANDARD_ROADMAP.md；不自动转下一包。
 
@@ -21,14 +21,14 @@ instance_id、line_id与role共同定位，不以名称/行号代替；切源/�
 - locked central SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；Architecture V2.1、Numeric v1/Profiles按锁定读取。当前ACTIVE UI路由v0.2及家族规格/清单，不升级Frozen。
 - MUST：分层、同一内核、declared-profile consistency、ambient independence、full-value比较、历史不漂移。MUST NOT：未声明float、隐式修约/epsilon、复制算法、自动升级Frozen。p40/HALF_UP属ALLOWED PROJECT DIFFERENCE；本包无需改中央Contract。
 - 相关Standard Issue：004/016/018；落实有效软件决定，不改标准原文或既有解释。
-- 仅本地实现/本地提交；公开披露待确认，不push、不公开PR、不上传日志/制品，公开CI暂不触发。
+- Owner已授权私有化/push/私有PR49/CI，取代此前仅本地限制；不授权公开上传、商业发布或合并。
 - 不控制桌面、不改用户参考资料、不安装iapws/不改017、不采购/正式申请、不合并、不删除分支/工作树。
 - 商业依赖/包体预检查并行，不作为法律放行。
 - 本包真实本地测试见末尾送验断点及IMPLEMENTATION_REPORT；历史781/781和CI不当当前证据。v5原生Excel/WPS、真实鼠标/中文输入/人工DPI/企业样例仍OPEN，最终模板变化另验。
 
 完成本业务包后重写IMPLEMENTATION_REPORT，交源会话独立验收并停止，不自动实施下一包或RS04/RS05，不宣布SUPPORTED。
 
-## 材料整合稳定断点
+## 历史材料整合断点（时间顺序记录；当前以末尾修订断点为准）
 
 - 已接入M专属提交ffd27e9（本分支91312cf）；独立material.json采用身份，原燃料/电力resource/SHA/identity不变。新MATERIAL_V2逐角色碳量；MATERIAL_V1仅明确收到基实测旧组合保留，未知版本可读不可正式执行。
 - codec2兼容codec1真实默认；每物料原值、方法/水分/基准和采用值分别冻结。GUI分来源草稿、确认升级/取消及原输入副本；Canonical升级另存项目/单元身份，不改原项目。v6/2.4.0辅助列已登记，SHA ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a；v2—v5原字节保留。
@@ -46,7 +46,7 @@ instance_id、line_id与role共同定位，不以名称/行号代替；切源/�
 
 ## 最终本地送验断点（2026-10-17）
 
-状态：LOCAL_IMPLEMENTED / 待源会话独立验收。生产代码冻结5859ba7e71a5e4add659efeb4a8392adb3896d86；其后只补测试/文档。最终15项母版/历史报告/项目链25.865s全过；最终包构建审计成功、两次隔离启动PASS、实际EXE PYZ代码与包内资源核算/Record/Word证明PASS。最终包265文件，无VirtualKeyboard/iapws路径及VirtualKeyboard PE引用。
+状态：LOCAL_IMPLEMENTED / 待源会话独立验收。当时业务断点5859ba7e71a5e4add659efeb4a8392adb3896d86；后续构建加固和cad63身份校验另列，不作为最终业务冻结。最终15项母版/历史报告/项目链25.865s全过；最终包构建审计成功、两次隔离启动PASS、实际EXE PYZ代码与包内资源核算/Record/Word证明PASS。最终包265文件，无VirtualKeyboard/iapws路径及VirtualKeyboard PE引用。
 
 全量证据仍为2368380的816项812PASS/4FAIL/0ERROR；四失败对应旧模板夹具已13/13定向闭环，后续Numeric/材料64项及交付16项通过，不宣称最新head全量PASS。完整命令、失败历史、SHA、商业待办及NOT_RUN见IMPLEMENTATION_REPORT.md。
 
@@ -61,3 +61,11 @@ CI250/run39038977148实际819项817PASS/2FAIL/0ERROR（1189.610s），exact-head
 ## CI251 包体退修断点
 
 CI251全量819/819（1178.754s），但exact-head构建因Qt6.12的PySide6/Qt6VirtualKeyboard.dll未被旧root精确排除命中而审计失败；整体不称PASS。仅加已实证路径，保留旧路径/根与symlink边界/拒绝门禁，补两种布局、保留其他组件及注入外链分类拒绝测试。本地G08 17/17，6.932s，生产Calculator/资源/依赖策略不变。新head待源复核与重跑实际CI/包体imports核验，不合并。
+
+## 当前：PR49六项修订送验（2026-10-18）
+
+已干净fast-forward并保留cad63f19材料重复line_id业务校验；5859仅原业务链断点，d5205f5构建加固与cad63业务修补明确分开，旧CI252只背书d520。当前私有化/push/PR49/CI授权有效，取代历史仅本地限制；公开上传/商业发布/merge/CU不获授权。
+
+Mapping采用范围、三表A3/A4/HTML/checks兼容文字、路线/DELIVERY/HANDOFF已同步；v6各B3—B5增加5列+1说明行已核实。审阅同版本四件套机械重生，25/25夹具PASS、意见0→0，4资产hash核对PASS；Python定向30/30，12.698s，material投影PASS。源会话cad63身份测试6/6，本会话不重复。CI252本地可读摘要只含运行身份/统计/hash，不能背书新head；新提交CI待实际完成并交源复验。
+
+原生v6Office/真实鼠标IME/DPI/企业样例继续OPEN；不启动CU/下一包、不合并。详见IMPLEMENTATION_REPORT末尾六项修订及实际PR head。

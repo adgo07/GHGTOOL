@@ -1,6 +1,6 @@
 # B-MATERIAL 本地实施送验报告
 
-2026-10-17。状态：LOCAL_IMPLEMENTED / 待源会话独立验收。本包完成后停止，不自动转下一包，不宣布正式标准 SUPPORTED 或商业发行就绪。唯一产品路线仍为 REFERENCE_STANDARD_ROADMAP.md。PR46 已合并、PR45 已关闭；固定历史退修/验收报告保持原样。
+2026-10-18更新。状态：PR49六项验收意见修订 / 新head待独立验收与CI。原d5205f5已技术+CI验收通过，cad63f19及本轮提交需单独验证。本包完成后停止，不自动转下一包，不宣布正式标准 SUPPORTED 或商业发行就绪。唯一产品路线仍为 REFERENCE_STANDARD_ROADMAP.md。PR46 已合并、PR45 已关闭；固定历史退修/验收报告保持原样。
 
 ## 平台 / Contract 预检查
 
@@ -17,17 +17,17 @@
 - MATERIAL_V2 按煅后料、欠烧回收料、粉尘各自碳量扣减，不跨角色共享平均含量；公式系数与既有执行次序保持。原始行和收到基采用行分别进入冻结 trace。旧 MATERIAL_V1 仅显式兼容原收到基实测组合，未知执行版本可读、不能正式核算。
 - GUI 保留 instance/line/role 身份、分来源草稿，覆盖改名、中间删行、保存重开。升级须明确确认；取消不写回。Canonical 项目升级另存新项目/持久化单元身份，保留原项目和原始输入，不复用全局唯一 unit_id。
 - codec2 兼容 codec1，旧缺字段按真实旧语义恢复；不迁移数据库，不改历史 Record。预览不写 Record；保存 Canonical 项目后正式 Application 核算成功新增不可变 Record，失败零新增。
-- v6 / 2.4.0 只在 B.3—B.5 增加 I—M 辅助列，九工作表结构保留，无数值默认；Excel 与 GUI 共用归一化/核算链。v2—v5 原字节与基线逐一核对不变。
+- v6 / 2.4.0 在 B.3—B.5各增加 I—M 共5辅助列和1说明行，九工作表结构保留，无数值默认；Excel 与 GUI 共用归一化/核算链。v2—v5 原字节与基线逐一核对不变。
 - 新 v6 在入口实际识别并验证后冻结独立 template_master_sha256；填写工作簿 sha256 保持独立。项目 SQLite 重开、Record、Word 原样消费同一证据；旧 v5/历史无母版证据不补，异常结构直接拒绝。Word 从所选 Record trace 读取采用值与方法，不再次 resolve 或归一。
 - 真实包内检查发现 Numeric guard 把当前 Calculator 身份重标为旧 N01C；已移除该版本覆盖，保留 guard/上下文/历史常量与历史向量。当前输入/结果/Record 的真实算法版本一致。
 
-当前生产代码冻结提交：`5859ba7e71a5e4add659efeb4a8392adb3896d86`。其后只补反向测试与本文等文档，不修改生产树。算法 `CAR-SM01-2026-10-17-MATERIAL.1`；归一化 `CAR-MATERIAL-NORMALIZATION-V2`；材料采用 `GHGTOOL_MATERIAL_R11_V1`。
+原业务链断点为`5859ba7e71a5e4add659efeb4a8392adb3896d86`，仅代表当时的材料整链与本地包证据。随后e04d1fc修测试、d5205f5新增Qt6.12精确构建路径加固；`cad63f19cf5a25cc5e25fc2d1b8bdceaefb6b389`又新增材料重复line_id业务身份校验及6项测试，故最终业务实现不能再称冻结于5859。当前本轮基点为cad63f19，本轮只修文档/审阅生成器及产物；最终送验提交以PR49 head与对应CI为准。算法 `CAR-SM01-2026-10-17-MATERIAL.1`；归一化 `CAR-MATERIAL-NORMALIZATION-V2`；材料采用 `GHGTOOL_MATERIAL_R11_V1`。
 
 |资产|SHA256|
 |---|---|
 |material.json|1737efec0f3b27bc14b373d4e70f8870f162a3bef6a702931207f4dc6cd93c02|
 |v6 母版|ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a|
-|最终本地 EXE|2755698bce622a67ce4afd2d63591370d7625a78e5ab5c68f9cd1c9f6a8f2da3|
+|5859原断点本地 EXE（非最终PR制品）|2755698bce622a67ce4afd2d63591370d7625a78e5ab5c68f9cd1c9f6a8f2da3|
 
 ## 本地验证与失败历史
 
@@ -72,7 +72,7 @@ N 中位数 handler/eventpump：首次新建4571/4801ms，首次记录630/671，
 
 ## NOT_RUN 与停止边界
 
-- 公开CI未触发（披露暂停）；无push、公开PR、日志/制品上传、merge或分支/工作树删除。
+- 原本地送验时未push/CI的历史限制已被Owner私有化/push/私有PR/CI授权取代；已执行私有CI，未公开上传、merge或删除分支/工作树。
 - 原生EXE完整业务点击、Excel/WPS v6原生填写保存再导入、真实鼠标/中文IME/人工DPI、企业真实案例、干净机器发行验收未执行。历史v5原生Office缺项不因本包自动关闭。
 - RS04/RS05、第二标准、烟气生产接入、蒸汽/iapws、性能优化、Word排版延期项、商业法律/IP正式程序未实施。
 - 不修改计算表用户参考文件；中央锁/PLATFORM_BASELINE/历史Numeric conformance未改。
@@ -96,3 +96,20 @@ CI实装CPython3.12.10、PySide6/Essentials/Addons/shiboken6 6.12.0及新增拆�
 e04d1fc的GitHub Actions CI251/run39040774659：merge-ref04b182bfa63e20291310586e2d661085f2ee0939全量819/819，1178.754s通过；exact-head G08 16/16，5.777s通过，但实际构建审计拒绝PySide6/Qt6VirtualKeyboard.dll，整体CI失败，未上传成功制品。Qt6.12改变DLL收集目录，旧root精确路径未覆盖。
 
 仅在构建已有列表增加已实证PySide6/Qt6VirtualKeyboard.dll，保留旧root DLL/插件路径、symlink/resolve根边界与包体拒绝门禁；不通配排除其他Qt、不改安装环境或依赖策略。G08补两种布局、其他组件保留、symlink/越界拒绝（注入文件系统分类，不声称创建真实Windows外链）。本地python -B -m unittest tests.test_g08_delivery -v：17/17，6.932s，tmp/material-ci251-build-closure.log。新head需复核和新CI实际构建/剩余DLL正常与延迟imports核验；此前本地6.11清单不能替代6.12包体。原生IME仍NOT_RUN。
+
+## PR49 六项验收意见修订（2026-10-18）
+
+开工实际核实origin正确，工作树干净，从d5205f5 fast-forward到远端cad63f19cf5a25cc5e25fc2d1b8bdceaefb6b389，保留重复材料line_id碰撞阻断（2文件140行）。该补丁是5859之后的业务身份校验，不是仅文档变化；源会话在cad63独立执行test_b_material_identity 6/6，0.915s，本会话未重复该组。业务仓本轮起点cad63，locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；本轮只修说明及审阅开发产物，不涉及中央公共Contract变更、专业公式、标准范围或历史Record解释。004/016/018关联不变，无新增Standard Issue。
+
+1. 版本证据改为5859原整链断点→d5205f5构建加固→cad63业务身份校验，撤销“最终业务冻结5859/之后只测试文档”的失实表述。旧包证据保留原身份，不替新head背书。
+2. Mapping头补GHGTOOL_MATERIAL_R11_V1两材料字段已采用；明确脱硫/外部CO₂/烟气/蒸汽等未由本包接管。审阅A3/A4、同源HTML和checks compatibility区分视图自身与PR49的材料、v6、冻结报告变更；不修改Canonical规则定义/版本/运行资源。
+3. ROADMAP、DELIVERY、HANDOFF、TASK_STATE现行授权统一为Owner已授权私有化、push、私有PR49及CI，明确取代旧本地限制；不扩大到公开上传、商业发布、合并或CU。历史执行记录仍保持当时结果。
+4. 增加仅元数据/统计/制品hash的本地可读evidence/CI252_SUMMARY.json，不含token/源码/原始日志；CI252只背书d5205f5，cad63的CI253开工时in_progress。后续新head需各自CI；最终运行摘要另以实际完成结果交接，不能套旧PASS。
+5. 实际只读对比v5/v6：B.3/B.4为13行8列→14行13列，B.5为12行8列→13行13列；各+5辅助列（I—M）及+1说明行（B3/B4 A14、B5 A13）。已补报告/DELIVERY/审阅兼容说明；模板字节及登记SHA不改。
+6. 原生v6 Excel/WPS保存回导、真实鼠标/中文IME/人工DPI、企业样例仍OPEN，禁止用离屏或CI自动替代，也未启动CU。
+
+机械重生按PREFLIGHT既有命令完成：validate_business_rules_candidate.py导出review/technical/catalog同版本输入；build_business_rules_review.mjs通过--previous保留意见；test_business_rules_review.mjs --builder/--input/--technical-input/--node-modules/--output执行25/25场景PASS；business_rules_review_checks.py --previous核三表29/21/11、652组合、450条件与意见0→0；business_rules_review_hashes.py验证4定义资产PASS。Mapping规范化SHA机械更新为01e5adff362b5e4f1d15ad6141c0d1359a4ef5a3a31bbcd30abf57f84d84b5c7；工作簿SHA a47855f781c0c52f80c083d600dd11e5a0983e31e79927dcede090fae6c8375f，未手盖清单。builder导出前执行一次recalculate，表内无公式，未改业务规则。
+
+本地定向命令：python -B -m unittest tests.test_business_rules_candidate_assets tests.test_pr48_mapping_arithmetic tests.test_b_material_policy -v，30/30，12.698s；python -B -m scripts.project_material_rules机械投影PASS。只读对比同版本前后表数据仅三表A3/A4共6处改变，表范围/冻结窗格/其他值保留；ArtifactTool渲染三表开头可读，非原生Office验收。日志/预览位于tmp/review-rework-r11；固定四件套同源重生后入仓。
+
+本轮未重复完整本地回归/旧包构建，等待新head CI；此前本地816失败历史、CI250/251失败及CI252成功各有独立身份，不互相替代。不合并、不启动下一包、不改专业口径或历史Record。

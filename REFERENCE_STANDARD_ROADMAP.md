@@ -356,7 +356,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 - PR46已合并、PR45已关闭；原五字段及四项退修收口作为保护基线，固定历史报告保持原样。PR47/A的R11有效Mapping和Owner决定保留；候选READY不等于全部业务已生产接管。
 - Owner批准2026-10-17 V2有限并行实施输入，当前唯一正式出口是B-MATERIAL完整链。C独占公共文件；M只写材料归一化和专属测试；F烟气模块只准备不进入本包；N只读基线测量，不顺手优化。
 - 本包落实material.fixed_carbon/volatile_matter、合法收到基换算与018角色表达，必要GUI/Excel/Canonical/项目版本/Record/Word共同演进。具体专业依据仍以原Mapping和有效台账决定为准，不复制V2为第二路线。
-- 从最新origin/main新建隔离本地分支；当前不push/公开PR/上传新实现日志制品，公开披露边界待确认。包末交源会话独立验收并停止，不合并、不自动进入下包。
+- 已从origin/main建立隔离分支。Owner已授权仓库转私有、push、私有PR49及GitHub Actions CI，取代此前本地提交限制；不授权公开上传或商业发布。包末交源会话独立验收，不合并、不自动进入下包。
 - 依赖和实际包体许可预检查并行，不构成法律或销售放行；不引入iapws/不自动替换017、不购买许可、不正式申请专利软著。
 - v5原生Excel/WPS、真实鼠标/中文输入/人工DPI/企业样例仍OPEN；v6模板改变需按最终交付版本另验，不借v4历史证据或离屏测试替代。
 - RS04 Golden/RS05 Release及SUPPORTED仍须各自授权与Gate；中央Frozen及platform-lock保持不变。

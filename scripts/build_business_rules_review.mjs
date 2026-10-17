@@ -325,8 +325,8 @@ for(const group of groups){
   const sheet=wb.worksheets.add(name);sheet.showGridLines=false;
   sheet.getRange("A1").values=[["审阅数据SHA256："+reviewHash]];
   sheet.getRange("A2").values=[[name+" · 紧凑审阅V2"]];
-  sheet.getRange("A3").values=[["定义修订："+(metadata.revision??"")+"；生产仅采用燃料四字段及电力因子，其余见TASK_STATE。整体意见可直接填写；条件意见请复制同源HTML中本行“合法条件值”，不要复制合并适用说明；需复核须人工确认本版，不自动清除。"]];
-  sheet.getRange("A4").values=[["业务、意见和身份同属一个Table。本审阅视图生成不改生产codec、数据库或历史Record；PR46的v5模板与报告变更另见IMPLEMENTATION_REPORT，不由本视图推断整个PR无兼容变化。"]];
+  sheet.getRange("A3").values=[["定义修订："+(metadata.revision??"")+"；生产已采用燃料四字段、电力因子及材料固定碳/挥发分，其余见TASK_STATE。整体意见可直接填写；条件意见请复制同源HTML中本行“合法条件值”，不要复制合并适用说明；需复核须人工确认本版，不自动清除。"]];
+  sheet.getRange("A4").values=[["业务、意见和身份同属一个Table。审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6（B.3—B.5各增5列和1说明行）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。"]];
   sheet.getRange("A1:A4").format.font={name:"Microsoft YaHei",size:10,color:"#555555"};
   sheet.getRange("A2").format.font={name:"Microsoft YaHei",size:15,bold:true,color:"#23445E"};
   const range=sheet.getRangeByIndexes(4,0,matrix.length,headers.length);
@@ -396,7 +396,7 @@ function detailTitle(row,index){
   const status=row.evaluation_status==="READY"?"规则组合有效（非输入完成）":"规则受阻/待核";
   return "条件"+(index+1)+"："+context+" · 当前来源："+current+" · "+status;
 }
-let html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>业务规则审阅同源详情</title><style>body{font:16px/1.6 "Microsoft YaHei",sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#243746}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7fa;padding:14px}summary{cursor:pointer;font-weight:bold;padding:10px}section{border-bottom:1px solid #ddd}</style><h1>业务规则审阅同源详情</h1><p>同源规则审阅视图；生产已接管燃料四字段及电力因子，其余候选状态见TASK_STATE。本文件不是第二真值源。</p><section id="review-scope"><h2>视图范围与审阅方式</h2><p>主表按业务概念汇总，电力按输入方式及方向拆分；不恢复442内部镜像或千行条件主表。此处保留各渠道、消费者、案例、完整条件、绑定与理由。意见可针对整体或指定属性；无明确条件映射时保留待映射。跨版本内容变化必须复核。</p><p>当前可见性审阅范围及原V1.2 §11要求的取代说明见STANDARD_SEMANTICS_POLICY.md §7；业务适用条件仍由既有Mapping和策略约束。</p><p>兼容影响：此说明仅限本审阅视图自身生成，不改正式输入codec、DB迁移或历史Record；PR46的v5模板与报告变更另见IMPLEMENTATION_REPORT，不据此宣称整个PR无兼容变化。历史电力证据见ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md；electricity-paths.json中的旧head保持历史身份，不能作为当前候选的重验结果。</p><p>正式投影SHA256：'+reviewHash+'；详情输入SHA256：'+digest(detailsPayload)+'</p></section>';
+let html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>业务规则审阅同源详情</title><style>body{font:16px/1.6 "Microsoft YaHei",sans-serif;max-width:1100px;margin:30px auto;padding:0 20px;color:#243746}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7fa;padding:14px}summary{cursor:pointer;font-weight:bold;padding:10px}section{border-bottom:1px solid #ddd}</style><h1>业务规则审阅同源详情</h1><p>同源规则审阅视图；生产已接管燃料四字段、电力因子及GHGTOOL_MATERIAL_R11_V1材料固定碳/挥发分；未接管段见TASK_STATE。本文件不是第二真值源。</p><section id="review-scope"><h2>视图范围与审阅方式</h2><p>主表按业务概念汇总，电力按输入方式及方向拆分；不恢复442内部镜像或千行条件主表。此处保留各渠道、消费者、案例、完整条件、绑定与理由。意见可针对整体或指定属性；无明确条件映射时保留待映射。跨版本内容变化必须复核。</p><p>当前可见性审阅范围及原V1.2 §11要求的取代说明见STANDARD_SEMANTICS_POLICY.md §7；业务适用条件仍由既有Mapping和策略约束。</p><p>兼容影响：审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6（B.3—B.5各增5列和1说明行）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。历史电力证据见ELECTRICITY_AND_COMPATIBILITY_EVIDENCE.md；electricity-paths.json中的旧head保持历史身份，不能作为当前候选的重验结果。</p><p>正式投影SHA256：'+reviewHash+'；详情输入SHA256：'+digest(detailsPayload)+'</p></section>';
 html+=' <nav><h2>对象目录</h2><ul>'+[...detailGroups].map(([id,rows])=>'<li><a href="#'+escapeHtml(encodeURIComponent(id))+'">'+escapeHtml(rows[0].name??changeTitles[rows[0].change_type]??rows[0].change_type??id)+'</a></li>').join('')+'</ul></nav>';
 for(const [id,rows] of detailGroups){
   html+='<section id="'+escapeHtml(id)+'"><h2>'+escapeHtml(rows[0].name??changeTitles[rows[0].change_type]??rows[0].change_type??id)+'</h2><p>'+escapeHtml(id)+'</p>';
@@ -421,6 +421,7 @@ for(const [id,rows] of detailGroups){
 html+='<section><h2>Word报告关联与验收边界</h2><p>既有映射：specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md §13.1；既有报告结构：specs/reporting/GB_T_32151_34_2024_REPORT_SCHEMA.md「附录B业务结构」「RPT02批准表式映射」。这里只关联既有冻结记录报告能力，不新增WORD字段消费者。实际DOCX数值、表式与分页仍需后续报告专项验收；本审阅表不构成DOCX验收。</p></section></html>';
 await fs.mkdir(path.dirname(output),{recursive:true});
 await fs.writeFile(path.join(path.dirname(output),detailsName),html.replace(/[ \t]+$/gm,""),"utf8");
+wb.recalculate();
 await (await SpreadsheetFile.exportXlsx(wb)).save(output);
 
 // The bundled artifact tool has no documented column hiding/outline API.

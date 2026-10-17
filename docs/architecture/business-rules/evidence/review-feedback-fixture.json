@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "builder_sha256": "1efcc97bbfe3d094ebe0f025713506d2465d2b4338bdf1ed99b0826132e8d405",
+  "builder_sha256": "fb1ec2c6230903552da2c6b92375ff10eb332f92921055a4a2b2b716452f269a",
   "artifact_tool_version": "2.8.99",
-  "builder_copy_sha256": "1efcc97bbfe3d094ebe0f025713506d2465d2b4338bdf1ed99b0826132e8d405",
+  "builder_copy_sha256": "fb1ec2c6230903552da2c6b92375ff10eb332f92921055a4a2b2b716452f269a",
   "formal_projection_sha256": "65d8d7f6532a0855efc78b7cc8d4ef6b930f03b2c3df6424f4adbb22fe6846d0",
   "formal_details_sha256": "3ae7ce4930e8fc7ac9fbdeb9da9caba8c22440f3a087bd6bde780c6d10504161",
   "fixture_projection_v1_sha256": "7766b1e87966e89aca1999500dcbbbf2bbc823570b71f1854332dbc40f8fee6c",
