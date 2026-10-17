@@ -9,16 +9,13 @@ from packages.core.errors import IssueLevel
 from packages.core.models import AccountingPeriod, ElectricityAttribute, ParameterType, ReviewStatus
 from packages.core.parameter_resolution import (
     NATIONAL_ELECTRICITY_PARAMETER_ID,
-    NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID,
-    NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID,
     NONFOSSIL_ELECTRICITY_PARAMETER_ID,
-    PROVINCIAL_ELECTRICITY_PARAMETER_ID,
-    REGIONAL_ELECTRICITY_PARAMETER_ID,
     FactorApplicability,
     ParameterResolutionContext,
     ParameterResolver,
 )
 from packages.standards.carbon_material import FuelType, STANDARD_ID
+from packages.standards.carbon_material_business_policy import electricity_catalogue_parameters
 from packages.standards.catalog import FactorCatalogRecord, ReferenceDataBindingCatalogRecord
 
 
@@ -307,24 +304,28 @@ class UAT03ParameterQueries:
             )
         return tuple(options)
 
+    @staticmethod
+    def _electricity_parameters_for_level(geographic_level: str) -> tuple[tuple[str, str], ...]:
+        geography_tags = {"全国": None, "区域": "region", "省级": "province"}
+        if geographic_level not in geography_tags:
+            return ()
+        return tuple(
+            (f"表{table}", parameter_id)
+            for table, parameter_id, tag in electricity_catalogue_parameters()
+            if tag == geography_tags[geographic_level]
+        )
+
     def electricity_regions(
         self,
         period: AccountingPeriod,
         geographic_level: str = "省级",
     ) -> tuple[str, ...]:
-        """Return Resolver-eligible regions for the requested level.
-
-        The default remains provincial for existing callers.  ``区域`` returns
-        the seven table-2 areas; ``省级`` returns table-3 province-level names.
-        """
-        table, parameter_id = {
-            "区域": ("表2", REGIONAL_ELECTRICITY_PARAMETER_ID),
-            "省级": ("表3", PROVINCIAL_ELECTRICITY_PARAMETER_ID),
-        }.get(geographic_level, (None, None))
-        if table is None or parameter_id is None:
+        """Keep the provincial default; group identities come from adopted policy."""
+        if geographic_level not in {"区域", "省级"}:
             return ()
         regions = dict.fromkeys(
             binding.region
+            for table, parameter_id in self._electricity_parameters_for_level(geographic_level)
             for binding in self._electricity_table_bindings(table, period)
             if binding.region
             and (asset := self._assets.get(binding.asset_id)) is not None
@@ -354,63 +355,17 @@ class UAT03ParameterQueries:
         region: str | None,
         period: AccountingPeriod,
     ) -> tuple[UAT03FactorOption, ...]:
+        """Compatibility default choices; special national bases never fill a gap."""
         if region in (None, "全国"):
-            table, parameter_id, resolver_region = "表1", NATIONAL_ELECTRICITY_PARAMETER_ID, None
-            binding_regions = {None, "全国"}
-        else:
-            regional = any(
-                binding.region == region
-                and (asset := self._assets.get(binding.asset_id)) is not None
-                and asset.parameter_id == REGIONAL_ELECTRICITY_PARAMETER_ID
-                for binding in self._electricity_table_bindings("表2", period)
+            return tuple(
+                option for option in self.electricity_catalog_options("全国", None, period)
+                if option.factor.parameter_id == NATIONAL_ELECTRICITY_PARAMETER_ID
             )
-            provincial = any(
-                binding.region == region
-                and (asset := self._assets.get(binding.asset_id)) is not None
-                and asset.parameter_id == PROVINCIAL_ELECTRICITY_PARAMETER_ID
-                for binding in self._electricity_table_bindings("表3", period)
-            )
-            if regional == provincial:
-                return ()
-            if regional:
-                table, parameter_id = "表2", REGIONAL_ELECTRICITY_PARAMETER_ID
-            else:
-                table, parameter_id = "表3", PROVINCIAL_ELECTRICITY_PARAMETER_ID
-            resolver_region = region
-            binding_regions = {region}
-        allowed_factor_ids = frozenset(
-            binding.factor_id
-            for binding in self._electricity_table_bindings(table, period)
-            if binding.factor_id
-            and binding.region in binding_regions
-            and (asset := self._assets.get(binding.asset_id)) is not None
-            and asset.parameter_id == parameter_id
-        )
-        answer = self._resolve(
-            parameter_id,
-            "purchased_electricity",
-            period,
-            region=resolver_region,
-            allowed_factor_ids=allowed_factor_ids,
-        )
-        if answer is None:
+        regional = self.electricity_catalog_options("区域", region, period)
+        provincial = self.electricity_catalog_options("省级", region, period)
+        if bool(regional) == bool(provincial):
             return ()
-        _, values = answer
-        return tuple(
-            UAT03FactorOption(
-                subject_id=item.factor.subject_id,
-                label=(region or "全国") + "电力平均排放因子",
-                factor=item.factor,
-                selection_reason=item.selection_reason,
-                region=resolver_region,
-                table_number=table,
-                source_document_name=(
-                    self._sources[item.factor.source_id].document_name
-                    if item.factor.source_id in self._sources else None
-                ),
-            )
-            for item in values
-        )
+        return regional or provincial
 
     def electricity_catalog_options(
         self,
@@ -419,15 +374,7 @@ class UAT03ParameterQueries:
         period: AccountingPeriod,
     ) -> tuple[UAT03FactorOption, ...]:
         """Return only verified table bindings that the formal Resolver accepts."""
-        table_parameters = {
-            "全国": (
-                ("表1", NATIONAL_ELECTRICITY_PARAMETER_ID),
-                ("表4", NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID),
-                ("表5", NATIONAL_FOSSIL_ELECTRICITY_PARAMETER_ID),
-            ),
-            "区域": (("表2", REGIONAL_ELECTRICITY_PARAMETER_ID),),
-            "省级": (("表3", PROVINCIAL_ELECTRICITY_PARAMETER_ID),),
-        }.get(geographic_level, ())
+        table_parameters = self._electricity_parameters_for_level(geographic_level)
         if not table_parameters:
             return ()
         if geographic_level == "全国":
