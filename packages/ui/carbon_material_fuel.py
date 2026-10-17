@@ -4,7 +4,7 @@ from uuid import uuid4
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QCompleter, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
 from packages.standards.carbon_material import FuelPath
-from packages.standards.carbon_material_input_policy import match_fuel_option
+from packages.standards.carbon_material_input_policy import InputOrigin, parameter_source_policy
 from .compact_choices import TwoChoiceControl, SegmentedChoiceControl
 from .name_selector import NameSelector
 from .field_specs import get_field_spec
@@ -155,11 +155,13 @@ class _FuelRow(QWidget):
 
         self.carbon_basis = QComboBox(self)
         self.carbon_basis.setObjectName(f"fuelCarbonBasis{index}")
-        self.carbon_basis.addItem("计算值", "HEAT_CONTENT")
-        self.carbon_basis.addItem("实测值", "DIRECT")
+        self.carbon_basis.addItem("按热值计算", "HEAT_CONTENT")
+        self.carbon_basis.addItem("直接含碳量", "DIRECT")
         self.lhv_source = self._source_combo(index, "lhv")
         self.carbon_source = self._source_combo(index, "carbon")
-        self.direct_carbon_source = self._source_combo(index, "directCarbon", values=("MEASURED",))
+        direct_policy = parameter_source_policy("fuel.direct_carbon", origin=InputOrigin.CUSTOM)
+        self.direct_carbon_source = self._source_combo(index, "directCarbon", values=direct_policy.allowed_sources)
+        self.direct_carbon_source.setCurrentIndex(self.direct_carbon_source.findData(direct_policy.default_source))
         self.oxidation_source = self._source_combo(index, "oxidation")
         self._legacy_oxidation_source_index = self.oxidation_source.findData("USER_DEFINED")
         self.lhv_control = self._parameter_control(self.lhv_source, self.lower_heating_value)
@@ -168,7 +170,7 @@ class _FuelRow(QWidget):
         self.oxidation_control = self._parameter_control(self.oxidation_source, self.oxidation)
         self.lhv_label = QLabel("低位发热量", self)
         self.carbon_label = QLabel("单位热值含碳量", self)
-        self.direct_carbon_label = QLabel("实测单位含碳量", self)
+        self.direct_carbon_label = QLabel("直接单位含碳量", self)
         self.oxidation_label = QLabel("碳氧化率（%）", self)
         self.source_reference_label = QLabel("实测报告/来源定位", self)
         self.source_reference_control = QWidget(self)
