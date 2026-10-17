@@ -43,3 +43,20 @@ class FuelPowerTemplateV5Tests(TestCase):
     workbook=load_workbook(BytesIO(content))
     try: self.assertEqual(service.validate_structure(workbook),version)
     finally: workbook.close()
+
+ def test_inserted_activity_rows_do_not_downgrade_template_identity(self):
+  service=ExcelTemplateService.default()
+  for resource,version in [(APPROVED_TEMPLATE_RESOURCE,"2.3.0"),(APPROVED_TEMPLATE_V4_RESOURCE,"2.2.0")]:
+   with self.subTest(version=version):
+    workbook=load_workbook(Path("resources")/resource)
+    try:
+     workbook["B.2"].insert_rows(19,3)
+     self.assertEqual(service.validate_structure(workbook),version)
+    finally: workbook.close()
+ def test_conflicting_version_footers_are_rejected(self):
+  service=ExcelTemplateService.default()
+  workbook=load_workbook(BytesIO(service.read_bytes()))
+  try:
+   workbook["B.2"]["A21"]="来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。"
+   with self.assertRaisesRegex(ValueError,"冲突"): service.validate_structure(workbook)
+  finally: workbook.close()

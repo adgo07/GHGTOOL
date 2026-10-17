@@ -80,6 +80,14 @@ class ElectricityTable5PolicyTests(unittest.TestCase):
                     self.assertEqual(resolved.result.recommended.factor_id, TABLE5)
                 queries = UAT03ParameterQueries(CatalogQueryService(overlay), resolver)
                 self.assertNotIn(TABLE5, {option.factor.factor_id for option in queries.electricity_catalog_options("全国", None, PERIOD)})
+                records = SQLiteRecordRepository(self.root / ("invalid-table5-" + defect + ".sqlite"))
+                formal = CarbonAccountingUseCase(CarbonMaterialCalculator(parameter_resolver=resolver), records)
+                invalid = CarbonMaterialInput("invalid-table5-" + defect, "enterprise.power", None, PERIOD,
+                                              boundary_confirmed=True, electricity_details=(self.detail(),))
+                outcome = formal.calculate(invalid, calculated_at=NOW)
+                self.assertFalse(outcome.successful, outcome.problems)
+                self.assertIsNone(outcome.record)
+                self.assertEqual(records.list_all(), ())
 
     def test_nonfossil_and_other_cannot_borrow_table5_and_no_selection_does_not_use_it(self):
         resolver = create_g06_parameter_resolver(self.catalog)

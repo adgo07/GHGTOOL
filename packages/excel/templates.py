@@ -98,12 +98,15 @@ class ExcelTemplateService:
             and workbook["B.7"]["I2"].value == "名称类型"
             and workbook["B.7"]["J2"].value == "因子来源"
         )
-        current_note = workbook["B.2"]["A20"].value
-        is_v23 = is_v21 and isinstance(current_note, str) and current_note.startswith("燃料输入规则 V5：")
-        is_v22 = (
-            is_v21 and isinstance(current_note, str)
-            and current_note.startswith("来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。")
-        )
+        # Inserting approved activity rows moves the protected footer. Version
+        # identity follows its text, not the original absolute row number.
+        notes = tuple(value for (value,) in workbook["B.2"].iter_rows(
+            min_row=20, min_col=1, max_col=1, values_only=True) if isinstance(value, str))
+        is_v23 = is_v21 and any(note.startswith("燃料输入规则 V5：") for note in notes)
+        is_v22 = is_v21 and any(note.startswith(
+            "来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。") for note in notes)
+        if is_v23 and is_v22:
+            raise ValueError("B.2包含冲突的模板版本说明，请使用一个完整的正式模板版本。")
         is_v20 = (
             workbook["B.2"]["M2"].value == "名称类型"
             and workbook["B.7"]["I2"].value == "名称类型"
