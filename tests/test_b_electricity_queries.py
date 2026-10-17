@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import Mock
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.application.carbon_accounting import create_g06_parameter_resolver
@@ -29,7 +30,20 @@ class ElectricityQueryBindingTests(unittest.TestCase):
     def queries(self):
         return UAT03ParameterQueries(CatalogQueryService(self.repository), self.resolver)
 
-    def assert_national_unavailable(self, queries):
+    def refresh_catalog_snapshot(self, queries):
+        # Inject faults into catalog read models before composing the real Resolver.
+        overlay = Mock(wraps=self.repository)
+        overlay.list_parameters.return_value = tuple(queries._parameters.values())
+        overlay.list_factors.return_value = tuple(queries._factors.values())
+        overlay.list_sources.return_value = tuple(queries._sources.values())
+        overlay.list_source_tables.return_value = tuple(queries._table_by_id.values())
+        overlay.list_reference_data_assets.return_value = tuple(queries._assets.values())
+        overlay.list_reference_data_bindings.return_value = queries._bindings
+        return UAT03ParameterQueries(CatalogQueryService(overlay), create_g06_parameter_resolver(overlay))
+
+    def assert_national_unavailable(self, queries, *, refresh=True):
+        if refresh:
+            queries = self.refresh_catalog_snapshot(queries)
         self.assertEqual(queries.electricity_options(None, PERIOD), ())
         self.assertEqual({option.table_number for option in queries.electricity_catalog_options("全国", None, PERIOD)}, {"表4", "表5"})
 
@@ -67,6 +81,7 @@ class ElectricityQueryBindingTests(unittest.TestCase):
     def test_custom_period_requires_complete_binding_coverage_but_annual_uses_overlap(self):
         queries = self.queries()
         queries._bindings = tuple(replace(binding, valid_from=date(2026, 7, 1)) if binding.factor_id == NATIONAL else binding for binding in queries._bindings)
+        queries = self.refresh_catalog_snapshot(queries)
         custom = AccountingPeriod(PeriodType.CUSTOM, PERIOD.start, PERIOD.end)
         self.assertEqual(queries.electricity_options(None, custom), ())
         self.assertEqual(len(queries.electricity_options(None, PERIOD)), 1)
@@ -90,3 +105,25 @@ class ElectricityQueryBindingTests(unittest.TestCase):
         self.assertEqual(zero.factor.normalized_value, 0)
         self.assertNotIn(zero.factor.factor_id, {option.factor.factor_id for option in queries.electricity_catalog_options("全国", None, PERIOD)})
 
+
+    def test_ambiguous_or_unconfigured_binding_evidence_is_not_a_selectable_candidate(self):
+        from packages.core.parameter_resolution import ParameterResolver
+        for reference_bindings in (None, (*self.resolver._reference_bindings, next(binding for binding in self.resolver._reference_bindings if binding.factor_id == NATIONAL))):
+            with self.subTest(configured=reference_bindings is not None):
+                resolver = ParameterResolver(self.resolver.repository, common_rules=self.resolver._common_rules, industry_rules=self.resolver._industry_rules, reference_bindings=reference_bindings)
+                queries = UAT03ParameterQueries(CatalogQueryService(self.repository), resolver)
+                self.assertEqual(queries.electricity_options(None, PERIOD), ())
+                expected = set() if reference_bindings is None else {"表4", "表5"}
+                self.assertEqual({option.table_number for option in queries.electricity_catalog_options("全国", None, PERIOD)}, expected)
+
+    def test_each_listed_factor_is_confirmed_before_its_own_binding_is_checked(self):
+        resolver = Mock(wraps=self.resolver)
+        queries = UAT03ParameterQueries(CatalogQueryService(self.repository), resolver)
+        options = queries.electricity_catalog_options("全国", None, PERIOD)
+        self.assertEqual(len(options), 3)
+        contexts = [call.args[0] for call in resolver.resolve.call_args_list]
+        self.assertEqual({context.confirmed_factor_id for context in contexts}, {option.factor.factor_id for option in options})
+        self.assertTrue(all(context.confirmation_reason for context in contexts))
+        for call in resolver.reference_binding_for.call_args_list:
+            resolution = call.args[0]
+            self.assertEqual(resolution.context.confirmed_factor_id, resolution.recommended.factor_id)
