@@ -135,6 +135,23 @@ class ElectricityChannelTests(unittest.TestCase):
                 self.assertIsNone(resolved.snapshot.source_id)
                 self.assertNotIn("GEN-VAL-USER-OVERRIDE-SOURCE-MISSING", {problem.code for problem in resolved.result.warnings})
 
+    def test_other_source_still_rejects_nonfinite_negative_and_wrong_units_without_records(self):
+        from packages.core.models import DomainValidationError, ElectricityAcquisitionMode, ElectricityAttribute
+        from packages.core.parameter_resolution import ElectricityConsumptionDetail
+        from packages.standards.carbon_material import CarbonMaterialInput
+        records = SQLiteRecordRepository(self.root / "invalid-other-records.sqlite")
+        formal = CarbonAccountingUseCase(self.calculator, records)
+        for value in ("NaN", "Infinity", "-0.41"):
+            with self.subTest(value=value), self.assertRaises(DomainValidationError):
+                UserProvidedParameterValue(value, "tCO₂/MWh")
+        detail = ElectricityConsumptionDetail("invalid-unit", "enterprise.power", "gbt_32151_34_2024", PERIOD, "100", "MWh", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY, factor_override=UserProvidedParameterValue("0.41", "kg"))
+        invalid = CarbonMaterialInput("invalid-power", "enterprise.power", None, PERIOD, boundary_confirmed=True, electricity_details=(detail,))
+        for use_case in (self.preview, formal):
+            outcome = use_case.calculate(invalid, calculated_at=NOW)
+            self.assertFalse(outcome.successful)
+            self.assertIsNone(outcome.record)
+            self.assertEqual(records.list_all(), ())
+
     def test_switching_direction_keeps_independent_other_source_drafts(self):
         page = self.page()
         try:
