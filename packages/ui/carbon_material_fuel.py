@@ -1,7 +1,7 @@
 """Compact fuel editor for the carbon-material standard."""
 from collections.abc import Callable
 from uuid import uuid4
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent, QSignalBlocker
 from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QComboBox, QCompleter, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
 from packages.standards.carbon_material import FuelPath
 from packages.standards.carbon_material_input_policy import InputOrigin, parameter_source_policy
@@ -125,6 +125,7 @@ class _FuelRow(QWidget):
             search_terms.extend((label, *option.aliases))
         self.fuel_type.set_search_names((option.label, option.aliases) for option in self._fuel_options)
         self._committed_name = self.fuel_type.currentText().strip()
+        self.fuel_type.lineEdit().installEventFilter(self)
         self._legacy_custom_identity = False
         self._activity_drafts = {}
 
@@ -286,5 +287,21 @@ class _FuelRow(QWidget):
         # editor remains hidden and is read only by the legacy state adapter.
         self.custom_name_label.hide()
         self.custom_name.hide()
+
+    def eventFilter(self, watched, event):
+        if (watched is self.fuel_type.lineEdit() and event.type() == QEvent.Type.KeyPress
+                and event.key() == Qt.Key.Key_Escape):
+            # Cancel only the pending text. Never re-confirm or reset the
+            # previously confirmed identity, parameter values or source modes.
+            blockers = (QSignalBlocker(self.fuel_type), QSignalBlocker(watched))
+            index = self.fuel_type.findText(self._committed_name)
+            if index >= 0:
+                self.fuel_type.setCurrentIndex(index)
+            else:
+                self.fuel_type.setEditText(self._committed_name)
+            self.fuel_type.restore_confirmation(self._committed_name)
+            del blockers
+            return True
+        return super().eventFilter(watched, event)
 
 

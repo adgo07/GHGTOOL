@@ -137,3 +137,17 @@ class FuelConsumerTests(unittest.TestCase):
         with self.assertRaisesRegex(DomainValidationError, "确认燃料名称"):
             self.page._fuel()
         self.assertEqual(self.records.list_all(), ())
+
+    def test_escape_cancels_pending_name_without_reconfirming_identity(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+        self.source(self.row.carbon_source, "MEASURED")
+        self.row.carbon.setText("0.016123456789")
+        self.row.activity.setText("1")
+        self.row.fuel_type.setEditText("应取消的新燃料")
+        QTest.keyClick(self.row.fuel_type.lineEdit(), Qt.Key.Key_Escape)
+        self.assertEqual(self.row.fuel_type.currentText(), self.row._committed_name)
+        self.assertEqual(self.row.fuel_type.currentText(), "天然气")
+        self.assertEqual(self.row.carbon_source.currentData(), "MEASURED")
+        self.assertEqual(self.row.carbon.text(), "0.016123456789")
+        self.assertEqual(self.page._fuel()[0].fuel_type, FuelType.NATURAL_GAS)
