@@ -78,6 +78,7 @@ class MaterialDraftScopeTests(unittest.TestCase):
    state=page._capture_form_state();old={'local':{'fixed_carbon_source':{'MEASURED':'999','CHEMICAL_CALCULATION':'888'}}}
    state['material_source_drafts']=old;state['calcination_materialFixedCarbon_local']='777'
    page._restore_form_state(state)
+   self.assertFalse(page.quality_card.isHidden())
    for identity,value in [('A','40'),('B','80')]:
     row=next(p for p in page._process_rows['calcination'] if p['instance_id']==identity)['materials'][0]
     self.assertEqual(row['fixed_carbon'].text(),value)
@@ -86,7 +87,6 @@ class MaterialDraftScopeTests(unittest.TestCase):
     source=row['fixed_carbon_source']
     source.setCurrentIndex(source.findData(Source.CHEMICAL_CALCULATION));self.assertEqual(row['fixed_carbon'].text(),'')
     source.setCurrentIndex(source.findData(Source.MEASURED));self.assertEqual(row['fixed_carbon'].text(),value)
-   self.assertFalse(page.quality_card.isHidden())
    captured=page._capture_form_state();self.assertEqual(captured['material_source_drafts']['unresolved'],old)
    self.assertEqual(captured['material_legacy_values_unresolved']['calcination_materialFixedCarbon_local'],'777')
    workspace=projects.new_workspace('歧义保留');projects.save(replace(workspace,units=(replace(workspace.units[0],form_state=captured),)))
