@@ -82,6 +82,10 @@ class MaterialDraftScopeTests(unittest.TestCase):
     row=next(p for p in page._process_rows['calcination'] if p['instance_id']==identity)['materials'][0]
     self.assertEqual(row['fixed_carbon'].text(),value)
     self.assertIn('未自动采用',row['fixed_carbon_source'].toolTip())
+    self.assertNotIn('local',row['fixed_carbon_source'].toolTip())
+    source=row['fixed_carbon_source']
+    source.setCurrentIndex(source.findData(Source.CHEMICAL_CALCULATION));self.assertEqual(row['fixed_carbon'].text(),'')
+    source.setCurrentIndex(source.findData(Source.MEASURED));self.assertEqual(row['fixed_carbon'].text(),value)
    self.assertFalse(page.quality_card.isHidden())
    captured=page._capture_form_state();self.assertEqual(captured['material_source_drafts']['unresolved'],old)
    self.assertEqual(captured['material_legacy_values_unresolved']['calcination_materialFixedCarbon_local'],'777')
