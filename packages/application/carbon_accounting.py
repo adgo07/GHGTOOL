@@ -13,6 +13,7 @@ from packages.core.errors import contains_warnings
 from packages.core.models import AccountingRecord, Factor, Parameter, ParameterType, RecordStatus, ReviewStatus, ValueType
 from packages.core.parameter_resolution import (
     FactorApplicability,
+    ReferenceBindingEvidence,
     ParameterResolver,
     default_g05_rules,
 )
@@ -87,6 +88,9 @@ class CatalogParameterRepository(ParameterRepository):
 
     def get_factor(self, factor_id: str) -> Factor | None:
         return next((item for item in self._factors if item.factor_id == factor_id), None)
+
+    def list_parameters(self) -> Sequence[Parameter]:
+        return self._parameters
 
     def list_factors(self, parameter_id: str) -> Sequence[Factor]:
         return tuple(item for item in self._factors if item.parameter_id == parameter_id)
@@ -208,6 +212,74 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
     return tuple(rules)
 
 
+def _verified_fuel_power_bindings(repository: CatalogRepository) -> tuple[ReferenceBindingEvidence, ...]:
+    """Prove associations from actual catalog rows, not text or non-empty IDs."""
+    from packages.standards.carbon_material import STANDARD_ID
+    from packages.standards.carbon_material_business_policy import adopted_binding_conditions
+
+    field_types = {
+        "fuel.lhv": ParameterType.LOWER_HEATING_VALUE,
+        "fuel.fch": ParameterType.CARBON_CONTENT_PER_HEAT,
+        "fuel.oxidation": ParameterType.OXIDATION_RATE,
+        "electricity.factor": ParameterType.ELECTRICITY_EMISSION_FACTOR,
+    }
+    conditions = [(field, tags) for field in field_types for tags in adopted_binding_conditions(field)]
+    parameters = {item.parameter_id: item for item in repository.list_parameters()}
+    factors = {item.factor_id: item for item in repository.list_factors()}
+    assets = {item.asset_id: item for item in repository.list_reference_data_assets()}
+    tables = {item.source_table_id: item for item in repository.list_source_tables()}
+    sources = {item.source_id: item for item in repository.list_sources()}
+    reviews = {ReviewStatus.VERIFIED, ReviewStatus.VERIFIED_WITH_INTERPRETATION}
+    standard = next((item for item in repository.list_standards() if item.standard_id == STANDARD_ID), None)
+    evidence = []
+    for binding in repository.list_reference_data_bindings():
+        factor = factors.get(binding.factor_id)
+        asset = assets.get(binding.asset_id)
+        table = tables.get(binding.source_table_id)
+        parameter = parameters.get(factor.parameter_id) if factor else None
+        source = sources.get(factor.source_id) if factor else None
+        if (
+            standard is None or factor is None or asset is None or table is None or parameter is None or source is None
+            or binding.binding_type != "FACTOR_SOURCE"
+            or binding.review_status not in reviews or factor.review_status not in reviews
+            or parameter.review_status not in reviews or source.review_status not in reviews
+            or parameter.parameter_id != asset.parameter_id or parameter.parameter_id != factor.parameter_id
+            or parameter.subject_id != asset.subject_id or parameter.subject_id != factor.subject_id
+            or parameter.source_id != factor.source_id or table.source_id != factor.source_id
+            or asset.value_type != factor.value_type
+            or asset.normalized_value != factor.normalized_value or asset.normalized_unit != factor.normalized_unit
+            or binding.factor_year != factor.factor_year
+            or any(ids and STANDARD_ID not in ids for ids in (binding.applicable_standard_ids, factor.applicable_standard_ids, parameter.applicable_standard_ids))
+        ):
+            continue
+        matching = []
+        for field, tags in conditions:
+            if tags["binding_id"] != binding.binding_id or tags["parameter_id"] != parameter.parameter_id:
+                continue
+            if parameter.parameter_type is not field_types[field]:
+                continue
+            if field.startswith("fuel."):
+                valid = table.display_number == "C.1" and table.source_id == standard.official_source_id
+            elif "catalog_table" in tags:
+                valid = table.display_number == "表" + tags["catalog_table"]
+            else:
+                valid = table.source_id == standard.official_source_id
+            expected_region = tags.get("region", tags.get("province"))
+            if expected_region is not None and binding.region != expected_region:
+                valid = False
+            if valid:
+                matching.append(expected_region)
+        if not matching:
+            continue
+        evidence.append(ReferenceBindingEvidence(
+            binding.binding_id, factor.factor_id, factor.parameter_id, factor.subject_id,
+            factor.source_id, table.source_table_id, table.display_number,
+            binding.applicable_standard_ids, binding.valid_from, binding.valid_to,
+            next((region for region in matching if region is not None), None),
+        ))
+    return tuple(evidence)
+
+
 def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterResolver:
     """Create the G06 resolver from catalog bindings and standard rules."""
 
@@ -218,6 +290,12 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
     from packages.standards.carbon_material import STANDARD_ID
 
     common, industry = default_g05_rules()
+    verified_bindings = _verified_fuel_power_bindings(repository)
+    verified_factor_ids = {item.factor_id for item in verified_bindings}
+    unverified_binding_factor_ids = {
+        item.factor_id for item in repository.list_reference_data_bindings()
+        if item.factor_id is not None and item.factor_id not in verified_factor_ids
+    }
     applicability: list[FactorApplicability] = []
     assets = {item.asset_id: item for item in repository.list_reference_data_assets()}
     parameters = {item.parameter_id: item for item in repository.list_parameters()}
@@ -283,6 +361,8 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
         common_rules=common,
         industry_rules=(*industry, *_catalog_parameter_rules(repository)),
         applicability=applicability,
+        reference_bindings=verified_bindings,
+        unverified_binding_factor_ids=tuple(unverified_binding_factor_ids),
         required_applicability_parameter_ids=(
             REGIONAL_ELECTRICITY_PARAMETER_ID,
             PROVINCIAL_ELECTRICITY_PARAMETER_ID,

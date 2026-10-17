@@ -110,7 +110,11 @@ Word继续只读冻结Record。实际公共提供者和业务来源策略由共�
 
 仅`resources/business_rules/fuel_power.json`受控部署，由`scripts/project_fuel_power_rules.py`从三包已采用修订机械投影、检查依赖和当前源哈希，构建及测试核再生，运行及发布审计核固定资源哈希。无审阅render/compact/HTML/Schema运行依赖，不放开整个data-source。
 
-此断点尚未替换生产消费者。下一步Resolver只读关联集合必须基于本次真实选定/推荐结果核对象、参数、标准、期间、地区及完整绑定，零/多匹配明确失败；Core不依赖Catalog实现或GUI字段。GUI/Excel/Domain逐入口一起迁移，不因旧调用没新ID而静默取消合法缺省。历史Record不重解。
+此断点尚未替换生产消费者。`ParameterResolver.reference_binding_for(resolution)`只关联同一次真实选定结果，返回ReferenceBindingResolution(status, bindings)，状态VERIFIED/ABSENT/AMBIGUOUS/PENDING；不取首尾，不重选因子。旧无配置构造明确PENDING且resolve旧行为保留。`reference_parameter_id(subject_id, parameter_type)`只查询精确登记概念，不由名称拼ID。组合层逐项核Factor/Asset/Table/Source/Parameter/标准元数据，未知/未验证与真实缺失分开。
+
+`fuel_source_context(field_id, resolver=..., origin=..., subject_id=..., accounting_period=..., selected_factor_id=None)`产生真实燃料上下文；当前有明确选择时传selected_factor_id，只有初始化/显式回缺省才省略。`electricity_source_context(resolver, resolution, direction=..., attribute=...)`从实际选定结果投影电力上下文，方向/属性不被期望条件覆盖；调用者再把当前business_source加入context求值，不将default_source当写命令。Core不依赖Catalog实现或GUI字段。
+
+GUI/Excel/Domain逐入口一起迁移，不因旧调用没新ID而静默取消合法缺省。历史Record不重解。
 
 ## 5. 验证与停止边界
 

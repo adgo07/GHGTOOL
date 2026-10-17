@@ -163,6 +163,51 @@ class FactorApplicability:
 
 
 @dataclass(frozen=True, slots=True)
+class ReferenceBindingEvidence:
+    """Verified, immutable catalog association supplied by the composition layer.
+
+    It contains no UI field IDs or storage adapter. A factor may have several
+    bindings; association is resolved only for the actual Resolver selection.
+    """
+
+    binding_id: str
+    factor_id: str
+    parameter_id: str
+    subject_id: str
+    source_id: str
+    source_table_id: str
+    table_number: str
+    applicable_standard_ids: tuple[str, ...] = ()
+    valid_from: date | None = None
+    valid_to: date | None = None
+    region: str | None = None
+
+    def matches(self, context: "ParameterResolutionContext", factor: Factor) -> bool:
+        return (
+            self.factor_id == factor.factor_id
+            and self.parameter_id == factor.parameter_id == context.parameter_id
+            and self.subject_id == factor.subject_id
+            and (context.subject_id is None or context.subject_id == self.subject_id)
+            and self.source_id == factor.source_id
+            and (not self.applicable_standard_ids or context.standard_id in self.applicable_standard_ids)
+            and FactorApplicability(
+                self.factor_id, region=self.region, subject_id=self.subject_id,
+                applicable_period_from=self.valid_from, applicable_period_to=self.valid_to,
+            ).matches(context)
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceBindingResolution:
+    status: str
+    bindings: tuple[ReferenceBindingEvidence, ...] = ()
+
+    @property
+    def binding(self) -> ReferenceBindingEvidence | None:
+        return self.bindings[0] if self.status == "VERIFIED" and len(self.bindings) == 1 else None
+
+
+@dataclass(frozen=True, slots=True)
 class FactorRelation:
     left_factor_id: str
     relation: FactorRelationType
@@ -595,6 +640,8 @@ class ParameterResolver:
         applicability: Sequence[FactorApplicability] = (),
         required_applicability_parameter_ids: Sequence[str] = (),
         relations: Sequence[FactorRelation] = (),
+        reference_bindings: Sequence[ReferenceBindingEvidence] | None = None,
+        unverified_binding_factor_ids: Sequence[str] = (),
         rule_resolver: EffectiveRuleResolver | None = None,
     ) -> None:
         self._repository = repository
@@ -605,6 +652,8 @@ class ParameterResolver:
             _require_id(item, "required_applicability_parameter_id")
             for item in required_applicability_parameter_ids
         )
+        self._reference_bindings = None if reference_bindings is None else tuple(reference_bindings)
+        self._unverified_binding_factor_ids = frozenset(unverified_binding_factor_ids)
         self._relations = tuple(relations)
         self._rule_resolver = rule_resolver or EffectiveRuleResolver()
 
@@ -612,6 +661,46 @@ class ParameterResolver:
     def repository(self) -> ParameterRepository:
         """Expose the immutable input catalog for provenance hashing."""
         return self._repository
+
+    def reference_parameter_id(self, subject_id: str, parameter_type: ParameterType) -> str | None:
+        """Look up an exact registered concept; never infer an ID from a name."""
+        reader = getattr(self.repository, "list_parameters", None)
+        if not callable(reader):
+            return None
+        matches = tuple(item.parameter_id for item in reader()
+                        if item.subject_id == subject_id and item.parameter_type is parameter_type)
+        return matches[0] if len(matches) == 1 else None
+
+    def reference_binding_for(self, resolution: ParameterResolution) -> ReferenceBindingResolution:
+        """Associate the actual resolved selection, never replace it by a default.
+
+        PENDING distinguishes old/unconfigured providers or a blocked resolution
+        from an explicitly checked missing association. Multiple bindings survive
+        construction; no first/last-wins dictionary is used.
+        """
+        if self._reference_bindings is None:
+            return ReferenceBindingResolution("PENDING")
+        if resolution.blocked or resolution.recommended is None:
+            errors = {item.code for item in resolution.warnings if item.level is IssueLevel.ERROR}
+            if errors == {"GEN-PAR-NO-APPLICABLE-VALUE"}:
+                return ReferenceBindingResolution("ABSENT")
+            return ReferenceBindingResolution("PENDING")
+        selected = resolution.recommended.factor
+        if not isinstance(selected, Factor) or resolution.user_provided_value is not None:
+            return ReferenceBindingResolution("PENDING")
+        registered = self.repository.get_factor(selected.factor_id)
+        if registered != selected:
+            return ReferenceBindingResolution("PENDING")
+        if resolution.context.confirmed_factor_id not in {None, selected.factor_id}:
+            return ReferenceBindingResolution("PENDING")
+        if selected.factor_id in self._unverified_binding_factor_ids:
+            return ReferenceBindingResolution("PENDING")
+        bindings = tuple(item for item in self._reference_bindings
+                         if item.matches(resolution.context, selected))
+        return ReferenceBindingResolution(
+            "VERIFIED" if len(bindings) == 1 else "ABSENT" if not bindings else "AMBIGUOUS",
+            bindings,
+        )
 
     @property
     def rule_definitions(self) -> tuple[RuleDefinition, ...]:

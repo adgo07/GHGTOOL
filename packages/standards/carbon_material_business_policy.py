@@ -82,3 +82,79 @@ def electricity_catalogue_parameters() -> tuple[tuple[str, str, str | None], ...
          "province" if "province" in tags else "region" if "region" in tags else None)
         for tags in adopted_binding_conditions("electricity.factor") if "catalog_table" in tags
     }))
+
+
+FUEL_FIELD_TYPES = {
+    "fuel.lhv": "LOWER_HEATING_VALUE",
+    "fuel.fch": "CARBON_CONTENT_PER_HEAT",
+    "fuel.oxidation": "OXIDATION_RATE",
+}
+
+
+def fuel_source_context(field_id, *, resolver, origin, subject_id, accounting_period,
+                        selected_factor_id=None) -> dict[str, str]:
+    """Produce fuel context from real Resolver output and verified associations.
+
+    A selection is preserved through confirmed_factor_id. Omitting it is only
+    for displaying/initializing a new choice or explicitly returning to default.
+    This does not change any input or selected business source.
+    """
+    from packages.core.models import ParameterType
+    from packages.core.parameter_resolution import ParameterResolutionContext
+
+    origin_value = getattr(origin, "value", origin) or "LEGACY_UNSPECIFIED"
+    if origin_value not in {"CATALOG", "CUSTOM", "LEGACY_UNSPECIFIED"}:
+        raise ValueError("未知燃料身份。")
+    context = {"origin": origin_value}
+    if field_id == "fuel.direct_carbon":
+        return context
+    if field_id not in FUEL_FIELD_TYPES:
+        raise ValueError("此字段不是已采用的燃料参数。")
+    if origin_value == "CUSTOM":
+        return {**context, "binding_status": "ABSENT"}
+    if origin_value != "CATALOG" or resolver is None or not subject_id:
+        return {**context, "binding_status": "PENDING"}
+    parameter_type = ParameterType(FUEL_FIELD_TYPES[field_id])
+    parameter_id = resolver.reference_parameter_id(subject_id, parameter_type)
+    if parameter_id is None:
+        return {**context, "binding_status": "PENDING"}
+    resolution = resolver.resolve(ParameterResolutionContext(
+        parameter_id=parameter_id, standard_id="gbt_32151_34_2024",
+        subject_id=subject_id, parameter_type=parameter_type, accounting_period=accounting_period,
+        confirmed_factor_id=selected_factor_id,
+        confirmation_reason="保留当前明确选择的燃料参数" if selected_factor_id else None,
+    ))
+    association = resolver.reference_binding_for(resolution)
+    binding = association.binding
+    if binding is None:
+        return {**context, "binding_status": "ABSENT" if association.status == "ABSENT" else "PENDING"}
+    # Association must also satisfy the exact adopted field condition; a valid
+    # binding for some other table or concept does not grant this field a default.
+    exact = any(tags["parameter_id"] == binding.parameter_id and tags["binding_id"] == binding.binding_id
+                for tags in adopted_binding_conditions(field_id))
+    if not exact:
+        return {**context, "binding_status": "PENDING"}
+    return {**context, "binding_status": "VERIFIED", "parameter_id": binding.parameter_id,
+            "binding_id": binding.binding_id}
+
+
+def electricity_source_context(resolver, resolution, *, direction: str, attribute: str) -> dict[str, str]:
+    """Project the actual selected factor's association into adopted conditions.
+
+    Direction and attribute are caller business facts and are never overwritten
+    by a branch's expected value. In particular exported electricity cannot
+    acquire the purchased nonfossil zero path by switching a display label.
+    """
+    if direction not in {"PURCHASED", "EXPORTED"} or attribute not in {"CONVENTIONAL", "NONFOSSIL", "FOSSIL"}:
+        raise ValueError("电力方向或属性无效。")
+    current = {"origin": "CATALOG", "direction": direction, "attribute": attribute}
+    association = resolver.reference_binding_for(resolution)
+    binding = association.binding
+    if binding is None:
+        return {**current, "binding_status": "ABSENT" if association.status == "ABSENT" else "PENDING"}
+    conditions = [tags for tags in adopted_binding_conditions("electricity.factor")
+                  if tags["parameter_id"] == binding.parameter_id and tags["binding_id"] == binding.binding_id
+                  and tags.get("direction") == direction]
+    if len(conditions) != 1:
+        return {**current, "binding_status": "PENDING"}
+    return {**conditions[0], **current, "binding_status": "VERIFIED"}

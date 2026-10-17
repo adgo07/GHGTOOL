@@ -23,4 +23,6 @@
 
 4. 联合命令曾误写不存在的`tests.test_business_rules_candidate_structure`，42项/1导入ERROR（非生产失败）；按实际文件改为候选六模块+runtime+G08后，`python -m unittest tests.test_business_rules_candidate tests.test_business_rules_candidate_paths tests.test_business_rules_candidate_revisions tests.test_business_rules_candidate_assets tests.test_business_rules_excel_evidence tests.test_business_rules_r8_operations tests.test_fuel_power_runtime_policy tests.test_g08_delivery -q`：115/115，0failure/0error，19.952s。
 
+5. Resolver关联证明首跑21项2failure/1error为负例夹具拼错参数名及错误混装原common/industry规则组；修正后21/21，1.208s。增加未知资产PENDING后22/22，1.178s；燃料上下文首跑23项1failure为无依据地假设C.1在2020无效，改用显式过期binding负例后23/23，1.237s。补合法非推荐因子保留自身绑定，独立证明9/9，0.703s。没有据此修改正式期间语义。
+
 未执行本B最终全量、Windows构建或新head CI，待真实消费接线完成。原生Office/真实鼠标/中文输入/人工DPI及企业样例仍缺项；CU未重新授权，不以自动验证冒充原生。
