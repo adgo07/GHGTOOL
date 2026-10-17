@@ -75,11 +75,45 @@ class G08DeliveryTests(unittest.TestCase):
             plugin.parent.mkdir(parents=True)
             plugin.write_bytes(b"unused-plugin")
             (root/"Qt6VirtualKeyboard.dll").write_bytes(b"unused-module")
+            nested_module=root/"PySide6/Qt6VirtualKeyboard.dll"
+            nested_module.write_bytes(b"unused-module-qt612-layout")
+            native_input=root/"PySide6/plugins/platforminputcontexts/nativeinput.dll"
+            native_input.write_bytes(b"needed-native-input")
+            nested_core=root/"PySide6/Qt6Core.dll"
+            nested_core.write_bytes(b"needed-nested-native-library")
             (root/"Qt6Core.dll").write_bytes(b"needed-native-library")
             _remove_unused_virtual_keyboard(root)
             self.assertFalse(plugin.exists())
             self.assertFalse((root/"Qt6VirtualKeyboard.dll").exists())
+            self.assertFalse(nested_module.exists())
+            self.assertEqual(native_input.read_bytes(),b"needed-native-input")
+            self.assertEqual(nested_core.read_bytes(),b"needed-nested-native-library")
             self.assertEqual((root/"Qt6Core.dll").read_bytes(),b"needed-native-library")
+
+    def test_virtual_keyboard_exclusion_rejects_external_or_symlink_candidate(self):
+        # Inject the two filesystem classifications without requiring Windows
+        # symlink privileges or creating links outside the test directory.
+        original_resolve = Path.resolve
+        original_is_symlink = Path.is_symlink
+        for guard in ("symlink", "outside-root"):
+            with self.subTest(guard=guard), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "artifact"
+                candidate = root / "PySide6/Qt6VirtualKeyboard.dll"
+                candidate.parent.mkdir(parents=True)
+                candidate.write_bytes(b"must-not-unlink")
+                outside = Path(directory) / "external.dll"
+                def resolve(path, *args, **kwargs):
+                    if guard == "outside-root" and path == candidate:
+                        return outside
+                    return original_resolve(path, *args, **kwargs)
+                def is_symlink(path):
+                    return (guard == "symlink" and path == candidate) or original_is_symlink(path)
+                with patch.object(Path, "resolve", resolve), patch.object(Path, "is_symlink", is_symlink):
+                    with patch.object(Path, "unlink") as unlink:
+                        with self.assertRaisesRegex(RuntimeError, "external Qt component"):
+                            _remove_unused_virtual_keyboard(root)
+                        unlink.assert_not_called()
+                self.assertEqual(candidate.read_bytes(), b"must-not-unlink")
 
     def test_package_audit_rejects_unapproved_copyleft_components(self):
         with tempfile.TemporaryDirectory() as directory:

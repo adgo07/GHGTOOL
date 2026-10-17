@@ -170,7 +170,11 @@ def _remove_unused_virtual_keyboard(artifact: Path) -> None:
     A future consumer must resolve licensing before changing this package scope.
     """
     root = artifact.resolve()
-    for relative in ("PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll", "Qt6VirtualKeyboard.dll"):
+    for relative in (
+        "PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll",
+        "Qt6VirtualKeyboard.dll",  # Qt 6.11 layout
+        "PySide6/Qt6VirtualKeyboard.dll",  # Observed Qt 6.12 CI layout
+    ):
         candidate = artifact / relative
         if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
             raise RuntimeError("refusing to remove an external Qt component")

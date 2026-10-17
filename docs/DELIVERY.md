@@ -109,3 +109,5 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 包体实证（本地2368380构建）：共267文件（manifest列266，manifest自身另计），自动收集13个Qt6 DLL和22个插件；其中`Qt6VirtualKeyboard.dll`及`PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll`被发现。原始PE import检查：只有该插件引用VirtualKeyboard DLL；应用源码没有VirtualKeyboard/QML消费者。依据[Qt 6.11原许可页](https://doc.qt.io/qt-6.11/licensing.html)的GPL模块列表，构建精确排除这两个未使用组件，包审计拒绝它们及未经放行的iapws，未替换GUI/物性实现，不影响原生Windows输入法代码路径；真实中文输入仍待人工验证。此原始预检查包不作为销售候选，原日志与清单仅保留本地。
 
 原始包未发现LICENSE/COPYING/NOTICE文件；打包排除两文件只解决已发现的未使用GPL模块混入，仍不表示全部许可义务完成。最终实际包组件/哈希、公开来源和未完成文本/源码提供/替换条件由本包报告逐项记录，发布前继续补齐第三方交付材料。
+
+CI251补充：实装Qt6.12将同一未使用VirtualKeyboard DLL收集到`PySide6/Qt6VirtualKeyboard.dll`；原审计成功拒绝漏排组件。构建排除列表只增加这个实证精确路径，旧root DLL/插件路径及边界保护保留。[Qt6.12官方许可页](https://doc.qt.io/qt-6.12/licensing.html)仍列VirtualKeyboard为GPL模块。未改依赖策略，6.12实包仍须独立审计；两种路径不等于允许任意Qt目录批量删除，原生IME仍NOT_RUN。

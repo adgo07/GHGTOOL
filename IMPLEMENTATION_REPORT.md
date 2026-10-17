@@ -90,3 +90,9 @@ GitHub Actions Windows CI #250，run39038977148，PR head4b656911，实际checko
 本地命令：python -B -m unittest tests.test_exb01_rpt02_integration tests.test_uat03_rules tests.test_pr46_report_template_identity tests.test_numeric_contract_v1_adoption tests.test_qzc_n01_c_numeric_unit_pilot -v；49/49，8.650s，日志tmp/material-ci250-fixture-closure.log。无生产/资源/依赖策略修改。新提交须源会话复核及重新CI/此前跳过的exact-head构建审计。
 
 CI实装CPython3.12.10、PySide6/Essentials/Addons/shiboken6 6.12.0及新增拆分包PySide6-WebEngine/Pdf；本地旧包为Python3.12.14/Qt6.11.2。该环境差异如实保留，不能把未生成CI包当作本地包相同；不自行改依赖策略或付费设置。
+
+## CI251 构建布局退修（2026-10-17）
+
+e04d1fc的GitHub Actions CI251/run39040774659：merge-ref04b182bfa63e20291310586e2d661085f2ee0939全量819/819，1178.754s通过；exact-head G08 16/16，5.777s通过，但实际构建审计拒绝PySide6/Qt6VirtualKeyboard.dll，整体CI失败，未上传成功制品。Qt6.12改变DLL收集目录，旧root精确路径未覆盖。
+
+仅在构建已有列表增加已实证PySide6/Qt6VirtualKeyboard.dll，保留旧root DLL/插件路径、symlink/resolve根边界与包体拒绝门禁；不通配排除其他Qt、不改安装环境或依赖策略。G08补两种布局、其他组件保留、symlink/越界拒绝（注入文件系统分类，不声称创建真实Windows外链）。本地python -B -m unittest tests.test_g08_delivery -v：17/17，6.932s，tmp/material-ci251-build-closure.log。新head需复核和新CI实际构建/剩余DLL正常与延迟imports核验；此前本地6.11清单不能替代6.12包体。原生IME仍NOT_RUN。

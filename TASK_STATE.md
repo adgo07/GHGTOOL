@@ -57,3 +57,7 @@ C/M/F/N本包工作完成并停止，F/N未生产集成。不push/公开PR/上�
 用户已授权私有化后push/PR/CI；已实际GET复核private，推送4b656911并创建PR49。旧“仅本地/不push/未CI”是历史停止点，已由新授权解除，其他范围不扩大。
 
 CI250/run39038977148实际819项817PASS/2FAIL/0ERROR（1189.610s），exact-head构建跳过。只修EXB01新v6母版空断言与UAT03旧算法字符串断言，精确核冻结母版/填写SHA分离和声明版本；PR46历史空证据/Numeric正式Record一致保护保留。受影响5模块本地49/49，8.650s。生产树不变；新head送源会话复核并重跑CI及实包审计，不merge/不启动下包。详情见IMPLEMENTATION_REPORT末尾。
+
+## CI251 包体退修断点
+
+CI251全量819/819（1178.754s），但exact-head构建因Qt6.12的PySide6/Qt6VirtualKeyboard.dll未被旧root精确排除命中而审计失败；整体不称PASS。仅加已实证路径，保留旧路径/根与symlink边界/拒绝门禁，补两种布局、保留其他组件及注入外链分类拒绝测试。本地G08 17/17，6.932s，生产Calculator/资源/依赖策略不变。新head待源复核与重跑实际CI/包体imports核验，不合并。
