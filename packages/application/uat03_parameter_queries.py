@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.errors import IssueLevel
-from packages.core.models import AccountingPeriod, ParameterType, ReviewStatus
+from packages.core.models import AccountingPeriod, ElectricityAttribute, ParameterType, ReviewStatus
 from packages.core.parameter_resolution import (
     NATIONAL_ELECTRICITY_PARAMETER_ID,
     NATIONAL_ELECTRICITY_EXCLUDING_MARKET_NONFOSSIL_PARAMETER_ID,
@@ -14,6 +14,7 @@ from packages.core.parameter_resolution import (
     NONFOSSIL_ELECTRICITY_PARAMETER_ID,
     PROVINCIAL_ELECTRICITY_PARAMETER_ID,
     REGIONAL_ELECTRICITY_PARAMETER_ID,
+    FactorApplicability,
     ParameterResolutionContext,
     ParameterResolver,
 )
@@ -123,20 +124,29 @@ class UAT03ParameterQueries:
             and self._verified(binding, self._factors[binding.factor_id])
         )
 
-    def _electricity_table_bindings(self, display_number: str) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
-        """Return verified bindings for one official electricity-announcement table."""
-        table_ids = {
-            table.source_table_id
-            for table in self._tables
-            if table.display_number == display_number
-        }
+    def _electricity_table_bindings(self, display_number: str, period: AccountingPeriod) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
+        """Check the registered announcement identity and binding's own period."""
         return tuple(
             binding for binding in self._bindings
-            if binding.source_table_id in table_ids
-            and binding.binding_type == "FACTOR_SOURCE"
-            and binding.factor_id in self._factors
-            and binding.asset_id in self._assets
-            and self._verified(binding, self._factors[binding.factor_id])
+            if binding.binding_type == "FACTOR_SOURCE"
+            and (factor := self._factors.get(binding.factor_id)) is not None
+            and self._verified(binding, factor)
+            and (table := self._table_by_id.get(binding.source_table_id)) is not None
+            and table.display_number == display_number
+            and (parameter := self._parameters.get(factor.parameter_id)) is not None
+            and parameter.source_id == table.source_id
+            and parameter.subject_id == factor.subject_id == "purchased_electricity"
+            and parameter.parameter_type is ParameterType.ELECTRICITY_EMISSION_FACTOR
+            and parameter.review_status in {ReviewStatus.VERIFIED, ReviewStatus.VERIFIED_WITH_INTERPRETATION}
+            and self._standard_applies(parameter.applicable_standard_ids)
+            and FactorApplicability(
+                factor_id=factor.factor_id,
+                applicable_period_from=binding.valid_from,
+                applicable_period_to=binding.valid_to,
+            ).matches(ParameterResolutionContext(
+                parameter_id=factor.parameter_id,
+                accounting_period=period,
+            ))
         )
 
     def _bound_factor_ids(
@@ -315,7 +325,7 @@ class UAT03ParameterQueries:
             return ()
         regions = dict.fromkeys(
             binding.region
-            for binding in self._electricity_table_bindings(table)
+            for binding in self._electricity_table_bindings(table, period)
             if binding.region
             and (asset := self._assets.get(binding.asset_id)) is not None
             and asset.parameter_id == parameter_id
@@ -352,13 +362,13 @@ class UAT03ParameterQueries:
                 binding.region == region
                 and (asset := self._assets.get(binding.asset_id)) is not None
                 and asset.parameter_id == REGIONAL_ELECTRICITY_PARAMETER_ID
-                for binding in self._electricity_table_bindings("表2")
+                for binding in self._electricity_table_bindings("表2", period)
             )
             provincial = any(
                 binding.region == region
                 and (asset := self._assets.get(binding.asset_id)) is not None
                 and asset.parameter_id == PROVINCIAL_ELECTRICITY_PARAMETER_ID
-                for binding in self._electricity_table_bindings("表3")
+                for binding in self._electricity_table_bindings("表3", period)
             )
             if regional == provincial:
                 return ()
@@ -370,7 +380,7 @@ class UAT03ParameterQueries:
             binding_regions = {region}
         allowed_factor_ids = frozenset(
             binding.factor_id
-            for binding in self._electricity_table_bindings(table)
+            for binding in self._electricity_table_bindings(table, period)
             if binding.factor_id
             and binding.region in binding_regions
             and (asset := self._assets.get(binding.asset_id)) is not None
@@ -434,7 +444,7 @@ class UAT03ParameterQueries:
         options: list[UAT03FactorOption] = []
         for table_number, parameter_id in table_parameters:
             bindings = tuple(
-                binding for binding in self._electricity_table_bindings(table_number)
+                binding for binding in self._electricity_table_bindings(table_number, period)
                 if binding.region in binding_regions
                 and (asset := self._assets.get(binding.asset_id)) is not None
                 and asset.parameter_id == parameter_id
@@ -477,21 +487,21 @@ class UAT03ParameterQueries:
 
     def nonfossil_electricity_factor(self, period: AccountingPeriod) -> UAT03ResolvedFactor | None:
         allowed = self._bound_factor_ids(parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID)
-        answer = self._resolve(
-            NONFOSSIL_ELECTRICITY_PARAMETER_ID,
-            "purchased_electricity",
-            period,
-            allowed_factor_ids=allowed,
-        )
-        if answer is None:
-            return None
-        resolution, values = answer
+        resolution = self.resolver.resolve(ParameterResolutionContext(
+            parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID,
+            standard_id=STANDARD_ID,
+            accounting_period=period,
+            subject_id="purchased_electricity",
+            parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+            electricity_attribute=ElectricityAttribute.NONFOSSIL,
+        ))
         if resolution.blocked or resolution.recommended is None:
             return None
-        return next(
-            (item for item in values if item.factor.factor_id == resolution.recommended.factor_id),
-            None,
-        )
+        factor_id = resolution.recommended.factor_id
+        factor = self._factors.get(factor_id)
+        if factor_id not in allowed or factor is None:
+            return None
+        return UAT03ResolvedFactor(factor, resolution.selection_reason)
 
 
 __all__ = [
