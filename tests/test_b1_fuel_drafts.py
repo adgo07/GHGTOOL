@@ -66,3 +66,27 @@ class FuelParameterDraftTests(unittest.TestCase):
         for identity, path, basis in (("", "MASS", "DIRECT"), ("custom:x", "", "DIRECT"), ("custom:x", "MASS", "")):
             with self.assertRaises(ValueError):
                 self.drafts.save(identity, path, basis, "carbon", "MEASURED", "0.1")
+
+    def test_remembered_source_is_scoped_and_survives_existing_serialization(self):
+        first = ("catalog:gas", "VOLUME", "HEAT_CONTENT", "carbon")
+        second = ("catalog:gas", "MASS", "HEAT_CONTENT", "carbon")
+        self.drafts.save(*first, "MEASURED", "0.016123456789")
+        self.drafts.remember_selection(*first, "MEASURED")
+        # Even an old inapplicable source is retained; qualification belongs to
+        # the shared evaluator, never this store.
+        self.drafts.remember_selection(*second, "CALCULATED")
+        restored = FuelParameterDrafts()
+        restored.restore(json.loads(json.dumps(self.drafts.export())))
+        self.assertEqual(restored.selection(*first), "MEASURED")
+        self.assertEqual(restored.selection(*second), "CALCULATED")
+        self.assertEqual(restored.load(*first, "MEASURED"), "0.016123456789")
+        self.assertIsNone(restored.load(*second, "MEASURED"))
+
+    def test_explicitly_unselected_source_is_distinct_from_unknown_selection(self):
+        context = ("custom:新燃料", "MASS", "DIRECT", "direct_carbon")
+        self.assertIsNone(self.drafts.selection(*context))
+        self.drafts.remember_selection(*context, None)
+        self.assertEqual(self.drafts.selection(*context), "")
+        restored = FuelParameterDrafts()
+        restored.restore(self.drafts.export())
+        self.assertEqual(restored.selection(*context), "")

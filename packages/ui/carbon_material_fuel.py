@@ -37,6 +37,21 @@ class FuelParameterDrafts:
         # None and an explicitly empty draft are different states.
         return self._values.get((*self._context(identity, path, basis), field, source))
 
+    def remember_selection(self, identity: str, path: str, basis: str, field: str,
+                           source: str | None) -> None:
+        """Remember a chosen source without granting it current eligibility.
+
+        The reserved source key is presentation metadata, never a business
+        source. Empty text records an explicitly unselected source.
+        """
+        if source is not None and (not isinstance(source, str) or not source):
+            raise ValueError("fuel source selection must be explicit text or None")
+        self.save(identity, path, basis, field, "__selection__", source or "")
+
+    def selection(self, identity: str, path: str, basis: str, field: str) -> str | None:
+        """Return a remembered source, '' for unselected, or None if never saved."""
+        return self.load(identity, path, basis, field, "__selection__")
+
     def export(self) -> list[dict[str, str]]:
         return [
             dict(zip(("identity", "path", "basis", "field", "source", "value"), (*key, value)))
