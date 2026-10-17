@@ -11,3 +11,5 @@
 - 原生Office/鼠标/中文输入/人工DPI及企业样例缺项保留；CU未重新授权。
 
 平台：锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；不改Frozen/Numeric/数据库/历史Record。当前只落实010/011/014/016已有批准决定，无新专业解释。具体共享接口及所有权见HANDOFF；真实命令见IMPLEMENTATION_REPORT。
+
+当前表5来源修订adoption-2026-10-17-fuel-power1已按010精确追加普通购入条件，源四属性同源再生：652组合/450意见范围，25夹具与checks通过；99项候选/runtime、19项GUI/draft及2项Excel词法/cache分别通过。完整公共接线与v5实施未完成，不宣称最终绿色。

@@ -1,21 +1,21 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_json_file_sha256": "3bebbdf6a51f48c318ac15f889302b22ff16acddf03a271209a3a0171bed762e",
-  "workbook_sha256": "b571c1f5d0d7309d78d2580bf350c00aef215f17abc9108ef4de52b8f6a65c3c",
+  "review_json_file_sha256": "12805e414e327a529f111a0ba44d44daf3aa00149bc7c8e1b40494c6faa92a87",
+  "workbook_sha256": "ef012712ee533380fc985dd2c3a798976a9d07989d8db7775a11d6f3af6aa927",
   "generator": "scripts/build_business_rules_review.mjs",
   "generator_sha256": "66f78a8ab47220ecef3d947a272855e1a9f4dc7956b1ac725f30a9ee1440a0bb",
   "fixture_script": "scripts/test_business_rules_review.mjs",
   "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "32d612104605bec390afcaa6a1393c9493e5a1cd57e978a12281f884d82e35a0",
-  "details_source_revision": "candidate-2026-10-17-r11-integration1",
+  "details_file_sha256": "607092a4a632b1f0117a2c51ab94e7efc9376b2db7440f0dd4409e6169bf998b",
+  "details_source_revision": "adoption-2026-10-17-fuel-power1",
   "details_source_counts": {
-    "fields": 649,
+    "fields": 652,
     "operations": 21,
     "changes": 11
   },
-  "details_semantic_sha256": "be8f97c5940181bbaf9f5244afc8817b25663e09257d1c47c1ce04413298fadd",
+  "details_semantic_sha256": "2ab1da197a1ce16c2a91b824f9d19c78d6cdce1a00a0d9b6b867ad9bb6c2e288",
   "details_projection_bound": true,
   "serialization_aliases": {
     "review_mode": "compact_business_v2",
@@ -120,7 +120,7 @@
   "freeze_panes": "D6",
   "formulas": 0,
   "error_cells": 0,
-  "maximum_cell_characters": 3087,
+  "maximum_cell_characters": 3635,
   "maximum_row_height_points": 344.0,
   "view_scope": {
     "power_rows": "按真实输入路径与方向拆分，不作为新增业务对象",
@@ -132,8 +132,8 @@
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "0694d459bb58aad4e36cc28f5766a2531393987c6394b0234bf799e7ffccae09",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "a0f409d44eee47d7cdbddefe3f4b6259ea8a006fcd52b862ef553d2ef9de25a2",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "bfd443404a86a4f469b901e92236ec9a11ad4863975eff7cd3bae6498a5f31d7",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "26007853c2dc53a0f1398564e61ee0245bdfe314619af9ccef0f21fa19adca4d",
     "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "1d2e4883ccb8e1b8b129afee1897127d0c1a695225d677afdde9eb6efc6c0d57"
   },
   "historical_electricity_evidence": {
@@ -155,8 +155,8 @@
     "status": "VERIFIED"
   },
   "condition_scopes": {
-    "count": 442,
-    "unique": 442,
+    "count": 450,
+    "unique": 450,
     "source": "HTML与业务规则内容指纹双向核对；详情摘要绑定当前technical JSON"
   },
   "catalog_snapshot": {
@@ -288,19 +288,19 @@
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "8763d2379e33f3e4eace994f3310e272ea08a8d7c28e5aba0c5dcb351f2c25e3",
+    "report_sha256": "b267279606102ecf5d690fb5e7dfc8c73449085d1e683b39bb55af5280db6687",
     "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
     "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
     "status": "PASS",
     "actual_scenario_count": 25,
     "input_mode": "formal compact and technical projection",
-    "formal_projection_sha256": "69f4bf5d6591030fe83fec06abb28bfad139911eab7bb867f76dfde2439a5d90",
-    "formal_details_sha256": "a33af974e067ce8b59d497ab2ea372d6a4e34d64ed82830680c22af82583e8e7"
+    "formal_projection_sha256": "65d8d7f6532a0855efc78b7cc8d4ef6b930f03b2c3df6424f4adbb22fe6846d0",
+    "formal_details_sha256": "3ae7ce4930e8fc7ac9fbdeb9da9caba8c22440f3a087bd6bde780c6d10504161"
   },
   "technical_combinations": {
-    "total": 649,
-    "READY": 281,
-    "BLOCKED": 368
+    "total": 652,
+    "READY": 282,
+    "BLOCKED": 370
   }
 }

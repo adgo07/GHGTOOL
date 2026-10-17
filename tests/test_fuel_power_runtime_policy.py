@@ -22,7 +22,7 @@ class FuelPowerRuntimePolicyTests(unittest.TestCase):
         document = _decode_resource((ROOT / RUNTIME_PATH).read_bytes())
         self.assertEqual(set(document["fields"]), set(ADOPTED_FIELDS))
         self.assertEqual(len(document["sources"]), 3)
-        self.assertEqual(document["fields"]["fuel.lhv"]["revision"], "candidate-2026-10-17-r11-integration1")
+        self.assertEqual(document["fields"]["fuel.lhv"]["revision"], "adoption-2026-10-17-fuel-power1")
         self.assertNotIn(b"channel_projections", (ROOT / RUNTIME_PATH).read_bytes())
         self.assertNotIn(b"review.operation", (ROOT / RUNTIME_PATH).read_bytes())
 

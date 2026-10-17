@@ -26,3 +26,13 @@
 5. Resolver关联证明首跑21项2failure/1error为负例夹具拼错参数名及错误混装原common/industry规则组；修正后21/21，1.208s。增加未知资产PENDING后22/22，1.178s；燃料上下文首跑23项1failure为无依据地假设C.1在2020无效，改用显式过期binding负例后23/23，1.237s。补合法非推荐因子保留自身绑定，独立证明9/9，0.703s。没有据此修改正式期间语义。
 
 未执行本B最终全量、Windows构建或新head CI，待真实消费接线完成。原生Office/真实鼠标/中文输入/人工DPI及企业样例仍缺项；CU未重新授权，不以自动验证冒充原生。
+
+## 表5精确修订与当前接线进展
+
+源会话按Issue010/Mapping§9.4核查：表5统计口径不能重标用户电力属性。四属性精确追加CONVENTIONAL购入分支，保留原FOSSIL/所有稳定ID，不扩大NONFOSSIL/OTHER、不自动补位。行业/软件修订adoption-2026-10-17-fuel-power1，通则修订不变。运行投影SHA256 691b6a20fff83e54194e9591a15bdc6a1ced3d6af5e3c1d9d5db49e4fbebcf79。
+
+既有ArtifactTool生成器重生三表61行（29/21/11）、652技术组合（282 READY/370 BLOCKED）、450唯一意见范围；较旧442增加8范围，不删稳定分支。25夹具PASS，原意见0→0保留。首次checks因未传--definition-root遗漏定义哈希而失败，补参数重生后PASS；原四件套备份在忽略build，历史固定9d74e8a仍可恢复。
+
+候选六模块+runtime首次101项1failure/3error：450新范围尚用442旧断言，以及Excel未接完精确上下文的3error。更新范围验收并分离待接Excel后99/99，13.191s；Excel接线首次误用context.accounting_period及不存在的定向方法，3项/4error；改用实际context.period后Excel词法/cache2/2，2.815s。GUI消费者+draft首跑19项1failure为旧mock不影响真实producer，替换为真实过期绑定后19/19，14.046s。当前公共UI/Domain/Excel仍在接线中，不以这些局部通过声称整个B完成。
+
+新v5显式“直接计算值”渠道已获源技术核查；待实施。v4旧标签不重解释，旧资源原字节保留；v5原生回导NOT_RUN/OPEN，不借旧WPS证据。

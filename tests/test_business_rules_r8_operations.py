@@ -34,8 +34,8 @@ class BusinessRulesR8OperationExpectations(unittest.TestCase):
         )
 
     def test_candidate_revision_and_operation_schema(self):
-        self.assertEqual(self.policy["revision"], "candidate-2026-10-17-r11-integration1")
-        self.assertEqual(self.standard["revision"], "candidate-2026-10-17-r11-integration1")
+        self.assertEqual(self.policy["revision"], "adoption-2026-10-17-fuel-power1")
+        self.assertEqual(self.standard["revision"], "adoption-2026-10-17-fuel-power1")
         self.assertIn(
             {"rule_set_id": "qz.carbon_accounting.software_policy", "revision": self.policy["revision"]},
             self.standard["dependency"],

@@ -2,7 +2,7 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-17-r11-integration1",
+  "revision": "adoption-2026-10-17-fuel-power1",
   "base": "R11已批准软件决定的integration1执行候选；仅更新固定依赖修订以配合Issue010五表范围对账，不改变本包来源/操作策略。生产共享提供者接管留B，PR47原候选保留历史身份。",
   "dependency": [
     {

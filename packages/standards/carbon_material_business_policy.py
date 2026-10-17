@@ -15,7 +15,7 @@ from typing import Any, Mapping
 from packages.core.business_field_policy import evaluate_field
 
 RUNTIME_RESOURCE = "business_rules/fuel_power.json"
-RUNTIME_SHA256 = "a88bb47f534deefebaa49a8e502b98259d9fadfd3a922abdb562e53661ed7107"
+RUNTIME_SHA256 = "691b6a20fff83e54194e9591a15bdc6a1ced3d6af5e3c1d9d5db49e4fbebcf79"
 ADOPTION_ID = "GHGTOOL_FUEL_POWER_R11_V1"
 
 
@@ -154,7 +154,8 @@ def electricity_source_context(resolver, resolution, *, direction: str, attribut
         return {**current, "binding_status": "ABSENT" if association.status == "ABSENT" else "PENDING"}
     conditions = [tags for tags in adopted_binding_conditions("electricity.factor")
                   if tags["parameter_id"] == binding.parameter_id and tags["binding_id"] == binding.binding_id
-                  and tags.get("direction") == direction]
+                  and tags.get("direction") == direction
+                  and ("attribute" not in tags or tags["attribute"] == attribute)]
     if len(conditions) != 1:
         return {**current, "binding_status": "PENDING"}
     return {**conditions[0], **current, "binding_status": "VERIFIED"}

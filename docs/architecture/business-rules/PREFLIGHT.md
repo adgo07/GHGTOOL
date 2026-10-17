@@ -4,7 +4,7 @@
 
 ## 当前候选审阅复现
 
-当前PR46整合候选为`candidate-2026-10-17-r11-integration1`，通则固定依赖为`pr46-integration-2026-10-17-g05`。只按既有Issue010对齐两条电力范围，主体R11语义不变；这不是生产共享提供者接管。PR47原`19a9c2b`四件套仍以固定历史提交/原工作树保留，新生成表不能冒称原件。
+当前燃料/电力逐段采用修订为`adoption-2026-10-17-fuel-power1`，通则固定依赖为`pr46-integration-2026-10-17-g05`。按既有Issue010精确追加表5普通购入条件，旧稳定分支保留；只接燃料B1/电力B，不表示其余R11已接管。PR47原`19a9c2b`四件套仍以固定历史提交/原工作树保留，新生成表不能冒称原件。
 
 从 GHGTOOL 仓库根目录打开 Windows PowerShell。候选验证器生成紧凑审阅投影、同源技术详情和只读目录快照；工作簿 builder 消费这些输入并生成审阅表、同源 HTML 详情与 `review-view-manifest.json`；往返夹具按正式投影生成反馈场景；仓内 Python checks 工具核对工作簿结构、意见保留、候选来源及生成器绑定，并检查 HTML 内嵌的投影 SHA、technical semantic SHA 和工作簿 scope 指纹是否与本轮输入一致。
 
