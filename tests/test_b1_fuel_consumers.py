@@ -86,16 +86,28 @@ class FuelConsumerTests(unittest.TestCase):
         self.assertEqual(self.records.list_all(), ())
 
     def test_catalog_name_without_applicable_binding_cannot_offer_defaults(self):
-        from unittest.mock import patch
-        with patch.object(self.page, "_fuel_default_factors", return_value=None):
-            self.select(FuelType.DIESEL)
-            for combo, edit in ((self.row.lhv_source, self.row.lower_heating_value),
-                                (self.row.carbon_source, self.row.carbon),
-                                (self.row.oxidation_source, self.row.oxidation)):
-                self.assertEqual(self.enabled_sources(combo), {"MEASURED"})
-                self.assertEqual(combo.currentData(), "MEASURED")
-                self.assertEqual(edit.text(), "")
-                self.assertFalse(edit.isReadOnly())
+        from dataclasses import replace
+        from datetime import timedelta
+        from unittest.mock import Mock
+        # Expire real Catalog bindings before the actual reporting period.
+        # Returning None from a presentation helper is not proof of absence.
+        expired = Mock(wraps=self.catalog.repository)
+        expired.list_reference_data_bindings.return_value = tuple(
+            replace(item, valid_to=self.page._period().start - timedelta(days=1))
+            for item in self.catalog.repository.list_reference_data_bindings())
+        previous = self.page
+        self.page = CarbonMaterialAccountingPage(
+            catalog_service=CatalogQueryService(expired), record_repository=self.records)
+        previous.deleteLater()
+        self.row = self.page._fuel_rows[0]
+        self.select(FuelType.DIESEL)
+        for combo, edit in ((self.row.lhv_source, self.row.lower_heating_value),
+                            (self.row.carbon_source, self.row.carbon),
+                            (self.row.oxidation_source, self.row.oxidation)):
+            self.assertEqual(self.enabled_sources(combo), {"MEASURED"})
+            self.assertEqual(combo.currentData(), "MEASURED")
+            self.assertEqual(edit.text(), "")
+            self.assertFalse(edit.isReadOnly())
 
     def test_same_confirmed_identity_preserves_parameters_basis_and_sources(self):
         self.source(self.row.lhv_source, "MEASURED")
