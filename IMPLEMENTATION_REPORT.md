@@ -41,3 +41,10 @@ origin实际核实为adgo07/GHGTOOL，原分支codex/ghg-standard-input-unificat
 v5原生Excel/WPS保存回导NOT_RUN/OPEN，正式外部交付前补；CU Esc未解除，不用程序重存或旧v4证据替代。真实鼠标/中文输入/人工系统DPI/企业样例OPEN。独立复验待新固定HEAD，当前不宣称最终验收PASS或标准SUPPORTED。
 
 本轮不删除历史Record或分支，不关闭PR45、不合并PR46；主目录用户修改不覆盖。跨会话进度外发曾被自动审批拒绝，未绕过；本地实现和PR更新继续执行。
+
+
+## 后续固定HEAD运行汇总
+
+9de4d63本地完整回归781/781，0failure/0error，841.589s；同HEAD本地Windows构建、272文件发布审计、273文件ZIP往返、实际包内v5严格读取及2次隔离启动PASS。GitHub CI247实际781项/886.305s，2failure/0error；制品任务SKIPPED，不能称CI或CI制品通过。两失败均为审阅生成器原字节SHA：本地编辑留下CRLF，而仓库既有.gitattributes要求LF、CI检出LF。已将本地生成器规范为受控LF（Git中代码不变），重新运行正式builder、25夹具与checks生成证据，不手填哈希、不放宽校验，意见0→0。LF生成器SHA1efcc97bbfe3d094ebe0f025713506d2465d2b4338bdf1ed99b0826132e8d405。
+
+最后一项修订仅审阅证据及运行说明，不改变9de4d63生产代码；新HEAD仍须对应CI完整回归与Windows交付验证，最终结果以原PR46精确HEAD送验说明为准。本地全量9de4d63不冒称在后续证据提交HEAD重跑。
