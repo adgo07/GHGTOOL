@@ -32,6 +32,7 @@ from scripts.inspect_release import (
     inspect_release,
 )
 from scripts.verify_release_archive import verify_release_archive
+from scripts.project_fuel_power_rules import verify_projection
 
 
 APP_NAME = "QingzhouCarbonAccounting"
@@ -195,6 +196,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
     if os.name != "nt":
         raise RuntimeError("G08 standalone build must run on Windows")
     _validate_approved_template_inputs()
+    verify_projection()
     output_directory = Path(output_root)
     artifact = output_directory / APP_NAME
     if artifact.exists():

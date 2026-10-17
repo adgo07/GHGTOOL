@@ -259,4 +259,4 @@ Stage A 标准整理 → Stage B 软件接入设计 → Stage C 实现 → Stage
 
 原则：**SHA 用于确定权威对象与可追溯性，不用于制造流程仪式。** 中央 Policy 要求的当前 head / baseline SHA 继续记录。
 
-标准业务语义统一的模块内入口：[STANDARD_SEMANTICS_POLICY.md](STANDARD_SEMANTICS_POLICY.md)；批准全文见该文件引用。PR47/A已合并；当前授权为原PR46基线整合与五表接线对账，完整生产共享提供者接管归后续B，不修改中央Frozen。
+标准业务语义统一的模块内入口：[STANDARD_SEMANTICS_POLICY.md](STANDARD_SEMANTICS_POLICY.md)；批准全文见该文件引用。PR47/A已合并；基线整合已通过源会话限定验收，当前授权为原PR46燃料B1与电力B的逐入口生产接管，其他段仍延期，不修改中央Frozen。

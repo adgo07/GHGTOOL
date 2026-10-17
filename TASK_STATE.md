@@ -1,17 +1,13 @@
-# 当前任务状态 — 原PR46基线整合
+# 当前任务状态 — PR46 燃料B1与电力B
 
-更新：2026-10-17。Owner已授权继续原PR46；本轮完成由源会话验收，不新增第三方验收。当前本地整合验证完成，WAITING_CI，不合并PR46、不关闭PR45、不提前启动完整燃料B1/电力B/N。
+更新：2026-10-17。基线整合已由源会话限定范围验收PASS；Owner授权继续燃料B1与电力B。当前IN_PROGRESS，不合并46、不关闭45，不接材料/过程/烟气/蒸汽及N。
 
-- 实际origin adgo07/GHGTOOL，工作分支codex/ghg-standard-input-unification；开工head77d36a155323bc82199cb516c4ac58a2e1c60309，开工clean。最新main d0c26351200099a8e62c8adabadac266c77f7c8c已fetch并整合；主目录用户脏文件、PR47原工作树及意见不动。
-- 平台锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；按locked Frozen读取Architecture/Numeric适用MUST，当前ACTIVE UI指南v0.2。无公共Contract变更、无新专业解释。
-- 实际4治理冲突：HANDOFF、IMPLEMENTATION_REPORT、STANDARD_ISSUES_REGISTER、TASK_STATE；生产代码零冲突。台账001～020保留，009/010/011原PR46批准与实施证据、R11 014/017/018/019/020现行决定同时保留。
-- 原PR46五表查询/Resolver/GUI、来源草稿、模板v4兼容、Project/Record/Word、导航优化保留。共享Canonical生产接管仍留B，不宣称R11全部已生产采用。
-- 定向快照对账初跑1个test中2个subtest失败，均为GEN-RULE-ELECTRICITY-001及CAR-RULE-POWER-HEAT-001的两类/五类parameter_ids差异，其他规则一致。已按Issue010批准范围仅对齐这两个候选范围，固定integration1修订/依赖并重生同源四件套；不拿Python实现当权威，不删除失败断言。
-- 既有电力9模块首轮117/117通过，0失败/错误，136.975秒；该项为整合中定向证据，不替最终head全量/CI。pytest不可用，未安装，使用标准库unittest。
-- 当前模板与Catalog未改；v4旧head WPS17/17是历史证据，本轮未启动原生Office。规则审阅表仍NOT_RUN/DEFERRED至下阶段首次正式使用前。人工DPI/中文鼠标及企业样例仍缺项。
+- 基线head9d74e8a032f0bf2e6fa525deffea59f9172f883c，main d0c26351200099a8e62c8adabadac266c77f7c8c；实际origin/分支已重新核实、fetch，开工clean。根目录用户文件和PR47原工作树不动。
+- 基线本地705/705；Windows CI242两个job success。源会话独立57/57并核实际diff/CI后批准进入本范围；这不等于PR46整体验收或SUPPORTED。
+- 共享集成负责人独占HANDOFF §4共享文件；燃料与电力在独立工作树只交专属小提交/公共函数patch，不建替代PR。
+- 已抽出完整有效field求值：候选与受控运行适配共用来源资格、默认、最终锁定与非法来源纠错。只投影燃料四字段和electricity.factor及直接策略；Schema/HTML/审阅compact不运行。固定integration1修订及三包依赖/来源哈希可核再生；不放开data-source。
+- 本断点尚未把GUI/Excel/Domain旧来源消费者切到新适配；旧bool不能冒认新精确binding。下一断点为Resolver真实选定结果的多绑定关联证明及逐入口迁移，之后才声明实际生产采用。
+- 首跑候选19项2error为抽取遗漏审阅helper导入，修复后19/19，1.458s；运行资源/交付22/22，5.260s，0失败/错误。候选六模块+runtime+G08联合115/115，19.952s（前次模块名误写1导入error已记录）。未运行本B范围最终全量/构建/CI，旧CI242不替新head背书。
+- 原生Office/鼠标/中文输入/人工DPI及企业样例缺项保留；CU未重新授权。
 
-- 新增五表100MWh/购入输出/零Record与追加冻结保护3项通过；候选+新保护8模块最终103/103，15.319秒。旧模板路径/缓存结果列/修订号断言适配当前v4与integration1，业务断言保留。初跑103项为3失败/1错误，修复记录见报告。
-- 正式路径完整discover：705/705，0failure/0error/0skip，687.989秒；含退出清理703.811秒。没有生产代码/模板/运行依赖改动，未重复运行原生Office或导航基准。
-- 本地25场景ArtifactTool、同源checks及4定义资产哈希通过；当前61行/649组合/442意见范围，旧PR47固定历史证据不漂移。
-
-下一稳定断点：推送原PR46及最终head Windows CI和送验；旧head CI不背书。共享文件所有权/最小接口见HANDOFF；最终报告归IMPLEMENTATION_REPORT，不另建规范。
+平台：锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；不改Frozen/Numeric/数据库/历史Record。当前只落实010/011/014/016已有批准决定，无新专业解释。具体共享接口及所有权见HANDOFF；真实命令见IMPLEMENTATION_REPORT。

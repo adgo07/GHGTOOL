@@ -1,17 +1,17 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
-状态：**原PR46基线整合执行中**；更新：2026-10-17。
+状态：**PR46燃料B1与电力B执行中**；更新：2026-10-17。
 Module ID：qz.carbon_accounting；当前Reference Standard：GB/T 32151.34—2024。
 
 路线以REFERENCE_STANDARD_ROADMAP.md为准，长期规则以AGENTS.md为准，当前进度与真实证据见TASK_STATE.md / IMPLEMENTATION_REPORT.md。历史过程由Git恢复，不堆叠旧覆盖段。
 
 ## 1. 当前授权与基线
 
-Owner已授权在原PR46工作树/分支整合最新main；本轮完成后由源会话验收，不再邀请第三方验收。验收通过后，由源会话安排燃料B1和电力B按共享文件所有权并行，本执行不提前启动它们。
+基线整合已由源会话验收PASS（限定范围）；Owner授权继续燃料B1和电力B。原PR46工作树为唯一共享集成工作树，两条专属实现线在独立工作树提交小补丁；最终仍由源会话验收，不另邀第三方。
 
 实际origin为adgo07/GHGTOOL，分支codex/ghg-standard-input-unification；原head77d36a155323bc82199cb516c4ac58a2e1c60309，整合main d0c26351200099a8e62c8adabadac266c77f7c8c。PR47/A已合并，R11有效Mapping和已批准决定保留；A的执行候选不是已生产采用的共享提供者。
 
-本轮只做依赖整合、现有五表接线保留/对账、必要回归及后续接口分工。不合并PR46、不关闭PR45、不实施完整燃料/电力B、其他业务段或N，不改公式、Numeric、数据库结构、历史Record或标准范围。
+本轮只做燃料B1与电力B正式闭环及相应已批准来源修正。不合并PR46、不关闭PR45，不实施材料/过程/烟气/蒸汽等其他业务段或N，不改公式、Numeric、数据库结构、历史Record或标准范围。
 
 ## 2. 能力保留与当前差异
 
@@ -87,7 +87,7 @@ Owner已授权在原PR46工作树/分支整合最新main；本轮完成后由源
 
 ## 4. 后续共享文件与最小接口
 
-燃料B1与电力B开始前先指定一个共享集成负责人。两执行分支只改各自专属模块/测试，共享文件的小补丁交集成负责人，不同时维护公共规则。
+燃料B1与电力B由执行1担任唯一共享集成负责人。两执行分支只改各自专属模块/测试，共享文件的小补丁交集成负责人，不同时维护公共规则。
 
 |所有者|文件或范围|最小接口与约束|
 |---|---|---|
@@ -101,6 +101,16 @@ Owner已授权在原PR46工作树/分支整合最新main；本轮完成后由源
 现有Record已冻结parameter_id、factor_id、factor_year、source/location和采用值，模型没有独立binding_id字段。当前Catalog可对账绑定/来源表，但不能回查Catalog冒充历史Record已冻结binding；若B需要扩展来源快照，先明确最小版本化兼容方案，不在本基线整合扩模型。
 
 Word继续只读冻结Record。实际公共提供者和业务来源策略由共享集成负责人一次接管；不并行新增两套允许运算来源或规则缓存。
+
+### 4.1 当前最小接口断点
+
+`core.business_field_policy.evaluate_field`执行原Canonical四属性及最终来源/锁定纠错；候选审阅调用同一实现。`standards.carbon_material_business_policy.evaluate_fuel_power_field(field_id, context)`仅支持燃料四字段与electricity.factor，返回default_source/default/source_qualification/locking/status/problems，与候选最终结果相同；它不验证调用者声称的绑定。缺上下文/多匹配/非法来源保持明确阻断，不自动切源。
+
+`adopted_binding_conditions(field_id)`返回Canonical精确绑定条件的副本；`electricity_catalogue_parameters()`返回(table_number, parameter_id, geography_tag)元组，从同一来源资格表达推导，不另维护五表字典。
+
+仅`resources/business_rules/fuel_power.json`受控部署，由`scripts/project_fuel_power_rules.py`从三包已采用修订机械投影、检查依赖和当前源哈希，构建及测试核再生，运行及发布审计核固定资源哈希。无审阅render/compact/HTML/Schema运行依赖，不放开整个data-source。
+
+此断点尚未替换生产消费者。下一步Resolver只读关联集合必须基于本次真实选定/推荐结果核对象、参数、标准、期间、地区及完整绑定，零/多匹配明确失败；Core不依赖Catalog实现或GUI字段。GUI/Excel/Domain逐入口一起迁移，不因旧调用没新ID而静默取消合法缺省。历史Record不重解。
 
 ## 5. 验证与停止边界
 

@@ -31,8 +31,13 @@ TEMPLATE_SHA256_BY_PATH = {
     PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
 }
+from packages.standards.carbon_material_business_policy import RUNTIME_RESOURCE, RUNTIME_SHA256
+
+BUSINESS_RULES_PATH = Path("resources") / RUNTIME_RESOURCE
+
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
+    BUSINESS_RULES_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
     PREVIOUS_TEMPLATE_PATH.as_posix(),
     COMPATIBILITY_TEMPLATE_PATH.as_posix(),
@@ -143,6 +148,10 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         issues.append(f"missing compatibility Excel template: {COMPATIBILITY_TEMPLATE_PATH.as_posix()}")
     if not (artifact / REPORT_LAYOUT_PATH).is_file():
         issues.append(f"missing packaged Word report layout: {REPORT_LAYOUT_PATH.as_posix()}")
+    if not (artifact / BUSINESS_RULES_PATH).is_file():
+        issues.append(f"missing fuel/power runtime rules: {BUSINESS_RULES_PATH.as_posix()}")
+    elif _sha256(artifact / BUSINESS_RULES_PATH) != RUNTIME_SHA256:
+        issues.append(f"fuel/power runtime rules hash mismatch: {BUSINESS_RULES_PATH.as_posix()}")
     for path in _relative_files(artifact):
         relative = Path(path)
         normalized = relative.as_posix()
