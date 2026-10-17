@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtTest import QSignalSpy, QTest
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTableWidget
+from PySide6.QtWidgets import QApplication, QHeaderView, QLabel, QPushButton, QTableWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -132,7 +132,7 @@ class P3ABStandardsTests(unittest.TestCase):
 
     def test_search_controls_headers_and_support_are_limited_to_the_standard_catalog(self) -> None:
         page = self.page
-        table = page.findChild(QTableWidget, "catalogTable")
+        table = page.findChild(QTableWidget, "standardLibraryTable")
         self.assertIsNotNone(table)
         assert table is not None
         self.assertEqual(
@@ -143,17 +143,32 @@ class P3ABStandardsTests(unittest.TestCase):
         self.assertIsNone(page.findChild(type(page.status_filter), "standardYearFilter"))
         self.assertEqual(page.status_filter.count(), 5)
         self.assertEqual(table.rowCount(), 9)
+        self.assertEqual(
+            table.horizontalHeader().sectionResizeMode(1),
+            QHeaderView.ResizeMode.Stretch,
+        )
+        self.assertEqual(table.columnWidth(4), 104)
+        self.assertIn("font-size: 13px", table.styleSheet())
+        self.assertEqual(table.verticalHeader().defaultSectionSize(), 46)
 
         page.search_input.setText("炭素材料生产企业")
         self._process_events()
         self.assertEqual(table.rowCount(), 1)
-        self.assertEqual(table.item(0, 4).text(), "已实现核算（未正式支持）")
+        self.assertEqual(table.item(0, 4).text(), "已实现核算")
         for column in (0, 1):
             item = table.item(0, column)
             assert item is not None
-            self.assertTrue(item.font().underline())
+            self.assertFalse(item.font().underline())
             self.assertEqual(item.foreground().color().name().upper(), "#12618D")
             self.assertIn("打开标准详情", item.toolTip())
+            item_position = table.visualItemRect(item).center()
+            QTest.mouseMove(table.viewport(), pos=item_position)
+            self._process_events()
+            self.assertTrue(item.font().underline())
+            other_position = table.visualItemRect(table.item(0, 3)).center()
+            QTest.mouseMove(table.viewport(), pos=other_position)
+            self._process_events()
+            self.assertFalse(item.font().underline())
 
         item_rect = table.visualItemRect(table.item(0, 4))
         QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=item_rect.center())
@@ -181,25 +196,32 @@ class P3ABStandardsTests(unittest.TestCase):
             "GB/T 32151.34—2024",
         )
 
-    def test_detail_has_exactly_three_sections_and_uses_verified_scope_or_precise_placeholder(self) -> None:
+    def test_detail_uses_v4_hierarchy_and_verified_scope_or_precise_placeholder(self) -> None:
         page = self.page
         page.search_input.setText("32151.34")
         self._process_events()
         self._open_by_mouse(page, "gbt_32151_34_2024", 1)
+        self.assertEqual(page.page_title.text(), "标准详情")
 
         titles = [
             label.text()
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(titles, ["基本信息", "适用范围", "标准要求"])
+        self.assertEqual(
+            titles,
+            ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"],
+        )
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
-        self.assertIn("当前目录尚未录入可核验的结构化标准要求。", detail_text)
+        self.assertIn("适用业务", detail_text)
+        self.assertIn("活动数据", detail_text)
+        self.assertIn("核算与报告", detail_text)
+        self.assertIn("冻结记录生成标准专属报告", detail_text)
         for forbidden in (
             "发布单位",
             "标准关系",
@@ -213,6 +235,7 @@ class P3ABStandardsTests(unittest.TestCase):
             self.assertNotIn(forbidden, detail_text)
 
         self._back_to_list(page)
+        self.assertEqual(page.page_title.text(), "标准库")
         page.search_input.setText("32150")
         self._process_events()
         self._open_by_mouse(page, "gbt_32150_2025", 0)
@@ -341,7 +364,7 @@ class P3ABStandardsTests(unittest.TestCase):
         self._process_events()
         self._open_by_keyboard(historical_page, "gbt_32151_34_2024", 0)
         historical_row = self._row_for_standard(historical_page, "gbt_32151_34_2024")
-        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现核算（未正式支持）")
+        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现核算")
         historical_accounting = historical_page.findChild(QPushButton, "startAccountingButton")
         self.assertIsNotNone(historical_accounting)
         assert historical_accounting is not None
@@ -376,11 +399,8 @@ class P3ABStandardsTests(unittest.TestCase):
         self.assertIsNotNone(name_item)
         assert name_item is not None
         self.assertEqual(name_item.text(), long_name)
-        horizontal_bar = page.standard_table.horizontalScrollBar()
-        self.assertGreater(horizontal_bar.maximum(), 0)
-        horizontal_bar.setValue(horizontal_bar.maximum())
-        self._process_events()
-        self.assertEqual(horizontal_bar.value(), horizontal_bar.maximum())
+        self.assertIn(long_name, name_item.toolTip())
+        self.assertIn(long_name, name_item.data(Qt.ItemDataRole.AccessibleTextRole))
         self.assertTrue(
             page.standard_table.visualItemRect(name_item).intersects(
                 page.standard_table.viewport().rect()
@@ -405,6 +425,18 @@ class P3ABStandardsTests(unittest.TestCase):
         shell.navigate(AppRoute.STANDARDS)
         page.search_input.setText("32151.34")
         self._process_events()
+        number_item = page.standard_table.item(0, 0)
+        name_item = page.standard_table.item(0, 1)
+        self.assertIsNotNone(number_item)
+        self.assertIsNotNone(name_item)
+        assert number_item is not None and name_item is not None
+        self.assertFalse(number_item.font().underline())
+        self.assertFalse(name_item.font().underline())
+        self.assertIsNotNone(page.standard_table.cellWidget(0, 2))
+        page._set_standard_hover(0, 0)
+        self.assertTrue(number_item.font().underline())
+        page._set_standard_hover(-1, -1)
+        self.assertFalse(number_item.font().underline())
         self._open_by_mouse(page, "gbt_32151_34_2024", 0)
 
         source_button = page.findChild(QPushButton, "viewOfficialSourceButton")

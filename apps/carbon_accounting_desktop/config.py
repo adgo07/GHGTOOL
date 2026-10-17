@@ -25,6 +25,7 @@ class AppConfig:
     records_database: Path | None = None
     projects_database: Path | None = None
     logo_resource: str = "branding/qingzhou_logo.png"
+    user_database: Path | None = None
 
     def resolved_log_directory(self) -> Path:
         """Return the Windows per-user log directory without creating it."""
@@ -88,6 +89,20 @@ class AppConfig:
             else Path.home() / "AppData" / "Local"
         )
         return base_directory / "QingzhouEnergySuite" / "carbon_accounting" / "data" / "projects.sqlite"
+
+    def resolved_user_database(self) -> Path:
+        """Resolve the existing per-user settings store without creating it."""
+
+        if self.user_database is not None:
+            return self.user_database
+
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        base_directory = (
+            Path(local_app_data)
+            if local_app_data
+            else Path.home() / "AppData" / "Local"
+        )
+        return base_directory / "QingzhouEnergySuite" / "carbon_accounting" / "data" / "user.sqlite"
 
     def icons_directory(self) -> Path:
         """Resolve the shared SVG navigation icon directory."""

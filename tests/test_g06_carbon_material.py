@@ -58,6 +58,7 @@ from packages.standards.carbon_material import (
     MaterialComponentKind,
     SteamKind,
     ParameterSourceKind,
+    InputOrigin,
     calcination_emission,
     fgd_emission,
     fuel_energy_from_mass,
@@ -155,9 +156,26 @@ def _factors(*, include_zero: bool = True) -> tuple[Factor, ...]:
 
 
 def _resolver(*, include_zero: bool = True) -> ParameterResolver:
-    return ParameterResolver.with_default_g05_rules(
-        MemoryParameterRepository(_parameters(), _factors(include_zero=include_zero))
-    )
+    # Formal source tests use registered Catalog identities, not an unbound
+    # synthetic "official" Factor. Numeric expectations remain independent.
+    from packages.application.carbon_accounting import create_g06_parameter_resolver
+    from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+    directory = tempfile.TemporaryDirectory()
+    repository = SQLiteCatalogRepository(build_catalog_database(output_path=Path(directory.name) / "catalog.sqlite"))
+    if not include_zero:
+        class WithoutZero:
+            def __getattr__(self, name):
+                return getattr(repository, name)
+            def list_factors(self, *args, **kwargs):
+                return tuple(factor for factor in repository.list_factors(*args, **kwargs)
+                             if factor.factor_id != "electricity_nonfossil_zero_gbt32151_34_2024")
+            def get_factor(self, factor_id):
+                return None if factor_id == "electricity_nonfossil_zero_gbt32151_34_2024" else repository.get_factor(factor_id)
+        resolver = create_g06_parameter_resolver(WithoutZero())
+    else:
+        resolver = create_g06_parameter_resolver(repository)
+    unittest.addModuleCleanup(directory.cleanup)
+    return resolver
 
 
 def _detail(
@@ -196,12 +214,59 @@ def _input(**kwargs: object) -> CarbonMaterialInput:
 
 
 def _explicit_factor(parameter_id: str, value: str, unit: str) -> ParameterValue:
-    return ParameterValue(parameter_id, value, unit, source_location="G06 regression fixture")
+    # Explicit non-catalog electricity fixtures use the approved OTHER channel.
+    # Heat fixtures retain their existing source semantics and numeric vectors.
+    source = ParameterSourceKind.USER_DEFINED if unit == "tCO2/MWh" else ParameterSourceKind.STANDARD_DEFAULT
+    return ParameterValue(parameter_id, value, unit, source_kind=source, source_location="G06 regression fixture")
+
+
+def _measured_parameter(parameter_id: str, value: object, unit: str) -> ParameterValue:
+    return ParameterValue(
+        parameter_id, value, unit, ParameterSourceKind.MEASURED,
+        source_id="TEST-G06-MEASURED", source_version="fixture-v1",
+        source_location="G06 regression fixture", selection_reason="explicit measured test input",
+    )
+
+
+def _measured_fgd_component(amount: object, fraction: object, factor: object, conversion: object,
+                            *, carbonate_type: str | None = None,
+                            origin: InputOrigin = InputOrigin.CUSTOM) -> CarbonateComponent:
+    if isinstance(fraction, ParameterValue):
+        fraction_parameter = fraction
+    else:
+        fraction_unit = fraction.unit if isinstance(fraction, InputValue) else "ratio"
+        fraction_value = fraction.value if isinstance(fraction, InputValue) else fraction
+        fraction_parameter = _measured_parameter("test.fgd.i", fraction_value, fraction_unit)
+    factor_parameter = factor if isinstance(factor, ParameterValue) else _measured_parameter("test.fgd.ef", factor, "tCO2/t")
+    conversion_parameter = conversion if isinstance(conversion, ParameterValue) else _measured_parameter("test.fgd.tr", conversion, "ratio")
+    return CarbonateComponent(
+        amount,
+        fraction_parameter,
+        factor_parameter,
+        conversion_parameter,
+        carbonate_type,
+        origin=origin,
+    )
+
+
+def _custom_fuel(*args, **kwargs):
+    kwargs.setdefault("origin", InputOrigin.CUSTOM)
+    kwargs.setdefault("fuel_label", "测试自定义燃料")
+    values = list(args)
+    for index in (3, 4):
+        if len(values) > index and isinstance(values[index], InputValue):
+            item = values[index]
+            values[index] = _measured_parameter("test.fuel." + str(index), item.value, item.unit)
+    return FuelInput(*values, **kwargs)
+
+
+def _custom_volume(fuel_id, activity, carbon, oxidation):
+    return _custom_fuel(fuel_id, FuelPath.VOLUME, activity, carbon, oxidation)
 
 
 def _full_input() -> CarbonMaterialInput:
     return _input(
-        fuel_inputs=(FuelInput.volume("fuel.full", "2", "0.015", "0.98"),),
+        fuel_inputs=(_custom_volume("fuel.full", "2", InputValue("0.015", "tC/10^4Nm3"), InputValue("0.98", "ratio")),),
         calcination=CalcinationInput(
             gc="100", wfc="0.008", cc="70", ucc="5", du="1",
             wfc_c="0.002", wvar="0.10", wvar_c="0.02", k1="0.35",
@@ -217,7 +282,7 @@ def _full_input() -> CarbonMaterialInput:
         fume_incineration=FumeIncinerationInput(
             q="1000", qvar="10", hm="30", fch="0.02", fox="0.98", duration="1",
         ),
-        fgd=FGDInput(components=(CarbonateComponent("10", "0.90", "0.44", "1"),)),
+        fgd=FGDInput(components=(_measured_fgd_component("10", "0.90", "0.44", "1"),)),
         electricity_details=(
             _detail("power.full", "100", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
         ),
@@ -363,8 +428,8 @@ class G06CalculatorTests(unittest.TestCase):
             FumeIncinerationInput("500", "15", "25", "0.03", "0.95", "2", instance_id="fume-b"),
         )
         fgd_units = (
-            FGDInput(components=(CarbonateComponent("10", "0.45", "0.44", "1"), CarbonateComponent("2", "0.45", "0.522", "1")), instance_id="fgd-a"),
-            FGDInput(components=(CarbonateComponent("5", "0.90", "0.415", "1"),), instance_id="fgd-b"),
+            FGDInput(components=(_measured_fgd_component("10", "0.45", "0.44", "1"), _measured_fgd_component("2", "0.45", "0.522", "1")), instance_id="fgd-a"),
+            FGDInput(components=(_measured_fgd_component("5", "0.90", "0.415", "1"),), instance_id="fgd-b"),
         )
         exported_power = (
             ElectricityOutputLine("power-out-a", "10", _explicit_factor("electricity_emission_factor_national", "0.50", "tCO2/MWh")),
@@ -493,7 +558,7 @@ class G06CalculatorTests(unittest.TestCase):
         )
 
         zero_cases = (
-            (SOURCE_FUEL, _input(fuel_inputs=(FuelInput.volume("zero.fuel", "0", "0.015", "0.98"),))),
+            (SOURCE_FUEL, _input(fuel_inputs=(_custom_volume("zero.fuel", "0", InputValue("0.015", "tC/10^4Nm3"), InputValue("0.98", "ratio")),))),
             (
                 SOURCE_CALCINATION,
                 _input(calcination=CalcinationInput(
@@ -523,7 +588,7 @@ class G06CalculatorTests(unittest.TestCase):
             ),
             (
                 SOURCE_FGD,
-                _input(fgd=FGDInput(components=(CarbonateComponent("0", "0", "0", "0"),))),
+                _input(fgd=FGDInput(components=(_measured_fgd_component("0", "0", "0", "0"),))),
             ),
             (
                 SOURCE_PURCHASED_ELECTRICITY,
@@ -587,7 +652,7 @@ class G06CalculatorTests(unittest.TestCase):
                 )
 
         not_involved_payloads = (
-            (SOURCE_FUEL, {"fuel_inputs": (FuelInput.volume("ni.fuel", "1", "0.015", "0.98"),)}),
+            (SOURCE_FUEL, {"fuel_inputs": (_custom_volume("ni.fuel", "1", InputValue("0.015", "tC/10^4Nm3"), InputValue("0.98", "ratio")),)}),
             (SOURCE_CALCINATION, {"calcination": CalcinationInput(
                 gc="1", wfc="0", cc="0", ucc="0", du="0", wfc_c="0", wvar="0", wvar_c="0", k1="0",
             )}),
@@ -600,7 +665,7 @@ class G06CalculatorTests(unittest.TestCase):
             (SOURCE_FUME, {"fume_incineration": FumeIncinerationInput(
                 q="1", qvar="0", hm="0", fch="0", fox="0", duration="0",
             )}),
-            (SOURCE_FGD, {"fgd": FGDInput(components=(CarbonateComponent("1", "0", "0", "0"),))}),
+            (SOURCE_FGD, {"fgd": FGDInput(components=(_measured_fgd_component("1", "0", "0", "0"),))}),
             (SOURCE_PURCHASED_ELECTRICITY, {"electricity_details": (
                 _detail("ni.power", "1", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
             )}),
@@ -635,7 +700,7 @@ class G06CalculatorTests(unittest.TestCase):
     def test_applicable_percentage_and_unit_errors_are_not_silent(self) -> None:
         percentage_cases = (
             (SOURCE_FUEL, _input(fuel_inputs=(
-                FuelInput.volume("bad.fuel", "1", "0.015", InputValue("101", "percent")),
+                _custom_volume("bad.fuel", "1", InputValue("0.015", "tC/10^4Nm3"), InputValue("101", "percent")),
             ))),
             (SOURCE_CALCINATION, _input(calcination=CalcinationInput(
                 gc="1", wfc=InputValue("101", "percent"), cc="0", ucc="0", du="0",
@@ -653,22 +718,22 @@ class G06CalculatorTests(unittest.TestCase):
                 q="1", qvar="0", hm="0", fch="0", fox=InputValue("101", "percent"), duration="0",
             ))),
             (SOURCE_FGD, _input(fgd=FGDInput(components=(
-                CarbonateComponent("1", InputValue("101", "percent"), "0", "0"),
+                _measured_fgd_component("1", _measured_parameter("test.fgd.i", "101", "percent"), "0", "0"),
             )))),
         )
         calculator = CarbonMaterialCalculator(parameter_resolver=_resolver())
         for source_id, input_value in percentage_cases:
             with self.subTest(error="percentage", source_id=source_id):
                 outcome = calculator.calculate(input_value, calculated_at=SNAPSHOT_AT)
-                expected_code = "CAR-VAL-PARAMETER-RATIO-RANGE" if source_id == SOURCE_FUEL else "CAR-VAL-PERCENT-RANGE"
+                expected_code = "CAR-VAL-PARAMETER-RATIO-RANGE" if source_id in {SOURCE_FUEL, SOURCE_FGD} else "CAR-VAL-PERCENT-RANGE"
                 self.assertTrue(
                     any(problem.code == expected_code for problem in outcome.problems),
                     (source_id, outcome.problems),
                 )
 
         unit_cases = (
-            (SOURCE_FUEL, _input(fuel_inputs=(FuelInput.volume(
-                "unit.fuel", InputValue("1", "MWh"), "0.015", "0.98",
+            (SOURCE_FUEL, _input(fuel_inputs=(_custom_volume(
+                "unit.fuel", InputValue("1", "MWh"), InputValue("0.015", "tC/10^4Nm3"), InputValue("0.98", "ratio"),
             ),))),
             (SOURCE_CALCINATION, _input(calcination=CalcinationInput(
                 gc=InputValue("1", "MWh"), wfc="0", cc="0", ucc="0", du="0",
@@ -686,7 +751,7 @@ class G06CalculatorTests(unittest.TestCase):
                 q=InputValue("1", "MWh"), qvar="0", hm="0", fch="0", fox="0", duration="0",
             ))),
             (SOURCE_FGD, _input(fgd=FGDInput(components=(
-                CarbonateComponent(InputValue("1", "MWh"), "0", "0", "0"),
+                _measured_fgd_component(InputValue("1", "MWh"), "0", "0", "0"),
             )))),
             (SOURCE_PURCHASED_ELECTRICITY, _input(electricity_details=(
                 _detail("unit.power", "1", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
@@ -772,18 +837,14 @@ class G06CalculatorTests(unittest.TestCase):
         for source_kind in ParameterSourceKind:
             with self.subTest(source_kind=source_kind):
                 record_store = InMemoryRecordRepository()
-                carbon = ParameterValue(
-                    "fuel_carbon", "-0.01", "tC/10^4Nm3", source_kind,
-                    "test-source", "test-version", "test location", "validation fixture",
-                )
-                oxidation = ParameterValue(
-                    "fuel_oxidation", "0.98", "ratio", source_kind,
+                negative_factor = ParameterValue(
+                    "negative_heat_factor", "-0.11", "tCO2/GJ", source_kind,
                     "test-source", "test-version", "test location", "validation fixture",
                 )
                 outcome = CarbonAccountingUseCase(
                     CarbonMaterialCalculator(), record_store
                 ).calculate(
-                    _input(fuel_inputs=(FuelInput("negative-carbon", FuelPath.VOLUME, "1", carbon, oxidation),)),
+                    _input(purchased_heat=(HeatInput("negative-factor", "1", "2800", negative_factor),)),
                     calculated_at=SNAPSHOT_AT,
                 )
                 self.assertTrue(outcome.blocked)
@@ -811,10 +872,10 @@ class G06CalculatorTests(unittest.TestCase):
         for value in ("-0.01", "1.01", "101"):
             unit = "percent" if value == "101" else "ratio"
             outcome = CarbonMaterialCalculator().calculate(
-                _input(fuel_inputs=(FuelInput(
+                _input(fuel_inputs=(_custom_fuel(
                     "bad-ratio", FuelPath.VOLUME, "1",
-                    ParameterValue("fuel_carbon", "0.015", "tC/10^4Nm3", source_location="test"),
-                    ParameterValue("fuel_oxidation", value, unit, source_location="test"),
+                    _measured_parameter("fuel_carbon", "0.015", "tC/10^4Nm3"),
+                    _measured_parameter("fuel_oxidation", value, unit),
                 ),)),
                 calculated_at=SNAPSHOT_AT,
             )
@@ -823,10 +884,10 @@ class G06CalculatorTests(unittest.TestCase):
             self.assertIsNone(outcome.record)
 
         zero = CarbonMaterialCalculator().calculate(
-            _input(fuel_inputs=(FuelInput(
+            _input(fuel_inputs=(_custom_fuel(
                 "zero-ratio", FuelPath.VOLUME, "1",
-                ParameterValue("fuel_carbon", "0.015", "tC/10^4Nm3", source_location="test"),
-                ParameterValue("fuel_oxidation", "0", "ratio", source_location="test"),
+                _measured_parameter("fuel_carbon", "0.015", "tC/10^4Nm3"),
+                _measured_parameter("fuel_oxidation", "0", "ratio"),
             ),)),
             calculated_at=SNAPSHOT_AT,
         )
@@ -967,44 +1028,78 @@ class G06CalculatorTests(unittest.TestCase):
                     assert outcome.record is not None
 
     def test_c1_heat_conversion_uses_standard_parameter_snapshots(self) -> None:
-        fuels = (
-            FuelInput(
-                "diesel-default", FuelPath.MASS, "1",
-                ParameterValue("diesel_carbon_content", "0.0202", "tC/GJ", source_location="C.1"),
-                ParameterValue("diesel_oxidation_rate", "0.98", "ratio", source_location="C.1"),
-                ParameterValue("diesel_lhv", "42.652", "GJ/t", source_location="C.1"),
-                fuel_type=FuelType.DIESEL,
-            ),
-            FuelInput(
-                "gas-default", FuelPath.VOLUME, "1",
-                ParameterValue("natural_gas_carbon_content", "0.0153", "tC/GJ", source_location="C.1"),
-                ParameterValue("natural_gas_oxidation_rate", "0.99", "ratio", source_location="C.1"),
-                ParameterValue("natural_gas_lhv", "389.31", "GJ/10⁴Nm³", source_location="C.1"),
-                fuel_type=FuelType.NATURAL_GAS,
-            ),
-            FuelInput(
-                "heat-path", FuelPath.HEAT, "2",
-                ParameterValue("heat_path_carbon", "0.0153", "tC/GJ", source_location="measured"),
-                ParameterValue("heat_path_oxidation", "0.99", "ratio", source_location="C.1"),
-                fuel_type=FuelType.NATURAL_GAS,
-            ),
-        )
-        outcome = CarbonMaterialCalculator().calculate(_input(fuel_inputs=fuels), calculated_at=SNAPSHOT_AT)
-        self.assertTrue(outcome.successful, outcome.problems)
-        by_id = {line.line_id: line.amount for line in outcome.result.lines}
-        expected_diesel = fuel_heat_emission(fuel_energy_from_mass("1", "42.652"), "0.0202", "0.98")
-        expected_gas = fuel_heat_emission(fuel_energy_from_volume("1", "389.31"), "0.0153", "0.99")
-        expected_heat = fuel_heat_emission("2", "0.0153", "0.99")
-        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.diesel-default"] - expected_diesel), Decimal("1e-24"))
-        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.gas-default"] - expected_gas), Decimal("1e-24"))
-        self.assertLess(abs(by_id["CAR-SRC-FUEL-001.heat-path"] - expected_heat), Decimal("1e-24"))
-        snapshots = {snapshot.parameter_id for snapshot in outcome.parameter_snapshots}
-        self.assertTrue({"diesel_lhv", "diesel_carbon_content", "diesel_oxidation_rate", "natural_gas_lhv"}.issubset(snapshots))
+        from packages.application.catalog_queries import CatalogQueryService
+        from packages.application.carbon_accounting import create_g06_parameter_resolver
+        from packages.application.uat03_parameter_queries import UAT03ParameterQueries
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = Path(directory) / "catalog.sqlite"
+            build_catalog_database(output_path=catalog_path)
+            repository = SQLiteCatalogRepository(catalog_path)
+            resolver = create_g06_parameter_resolver(repository)
+            queries = UAT03ParameterQueries(CatalogQueryService(repository), resolver)
+
+            def selected_parameter(candidate: object) -> ParameterValue:
+                factor = candidate.factor
+                source_kind = (
+                    ParameterSourceKind.STANDARD_SPECIFIED
+                    if factor.value_type is ValueType.STANDARD_SPECIFIED
+                    else ParameterSourceKind.STANDARD_DEFAULT
+                )
+                return ParameterValue(
+                    factor.parameter_id, factor.normalized_value, factor.normalized_unit,
+                    source_kind, factor.source_id, str(factor.factor_year), factor.source_location,
+                    candidate.selection_reason, factor.factor_id, factor.factor_year,
+                )
+
+            diesel = queries.fuel_defaults("diesel", PERIOD)
+            gas = queries.fuel_defaults("natural_gas", PERIOD)
+            assert diesel.lower_heating_value and diesel.carbon_content_per_heat and diesel.oxidation_rate
+            assert gas.lower_heating_value and gas.carbon_content_per_heat and gas.oxidation_rate
+            fuels = (
+                _custom_fuel(
+                    "diesel-default", FuelPath.MASS, "1",
+                    selected_parameter(diesel.carbon_content_per_heat),
+                    selected_parameter(diesel.oxidation_rate),
+                    selected_parameter(diesel.lower_heating_value),
+                    fuel_type=FuelType.DIESEL, origin=InputOrigin.CATALOG, catalog_subject_id="diesel",
+                ),
+                _custom_fuel(
+                    "gas-default", FuelPath.VOLUME, "1",
+                    selected_parameter(gas.carbon_content_per_heat),
+                    selected_parameter(gas.oxidation_rate),
+                    selected_parameter(gas.lower_heating_value),
+                    fuel_type=FuelType.NATURAL_GAS, origin=InputOrigin.CATALOG, catalog_subject_id="natural_gas",
+                ),
+                _custom_fuel(
+                    "heat-path", FuelPath.HEAT, "2",
+                    _measured_parameter("heat_path_carbon", "0.0153", "tC/GJ"),
+                    _measured_parameter("heat_path_oxidation", "0.99", "ratio"),
+                    fuel_type=FuelType.OTHER, fuel_label="测试自定义热量燃料", origin=InputOrigin.CUSTOM,
+                ),
+            )
+            outcome = CarbonMaterialCalculator(parameter_resolver=resolver).calculate(
+                _input(fuel_inputs=fuels), calculated_at=SNAPSHOT_AT
+            )
+            self.assertTrue(outcome.successful, outcome.problems)
+            by_id = {line.line_id: line.amount for line in outcome.result.lines}
+            expected_diesel = fuel_heat_emission(fuel_energy_from_mass("1", "42.652"), "0.0202", "0.98")
+            expected_gas = fuel_heat_emission(fuel_energy_from_volume("1", "389.31"), "0.0153", "0.99")
+            expected_heat = fuel_heat_emission("2", "0.0153", "0.99")
+            self.assertLess(abs(by_id["CAR-SRC-FUEL-001.diesel-default"] - expected_diesel), Decimal("1e-24"))
+            self.assertLess(abs(by_id["CAR-SRC-FUEL-001.gas-default"] - expected_gas), Decimal("1e-24"))
+            self.assertLess(abs(by_id["CAR-SRC-FUEL-001.heat-path"] - expected_heat), Decimal("1e-24"))
+            snapshots = {snapshot.parameter_id for snapshot in outcome.parameter_snapshots}
+            self.assertTrue({
+                "diesel_lhv", "diesel_carbon_content", "diesel_oxidation_rate",
+                "natural_gas_lhv", "natural_gas_carbon_content", "natural_gas_oxidation_rate",
+            }.issubset(snapshots))
 
     def test_heat_activity_path_cannot_apply_a_second_heating_value(self) -> None:
         records = InMemoryRecordRepository()
         outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(), records).calculate(
-            _input(fuel_inputs=(FuelInput(
+            _input(fuel_inputs=(_custom_fuel(
                 "heat-with-lhv", FuelPath.HEAT, "1",
                 ParameterValue("heat_carbon", "0.0153", "tC/GJ", source_location="test"),
                 ParameterValue("heat_oxidation", "0.99", "ratio", source_location="test"),
@@ -1023,7 +1118,9 @@ class G06CalculatorTests(unittest.TestCase):
             "TEST-LAB-2026-01", "2026", "report page 3", "measured factor test",
         )
         outcome = CarbonMaterialCalculator().calculate(
-            _input(fgd=FGDInput(components=(CarbonateComponent("10", "0.90", measured, "1"),))),
+            _input(fgd=FGDInput(components=(
+                _measured_fgd_component("10", "0.90", measured, "1", origin=InputOrigin.CUSTOM),
+            ))),
             calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(outcome.successful, outcome.problems)
@@ -1137,9 +1234,7 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertIsNone(blocked.result)
         self.assertIsNone(blocked.record)
 
-        linked_fuel = FuelInput("fossil-fuel", __import__(
-            "packages.standards.carbon_material", fromlist=["FuelPath"]
-        ).FuelPath.VOLUME, "1", "0.1", "1", electricity_detail_id="power.self.fossil")
+        linked_fuel = _custom_fuel("fossil-fuel", FuelPath.VOLUME, "1", InputValue("0.1", "tC/10^4Nm3"), InputValue("1", "ratio"), electricity_detail_id="power.self.fossil")
         transferred = CarbonMaterialCalculator(parameter_resolver=_resolver()).calculate(
             _input(input_id="input.linked.fossil", electricity_details=(fossil_detail,), fuel_inputs=(linked_fuel,)),
             calculated_at=SNAPSHOT_AT,

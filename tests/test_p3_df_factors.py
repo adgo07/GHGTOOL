@@ -62,9 +62,10 @@ class P3DFFactorTests(unittest.TestCase):
         result = page._search_results[index]
         page.search_result_table.selectRow(index)
         self.app.processEvents()
-        self.assertEqual(page.search_result_table.item(index, 2).text(), result.value_text)
-        self.assertEqual(page.search_result_table.item(index, 3).text(), result.unit)
-        self.assertIn("适用", page.search_result_table.item(index, 4).text())
+        self.assertEqual(page.search_result_table.item(index, 1).text(), result.value_text)
+        self.assertEqual(page.search_result_table.item(index, 2).text(), result.unit)
+        self.assertEqual(page.search_result_table.item(index, 0).text(), page._asset_display_name(result))
+        self.assertEqual(page.search_result_table.item(index, 3).text(), "排放因子")
         self.assertEqual(page.search_result_table.editTriggers(), QAbstractItemView.EditTrigger.NoEditTriggers)
         toggle = page.findChild(QToolButton, "parameterDetailTraceToggle")
         self.assertIsNotNone(toggle)

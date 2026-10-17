@@ -1,0 +1,4567 @@
+{
+  "status": "PASS",
+  "pass_count": 17,
+  "fail_count": 0,
+  "unexecuted_count": 0,
+  "checks": [
+    {
+      "name": "native_com_roundtrip_and_instance_safety",
+      "status": "PASS",
+      "detail": {
+        "engine": "WPS Office ET COM",
+        "process_id": 24932,
+        "initial_workbooks": 0,
+        "gate_passed_before_open": true
+      }
+    },
+    {
+      "name": "approved_template_sha_matches",
+      "status": "PASS",
+      "detail": {
+        "expected": "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4",
+        "actual": "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+      }
+    },
+    {
+      "name": "nine_sheet_names_preserved",
+      "status": "PASS",
+      "detail": {
+        "before": [
+          "B.1",
+          "B.2",
+          "B.3",
+          "B.4",
+          "B.5",
+          "B.6",
+          "B.7",
+          "B.8",
+          "B.9"
+        ],
+        "after": [
+          "B.1",
+          "B.2",
+          "B.3",
+          "B.4",
+          "B.5",
+          "B.6",
+          "B.7",
+          "B.8",
+          "B.9"
+        ]
+      }
+    },
+    {
+      "name": "sheet_protection_and_used_cell_lock_maps_preserved",
+      "status": "PASS",
+      "detail": {
+        "before": [
+          {
+            "name": "B.1",
+            "max_row": 17,
+            "max_column": 3,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 51,
+            "locked_cells": 51,
+            "unlocked_cells": 0,
+            "lock_map_sha256": "27fec21fd982fc46c039d121b41c4467111fe37018ba35d87d2e628c3233b97c"
+          },
+          {
+            "name": "B.2",
+            "max_row": 21,
+            "max_column": 13,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 273,
+            "locked_cells": 108,
+            "unlocked_cells": 165,
+            "lock_map_sha256": "d3ac49792e794d241f369bf4e64c15c5ea6935defba1496939e22c561367883a"
+          },
+          {
+            "name": "B.3",
+            "max_row": 13,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 104,
+            "locked_cells": 62,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+          },
+          {
+            "name": "B.4",
+            "max_row": 13,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": false,
+              "scenarios": false,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 104,
+            "locked_cells": 62,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+          },
+          {
+            "name": "B.5",
+            "max_row": 12,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": false,
+              "scenarios": false,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 96,
+            "locked_cells": 61,
+            "unlocked_cells": 35,
+            "lock_map_sha256": "941c656207a9528eaa78e396f11422738e16fe75e3cd9e5e55278c52464d16d8"
+          },
+          {
+            "name": "B.6",
+            "max_row": 8,
+            "max_column": 7,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 56,
+            "locked_cells": 26,
+            "unlocked_cells": 30,
+            "lock_map_sha256": "9259d6a4becf07cc4c3484e69b568398ff775aec0638b362d64058133e62a67f"
+          },
+          {
+            "name": "B.7",
+            "max_row": 9,
+            "max_column": 9,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 81,
+            "locked_cells": 39,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "b2aca16ae9aad489afe04a44e0fb38c015e0cc65c246bc0436707d52dd46b512"
+          },
+          {
+            "name": "B.8",
+            "max_row": 5,
+            "max_column": 5,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 25,
+            "locked_cells": 17,
+            "unlocked_cells": 8,
+            "lock_map_sha256": "982c05d913f3f5a59145afd9b8fb90aca631a21fc0de556166ee9bbcc4539d0b"
+          },
+          {
+            "name": "B.9",
+            "max_row": 7,
+            "max_column": 7,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 49,
+            "locked_cells": 35,
+            "unlocked_cells": 14,
+            "lock_map_sha256": "a4139aec109f47400c330e5335d37943cbfa87ae4e14cf529993a71f2971c744"
+          }
+        ],
+        "after": [
+          {
+            "name": "B.1",
+            "max_row": 17,
+            "max_column": 3,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 51,
+            "locked_cells": 51,
+            "unlocked_cells": 0,
+            "lock_map_sha256": "27fec21fd982fc46c039d121b41c4467111fe37018ba35d87d2e628c3233b97c"
+          },
+          {
+            "name": "B.2",
+            "max_row": 21,
+            "max_column": 13,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 273,
+            "locked_cells": 108,
+            "unlocked_cells": 165,
+            "lock_map_sha256": "d3ac49792e794d241f369bf4e64c15c5ea6935defba1496939e22c561367883a"
+          },
+          {
+            "name": "B.3",
+            "max_row": 13,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 104,
+            "locked_cells": 62,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+          },
+          {
+            "name": "B.4",
+            "max_row": 13,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": false,
+              "scenarios": false,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 104,
+            "locked_cells": 62,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+          },
+          {
+            "name": "B.5",
+            "max_row": 12,
+            "max_column": 8,
+            "protection": {
+              "sheet": true,
+              "objects": false,
+              "scenarios": false,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 96,
+            "locked_cells": 61,
+            "unlocked_cells": 35,
+            "lock_map_sha256": "941c656207a9528eaa78e396f11422738e16fe75e3cd9e5e55278c52464d16d8"
+          },
+          {
+            "name": "B.6",
+            "max_row": 8,
+            "max_column": 7,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 56,
+            "locked_cells": 26,
+            "unlocked_cells": 30,
+            "lock_map_sha256": "9259d6a4becf07cc4c3484e69b568398ff775aec0638b362d64058133e62a67f"
+          },
+          {
+            "name": "B.7",
+            "max_row": 9,
+            "max_column": 9,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 81,
+            "locked_cells": 39,
+            "unlocked_cells": 42,
+            "lock_map_sha256": "b2aca16ae9aad489afe04a44e0fb38c015e0cc65c246bc0436707d52dd46b512"
+          },
+          {
+            "name": "B.8",
+            "max_row": 5,
+            "max_column": 5,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 25,
+            "locked_cells": 17,
+            "unlocked_cells": 8,
+            "lock_map_sha256": "982c05d913f3f5a59145afd9b8fb90aca631a21fc0de556166ee9bbcc4539d0b"
+          },
+          {
+            "name": "B.9",
+            "max_row": 7,
+            "max_column": 7,
+            "protection": {
+              "sheet": true,
+              "objects": true,
+              "scenarios": true,
+              "selectLockedCells": false,
+              "selectUnlockedCells": false,
+              "formatCells": true,
+              "formatColumns": true,
+              "formatRows": true,
+              "insertColumns": true,
+              "insertRows": false,
+              "insertHyperlinks": true,
+              "deleteColumns": true,
+              "deleteRows": true,
+              "sort": true,
+              "autoFilter": true,
+              "pivotTables": true,
+              "password": null,
+              "algorithmName": null,
+              "hashValue": null,
+              "saltValue": null,
+              "spinCount": null
+            },
+            "used_cells": 49,
+            "locked_cells": 35,
+            "unlocked_cells": 14,
+            "lock_map_sha256": "a4139aec109f47400c330e5335d37943cbfa87ae4e14cf529993a71f2971c744"
+          }
+        ]
+      }
+    },
+    {
+      "name": "all_cell_values_and_formulas_preserved_after_blank_normalization",
+      "status": "PASS",
+      "detail": {
+        "value_change_count_after_blank_normalization": 0,
+        "value_changes_after_blank_normalization": [],
+        "blank_serialization_difference_count": 21,
+        "blank_serialization_differences": [
+          {
+            "sheet": "B.2",
+            "cell": "K4",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K5",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K6",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K7",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K8",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K9",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K10",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K11",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K12",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K13",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K14",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K15",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K16",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K17",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.2",
+            "cell": "K18",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.6",
+            "cell": "G3",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.7",
+            "cell": "G3",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.7",
+            "cell": "G4",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.7",
+            "cell": "G5",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.8",
+            "cell": "E3",
+            "before": null,
+            "after": ""
+          },
+          {
+            "sheet": "B.8",
+            "cell": "E4",
+            "before": null,
+            "after": ""
+          }
+        ],
+        "formula_text_change_count": 0,
+        "formula_text_changes": []
+      }
+    },
+    {
+      "name": "no_new_or_changed_formula_cells",
+      "status": "PASS",
+      "detail": {
+        "before": [],
+        "after": []
+      }
+    },
+    {
+      "name": "before_preview_is_calculable",
+      "status": "PASS",
+      "detail": {
+        "error_count": 0
+      }
+    },
+    {
+      "name": "saved_preview_is_calculable",
+      "status": "PASS",
+      "detail": {
+        "error_count": 0
+      }
+    },
+    {
+      "name": "both_previews_create_zero_records",
+      "status": "PASS",
+      "detail": {
+        "record_count": 0
+      }
+    },
+    {
+      "name": "complete_business_input_matches_ignoring_generated_workbook_identity",
+      "status": "PASS",
+      "detail": {
+        "before_sha256": "cd7dadba3f576def850156483bb08d04e931081f2d9aa42f16bea5248727b45a",
+        "saved_sha256": "cd7dadba3f576def850156483bb08d04e931081f2d9aa42f16bea5248727b45a",
+        "generated_identity_fields": [
+          "workbook_sha256",
+          "unit_id",
+          "input_id",
+          "enterprise_id",
+          "boundary_component_ids",
+          "fuel_id",
+          "detail_id",
+          "line_id",
+          "instance_id"
+        ]
+      }
+    },
+    {
+      "name": "full_result_values_and_attribution_match",
+      "status": "PASS",
+      "detail": {
+        "before_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f",
+        "saved_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f"
+      }
+    },
+    {
+      "name": "selected_parameters_sources_and_values_match",
+      "status": "PASS",
+      "detail": {
+        "before_sha256": "2026f74990a5c39f6c04e6a765158c0893fc1c117280a77d81991236a2dcf5e1",
+        "saved_sha256": "2026f74990a5c39f6c04e6a765158c0893fc1c117280a77d81991236a2dcf5e1",
+        "snapshot_count": 16
+      }
+    },
+    {
+      "name": "formula_traces_and_process_attribution_match",
+      "status": "PASS",
+      "detail": {
+        "before_sha256": "4041bb722e87d67eb35ebe0d8945c897caff844c498b9c7dfba44b51a7b63358",
+        "saved_sha256": "4041bb722e87d67eb35ebe0d8945c897caff844c498b9c7dfba44b51a7b63358",
+        "trace_count": 15
+      }
+    },
+    {
+      "name": "calculation_problems_and_warnings_match_ignoring_generated_identity",
+      "status": "PASS",
+      "detail": {
+        "problem_count": 14,
+        "warning_count": 25
+      }
+    },
+    {
+      "name": "record_count_after_preview_remains_zero",
+      "status": "PASS",
+      "detail": {
+        "record_count": 0
+      }
+    },
+    {
+      "name": "formal_usecase_succeeds_and_appends_one_record",
+      "status": "PASS",
+      "detail": {
+        "successful": true,
+        "record_count": 1,
+        "problem_count": 14
+      }
+    },
+    {
+      "name": "formal_result_matches_both_previews",
+      "status": "PASS",
+      "detail": {
+        "before_preview_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f",
+        "saved_preview_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f",
+        "formal_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f"
+      }
+    }
+  ],
+  "workbooks": {
+    "before_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-before.xlsx",
+    "before_sha256": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "saved_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-native-roundtrip.xlsx",
+    "saved_sha256": "8adcfe9746b8fd790c4cb932376fab0758b430b77e8718d2a0e4e5ac61ddf08b",
+    "source_workbook_sha256_before_and_after_roundtrip": "9F6C80D41BF80A504DD9C360224DAB773E3BF2C157FA0686BB2735D0E3BF7F98",
+    "template_path": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\resources\\excel_templates\\gb_t_32151_34_2024_appendix_b_v2.xlsx",
+    "template_sha256": "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+  },
+  "semantic_payloads": {
+    "normalization_policy": {
+      "identity_tokens": [
+        "workbook_sha256",
+        "unit_id",
+        "input_id",
+        "enterprise_id",
+        "boundary_component_ids",
+        "fuel_id",
+        "detail_id",
+        "line_id",
+        "instance_id"
+      ],
+      "ignored_runtime_fields": [],
+      "controlled_calculation_timestamp": "2026-10-14T10:49:00+00:00",
+      "retained_fields": [
+        "numeric values",
+        "source/value types",
+        "selected factor IDs",
+        "parameter values and sources",
+        "process/source attribution",
+        "warning codes and messages after ID-token substitution"
+      ]
+    },
+    "canonical_input": {
+      "before_equals_saved": true,
+      "sha256": "cd7dadba3f576def850156483bb08d04e931081f2d9aa42f16bea5248727b45a",
+      "saved_payload": {
+        "input_id": "<generated:input_id:1>",
+        "enterprise_id": "<generated:enterprise_id:1>",
+        "enterprise_name": "专项业务链验收样例（合成数据）",
+        "period": {
+          "period_type": "ANNUAL",
+          "start": "2026-01-01",
+          "end": "2026-12-31"
+        },
+        "boundary_confirmed": true,
+        "boundary_component_ids": [
+          "<generated:boundary_component_id:1>"
+        ],
+        "source_states": [
+          {
+            "source_id": "CAR-SRC-FUEL-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-CALCINATION-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-BAKING-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-GRAPHITIZATION-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-FUME-INCINERATION-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-FGD-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-PURCHASED-ELECTRICITY-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-EXPORTED-ELECTRICITY-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-PURCHASED-HEAT-001",
+            "status": "INVOLVED"
+          },
+          {
+            "source_id": "CAR-SRC-EXPORTED-HEAT-001",
+            "status": "INVOLVED"
+          }
+        ],
+        "fuel_inputs": [
+          {
+            "fuel_id": "<generated:fuel_id:1>",
+            "path": "VOLUME",
+            "activity": {
+              "value": "1",
+              "unit": "ten_thousand_Nm3",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.2!B4",
+              "evidence_ref_ids": []
+            },
+            "carbon_content": {
+              "parameter_id": "enterprise_fuel_<generated:unit_id:1>_4_carbon",
+              "value": "0.5",
+              "unit": "tC/10^4Nm3",
+              "source_kind": "MEASURED",
+              "source_id": null,
+              "source_version": null,
+              "source_location": "B.2!D4",
+              "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+              "factor_id": null,
+              "factor_year": null,
+              "evidence_ref_ids": []
+            },
+            "oxidation_rate": {
+              "parameter_id": "natural_gas_oxidation_rate",
+              "value": "0.98",
+              "unit": "ratio",
+              "source_kind": "MEASURED",
+              "source_id": null,
+              "source_version": null,
+              "source_location": "B.2!I4",
+              "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+              "factor_id": null,
+              "factor_year": null,
+              "evidence_ref_ids": []
+            },
+            "lower_heating_value": null,
+            "electricity_detail_id": null,
+            "fuel_type": "NATURAL_GAS",
+            "fuel_label": null,
+            "origin": "CATALOG",
+            "catalog_subject_id": "natural_gas"
+          }
+        ],
+        "calcination": {
+          "gc": null,
+          "wfc": null,
+          "cc": null,
+          "ucc": null,
+          "du": null,
+          "wfc_c": null,
+          "wvar": null,
+          "wvar_c": null,
+          "k1": {
+            "parameter_id": "car-par-k1",
+            "value": "0.35",
+            "unit": "ratio",
+            "source_kind": "STANDARD_DEFAULT",
+            "source_id": "SRC-32151-34-2024",
+            "source_version": "2024",
+            "source_location": "第5.2.2条；PDF第12页；印刷页4",
+            "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+            "factor_id": "methane_conversion_factor_calcination_gbt32151_34_2024",
+            "factor_year": 2024,
+            "evidence_ref_ids": []
+          },
+          "mass_basis": "RECEIVED",
+          "composition_basis": "RECEIVED",
+          "normalized_basis": "RECEIVED",
+          "component_kind": "FIXED_CARBON",
+          "moisture_evidence": false,
+          "conversion_evidence": false,
+          "carbon_output_included_in_input": false,
+          "fixed_carbon_component_kind": "FIXED_CARBON",
+          "volatile_matter_component_kind": "VOLATILE_MATTER",
+          "instance_id": "<generated:instance_id:1>",
+          "material_rows": [
+            {
+              "line_id": "<generated:line_id:1>",
+              "role": "calcination_feed",
+              "name": "待煅烧原料",
+              "mass_t": "100",
+              "fixed_carbon_percent": "90",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": "5",
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:2>",
+              "role": "calcined_product",
+              "name": "煅后料",
+              "mass_t": "80",
+              "fixed_carbon_percent": "95",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": "1",
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:3>",
+              "role": "underburn_recovered",
+              "name": "欠烧煅料",
+              "mass_t": "0",
+              "fixed_carbon_percent": "0",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:4>",
+              "role": "carbon_dust",
+              "name": "炭粉尘",
+              "mass_t": "0",
+              "fixed_carbon_percent": "0",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            }
+          ],
+          "instance_name": "煅烧1"
+        },
+        "baking": {
+          "bpm": null,
+          "bpmfc": null,
+          "bg": null,
+          "bgfc": null,
+          "bwt": null,
+          "bp": null,
+          "bpfc": null,
+          "bpmvar": null,
+          "bgvar": null,
+          "k2": {
+            "parameter_id": "car-par-k2",
+            "value": "0.35",
+            "unit": "ratio",
+            "source_kind": "STANDARD_DEFAULT",
+            "source_id": "SRC-32151-34-2024",
+            "source_version": "2024",
+            "source_location": "第5.2.3条；PDF第13页；印刷页5",
+            "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+            "factor_id": "methane_conversion_factor_baking_gbt32151_34_2024",
+            "factor_year": 2024,
+            "evidence_ref_ids": []
+          },
+          "mass_basis": "RECEIVED",
+          "composition_basis": "RECEIVED",
+          "normalized_basis": "RECEIVED",
+          "component_kind": "FIXED_CARBON",
+          "moisture_evidence": false,
+          "conversion_evidence": false,
+          "carbon_output_included_in_input": false,
+          "fixed_carbon_component_kind": "FIXED_CARBON",
+          "volatile_matter_component_kind": "VOLATILE_MATTER",
+          "instance_id": "<generated:instance_id:2>",
+          "material_rows": [
+            {
+              "line_id": "<generated:line_id:5>",
+              "role": "baking_filler",
+              "name": "填充料",
+              "mass_t": "40",
+              "fixed_carbon_percent": "90",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": "5",
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:6>",
+              "role": "green_baking_product",
+              "name": "待焙烧(炭化)品",
+              "mass_t": "50",
+              "fixed_carbon_percent": "80",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": "3",
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:7>",
+              "role": "baking_byproduct",
+              "name": "粉尘 、碎屑 、副产品等",
+              "mass_t": "1",
+              "fixed_carbon_percent": "0",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:8>",
+              "role": "baked_product",
+              "name": "焙烧(炭化)品",
+              "mass_t": "45",
+              "fixed_carbon_percent": "92",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            }
+          ],
+          "instance_name": "焙烧1"
+        },
+        "graphitization": {
+          "gpm": null,
+          "gpmfc": null,
+          "gta": null,
+          "gtafc": null,
+          "gwt": null,
+          "gp": null,
+          "gpfc": null,
+          "gpmvar": null,
+          "k3": {
+            "parameter_id": "car-par-k3",
+            "value": "0.35",
+            "unit": "ratio",
+            "source_kind": "STANDARD_DEFAULT",
+            "source_id": "SRC-32151-34-2024",
+            "source_version": "2024",
+            "source_location": "第5.2.4条；PDF第14页；印刷页6",
+            "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+            "factor_id": "methane_conversion_factor_graphitization_gbt32151_34_2024",
+            "factor_year": 2024,
+            "evidence_ref_ids": []
+          },
+          "mass_basis": "RECEIVED",
+          "composition_basis": "RECEIVED",
+          "normalized_basis": "RECEIVED",
+          "component_kind": "FIXED_CARBON",
+          "moisture_evidence": false,
+          "conversion_evidence": false,
+          "furnace_loss_included": false,
+          "fixed_carbon_component_kind": "FIXED_CARBON",
+          "volatile_matter_component_kind": "VOLATILE_MATTER",
+          "instance_id": "<generated:instance_id:3>",
+          "material_rows": [
+            {
+              "line_id": "<generated:line_id:9>",
+              "role": "graphitization_packing",
+              "name": "保温料和电阻料",
+              "mass_t": "40",
+              "fixed_carbon_percent": "80",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": "4",
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:10>",
+              "role": "green_graphitization_product",
+              "name": "待石墨化品",
+              "mass_t": "35",
+              "fixed_carbon_percent": "90",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:11>",
+              "role": "graphitization_byproduct",
+              "name": "粉尘 、碎屑 、残块(渣) 、\n副产品等",
+              "mass_t": "1",
+              "fixed_carbon_percent": "0",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            },
+            {
+              "line_id": "<generated:line_id:12>",
+              "role": "graphitized_product",
+              "name": "石墨化产品",
+              "mass_t": "32",
+              "fixed_carbon_percent": "95",
+              "fixed_carbon_source": "MEASURED",
+              "volatile_matter_percent": null,
+              "volatile_matter_source": "MEASURED"
+            }
+          ],
+          "instance_name": "石墨化1"
+        },
+        "fume_incineration": {
+          "q": {
+            "value": "100",
+            "unit": "Nm3/h",
+            "source_type": "MANUAL",
+            "source_level": "PRIMARY",
+            "source_reference": "B.6!A3",
+            "evidence_ref_ids": []
+          },
+          "qvar": {
+            "value": "10",
+            "unit": "mg/Nm3",
+            "source_type": "MANUAL",
+            "source_level": "PRIMARY",
+            "source_reference": "B.6!B3",
+            "evidence_ref_ids": []
+          },
+          "hm": {
+            "value": "30",
+            "unit": "GJ/t",
+            "source_type": "MANUAL",
+            "source_level": "PRIMARY",
+            "source_reference": "B.6!C3",
+            "evidence_ref_ids": []
+          },
+          "fch": {
+            "parameter_id": "CAR-PAR-P04A-FCH",
+            "value": "0.02",
+            "unit": "tC/GJ",
+            "source_kind": "USER_DEFINED",
+            "source_id": null,
+            "source_version": null,
+            "source_location": "B.6!D3",
+            "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+            "factor_id": null,
+            "factor_year": null,
+            "evidence_ref_ids": []
+          },
+          "fox": {
+            "value": "0.98",
+            "unit": "ratio",
+            "source_type": "MANUAL",
+            "source_level": "PRIMARY",
+            "source_reference": null,
+            "evidence_ref_ids": []
+          },
+          "duration": {
+            "value": "365",
+            "unit": "d",
+            "source_type": "MANUAL",
+            "source_level": "PRIMARY",
+            "source_reference": "B.6!F3",
+            "evidence_ref_ids": []
+          },
+          "instance_id": "<generated:instance_id:4>"
+        },
+        "fgd": {
+          "components": [
+            {
+              "amount": {
+                "value": "2",
+                "unit": "t",
+                "source_type": "MANUAL",
+                "source_level": "PRIMARY",
+                "source_reference": "B.7!B3",
+                "evidence_ref_ids": []
+              },
+              "carbonate_fraction": {
+                "parameter_id": "carbonate_fraction",
+                "value": "0.9",
+                "unit": "ratio",
+                "source_kind": "MEASURED",
+                "source_id": null,
+                "source_version": null,
+                "source_location": "B.7!D3",
+                "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                "factor_id": null,
+                "factor_year": null,
+                "evidence_ref_ids": []
+              },
+              "emission_factor": {
+                "parameter_id": "car-par-c2-caco3",
+                "value": "0.440",
+                "unit": "tCO2/t",
+                "source_kind": "STANDARD_SPECIFIED",
+                "source_id": "SRC-32151-34-2024",
+                "source_version": "2024",
+                "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+                "selection_reason": "规则指定因子 carbonate_caco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+                "factor_id": "carbonate_caco3_gbt32151_34_c2",
+                "factor_year": 2024,
+                "evidence_ref_ids": []
+              },
+              "conversion_rate": {
+                "parameter_id": "CAR-PAR-P04B-TR",
+                "value": "0.95",
+                "unit": "ratio",
+                "source_kind": "MEASURED",
+                "source_id": null,
+                "source_version": null,
+                "source_location": "B.7!F3",
+                "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                "factor_id": null,
+                "factor_year": null,
+                "evidence_ref_ids": []
+              },
+              "carbonate_type": "CaCO3",
+              "origin": "CATALOG"
+            },
+            {
+              "amount": {
+                "value": "2",
+                "unit": "t",
+                "source_type": "MANUAL",
+                "source_level": "PRIMARY",
+                "source_reference": "B.7!B3",
+                "evidence_ref_ids": []
+              },
+              "carbonate_fraction": {
+                "parameter_id": "carbonate_fraction",
+                "value": "0.1",
+                "unit": "ratio",
+                "source_kind": "MEASURED",
+                "source_id": null,
+                "source_version": null,
+                "source_location": "B.7!D4",
+                "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                "factor_id": null,
+                "factor_year": null,
+                "evidence_ref_ids": []
+              },
+              "emission_factor": {
+                "parameter_id": "car-par-c2-mgco3",
+                "value": "0.522",
+                "unit": "tCO2/t",
+                "source_kind": "STANDARD_SPECIFIED",
+                "source_id": "SRC-32151-34-2024",
+                "source_version": "2024",
+                "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+                "selection_reason": "规则指定因子 carbonate_mgco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+                "factor_id": "carbonate_mgco3_gbt32151_34_c2",
+                "factor_year": 2024,
+                "evidence_ref_ids": []
+              },
+              "conversion_rate": {
+                "parameter_id": "CAR-PAR-P04B-TR",
+                "value": "0.9",
+                "unit": "ratio",
+                "source_kind": "MEASURED",
+                "source_id": null,
+                "source_version": null,
+                "source_location": "B.7!F4",
+                "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                "factor_id": null,
+                "factor_year": null,
+                "evidence_ref_ids": []
+              },
+              "carbonate_type": "MgCO3",
+              "origin": "CATALOG"
+            }
+          ],
+          "cal": null,
+          "i": null,
+          "ef1": null,
+          "tr": null,
+          "carbonate_type": null,
+          "instance_id": "<generated:instance_id:5>",
+          "reagent_name": "脱硫批次A"
+        },
+        "electricity_details": [
+          {
+            "detail_id": "<generated:detail_id:1>",
+            "enterprise_id": "<generated:enterprise_id:1>",
+            "standard_id": "gbt_32151_34_2024",
+            "accounting_period": {
+              "period_type": "ANNUAL",
+              "start": "2026-01-01",
+              "end": "2026-12-31"
+            },
+            "electricity_amount": "100",
+            "electricity_unit": "MWh",
+            "acquisition_mode": "PURCHASED",
+            "attribute": "ORDINARY",
+            "proof_type": "NONE",
+            "proof_status": "NOT_PROVIDED",
+            "region": null,
+            "selected_factor_id": "electricity_national_average_2023",
+            "factor_selection_reason": "采用当前 Resolver 推荐的核验电力因子。",
+            "factor_override": null
+          }
+        ],
+        "exported_electricity": [
+          {
+            "line_id": "<generated:line_id:13>",
+            "amount": {
+              "value": "2",
+              "unit": "MWh",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.8!C4",
+              "evidence_ref_ids": []
+            },
+            "factor": {
+              "parameter_id": "electricity_emission_factor_national",
+              "value": "0.5",
+              "unit": "tCO2/MWh",
+              "source_kind": "USER_DEFINED",
+              "source_id": null,
+              "source_version": null,
+              "source_location": "B.8!D4",
+              "selection_reason": "附录B提供未核验来源的输出电力排放因子；B列原文“电网电力”按 PR37 作为不适用购入属性的填报证据保留。",
+              "factor_id": null,
+              "factor_year": null,
+              "evidence_ref_ids": []
+            },
+            "unit": "MWh",
+            "region": null
+          }
+        ],
+        "purchased_heat": [
+          {
+            "line_id": "<generated:line_id:14>",
+            "amount": {
+              "value": "1000",
+              "unit": "t",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.9!C3",
+              "evidence_ref_ids": []
+            },
+            "enthalpy": null,
+            "factor": null,
+            "unit": "t",
+            "steam_kind": "SATURATED",
+            "pressure_mpa": {
+              "value": "1",
+              "unit": "MPa",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": null,
+              "evidence_ref_ids": []
+            },
+            "temperature_c": null,
+            "manual_enthalpy": false,
+            "factor_mode": "STANDARD_DEFAULT",
+            "factor_source_note": null,
+            "steam_amount_t": null
+          }
+        ],
+        "exported_heat": [
+          {
+            "line_id": "<generated:line_id:15>",
+            "amount": {
+              "value": "100",
+              "unit": "t",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.9!C4",
+              "evidence_ref_ids": []
+            },
+            "enthalpy": null,
+            "factor": {
+              "parameter_id": "heat_emission_factor_measured",
+              "value": "0.12",
+              "unit": "tCO2/GJ",
+              "source_kind": "USER_DEFINED",
+              "source_id": null,
+              "source_version": null,
+              "source_location": "B.9!G4",
+              "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+              "factor_id": null,
+              "factor_year": null,
+              "evidence_ref_ids": []
+            },
+            "unit": "t",
+            "steam_kind": "SATURATED",
+            "pressure_mpa": {
+              "value": "1",
+              "unit": "MPa",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": null,
+              "evidence_ref_ids": []
+            },
+            "temperature_c": null,
+            "manual_enthalpy": false,
+            "factor_mode": "MEASURED",
+            "factor_source_note": null,
+            "steam_amount_t": null
+          }
+        ],
+        "other_activity_present": false,
+        "transport_present": false,
+        "calcinations": [
+          {
+            "gc": null,
+            "wfc": null,
+            "cc": null,
+            "ucc": null,
+            "du": null,
+            "wfc_c": null,
+            "wvar": null,
+            "wvar_c": null,
+            "k1": {
+              "parameter_id": "car-par-k1",
+              "value": "0.35",
+              "unit": "ratio",
+              "source_kind": "STANDARD_DEFAULT",
+              "source_id": "SRC-32151-34-2024",
+              "source_version": "2024",
+              "source_location": "第5.2.2条；PDF第12页；印刷页4",
+              "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+              "factor_id": "methane_conversion_factor_calcination_gbt32151_34_2024",
+              "factor_year": 2024,
+              "evidence_ref_ids": []
+            },
+            "mass_basis": "RECEIVED",
+            "composition_basis": "RECEIVED",
+            "normalized_basis": "RECEIVED",
+            "component_kind": "FIXED_CARBON",
+            "moisture_evidence": false,
+            "conversion_evidence": false,
+            "carbon_output_included_in_input": false,
+            "fixed_carbon_component_kind": "FIXED_CARBON",
+            "volatile_matter_component_kind": "VOLATILE_MATTER",
+            "instance_id": "<generated:instance_id:1>",
+            "material_rows": [
+              {
+                "line_id": "<generated:line_id:1>",
+                "role": "calcination_feed",
+                "name": "待煅烧原料",
+                "mass_t": "100",
+                "fixed_carbon_percent": "90",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": "5",
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:2>",
+                "role": "calcined_product",
+                "name": "煅后料",
+                "mass_t": "80",
+                "fixed_carbon_percent": "95",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": "1",
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:3>",
+                "role": "underburn_recovered",
+                "name": "欠烧煅料",
+                "mass_t": "0",
+                "fixed_carbon_percent": "0",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:4>",
+                "role": "carbon_dust",
+                "name": "炭粉尘",
+                "mass_t": "0",
+                "fixed_carbon_percent": "0",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              }
+            ],
+            "instance_name": "煅烧1"
+          }
+        ],
+        "bakings": [
+          {
+            "bpm": null,
+            "bpmfc": null,
+            "bg": null,
+            "bgfc": null,
+            "bwt": null,
+            "bp": null,
+            "bpfc": null,
+            "bpmvar": null,
+            "bgvar": null,
+            "k2": {
+              "parameter_id": "car-par-k2",
+              "value": "0.35",
+              "unit": "ratio",
+              "source_kind": "STANDARD_DEFAULT",
+              "source_id": "SRC-32151-34-2024",
+              "source_version": "2024",
+              "source_location": "第5.2.3条；PDF第13页；印刷页5",
+              "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+              "factor_id": "methane_conversion_factor_baking_gbt32151_34_2024",
+              "factor_year": 2024,
+              "evidence_ref_ids": []
+            },
+            "mass_basis": "RECEIVED",
+            "composition_basis": "RECEIVED",
+            "normalized_basis": "RECEIVED",
+            "component_kind": "FIXED_CARBON",
+            "moisture_evidence": false,
+            "conversion_evidence": false,
+            "carbon_output_included_in_input": false,
+            "fixed_carbon_component_kind": "FIXED_CARBON",
+            "volatile_matter_component_kind": "VOLATILE_MATTER",
+            "instance_id": "<generated:instance_id:2>",
+            "material_rows": [
+              {
+                "line_id": "<generated:line_id:5>",
+                "role": "baking_filler",
+                "name": "填充料",
+                "mass_t": "40",
+                "fixed_carbon_percent": "90",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": "5",
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:6>",
+                "role": "green_baking_product",
+                "name": "待焙烧(炭化)品",
+                "mass_t": "50",
+                "fixed_carbon_percent": "80",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": "3",
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:7>",
+                "role": "baking_byproduct",
+                "name": "粉尘 、碎屑 、副产品等",
+                "mass_t": "1",
+                "fixed_carbon_percent": "0",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:8>",
+                "role": "baked_product",
+                "name": "焙烧(炭化)品",
+                "mass_t": "45",
+                "fixed_carbon_percent": "92",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              }
+            ],
+            "instance_name": "焙烧1"
+          }
+        ],
+        "graphitizations": [
+          {
+            "gpm": null,
+            "gpmfc": null,
+            "gta": null,
+            "gtafc": null,
+            "gwt": null,
+            "gp": null,
+            "gpfc": null,
+            "gpmvar": null,
+            "k3": {
+              "parameter_id": "car-par-k3",
+              "value": "0.35",
+              "unit": "ratio",
+              "source_kind": "STANDARD_DEFAULT",
+              "source_id": "SRC-32151-34-2024",
+              "source_version": "2024",
+              "source_location": "第5.2.4条；PDF第14页；印刷页6",
+              "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+              "factor_id": "methane_conversion_factor_graphitization_gbt32151_34_2024",
+              "factor_year": 2024,
+              "evidence_ref_ids": []
+            },
+            "mass_basis": "RECEIVED",
+            "composition_basis": "RECEIVED",
+            "normalized_basis": "RECEIVED",
+            "component_kind": "FIXED_CARBON",
+            "moisture_evidence": false,
+            "conversion_evidence": false,
+            "furnace_loss_included": false,
+            "fixed_carbon_component_kind": "FIXED_CARBON",
+            "volatile_matter_component_kind": "VOLATILE_MATTER",
+            "instance_id": "<generated:instance_id:3>",
+            "material_rows": [
+              {
+                "line_id": "<generated:line_id:9>",
+                "role": "graphitization_packing",
+                "name": "保温料和电阻料",
+                "mass_t": "40",
+                "fixed_carbon_percent": "80",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": "4",
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:10>",
+                "role": "green_graphitization_product",
+                "name": "待石墨化品",
+                "mass_t": "35",
+                "fixed_carbon_percent": "90",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:11>",
+                "role": "graphitization_byproduct",
+                "name": "粉尘 、碎屑 、残块(渣) 、\n副产品等",
+                "mass_t": "1",
+                "fixed_carbon_percent": "0",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              },
+              {
+                "line_id": "<generated:line_id:12>",
+                "role": "graphitized_product",
+                "name": "石墨化产品",
+                "mass_t": "32",
+                "fixed_carbon_percent": "95",
+                "fixed_carbon_source": "MEASURED",
+                "volatile_matter_percent": null,
+                "volatile_matter_source": "MEASURED"
+              }
+            ],
+            "instance_name": "石墨化1"
+          }
+        ],
+        "fume_incinerations": [
+          {
+            "q": {
+              "value": "100",
+              "unit": "Nm3/h",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.6!A3",
+              "evidence_ref_ids": []
+            },
+            "qvar": {
+              "value": "10",
+              "unit": "mg/Nm3",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.6!B3",
+              "evidence_ref_ids": []
+            },
+            "hm": {
+              "value": "30",
+              "unit": "GJ/t",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.6!C3",
+              "evidence_ref_ids": []
+            },
+            "fch": {
+              "parameter_id": "CAR-PAR-P04A-FCH",
+              "value": "0.02",
+              "unit": "tC/GJ",
+              "source_kind": "USER_DEFINED",
+              "source_id": null,
+              "source_version": null,
+              "source_location": "B.6!D3",
+              "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+              "factor_id": null,
+              "factor_year": null,
+              "evidence_ref_ids": []
+            },
+            "fox": {
+              "value": "0.98",
+              "unit": "ratio",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": null,
+              "evidence_ref_ids": []
+            },
+            "duration": {
+              "value": "365",
+              "unit": "d",
+              "source_type": "MANUAL",
+              "source_level": "PRIMARY",
+              "source_reference": "B.6!F3",
+              "evidence_ref_ids": []
+            },
+            "instance_id": "<generated:instance_id:4>"
+          }
+        ],
+        "fgd_units": [
+          {
+            "components": [
+              {
+                "amount": {
+                  "value": "2",
+                  "unit": "t",
+                  "source_type": "MANUAL",
+                  "source_level": "PRIMARY",
+                  "source_reference": "B.7!B3",
+                  "evidence_ref_ids": []
+                },
+                "carbonate_fraction": {
+                  "parameter_id": "carbonate_fraction",
+                  "value": "0.9",
+                  "unit": "ratio",
+                  "source_kind": "MEASURED",
+                  "source_id": null,
+                  "source_version": null,
+                  "source_location": "B.7!D3",
+                  "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                  "factor_id": null,
+                  "factor_year": null,
+                  "evidence_ref_ids": []
+                },
+                "emission_factor": {
+                  "parameter_id": "car-par-c2-caco3",
+                  "value": "0.440",
+                  "unit": "tCO2/t",
+                  "source_kind": "STANDARD_SPECIFIED",
+                  "source_id": "SRC-32151-34-2024",
+                  "source_version": "2024",
+                  "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+                  "selection_reason": "规则指定因子 carbonate_caco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+                  "factor_id": "carbonate_caco3_gbt32151_34_c2",
+                  "factor_year": 2024,
+                  "evidence_ref_ids": []
+                },
+                "conversion_rate": {
+                  "parameter_id": "CAR-PAR-P04B-TR",
+                  "value": "0.95",
+                  "unit": "ratio",
+                  "source_kind": "MEASURED",
+                  "source_id": null,
+                  "source_version": null,
+                  "source_location": "B.7!F3",
+                  "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                  "factor_id": null,
+                  "factor_year": null,
+                  "evidence_ref_ids": []
+                },
+                "carbonate_type": "CaCO3",
+                "origin": "CATALOG"
+              },
+              {
+                "amount": {
+                  "value": "2",
+                  "unit": "t",
+                  "source_type": "MANUAL",
+                  "source_level": "PRIMARY",
+                  "source_reference": "B.7!B3",
+                  "evidence_ref_ids": []
+                },
+                "carbonate_fraction": {
+                  "parameter_id": "carbonate_fraction",
+                  "value": "0.1",
+                  "unit": "ratio",
+                  "source_kind": "MEASURED",
+                  "source_id": null,
+                  "source_version": null,
+                  "source_location": "B.7!D4",
+                  "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                  "factor_id": null,
+                  "factor_year": null,
+                  "evidence_ref_ids": []
+                },
+                "emission_factor": {
+                  "parameter_id": "car-par-c2-mgco3",
+                  "value": "0.522",
+                  "unit": "tCO2/t",
+                  "source_kind": "STANDARD_SPECIFIED",
+                  "source_id": "SRC-32151-34-2024",
+                  "source_version": "2024",
+                  "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+                  "selection_reason": "规则指定因子 carbonate_mgco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+                  "factor_id": "carbonate_mgco3_gbt32151_34_c2",
+                  "factor_year": 2024,
+                  "evidence_ref_ids": []
+                },
+                "conversion_rate": {
+                  "parameter_id": "CAR-PAR-P04B-TR",
+                  "value": "0.9",
+                  "unit": "ratio",
+                  "source_kind": "MEASURED",
+                  "source_id": null,
+                  "source_version": null,
+                  "source_location": "B.7!F4",
+                  "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+                  "factor_id": null,
+                  "factor_year": null,
+                  "evidence_ref_ids": []
+                },
+                "carbonate_type": "MgCO3",
+                "origin": "CATALOG"
+              }
+            ],
+            "cal": null,
+            "i": null,
+            "ef1": null,
+            "tr": null,
+            "carbonate_type": null,
+            "instance_id": "<generated:instance_id:5>",
+            "reagent_name": "脱硫批次A"
+          }
+        ],
+        "reporting_data": {
+          "organization_nature": null,
+          "industry": null,
+          "social_credit_code": null,
+          "legal_representative": null,
+          "preparer_name": null,
+          "preparer_contact": null,
+          "boundary_description": null,
+          "products_and_process": null,
+          "emission_source_identification": null,
+          "other_report_information": null,
+          "activity_evidence": [],
+          "measured_factor_evidence": []
+        }
+      }
+    },
+    "calculation_result": {
+      "before_equals_saved": true,
+      "sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f",
+      "saved_payload": {
+        "result_id": "result.<generated:input_id:1>",
+        "standard_id": "gbt_32151_34_2024",
+        "algorithm_version": "CAR-SM01-2026-10-09-G06.2-N01C-R1.1",
+        "lines": [
+          {
+            "line_id": "CAR-SRC-FUEL-001.<generated:fuel_id:1>",
+            "emission_source_id": "CAR-SRC-FUEL-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "1.796666666666666666666666666666666666667",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-P01-RESULT",
+            "emission_source_id": "CAR-SRC-CALCINATION-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "55.37583333333333333333333333333333333333",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-P02-RESULT",
+            "emission_source_id": "CAR-SRC-BAKING-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "130.2354166666666666666666666666666666667",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-P03-RESULT",
+            "emission_source_id": "CAR-SRC-GRAPHITIZATION-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "122.9066666666666666666666666666666666667",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-P04A-RESULT",
+            "emission_source_id": "CAR-SRC-FUME-INCINERATION-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "0.01888656000000000000000000000000000000000",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-P04B-RESULT",
+            "emission_source_id": "CAR-SRC-FGD-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "0.846360",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-GAS-CONTROL-RESULT",
+            "emission_source_id": "CAR-SRC-GAS-CONTROL-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "0.8652465600000000000000000000000000000000",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-PWR-PURCHASED-RESULT.<generated:detail_id:1>",
+            "emission_source_id": "CAR-SRC-PURCHASED-ELECTRICITY-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "53.0600",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-POWER-EXPORTED-RESULT.<generated:line_id:13>",
+            "emission_source_id": "CAR-SRC-EXPORTED-ELECTRICITY-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "1.0",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-HEAT-PURCHASED-RESULT.<generated:line_id:14>",
+            "emission_source_id": "CAR-SRC-PURCHASED-HEAT-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "305.470000000",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-HEAT-EXPORTED-RESULT.<generated:line_id:15>",
+            "emission_source_id": "CAR-SRC-EXPORTED-HEAT-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "33.324000000",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-DIRECT-RESULT",
+            "emission_source_id": "CAR-RULE-TOTAL-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "311.1798298933333333333333333333333333334",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-INDIRECT-RESULT",
+            "emission_source_id": "CAR-RULE-TOTAL-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "324.206000000",
+            "unit": "tCO2"
+          },
+          {
+            "line_id": "CAR-FLD-TOTAL-RESULT",
+            "emission_source_id": "CAR-RULE-TOTAL-001",
+            "greenhouse_gas_id": "GEN-GAS-CO2",
+            "amount": "635.3858298933333333333333333333333333334",
+            "unit": "tCO2"
+          }
+        ],
+        "total_amount": "635.3858298933333333333333333333333333334",
+        "total_unit": "tCO2",
+        "calculated_at": "2026-10-14T10:49:00+00:00",
+        "problems": [
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-F01-<generated:fuel_id:1>-CARBON 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-F01-<generated:fuel_id:1>-CARBON",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-F01-<generated:fuel_id:1>-FOX 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-F01-<generated:fuel_id:1>-FOX",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04A-<generated:instance_id:4>-FCH 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-P04A-<generated:instance_id:4>-FCH",
+            "details": []
+          },
+          {
+            "code": "GEN-VAL-CUSTOM-FACTOR",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04A-<generated:instance_id:4>-FCH 使用用户自定义值。",
+            "field_id": "CAR-FLD-P04A-<generated:instance_id:4>-FCH",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04B-<generated:instance_id:5>-0-I 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-I",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04B-<generated:instance_id:5>-0-TR 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-TR",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04B-<generated:instance_id:5>-1-I 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-I",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-P04B-<generated:instance_id:5>-1-TR 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-TR",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13> 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13>",
+            "details": []
+          },
+          {
+            "code": "GEN-VAL-CUSTOM-FACTOR",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13> 使用用户自定义值。",
+            "field_id": "CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13>",
+            "details": []
+          },
+          {
+            "code": "GEN-PAR-MEASURED-FALLBACK",
+            "level": "WARNING",
+            "message": "当前规则要求实测优先，但未提供合格实测值，将回退到标准缺省值。",
+            "field_id": "heat_emission_factor_default",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-HEAT-<generated:line_id:15>-EF3 的来源未关联目录来源编号或版本；本次仍按录入数值计算。",
+            "field_id": "CAR-FLD-HEAT-<generated:line_id:15>-EF3",
+            "details": []
+          },
+          {
+            "code": "GEN-VAL-CUSTOM-FACTOR",
+            "level": "WARNING",
+            "message": "参数 CAR-FLD-HEAT-<generated:line_id:15>-EF3 使用用户自定义值。",
+            "field_id": "CAR-FLD-HEAT-<generated:line_id:15>-EF3",
+            "details": []
+          },
+          {
+            "code": "CAR-VAL-FACTOR-SOURCE",
+            "level": "WARNING",
+            "message": "实测热力因子未填写来源说明；本次仍按您提供的数值计算。",
+            "field_id": "CAR-FLD-HEAT-<generated:line_id:15>-EF3",
+            "details": []
+          }
+        ]
+      }
+    },
+    "parameter_snapshots": {
+      "before_equals_saved": true,
+      "sha256": "2026f74990a5c39f6c04e6a765158c0893fc1c117280a77d81991236a2dcf5e1",
+      "saved_payload": [
+        {
+          "snapshot_id": "CAR-FLD-F01-<generated:fuel_id:1>-CARBON.parameter-snapshot",
+          "parameter_id": "enterprise_fuel_<generated:unit_id:1>_4_carbon",
+          "factor_id": null,
+          "value_used": "0.5",
+          "unit_used": "tC/10^4Nm3",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.2!D4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-F01-<generated:fuel_id:1>-CARBON",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-F01-<generated:fuel_id:1>-FOX.parameter-snapshot",
+          "parameter_id": "natural_gas_oxidation_rate",
+          "factor_id": null,
+          "value_used": "0.98",
+          "unit_used": "ratio",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.2!I4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-F01-<generated:fuel_id:1>-FOX",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P01-RESULT-<generated:instance_id:1>-k1.parameter-snapshot",
+          "parameter_id": "car-par-k1",
+          "factor_id": "methane_conversion_factor_calcination_gbt32151_34_2024",
+          "value_used": "0.35",
+          "unit_used": "ratio",
+          "source_id": "SRC-32151-34-2024",
+          "source_version": "2024",
+          "selection_method": "STANDARD_REQUIRED",
+          "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2024",
+          "source_location": "第5.2.2条；PDF第12页；印刷页4",
+          "factor_year": 2024,
+          "detail_id": "CAR-FLD-P01-RESULT-<generated:instance_id:1>-k1",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P02-RESULT-<generated:instance_id:2>-k2.parameter-snapshot",
+          "parameter_id": "car-par-k2",
+          "factor_id": "methane_conversion_factor_baking_gbt32151_34_2024",
+          "value_used": "0.35",
+          "unit_used": "ratio",
+          "source_id": "SRC-32151-34-2024",
+          "source_version": "2024",
+          "selection_method": "STANDARD_REQUIRED",
+          "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2024",
+          "source_location": "第5.2.3条；PDF第13页；印刷页5",
+          "factor_year": 2024,
+          "detail_id": "CAR-FLD-P02-RESULT-<generated:instance_id:2>-k2",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P03-RESULT-<generated:instance_id:3>-k3.parameter-snapshot",
+          "parameter_id": "car-par-k3",
+          "factor_id": "methane_conversion_factor_graphitization_gbt32151_34_2024",
+          "value_used": "0.35",
+          "unit_used": "ratio",
+          "source_id": "SRC-32151-34-2024",
+          "source_version": "2024",
+          "selection_method": "STANDARD_REQUIRED",
+          "selection_reason": "采用当前期间Resolver核验的标准一般参数。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2024",
+          "source_location": "第5.2.4条；PDF第14页；印刷页6",
+          "factor_year": 2024,
+          "detail_id": "CAR-FLD-P03-RESULT-<generated:instance_id:3>-k3",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04A-<generated:instance_id:4>-FCH.parameter-snapshot",
+          "parameter_id": "CAR-PAR-P04A-FCH",
+          "factor_id": null,
+          "value_used": "0.02",
+          "unit_used": "tC/GJ",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "MANUAL_OVERRIDE",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.6!D3",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-P04A-<generated:instance_id:4>-FCH",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-I.parameter-snapshot",
+          "parameter_id": "carbonate_fraction",
+          "factor_id": null,
+          "value_used": "0.9",
+          "unit_used": "ratio",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.7!D3",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-I",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-EF1.parameter-snapshot",
+          "parameter_id": "car-par-c2-caco3",
+          "factor_id": "carbonate_caco3_gbt32151_34_c2",
+          "value_used": "0.440",
+          "unit_used": "tCO2/t",
+          "source_id": "SRC-32151-34-2024",
+          "source_version": "2024",
+          "selection_method": "STANDARD_REQUIRED",
+          "selection_reason": "规则指定因子 carbonate_caco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2024",
+          "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+          "factor_year": 2024,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-EF1",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-TR.parameter-snapshot",
+          "parameter_id": "CAR-PAR-P04B-TR",
+          "factor_id": null,
+          "value_used": "0.95",
+          "unit_used": "ratio",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.7!F3",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-0-TR",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-I.parameter-snapshot",
+          "parameter_id": "carbonate_fraction",
+          "factor_id": null,
+          "value_used": "0.1",
+          "unit_used": "ratio",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.7!D4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-I",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-EF1.parameter-snapshot",
+          "parameter_id": "car-par-c2-mgco3",
+          "factor_id": "carbonate_mgco3_gbt32151_34_c2",
+          "value_used": "0.522",
+          "unit_used": "tCO2/t",
+          "source_id": "SRC-32151-34-2024",
+          "source_version": "2024",
+          "selection_method": "STANDARD_REQUIRED",
+          "selection_reason": "规则指定因子 carbonate_mgco3_gbt32151_34_c2；当前标准直接规定；因子年度 2024",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2024",
+          "source_location": "GB/T 32151.34—2024 附录C表C.2；PDF第27页；印刷页19",
+          "factor_year": 2024,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-EF1",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-TR.parameter-snapshot",
+          "parameter_id": "CAR-PAR-P04B-TR",
+          "factor_id": null,
+          "value_used": "0.9",
+          "unit_used": "ratio",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "ENTERPRISE_MEASURED",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.7!F4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-P04B-<generated:instance_id:5>-1-TR",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "<generated:detail_id:1>.parameter-snapshot",
+          "parameter_id": "electricity_emission_factor_national",
+          "factor_id": "electricity_national_average_2023",
+          "value_used": "0.5306",
+          "unit_used": "tCO₂/MWh",
+          "source_id": "SRC-ELEC-2023-47",
+          "source_version": "2023",
+          "selection_method": "USER_SELECTED_LIBRARY_VALUE",
+          "selection_reason": "采用当前 Resolver 推荐的核验电力因子。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2023",
+          "source_location": "公告2025年第47号表1：全国平均",
+          "factor_year": 2023,
+          "detail_id": "<generated:detail_id:1>",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13>.parameter-snapshot",
+          "parameter_id": "electricity_emission_factor_national",
+          "factor_id": null,
+          "value_used": "0.5",
+          "unit_used": "tCO2/MWh",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "MANUAL_OVERRIDE",
+          "selection_reason": "附录B提供未核验来源的输出电力排放因子；B列原文“电网电力”按 PR37 作为不适用购入属性的填报证据保留。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.8!D4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-POWER-EXPORTED-EF.<generated:line_id:13>",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "<generated:line_id:14>.parameter-snapshot",
+          "parameter_id": "heat_emission_factor_default",
+          "factor_id": "heat_default_2025",
+          "value_used": "0.11",
+          "unit_used": "tCO₂/GJ",
+          "source_id": "SRC-32150-2025",
+          "source_version": "2025",
+          "selection_method": "SYSTEM_RECOMMENDED",
+          "selection_reason": "规则指定缺省因子 heat_default_2025；无合格实测值，回退标准缺省值；因子年度 2025",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": "2025",
+          "source_location": "GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ",
+          "factor_year": 2025,
+          "detail_id": "<generated:line_id:14>",
+          "evidence_ref_ids": []
+        },
+        {
+          "snapshot_id": "CAR-FLD-HEAT-<generated:line_id:15>-EF3.parameter-snapshot",
+          "parameter_id": "heat_emission_factor_measured",
+          "factor_id": null,
+          "value_used": "0.12",
+          "unit_used": "tCO2/GJ",
+          "source_id": null,
+          "source_version": null,
+          "selection_method": "MANUAL_OVERRIDE",
+          "selection_reason": "工作簿提供未核验来源；本次按用户提供值进入现有计算链。",
+          "standard_id": "gbt_32151_34_2024",
+          "snapshot_at": "2026-10-14T10:49:00+00:00",
+          "factor_version": null,
+          "source_location": "B.9!G4",
+          "factor_year": null,
+          "detail_id": "CAR-FLD-HEAT-<generated:line_id:15>-EF3",
+          "evidence_ref_ids": []
+        }
+      ]
+    },
+    "calculation_traces": {
+      "before_equals_saved": true,
+      "sha256": "4041bb722e87d67eb35ebe0d8945c897caff844c498b9c7dfba44b51a7b63358",
+      "saved_payload": [
+        {
+          "trace_id": "<generated:fuel_id:1>",
+          "formula_id": "CAR-FML-FUEL-001",
+          "source_id": "CAR-SRC-FUEL-001",
+          "variables": [
+            [
+              "activity",
+              "1",
+              "ten_thousand_Nm3"
+            ],
+            [
+              "carbon_content",
+              "0.5",
+              "tC/10^4Nm3"
+            ],
+            [
+              "oxidation_rate",
+              "0.98",
+              "ratio"
+            ]
+          ],
+          "substitution": "EFu = 单条燃料活动量和参数的排放结果；燃料 <generated:fuel_id:1>",
+          "amount": "1.796666666666666666666666666666666666667",
+          "unit": "tCO2",
+          "instance_id": "<generated:fuel_id:1>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-F01",
+          "formula_id": "CAR-FML-FUEL-001",
+          "source_id": "CAR-SRC-FUEL-001",
+          "variables": [
+            [
+              "fuel_total",
+              "1.796666666666666666666666666666666666667",
+              "tCO2"
+            ]
+          ],
+          "substitution": "EFu = sum(EFu(f))",
+          "amount": "1.796666666666666666666666666666666666667",
+          "unit": "tCO2",
+          "instance_id": null,
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-FLD-P01-RESULT",
+          "formula_id": "CAR-FML-CALCINATION-001",
+          "source_id": "CAR-SRC-CALCINATION-001",
+          "variables": [
+            [
+              "gc",
+              "100",
+              ""
+            ],
+            [
+              "wfc",
+              "0.9",
+              "ratio"
+            ],
+            [
+              "cc",
+              "80",
+              ""
+            ],
+            [
+              "ucc",
+              "0",
+              ""
+            ],
+            [
+              "du",
+              "0",
+              ""
+            ],
+            [
+              "wfc_c",
+              "0.95",
+              "ratio"
+            ],
+            [
+              "wvar",
+              "0.05",
+              "ratio"
+            ],
+            [
+              "wvar_c",
+              "0.01",
+              "ratio"
+            ],
+            [
+              "k1",
+              "0.35",
+              ""
+            ]
+          ],
+          "substitution": "CAR-FML-CALCINATION-001 按映射变量代入；实例 <generated:instance_id:1>",
+          "amount": "55.37583333333333333333333333333333333333",
+          "unit": "tCO2",
+          "instance_id": "<generated:instance_id:1>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": [
+            [
+              "material.normalization_version",
+              "CAR-MATERIAL-NORMALIZATION-V1"
+            ],
+            [
+              "material.<generated:line_id:1>.role",
+              "calcination_feed"
+            ],
+            [
+              "material.<generated:line_id:1>.name",
+              "待煅烧原料"
+            ],
+            [
+              "material.<generated:line_id:1>.mass_t",
+              "100"
+            ],
+            [
+              "material.<generated:line_id:1>.fixed_carbon_percent",
+              "90"
+            ],
+            [
+              "material.<generated:line_id:1>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:1>.volatile_matter_percent",
+              "5"
+            ],
+            [
+              "material.<generated:line_id:1>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:2>.role",
+              "calcined_product"
+            ],
+            [
+              "material.<generated:line_id:2>.name",
+              "煅后料"
+            ],
+            [
+              "material.<generated:line_id:2>.mass_t",
+              "80"
+            ],
+            [
+              "material.<generated:line_id:2>.fixed_carbon_percent",
+              "95"
+            ],
+            [
+              "material.<generated:line_id:2>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:2>.volatile_matter_percent",
+              "1"
+            ],
+            [
+              "material.<generated:line_id:2>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:3>.role",
+              "underburn_recovered"
+            ],
+            [
+              "material.<generated:line_id:3>.name",
+              "欠烧煅料"
+            ],
+            [
+              "material.<generated:line_id:3>.mass_t",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:3>.fixed_carbon_percent",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:3>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:3>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:3>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:4>.role",
+              "carbon_dust"
+            ],
+            [
+              "material.<generated:line_id:4>.name",
+              "炭粉尘"
+            ],
+            [
+              "material.<generated:line_id:4>.mass_t",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:4>.fixed_carbon_percent",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:4>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:4>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:4>.volatile_matter_source",
+              "MEASURED"
+            ]
+          ]
+        },
+        {
+          "trace_id": "CAR-FLD-P02-RESULT",
+          "formula_id": "CAR-FML-BAKING-001",
+          "source_id": "CAR-SRC-BAKING-001",
+          "variables": [
+            [
+              "bpm",
+              "40",
+              ""
+            ],
+            [
+              "bpmfc",
+              "0.9",
+              "ratio"
+            ],
+            [
+              "bg",
+              "50",
+              ""
+            ],
+            [
+              "bgfc",
+              "0.8",
+              "ratio"
+            ],
+            [
+              "bwt",
+              "0",
+              ""
+            ],
+            [
+              "bp",
+              "45",
+              ""
+            ],
+            [
+              "bpfc",
+              "0.92",
+              "ratio"
+            ],
+            [
+              "bpmvar",
+              "0.05",
+              "ratio"
+            ],
+            [
+              "bgvar",
+              "0.03",
+              "ratio"
+            ],
+            [
+              "k2",
+              "0.35",
+              ""
+            ]
+          ],
+          "substitution": "CAR-FML-BAKING-001 按映射变量代入；实例 <generated:instance_id:2>",
+          "amount": "130.2354166666666666666666666666666666667",
+          "unit": "tCO2",
+          "instance_id": "<generated:instance_id:2>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": [
+            [
+              "material.normalization_version",
+              "CAR-MATERIAL-NORMALIZATION-V1"
+            ],
+            [
+              "material.<generated:line_id:5>.role",
+              "baking_filler"
+            ],
+            [
+              "material.<generated:line_id:5>.name",
+              "填充料"
+            ],
+            [
+              "material.<generated:line_id:5>.mass_t",
+              "40"
+            ],
+            [
+              "material.<generated:line_id:5>.fixed_carbon_percent",
+              "90"
+            ],
+            [
+              "material.<generated:line_id:5>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:5>.volatile_matter_percent",
+              "5"
+            ],
+            [
+              "material.<generated:line_id:5>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:6>.role",
+              "green_baking_product"
+            ],
+            [
+              "material.<generated:line_id:6>.name",
+              "待焙烧(炭化)品"
+            ],
+            [
+              "material.<generated:line_id:6>.mass_t",
+              "50"
+            ],
+            [
+              "material.<generated:line_id:6>.fixed_carbon_percent",
+              "80"
+            ],
+            [
+              "material.<generated:line_id:6>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:6>.volatile_matter_percent",
+              "3"
+            ],
+            [
+              "material.<generated:line_id:6>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:7>.role",
+              "baking_byproduct"
+            ],
+            [
+              "material.<generated:line_id:7>.name",
+              "粉尘 、碎屑 、副产品等"
+            ],
+            [
+              "material.<generated:line_id:7>.mass_t",
+              "1"
+            ],
+            [
+              "material.<generated:line_id:7>.fixed_carbon_percent",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:7>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:7>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:7>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:8>.role",
+              "baked_product"
+            ],
+            [
+              "material.<generated:line_id:8>.name",
+              "焙烧(炭化)品"
+            ],
+            [
+              "material.<generated:line_id:8>.mass_t",
+              "45"
+            ],
+            [
+              "material.<generated:line_id:8>.fixed_carbon_percent",
+              "92"
+            ],
+            [
+              "material.<generated:line_id:8>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:8>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:8>.volatile_matter_source",
+              "MEASURED"
+            ]
+          ]
+        },
+        {
+          "trace_id": "CAR-FLD-P03-RESULT",
+          "formula_id": "CAR-FML-GRAPHITIZATION-001",
+          "source_id": "CAR-SRC-GRAPHITIZATION-001",
+          "variables": [
+            [
+              "gpm",
+              "40",
+              ""
+            ],
+            [
+              "gpmfc",
+              "0.8",
+              ""
+            ],
+            [
+              "gta",
+              "35",
+              ""
+            ],
+            [
+              "gtafc",
+              "0.9",
+              ""
+            ],
+            [
+              "gwt",
+              "0",
+              ""
+            ],
+            [
+              "gp",
+              "32",
+              ""
+            ],
+            [
+              "gpfc",
+              "0.95",
+              ""
+            ],
+            [
+              "gpmvar",
+              "0.04",
+              ""
+            ],
+            [
+              "k3",
+              "0.35",
+              ""
+            ]
+          ],
+          "substitution": "CAR-FML-GRAPHITIZATION-001 按映射变量代入；实例 <generated:instance_id:3>",
+          "amount": "122.9066666666666666666666666666666666667",
+          "unit": "tCO2",
+          "instance_id": "<generated:instance_id:3>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": [
+            [
+              "material.normalization_version",
+              "CAR-MATERIAL-NORMALIZATION-V1"
+            ],
+            [
+              "material.<generated:line_id:9>.role",
+              "graphitization_packing"
+            ],
+            [
+              "material.<generated:line_id:9>.name",
+              "保温料和电阻料"
+            ],
+            [
+              "material.<generated:line_id:9>.mass_t",
+              "40"
+            ],
+            [
+              "material.<generated:line_id:9>.fixed_carbon_percent",
+              "80"
+            ],
+            [
+              "material.<generated:line_id:9>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:9>.volatile_matter_percent",
+              "4"
+            ],
+            [
+              "material.<generated:line_id:9>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:10>.role",
+              "green_graphitization_product"
+            ],
+            [
+              "material.<generated:line_id:10>.name",
+              "待石墨化品"
+            ],
+            [
+              "material.<generated:line_id:10>.mass_t",
+              "35"
+            ],
+            [
+              "material.<generated:line_id:10>.fixed_carbon_percent",
+              "90"
+            ],
+            [
+              "material.<generated:line_id:10>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:10>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:10>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:11>.role",
+              "graphitization_byproduct"
+            ],
+            [
+              "material.<generated:line_id:11>.name",
+              "粉尘 、碎屑 、残块(渣) 、\n副产品等"
+            ],
+            [
+              "material.<generated:line_id:11>.mass_t",
+              "1"
+            ],
+            [
+              "material.<generated:line_id:11>.fixed_carbon_percent",
+              "0"
+            ],
+            [
+              "material.<generated:line_id:11>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:11>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:11>.volatile_matter_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:12>.role",
+              "graphitized_product"
+            ],
+            [
+              "material.<generated:line_id:12>.name",
+              "石墨化产品"
+            ],
+            [
+              "material.<generated:line_id:12>.mass_t",
+              "32"
+            ],
+            [
+              "material.<generated:line_id:12>.fixed_carbon_percent",
+              "95"
+            ],
+            [
+              "material.<generated:line_id:12>.fixed_carbon_source",
+              "MEASURED"
+            ],
+            [
+              "material.<generated:line_id:12>.volatile_matter_percent",
+              ""
+            ],
+            [
+              "material.<generated:line_id:12>.volatile_matter_source",
+              "MEASURED"
+            ]
+          ]
+        },
+        {
+          "trace_id": "CAR-FLD-P04A-RESULT",
+          "formula_id": "CAR-FML-FUME-INCINERATION-001",
+          "source_id": "CAR-SRC-FUME-INCINERATION-001",
+          "variables": [
+            [
+              "Q",
+              "100",
+              ""
+            ],
+            [
+              "QVar",
+              "10",
+              ""
+            ],
+            [
+              "HM",
+              "30",
+              ""
+            ],
+            [
+              "FCh",
+              "0.02",
+              ""
+            ],
+            [
+              "FOx",
+              "0.98",
+              ""
+            ],
+            [
+              "T",
+              "365",
+              ""
+            ]
+          ],
+          "substitution": "ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹；实例 <generated:instance_id:4>",
+          "amount": "0.01888656000000000000000000000000000000000",
+          "unit": "tCO2",
+          "instance_id": "<generated:instance_id:4>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-FLD-P04B-RESULT",
+          "formula_id": "CAR-FML-FGD-001",
+          "source_id": "CAR-SRC-FGD-001",
+          "variables": [
+            [
+              "CAL[1]",
+              "2",
+              "t"
+            ],
+            [
+              "I[1]",
+              "0.9",
+              "ratio"
+            ],
+            [
+              "EF1[1]",
+              "0.440",
+              "tCO2/t"
+            ],
+            [
+              "TR[1]",
+              "0.95",
+              "ratio"
+            ],
+            [
+              "CAL[2]",
+              "2",
+              "t"
+            ],
+            [
+              "I[2]",
+              "0.1",
+              "ratio"
+            ],
+            [
+              "EF1[2]",
+              "0.522",
+              "tCO2/t"
+            ],
+            [
+              "TR[2]",
+              "0.9",
+              "ratio"
+            ]
+          ],
+          "substitution": "ED = sum(CAL×I×EF1×TR)；设施 <generated:instance_id:5> 内独立汇总",
+          "amount": "0.846360",
+          "unit": "tCO2",
+          "instance_id": "<generated:instance_id:5>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-P04",
+          "formula_id": "CAR-FML-GAS-CONTROL-TOTAL-001",
+          "source_id": "CAR-SRC-GAS-CONTROL-001",
+          "variables": [
+            [
+              "ER subtotal",
+              "0.01888656000000000000000000000000000000000",
+              "tCO2"
+            ],
+            [
+              "ED subtotal",
+              "0.846360",
+              "tCO2"
+            ]
+          ],
+          "substitution": "EP = sum(ER) + sum(ED)",
+          "amount": "0.8652465600000000000000000000000000000000",
+          "unit": "tCO2",
+          "instance_id": null,
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "<generated:detail_id:1>",
+          "formula_id": "CAR-FML-PURCHASED-ELECTRICITY-001",
+          "source_id": "CAR-SRC-PURCHASED-ELECTRICITY-001",
+          "variables": [
+            [
+              "QGe",
+              "100",
+              "MWh"
+            ],
+            [
+              "EF2",
+              "0.5306",
+              "tCO₂/MWh"
+            ]
+          ],
+          "substitution": "EGe = QGe × EF2",
+          "amount": "53.0600",
+          "unit": "tCO2",
+          "instance_id": "<generated:detail_id:1>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "<generated:line_id:13>",
+          "formula_id": "CAR-FML-EXPORTED-ELECTRICITY-001",
+          "source_id": "CAR-SRC-EXPORTED-ELECTRICITY-001",
+          "variables": [
+            [
+              "QSe",
+              "2",
+              "MWh"
+            ],
+            [
+              "EF2",
+              "0.5",
+              "tCO2/MWh"
+            ]
+          ],
+          "substitution": "ESe = QSe × EF2",
+          "amount": "1.0",
+          "unit": "tCO2",
+          "instance_id": "<generated:line_id:13>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "<generated:line_id:14>",
+          "formula_id": "CAR-FML-PURCHASED-HEAT-001",
+          "source_id": "CAR-SRC-PURCHASED-HEAT-001",
+          "variables": [
+            [
+              "BGd",
+              "1000000",
+              "kg"
+            ],
+            [
+              "HM",
+              "2777.0",
+              "kJ/kg"
+            ],
+            [
+              "EF3",
+              "0.11",
+              "tCO2/GJ"
+            ]
+          ],
+          "substitution": "EGd = BGd × HM × EF3 / 10⁶；焓值来源：GB/T 32151.34—2024 附录 C.4 自动确定",
+          "amount": "305.470000000",
+          "unit": "tCO2",
+          "instance_id": "<generated:line_id:14>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": [
+            [
+              "enthalpy_source",
+              "标准表自动确定"
+            ],
+            [
+              "standard",
+              "GB/T 32151.34—2024"
+            ],
+            [
+              "table",
+              "C.4"
+            ],
+            [
+              "pressure_basis",
+              "绝压（MPa）"
+            ],
+            [
+              "enthalpy_used_kj_per_kg",
+              "2777.0"
+            ],
+            [
+              "automatic_reference_enthalpy_kj_per_kg",
+              "2777.0"
+            ],
+            [
+              "heat_factor_source",
+              "标准缺省值"
+            ],
+            [
+              "pressure_lower_node_mpa",
+              "1.00"
+            ],
+            [
+              "pressure_upper_node_mpa",
+              "1.00"
+            ]
+          ]
+        },
+        {
+          "trace_id": "<generated:line_id:15>",
+          "formula_id": "CAR-FML-EXPORTED-HEAT-001",
+          "source_id": "CAR-SRC-EXPORTED-HEAT-001",
+          "variables": [
+            [
+              "BSd",
+              "100000",
+              "kg"
+            ],
+            [
+              "HM",
+              "2777.0",
+              "kJ/kg"
+            ],
+            [
+              "EF3",
+              "0.12",
+              "tCO2/GJ"
+            ]
+          ],
+          "substitution": "ESd = BSd × HM × EF3 / 10⁶；焓值来源：GB/T 32151.34—2024 附录 C.4 自动确定",
+          "amount": "33.324000000",
+          "unit": "tCO2",
+          "instance_id": "<generated:line_id:15>",
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": [
+            [
+              "enthalpy_source",
+              "标准表自动确定"
+            ],
+            [
+              "standard",
+              "GB/T 32151.34—2024"
+            ],
+            [
+              "table",
+              "C.4"
+            ],
+            [
+              "pressure_basis",
+              "绝压（MPa）"
+            ],
+            [
+              "enthalpy_used_kj_per_kg",
+              "2777.0"
+            ],
+            [
+              "automatic_reference_enthalpy_kj_per_kg",
+              "2777.0"
+            ],
+            [
+              "heat_factor_source",
+              "企业实测值"
+            ],
+            [
+              "pressure_lower_node_mpa",
+              "1.00"
+            ],
+            [
+              "pressure_upper_node_mpa",
+              "1.00"
+            ]
+          ]
+        },
+        {
+          "trace_id": "CAR-DIRECT",
+          "formula_id": "CAR-FML-DIRECT-001",
+          "source_id": "CAR-RULE-TOTAL-001",
+          "variables": [
+            [
+              "EFu",
+              "1.796666666666666666666666666666666666667",
+              "tCO2"
+            ],
+            [
+              "EC",
+              "55.37583333333333333333333333333333333333",
+              "tCO2"
+            ],
+            [
+              "EB",
+              "130.2354166666666666666666666666666666667",
+              "tCO2"
+            ],
+            [
+              "EG",
+              "122.9066666666666666666666666666666666667",
+              "tCO2"
+            ],
+            [
+              "EP",
+              "0.8652465600000000000000000000000000000000",
+              "tCO2"
+            ]
+          ],
+          "substitution": "ES = EFu + EC + EB + EG + EP",
+          "amount": "311.1798298933333333333333333333333333334",
+          "unit": "tCO2",
+          "instance_id": null,
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-INDIRECT",
+          "formula_id": "CAR-FML-INDIRECT-001",
+          "source_id": "CAR-RULE-TOTAL-001",
+          "variables": [
+            [
+              "EGe",
+              "53.0600",
+              "tCO2"
+            ],
+            [
+              "EGd",
+              "305.470000000",
+              "tCO2"
+            ],
+            [
+              "ESe",
+              "1.0",
+              "tCO2"
+            ],
+            [
+              "ESd",
+              "33.324000000",
+              "tCO2"
+            ]
+          ],
+          "substitution": "EI = EGe + EGd - ESe - ESd",
+          "amount": "324.206000000",
+          "unit": "tCO2",
+          "instance_id": null,
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        },
+        {
+          "trace_id": "CAR-TOTAL",
+          "formula_id": "CAR-FML-TOTAL-001",
+          "source_id": "CAR-RULE-TOTAL-001",
+          "variables": [
+            [
+              "ES",
+              "311.1798298933333333333333333333333333334",
+              "tCO2"
+            ],
+            [
+              "EI",
+              "324.206000000",
+              "tCO2"
+            ]
+          ],
+          "substitution": "ET = ES + EI",
+          "amount": "635.3858298933333333333333333333333333334",
+          "unit": "tCO2",
+          "instance_id": null,
+          "standard_location": null,
+          "mapping_location": null,
+          "provenance": []
+        }
+      ]
+    },
+    "runtime_timestamps": {
+      "before_calculated_at": "2026-10-14T10:49:00+00:00",
+      "saved_calculated_at": "2026-10-14T10:49:00+00:00",
+      "before_imported_at": "2026-10-14T10:49:00+00:00",
+      "saved_imported_at": "2026-10-14T10:49:00+00:00"
+    }
+  },
+  "native_roundtrip": {
+    "status": "PASS",
+    "failure": null,
+    "engine": "WPS Office ET COM",
+    "prog_id": "Excel.Application",
+    "clsid": "{00024500-0000-0000-C000-000000000046}",
+    "registered_server": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe /Automation",
+    "registered_exe": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+    "registered_file_version": "12,1,0,29158",
+    "activated_exe": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+    "activated_file_version": "12,1,0,29158",
+    "application_version": "12.0",
+    "process_id": 24932,
+    "pid_was_preexisting": false,
+    "initial_workbooks": 0,
+    "gate_passed_before_open": true,
+    "source_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\complete-appendix-b.xlsx",
+    "source_sha256_before": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "source_sha256_after": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "before_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-before.xlsx",
+    "before_copy_sha256": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+    "saved_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-native-roundtrip.xlsx",
+    "saved_copy_sha256": "8adcfe9746b8fd790c4cb932376fab0758b430b77e8718d2a0e4e5ac61ddf08b",
+    "saved_copy_changed": true,
+    "run_directory": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6",
+    "before_audit": {
+      "sheet_names": [
+        "B.1",
+        "B.2",
+        "B.3",
+        "B.4",
+        "B.5",
+        "B.6",
+        "B.7",
+        "B.8",
+        "B.9"
+      ],
+      "sheets": [
+        {
+          "name": "B.1",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.2",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.3",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.4",
+          "protect_contents": true,
+          "protect_drawing_objects": false,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.5",
+          "protect_contents": true,
+          "protect_drawing_objects": false,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.6",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.7",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.8",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.9",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        }
+      ]
+    },
+    "after_audit": {
+      "sheet_names": [
+        "B.1",
+        "B.2",
+        "B.3",
+        "B.4",
+        "B.5",
+        "B.6",
+        "B.7",
+        "B.8",
+        "B.9"
+      ],
+      "sheets": [
+        {
+          "name": "B.1",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.2",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.3",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.4",
+          "protect_contents": true,
+          "protect_drawing_objects": false,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.5",
+          "protect_contents": true,
+          "protect_drawing_objects": false,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.6",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.7",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.8",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        },
+        {
+          "name": "B.9",
+          "protect_contents": true,
+          "protect_drawing_objects": true,
+          "protect_scenarios": true
+        }
+      ]
+    },
+    "checks": [
+      {
+        "name": "registered_server_matches_activated_process",
+        "passed": true,
+        "detail": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe"
+      },
+      {
+        "name": "independent_instance_started_with_zero_workbooks",
+        "passed": true,
+        "detail": {
+          "pid": 24932,
+          "pid_was_preexisting": false,
+          "initial_workbooks": 0
+        }
+      },
+      {
+        "name": "nine_sheet_names_preserved",
+        "passed": true,
+        "detail": {
+          "before": [
+            "B.1",
+            "B.2",
+            "B.3",
+            "B.4",
+            "B.5",
+            "B.6",
+            "B.7",
+            "B.8",
+            "B.9"
+          ],
+          "after": [
+            "B.1",
+            "B.2",
+            "B.3",
+            "B.4",
+            "B.5",
+            "B.6",
+            "B.7",
+            "B.8",
+            "B.9"
+          ]
+        }
+      },
+      {
+        "name": "sheet_protection_flags_preserved",
+        "passed": true,
+        "detail": {
+          "before": [
+            {
+              "name": "B.1",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.2",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.3",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.4",
+              "protect_contents": true,
+              "protect_drawing_objects": false,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.5",
+              "protect_contents": true,
+              "protect_drawing_objects": false,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.6",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.7",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.8",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.9",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            }
+          ],
+          "after": [
+            {
+              "name": "B.1",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.2",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.3",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.4",
+              "protect_contents": true,
+              "protect_drawing_objects": false,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.5",
+              "protect_contents": true,
+              "protect_drawing_objects": false,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.6",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.7",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.8",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            },
+            {
+              "name": "B.9",
+              "protect_contents": true,
+              "protect_drawing_objects": true,
+              "protect_scenarios": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "source_workbook_unchanged",
+        "passed": true,
+        "detail": {
+          "before": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+          "after": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98"
+        }
+      },
+      {
+        "name": "native_saved_copy_exists",
+        "passed": true,
+        "detail": {
+          "before_copy_sha256": "9f6c80d41bf80a504dd9c360224dab773e3bf2c157fa0686bb2735d0e3bf7f98",
+          "saved_copy_sha256": "8adcfe9746b8fd790c4cb932376fab0758b430b77e8718d2a0e4e5ac61ddf08b"
+        }
+      }
+    ]
+  },
+  "reproducibility": {
+    "native_com_script_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\native_excel_roundtrip.ps1",
+    "adapter_usecase_script_path": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\docs\\ui\\standard-input-evidence\\excel-wps\\verify_roundtrip.py",
+    "adapter_command": [
+      "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\.venv\\Scripts\\python.exe",
+      "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL\\docs\\ui\\standard-input-evidence\\excel-wps\\verify_roundtrip.py",
+      "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-before.xlsx",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6\\complete-appendix-b-native-roundtrip.xlsx",
+      "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-standard-input-word-qa\\native-excel-roundtrip-repro-20261014-104959-799543d6"
+    ]
+  },
+  "cell_diff": {
+    "blank_serialization_only_count": 21,
+    "blank_serialization_differences": [
+      {
+        "sheet": "B.2",
+        "cell": "K4",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K5",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K6",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K7",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K8",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K9",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K10",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K11",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K12",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K13",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K14",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K15",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K16",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K17",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.2",
+        "cell": "K18",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.6",
+        "cell": "G3",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.7",
+        "cell": "G3",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.7",
+        "cell": "G4",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.7",
+        "cell": "G5",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.8",
+        "cell": "E3",
+        "before": null,
+        "after": ""
+      },
+      {
+        "sheet": "B.8",
+        "cell": "E4",
+        "before": null,
+        "after": ""
+      }
+    ],
+    "other_value_change_count": 0,
+    "formula_cell_count_before": 0,
+    "formula_cell_count_after": 0,
+    "new_formula_count": 0,
+    "formula_changes": []
+  },
+  "preview": {
+    "units_before": 1,
+    "units_after": 1,
+    "calculable_before": true,
+    "calculable_after": true,
+    "record_count_after_previews": 0,
+    "canonical_input_sha256": "cd7dadba3f576def850156483bb08d04e931081f2d9aa42f16bea5248727b45a",
+    "result_sha256": "e3583cd14bc141dac21fa14e910ea6e58ce42feac9f300bb1435c1a666b0ba2f",
+    "parameter_snapshot_sha256": "2026f74990a5c39f6c04e6a765158c0893fc1c117280a77d81991236a2dcf5e1",
+    "trace_sha256": "4041bb722e87d67eb35ebe0d8945c897caff844c498b9c7dfba44b51a7b63358",
+    "selected_factor_count": 7,
+    "activity_counts": {
+      "fuels": 1,
+      "calcinations": 1,
+      "bakings": 1,
+      "graphitizations": 1,
+      "fume_incinerations": 1,
+      "fgd_units": 1,
+      "purchased_electricity": 1,
+      "exported_electricity": 1,
+      "purchased_heat": 1,
+      "exported_heat": 1
+    },
+    "formal_successful": true,
+    "formal_record_count": 1,
+    "formal_record_id": "record.appendix-b-input-947595e4c3834c763956.ae60d22bec6244bd8fa9c7e0a9f1f462"
+  },
+  "sheet_protection": {
+    "before": [
+      {
+        "name": "B.1",
+        "max_row": 17,
+        "max_column": 3,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 51,
+        "locked_cells": 51,
+        "unlocked_cells": 0,
+        "lock_map_sha256": "27fec21fd982fc46c039d121b41c4467111fe37018ba35d87d2e628c3233b97c"
+      },
+      {
+        "name": "B.2",
+        "max_row": 21,
+        "max_column": 13,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 273,
+        "locked_cells": 108,
+        "unlocked_cells": 165,
+        "lock_map_sha256": "d3ac49792e794d241f369bf4e64c15c5ea6935defba1496939e22c561367883a"
+      },
+      {
+        "name": "B.3",
+        "max_row": 13,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 104,
+        "locked_cells": 62,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+      },
+      {
+        "name": "B.4",
+        "max_row": 13,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": false,
+          "scenarios": false,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 104,
+        "locked_cells": 62,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+      },
+      {
+        "name": "B.5",
+        "max_row": 12,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": false,
+          "scenarios": false,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 96,
+        "locked_cells": 61,
+        "unlocked_cells": 35,
+        "lock_map_sha256": "941c656207a9528eaa78e396f11422738e16fe75e3cd9e5e55278c52464d16d8"
+      },
+      {
+        "name": "B.6",
+        "max_row": 8,
+        "max_column": 7,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 56,
+        "locked_cells": 26,
+        "unlocked_cells": 30,
+        "lock_map_sha256": "9259d6a4becf07cc4c3484e69b568398ff775aec0638b362d64058133e62a67f"
+      },
+      {
+        "name": "B.7",
+        "max_row": 9,
+        "max_column": 9,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 81,
+        "locked_cells": 39,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "b2aca16ae9aad489afe04a44e0fb38c015e0cc65c246bc0436707d52dd46b512"
+      },
+      {
+        "name": "B.8",
+        "max_row": 5,
+        "max_column": 5,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 25,
+        "locked_cells": 17,
+        "unlocked_cells": 8,
+        "lock_map_sha256": "982c05d913f3f5a59145afd9b8fb90aca631a21fc0de556166ee9bbcc4539d0b"
+      },
+      {
+        "name": "B.9",
+        "max_row": 7,
+        "max_column": 7,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 49,
+        "locked_cells": 35,
+        "unlocked_cells": 14,
+        "lock_map_sha256": "a4139aec109f47400c330e5335d37943cbfa87ae4e14cf529993a71f2971c744"
+      }
+    ],
+    "after": [
+      {
+        "name": "B.1",
+        "max_row": 17,
+        "max_column": 3,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 51,
+        "locked_cells": 51,
+        "unlocked_cells": 0,
+        "lock_map_sha256": "27fec21fd982fc46c039d121b41c4467111fe37018ba35d87d2e628c3233b97c"
+      },
+      {
+        "name": "B.2",
+        "max_row": 21,
+        "max_column": 13,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 273,
+        "locked_cells": 108,
+        "unlocked_cells": 165,
+        "lock_map_sha256": "d3ac49792e794d241f369bf4e64c15c5ea6935defba1496939e22c561367883a"
+      },
+      {
+        "name": "B.3",
+        "max_row": 13,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 104,
+        "locked_cells": 62,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+      },
+      {
+        "name": "B.4",
+        "max_row": 13,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": false,
+          "scenarios": false,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 104,
+        "locked_cells": 62,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "f9dc4439363a0127782bc8b0ebabe223d34f80c04c65574953403a093fc8caea"
+      },
+      {
+        "name": "B.5",
+        "max_row": 12,
+        "max_column": 8,
+        "protection": {
+          "sheet": true,
+          "objects": false,
+          "scenarios": false,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 96,
+        "locked_cells": 61,
+        "unlocked_cells": 35,
+        "lock_map_sha256": "941c656207a9528eaa78e396f11422738e16fe75e3cd9e5e55278c52464d16d8"
+      },
+      {
+        "name": "B.6",
+        "max_row": 8,
+        "max_column": 7,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 56,
+        "locked_cells": 26,
+        "unlocked_cells": 30,
+        "lock_map_sha256": "9259d6a4becf07cc4c3484e69b568398ff775aec0638b362d64058133e62a67f"
+      },
+      {
+        "name": "B.7",
+        "max_row": 9,
+        "max_column": 9,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 81,
+        "locked_cells": 39,
+        "unlocked_cells": 42,
+        "lock_map_sha256": "b2aca16ae9aad489afe04a44e0fb38c015e0cc65c246bc0436707d52dd46b512"
+      },
+      {
+        "name": "B.8",
+        "max_row": 5,
+        "max_column": 5,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 25,
+        "locked_cells": 17,
+        "unlocked_cells": 8,
+        "lock_map_sha256": "982c05d913f3f5a59145afd9b8fb90aca631a21fc0de556166ee9bbcc4539d0b"
+      },
+      {
+        "name": "B.9",
+        "max_row": 7,
+        "max_column": 7,
+        "protection": {
+          "sheet": true,
+          "objects": true,
+          "scenarios": true,
+          "selectLockedCells": false,
+          "selectUnlockedCells": false,
+          "formatCells": true,
+          "formatColumns": true,
+          "formatRows": true,
+          "insertColumns": true,
+          "insertRows": false,
+          "insertHyperlinks": true,
+          "deleteColumns": true,
+          "deleteRows": true,
+          "sort": true,
+          "autoFilter": true,
+          "pivotTables": true,
+          "password": null,
+          "algorithmName": null,
+          "hashValue": null,
+          "saltValue": null,
+          "spinCount": null
+        },
+        "used_cells": 49,
+        "locked_cells": 35,
+        "unlocked_cells": 14,
+        "lock_map_sha256": "a4139aec109f47400c330e5335d37943cbfa87ae4e14cf529993a71f2971c744"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # 报告输出架构
 
-状态：GHG-RPT02已通过PR39合并；PR40整合附录B正式Excel输入，继续复用PR37公共Word导出入口。
+状态：当前实施表式3.0.0候选，待整阶段独立验收；继承主线RPT02/EXB01与公共Word导出入口。
 
 ## 数据流
 
@@ -42,4 +42,10 @@ ReportTable增加多层表头、头部/正文合并、脚注及上下文标题�
 
 B.1两条总量只取ES与ET。`frozen_totals`共用到记录详情，EI仍为净间接排放量。输出电力/热力明细以负号明确扣减；B.1输出量按模板列示原正值，说明其在总量中扣减。显示单位转换使用显式DecimalPolicy的UnitService，仅供展示，不重算排放、不写回Record。未启用、真实零、未填写和历史未记录分别标记。未冻结的派生燃料含碳量不从低位发热量和单位热值含碳量重算。
 
-表式2.0.0追溯原批准模板SHA256与公式清理后SHA256。导出审计继续保存schema/template_version和DOCX哈希，DOCX属性记录布局ID及批准模板哈希。官方标准全文不进入包。
+表式3.0.0同时追溯来源母版及当前输入模板版本/SHA256。导出审计继续保存schema/template_version和DOCX哈希，DOCX属性区分业务表式与源模板。官方标准全文不进入包。
+
+## 当前内部实现边界
+
+通用ReportModel类型在`reporting/types.py`，公共`model.py`只分派到注册标准。炭素业务投影在`carbon_material_model.py`与`appendix_b.py`，记录页通过通用文本/HTML展示同一业务表，Word renderer不包含行业分支。旧UI独立B.1—B.9投影已移除，冻结汇总核对保留在共享B.1。
+
+新Record的派生含碳量展示证据及实际因子类型在核算时冻结。读取报告时不调用Calculator、Resolver或当前Catalog；现有selection_method保持原义，来源类型、选择动作与版本/年度分开。该增量是本模块内部证据，不升级中央Frozen或数据库。

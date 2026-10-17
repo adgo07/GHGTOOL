@@ -2,16 +2,16 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-17-r11",
-  "base": "PR48已合并R8为历史映射基线；当前R11执行候选依据现行Mapping及Owner已批准014/018/019/020软件决定；G05固定规则快照仍源自main@204dded5。CANDIDATE表示执行接入尚未完成，不撤销标准原文事实或已批准软件决定。",
+  "revision": "adoption-2026-10-17-fuel-power1",
+  "base": "现行R11 Mapping及014/017/018/019/020有效决定保持；G05主体保留204dded5快照，仅两条电力规则范围按Issue010/Mapping §9.4对齐PR46五表已有能力。PR47固定受验r11及派生资产保留历史身份；integration1候选尚未接管生产共享提供者，不撤销批准决定。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
-      "revision": "main-204dded5-g05"
+      "revision": "pr46-integration-2026-10-17-g05"
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-17-r11"
+      "revision": "adoption-2026-10-17-fuel-power1"
     }
   ],
   "status": "CANDIDATE",
@@ -70,7 +70,7 @@
   "adopts": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
-      "revision": "main-204dded5-g05",
+      "revision": "pr46-integration-2026-10-17-g05",
       "group_ids": [
         "common.activity",
         "common.aggregation",
@@ -343,6 +343,10 @@
       },
       "applies_to_parameter_ids": [
         "electricity_emission_factor_national",
+        "electricity_emission_factor_regional_average",
+        "electricity_emission_factor_provincial_average",
+        "electricity_emission_factor_national_average_excluding_market_nonfossil",
+        "electricity_emission_factor_national_fossil",
         "electricity_emission_factor_nonfossil",
         "heat_emission_factor_default"
       ],
@@ -10636,6 +10640,69 @@
           "value": {
             "state": "NONE"
           }
+        },
+        {
+          "id": "elec_binding-electricity_national_fossil_2023_01_purchased__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "STANDARD_DEFAULT"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
+          }
+        },
+        {
+          "id": "elec_default_none_for_lock_electricity_factor_079_calculated__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "CALCULATED"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
+          }
+        },
+        {
+          "id": "elec_default_none_for_lock_electricity_factor_079_measured__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "MEASURED"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "BINDING",
+            "parameter_id": "electricity_emission_factor_national_fossil"
+          }
         }
       ]
     },
@@ -12770,6 +12837,28 @@
             "state": "FIXED",
             "values": [
               "OTHER"
+            ]
+          }
+        },
+        {
+          "id": "elec_src_binding-electricity_national_fossil_2023_01_purchased__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "FIXED",
+            "values": [
+              "STANDARD_DEFAULT"
             ]
           }
         }
@@ -28395,6 +28484,87 @@
               "reason": "用户可显式选择电力专属OTHER；不得借用Catalog/source binding ID或自动标为MEASURED。"
             }
           }
+        },
+        {
+          "id": "lock_electricity_factor_079_standard_default__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "STANDARD_DEFAULT"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "value": {
+              "state": "LOCKED",
+              "reason": "精确目录标准缺省值只读；实际数值由Catalog/Resolver提供。"
+            },
+            "source": {
+              "state": "LOCKED",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT。"
+            }
+          }
+        },
+        {
+          "id": "lock_electricity_factor_079_calculated__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "CALCULATED"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "value": {
+              "state": "PENDING",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
+            },
+            "source": {
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
+            }
+          }
+        },
+        {
+          "id": "lock_electricity_factor_079_measured__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5",
+              "business_source": "MEASURED"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "value": {
+              "state": "PENDING",
+              "reason": "此精确目录路径只允许STANDARD_DEFAULT；需先切换合法来源。"
+            },
+            "source": {
+              "state": "EDITABLE",
+              "reason": "存在精确目录标准缺省来源可选择。"
+            }
+          }
         }
       ]
     },
@@ -30799,6 +30969,27 @@
           "value": {
             "state": "NONE",
             "reason": "常规来源仍以目录为默认；只有用户显式选择电力专属OTHER后才填写库外值。OTHER不自动预选、不预填数值或目录来源身份；来源说明可选且留空不阻断。"
+          }
+        },
+        {
+          "id": "init_elec_src_binding-electricity_national_fossil_2023_01_purchased__conventional",
+          "when": {
+            "tags": {
+              "origin": "CATALOG",
+              "binding_status": "VERIFIED",
+              "source_path": "CATALOGUE_TABLE_5",
+              "direction": "PURCHASED",
+              "attribute": "CONVENTIONAL",
+              "parameter_id": "electricity_emission_factor_national_fossil",
+              "binding_id": "binding-electricity_national_fossil_2023_01",
+              "catalog_table": "5"
+            },
+            "ranges": {}
+          },
+          "value": {
+            "state": "FIXED",
+            "source": "STANDARD_DEFAULT",
+            "reason": "已批准的精确目录身份作为标准缺省来源；仍按有效期和地区/口径精确匹配，失败时不回退。"
           }
         }
       ]

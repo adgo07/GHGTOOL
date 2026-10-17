@@ -40,7 +40,8 @@ from packages.standards.carbon_material import (
 )
 from packages.standards.carbon_material_normalization import MaterialDataSource, MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
-from packages.ui.carbon_material_page import _C2_CARBONATES, _FUEL_C1_ACTIVITY_PATH, _FUEL_C1_SUBJECT_IDS
+from packages.ui.carbon_material_page import _C2_CARBONATES
+from packages.standards.carbon_material_input_policy import fuel_path_for_unit
 from packages.ui.field_specs import get_field_spec
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
@@ -108,10 +109,108 @@ class G06PageTests(unittest.TestCase):
             "calculationValidationList",
         ):
             self.assertIsNotNone(self.page.findChild(QWidget, object_name), object_name)
+
+    def test_quick_jump_matches_eight_source_groups_and_material_roles_are_preopened(self) -> None:
+        self.assertEqual(self.page._fuel_rows[0].fuel_type_label.text(), "燃料种类")
+        self.assertEqual(self.page.source_navigation.count(), 9)
+        self.assertEqual(
+            [self.page.source_navigation.itemText(index) for index in range(1, 9)],
+            [label for _group_id, label, _source_ids in self.page._source_toggle_groups],
+        )
+        self.assertEqual(
+            [self.page._source_toggle_buttons[group_id].accessibleName()
+             for group_id, _label, _source_ids in self.page._source_toggle_groups],
+            [label for _group_id, label, _source_ids in self.page._source_toggle_groups],
+        )
+        expected = {
+            "calcination": ["原料", "煅后料", "欠煅烧料", "碳粉尘"],
+            "baking": ["填充料", "待焙烧（炭化）品", "焙烧（炭化）品", "粉尘", "碎屑", "副产品"],
+            "graphitization": ["保温料", "电阻料", "待石墨化品", "石墨化品", "粉尘", "碎屑", "残块", "副产品"],
+        }
+        expected_roles = {
+            "calcination": [
+                MaterialRole.CALCINATION_FEED, MaterialRole.CALCINED_PRODUCT,
+                MaterialRole.UNDERBURN_RECOVERED, MaterialRole.CARBON_DUST,
+            ],
+            "baking": [
+                MaterialRole.BAKING_FILLER, MaterialRole.GREEN_BAKING_PRODUCT,
+                MaterialRole.BAKED_PRODUCT, MaterialRole.BAKING_BYPRODUCT,
+                MaterialRole.BAKING_BYPRODUCT, MaterialRole.BAKING_BYPRODUCT,
+            ],
+            "graphitization": [
+                MaterialRole.GRAPHITIZATION_PACKING, MaterialRole.GRAPHITIZATION_PACKING,
+                MaterialRole.GREEN_GRAPHITIZATION_PRODUCT, MaterialRole.GRAPHITIZED_PRODUCT,
+                MaterialRole.GRAPHITIZATION_BYPRODUCT, MaterialRole.GRAPHITIZATION_BYPRODUCT,
+                MaterialRole.GRAPHITIZATION_BYPRODUCT, MaterialRole.GRAPHITIZATION_BYPRODUCT,
+            ],
+        }
+        source_ids = {
+            "calcination": "CAR-SRC-CALCINATION-001",
+            "baking": "CAR-SRC-BAKING-001",
+            "graphitization": "CAR-SRC-GRAPHITIZATION-001",
+        }
+        for prefix, labels in expected.items():
+            with self.subTest(prefix=prefix):
+                self._set_source_involved(source_ids[prefix])
+                process = self.page._process_rows[prefix][0]
+                materials = process["materials"]
+                self.assertEqual([line["role"].currentText() for line in materials], labels)
+                self.assertEqual(
+                    [line["role"].currentData() for line in materials],
+                    expected_roles[prefix],
+                )
+                self.assertTrue(all(not line["remove_button"].isHidden() for line in materials))
+                self.assertEqual(self.page._material_inputs(process), ())
+
+        self.assertEqual(len(expected["calcination"]), 4)
+        self.assertEqual(len(expected["baking"]), 6)
+        self.assertEqual(len(expected["graphitization"]), 8)
+        self.assertEqual(
+            [self.page._process_rows["baking"][0]["materials"][i]["role"].itemText(i)
+             for i in range(4)],
+            ["填充料", "待焙烧/炭化品", "焙烧/炭化产品", "粉尘/碎屑/副产品"],
+        )
+        self.assertEqual(
+            [self.page._process_rows["graphitization"][0]["materials"][i]["role"].itemText(i)
+             for i in range(4)],
+            ["保温料/电阻料", "待石墨化品", "石墨化产品", "粉尘/碎屑/残块/副产品"],
+        )
+
+        calcination = self.page._process_rows["calcination"][0]
+        for material in tuple(calcination["materials"]):
+            self.page._remove_material_line(calcination, material["line_id"])
+        self.assertEqual(calcination["materials"], [])
+        saved = self.page._capture_form_state()
+        saved_rows = saved["process_instances"]["calcination"]
+        self.assertEqual(saved_rows[0]["material_ids"], [])
+        self.page._restore_form_state(saved)
+        self.assertEqual(self.page._process_rows["calcination"][0]["materials"], [])
+
+    def test_typing_does_not_relayout_the_active_source_or_input(self) -> None:
+        source_id = "CAR-SRC-FUEL-001"
+        self._set_source_involved(source_id)
+        row = self.page._fuel_rows[0]
+        row.activity.setText("1")
+        for _ in range(3):
+            self.application.processEvents()
+        card = self.page._source_cards[source_id]
+        field_geometry = row.activity.geometry()
+        card_geometry = card.geometry()
+        scroll_value = self.shell.main_scroll_area.verticalScrollBar().value()
+
+        row.activity.setText("12")
+        for _ in range(3):
+            self.application.processEvents()
+
+        self.assertEqual(row.activity.geometry(), field_geometry)
+        self.assertEqual(card.geometry(), card_geometry)
+        self.assertEqual(self.shell.main_scroll_area.verticalScrollBar().value(), scroll_value)
+
     def test_c1_specific_fuels_resolve_canonical_defaults_through_supported_paths(self) -> None:
         row = self.page._fuel_rows[0]
         self.assertEqual(row.lower_heating_value.property("fieldSpecKey"), "fuel_lhv")
-        self.assertEqual(len(_FUEL_C1_SUBJECT_IDS), 26)
+        options = row._fuel_options
+        self.assertEqual(len(options), 26)
         heat_index = row.path.findData(FuelPath.HEAT)
         self.assertGreaterEqual(heat_index, 0)
         self.assertFalse(row.path.model().item(heat_index).isEnabled())
@@ -120,11 +219,13 @@ class G06PageTests(unittest.TestCase):
             {row.path.itemData(index) for index in range(row.path.count()) if not row.path.view().isRowHidden(index)},
             {FuelPath.MASS, FuelPath.VOLUME},
         )
-        for fuel_type, subject_id in _FUEL_C1_SUBJECT_IDS.items():
+        for option in options:
+            fuel_type, subject_id = option.fuel_type, option.subject_id
             with self.subTest(fuel_type=fuel_type):
                 row.activity.clear()
                 row.fuel_type.setCurrentIndex(row.fuel_type.findData(fuel_type))
-                expected_path = _FUEL_C1_ACTIVITY_PATH.get(fuel_type, FuelPath.MASS)
+                defaults = self.page._uat03_parameter_queries.fuel_defaults(subject_id, self.page._period())
+                expected_path = FuelPath(fuel_path_for_unit(defaults.lower_heating_value.factor.unit.removeprefix("GJ/")))
                 self.assertIs(FuelPath(row.path.currentData()), expected_path)
                 row.activity.setText("1")
                 fuel = self.page._fuel()[0]
@@ -142,15 +243,17 @@ class G06PageTests(unittest.TestCase):
                 row.activity.clear()
 
         row.activity.clear()
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.COAL))
-        self.assertIsNone(self.page._fuel_default_factors(row))
-        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.OTHER))
+        self.assertEqual(row.fuel_type.findData(FuelType.COAL), -1)
+        self.assertEqual(row.fuel_type.findData(FuelType.OTHER), -1)
+        row.fuel_type.setEditText("未登记具体种类的企业燃料")
+        row.fuel_type.confirm_name(force=True)
         self.assertIsNone(self.page._fuel_default_factors(row))
     def test_custom_fuel_requires_named_measured_parameters_and_source(self) -> None:
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-FUEL-001")
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("工艺回收混合燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -287,6 +390,7 @@ class G06PageTests(unittest.TestCase):
 
         selector = component["carbonate_type"]
         selector.setEditText("未登记碳酸盐")
+        selector.confirm_name(force=True)
         legacy_fgd = self.page._process("fgd", FGDInput)
         self.assertIsNotNone(legacy_fgd)
         assert legacy_fgd is not None
@@ -296,6 +400,7 @@ class G06PageTests(unittest.TestCase):
         self.assertTrue(any(problem.code == "CAR-VAL-CARBONATE-FACTOR-MISSING" for problem in outcome.problems))
         self.assertEqual(self.page.record_repository.list_all(), ())
 
+        component["ef1_source"].setCurrentIndex(component["ef1_source"].findData("MEASURED"))
         component["ef1"].setText("0.500")
         component["factor_source_reference"].setText("脱硫剂检测报告-UI-01")
         manual = self.page._process("fgd", FGDInput)
@@ -304,15 +409,19 @@ class G06PageTests(unittest.TestCase):
         factor = manual.components[0].emission_factor
         self.assertIsNotNone(factor)
         assert factor is not None
-        self.assertIs(factor.source_kind, ParameterSourceKind.CALCULATED)
+        self.assertIs(factor.source_kind, ParameterSourceKind.MEASURED)
         self.assertIsNone(factor.source_id)
-        self.assertIn("化学计算", factor.source_location)
+        self.assertNotIn("化学计算", factor.source_location)
         self.assertIn("脱硫剂检测报告-UI-01", factor.source_location)
+        component["i_source"].setCurrentIndex(component["i_source"].findData("MEASURED"))
+        component["i"].setText("90")
+        component["tr_source"].setCurrentIndex(component["tr_source"].findData("MEASURED"))
+        component["tr"].setText("100")
         manual_outcome = self.page.calculator.calculate(self.page._input())
         self.assertTrue(manual_outcome.successful, manual_outcome.problems)
         manual_snapshot = next(
             snapshot for snapshot in manual_outcome.parameter_snapshots
-            if snapshot.parameter_id == "fgd_carbonate_emission_factor_calculated"
+            if snapshot.parameter_id == "fgd_carbonate_emission_factor_user"
         )
         self.assertIsNone(manual_snapshot.source_id)
         self.assertIn("脱硫剂检测报告-UI-01", manual_snapshot.source_location)
@@ -350,12 +459,12 @@ class G06PageTests(unittest.TestCase):
             (MaterialRole.CALCINED_PRODUCT, "煅后料", "70", "90", "2"),
         )
         first = self.page._process_rows["calcination"][0]
-        for index, (role, label, mass, fc, vm) in enumerate(roles):
-            material = first["materials"][0] if index == 0 else self.page._add_material_line(first)
+        for role, label, mass, fc, vm in roles:
+            material = self._material_for_role(first, role)
             self._fill_material_line(material, role, f"{label}甲", mass, fc, vm)
         second = self.page._add_process_row("calcination")
         for index, (role, label, mass, fc, vm) in enumerate(roles):
-            material = second["materials"][0] if index == 0 else self.page._add_material_line(second)
+            material = self._material_for_role(second, role)
             self._fill_material_line(material, role, f"{label}乙", "240" if index == 0 else "180", "75" if index == 0 else "88", "8" if index == 0 else "1")
         input_value = self.page._input()
         self.assertEqual(len(input_value.calcinations), 2)
@@ -397,8 +506,8 @@ class G06PageTests(unittest.TestCase):
         rows = [self.page._process_rows["graphitization"][0]]
         rows.append(self.page._add_process_row("graphitization"))
         for row_index, row in enumerate(rows):
-            for index, (role, label, mass, fc, vm) in enumerate(roles):
-                material = row["materials"][0] if index == 0 else self.page._add_material_line(row)
+            for role, label, mass, fc, vm in roles:
+                material = self._material_for_role(row, role)
                 self._fill_material_line(material, role, f"{label}{row_index + 1}", mass, fc, vm)
         invalid_row = self.page._add_process_row("graphitization")
         invalid_row["materials"][0]["mass"].setText("1")
@@ -551,11 +660,15 @@ class G06PageTests(unittest.TestCase):
         first_unit["reagent_name"].setText("石灰石")
         first_unit["group_amount"].setText("10")
         first_component, = first_unit["components"]
-        first_component["i"].setText("40")
         self._select_carbonate(first_component, "car-par-c2-caco3")
+        first_component["i_source"].setCurrentIndex(first_component["i_source"].findData("MEASURED"))
+        first_component["i"].setText("40")
         second_component = self.page._add_fgd_component(first_unit)
-        second_component["i"].setText("40")
         self._select_carbonate(second_component, "car-par-c2-mgco3")
+        second_component["i_source"].setCurrentIndex(second_component["i_source"].findData("MEASURED"))
+        second_component["i"].setText("40")
+        second_component["tr_source"].setCurrentIndex(second_component["tr_source"].findData("MEASURED"))
+        second_component["tr"].setText("100")
         self.assertEqual([component["i_source"].currentData() for component in first_unit["components"]], ["MEASURED", "MEASURED"])
         self.page._add_process_row("fgd")
         second_unit = self.page._process_rows["fgd"][1]
@@ -571,7 +684,10 @@ class G06PageTests(unittest.TestCase):
             [[Decimal("10"), Decimal("10")], [Decimal("5")]],
         )
         self.assertTrue(all(component.carbonate_fraction.source_kind is ParameterSourceKind.MEASURED for component in input_value.fgd_units[0].components))
-        self.assertTrue(all(component.conversion_rate.source_kind is ParameterSourceKind.STANDARD_DEFAULT for component in input_value.fgd_units[0].components))
+        self.assertEqual(
+            [component.conversion_rate.source_kind for component in input_value.fgd_units[0].components],
+            [ParameterSourceKind.STANDARD_DEFAULT, ParameterSourceKind.MEASURED],
+        )
         reordered_fgd = replace(
             input_value,
             fgd=None,
@@ -638,8 +754,8 @@ class G06PageTests(unittest.TestCase):
                 rows = (first, self.page._add_process_row(prefix))
                 for row_index, row in enumerate(rows):
                     scale = 1 if row_index == 0 else 2
-                    for index, (role, label, mass, fixed_carbon, volatile_matter) in enumerate(material_roles[prefix]):
-                        material = row["materials"][0] if index == 0 else self.page._add_material_line(row)
+                    for role, label, mass, fixed_carbon, volatile_matter in material_roles[prefix]:
+                        material = self._material_for_role(row, role)
                         self._fill_material_line(
                             material, role, f"{label}{row_index + 1}", str(Decimal(mass) * scale),
                             fixed_carbon, volatile_matter,
@@ -649,11 +765,15 @@ class G06PageTests(unittest.TestCase):
                 first["reagent_name"].setText("石灰石")
                 first["group_amount"].setText("10")
                 component = first["components"][0]
-                component["i"].setText("45")
                 self._select_carbonate(component, "car-par-c2-caco3")
+                component["i_source"].setCurrentIndex(component["i_source"].findData("MEASURED"))
+                component["i"].setText("45")
                 second_component = self.page._add_fgd_component(first)
-                second_component["i"].setText("45")
                 self._select_carbonate(second_component, "car-par-c2-mgco3")
+                second_component["i_source"].setCurrentIndex(second_component["i_source"].findData("MEASURED"))
+                second_component["i"].setText("45")
+                second_component["tr_source"].setCurrentIndex(second_component["tr_source"].findData("MEASURED"))
+                second_component["tr"].setText("100")
                 second = self.page._add_process_row(prefix)
                 second["reagent_name"].setText("石灰石")
                 second["group_amount"].setText("5")
@@ -792,6 +912,18 @@ class G06PageTests(unittest.TestCase):
         row["fixed_carbon"].setText(fixed_carbon)
         row["volatile_matter"].setText(volatile_matter)
 
+    @staticmethod
+    def _material_for_role(process_row: dict[str, object], role: MaterialRole) -> dict[str, object]:
+        materials = process_row.get("materials", [])
+        if not isinstance(materials, list):
+            raise AssertionError("process row has no material rows")
+        return next(
+            line for line in materials
+            if isinstance(line, dict)
+            and isinstance(line.get("role"), QComboBox)
+            and line["role"].currentData() == role
+        )
+
     def _select_carbonate(self, component: dict[str, object], parameter_id: str) -> None:
         selector = component["carbonate_type"]
         self.assertIsInstance(selector, QComboBox)
@@ -800,9 +932,12 @@ class G06PageTests(unittest.TestCase):
             None,
         )
         self.assertIsNotNone(option, parameter_id)
-        label = option.label
-        index = selector.findText(label, Qt.MatchFlag.MatchExactly)
-        self.assertGreaterEqual(index, 0, label)
+        index = next(
+            (i for i in range(selector.count())
+             if getattr(selector.itemData(i), "subject_id", None) == option.subject_id),
+            -1,
+        )
+        self.assertGreaterEqual(index, 0, option.label)
         selector.setCurrentIndex(index)
         selected = selector.currentData()
         self.assertIsNotNone(selected)
@@ -855,9 +990,9 @@ class G06PageTests(unittest.TestCase):
     def test_component_selectors_are_hidden_and_material_kinds_are_automatic(self) -> None:
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = self._material_for_role(process, MaterialRole.CALCINATION_FEED)
         self._fill_material_line(feed, MaterialRole.CALCINATION_FEED, "原料甲", "100", "50", "10")
-        product = self.page._add_material_line(process)
+        product = self._material_for_role(process, MaterialRole.CALCINED_PRODUCT)
         self._fill_material_line(product, MaterialRole.CALCINED_PRODUCT, "煅后料甲", "70", "25", "2")
         controls = self.page._material_controls["calcination"]
         self.assertFalse(controls["basis_editor"].isVisible())
@@ -922,7 +1057,7 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(row.amount.property("fieldUnit"), "t")
         self.assertEqual(get_field_spec("heat_pressure").label, "蒸汽压力（MPa，绝压）")
         self.assertEqual(row.heat_factor_mode.currentData(), HeatFactorMode.STANDARD_DEFAULT)
-        self.assertEqual(row.heat_factor_mode.currentText(), "标准缺省热力因子")
+        self.assertEqual(row.heat_factor_mode.currentText(), "缺省值")
         self.assertEqual(row.enthalpy_mode.currentData(), "AUTO")
         self.assertFalse(row.measured_heat_factor.isVisible())
         self.assertFalse(row.heat_source.isVisible())
@@ -970,7 +1105,7 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process_row = self.page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = self._material_for_role(process_row, MaterialRole.CALCINATION_FEED)
         feed["name"].setText("原料甲")
         feed["mass"].setText("100")
         feed["fixed_carbon"].setText("80")
@@ -983,7 +1118,7 @@ class G06PageTests(unittest.TestCase):
         second_feed["mass"].setText("50")
         second_feed["fixed_carbon"].setText("60")
         second_feed["volatile_matter"].setText("20")
-        product = self.page._add_material_line(process_row)
+        product = self._material_for_role(process_row, MaterialRole.CALCINED_PRODUCT)
         product["role"].setCurrentIndex(product["role"].findData(MaterialRole.CALCINED_PRODUCT))
         product["name"].setText("煅后料")
         product["mass"].setText("120")
@@ -1044,9 +1179,9 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-CALCINATION-001")
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = self._material_for_role(process, MaterialRole.CALCINATION_FEED)
         self._fill_material_line(feed, MaterialRole.CALCINATION_FEED, "原料甲", "100", "50", "10")
-        product = self.page._add_material_line(process)
+        product = self._material_for_role(process, MaterialRole.CALCINED_PRODUCT)
         self._fill_material_line(product, MaterialRole.CALCINED_PRODUCT, "煅后料甲", "70", "25", "2")
         current_input = self.page._input()
         current_process = current_input.calcinations[0]

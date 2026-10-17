@@ -2,8 +2,8 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
   "kind": "COMMON",
-  "revision": "main-204dded5-g05",
-  "base": "Snapshot of packages.core.default_g05_rules() at main base 204dded5; CANDIDATE only.",
+  "revision": "pr46-integration-2026-10-17-g05",
+  "base": "主体保留main@204dded5的G05冻结快照；GEN-RULE-ELECTRICITY-001五表范围按已批准Issue010及Mapping §9.4对齐原PR46实现77d36a1，不以Python为批准权威，不把公告五表伪称GB逐表规定。PR47固定r11快照保留为历史；本修订仅候选审阅，未接管生产提供者。",
   "dependency": [],
   "status": "CANDIDATE",
   "groups": [
@@ -1594,7 +1594,10 @@
       "payload": {},
       "applies_to_parameter_ids": [
         "electricity_emission_factor_national",
-        "electricity_emission_factor_provincial_average"
+        "electricity_emission_factor_regional_average",
+        "electricity_emission_factor_provincial_average",
+        "electricity_emission_factor_national_average_excluding_market_nonfossil",
+        "electricity_emission_factor_national_fossil"
       ],
       "required_factor_ids": [],
       "source_location": "GB/T 32150—2025 第7.5.6～7.5.7条；参数 GEN-PAR-ELECTRICITY-NATIONAL-LATEST",

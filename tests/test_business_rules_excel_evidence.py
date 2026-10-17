@@ -6,6 +6,8 @@ import unittest
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from openpyxl import load_workbook
+
 from packages.application import CarbonAccountingPreviewUseCase
 from packages.application.carbon_accounting import create_g06_parameter_resolver
 from packages.application.catalog_queries import CatalogQueryService
@@ -80,7 +82,16 @@ class BusinessRulesExcelCacheEvidenceTests(unittest.TestCase):
         for cache in (None,"987654321.123456789"):
             with self.subTest(cache=cache):
                 path=write_valid_appendix_b_workbook(self.root/("result-missing.xlsx" if cache is None else "result-stale.xlsx"),all_sources=True)
-                replace_with_formula(path,"B.2","J4",cache)
+                workbook=load_workbook(path,read_only=True,data_only=False)
+                try:
+                    result_headers=[cell for row in workbook["B.2"].iter_rows(min_row=2,max_row=3)
+                                    for cell in row if isinstance(cell.value,str)
+                                    and cell.value.startswith("排放量") and "tCO₂" in cell.value]
+                    self.assertEqual(len(result_headers),1,"正式模板应有唯一的排放量结果列")
+                    result_cell=f"{result_headers[0].column_letter}4"
+                finally:
+                    workbook.close()
+                replace_with_formula(path,"B.2",result_cell,cache)
                 unit=self.importer.import_preview(path,context=appendix_b_context()).units[0]
                 self.assertTrue(unit.can_calculate,unit.errors)
                 self.assertEqual(tuple((line.emission_source_id,line.amount) for line in unit.calculation.result.lines),expected)

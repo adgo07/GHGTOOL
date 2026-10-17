@@ -28,6 +28,7 @@ from packages.core.models import (
     PeriodType,
     RecordStatus,
 )
+from packages.core.record_summaries import RecordSummary
 
 from .sqlite import initialize_database
 
@@ -85,6 +86,11 @@ def _datetime(value: str, field: str) -> datetime:
     if parsed.tzinfo is None:
         raise RecordRepositoryError(f"records field {field!r} must be timezone-aware")
     return parsed
+
+
+def _created_at_sort_key(value: str) -> str:
+    normalized = _datetime(value, "created_at").astimezone(timezone.utc)
+    return normalized.isoformat(timespec="microseconds")
 
 
 def _date(value: str, field: str) -> date:
@@ -228,6 +234,32 @@ class SQLiteRecordRepository:
             data_version=data_version,
             deterministic=True,
         )
+        self._revision = 0
+
+    @property
+    def revision(self) -> int:
+        """In-process change token for optional list-view cache invalidation."""
+
+        return self._revision
+
+    @property
+    def change_token(self) -> tuple[object, ...]:
+        """Detect committed writes made by this or another repository instance."""
+
+        def file_state(path: Path) -> tuple[int, int] | None:
+            try:
+                stat = path.stat()
+            except OSError:
+                return None
+            return stat.st_mtime_ns, stat.st_size
+
+        database_path = Path(self.path)
+        return (
+            self._revision,
+            file_state(database_path),
+            file_state(database_path.with_name(database_path.name + "-wal")),
+            file_state(database_path.with_name(database_path.name + "-journal")),
+        )
 
     def _connection(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path)
@@ -311,6 +343,7 @@ class SQLiteRecordRepository:
                 ),
             )
             connection.commit()
+            self._revision += 1
         except sqlite3.IntegrityError as exc:
             connection.rollback()
             if "accounting_records.record_id" in str(exc) or "UNIQUE constraint failed" in str(exc):
@@ -351,6 +384,61 @@ class SQLiteRecordRepository:
             "problems": problems,
         }
         return _record_from_payload(payload)
+
+    def list_summaries(self, limit: int | None = None) -> tuple[RecordSummary, ...]:
+        """Read list fields in one SQLite query without decoding immutable snapshots."""
+
+        if limit is not None and (not isinstance(limit, int) or isinstance(limit, bool) or limit < 0):
+            raise ValueError("summary limit must be a non-negative integer or None")
+        columns = (
+            "record_id, status, created_at, standard_id, standard_version, "
+            "json_extract(input_snapshot_json, '$.enterprise_name') AS enterprise_name, "
+            "json_extract(input_snapshot_json, '$.period.period_type') AS period_type, "
+            "json_extract(input_snapshot_json, '$.period.start') AS period_start, "
+            "json_extract(input_snapshot_json, '$.period.end') AS period_end, "
+            "json_extract(calculation_snapshot_json, '$.total_amount') AS total_amount, "
+            "json_extract(calculation_snapshot_json, '$.total_unit') AS total_unit"
+        )
+        sql = (
+            f"SELECT {columns} FROM accounting_records "
+            "WHERE deleted_at IS NULL "
+            "ORDER BY utc_created_at_sort_key(created_at) DESC, record_id DESC"
+        )
+        parameters: tuple[object, ...] = ()
+        if limit is not None:
+            sql += " LIMIT ?"
+            parameters = (limit,)
+        connection = self._connection()
+        connection.create_function(
+            "utc_created_at_sort_key", 1, _created_at_sort_key, deterministic=True
+        )
+        try:
+            rows = connection.execute(sql, parameters).fetchall()
+        except sqlite3.Error as exc:
+            raise RecordRepositoryError(f"record summaries could not be read: {exc}") from exc
+        finally:
+            connection.close()
+        try:
+            return tuple(
+                RecordSummary(
+                    record_id=str(row["record_id"]),
+                    standard_id=str(row["standard_id"]),
+                    standard_version=str(row["standard_version"]) or None,
+                    created_at=_datetime(str(row["created_at"]), "created_at"),
+                    enterprise_name=(
+                        str(row["enterprise_name"]) if row["enterprise_name"] is not None else None
+                    ),
+                    period_type=PeriodType(str(row["period_type"])),
+                    period_start=_date(str(row["period_start"]), "period.start"),
+                    period_end=_date(str(row["period_end"]), "period.end"),
+                    total_amount=Decimal(str(row["total_amount"])),
+                    total_unit=str(row["total_unit"]),
+                    status=RecordStatus(str(row["status"])),
+                )
+                for row in rows
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RecordRepositoryError("record summary fields are invalid") from exc
 
     def list_all(self) -> tuple[AccountingRecord, ...]:
         connection = self._connection()
@@ -579,6 +667,7 @@ class SQLiteRecordRepository:
                 ),
             )
             connection.commit()
+            self._revision += 1
             return True
         except sqlite3.Error as exc:
             connection.rollback()

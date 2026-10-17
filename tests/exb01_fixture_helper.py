@@ -34,9 +34,11 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()), data_only=False)
+    for row in range(4,19):
+        workbook["B.2"][f"C{row}"] = "10⁴Nm³" if row in (14,15,16,17) else "t"
     if all_sources:
         fuel = workbook["B.2"]
-        fuel["B4"], fuel["C4"], fuel["D4"], fuel["H4"], fuel["I4"] = 1, 0.5, "实测值", 98, "实测值"
+        fuel["B4"], fuel["C4"], fuel["D4"], fuel["E4"], fuel["I4"], fuel["J4"] = 1, "10⁴Nm³", 0.5, "实测值", 98, "实测值"
         for sheet, assignments in {
             "B.3": {4:(100,90), 5:(100,5), 6:(80,95), 7:(0,0), 8:(0,0), 9:(80,1)},
             "B.4": {4:(40,90), 5:(50,80), 6:(40,5), 7:(50,3), 8:(1,0), 9:(45,92)},
@@ -44,13 +46,13 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
         }.items():
             ws = workbook[sheet]
             for row, (mass, percent) in assignments.items():
-                ws[f"C{row}"], ws[f"D{row}"] = mass, percent
+                ws[f"D{row}"], ws[f"E{row}"] = mass, percent
         fume = workbook["B.6"]
         for cell, value in {"A3":100,"B3":10,"C3":30,"D3":0.02,"E3":98,"F3":365}.items():
             fume[cell] = value
         fgd = workbook["B.7"]
-        fgd["A3"], fgd["B3"], fgd["D3"], fgd["F3"] = "脱硫批次A", 2, 90, 95
-        fgd["D4"], fgd["F4"] = 10, 90
+        fgd["A3"], fgd["B3"], fgd["D3"], fgd["F3"], fgd["J3"] = "脱硫批次A", 2, 90, 95, "缺省值"
+        fgd["D4"], fgd["F4"], fgd["J4"] = 10, 90, "缺省值"
         power = workbook["B.8"]
         power["B3"], power["C3"] = "电网电力", 100
         power["B4"], power["C4"], power["D4"] = "电网电力", 2, 0.5

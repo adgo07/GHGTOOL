@@ -15,7 +15,7 @@ from packages.application import (
     ProjectWorkspaceService,
 )
 from packages.persistence.catalog_queries_factory import create_catalog_query_service
-from packages.application.carbon_accounting import create_g06_parameter_resolver
+from packages.application.standard_registry import StandardRuntime
 from packages.core.repositories import RecordRepository
 from packages.persistence import (
     MigrationError,
@@ -23,17 +23,14 @@ from packages.persistence import (
     RecordRepositoryError,
     SQLiteProjectWorkspaceRepository,
     SQLiteRecordRepository,
+    SQLiteSettingsRepository,
+    SettingsRepositoryError,
 )
-from packages.standards.carbon_material import (
-    STANDARD_ID,
-    STANDARD_VERSION,
-    CarbonMaterialCalculator,
-)
-
 from .config import AppConfig
 from .logging_config import configure_logging
 from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
+from packages.ui.export_location import ExportLocationService
 
 
 class CarbonAccountingMainWindow(QMainWindow):
@@ -54,6 +51,7 @@ def create_main_window(
     record_repository: RecordRepository | None = None,
     project_service: ProjectWorkspaceService | None = None,
     calculation_use_case: CarbonAccountingUseCase | None = None,
+    export_location_service: ExportLocationService | None = None,
 ) -> QMainWindow:
     """Create the desktop shell and compose its formal calculation workflow."""
 
@@ -68,15 +66,7 @@ def create_main_window(
             app_version=app_config.app_version,
         )
 
-    formal_use_case = calculation_use_case
-    if formal_use_case is None and callable(getattr(records, "create_with_details", None)):
-        calculator = CarbonMaterialCalculator(
-            parameter_resolver=create_g06_parameter_resolver(catalog.repository),
-            standard_version=catalog.standard_version(STANDARD_ID) or STANDARD_VERSION,
-            standard_implementation_date=catalog.standard_implementation_date(STANDARD_ID),
-            reference_data_identity_provider=catalog.reference_data_identity,
-        )
-        formal_use_case = CarbonAccountingUseCase(calculator, records)
+    runtime = StandardRuntime(catalog, records, calculation_use_case)
 
     window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
@@ -85,12 +75,16 @@ def create_main_window(
     window.resize(1280, 800)
     window.setStyleSheet(application_stylesheet())
     window.setFont(QFont("Microsoft YaHei UI", 10))
+    shared_export_location = export_location_service or ExportLocationService()
+    window.export_location_service = shared_export_location
     window.setCentralWidget(create_shell(
         app_config,
         catalog_service=catalog,
         record_repository=records,
         project_service=project_service,
-        calculation_use_case=formal_use_case,
+        calculation_use_case=calculation_use_case,
+        standard_runtime=runtime,
+        export_location_service=shared_export_location,
     ))
     return window
 
@@ -144,10 +138,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         logger.close()
         return 1
+    try:
+        settings_repository = SQLiteSettingsRepository(
+            config.resolved_user_database(),
+            app_version=config.app_version,
+        )
+        export_location_service = ExportLocationService(settings_repository)
+    except (MigrationError, OSError, SettingsRepositoryError):
+        logger.event(
+            "user_settings_database_initialization_failed",
+            component="user_settings_store",
+            outcome="failed",
+            error_type="migration_or_filesystem_error",
+        )
+        QMessageBox.warning(
+            None,
+            "用户设置无法保存",
+            "用户设置数据库无法创建或安全迁移。导出仍可使用系统文档文件夹，"
+            "但更改统一导出文件夹的设置暂不可用。请检查用户设置文件后重试。",
+        )
+        export_location_service = ExportLocationService()
     window = create_main_window(
         config,
         record_repository=record_repository,
         project_service=project_service,
+        export_location_service=export_location_service,
     )
     window.show()
     logger.event("application_started", component="desktop_app", outcome="started")

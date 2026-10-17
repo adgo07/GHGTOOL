@@ -8,12 +8,13 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QLabel, QPushButton, QTableWidget, QToolButton
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -21,6 +22,7 @@ from packages.application.catalog_queries import CatalogQueryService
 from packages.core.models import ReviewStatus, ValueType
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
 from packages.reference_data import DEFAULT_SOURCE_PATH
+from packages.standards.carbon_material import STANDARD_ID
 from packages.standards.catalog import (
     CatalogStatus,
     CatalogValueCategory,
@@ -292,7 +294,7 @@ class G04CatalogTests(unittest.TestCase):
 
     def test_standard_page_searches_and_routes_only_the_opened_standard(self) -> None:
         page = self.shell.pages[AppRoute.STANDARDS]
-        table = page.findChild(QTableWidget, "catalogTable")
+        table = page.findChild(QTableWidget, "standardLibraryTable")
         search = page.findChild(type(page.search_input), "standardSearch")
         self.assertIsNotNone(table)
         self.assertIsNotNone(search)
@@ -359,6 +361,21 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(table.rowCount(), 0)
         self.assertIsNone(page.selected_standard_id)
         self.assertEqual(page.result_summary.text(), "没有找到匹配的标准。")
+
+    def test_unsupported_standard_cannot_enter_carbon_material_accounting_page(self) -> None:
+        shell = self.shell
+        shell.navigate(AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting("gbt_32151_1_2015")
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.STANDARDS)
+        self.assertIsNone(shell.selected_standard_id)
+
+        shell._request_standard_accounting(STANDARD_ID)
+        self.application.processEvents()
+        self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
+        self.assertEqual(shell.selected_standard_id, STANDARD_ID)
     def test_standard_detail_has_only_compact_verified_sections(self) -> None:
         self.shell.navigate(AppRoute.STANDARDS)
         self.application.processEvents()
@@ -381,14 +398,14 @@ class G04CatalogTests(unittest.TestCase):
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(card_titles, ["基本信息", "适用范围", "标准要求"])
+        self.assertEqual(card_titles, ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"])
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)
             if label.isVisible()
         )
         self.assertIn("适用于炭素材料生产企业温室气体排放量的核算。", detail_text)
-        self.assertIn("当前目录尚未录入可核验的结构化标准要求。", detail_text)
+        self.assertIn("使用已实现的行业核算流程", detail_text)
         for forbidden in (
             "发布单位",
             "标准关系",
@@ -431,7 +448,14 @@ class G04CatalogTests(unittest.TestCase):
         # Scenario C: 首页 → 标准库 → 标准详情 → 参数库 → 新建核算 → 首页.
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        # A compact V4 home may scroll; verify the scrollbar can reach and return from its end.
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
 
         shell.navigate(AppRoute.STANDARDS)
         assert_route_at_top(AppRoute.STANDARDS)
@@ -464,7 +488,13 @@ class G04CatalogTests(unittest.TestCase):
         self.window.resize(1180, 720)
         shell.navigate(AppRoute.HOME)
         assert_route_at_top(AppRoute.HOME)
-        self.assertEqual(scrollbar.maximum(), 0)
+        compact_home_maximum = scrollbar.maximum()
+        if compact_home_maximum:
+            scrollbar.setValue(compact_home_maximum)
+            self.application.processEvents()
+            self.assertEqual(scrollbar.value(), compact_home_maximum)
+            scrollbar.setValue(scrollbar.minimum())
+            self.application.processEvents()
         self.assertGreater(standards_height, 0)
     def test_parameter_factor_page_browses_sources_and_aggregates_shared_assets(self) -> None:
         self.shell.navigate(AppRoute.FACTORS)
@@ -472,52 +502,81 @@ class G04CatalogTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.FACTORS]
         self.assertEqual(page.view_mode_filter.itemText(0), "按标准/文件查看")
         self.assertEqual(page.view_mode_filter.itemText(1), "全库搜索")
+        self.assertEqual(page.search_mode_button.text(), "全库搜索")
+        self.assertEqual(page.browse_mode_button.text(), "按来源浏览")
+        browse_notice = page.findChild(QLabel, "sourceBrowseNotice")
+        self.assertIsNotNone(browse_notice)
+        assert browse_notice is not None
+        self.assertIn("完整展示原始登记信息", browse_notice.text())
         self.assertEqual(page.source_filter.currentData(), "SRC-32151-34-2024")
         self.assertEqual(page.factor_table.rowCount(), 26)
         self.assertEqual(page.factor_table.columnCount(), 5)
         self.assertIn("天然气", [page.factor_table.item(row, 0).text() for row in range(page.factor_table.rowCount())])
+        self.assertEqual(
+            [page.search_result_table.horizontalHeaderItem(i).text() for i in range(4)],
+            ["参数名称", "数值", "单位", "类别"],
+        )
 
         page.view_mode_filter.setCurrentIndex(1)
+        self.assertTrue(page.search_mode_button.isChecked())
         page.search_input.setText("0.11")
+        page.search_category_filter.setCurrentIndex(
+            page.search_category_filter.findData("factor")
+        )
         self.application.processEvents()
+        self.assertTrue(all(
+            page.search_result_table.item(row, 3).text() == "排放因子"
+            for row in range(page.search_result_table.rowCount())
+        ))
         heat_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "参数值"
-            and "外购热力" in page.search_result_table.item(row, 1).text()
+            if page.search_result_table.item(row, 3).text() == "排放因子"
+            and "外购热力" in page.search_result_table.item(row, 0).text()
         )
         page.search_result_table.selectRow(heat_row)
         self.application.processEvents()
-        self.assertIn("2 处依据", page.search_result_table.item(heat_row, 4).text())
+        self.assertEqual(page.search_result_table.item(heat_row, 1).text(), "0.11")
+        self.assertEqual(page.search_result_table.item(heat_row, 2).text(), "tCO₂/GJ")
         detail_text = "\n".join(label.text() for label in page.factor_detail_host.findChildren(QLabel))
         self.assertIn("GB/T 32150—2025", detail_text)
         self.assertIn("GB/T 32151.34—2024", detail_text)
         self.assertIn("7.5.6", detail_text)
-        self.assertIn("表C.3", detail_text)
+        self.assertIn("附录C", detail_text)
+        self.assertIn("C.3", detail_text)
         visible_text = "\n".join(label.text() for label in page.findChildren(QLabel))
         self.assertNotIn("asset-heat_default", visible_text)
         self.assertNotIn("heat_default_gbt", visible_text)
 
+        page.search_category_filter.setCurrentIndex(0)
+        page.search_source_list.setCurrentRow(1)
+        self.application.processEvents()
+        self.assertEqual(
+            page.search_source_filter.currentData(),
+            page.search_source_list.item(1).data(Qt.ItemDataRole.UserRole),
+        )
+        page.search_source_list.setCurrentRow(0)
+
         page.search_input.setText("饱和蒸汽")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准表"
-            and "C.4" in page.search_result_table.item(row, 1).text()
+            page.search_result_table.item(row, 3).text() == "标准表"
+            and "C.4" in page.search_result_table.item(row, 0).text()
             for row in range(page.search_result_table.rowCount())
         ))
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "来源文件"
+            page.search_result_table.item(row, 3).text() == "来源文件"
             for row in range(page.search_result_table.rowCount())
         ))
 
         page.search_input.setText("GB/T 32151.34")
         self.application.processEvents()
         self.assertTrue(any(
-            page.search_result_table.item(row, 0).text() == "标准"
+            page.search_result_table.item(row, 3).text() == "标准"
             for row in range(page.search_result_table.rowCount())
         ))
         standard_row = next(
             row for row in range(page.search_result_table.rowCount())
-            if page.search_result_table.item(row, 0).text() == "标准"
+            if page.search_result_table.item(row, 3).text() == "标准"
         )
         page.search_result_table.selectRow(standard_row)
         self.application.processEvents()
@@ -622,6 +681,101 @@ class G04CatalogTests(unittest.TestCase):
                             if item.result_type == "standard" and item.standard is not None]
         self.assertTrue(any(item.standard.standard_id == "gbt_32151_34_2024" for item in standard_results))
 
+    def test_catalog_source_locators_are_short_on_screen_and_full_in_tooltips(self) -> None:
+        page = self.shell.pages[AppRoute.FACTORS]
+        table = next(item for item in self.service.list_source_tables() if item.display_number == "C.4")
+        page.table_filter.setCurrentIndex(page.table_filter.findData(table.source_table_id))
+        raw_locator = "GB/T 32151.34—2024 附录C.4；PDF第27～28页；印刷页19～20"
+        full_note = f"来源：标准原文 {raw_locator}。原表结构。"
+        with patch.object(
+            page._service,
+            "get_source_table_view",
+            return_value=(("依据定位",), ((raw_locator,),), full_note),
+        ):
+            page._show_source_table()
+        locator_item = page.factor_table.item(0, 0)
+        self.assertIsNotNone(locator_item)
+        assert locator_item is not None
+        self.assertEqual(locator_item.text(), "GB/T32151.34—2024 附录C.4")
+        self.assertEqual(locator_item.toolTip(), raw_locator)
+        self.assertNotIn("PDF", page.browse_table_note.text())
+        self.assertNotIn("印刷页", page.browse_table_note.text())
+        self.assertEqual(page.browse_table_note.toolTip(), full_note)
+
+        table_result = next(
+            item for item in self.service.search_reference_library("蒸汽")
+            if item.result_type == "table" and item.table is not None
+            and item.table.source_table_id == table.source_table_id
+        )
+        page._render_search_detail(table_result)
+        locator_label = next(
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "依据定位"
+        )
+        locator_value = locator_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(locator_value)
+        assert locator_value is not None
+        self.assertNotIn("PDF", locator_value.text())
+        self.assertNotIn("印刷页", locator_value.text())
+        self.assertEqual(locator_value.toolTip(), table.source_location)
+
+        asset_result = next(
+            item for item in self.service.search_reference_library("0.11")
+            if item.result_type == "asset" and item.asset is not None
+            and item.asset.parameter_id == "heat_emission_factor_default"
+        )
+        page._refresh_search()
+        binding = asset_result.bindings[0]
+        frozen_binding_locator = (
+            "GB/T 32151.34—2024 第5.2.6.1条；PDF第30页；印刷页22"
+        )
+        detailed_asset = replace(
+            asset_result,
+            bindings=(
+                replace(binding, source_location=frozen_binding_locator),
+                *asset_result.bindings[1:],
+            ),
+        )
+        page._render_search_detail(detailed_asset)
+        trace_toggle = page.findChild(QToolButton, "parameterDetailTraceToggle")
+        self.assertIsNotNone(trace_toggle)
+        assert trace_toggle is not None
+        trace_toggle.click()
+        binding_label = next(
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "来源定位"
+        )
+        binding_value = binding_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(binding_value)
+        assert binding_value is not None
+        self.assertIn("第5.2.6.1条", binding_value.text())
+        self.assertNotIn("PDF", binding_value.text())
+        self.assertNotIn("印刷页", binding_value.text())
+        self.assertEqual(binding_value.toolTip(), frozen_binding_locator)
+
+        source = next(
+            item for item in self.service.list_sources()
+            if item.notes and "PDF第27" in item.notes
+        )
+        source_result = next(
+            item for item in self.service.search_reference_library(source.document_no)
+            if item.result_type == "source" and item.source is not None
+            and item.source.source_id == source.source_id
+        )
+        page._render_search_detail(source_result)
+        note_labels = [
+            label for label in page.factor_detail_host.findChildren(QLabel, "detailFieldLabel")
+            if label.text() == "说明"
+        ]
+        self.assertTrue(note_labels)
+        note_label = note_labels[-1]
+        note_value = note_label.parentWidget().findChild(QLabel, "detailFieldValue")
+        self.assertIsNotNone(note_value)
+        assert note_value is not None
+        self.assertNotIn("PDF第27", note_value.text())
+        self.assertNotIn("印刷页", note_value.text())
+        self.assertEqual(note_value.toolTip(), source.notes)
+
     def test_missing_catalog_degrades_to_safe_empty_pages(self) -> None:
         missing = Path(self.temp_directory.name) / "not-installed.sqlite"
         window = create_main_window(AppConfig(catalog_database=missing), record_repository=InMemoryRecordRepository())
@@ -633,7 +787,7 @@ class G04CatalogTests(unittest.TestCase):
             assert isinstance(shell, AppShell)
             standard_page = shell.pages[AppRoute.STANDARDS]
             factor_page = shell.pages[AppRoute.FACTORS]
-            self.assertEqual(standard_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
+            self.assertEqual(standard_page.findChild(QTableWidget, "standardLibraryTable").rowCount(), 0)
             shell.navigate(AppRoute.FACTORS)
             self.application.processEvents()
             self.assertEqual(factor_page.findChild(QTableWidget, "catalogTable").rowCount(), 0)
@@ -666,8 +820,8 @@ class G04CatalogTests(unittest.TestCase):
             self.application.processEvents()
             heat_row = next(
                 row for row in range(page.search_result_table.rowCount())
-                if page.search_result_table.item(row, 0).text() == "参数值"
-                and "外购热力" in page.search_result_table.item(row, 1).text()
+                if page.search_result_table.item(row, 3).text() == "排放因子"
+                and "外购热力" in page.search_result_table.item(row, 0).text()
             )
             page.search_result_table.selectRow(heat_row)
             self.application.processEvents()

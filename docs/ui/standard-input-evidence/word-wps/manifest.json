@@ -1,0 +1,12 @@
+{
+  "evidence_type": "WPS 12 native Word-compatible COM read-only DOCX export → PDF → PDFium PNG",
+  "data": "synthetic complete Appendix B; not enterprise measured data",
+  "pages": 11,
+  "record_count": 1,
+  "business_table_count": 10,
+  "office_version": "12.0",
+  "docx_sha256": "4991e2ddc789bafbed322f4fcc83b15a3c008d0dc7d1fba2a1eff0366b3f164c",
+  "pdf_sha256": "a4c7a5d3ebd2d2da86e11c39d41ce249f5476f623eed7a97a52ab18518a463e0",
+  "libreoffice_renderer": "FAILED: soffice.exe unavailable",
+  "human_acceptance": "OPEN"
+}

@@ -17,13 +17,13 @@ from openpyxl import load_workbook
 
 from packages.application.reporting import build_saved_record_report
 from packages.application.reporting.model import build_report_model, frozen_totals
-from packages.application.reporting.appendix_b import _energy_parameter, _frozen_step
-from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT, SOURCE_PURCHASED_ELECTRICITY, SOURCE_EXPORTED_ELECTRICITY
+from packages.application.reporting.appendix_b import _energy_parameter, _frozen_step, _short_source
+from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT, SOURCE_EXPORTED_HEAT, SOURCE_PURCHASED_ELECTRICITY, SOURCE_EXPORTED_ELECTRICITY
 from packages.core.models import CalculationLine
 from packages.infrastructure.reporting import render_report_docx
 from packages.persistence.catalog_repository import SQLiteCatalogRepository
 from packages.standards.carbon_material import CarbonMaterialCalculator, SOURCE_BAKING
-from packages.ui.record_experience import SnapshotState, _b1_report, build_record_summary
+from packages.ui.record_experience import build_report_view
 from scripts.rpt02_acceptance_samples import build_acceptance_case, build_acceptance_model
 
 
@@ -52,7 +52,8 @@ class RPT02AppendixBTests(unittest.TestCase):
     def test_layout_metadata_matches_formula_free_approved_workbook(self):
         layout = json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))
         self.assertEqual(hashlib.sha256(TEMPLATE_PATH.read_bytes()).hexdigest(), layout["formula_free_sha256"])
-        workbook = load_workbook(TEMPLATE_PATH, data_only=False)
+        from packages.excel.templates import ExcelTemplateService
+        workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()), data_only=False)
         try:
             self.assertEqual(workbook.sheetnames, [f"B.{number}" for number in range(1, 10)])
             for key, table in layout["tables"].items():
@@ -64,7 +65,7 @@ class RPT02AppendixBTests(unittest.TestCase):
                 )
                 self.assertEqual(actual, tuple(tuple(row) for row in headers), sheet.title)
                 self.assertEqual(
-                    _header_merges_from_sheet(sheet, len(headers)),
+                    tuple(item for item in _header_merges_from_sheet(sheet,len(headers)) if item[3]<len(headers[0])),
                     tuple(sorted(tuple(item) for item in table["header_merges"])),
                     sheet.title,
                 )
@@ -75,6 +76,8 @@ class RPT02AppendixBTests(unittest.TestCase):
                 [row.cells[0].value for row in _section(model, "b1").tables[0].rows[:10]],
                 [workbook["B.1"].cell(row=row, column=1).value for row in range(3, 13)],
             )
+            workbook.close()
+            workbook=load_workbook(TEMPLATE_PATH,data_only=False)
             for cell_ref in layout["removed_formula_cells"]:
                 sheet_name, address = cell_ref.split("!")
                 cell = workbook[sheet_name][address]
@@ -93,7 +96,7 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), ("7.30", "9.70"))
         self.assertEqual(len(b1.footnotes), 1)
 
-        expected_columns = {"b2": 10, "b3": 5, "b4": 5, "b5": 5, "b6": 7, "b7": 7, "b8": 5, "b9": 7}
+        expected_columns = {"b2": 11, "b3": 6, "b4": 6, "b5": 6, "b6": 7, "b7": 7, "b8": 5, "b9": 7}
         for section_id, count in expected_columns.items():
             for table in _section(model, section_id).tables:
                 self.assertEqual(len(table.columns), count, table.table_id)
@@ -102,8 +105,8 @@ class RPT02AppendixBTests(unittest.TestCase):
 
         b2 = _section(model, "b2").tables[0]
         self.assertEqual(len(b2.rows), 2)
-        self.assertEqual(b2.rows[0].cells[9].value, "1.40")
-        self.assertEqual(tuple(sorted(b2.header_merges)), ((0, 0, 1, 0), (0, 1, 1, 1), (0, 2, 0, 3), (0, 4, 0, 5), (0, 6, 1, 6), (0, 7, 0, 8), (0, 9, 1, 9)))
+        self.assertEqual(b2.rows[0].cells[10].value, "1.40")
+        self.assertEqual(tuple(sorted(b2.header_merges)), ((0, 0, 1, 0), (0, 1, 0, 2), (0, 3, 0, 4), (0, 5, 0, 6), (0, 7, 1, 7), (0, 8, 0, 9), (0, 10, 1, 10)))
         self.assertEqual(len(_section(model, "b3").tables), 2)
         self.assertGreater(len(_section(model, "b3").tables[0].rows), 8)
         self.assertEqual(len(_section(model, "b6").tables[0].rows), 2)
@@ -113,7 +116,9 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertTrue(all(Decimal(row.cells[4].value) < 0 for row in b8.rows if row.cells[0].value == "输出"))
         b9 = _section(model, "b9")
         self.assertEqual(len(b9.tables[0].rows), 3)
-        self.assertTrue(any("自动参考焓值" in note for note in b9.notes))
+        self.assertEqual(b9.notes, ())
+        self.assertEqual(b9.tables[0].footnotes, tuple(json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))["tables"]["b9"]["footnotes"]))
+        self.assertEqual(b9.tables[0].rows[0].cells[5].source, "标准查表")
 
     def test_b7_uses_frozen_reagent_name_and_marks_legacy_name_missing(self):
         record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
@@ -140,7 +145,7 @@ class RPT02AppendixBTests(unittest.TestCase):
         raw["bakings"] = []
         model = build_report_model(record, raw, trace, provenance, reporting, qualification, today=date(2026, 10, 9))
 
-        self.assertEqual(_section(model, "b2").tables[0].rows[1].cells[7].value, "0")
+        self.assertEqual(_section(model, "b2").tables[0].rows[1].cells[8].value, "0.00")
         self.assertEqual(_section(model, "b6").tables[0].rows[1].cells[3].value, "未填写")
         self.assertNotIn("{", _section(model, "b6").tables[0].rows[1].cells[3].value)
         self.assertEqual(_section(model, "b4").tables[0].rows[0].cells[0].value, "未启用")
@@ -204,11 +209,17 @@ class RPT02AppendixBTests(unittest.TestCase):
         b1, b2 = document.tables[1], document.tables[2]
         self.assertEqual(len(b1.rows), 14)
         self.assertIs(b1.rows[0].cells[0]._tc, b1.rows[0].cells[1]._tc)
-        self.assertIs(b2.rows[0].cells[2]._tc, b2.rows[0].cells[3]._tc)
+        self.assertIs(b2.rows[0].cells[1]._tc, b2.rows[0].cells[2]._tc)
         for row in (*b1.rows[:1], *b2.rows[:2]):
             self.assertIsNotNone(row._tr.trPr.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tblHeader"))
-        text = "\n".join(paragraph.text for paragraph in document.paragraphs)
-        self.assertIn("自动参考焓值", text)
+        text = "\n".join(
+            [paragraph.text for paragraph in document.paragraphs]
+            + [cell.text for table in document.tables for row in table.rows for cell in row.cells]
+        )
+        self.assertIn("标准查表",text)
+        self.assertNotIn("选择方式：",text)
+        self.assertNotIn("来源定位：",text)
+        self.assertNotIn("因子年度：",text)
         b1_heading = next(p for p in document.paragraphs if p.text == "B.1 温室气体排放量汇总")
         self.assertTrue(b1_heading.paragraph_format.page_break_before)
 
@@ -220,8 +231,8 @@ class RPT02AppendixBTests(unittest.TestCase):
         record = replace(record, parameter_snapshots=(heat, power))
         cell = _energy_parameter(record, {}, "shared", "CAR-FLD-HEAT-shared-EF3", "tCO2/GJ", "EF3", None)
         self.assertEqual(cell.value, "0.11")
-        self.assertIn("热力冻结来源", cell.source)
-        self.assertNotIn("电力冻结来源", cell.source)
+        self.assertIn("热力冻结来源", cell.source_detail)
+        self.assertNotIn("电力冻结来源", cell.source_detail)
 
     def test_purchase_and_export_same_id_keep_separate_factor_sources(self):
         record, raw, trace, *_ = build_acceptance_case("GUI")
@@ -234,9 +245,9 @@ class RPT02AppendixBTests(unittest.TestCase):
         raw["exported_electricity"] = [{"line_id":"shared", "amount":"1", "unit":"MWh"}]
         model = build_report_model(record, raw, trace, {}, {}, {})
         rows = _section(model, "b8").tables[0].rows
-        self.assertIn("购电合同来源", rows[0].cells[3].source)
-        self.assertNotIn("输电合同来源", rows[0].cells[3].source)
-        self.assertIn("输电合同来源", rows[1].cells[3].source)
+        self.assertIn("购电合同来源", rows[0].cells[3].source_detail)
+        self.assertNotIn("输电合同来源", rows[0].cells[3].source_detail)
+        self.assertIn("输电合同来源", rows[1].cells[3].source_detail)
 
     def test_incomplete_colliding_power_snapshots_do_not_invent_direction_or_value(self):
         record, raw, trace, *_ = build_acceptance_case("GUI")
@@ -261,13 +272,109 @@ class RPT02AppendixBTests(unittest.TestCase):
         record = replace(record, parameter_snapshots=(output,))
         rows = _section(build_report_model(record, raw, trace, {}, {}, {}), "b8").tables[0].rows
         self.assertEqual(len(rows), 1)
-        self.assertIn("自动输出冻结来源", rows[0].cells[3].source)
+        self.assertIn("自动输出冻结来源", rows[0].cells[3].source_detail)
         # A single prefixed candidate also must agree with the frozen adopted value.
         record = replace(record, parameter_snapshots=(replace(purchase, detail_id="CAR-FLD-POWER-EXPORTED-EF.shared"),))
         step = {"input_variables": [{"name": "EF2", "value": "0.5"}]}
         cell = _energy_parameter(record, {}, "shared", "CAR-FLD-POWER-EXPORTED-EF.shared", "tCO2/MWh", "EF2", step)
         self.assertEqual(cell.value, "0.5")
         self.assertEqual(cell.source, "历史来源快照与冻结采用值不一致")
+
+    def test_manual_heat_keeps_frozen_reference_and_auto_heat_does_not_repeat_it(self):
+        record,raw,trace,*_=build_acceptance_case("GUI")
+        trace=deepcopy(trace)
+        step=next(item for item in trace["formula_steps"] if item.get("process_instance_id")=="heat-in-1")
+        step["calculation_provenance"]["enthalpy_source"]="用户手动填写"
+        step["calculation_provenance"]["enthalpy_used_kj_per_kg"]="2800"
+        model=build_report_model(record,raw,trace,{}, {}, {})
+        b9=_section(model,"b9")
+        self.assertEqual(b9.tables[0].rows[0].cells[5].value,"2800.00")
+        self.assertEqual(b9.tables[0].rows[0].cells[5].source,"填写值")
+        self.assertFalse(any("自动参考焓值" in note for note in b9.notes))
+        self.assertIn("冻结自动参考焓值：2716 kJ/kg",b9.tables[0].rows[0].cells[5].source_detail)
+
+    def test_b_table_notes_keep_business_exceptions_and_audit_stays_on_cells(self):
+        model = build_acceptance_model("GUI")
+        notes = []
+        for section in model.sections:
+            if not section.section_id.startswith("b"):
+                continue
+            notes.extend(section.notes)
+            for table in section.tables:
+                notes.extend(table.footnotes)
+                notes.extend(row.note for row in table.rows if row.note)
+        self.assertFalse(any("行第" in note and "列" in note for note in notes))
+        for note in notes:
+            self.assertNotIn("选择方式：", note)
+            self.assertNotIn("来源定位：", note)
+            self.assertNotIn("来源版本：", note)
+            self.assertNotIn("因子年度：", note)
+        factor = _section(model, "b9").tables[0].rows[0].cells[6]
+        self.assertIn("来源定位：", factor.source_detail)
+        self.assertIn("来源版本：", factor.source_detail)
+
+    def test_report_source_uses_clause_without_dropping_frozen_pdf_audit(self):
+        record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        snapshot = next(
+            item for item in record.parameter_snapshots
+            if item.detail_id == "CAR-FLD-P04B-fgd-1-0-I"
+        )
+        frozen_location = (
+            "GB/T 32151.34—2024 第5.2.6.1条；PDF第30页；印刷页22"
+        )
+        snapshots = tuple(
+            replace(item, source_location=frozen_location)
+            if item.snapshot_id == snapshot.snapshot_id else item
+            for item in record.parameter_snapshots
+        )
+        record = replace(record, parameter_snapshots=snapshots)
+
+        model = build_report_model(record, raw, trace, provenance, reporting, qualification)
+        cell = _section(model, "b7").tables[0].rows[0].cells[3]
+
+        self.assertEqual(cell.source, "GB/T32151.34—2024 第5.2.6.1条")
+        self.assertNotIn("PDF", cell.source)
+        self.assertNotIn("印刷页", cell.source)
+        self.assertIn(f"来源定位：{frozen_location}", cell.source_detail)
+
+    def test_legacy_user_defined_source_is_not_relabelled_as_measured(self):
+        self.assertEqual(
+            _short_source({"source_kind": "USER_DEFINED"}, None, "用户提供值"),
+            "填写值",
+        )
+
+    def test_b9_missing_history_explains_missing_input_without_repeating_results(self):
+        record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        raw = deepcopy(raw)
+        raw["purchased_heat"] = []
+        raw["exported_heat"] = []
+        history_lines = (
+            CalculationLine("legacy.purchased-heat", SOURCE_PURCHASED_HEAT, "GEN-GAS-CO2", "0.50", "tCO2"),
+            CalculationLine("legacy.exported-heat", SOURCE_EXPORTED_HEAT, "GEN-GAS-CO2", "0.20", "tCO2"),
+        )
+        record = replace(record, calculation_result=replace(
+            record.calculation_result,
+            lines=(*record.calculation_result.lines, *history_lines),
+        ))
+        section = _section(build_report_model(record, raw, trace, provenance, reporting, qualification), "b9")
+        note = "；".join(section.notes)
+        self.assertIn("历史记录未保存购入热力、输出热力活动输入", note)
+        self.assertIn("历史未记录", note)
+        self.assertNotIn("0.50", note)
+        self.assertNotIn("0.30", note)
+        self.assertNotIn("0.20", note)
+        self.assertFalse(any("第" in item for item in section.notes))
+
+    def test_b9_suppresses_obvious_manual_entry_labels_but_keeps_audit(self):
+        record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+        raw = deepcopy(raw)
+        raw["purchased_heat"][0]["steam_amount_t"] = {
+            "value": "4", "unit": "t", "source_type": "MANUAL", "source_reference": "手工录入",
+        }
+        section = _section(build_report_model(record, raw, trace, provenance, reporting, qualification), "b9")
+        quantity = section.tables[0].rows[0].cells[2]
+        self.assertIsNone(quantity.source)
+        self.assertIn("手工录入", quantity.source_detail)
 
     def test_missing_trace_uses_exact_frozen_line_without_sharing_aggregate(self):
         record, *_ = build_acceptance_case("GUI")
@@ -280,17 +387,19 @@ class RPT02AppendixBTests(unittest.TestCase):
         self.assertIsNone(_frozen_step(record, {}, SOURCE_PURCHASED_HEAT, "h1"))
         self.assertEqual(_frozen_step(record, {}, SOURCE_PURCHASED_HEAT, "h1", single_instance=True)["intermediate_result"], "12.345")
 
-    def test_record_detail_summary_and_report_share_frozen_es_ei_et(self):
+    def test_record_report_b1_preserves_frozen_es_ei_et_precision(self):
         record, raw, trace, *_ = build_acceptance_case("GUI")
         values = frozen_totals(record, trace)
         self.assertEqual(values, {"ES": "7.30", "EI": "2.40", "ET": "9.70"})
-        ui_text = "\n".join(_b1_report(record, raw, trace))
-        summary = build_record_summary(record, {}, SnapshotState.PRESENT, trace)
+        ui_text = build_report_view(record,raw,trace,{})
         report = build_report_model(record, raw, trace, {}, {}, {}, today=date(2026, 10, 9))
         b1 = _section(report, "b1").tables[0]
-        self.assertIn("直接排放量：7.30 tCO₂", ui_text)
-        self.assertIn("温室气体排放总量：9.70 tCO₂", summary)
-        self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (values["ES"], values["ET"]))
+        self.assertIn("不包括购入和输出的电力、热力所产生的 CO₂",ui_text)
+        self.assertIn("7.30",ui_text)
+        self.assertEqual(
+            {"ES": b1.rows[-2].cells[2].value, "ET": b1.rows[-1].cells[2].value},
+            {"ES": values["ES"], "ET": values["ET"]},
+        )
         empty_record = SimpleNamespace(calculation_result=SimpleNamespace(lines=(), total_amount=None))
         self.assertEqual(frozen_totals(empty_record, {}), {"ES": "", "EI": "", "ET": ""})
 

@@ -13,6 +13,7 @@ from packages.core.repositories import RecordRepository
 
 from .config import AppConfig
 from packages.ui.shell import AppShell
+from packages.ui.export_location import ExportLocationService
 from packages.ui.view_models import AppRoute, NavigationItemViewModel, ShellViewModel
 
 
@@ -45,6 +46,8 @@ def create_shell(
     record_repository: RecordRepository | None = None,
     project_service: ProjectWorkspaceService | None = None,
     calculation_use_case: CarbonAccountingUseCase | None = None,
+    standard_runtime=None,
+    export_location_service: ExportLocationService | None = None,
 ) -> AppShell:
     """Build the product shell from services composed by the desktop entry point."""
 
@@ -60,4 +63,6 @@ def create_shell(
         record_repository=record_repository,
         project_service=project_service,
         calculation_use_case=calculation_use_case,
+        standard_runtime=standard_runtime,
+        export_location_service=export_location_service,
     )

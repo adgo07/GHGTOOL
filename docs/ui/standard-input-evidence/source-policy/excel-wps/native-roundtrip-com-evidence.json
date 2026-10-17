@@ -1,0 +1,346 @@
+{
+  "status": "PASS",
+  "failure": null,
+  "engine": "WPS Office ET COM",
+  "prog_id": "Excel.Application",
+  "clsid": "{00024500-0000-0000-C000-000000000046}",
+  "registered_server": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe /Automation",
+  "registered_exe": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+  "registered_file_version": "12,1,0,29158",
+  "activated_exe": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe",
+  "activated_file_version": "12,1,0,29158",
+  "application_version": "12.0",
+  "process_id": 25020,
+  "pid_was_preexisting": false,
+  "initial_workbooks": 0,
+  "gate_passed_before_open": true,
+  "source_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\complete.xlsx",
+  "source_sha256_before": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+  "source_sha256_after": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+  "before_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-before.xlsx",
+  "before_copy_sha256": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+  "saved_copy_path": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92\\complete-appendix-b-native-roundtrip.xlsx",
+  "saved_copy_sha256": "0aa792609fd754dcbb7f2f303eb7aa05b8f86d24d36ce2b2609fcc1f4883485d",
+  "saved_copy_changed": true,
+  "run_directory": "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\native-excel-roundtrip-repro-20261014-204407-7f4f0a92",
+  "before_audit": {
+    "sheet_names": [
+      "B.1",
+      "B.2",
+      "B.3",
+      "B.4",
+      "B.5",
+      "B.6",
+      "B.7",
+      "B.8",
+      "B.9"
+    ],
+    "sheets": [
+      {
+        "name": "B.1",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.2",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.3",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.4",
+        "protect_contents": true,
+        "protect_drawing_objects": false,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.5",
+        "protect_contents": true,
+        "protect_drawing_objects": false,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.6",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.7",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.8",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.9",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      }
+    ]
+  },
+  "after_audit": {
+    "sheet_names": [
+      "B.1",
+      "B.2",
+      "B.3",
+      "B.4",
+      "B.5",
+      "B.6",
+      "B.7",
+      "B.8",
+      "B.9"
+    ],
+    "sheets": [
+      {
+        "name": "B.1",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.2",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.3",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.4",
+        "protect_contents": true,
+        "protect_drawing_objects": false,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.5",
+        "protect_contents": true,
+        "protect_drawing_objects": false,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.6",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.7",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.8",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      },
+      {
+        "name": "B.9",
+        "protect_contents": true,
+        "protect_drawing_objects": true,
+        "protect_scenarios": true
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "registered_server_matches_activated_process",
+      "passed": true,
+      "detail": "D:\\Program Files (x86)\\WPS Office\\12.1.0.29158\\office6\\et.exe"
+    },
+    {
+      "name": "independent_instance_started_with_zero_workbooks",
+      "passed": true,
+      "detail": {
+        "pid": 25020,
+        "pid_was_preexisting": false,
+        "initial_workbooks": 0
+      }
+    },
+    {
+      "name": "nine_sheet_names_preserved",
+      "passed": true,
+      "detail": {
+        "before": [
+          "B.1",
+          "B.2",
+          "B.3",
+          "B.4",
+          "B.5",
+          "B.6",
+          "B.7",
+          "B.8",
+          "B.9"
+        ],
+        "after": [
+          "B.1",
+          "B.2",
+          "B.3",
+          "B.4",
+          "B.5",
+          "B.6",
+          "B.7",
+          "B.8",
+          "B.9"
+        ]
+      }
+    },
+    {
+      "name": "sheet_protection_flags_preserved",
+      "passed": true,
+      "detail": {
+        "before": [
+          {
+            "name": "B.1",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.2",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.3",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.4",
+            "protect_contents": true,
+            "protect_drawing_objects": false,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.5",
+            "protect_contents": true,
+            "protect_drawing_objects": false,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.6",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.7",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.8",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.9",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          }
+        ],
+        "after": [
+          {
+            "name": "B.1",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.2",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.3",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.4",
+            "protect_contents": true,
+            "protect_drawing_objects": false,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.5",
+            "protect_contents": true,
+            "protect_drawing_objects": false,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.6",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.7",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.8",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          },
+          {
+            "name": "B.9",
+            "protect_contents": true,
+            "protect_drawing_objects": true,
+            "protect_scenarios": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "source_workbook_unchanged",
+      "passed": true,
+      "detail": {
+        "before": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+        "after": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf"
+      }
+    },
+    {
+      "name": "native_saved_copy_exists",
+      "passed": true,
+      "detail": {
+        "before_copy_sha256": "b0344ea1108c17648343367d211be3898cd858826ffb857d0e1d641ef4c97cdf",
+        "saved_copy_sha256": "0aa792609fd754dcbb7f2f303eb7aa05b8f86d24d36ce2b2609fcc1f4883485d"
+      }
+    }
+  ],
+  "source_head": "ed18aa6ad760fac298d0d237e45229301b944784",
+  "template_id": "GHGTOOL_GBT_32151_34_2024_APPENDIX_B",
+  "template_version": "2.2.0",
+  "template_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
+}

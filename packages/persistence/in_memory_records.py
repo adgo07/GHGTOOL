@@ -39,12 +39,18 @@ class InMemoryRecordRepository(DetailedRecordRepository):
         self._audit: list[dict[str, object]] = []
         self._details: dict[str, dict[str, object]] = {}
         self._detail_schema_records: set[str] = set()
+        self._revision = 0
+
+    @property
+    def revision(self) -> int:
+        return self._revision
 
     def create(self, record: AccountingRecord) -> None:
         if record.record_id in self._records:
             raise DomainValidationError(f"record already exists: {record.record_id}")
         self._records[record.record_id] = record
         self._audit.append({"record_id": record.record_id, "action": "CREATE", "actor": "system"})
+        self._revision += 1
 
     def create_with_details(
         self,
@@ -112,6 +118,7 @@ class InMemoryRecordRepository(DetailedRecordRepository):
             return False
         self._deleted.add(record_id)
         self._audit.append({"record_id": record_id, "action": "DELETE", "actor": actor, "reason": reason})
+        self._revision += 1
         return True
 
     def list_audit(self, record_id: str | None = None) -> tuple[dict[str, object], ...]:

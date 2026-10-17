@@ -155,7 +155,7 @@ def _add_table(document: Document, table_model: ReportTable, *, page_before: boo
     for note_index, note in enumerate(notes):
         paragraph = document.add_paragraph(note)
         paragraph.paragraph_format.space_after = Pt(3)
-        paragraph.paragraph_format.keep_with_next = note_index < len(notes) - 1
+        paragraph.paragraph_format.keep_with_next = False
         for run in paragraph.runs:
             _set_run_font(run, size=9, color="000000")
 
@@ -164,6 +164,11 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
     """Render a Word file and return its bytes; no record or calculation is modified."""
 
     document = Document()
+    # The bundled Word defaults can carry an accent-colored Title border.
+    # It is decoration, unrelated to the approved business table grid.
+    for border in list(document.styles.element.iter(qn("w:pBdr"))):
+        border.getparent().remove(border)
+    document.styles["Title"].font.color.rgb=RGBColor.from_string("000000")
     _format_section(document.sections[0], False)
     normal = document.styles["Normal"]
     normal.font.name = "Microsoft YaHei"
@@ -178,12 +183,13 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
     subtitle = document.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = subtitle.add_run(f"核算期间：{model.period_text}    编制日期：{model.prepared_on}")
-    _set_run_font(run, size=10, color="657080")
-    run = document.add_paragraph().add_run(f"适用版本：{model.standard_version}")
-    _set_run_font(run, size=9, color="657080")
+    _set_run_font(run, size=10, color="000000")
+    if model.standard_version and model.standard_version not in model.standard_name:
+        run = document.add_paragraph().add_run(f"适用版本：{model.standard_version}")
+        _set_run_font(run,size=9,color="000000")
 
     document.core_properties.version = model.schema_version
-    document.core_properties.comments = f"布局：{model.layout_id}；批准模板 SHA256：{model.template_sha256}"
+    document.core_properties.comments = f"业务表式：{model.layout_id}（{model.schema_version}）；来源母版 SHA256：{model.template_sha256}；输入模板：{model.input_template_version or '未记录'} 母版 SHA256：{model.input_template_sha256 or '未记录'}"
     current_landscape = False
     for report_section in model.sections:
         renderable_tables = tuple(table for table in report_section.tables if table.rows)
@@ -216,9 +222,11 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
                 _set_run_font(run, size=9, color="657080")
 
     if model.notices:
+        if current_landscape:
+            _format_section(document.add_section(),False)
         heading = document.add_paragraph()
         run = heading.add_run("核算提醒")
-        _set_run_font(run, size=13, bold=True, color="8A5A00")
+        _set_run_font(run, size=13, bold=True, color="000000")
         for notice in model.notices:
             paragraph = document.add_paragraph(style="List Bullet")
             run = paragraph.add_run(notice)

@@ -237,12 +237,12 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
 
     def test_percentage_ui_and_domain_ratio_conversion_is_decimal_and_bidirectional(self) -> None:
         spec = get_field_spec("calcination.wfc")
-        self.assertEqual(ui_to_domain_value(spec, "0"), "0")
-        self.assertEqual(ui_to_domain_value(spec, "100"), "1")
-        self.assertEqual(ui_to_domain_value(spec, "12.5"), "0.125")
-        self.assertEqual(domain_to_ui_value(spec, Decimal("0")), "0")
-        self.assertEqual(domain_to_ui_value(spec, Decimal("1")), "100")
-        self.assertEqual(domain_to_ui_value(spec, Decimal("0.125")), "12.500")
+        self.assertEqual(Decimal(ui_to_domain_value(spec, "0")), Decimal("0"))
+        self.assertEqual(Decimal(ui_to_domain_value(spec, "100")), Decimal("1"))
+        self.assertEqual(Decimal(ui_to_domain_value(spec, "12.5")), Decimal("0.125"))
+        self.assertEqual(Decimal(domain_to_ui_value(spec, Decimal("0"))), Decimal("0"))
+        self.assertEqual(Decimal(domain_to_ui_value(spec, Decimal("1"))), Decimal("100"))
+        self.assertEqual(Decimal(domain_to_ui_value(spec, Decimal("0.125"))), Decimal("12.5"))
         self.assertIsNone(ui_to_domain_value(spec, None))
 
     def test_same_legal_input_maps_to_equal_domain_and_equal_result(self) -> None:
@@ -262,7 +262,10 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
         page.boundary_confirmed.setChecked(True)
         page._source_toggle_buttons["calcination"].click()
         process_row = page._process_rows["calcination"][0]
-        feed, = process_row["materials"]
+        feed = next(
+            item for item in process_row["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")

@@ -4,6 +4,7 @@ import os
 import tempfile
 from types import SimpleNamespace
 import unittest
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -14,9 +15,11 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QComboBox,
+    QHeaderView,
     QLineEdit,
     QLabel,
     QPushButton,
+    QTableWidget,
     QTextEdit,
     QWidget,
 )
@@ -26,12 +29,64 @@ from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
 from packages.application.project_workspaces import ProjectWorkspaceService
 from packages.persistence import SQLiteProjectWorkspaceRepository
 import packages.ui.shell as shell_module
-from packages.ui.design_tokens import BRAND_AREA_HEIGHT, SIDEBAR_WIDTH
+from packages.ui.design_tokens import (
+    BRAND_AREA_HEIGHT,
+    SIDEBAR_WIDTH,
+    responsive_page_margin,
+)
 from packages.ui.shell import AppShell
-from packages.core.models import PeriodType
+from packages.core.models import (
+    AccountingInput,
+    AccountingPeriod,
+    AccountingRecord,
+    CalculationLine,
+    CalculationResult,
+    PeriodType,
+    RecordStatus,
+)
 from packages.standards.carbon_material import FuelPath
 from packages.ui.view_models import AppRoute
 from packages.persistence.in_memory_records import InMemoryRecordRepository
+
+
+def _home_record() -> AccountingRecord:
+    standard_id = "gbt_32151_34_2024"
+    created_at = datetime(2026, 10, 10, 12, tzinfo=timezone.utc)
+    return AccountingRecord(
+        record_id="record.home-sample",
+        standard_id=standard_id,
+        algorithm_version="CAR-SM01-HOME-TEST",
+        created_at=created_at,
+        input_snapshot=AccountingInput(
+            input_id="input.home-sample",
+            standard_id=standard_id,
+            period=AccountingPeriod(
+                PeriodType.ANNUAL,
+                date(2025, 1, 1),
+                date(2025, 12, 31),
+            ),
+            enterprise_name="首页记录展示测试企业",
+        ),
+        calculation_result=CalculationResult(
+            result_id="result.home-sample",
+            standard_id=standard_id,
+            algorithm_version="CAR-SM01-HOME-TEST",
+            lines=(
+                CalculationLine(
+                    "line.home-sample",
+                    "source.fuel",
+                    "CO2",
+                    "12.34",
+                    "tCO2",
+                ),
+            ),
+            total_amount="12.34",
+            total_unit="tCO2",
+            calculated_at=created_at,
+        ),
+        status=RecordStatus.COMPLETED,
+        standard_version="2024",
+    )
 
 
 class G03ShellTest(unittest.TestCase):
@@ -46,8 +101,9 @@ class G03ShellTest(unittest.TestCase):
             Path(self._project_directory.name) / "projects.sqlite"
         )
         self.project_service = ProjectWorkspaceService(project_repository)
+        self.record_repository = InMemoryRecordRepository()
         self.window = create_main_window(
-            record_repository=InMemoryRecordRepository(),
+            record_repository=self.record_repository,
             project_service=self.project_service,
         )
         self.window.show()
@@ -92,7 +148,11 @@ class G03ShellTest(unittest.TestCase):
         home = self.shell.pages[AppRoute.HOME]
         self.assertEqual(home.findChild(QLabel, "pageTitle").text(), "温室气体排放核算")
         self.assertIsNotNone(home.findChild(QWidget, "primaryWorkspace"))
-        self.assertIsNotNone(home.findChild(QWidget, "startPanel"))
+        self.assertIsNotNone(home.findChild(QWidget, "homeHeader"))
+        home_description = home.findChild(QLabel, "homeDescription")
+        self.assertIsNotNone(home_description)
+        self.assertTrue(home_description.text().strip())
+        self.assertIsNone(home.findChild(QWidget, "homeInfoChip"))
         self.assertIsNotNone(home.findChild(QWidget, "recentWorkCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentProjectsCard"))
         self.assertIsNotNone(home.findChild(QWidget, "recentRecordsCard"))
@@ -101,10 +161,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(home.findChild(QLabel, "recordRecentStateTitle").text(), "暂无核算记录")
         self.assertIn("新建核算", home.findChild(QLabel, "projectRecentStateDescription").text())
         self.assertIn("完成一次正式核算后", home.findChild(QLabel, "recordRecentStateDescription").text())
-        self.assertEqual(
-            home.findChild(QLabel, "statusSummary").text(),
-            "成功核算后可在“核算记录”查看结果与来源依据。",
-        )
+        self.assertIsNone(home.findChild(QLabel, "statusSummary"))
         all_text = "\n".join(widget.text() for widget in home.findChildren(QLabel))
         self.assertNotIn("企业数量", all_text)
         self.assertNotIn("排行榜", all_text)
@@ -128,9 +185,13 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(settings.text(), "设置")
         self.assertNotIn(AppRoute.SETTINGS, home.entry_buttons)
         for button in home.entry_buttons.values():
-            self.assertFalse(button.icon().isNull())
+            icon = button.findChild(QLabel, "homeEntryIcon")
+            self.assertIsNotNone(icon)
+            assert icon is not None
+            self.assertIsNotNone(icon.pixmap())
+            self.assertFalse(icon.pixmap().isNull())
 
-    def test_shell_scopes_light_sidebar_styling_without_changing_global_tokens(self) -> None:
+    def test_shell_uses_light_v4_sidebar_styling(self) -> None:
         shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
         self.assertIn("BRAND_AREA_HEIGHT", shell_source)
         self.assertIn("NAV_ITEM_RADIUS", shell_source)
@@ -142,7 +203,23 @@ class G03ShellTest(unittest.TestCase):
         assert brand_area is not None
         self.assertEqual(brand_area.height(), BRAND_AREA_HEIGHT)
         sidebar = self.shell.findChild(QWidget, "sidebar")
-        self.assertIn("#EAF3FB", sidebar.styleSheet())
+        self.assertIn("#E6F2FC", sidebar.styleSheet())
+        self.assertIn("font-size: 13px", sidebar.styleSheet())
+
+    def test_settings_overview_uses_real_product_info_and_v4_two_column_layout(self) -> None:
+        settings = self.shell.pages[AppRoute.SETTINGS]
+        self.assertEqual(settings.findChild(QLabel, "pageTitle").text(), "设置")
+        self.assertEqual(len(settings.findChildren(QFrame, "settingsSurface")), 2)
+        labels = [label.text() for label in settings.findChildren(QLabel)]
+        self.assertIn("软件信息", labels)
+        self.assertIn("导出位置", labels)
+        self.assertIn("统一导出文件夹", labels)
+        self.assertFalse(any("GB/T 32151.34" in label for label in labels))
+
+    def test_page_margin_matches_v4_viewport_clamp(self) -> None:
+        self.assertEqual(responsive_page_margin(1366), 46)
+        self.assertEqual(responsive_page_margin(1600), 48)
+        self.assertEqual(responsive_page_margin(1920), 48)
 
     def test_all_routes_are_reachable_and_home_actions_share_routes(self) -> None:
         shell = self.shell
@@ -206,9 +283,10 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNotNone(page.findChild(QPushButton, "openUnitRecordButton"))
         self.assertIsNone(page.findChild(QPushButton, "importButton"))
 
-    def test_home_recent_work_lists_only_saved_projects_and_keeps_existing_project_manager(self) -> None:
+    def test_home_recent_work_shows_saved_project_and_immutable_record(self) -> None:
         workspace = ProjectWorkspaceService.new_workspace("已保存的真实项目")
         self.project_service.save(workspace)
+        self.record_repository.create(_home_record())
         home = self.shell.pages[AppRoute.HOME]
         home.refresh_recent_records()
         self.application.processEvents()
@@ -216,7 +294,30 @@ class G03ShellTest(unittest.TestCase):
         project_labels = home.findChildren(QLabel, "recentProjectLabel")
         self.assertEqual([label.text() for label in project_labels], ["已保存的真实项目"])
         self.assertEqual(self.project_service.get(workspace.project_id), workspace)
-        self.assertIsNotNone(home.findChild(QLabel, "recordRecentStateTitle"))
+        self.assertIsNone(home.findChild(QLabel, "projectRecentStateTitle"))
+        self.assertIsNone(home.findChild(QLabel, "recordRecentStateTitle"))
+        self.assertIsNotNone(home.findChild(QPushButton, "resumeProjectButton"))
+        recent_table = home.findChild(QTableWidget, "homeRecentTable")
+        self.assertIsNotNone(recent_table)
+        assert recent_table is not None
+        self.assertEqual(recent_table.rowCount(), 1)
+        self.assertEqual(recent_table.item(0, 0).text(), "首页记录展示测试企业")
+        self.assertEqual(recent_table.item(0, 1).text(), "2025年度")
+        self.assertGreaterEqual(recent_table.columnWidth(2), 140)
+        self.assertEqual(
+            recent_table.horizontalHeader().sectionResizeMode(0),
+            QHeaderView.ResizeMode.Stretch,
+        )
+        self.assertEqual(recent_table.textElideMode(), Qt.TextElideMode.ElideRight)
+        action_cell = recent_table.cellWidget(0, 4)
+        self.assertIsNotNone(action_cell)
+        assert action_cell is not None
+        action = action_cell.findChild(QPushButton, "openRecentRecordButton")
+        self.assertIsNotNone(action)
+        assert action is not None
+        self.assertIs(action.parentWidget(), action_cell)
+        self.assertEqual(recent_table.rowHeight(0), 44)
+        self.assertEqual(action.height(), 28)
         self.assertIsNone(home.findChild(QWidget, "recentStandardsCard"))
 
     def test_import_context_is_explicit_and_context_edits_invalidate_old_preview(self) -> None:
@@ -276,8 +377,8 @@ class G03ShellTest(unittest.TestCase):
         assert home_logo is not None
         self.assertIsNotNone(home_logo.pixmap())
         self.assertFalse(home_logo.pixmap().isNull())
-        self.assertLessEqual(pixmap.width(), 176)
-        self.assertLessEqual(pixmap.height(), 44)
+        self.assertLessEqual(pixmap.width(), 186)
+        self.assertLessEqual(pixmap.height(), 52)
         self.assertAlmostEqual(pixmap.width() / pixmap.height(), 4.03, delta=0.15)
         self.assertEqual(shell.main_scroll_area.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.assertGreaterEqual(self.window.minimumWidth(), 1180)
@@ -285,10 +386,10 @@ class G03ShellTest(unittest.TestCase):
 
         self.window.resize(1180, 720)
         self.application.processEvents()
-        self.assertEqual(shell.pages[AppRoute.HOME].body_layout.contentsMargins().left(), 24)
+        self.assertEqual(shell.pages[AppRoute.HOME].body_layout.contentsMargins().left(), 30)
         self.window.resize(1920, 1080)
         self.application.processEvents()
-        self.assertEqual(shell.pages[AppRoute.HOME].body_layout.contentsMargins().left(), 32)
+        self.assertEqual(shell.pages[AppRoute.HOME].body_layout.contentsMargins().left(), 54)
 
     def test_product_view_model_has_only_empty_g03_data(self) -> None:
         view_model = carbon_accounting_view_model()

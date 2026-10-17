@@ -62,13 +62,15 @@ class P3EExcelImportPresentationTests(unittest.TestCase):
             destination = Path(directory) / "approved-copy.xlsx"
             with (
                 patch(
-                    "packages.ui.pages.QFileDialog.getSaveFileName",
+                    "packages.ui.pages.choose_export_path",
                     return_value=(str(destination), "Excel 工作簿 (*.xlsx)"),
-                ),
-                patch("packages.ui.pages.QMessageBox.information"),
+                ) as dialog,
+                patch("packages.ui.pages.show_export_success") as success,
             ):
                 self.page.templateButton.click()
             self.assertEqual(destination.read_bytes(), ExcelTemplateService.default().read_bytes())
+            self.assertIn("2.3.0", dialog.call_args.args[2])
+            self.assertEqual(success.call_args.args[-1], destination)
 
     def test_mixed_preview_shows_each_unit_and_cell_location(self) -> None:
         provenance = WorkbookProvenance(

@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Protocol
 from uuid import uuid4
 
-from packages.standards.carbon_material import CarbonMaterialInput
+from .canonical_input_codec import registered_input_implementation
 
 
 class ProjectWorkspaceRepositoryError(RuntimeError):
@@ -46,7 +46,7 @@ class AccountingUnitWorkspace:
     result_snapshot: dict[str, object] | None = None
     record_ids: tuple[str, ...] = ()
     input_fingerprint: str | None = None
-    canonical_input: CarbonMaterialInput | None = None
+    canonical_input: object | None = None
     ingress_provenance: dict[str, object] | None = None
 
     def __post_init__(self) -> None:
@@ -60,8 +60,8 @@ class AccountingUnitWorkspace:
             raise ValueError("form_state must be an object")
         if self.result_snapshot is not None and not isinstance(self.result_snapshot, dict):
             raise ValueError("result_snapshot must be an object or None")
-        if self.canonical_input is not None and not isinstance(self.canonical_input, CarbonMaterialInput):
-            raise ValueError("canonical_input must be a CarbonMaterialInput or None")
+        if self.canonical_input is not None:
+            registered_input_implementation(self.canonical_input)
         if self.ingress_provenance is not None and not isinstance(self.ingress_provenance, dict):
             raise ValueError("ingress_provenance must be an object or None")
         if len(set(self.record_ids)) != len(self.record_ids):

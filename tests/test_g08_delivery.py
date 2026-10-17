@@ -32,14 +32,33 @@ from scripts.build_standalone import (
     _write_manifest,
 )
 from scripts.inspect_release import (
+    BUSINESS_RULES_PATH,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
+    COMPATIBILITY_TEMPLATE_PATH,
+    COMPATIBILITY_TEMPLATE_SHA256,
+    PRIOR_TEMPLATE_PATH,
+    PREVIOUS_TEMPLATE_PATH,
+    PREVIOUS_TEMPLATE_SHA256,
     REPORT_LAYOUT_PATH,
     inspect_release,
 )
 from scripts.verify_release_archive import verify_release_archive
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
+    copied = {}
+    runtime_rules = root / BUSINESS_RULES_PATH
+    runtime_rules.parent.mkdir(parents=True, exist_ok=True)
+    runtime_rules.write_bytes((PROJECT_ROOT / BUSINESS_RULES_PATH).read_bytes())
+    for relative in (APPROVED_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((PROJECT_ROOT / relative).read_bytes())
+        copied[relative] = target
+    return copied
 
 
 class G08DeliveryTests(unittest.TestCase):
@@ -150,35 +169,37 @@ class G08DeliveryTests(unittest.TestCase):
             self.assertTrue(any("user-report.docx" in issue for issue in forbidden_documents))
             self.assertFalse(any("docx/templates/default.docx" in issue for issue in forbidden_documents))
 
-    def test_build_accepts_only_the_exact_approved_template_resource(self) -> None:
+    def test_build_accepts_only_the_exact_approved_previous_and_compatibility_templates(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
-            template = source / "resources" / APPROVED_TEMPLATE_PATH.relative_to("resources")
-            template.parent.mkdir(parents=True)
-            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            templates = _copy_controlled_templates(source)
+            template = templates[APPROVED_TEMPLATE_PATH]
+            previous = templates[PREVIOUS_TEMPLATE_PATH]
+            compatibility = templates[COMPATIBILITY_TEMPLATE_PATH]
             _validate_approved_template_inputs(source)
-            self.assertEqual(
-                sha256(template.read_bytes()).hexdigest(),
-                APPROVED_TEMPLATE_SHA256,
-            )
+            self.assertEqual(sha256(template.read_bytes()).hexdigest(), APPROVED_TEMPLATE_SHA256)
+            self.assertEqual(sha256(previous.read_bytes()).hexdigest(), PREVIOUS_TEMPLATE_SHA256)
+            self.assertEqual(sha256(compatibility.read_bytes()).hexdigest(), COMPATIBILITY_TEMPLATE_SHA256)
             (template.parent / "user-template.xlsx").write_bytes(b"user content")
-            with self.assertRaisesRegex(RuntimeError, "only the approved template"):
+            with self.assertRaisesRegex(RuntimeError, "only the approved current, previous, and compatibility templates"):
                 _validate_approved_template_inputs(source)
             (template.parent / "user-template.xlsx").unlink()
             (template.parent / "user-template.xlsm").write_bytes(b"user macro workbook")
-            with self.assertRaisesRegex(RuntimeError, "only the approved template"):
+            with self.assertRaisesRegex(RuntimeError, "only the approved current, previous, and compatibility templates"):
                 _validate_approved_template_inputs(source)
             (template.parent / "user-template.xlsm").unlink()
             template.write_bytes(b"tampered approved template")
+            with self.assertRaisesRegex(RuntimeError, "unexpected hash"):
+                _validate_approved_template_inputs(source)
+            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            compatibility.write_bytes(b"tampered compatibility template")
             with self.assertRaisesRegex(RuntimeError, "unexpected hash"):
                 _validate_approved_template_inputs(source)
 
     def test_office_documents_and_unapproved_resources_are_not_packaged(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
-            template = source / APPROVED_TEMPLATE_PATH
-            template.parent.mkdir(parents=True)
-            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            _copy_controlled_templates(source)
             for filename in ("user.docm", "user.odt", "user.ods", "user.bin"):
                 with self.subTest(filename=filename):
                     unexpected = source / "resources" / filename
@@ -193,9 +214,8 @@ class G08DeliveryTests(unittest.TestCase):
             artifact = Path(directory)
             (artifact / "QingzhouCarbonAccounting.exe").write_bytes(b"standalone-stub")
             build_catalog_database(DEFAULT_SOURCE_PATH, artifact / "databases" / "catalog.sqlite")
-            template = artifact / APPROVED_TEMPLATE_PATH
-            template.parent.mkdir(parents=True)
-            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            templates = _copy_controlled_templates(artifact)
+            template = templates[APPROVED_TEMPLATE_PATH]
             template.write_bytes(b"tampered approved template")
             issues = inspect_release(artifact)
             self.assertIn(
@@ -225,9 +245,8 @@ class G08DeliveryTests(unittest.TestCase):
                 DEFAULT_SOURCE_PATH,
                 artifact / "databases" / "catalog.sqlite",
             )
-            template = artifact / APPROVED_TEMPLATE_PATH
-            template.parent.mkdir(parents=True)
-            template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            templates = _copy_controlled_templates(artifact)
+            template = templates[APPROVED_TEMPLATE_PATH]
             layout_path = artifact / REPORT_LAYOUT_PATH
             layout_path.parent.mkdir(parents=True)
             source_layout_path = PROJECT_ROOT / REPORT_LAYOUT_PATH
@@ -236,11 +255,17 @@ class G08DeliveryTests(unittest.TestCase):
             with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
                 package_data = tomllib.load(stream)["tool"]["setuptools"]["package-data"]
             self.assertIn("*.json", package_data["packages.application.reporting"])
+            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx", package_data["resources"])
+            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx", package_data["resources"])
+            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx", package_data["resources"])
 
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
-            self.assertEqual(layout["version"], "2.0.0")
+            self.assertEqual(layout["version"], "3.0.1")
+            from packages.excel.templates import ExcelTemplateService
+            self.assertEqual(layout["input_template_version"], ExcelTemplateService.default().get().template_version)
+            self.assertEqual(layout["input_template_sha256"], APPROVED_TEMPLATE_SHA256)
             self.assertEqual(
                 layout["approved_sha256"],
                 "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",
@@ -267,6 +292,16 @@ class G08DeliveryTests(unittest.TestCase):
             manifest_paths = {entry["path"] for entry in manifest["files"]}
             self.assertIn(REPORT_LAYOUT_PATH.as_posix(), manifest_paths)
             self.assertIn(APPROVED_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertIn(PREVIOUS_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertIn(COMPATIBILITY_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertEqual(
+                sha256(templates[PREVIOUS_TEMPLATE_PATH].read_bytes()).hexdigest(),
+                PREVIOUS_TEMPLATE_SHA256,
+            )
+            self.assertEqual(
+                sha256(templates[COMPATIBILITY_TEMPLATE_PATH].read_bytes()).hexdigest(),
+                COMPATIBILITY_TEMPLATE_SHA256,
+            )
             self.assertEqual(inspect_release(artifact), ())
             self.assertFalse((artifact / "docs").exists())
 
@@ -304,9 +339,8 @@ class G08DeliveryTests(unittest.TestCase):
             (artifact / "migrations" / ".gitkeep").write_text("", encoding="utf-8")
             (artifact / "resources" / "icons").mkdir(parents=True)
             (artifact / "resources" / "icons" / ".gitkeep").write_text("", encoding="utf-8")
-            approved_template = artifact / APPROVED_TEMPLATE_PATH
-            approved_template.parent.mkdir(parents=True, exist_ok=True)
-            approved_template.write_bytes((PROJECT_ROOT / APPROVED_TEMPLATE_PATH).read_bytes())
+            templates = _copy_controlled_templates(artifact)
+            approved_template = templates[APPROVED_TEMPLATE_PATH]
             reporting_layout = artifact / REPORT_LAYOUT_PATH
             reporting_layout.parent.mkdir(parents=True, exist_ok=True)
             reporting_layout.write_bytes((PROJECT_ROOT / REPORT_LAYOUT_PATH).read_bytes())
@@ -333,12 +367,24 @@ class G08DeliveryTests(unittest.TestCase):
             self.assertNotIn("migrations/.gitkeep", manifest_paths)
             self.assertNotIn("resources/icons/.gitkeep", manifest_paths)
             self.assertIn(APPROVED_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertIn(PREVIOUS_TEMPLATE_PATH.as_posix(), manifest_paths)
+            self.assertIn(COMPATIBILITY_TEMPLATE_PATH.as_posix(), manifest_paths)
             self.assertIn(REPORT_LAYOUT_PATH.as_posix(), manifest_paths)
+            compatibility_entry = next(
+                entry for entry in manifest["files"]
+                if entry["path"] == COMPATIBILITY_TEMPLATE_PATH.as_posix()
+            )
+            self.assertEqual(compatibility_entry["sha256"], COMPATIBILITY_TEMPLATE_SHA256)
             template_entry = next(
                 entry for entry in manifest["files"]
                 if entry["path"] == APPROVED_TEMPLATE_PATH.as_posix()
             )
             self.assertEqual(template_entry["sha256"], APPROVED_TEMPLATE_SHA256)
+            previous_entry = next(
+                entry for entry in manifest["files"]
+                if entry["path"] == PREVIOUS_TEMPLATE_PATH.as_posix()
+            )
+            self.assertEqual(previous_entry["sha256"], PREVIOUS_TEMPLATE_SHA256)
             self.assertEqual(manifest["source_commit"], "checkout-sha")
             self.assertEqual(manifest["pr_head_sha"], "pr-head-sha")
             self.assertEqual(manifest["tested_merge_sha"], "tested-merge-sha")
@@ -403,10 +449,12 @@ class G08DeliveryTests(unittest.TestCase):
                 application.processEvents()
                 second_shell = second_window.centralWidget()
                 records_page = second_shell.pages[AppRoute.RECORDS]
-                self.assertEqual(records_page.record_list.count(), 1)
-                records_page.open_detail_button.click()
-                self.assertIn("G08 集成企业", records_page.input_basis_text.toPlainText())
-                self.assertIn("标准版本：2024", records_page.input_basis_text.toPlainText())
+                self.assertEqual(records_page.record_list.rowCount(), 1)
+                records_page.record_list.cellWidget(0, 6).click()
+                records_page.input_basis_view.audit_toggle.click()
+                detail = records_page.input_basis_view.audit_text.toPlainText()
+                self.assertIn("G08 集成企业", detail)
+                self.assertIn("标准版本：2024", detail)
                 second_window.close()
                 second_window.deleteLater()
                 application.processEvents()

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QTimer, QSize, Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -23,18 +23,24 @@ from packages.application import CarbonAccountingUseCase, resolve_formal_record_
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.repositories import RecordRepository
 from packages.application.project_workspaces import ProjectWorkspaceService
+from packages.application.standard_registry import StandardRuntime
 
 from .design_tokens import (
     BRAND_AREA_HEIGHT,
-    COMPACT_PAGE_MARGIN,
+    COMPACT_HOME_PAGE_SIDE_MARGIN,
+    HOME_CANVAS_GRADIENT,
+    HOME_CONTENT_MAX_WIDTH,
+    HOME_PAGE_SIDE_MARGIN,
     MAIN_CONTENT_MAX_WIDTH,
     NAV_ITEM_HEIGHT,
     NAV_ITEM_RADIUS,
+    PAGE_BACKGROUND,
     SIDEBAR_WIDTH,
-    WIDE_PAGE_MARGIN,
+    responsive_page_margin,
 )
 from .icons import load_tinted_icon
 from .pages import create_page
+from .export_location import ExportLocationService
 from .routing import PageRouter
 from .view_models import AppRoute, ShellViewModel
 
@@ -45,11 +51,13 @@ PageFactory = Callable[
 ]
 
 
-_SIDEBAR_BACKGROUND = "#EAF3FB"
-_SIDEBAR_TEXT = "#182F43"
-_SIDEBAR_MUTED_TEXT = "#526A7D"
-_SIDEBAR_ACTIVE = "#12618D"
-_SIDEBAR_ACTIVE_BACKGROUND = "#E7F3F9"
+_SIDEBAR_BACKGROUND = (
+    "qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+    "stop:0 #E6F2FC, stop:0.48 #EDF6FD, stop:1 #E6F2FB)"
+)
+_SIDEBAR_MUTED_TEXT = "#516F86"
+_SIDEBAR_ACTIVE = "#116FAE"
+_SIDEBAR_ACTIVE_BACKGROUND = "#D6EBF9"
 
 
 class ContentScrollArea(QScrollArea):
@@ -93,6 +101,23 @@ class CurrentPageStack(QStackedWidget):
         return handled
 
 
+class _PageAccess(Mapping):
+    """Compatibility mapping; reading a route explicitly creates its page."""
+    def __init__(self, shell):
+        self.shell = shell
+
+    def __getitem__(self, route):
+        if route not in tuple(self):
+            raise KeyError(route)
+        return self.shell._ensure_page(route)
+
+    def __iter__(self):
+        return (item.route for item in self.shell.view_model.navigation)
+
+    def __len__(self):
+        return len(self.shell.view_model.navigation)
+
+
 class AppShell(QWidget):
     """Route-driven shell with a sidebar on business pages only."""
 
@@ -107,6 +132,8 @@ class AppShell(QWidget):
         record_repository: RecordRepository | None = None,
         project_service: ProjectWorkspaceService | None = None,
         calculation_use_case: CarbonAccountingUseCase | None = None,
+        standard_runtime=None,
+        export_location_service: ExportLocationService | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appShell")
@@ -116,14 +143,21 @@ class AppShell(QWidget):
         self.catalog_service = catalog_service or CatalogQueryService.empty()
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.project_service = project_service
-        self.calculation_use_case = calculation_use_case
+        self._injected_calculation_use_case = calculation_use_case
+        self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
+        self.export_location_service = export_location_service
         self.selected_standard_id: str | None = None
         self._custom_page_factory = page_factory
         self._page_factory = page_factory or create_page
         self._navigation_buttons: dict[AppRoute, QPushButton] = {}
         self._icon_names: dict[AppRoute, str] = {}
+        self._navigation_icon_cache: dict[tuple[AppRoute, bool], QIcon] = {}
+        self._scroll_positions: dict[AppRoute, int] = {}
+        self._visible_route: AppRoute | None = None
         self._pages: dict[AppRoute, QWidget] = {}
+        self._standard_pages: dict[tuple[AppRoute, str], QWidget] = {}
         self._content_geometry_refresh_pending = False
+        self._pending_route_scroll_restore = False
         self.router = PageRouter((item.route for item in view_model.navigation), self)
         self.router.route_changed.connect(self._show_route)
 
@@ -134,47 +168,78 @@ class AppShell(QWidget):
         root_layout.addWidget(self._sidebar)
         root_layout.addWidget(self._build_main_content(), 1)
 
-        for item in view_model.navigation:
-            if self._custom_page_factory is None:
-                page = create_page(
-                    item.route,
-                    view_model,
-                    self.navigate,
-                    self,
-                    catalog_service=self.catalog_service,
-                    record_repository=self.record_repository,
-                    project_service=self.project_service,
-                    calculation_use_case=self.calculation_use_case,
-                    logo_path=self._logo_path,
-                    icon_directory=self._icon_directory,
-                )
-            else:
-                page = self._page_factory(item.route, view_model, self.navigate, self)
-            self._pages[item.route] = page
-            self.page_stack.addWidget(page)
-            accounting_requested = getattr(page, "accounting_requested", None)
-            if accounting_requested is not None:
-                accounting_requested.connect(self._request_standard_accounting)
-            record_created = getattr(page, "record_created", None)
-            if record_created is not None:
-                record_created.connect(self._refresh_record_views)
-            record_requested = getattr(page, "record_requested", None)
-            if record_requested is not None:
-                record_requested.connect(self._request_record_view)
-            canonical_project_requested = getattr(page, "canonical_project_requested", None)
-            if canonical_project_requested is not None:
-                canonical_project_requested.connect(self._request_canonical_project)
+        if self._custom_page_factory is not None:
+            for item in view_model.navigation:
+                self._ensure_page(item.route)
 
         self.router.navigate(AppRoute.HOME)
         QTimer.singleShot(0, self.update_content_geometry)
+
+    def _ensure_page(self, route: AppRoute) -> QWidget:
+        standard_id = None
+        if self._custom_page_factory is None and route in (AppRoute.NEW_ACCOUNTING, AppRoute.EXCEL_IMPORT):
+            standard_id = self.selected_standard_id or self.standard_runtime.registry.default_standard_id
+            self.standard_runtime.registry.require(standard_id)
+            cached = self._standard_pages.get((route, standard_id))
+            if cached is not None:
+                self._pages[route] = cached
+                return cached
+        elif route in self._pages:
+            return self._pages[route]
+        if self._custom_page_factory is None:
+            page = create_page(
+                route,
+                self.view_model,
+                self.navigate,
+                self,
+                catalog_service=self.catalog_service,
+                record_repository=self.record_repository,
+                project_service=self.project_service,
+                calculation_use_case=self._injected_calculation_use_case,
+                logo_path=self._logo_path,
+                icon_directory=self._icon_directory,
+                standard_runtime=self.standard_runtime,
+                standard_id=self.selected_standard_id,
+            )
+        else:
+            page = self._page_factory(route, self.view_model, self.navigate, self)
+        self._pages[route] = page
+        if standard_id is not None:
+            self._standard_pages[(route, standard_id)] = page
+        self.page_stack.addWidget(page)
+        accounting_requested = getattr(page, "accounting_requested", None)
+        if accounting_requested is not None:
+            accounting_requested.connect(self._request_standard_accounting)
+        record_created = getattr(page, "record_created", None)
+        if record_created is not None:
+            record_created.connect(self._refresh_record_views)
+        record_requested = getattr(page, "record_requested", None)
+        if record_requested is not None:
+            record_requested.connect(self._request_record_view)
+        project_requested = getattr(page, "project_requested", None)
+        if project_requested is not None:
+            project_requested.connect(self._request_home_project)
+        project_manager_requested = getattr(page, "project_manager_requested", None)
+        if project_manager_requested is not None:
+            project_manager_requested.connect(self._request_home_project_manager)
+        canonical_project_requested = getattr(page, "canonical_project_requested", None)
+        if canonical_project_requested is not None:
+            canonical_project_requested.connect(self._request_canonical_project)
+        return page
 
     @property
     def navigation_buttons(self) -> dict[AppRoute, QPushButton]:
         return dict(self._navigation_buttons)
 
     @property
-    def pages(self) -> dict[AppRoute, QWidget]:
-        return dict(self._pages)
+    def pages(self) -> Mapping[AppRoute, QWidget]:
+        return _PageAccess(self)
+
+    @property
+    def calculation_use_case(self):
+        """Compatibility access explicitly requests the selected formal service."""
+        standard_id = self.selected_standard_id or self.standard_runtime.registry.default_standard_id
+        return self.standard_runtime.services(standard_id)[1]
 
     @property
     def current_route(self) -> AppRoute | None:
@@ -188,9 +253,12 @@ class AppShell(QWidget):
     def confirm_before_close(self) -> bool:
         """Offer explicit save, discard or cancel for unsaved project changes."""
 
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
-        prompt = getattr(page, "confirm_project_close", None)
-        return bool(prompt()) if callable(prompt) else True
+        pages = {page for (route, _standard), page in self._standard_pages.items() if route is AppRoute.NEW_ACCOUNTING}
+        for page in pages:
+            prompt = getattr(page, "confirm_project_close", None)
+            if callable(prompt) and not prompt():
+                return False
+        return True
 
     def navigate(self, route: AppRoute) -> None:
         """Switch pages without discarding the active new-accounting input."""
@@ -198,17 +266,26 @@ class AppShell(QWidget):
         self.router.navigate(route)
 
     def _refresh_record_views(self, _record_id: str | None = None) -> None:
-        for page in self._pages.values():
-            refresh = getattr(page, "refresh_recent_records", None)
-            if callable(refresh):
-                refresh()
-            refresh = getattr(page, "refresh_records", None)
-            if callable(refresh):
-                refresh()
+        for page in set((*self._pages.values(), *self._standard_pages.values())):
+            invalidate = getattr(page, "invalidate_record_views", None)
+            if callable(invalidate):
+                invalidate(projects=True)
+        current = self._pages.get(self.router.current_route)
+        refresh = getattr(current, "refresh_if_dirty", None)
+        if callable(refresh):
+            refresh()
+
+    def _invalidate_project_views(self) -> None:
+        for page in set((*self._pages.values(), *self._standard_pages.values())):
+            invalidate_projects = getattr(page, "invalidate_project_data", None)
+            if callable(invalidate_projects):
+                invalidate_projects()
+            invalidate_associations = getattr(page, "invalidate_project_associations", None)
+            if callable(invalidate_associations):
+                invalidate_associations()
 
     def _request_record_view(self, record_id: str) -> None:
-        self._refresh_record_views(record_id)
-        page = self._pages.get(AppRoute.RECORDS)
+        page = self._ensure_page(AppRoute.RECORDS)
         open_record = getattr(page, "open_record", None)
         if callable(open_record):
             open_record(record_id)
@@ -221,14 +298,36 @@ class AppShell(QWidget):
         if callable(open_project):
             open_project(project_id)
 
-    def _request_standard_accounting(self, standard_id: str) -> None:
-        """Keep the selected catalog version while routing to the future input page."""
+    def _request_home_project(self, project_id: str) -> None:
+        page = self._ensure_page(AppRoute.NEW_ACCOUNTING)
+        open_project = getattr(page, "open_project_from_home", None)
+        if not project_id or not callable(open_project):
+            return
+        self.navigate(AppRoute.NEW_ACCOUNTING)
+        open_project(project_id)
 
+    def _request_home_project_manager(self) -> None:
+        page = self._ensure_page(AppRoute.NEW_ACCOUNTING)
+        show_manager = getattr(page, "show_project_manager", None)
+        if not callable(show_manager):
+            return
+        self.navigate(AppRoute.NEW_ACCOUNTING)
+        show_manager()
+
+        card = getattr(page, "project_unit_card", None)
+        if card is not None:
+            QTimer.singleShot(
+                0,
+                self,
+                lambda: self.main_scroll_area.ensureWidgetVisible(card, 0, 18),
+            )
+
+    def _request_standard_accounting(self, standard_id: str) -> None:
+        """Route only the implemented industry standard to its dedicated page."""
+
+        if not self.standard_runtime.registry.supports(standard_id):
+            return
         self.selected_standard_id = standard_id
-        page = self._pages.get(AppRoute.NEW_ACCOUNTING)
-        setter = getattr(page, "set_standard_id", None)
-        if setter is not None:
-            setter(standard_id)
         self.navigate(AppRoute.NEW_ACCOUNTING)
 
     def _build_sidebar(self) -> QFrame:
@@ -239,42 +338,42 @@ class AppShell(QWidget):
             f"""
             QFrame#sidebar {{ background: {_SIDEBAR_BACKGROUND}; }}
             QWidget#brandArea, QLabel#brandLogo, QLabel#sidebarProductName {{ background: transparent; }}
-            QLabel#sidebarProductName {{ color: {_SIDEBAR_TEXT}; font-size: 16px; font-weight: 600; }}
+            QLabel#sidebarProductName {{ color: #537891; font-size: 11px; font-weight: 650; }}
             QPushButton#navButton {{
                 background: transparent; border: 1px solid transparent; border-radius: {NAV_ITEM_RADIUS}px;
-                color: {_SIDEBAR_MUTED_TEXT}; font-size: 14px; font-weight: 400;
-                padding: 0 12px; text-align: left;
+                color: {_SIDEBAR_MUTED_TEXT}; font-size: 13px; font-weight: 600;
+                padding: 0 13px; text-align: left;
             }}
-            QPushButton#navButton:hover {{ background: #F1F7FC; color: {_SIDEBAR_TEXT}; }}
+            QPushButton#navButton:hover {{ background: rgba(255, 255, 255, 0.78); color: #0F6DA7; }}
             QPushButton#navButton:checked {{
-                background: {_SIDEBAR_ACTIVE_BACKGROUND}; border-left: 3px solid {_SIDEBAR_ACTIVE};
-                color: {_SIDEBAR_ACTIVE}; font-weight: 600; padding-left: 9px;
+                background: {_SIDEBAR_ACTIVE_BACKGROUND}; border-left: 3px solid #298CCB;
+                color: {_SIDEBAR_ACTIVE}; font-weight: 700; padding-left: 10px;
             }}
             QPushButton#navButton:focus {{ border: 1px solid {_SIDEBAR_ACTIVE}; }}
             QPushButton#navButton[reserved="true"] {{ color: #98A2B3; }}
-            QPushButton#navButton[reserved="true"]:hover {{ background: #F1F7FC; color: #98A2B3; }}
+            QPushButton#navButton[reserved="true"]:hover {{ background: rgba(255, 255, 255, 0.45); color: #91A3B2; }}
             """
         )
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setContentsMargins(0, 24, 0, 18)
         sidebar_layout.setSpacing(0)
 
         brand_area = QWidget(sidebar)
         brand_area.setObjectName("brandArea")
         brand_area.setFixedHeight(BRAND_AREA_HEIGHT)
         brand_layout = QVBoxLayout(brand_area)
-        brand_layout.setContentsMargins(20, 16, 20, 12)
-        brand_layout.setSpacing(8)
+        brand_layout.setContentsMargins(7, 10, 7, 19)
+        brand_layout.setSpacing(6)
 
         logo_label = QLabel(brand_area)
         logo_label.setObjectName("brandLogo")
         logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        logo_label.setFixedHeight(44)
+        logo_label.setFixedSize(180, 46)
         logo = QPixmap(str(self._logo_path))
         if not logo.isNull():
             logo_label.setPixmap(
                 logo.scaled(
-                    QSize(176, 44),
+                    QSize(180, 46),
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
@@ -303,12 +402,12 @@ class AppShell(QWidget):
             button.setAutoDefault(False)
             button.setFixedHeight(NAV_ITEM_HEIGHT)
             self._icon_names[item.route] = item.icon_name
-            button.setIcon(
-                load_tinted_icon(
-                    self._icon_directory / f"{item.icon_name}.svg",
-                    _SIDEBAR_MUTED_TEXT,
-                )
+            muted_icon = load_tinted_icon(
+                self._icon_directory / f"{item.icon_name}.svg",
+                _SIDEBAR_MUTED_TEXT,
             )
+            self._navigation_icon_cache[(item.route, False)] = muted_icon
+            button.setIcon(muted_icon)
             button.setIconSize(QSize(18, 18))
             button.setCursor(
                 Qt.CursorShape.ArrowCursor
@@ -317,7 +416,7 @@ class AppShell(QWidget):
             )
             if item.reserved:
                 button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.clicked.connect(lambda _checked=False, route=item.route: self.navigate(route))
+            button.clicked.connect(lambda _checked=False, route=item.route: self._navigation_clicked(route))
             navigation_layout.addWidget(button)
             self._navigation_buttons[item.route] = button
         sidebar_layout.addWidget(navigation)
@@ -325,7 +424,8 @@ class AppShell(QWidget):
 
         settings_row = QWidget(sidebar)
         settings_layout = QVBoxLayout(settings_row)
-        settings_layout.setContentsMargins(12, 0, 12, 16)
+        settings_row.setStyleSheet("QWidget { border-top: 1px solid #D4E5F1; }")
+        settings_layout.setContentsMargins(12, 12, 12, 0)
         settings_layout.setSpacing(0)
         settings_button = self._navigation_buttons[AppRoute.SETTINGS]
         navigation_layout.removeWidget(settings_button)
@@ -373,43 +473,61 @@ class AppShell(QWidget):
         main_layout.addWidget(self.main_scroll_area)
         return main_content
 
+    def _navigation_clicked(self, route: AppRoute) -> None:
+        self.navigate(route)
+        button = self._navigation_buttons.get(route)
+        if button is not None and self.router.current_route is route:
+            button.setChecked(True)
+
+    def _navigation_icon(self, route: AppRoute, active: bool) -> QIcon:
+        key = (route, active)
+        icon = self._navigation_icon_cache.get(key)
+        if icon is None:
+            color = _SIDEBAR_ACTIVE if active else _SIDEBAR_MUTED_TEXT
+            icon = load_tinted_icon(
+                self._icon_directory / f"{self._icon_names[route]}.svg",
+                color,
+            )
+            self._navigation_icon_cache[key] = icon
+        return icon
+
     def _show_route(self, route: AppRoute) -> None:
-        page = self._pages.get(route)
-        if page is None:
-            return
+        previous_route = self._visible_route
+        if previous_route is not None and previous_route is not route:
+            self._scroll_positions[previous_route] = self.main_scroll_area.verticalScrollBar().value()
+            if previous_route in (AppRoute.NEW_ACCOUNTING, AppRoute.EXCEL_IMPORT):
+                self._invalidate_project_views()
+        page = self._ensure_page(route)
+        background = HOME_CANVAS_GRADIENT if route is AppRoute.HOME else PAGE_BACKGROUND
+        self.scroll_host.setStyleSheet(
+            f"QWidget#scrollHost {{ background: {background}; }}"
+        )
         self._sidebar.setVisible(route is not AppRoute.HOME)
         self.page_stack.setCurrentWidget(page)
+        self._visible_route = route
         for item_route, button in self._navigation_buttons.items():
             is_active = item_route is route
             button.setChecked(is_active)
-            button.setIcon(
-                load_tinted_icon(
-                    self._icon_directory / f"{self._icon_names[item_route]}.svg",
-                    _SIDEBAR_ACTIVE if is_active else _SIDEBAR_MUTED_TEXT,
-                )
-            )
-        if route is AppRoute.HOME:
-            refresh_home = getattr(page, "refresh_recent_records", None)
-            if callable(refresh_home):
-                refresh_home()
+            button.setIcon(self._navigation_icon(item_route, is_active))
+        refresh = getattr(page, "refresh_if_dirty", None)
+        if callable(refresh):
+            refresh()
+        self._pending_route_scroll_restore = True
         self.update_content_geometry()
-        self._reset_content_scroll_position()
-        QTimer.singleShot(0, self._settle_route_layout)
+        self._restore_content_scroll_position(route)
 
-    def _reset_content_scroll_position(self) -> None:
+    def _restore_content_scroll_position(self, route: AppRoute | None = None) -> None:
         if not hasattr(self, "main_scroll_area"):
             return
-        scrollbar = self.main_scroll_area.verticalScrollBar()
-        scrollbar.setValue(scrollbar.minimum())
-
-    def _settle_route_layout(self) -> None:
-        """Reapply the top position after Qt recalculates the new page range."""
-
-        if not hasattr(self, "page_stack"):
+        active_route = route or self._visible_route
+        if active_route is None:
             return
-        self.page_stack.updateGeometry()
-        self.update_content_geometry()
-        self._reset_content_scroll_position()
+        scrollbar = self.main_scroll_area.verticalScrollBar()
+        target = self._scroll_positions.get(active_route, scrollbar.minimum())
+        scrollbar.setValue(max(scrollbar.minimum(), min(target, scrollbar.maximum())))
+
+    def _reset_content_scroll_position(self) -> None:
+        self._restore_content_scroll_position()
 
     def update_content_geometry(self) -> None:
         if not hasattr(self, "page_stack"):
@@ -421,22 +539,39 @@ class AppShell(QWidget):
         QTimer.singleShot(0, self, self._settle_content_geometry)
 
     def _settle_content_geometry(self) -> None:
-        """Recheck after Qt has propagated nested layout size-hint changes."""
+        """Coalesce layout settling and restore the active route's scroll position."""
 
         self._content_geometry_refresh_pending = False
         self._apply_content_geometry()
+        if self._pending_route_scroll_restore:
+            self._pending_route_scroll_restore = False
+            self._restore_content_scroll_position()
 
     def _apply_content_geometry(self) -> None:
         if not hasattr(self, "page_stack"):
             return
         available_width = max(0, self.main_scroll_area.viewport().width())
-        content_width = min(MAIN_CONTENT_MAX_WIDTH, available_width)
+        current_route = self.router.current_route
+        content_max_width = (
+            HOME_CONTENT_MAX_WIDTH
+            if current_route is AppRoute.HOME
+            else MAIN_CONTENT_MAX_WIDTH
+        )
+        content_width = min(content_max_width, available_width)
         self.page_stack.setFixedWidth(content_width)
-        page_margin = COMPACT_PAGE_MARGIN if self.width() <= 1366 else WIDE_PAGE_MARGIN
-        for page in self._pages.values():
-            setter = getattr(page, "set_page_margin", None)
-            if setter is not None:
-                setter(page_margin)
+        route = self.router.current_route
+        page = self.page_stack.currentWidget()
+        setter = getattr(page, "set_page_margin", None)
+        if setter is not None:
+            if route is AppRoute.HOME:
+                margin = (
+                    COMPACT_HOME_PAGE_SIDE_MARGIN
+                    if self.width() <= 1240
+                    else HOME_PAGE_SIDE_MARGIN
+                )
+            else:
+                margin = responsive_page_margin(self.width())
+            setter(margin)
         available_height = max(0, self.main_scroll_area.viewport().height())
         self.page_stack.setMinimumHeight(available_height)
         self.page_stack.adjustSize()

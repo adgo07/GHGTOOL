@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QTableWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -103,6 +103,27 @@ def _record(record_id: str, *, warning: bool = False) -> AccountingRecord:
         status=RecordStatus.COMPLETED_WITH_WARNINGS if warning else RecordStatus.COMPLETED,
         parameter_snapshots=(snapshot,),
         standard_version="2024",
+    )
+
+
+def _audit_text(page: RecordLibraryPage) -> str:
+    if not page.input_basis_view.audit_toggle.isChecked():
+        page.input_basis_view.audit_toggle.click()
+    assert page.input_basis_view.audit_text is not None
+    return page.input_basis_view.audit_text.toPlainText()
+
+
+def _table_text(page: RecordLibraryPage, table_id: str, *, summary: bool = False) -> str:
+    pane = page.summary_view if summary else page.input_basis_view
+    card = next(
+        card for card in pane.report_table_cards
+        if card.table_widget.property("reportTableId") == table_id
+    )
+    return "\n".join(
+        card.table_widget.item(row, column).text()
+        for row in range(card.table_widget.rowCount())
+        for column in range(card.table_widget.columnCount())
+        if card.table_widget.item(row, column) is not None
     )
 
 
@@ -283,18 +304,21 @@ class G07UiTests(unittest.TestCase):
 
     def test_record_list_search_filter_and_read_only_detail(self) -> None:
         self.assertIsInstance(self.records_page, RecordLibraryPage)
-        self.assertEqual(self.records_page.record_list.count(), 2)
+        self.assertEqual(self.records_page.record_list.rowCount(), 2)
         self.records_page.search_input.setText("G07 示例企业")
         self.application.processEvents()
-        self.assertEqual(self.records_page.record_list.count(), 2)
+        self.assertEqual(self.records_page.record_list.rowCount(), 2)
         self.records_page.status_filter.setCurrentIndex(2)
         self.application.processEvents()
-        self.assertEqual(self.records_page.record_list.count(), 1)
-        self.records_page.open_detail_button.click()
-        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
-        self.assertIn("G07 示例企业", self.records_page.summary_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.records_page.input_basis_text.toPlainText())
-        self.assertIsNotNone(self.home_page.findChild(QLabel, "bodyText"))
+        self.assertEqual(self.records_page.record_list.rowCount(), 1)
+        self.records_page.record_list.cellWidget(0, 6).click()
+        self.assertTrue(self.records_page.input_basis_view.isReadOnly())
+        self.assertIn("G07 示例企业", _table_text(self.records_page, "basic-info", summary=True))
+        self.assertIn("G07 测试选择理由", _audit_text(self.records_page))
+        home_recent = self.home_page.findChild(QTableWidget, "homeRecentTable")
+        self.assertIsNotNone(home_recent)
+        assert home_recent is not None
+        self.assertEqual(home_recent.rowCount(), 2)
 
     def test_leaving_uncomputed_page_preserves_every_input_without_confirmation(self) -> None:
         shell = self.window.centralWidget()
@@ -356,8 +380,10 @@ class G07UiTests(unittest.TestCase):
         )
         self.records_page.search_input.setText("record.ui.snapshot")
         self.application.processEvents()
-        self.records_page.open_detail_button.click()
-        detail = self.records_page.input_basis_text.toPlainText()
+        self.records_page.record_list.cellWidget(
+            self.records_page.record_list.currentRow(), 6
+        ).click()
+        detail = _audit_text(self.records_page)
         self.assertIn("核算标准：GB/T 32151.34—2024", detail)
         self.assertIn("标准版本：2024", detail)
         self.assertIn("【活动数据】", detail)
@@ -374,7 +400,7 @@ class G07UiTests(unittest.TestCase):
         self.assertNotIn('"electricity_details"', detail)
         self.assertNotIn('"activity_amount"', detail)
         self.assertNotIn("原始输入快照字段：", detail)
-        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
+        self.assertTrue(self.records_page.input_basis_view.isReadOnly())
 
     def test_legacy_record_explicitly_reports_missing_trace_without_catalog_lookup(self) -> None:
         legacy = _record("record.ui.legacy-trace")
@@ -387,11 +413,13 @@ class G07UiTests(unittest.TestCase):
         ):
             self.records_page.refresh_records()
             self.application.processEvents()
-        self.records_page.open_detail_button.click()
-        detail = self.records_page.input_basis_text.toPlainText()
+        self.records_page.record_list.cellWidget(
+            self.records_page.record_list.currentRow(), 6
+        ).click()
+        detail = _audit_text(self.records_page)
         self.assertIn("该记录生成时未保存完整计算过程快照。", detail)
         self.assertIn("历史记录未保存该信息。", detail)
-        self.assertTrue(self.records_page.input_basis_text.isReadOnly())
+        self.assertTrue(self.records_page.input_basis_view.isReadOnly())
 
     def test_historical_snapshot_stays_stable_after_catalog_parameter_change(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -426,8 +454,10 @@ class G07UiTests(unittest.TestCase):
             )
             self.records_page.search_input.setText(record.record_id)
             self.application.processEvents()
-            self.records_page.open_detail_button.click()
-            before = self.records_page.input_basis_text.toPlainText()
+            self.records_page.record_list.cellWidget(
+                self.records_page.record_list.currentRow(), 6
+            ).click()
+            before = _audit_text(self.records_page)
             self.assertIn("G07 测试选择理由", before)
             self.assertIn("12345.678", before)
 
@@ -450,7 +480,7 @@ class G07UiTests(unittest.TestCase):
 
             self.records_page.refresh_records()
             self.application.processEvents()
-            after = self.records_page.input_basis_text.toPlainText()
+            after = _audit_text(self.records_page)
             self.assertEqual(after, before)
             self.assertIn("12345.678", after)
             self.assertNotIn("已变更的当前 Catalog 参数", after)
@@ -486,10 +516,11 @@ class G07UiTests(unittest.TestCase):
             second_shell = second_window.centralWidget()
             second_records = second_shell.pages[AppRoute.RECORDS]
             self.assertIsInstance(second_shell.record_repository, SQLiteRecordRepository)
-            self.assertEqual(second_records.record_list.count(), 1)
-            second_records.open_detail_button.click()
-            self.assertIn("默认持久化企业", second_records.input_basis_text.toPlainText())
-            self.assertIn("标准版本：2024", second_records.input_basis_text.toPlainText())
+            self.assertEqual(second_records.record_list.rowCount(), 1)
+            second_records.record_list.cellWidget(0, 6).click()
+            detail = _audit_text(second_records)
+            self.assertIn("默认持久化企业", detail)
+            self.assertIn("标准版本：2024", detail)
             second_window.close()
             second_window.deleteLater()
             self.application.processEvents()
@@ -506,9 +537,11 @@ class G07UiTests(unittest.TestCase):
 
     def test_ui_delete_requires_confirmation_and_refreshes_active_list(self) -> None:
         self.records_page.search_input.clear()
-        self.records_page.record_list.setCurrentRow(0)
+        self.records_page.record_list.setCurrentCell(0, 0)
         selected_id = self.records_page._records[0].record_id
-        self.records_page.open_detail_button.click()
+        self.records_page.record_list.cellWidget(
+            self.records_page.record_list.currentRow(), 6
+        ).click()
         with patch(
             "packages.ui.pages.QMessageBox.question",
             return_value=int(QMessageBox.StandardButton.Yes),
@@ -516,7 +549,7 @@ class G07UiTests(unittest.TestCase):
             self.records_page.delete_button.click()
         question.assert_called_once()
         self.assertIsNone(self.repository.get(selected_id))
-        self.assertEqual(self.records_page.record_list.count(), 1)
+        self.assertEqual(self.records_page.record_list.rowCount(), 1)
         self.assertEqual(self.repository.list_audit(selected_id)[-1].action, "DELETE")
 
 

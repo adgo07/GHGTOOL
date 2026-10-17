@@ -1,0 +1,18 @@
+# V4 页面截图
+
+截图由 Windows 平台 PySide6/Qt Widgets 进程通过实际窗口渲染生成，并对截图内容进行了视觉核对；设备像素比为 1.0（96 logical DPI）。截图使用隔离临时数据库与合成验收 Record，不读写用户本地数据。页面内容来自当前代码和服务，不包含演示 HTML 的业务样例；截图核对不等同于 Owner 的最终视觉验收。
+
+- `home-populated-1600x900.png`：1600×900 首页，展示一个已保存项目与一条不可变记录。
+- `home-1366x768.png`、`home-1920x1080.png`：紧凑窗口和宽屏检查。
+- `standards-1600x900.png`、`standard-detail-1600x900.png`：标准库和标准详情，核对可读列宽、状态标签和标准链接状态。
+- `accounting-1600x900.png`：炭素材料核算页与 V4 四列排放源卡片。
+- `accounting-fuel-active-1600x900.png`：启用燃料后的实际输入控件布局。
+- `accounting-material-rows-1600x900.png`：煅烧默认四行类别与深蓝标题条。
+- `accounting-material-baking-rows-1600x900.png`、`accounting-material-graphitization-rows-1600x900.png`：焙烧/炭化六行、石墨化八行默认类别；物料名称保持空白。
+- `excel-import-1600x900.png`：Excel 工作簿导入流程。
+- `records-list-1600x900.png`：可搜索、可筛选的完整记录列表。
+- `record-summary-1600x900.png`、`record-basis-1600x900.png`：记录详情的两个页签。
+- `factors-1600x900.png`、`factors-search-1600x900.png`：参数与因子库按来源浏览和全库搜索两种真实数据模式，搜索表列序与 V4 对齐。
+- `settings-1600x900.png`：设置。
+
+窗口尺寸和 Qt 屏幕参数见 `windows-capture-manifest.json`。本轮新增截图来自实际 Windows 窗口及隔离临时 Catalog。125% Windows 系统缩放未在本环境实测；CI 中的 1.25/1.5 UI 缩放检查不等同于更改 Windows 系统缩放。

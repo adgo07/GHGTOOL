@@ -63,7 +63,7 @@ class FieldSpec:
 SOURCE_LABELS = {
     "CAR-SRC-FUEL-001": "化石燃料燃烧",
     "CAR-SRC-CALCINATION-001": "原料煅烧",
-    "CAR-SRC-BAKING-001": "炭素制品焙烧/炭化",
+    "CAR-SRC-BAKING-001": "炭素制品焙烧（炭化）",
     "CAR-SRC-GRAPHITIZATION-001": "炭素制品石墨化",
     "CAR-SRC-FUME-INCINERATION-001": "烟气焚烧治理",
     "CAR-SRC-FGD-001": "烟气脱硫净化",
@@ -240,7 +240,7 @@ for _item in (
         "燃料计量路径",
         FieldDataType.ENUM,
         required=True,
-        help_text="按体积、质量或热量选择燃料活动数据路径。",
+        help_text="按体积或质量选择燃料活动数据单位；历史热量路径只保留读取。",
         standard_clause="式（1）—式（3）；B.2",
         source_location=_STANDARD,
     ),
@@ -250,7 +250,7 @@ for _item in (
         FieldDataType.QUANTITY,
         unit="由计量路径确定",
         minimum=0,
-        help_text="活动量单位由燃料计量路径确定：10⁴Nm³、t 或 GJ。",
+        help_text="活动量单位由计量方式确定：10⁴Nm³或t。",
         standard_clause="式（1）—式（3）；B.2",
         source_location=_STANDARD,
     ),
@@ -260,7 +260,7 @@ for _item in (
         FieldDataType.QUANTITY,
         unit="由计量路径确定",
         minimum=0,
-        help_text="单位由计量路径确定：tC/10⁴Nm³、tC/t 或 tC/GJ。",
+        help_text="实测含碳量为FCV（tC/10⁴Nm³）或FCm（tC/t）；计算路径使用FCh（tC/GJ），两者不得混用。",
         standard_clause="附录 C.1；B.2",
         source_location=_STANDARD,
     ),
@@ -539,6 +539,15 @@ def get_field_spec(internal_key: str) -> FieldSpec:
         raise KeyError(f"没有为 UI 字段建立 FieldSpec：{internal_key}") from exc
 
 
+def _shift_decimal_exact(value: object, places: int) -> Decimal:
+    """Move the decimal point without consulting the caller's Decimal context."""
+    parsed = Decimal(str(value))
+    if not parsed.is_finite():
+        raise ValueError("比例必须是有限十进制数")
+    sign, digits, exponent = parsed.as_tuple()
+    return Decimal((sign, digits, exponent + places))
+
+
 def ui_to_domain_value(spec: FieldSpec, value: str | None) -> str | None:
     """Convert a display value to the unit expected by the Domain model."""
 
@@ -547,7 +556,7 @@ def ui_to_domain_value(spec: FieldSpec, value: str | None) -> str | None:
     if spec.data_type is not FieldDataType.PERCENTAGE:
         return value.strip()
     try:
-        return format(Decimal(value.strip()) / Decimal("100"), "f")
+        return format(_shift_decimal_exact(value.strip(), -2), "f")
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"{spec.internal_key} 不是合法百分数：{value}") from exc
 
@@ -558,7 +567,7 @@ def domain_to_ui_value(spec: FieldSpec, value: object) -> str:
     if spec.data_type is not FieldDataType.PERCENTAGE:
         return str(value)
     try:
-        return format(Decimal(str(value)) * Decimal("100"), "f")
+        return format(_shift_decimal_exact(value, 2), "f")
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"{spec.internal_key} 不是合法 Domain 比例：{value}") from exc
 

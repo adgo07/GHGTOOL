@@ -1,29 +1,16 @@
-# 当前任务状态 — PR47 合并前有限小修
+# 当前任务状态 — PR46 独立验收退修
 
-> 更新：2026-10-17。当前为既有 PR47 的合并前有限小修；本次有限小修包括两个 JSON 的 base / 11 个 basis 人读澄清、现有 HTML 范围提示、checks 生成脚本入仓与复现步骤，以及状态、交接与语义范围文档同步；审阅产物已按当前源定义同源重生，最终哈希与新 head / CI 由送验评论定位。候选尚未接入生产，PR47 未合并。已核验修复基线为 4e7306992335e213fc0c3baf897022dd174e3acf；本次有限小修形成的新 head 与 CI 待最终送验评论确认，以下旧证据不为新 head 背书。
+更新：2026-10-17。Owner在源会话直接授权依据《PR46_全面独立验收报告_7e6bdd5》修复阻断项，仍使用原PR46分支。旧HEAD 7e6bdd5独立验收NOT PASS；旧770/770和CI245成功不能关闭新增反例。
 
-## 仓库身份与平台 / Contract 预检查
+- 已完成输出电力资格、实际采用值/单位/来源与冻结快照绑定同一次Resolver结果；不一致阻断且保留输入。显式OTHER及合法五表保留。
+- 已隔离共享规则小型返回结果，防止嵌套列表/锁定污染缓存；不复制整份资源，不改Canonical规则。
+- v5仅修B.2 row20非法Boolean：ht=45/customHeight=1；新SHA7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890，旧v2/v3/v4字节未变。注册/打包审计/布局元数据同步；严格读取通过。模板下载仍复制原字节。
+- Word输入模板身份只读该Record冻结ingress证据；无母版SHA不得借当前注册库或填写工作簿SHA补齐。旧Record字节、金额不改、不重算。
+- 3个旧G06电力夹具原无ID却声称STANDARD_DEFAULT，改为明确独立OTHER，原公式数值/零值/单位断言保留；修复后相关50/50通过。
+- 生产已采用fuel.direct_carbon/lhv/fch/oxidation与electricity.factor；材料/过程/烟气/蒸汽后续R11规则未采用，N不实施。
+- 当前main基线d0c26351200099a8e62c8adabadac266c77f7c8c；中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。LOCAL DEFECT，无公式/Numeric/DB迁移/Frozen变更。
+- cd18da1全量781项1failure/0error，仅G08硬编码旧模板2.2.0；已同步为正式注册版本且保留哈希/布局断言。cd18da1构建/272文件审计/273归档/严格包内模板/2次隔离启动PASS，旧包不冒用新HEAD。
+- 正在收口新HEAD完整回归、Windows构建与CI；未结束的运行不得预判PASS，最终证据集中在原PR46。
+- v5原生Excel/WPS回导、真实鼠标/中文输入/人工DPI/企业样例仍OPEN，CU Esc有效。完成后交源会话独立复验，不合并46、不关闭45、不宣布SUPPORTED。
 
-- 实际 origin 为 https://github.com/adgo07/GHGTOOL.git；分支 codex/ghg-business-rules-a；开工 HEAD 为 4e7306992335e213fc0c3baf897022dd174e3acf，开工时工作区干净。origin/main 已同步至 b0c1aa723391772f9aef026b4c0a8619eb61a65b。
-- platform-lock.json 锁定中央 SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20，未修改。本任务不涉及中央公共 Contract；既有 Frozen MUST / MUST NOT 继续适用，无冲突、无中央变更。
-- Standard Issue：本次没有新建、关闭或重释问题条目。修改只记录 Owner 已批准的审阅范围减负决定；不改变标准事实、Mapping 或既有软件解释。
-- 当前状态文件只保留唯一执行入口；历史过程由 Git history 恢复，不另建归档文档。
-
-## 当前有限小修验证
-
-- 本地 Python 3.12 七模块联合：100/100通过，0 failure、0 error，20.347秒；其中正式交付路径资产20/20通过；此前单独资产命令20/20、14.136秒。命令及范围见 IMPLEMENTATION_REPORT.md。
-- 当前同源投影、工作簿、HTML、目录快照、manifest 和夹具绑定通过；25/25本地 ArtifactTool 意见回收场景通过。新增 Python CLI 回归不依赖 Node，验证实际 Canonical 输入、意见保留和错误投影/技术摘要/HTML/意见范围的拒绝。
-- 61行（29/21/11）、649技术组合（281 READY/368 BLOCKED）、442唯一意见范围保留；没有新增固定条数门禁。原批准V1.2和历史电力证据字节未改。
-- 独立 Luna/max 静态复核无剩余阻断；其发现的混源HTML检查缺口已修并重跑。Git diff --check通过，仅CRLF标准化提示。
-- 新 head 的 Windows CI 尚待最终送验评论确认；旧CI237不为本次背书。无本地完整构建/全软件重验声明。
-
-- 最终检查定向校正 HANDOFF §3.7：按Mapping §9.7 / 017，新自动焓采用iapws.IAPWS97，旧C.4/C.5仅历史且不回退，接生产待PR46，合法独立已知焓保留；只改三份当前文档。之后CI239暴露开发CLI的cp1252终端输出异常：565项中564通过、1失败、0错误，745.469秒，构建跳过。仅改CLI为ASCII转义JSON终端输出并在既有测试显式设cp1252，正式中文产物仍UTF-8；正式路径联合100项已重跑通过。最终新head重跑CI，239不作通过证据。
-
-## 当前待交付与停止边界
-
-- 本次小修的新 head、对应 CI 和最终送验评论仍待确认；不得沿用 4e730699 的 CI 为新 head 背书。
-- EXB01 输入 Adapter 原生 Excel / WPS 保存后回导仍未验证，按路线 RS03 单独跟踪；与本次审阅表 Office 检查分开，不能由其延期状态一并豁免。
-- 原生 Office 审阅表验证状态为 NOT_RUN / DEFERRED，延期至下一阶段首次正式使用审阅表之前。届时只做原生打开、填写意见、按表头排序、保存后重开、回收意见的小范围检查；不记为通过或豁免。CU Esc 仍有效，不自动启动 computer use，也不由此要求全软件重验。
-- 已批准的标准事实与软件决定继续由 Mapping / 问题台账表达；PR47 的规则候选、审阅投影及消费者替换仍未接生产，不宣称正式标准支持。
-- 正式 Record、历史兼容入口和计算表/中的用户参考文件继续保护；不改历史 Record，不破坏既有兼容。
-- PR47 不由执行代理合并；最终合并由源会话负责。PR46、B、N 均未获启动授权。
+- 后续结果：9de4d63本地781/781，841.589s，构建/审计/归档/严格模板/启动PASS；CI247为781项2failure/0error（886.305s），制品任务SKIPPED。已按既有LF规则重生审阅指纹证据，生产代码不变；等待最后证据HEAD的CI，不冒用本地旧HEAD全量或缺失CI制品。

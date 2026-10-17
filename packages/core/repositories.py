@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from .models import AccountingRecord, Factor, Parameter, Settings, Standard
+from .record_summaries import RecordSummary
 from .rules import RuleDefinition
 
 
@@ -43,6 +44,13 @@ class RecordRepository(Protocol):
 
 
 @runtime_checkable
+class RecordSummaryRepository(Protocol):
+    """Optional lightweight read path for list projections."""
+
+    def list_summaries(self, limit: int | None = None) -> Sequence[RecordSummary]:
+        """Return newest active record summaries without loading full snapshots."""
+
+
 class RecordLifecycleRepository(Protocol):
     """Optional record-store lifecycle operations owned by the application edge."""
 

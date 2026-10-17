@@ -1,31 +1,29 @@
 # HANDOFF — GHGTOOL 当前阶段实施交接
 
-状态：**原 PR47 合并前有限小修**
-最后更新：2026-10-17
-Module ID：qz.carbon_accounting
-当前 Reference Standard：GB/T 32151.34—2024
+状态：**PR46燃料B1与电力B执行中**；更新：2026-10-17。
+Module ID：qz.carbon_accounting；当前Reference Standard：GB/T 32151.34—2024。
 
-本文件是当前阶段交接，不是历史档案。产品路线以 REFERENCE_STANDARD_ROADMAP.md 为准，长期约束以 AGENTS.md 为准，当前执行状态以 TASK_STATE.md 为准。历史过程可由 Git history 恢复，本文件不保留旧状态覆盖段。
+路线以REFERENCE_STANDARD_ROADMAP.md为准，长期规则以AGENTS.md为准，当前进度与真实证据见TASK_STATE.md / IMPLEMENTATION_REPORT.md。历史过程由Git恢复，不堆叠旧覆盖段。
 
-## 1. 当前工作包与真实证据
+## 1. 当前授权与基线
 
-当前在既有 PR47 上做合并前有限小修，包含两个 JSON 的 base / 11 个 basis 人读澄清、现有 HTML 范围提示、checks 生成脚本入仓与复现步骤；审阅产物已按当前源定义同源重生，最终哈希与新 head / CI 由送验评论定位。不接生产、不合并 PR。已核验修复基线为 4e7306992335e213fc0c3baf897022dd174e3acf；origin/main 已同步至 b0c1aa723391772f9aef026b4c0a8619eb61a65b。中央 platform-lock.json 仍锁定 ee5feb0cc34dbd99790500fadd0c4c932e202a20。
+基线整合已由源会话验收PASS（限定范围）；Owner授权继续燃料B1和电力B。原PR46工作树为唯一共享集成工作树，两条专属实现线在独立工作树提交小补丁；最终仍由源会话验收，不另邀第三方。
 
-本次有限小修的本地 Python 3.12 七模块联合100/100通过，0 failure、0 error，20.347秒；联合套件内正式交付路径资产20/20通过；此前单独资产命令20/20、14.136秒。25个本地 ArtifactTool 意见回收场景通过；新Python CLI测试验证无Node运行、真实Canonical输入、意见保留和混源拒绝。61行（29/21/11）、649技术组合（281有效、368受阻）、442个唯一意见范围保留。原批准V1.2及固定历史电力证据字节不变。
+实际origin为adgo07/GHGTOOL，分支codex/ghg-standard-input-unification；原head77d36a155323bc82199cb516c4ac58a2e1c60309，整合main d0c26351200099a8e62c8adabadac266c77f7c8c。PR47/A已合并，R11有效Mapping和已批准决定保留；A的执行候选不是已生产采用的共享提供者。
 
-独立Luna/max静态复核确认混源HTML检查缺口已关闭，无剩余阻断。CI239在cp1252终端输出处失败（565项：564通过、1失败、0错误）；仅修开发CLI输出并在既有测试显式验证cp1252，重新本地联合100项通过。最终新head及其Windows CI由送验评论确认；不使用旧CI237或失败的239为本次背书，本地未声明完整构建或全软件重验。
+本轮只做燃料B1与电力B正式闭环及相应已批准来源修正。不合并PR46、不关闭PR45，不实施材料/过程/烟气/蒸汽等其他业务段或N，不改公式、Numeric、数据库结构、历史Record或标准范围。
 
-审阅表原生 Office 验证为 **NOT_RUN / DEFERRED**。Owner 已同意延期至下一阶段首次正式使用审阅表之前；届时只需小范围完成原生打开、填写意见、表头排序、保存重开和意见回收。此项是延期，不是通过或豁免；CU Esc 仍有效，不自动启动 computer use，也不因此要求全软件重验。
+## 2. 能力保留与当前差异
 
-## 2. 业务语义、候选与审阅范围
-
-标准事实、技术判断与软件决定由现行 R11 Mapping（R8 为 PR48 合并历史基线）及 STANDARD_ISSUES_REGISTER.md 分开表达。014、018、019、020 的 Owner 批准软件决定继续有效；019 中的原文错误确认是软件决定，不是官方勘误。机器 CANDIDATE 仅表示执行接入尚未完成。PR47 候选、审阅投影及消费者替换仍未接生产；不改变公式、标准范围、Numeric 或历史记录，也不据此宣布标准正式支持。
-
-Owner 已决定减轻审阅负担：该决定取代原批准 V1.2 第 11 节的全字段可见性盘点要求。不得恢复 GUI 镜像；纯导航、折叠和 advanced 展示设置不作为业务来源规则。仍影响业务适用性的条件必须按 Mapping / STANDARD_SEMANTICS_POLICY.md 记录并执行；减负决定不免除这些条件，也不修改原批准 V1.2 文件。
-
-本任务不涉及中央公共 Contract 修改。Frozen 中央基线保持不变；标准台账不新增、不关闭或重释问题。
+- 保留PR46已有标准分派、逐字段来源政策、燃料确认/草稿、过程与FGD、五表查询/Resolver/三级选择、Canonical项目恢复、Record/Word冻结投影、视觉与导航优化。
+- 正式模板v4/2.2.0逐字节下载及v2/v3历史兼容保留；现有模板、Catalog和发布白名单不因整合而重写或放开。
+- Issue010明确批准全国表1/4/5、区域表2、省级表3；全国表4/5不自动补位，失效选择要求重选。014 OTHER与官方五表独立，非化石零因子及输出扣减不扩解释。
+- 已定位PR47冻结G05快照两类与PR46生产五类的两条parameter_ids差异。已仅按010对齐候选范围并同修订重生派生资产；不以Python实现充当批准权威。PR47固定提交及原工作树的证据/意见保留，当前派生视图不能伪称历史原件。
+- 生产共用Canonical提供者的接管仍留B。现有Python政策与R11之间燃料LHV/FCh、DIRECT、材料、014 OTHER、017/018/020等待接入差异按各批准决定逐段迁移，不在本基线整合中隐式改变结果，也不宣称已经生产同源。
+- PR46既有导航计时与v4原生回导是旧head证据；本轮定向/全量/CI必须单列真实结果，不能沿用旧绿色CI。
 
 ## 3. 当前有效的长期产品决定
+
 
 ### 3.1 产品范围
 
@@ -69,7 +67,7 @@ Owner 已决定减轻审阅负担：该决定取代原批准 V1.2 第 11 节的�
 - 项目恢复不依赖原始 Excel 文件；修正输入应重新预览工作簿并保存新项目，不把 Canonical 输入丢失地映射到 Qt 表单。
 - Excel 是输入 Adapter，与 GUI 共用 Canonical Input → Application → Domain / Calculator → Result；不形成第二套算法，不新增结果 Excel 导出。
 - Word 报告只消费已保存 Record 的冻结 ReportModel，不重算历史。
-- EXB01 输入工作簿经原生 Excel / WPS 保存后回导仍未验证，按 [路线中的 RS03 Excel 正式闭环](REFERENCE_STANDARD_ROADMAP.md) 单独跟踪；这与本次审阅表原生 Office 检查不同，不能由其延期状态一并豁免。
+- 当前PR46模板v4/2.2.0已有旧head的WPS TEMP保存回导17/17及17项数据验证语义证据；本轮保留模板原字节，未重新执行原生Office。此历史证据不替未来模板修订背书，也不替PR47规则审阅表原生验证背书。
 
 ### 3.6 架构与分层
 
@@ -86,8 +84,49 @@ Owner 已决定减轻审阅负担：该决定取代原批准 V1.2 第 11 节的�
 - Catalog 数据库仅增量新增注册表，不重写 Project 或历史 Record。
 - 对完全早于、跨越及晚于实施日的三个期间分别作非阻断 Warning 分类；自身有效期内的参数仍按现有适用期间筛选。期间裁定不改正式公式、Resolver Selection Policy 或历史 Record。
 
-## 4. 执行边界
 
-- 本地候选与正式生产能力分开；不改正式 Calculator、数据库迁移、不可变 Record、历史兼容行为或用户参考文件。
-- PR47 不由执行代理合并；最终合并由源会话负责。PR46、B、N 未授权启动。
-- 本次有限小修的新 head 与 CI 须在最终送验评论中确认。Office 延期项在下一阶段首次正式使用审阅表之前完成，不扩大为全软件重验。
+## 4. 后续共享文件与最小接口
+
+燃料B1与电力B由执行1担任唯一共享集成负责人。两执行分支只改各自专属模块/测试，共享文件的小补丁交集成负责人，不同时维护公共规则。
+
+|所有者|文件或范围|最小接口与约束|
+|---|---|---|
+|共享集成负责人|core/parameter_resolution.py、application/carbon_accounting.py、carbon_material_input_policy.py、Canonical规则JSON与加载边界、Mapping/台账、状态文档|固定rule_set/revision和具体采用成员；只抽确有生产消费者的来源资格/默认/锁定求值，不把审阅render/compact/HTML搬入生产|
+|共享集成负责人|ui/carbon_material_page.py、excel/appendix_b.py、Canonical codec/Project/report公共结构、模板注册/资源/打包|燃料与电力函数段用小补丁集成；版本兼容和历史Record独立，不让两个会话整文件覆盖|
+|燃料B1执行|ui/carbon_material_fuel.py、燃料专属政策消费者与测试；共享文件仅提交燃料段补丁|GUI/Excel共用源资格结果及正式Canonical；精确身份/单位/路径和分来源草稿，避免新建/恢复混同|
+|电力B执行|五表查询/绑定专属消费者与测试；共享文件仅提交电力/B.8段补丁|复用electricity_catalog_options及electricity_regions_by_level和现有UAT03FactorOption；值、参数、因子、地区、年度同步，Catalog绑定不能冒充Record已冻结字段|
+
+建议优先保留现有内部签名：`parameter_source_policy(field_id, origin, has_resolver_binding, carbonate_component_count, input_basis) -> ParameterSourcePolicy`（合法来源、初始来源、锁定、精确绑定要求），`fuel_input_policy(origin, direct_carbon, heat_activity, carbon_source_kind) -> FuelInputPolicy`（必要参数/缺省资格/可编辑性）。B由共享负责人把它们变为Canonical执行表达的薄适配，而不是让燃料和电力分别重写来源集合。电力继续复用`electricity_catalog_options(level, region, period)`及`electricity_regions_by_level(period)`；所有正式入口仍消费同一Resolver/Canonical/Application。
+
+现有Record已冻结parameter_id、factor_id、factor_year、source/location和采用值，模型没有独立binding_id字段。当前Catalog可对账绑定/来源表，但不能回查Catalog冒充历史Record已冻结binding；若B需要扩展来源快照，先明确最小版本化兼容方案，不在本基线整合扩模型。
+
+Word继续只读冻结Record。实际公共提供者和业务来源策略由共享集成负责人一次接管；不并行新增两套允许运算来源或规则缓存。
+
+### 4.1 当前最小接口断点
+
+`core.business_field_policy.evaluate_field`执行原Canonical四属性及最终来源/锁定纠错；候选审阅调用同一实现。`standards.carbon_material_business_policy.evaluate_fuel_power_field(field_id, context)`仅支持燃料四字段与electricity.factor，返回default_source/default/source_qualification/locking/status/problems，与候选最终结果相同；它不验证调用者声称的绑定。缺上下文/多匹配/非法来源保持明确阻断，不自动切源。
+
+`adopted_binding_conditions(field_id)`返回Canonical精确绑定条件的副本；`electricity_catalogue_parameters()`返回(table_number, parameter_id, geography_tag)元组，从同一来源资格表达推导，不另维护五表字典。
+
+仅`resources/business_rules/fuel_power.json`受控部署，由`scripts/project_fuel_power_rules.py`从三包已采用修订机械投影、检查依赖和当前源哈希，构建及测试核再生，运行及发布审计核固定资源哈希。无审阅render/compact/HTML/Schema运行依赖，不放开整个data-source。
+
+此断点尚未替换生产消费者。`ParameterResolver.reference_binding_for(resolution)`只关联同一次真实选定结果，返回ReferenceBindingResolution(status, bindings)，状态VERIFIED/ABSENT/AMBIGUOUS/PENDING；不取首尾，不重选因子。旧无配置构造明确PENDING且resolve旧行为保留。`reference_parameter_id(subject_id, parameter_type)`只查询精确登记概念，不由名称拼ID。组合层逐项核Factor/Asset/Table/Source/Parameter/标准元数据，未知/未验证与真实缺失分开。
+
+`fuel_source_context(field_id, resolver=..., origin=..., subject_id=..., accounting_period=..., selected_factor_id=None)`产生真实燃料上下文；当前有明确选择时传selected_factor_id，只有初始化/显式回缺省才省略。`electricity_source_context(resolver, resolution, direction=..., attribute=...)`从实际选定结果投影电力上下文，方向/属性不被期望条件覆盖；调用者再把当前business_source加入context求值，不将default_source当写命令。Core不依赖Catalog实现或GUI字段。
+
+GUI/Excel/Domain逐入口一起迁移，不因旧调用没新ID而静默取消合法缺省。历史Record不重解。
+
+## 5. 验证与停止边界
+
+原生规则审阅表验证为NOT_RUN/DEFERRED，至下一阶段首次正式使用审阅表前补验；CU Esc有效，本轮不启动电脑操作。实际Windows鼠标/中文输入/人工系统DPI及Owner企业样例仍为明确缺项，不以自动截图或旧证据替代。
+
+本地正式路径完整回归705/705、0失败/错误/跳过，687.989秒；候选+新保护103项与25场景夹具通过。Windows CI对应最终提交单列原PR送验评论；本地与CI、merge-ref与exact-head分别记录。完成后交源会话验收并停止，执行代理不合并PR46或关闭PR45。
+
+## 2026-10-17 燃料B1/电力B交付入口
+
+Owner直接完整批准三项准备补丁，已实施；当前对象仍原PR46。具体范围、受控v5与运行规则SHA、真实成功/失败及未闭合项以IMPLEMENTATION_REPORT/TASK_STATE和PR46最新HEAD验收证据为准，前文基线705/CI242仅历史。最终检查仍由源会话执行；不自动合并46或关闭45，不继续材料/过程/烟气/蒸汽/N。CU Esc未解除，v5原生回导OPEN，不借v4证据。
+
+
+## 2026-10-17 PR46 独立验收退修
+
+旧7e6bdd5独立验收NOT PASS，Owner已直接授权按报告修复。现有电力同一次Resolver与采用值/来源绑定、共享返回值隔离、v5 rowBoolean窄修及Word冻结输入身份修复见当前TASK_STATE/IMPLEMENTATION_REPORT。旧770/CI245仅历史，不证明修复；新固定HEAD需完整回归、包内模板审计、Windows CI及源会话复验。母版SHA缺证据显示未记录，不拿填写工作簿SHA或当前库伪造。仍不合并46、不关闭45、不CU，不扩其余业务段。

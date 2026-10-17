@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import closing
 from dataclasses import asdict
+from decimal import Decimal
 from datetime import date
 from io import BytesIO
 import gc
@@ -17,7 +18,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QCoreApplication, QEvent
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QTableWidget
 from PySide6.QtTest import QSignalSpy
 from docx import Document
 from openpyxl import load_workbook
@@ -118,12 +119,60 @@ class MainIntegrationUiTests(unittest.TestCase):
     def _workbook(self) -> Path:
         workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'], fuel["N14"] = "计算值", "缺省值", "缺省值", "缺省值"
         destination = self.root / "输入.xlsx"
         workbook.save(destination)
         workbook.close()
         return destination
+
+    def test_custom_fuel_both_quantities_and_carbon_routes_match_excel_exactly(self):
+        from packages.standards.carbon_material import ParameterSourceKind
+        row = self.page._fuel_rows[0]
+        row.fuel_type.setEditText("同名自定义燃料批次")
+        row.fuel_type.confirm_name(force=True)
+        for path in (FuelPath.MASS, FuelPath.VOLUME):
+            for direct in (False, True):
+                with self.subTest(path=path,direct=direct):
+                    row.path.setCurrentIndex(row.path.findData(path))
+                    row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT" if direct else "HEAT_CONTENT"))
+                    row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
+                    row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
+                    row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
+                    row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
+                    row.activity.setText("10")
+                    row.lower_heating_value.setText("8")
+                    row.carbon.setText("0.03")
+                    row.carbon_direct.setText("0.4")
+                    row.oxidation.setText("98")
+                    gui = self.page.calculator.calculate(self.page._input())
+                    workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+                    sheet = workbook["B.2"]
+                    for cell,value in {"A4":"同名自定义燃料批次","B4":10,"C4":"t" if path is FuelPath.MASS else "10⁴Nm³",
+                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"实测值",
+                        "H4":None,"I4":98,"J4":"实测值","L4":0.03,"M4":"自定义","N4":"实测值" if not direct else None}.items():
+                        sheet[cell]=value
+                    destination=self.root / "自定义燃料等价.xlsx"
+                    workbook.save(destination);workbook.close()
+                    excel_page = self.shell.pages[AppRoute.EXCEL_IMPORT]
+                    unit = AppendixBWorkbookImporter(preview_use_case=excel_page.preview_use_case,catalog_service=excel_page.catalog_service).import_preview(
+                        destination,context=AppendixBImportContext(period=AccountingPeriod(PeriodType.ANNUAL,date(2025,1,1),date(2025,12,31)),boundary_confirmed=True)).units[0]
+                    self.assertFalse(gui.blocked,gui.problems)
+                    self.assertTrue(unit.can_calculate,unit.errors)
+                    self.assertEqual(gui.result.total_amount,unit.calculation.result.total_amount)
+                    left,right=gui.input.fuel_inputs[0],unit.input_value.fuel_inputs[0]
+                    self.assertEqual(left.path,right.path)
+                    self.assertEqual(left.fuel_label,right.fuel_label)
+                    for key in ("carbon_content","oxidation_rate","lower_heating_value"):
+                        lvalue,rvalue=getattr(left,key),getattr(right,key)
+                        if lvalue is None:
+                            self.assertIsNone(rvalue)
+                        else:
+                            self.assertEqual(Decimal(str(lvalue.value)),Decimal(str(rvalue.value)),key)
+                            self.assertEqual(lvalue.unit,rvalue.unit,key)
+                            self.assertEqual(lvalue.source_kind,rvalue.source_kind,key)
+                    self.assertEqual(len(self.repository.list_all()),0)
 
     def test_gui_and_excel_have_exact_results_and_preview_does_not_save(self) -> None:
         self.page.quick_calculate_button.click()
@@ -171,7 +220,10 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.shell.navigate(AppRoute.HOME)
         self.app.processEvents()
         home = self.shell.pages[AppRoute.HOME]
-        self.assertNotIn("暂无核算记录", home.findChild(QLabel, "statusSummary").text())
+        home_recent = home.findChild(QTableWidget, "homeRecentTable")
+        self.assertIsNotNone(home_recent)
+        assert home_recent is not None
+        self.assertEqual(home_recent.rowCount(), 2)
         self.shell.navigate(AppRoute.NEW_ACCOUNTING)
         originals = tuple(asdict(record) for record in records)
         self.page._fuel_rows[0].activity.setText("-1")
@@ -213,8 +265,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         supplementary = {"prepared_on": "2026-10-10"}
         with (
             patch("packages.ui.report_export.report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(first), "")),
-            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(first), "")),
+            patch("packages.ui.report_export.show_export_success"),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             self.page.export_report_button.click()
@@ -224,8 +276,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.assertTrue(record_page.open_record(record.record_id))
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(second), "")),
-            patch("packages.ui.report_export.QMessageBox.information"),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(second), "")),
+            patch("packages.ui.report_export.show_export_success"),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()
@@ -268,8 +320,8 @@ class MainIntegrationUiTests(unittest.TestCase):
         self.catalog.rename(self.root / "catalog-unavailable.sqlite")
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value={"prepared_on": date(2026, 10, 7).isoformat()}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from enum import Enum
 
-from PySide6.QtCore import QTimer, Signal
+from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -12,6 +13,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
+    QStyle,
+    QStyleOptionButton,
     QVBoxLayout,
     QWidget,
 )
@@ -133,13 +136,19 @@ class SourceCard(QFrame):
         self,
         state: SourceCardPresentationState,
         summary: str,
+        *,
+        show_summary: bool = True,
     ) -> None:
         """Update only the UI-derived state and business summary."""
 
         self.presentation_state = state
-        self.presentation_state_label.setText(state.value)
-        self.summary_label.setText(summary)
-        self.summary_label.setVisible(state is not SourceCardPresentationState.NOT_INVOLVED)
+        if self.presentation_state_label.text() != state.value:
+            self.presentation_state_label.setText(state.value)
+        if self.summary_label.text() != summary:
+            self.summary_label.setText(summary)
+        summary_visible = show_summary and state is not SourceCardPresentationState.NOT_INVOLVED
+        if self.summary_label.isHidden() == summary_visible:
+            self.summary_label.setVisible(summary_visible)
         self._sync_controls()
 
     def _domain_status(self) -> object | None:
@@ -158,12 +167,15 @@ class SourceCard(QFrame):
 
     def _sync_controls(self) -> None:
         status = self._domain_status()
-        if status == self._not_involved_value:
-            self._action_button.setText("启用")
-        else:
-            self._action_button.setText("停用")
-        self._expand_button.setVisible(status == self._involved_value)
-        self._expand_button.setText("收起" if self._expanded else "展开")
+        action_text = "启用" if status == self._not_involved_value else "停用"
+        if self._action_button.text() != action_text:
+            self._action_button.setText(action_text)
+        expand_visible = status == self._involved_value
+        if self._expand_button.isHidden() == expand_visible:
+            self._expand_button.setVisible(expand_visible)
+        expand_text = "收起" if self._expanded else "展开"
+        if self._expand_button.text() != expand_text:
+            self._expand_button.setText(expand_text)
 
     def set_expanded(self, expanded: bool) -> None:
         status = self._domain_status()
@@ -198,3 +210,95 @@ class SourceCard(QFrame):
 
 
 __all__ = ["SourceCard", "SourceCardPresentationState"]
+
+
+class _SourceSwitch(QWidget):
+    """Decorative switch; the enclosing accessible button owns interaction."""
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFixedSize(32, 18)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.active = False
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#197CC2" if self.active else "#B8C8D4"))
+        painter.drawRoundedRect(0, 1, 32, 16, 8, 8)
+        painter.setBrush(QColor("#FFFFFF"))
+        painter.drawEllipse(17 if self.active else 3, 3, 12, 12)
+
+
+class SourceToggleButton(QPushButton):
+    """Single-line source name with a switch and explicit status below."""
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self._title = title
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+        self.title_label = QLabel(title, self)
+        self.title_label.setWordWrap(False)
+        self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.title_label.setStyleSheet("background: transparent; color: #213A4F; font-size: 16px; font-weight: 600;")
+        layout.addWidget(self.title_label)
+        status_row = QHBoxLayout()
+        status_row.setSpacing(7)
+        self.switch = _SourceSwitch(self)
+        status_row.addWidget(self.switch)
+        self.state_label = QLabel(self)
+        self.state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.state_label.setStyleSheet("background: transparent; color: #597187; font-size: 13px;")
+        status_row.addWidget(self.state_label)
+        status_row.addStretch(1)
+        layout.addLayout(status_row)
+
+    def set_source_state(self, state):
+        self.setText(f"{state} | {self._title}")
+        self.switch.active = state != "未启用"
+        self.switch.update()
+        self.state_label.setText(("✓ " if self.switch.active else "") + state)
+
+    def paintEvent(self, event):
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        option.text = ""
+        painter = QPainter(self)
+        self.style().drawControl(QStyle.ControlElement.CE_PushButton, option, painter, self)
+
+
+class SourceHeaderSwitch(QPushButton):
+    """Compact header switch sharing the same state as the source selector."""
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setObjectName("sourceHeaderSwitch")
+        self.setAccessibleName(title + "排放源开关")
+        self.setStyleSheet("QPushButton#sourceHeaderSwitch { min-height:24px; padding:0; border:none; background:transparent; }")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(7)
+        self.switch = _SourceSwitch(self)
+        self.label = QLabel(self)
+        self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.label.setStyleSheet("background:transparent; color:#075985; font-size:13px;")
+        layout.addWidget(self.switch)
+        layout.addWidget(self.label)
+
+    def sizeHint(self):
+        return super().sizeHint().expandedTo(self.layout().sizeHint())
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
+
+    def set_source_state(self,state):
+        self.switch.active = state != "未启用"
+        self.switch.update()
+        self.label.setText(state)
+        self.updateGeometry()
+        self.setAccessibleDescription(f"当前{state}；点击切换，停用保留数据。")
+
+    def paintEvent(self,event):
+        option = QStyleOptionButton(); self.initStyleOption(option); option.text=""
+        painter=QPainter(self)
+        self.style().drawControl(QStyle.ControlElement.CE_PushButton,option,painter,self)

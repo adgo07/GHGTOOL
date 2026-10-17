@@ -24,10 +24,17 @@ from scripts.inspect_release import (
     ALLOWED_RESOURCE_FILES,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
+    COMPATIBILITY_TEMPLATE_PATH,
+    COMPATIBILITY_TEMPLATE_SHA256,
+    PRIOR_TEMPLATE_PATH,
+    PRIOR_TEMPLATE_SHA256,
+    PREVIOUS_TEMPLATE_PATH,
+    PREVIOUS_TEMPLATE_SHA256,
     EXCEL_SUFFIXES,
     inspect_release,
 )
 from scripts.verify_release_archive import verify_release_archive
+from scripts.project_fuel_power_rules import verify_projection
 
 
 APP_NAME = "QingzhouCarbonAccounting"
@@ -155,7 +162,13 @@ def _remove_unpacked_docx_template(artifact: Path) -> None:
 
 def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> None:
     resource_root = project_root / "resources"
-    expected = resource_root / APPROVED_TEMPLATE_PATH.relative_to("resources")
+    expected_hashes = {
+        APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+        PRIOR_TEMPLATE_PATH: PRIOR_TEMPLATE_SHA256,
+        PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
+        COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
+    }
+    expected_paths = tuple(sorted(path.relative_to("resources").as_posix() for path in expected_hashes))
     workbook_files = tuple(
         sorted(
             path.relative_to(resource_root).as_posix()
@@ -163,11 +176,10 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
             if path.is_file() and path.suffix.lower() in EXCEL_SUFFIXES
         )
     )
-    expected_relative = APPROVED_TEMPLATE_PATH.relative_to("resources").as_posix()
-    if workbook_files != (expected_relative,):
+    if workbook_files != expected_paths:
         raise RuntimeError(
-            "Excel build inputs must contain only the approved template at "
-            f"{expected_relative}; found {workbook_files!r}"
+            "Excel build inputs must contain only the approved current, previous, and compatibility templates at "
+            f"{expected_paths!r}; found {workbook_files!r}"
         )
     for path in resource_root.rglob("*"):
         if not path.is_file() or "__pycache__" in path.parts or path.name in {"__init__.py", ".gitkeep"}:
@@ -175,8 +187,10 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
         relative = path.relative_to(project_root).as_posix()
         if relative not in ALLOWED_RESOURCE_FILES or path.is_symlink():
             raise RuntimeError(f"unapproved build resource: {relative}")
-    if expected.is_symlink() or _sha256(expected) != APPROVED_TEMPLATE_SHA256:
-        raise RuntimeError(f"approved Excel template is missing or has an unexpected hash: {expected}")
+    for relative, expected_hash in expected_hashes.items():
+        expected = project_root / relative
+        if expected.is_symlink() or not expected.is_file() or _sha256(expected) != expected_hash:
+            raise RuntimeError(f"approved Excel template is missing or has an unexpected hash: {expected}")
 
 
 def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -> Path:
@@ -185,6 +199,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
     if os.name != "nt":
         raise RuntimeError("G08 standalone build must run on Windows")
     _validate_approved_template_inputs()
+    verify_projection()
     output_directory = Path(output_root)
     artifact = output_directory / APP_NAME
     if artifact.exists():

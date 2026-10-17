@@ -6,10 +6,11 @@ from collections.abc import Iterable
 from decimal import Decimal
 from enum import Enum
 
-from PySide6.QtCore import QTimer, QUrl, Qt, Signal
-from PySide6.QtGui import QColor, QDesktopServices
+from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -17,6 +18,8 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QScrollArea,
     QSplitter,
@@ -29,9 +32,10 @@ from PySide6.QtWidgets import (
 )
 
 from packages.application.catalog_queries import CatalogQueryService
+from packages.application.source_display import format_source_reference, strip_source_page_numbers
 from packages.core.models import ParameterType, ReviewStatus
 from packages.core.models import ValueType
-from packages.standards.carbon_material import ALGORITHM_VERSION, STANDARD_ID, steam_reference_table_rows
+from packages.application.standard_registry import default_standard_registry
 from packages.standards.catalog import (
     CatalogStandardType,
     CatalogStatus,
@@ -81,10 +85,12 @@ def _replace_layout_contents(layout: QVBoxLayout) -> None:
 def _detail_section(
     title: str,
     parent: QWidget,
-    rows: Iterable[tuple[str, str]],
+    rows: Iterable[tuple[str, str] | tuple[str, str, str]],
 ) -> QFrame:
     card, layout = _card(title, parent)
-    for label_text, value_text in rows:
+    for row_data in rows:
+        label_text, value_text = row_data[:2]
+        full_value = row_data[2] if len(row_data) > 2 else None
         row = QWidget(card)
         row_layout = QGridLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -95,6 +101,8 @@ def _detail_section(
         value = QLabel(value_text or "—", row)
         value.setObjectName("detailFieldValue")
         value.setWordWrap(True)
+        if full_value:
+            value.setToolTip(full_value)
         row_layout.addWidget(label, 0, 0)
         row_layout.addWidget(value, 0, 1)
         row_layout.setColumnStretch(1, 1)
@@ -134,9 +142,11 @@ class StandardLibraryPage(BasePage):
         service: CatalogQueryService,
         navigate: Navigate,
         parent: QWidget | None = None,
+        standard_registry=None,
     ) -> None:
         super().__init__(AppRoute.STANDARDS, parent)
         self._service = service
+        self._standard_registry = standard_registry or default_standard_registry()
         self.selected_standard_id: str | None = None
         self._standards_by_id: dict[str, StandardCatalogRecord] = {}
         self._saved_list_scroll: tuple[int | None, int, int] | None = None
@@ -144,7 +154,9 @@ class StandardLibraryPage(BasePage):
         self._refresh()
 
     def _build_page(self) -> None:
-        self.add_header("标准库", "查看 GB/T 32151 系列标准及核算要求")
+        self.add_header("标准库", "查看已登记标准、适用范围与核算要求")
+        self.page_title = self.findChild(QLabel, "pageTitle")
+        self.page_description = self.findChild(QLabel, "pageDescription")
 
         self.view_stack = QStackedWidget(self)
         self.view_stack.setObjectName("standardViewStack")
@@ -156,10 +168,14 @@ class StandardLibraryPage(BasePage):
         list_layout.setSpacing(16)
 
         filters, filters_layout = _card("搜索和筛选", self.list_view)
+        filters_layout.setContentsMargins(16, 10, 16, 10)
+        filters_layout.setSpacing(7)
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(10)
         search = QLineEdit(filters)
         search.setObjectName("standardSearch")
         search.setPlaceholderText("按标准编号、名称或适用对象搜索")
-        filters_layout.addWidget(search)
+        filter_row.addWidget(search, 1)
         self.search_input = search
 
         self.status_filter = QComboBox(filters)
@@ -172,7 +188,8 @@ class StandardLibraryPage(BasePage):
             (CatalogStatus.UNKNOWN, "待核对"),
         ):
             self.status_filter.addItem(label, status)
-        filters_layout.addWidget(self.status_filter)
+        filter_row.addWidget(self.status_filter)
+        filters_layout.addLayout(filter_row)
         list_layout.addWidget(filters)
 
         list_card, list_card_layout = _card("标准列表", self.list_view)
@@ -184,6 +201,34 @@ class StandardLibraryPage(BasePage):
             self.standard_table,
             ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"),
         )
+        self.standard_table.setObjectName("standardLibraryTable")
+        self.standard_table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.standard_table.verticalHeader().setDefaultSectionSize(46)
+        self.standard_table.setStyleSheet(f"""
+            QTableWidget#standardLibraryTable {{
+                color: {PRIMARY_TEXT}; font-size: 13px;
+                background: {CARD_BACKGROUND};
+                border: 1px solid {BORDER};
+                selection-background-color: #E6F4FB;
+                selection-color: {PRIMARY_TEXT};
+            }}
+            QTableWidget#standardLibraryTable::item {{ padding: 7px 9px; }}
+            QTableWidget#standardLibraryTable::item:hover {{ background: #F4FAFE; }}
+            QTableWidget#standardLibraryTable QHeaderView::section {{
+                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
+                border: none; border-bottom: 1px solid {BORDER};
+                padding: 10px 9px; font-size: 12px; font-weight: 650;
+            }}
+        """)
+        standard_header = self.standard_table.horizontalHeader()
+        standard_header.setStretchLastSection(False)
+        for column, width in enumerate((180, 540, 96, 112, 104)):
+            standard_header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+            self.standard_table.setColumnWidth(column, width)
+        standard_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.standard_table.setMouseTracking(True)
+        self.standard_table.viewport().setMouseTracking(True)
+        self.standard_table.viewport().installEventFilter(self)
         self.standard_table.setAccessibleName("标准列表")
         self.standard_table.setAccessibleDescription("选择标准编号或名称，再按 Enter 键打开标准详情。")
         self.standard_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -208,13 +253,12 @@ class StandardLibraryPage(BasePage):
         self.standard_table.cellClicked.connect(self._open_detail_from_cell)
         self.standard_table.cellActivated.connect(self._open_detail_from_cell)
 
-    @staticmethod
-    def _software_support_label(standard: StandardCatalogRecord) -> str:
+    def _software_support_label(self, standard: StandardCatalogRecord) -> str:
         if (
-            standard.standard_id == "gbt_32151_34_2024"
+            self._standard_registry.supports(standard.standard_id, standard.version)
             and standard.calculation_status == "IMPLEMENTED"
         ):
-            return "已实现核算（未正式支持）"
+            return "已实现核算"
         if (
             standard.calculation_status == "COMMON_RULES_ONLY"
             and standard.standard_type is CatalogStandardType.COMMON_RULES
@@ -243,6 +287,30 @@ class StandardLibraryPage(BasePage):
                 self._software_support_label(standard),
             )
             for column, value in enumerate(values):
+                if column == 2:
+                    badge = QLabel(value, self.standard_table)
+                    badge.setObjectName("standardStatusBadge")
+                    badge.setAccessibleName(f"标准状态：{value}")
+                    badge.setAlignment(
+                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    colors = {
+                        CatalogStatus.CURRENT: ("#e7f6f0", "#168268"),
+                        CatalogStatus.UPCOMING: ("#fff5e1", "#956420"),
+                        CatalogStatus.ABOLISHED: ("#f0f3f6", "#647788"),
+                        CatalogStatus.UNKNOWN: ("#f0f3f6", "#647788"),
+                    }
+                    background, foreground = colors.get(
+                        visible_status, ("#f0f3f6", "#647788")
+                    )
+                    badge.setStyleSheet(
+                        "QLabel#standardStatusBadge {"
+                        f"background: {background}; color: {foreground};"
+                        "border-radius: 7px; padding: 3px 8px; font-size: 11px;"
+                        "}"
+                    )
+                    self.standard_table.setCellWidget(row_number, column, badge)
+                    continue
                 item = QTableWidgetItem(value)
                 if column in (0, 1):
                     item.setData(Qt.ItemDataRole.UserRole, standard.standard_id)
@@ -251,16 +319,62 @@ class StandardLibraryPage(BasePage):
                         f"{value}，按 Enter 键打开标准详情",
                     )
                     font = item.font()
-                    font.setUnderline(True)
+                    font.setUnderline(False)
+                    font.setWeight(QFont.Weight.DemiBold)
                     item.setFont(font)
                     item.setForeground(QColor("#12618D"))
-                    item.setToolTip("打开标准详情")
+                    item.setToolTip(f"{value}\n点击打开标准详情")
                 self.standard_table.setItem(row_number, column, item)
+                if column == 4 and value == "已实现核算":
+                    badge = QLabel(value,self.standard_table)
+                    badge.setObjectName("standardCalculationBadge")
+                    badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    badge.setAccessibleName("软件支持：已实现核算；未改变正式支持状态")
+                    badge.setStyleSheet("QLabel { background:#E7F6F0; color:#168268; border-radius:7px; padding:4px 7px; font-size:11px; }")
+                    self.standard_table.setCellWidget(row_number,column,badge)
+
         self.standard_table.resizeRowsToContents()
         self.result_summary.setText(
             f"共 {len(results)} 项标准" if results else "没有找到匹配的标准。"
         )
         self.standard_table.clearSelection()
+
+    def _set_standard_hover(self, row: int, column: int) -> None:
+        previous = getattr(self, "_hovered_standard_cell", None)
+        if previous is not None:
+            old_item = self.standard_table.item(*previous)
+            if old_item is not None:
+                old_font = old_item.font()
+                old_font.setUnderline(False)
+                old_item.setFont(old_font)
+                old_item.setForeground(QColor("#12618D"))
+        self._hovered_standard_cell = None
+        if row < 0 or column not in (0, 1):
+            return
+        item = self.standard_table.item(row, column)
+        if item is not None:
+            font = item.font()
+            font.setUnderline(True)
+            item.setFont(font)
+            item.setForeground(QColor("#0B5F91"))
+            self._hovered_standard_cell = (row, column)
+
+    def eventFilter(self, watched: object, event: object) -> bool:  # type: ignore[override]
+        if watched is self.standard_table.viewport():
+            event_type = event.type()  # type: ignore[attr-defined]
+            if event_type == QEvent.Type.MouseMove:
+                position = event.position().toPoint()  # type: ignore[attr-defined]
+                index = self.standard_table.indexAt(position)
+                self._set_standard_hover(index.row(), index.column())
+                self.standard_table.viewport().setCursor(
+                    Qt.CursorShape.PointingHandCursor
+                    if index.isValid() and index.column() in (0, 1)
+                    else Qt.CursorShape.ArrowCursor
+                )
+            elif event_type == QEvent.Type.Leave:
+                self._set_standard_hover(-1, -1)
+                self.standard_table.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        return super().eventFilter(watched, event)  # type: ignore[arg-type]
 
     def _open_detail_from_cell(self, row: int, column: int) -> None:
         if column not in (0, 1):
@@ -318,6 +432,10 @@ class StandardLibraryPage(BasePage):
 
     def _return_to_list(self) -> None:
         self.view_stack.setCurrentWidget(self.list_view)
+        if self.page_title is not None:
+            self.page_title.setText("标准库")
+        if self.page_description is not None:
+            self.page_description.setText("查看已登记标准、适用范围与核算要求")
         saved = self._saved_list_scroll
         self._schedule_scroll_restore(
             main_value=saved[0] if saved is not None else 0,
@@ -336,6 +454,7 @@ class StandardLibraryPage(BasePage):
             ("发布日期", _date_text(standard.publication_date), "standardPublicationDate"),
             ("实施日期", _date_text(standard.implementation_date), "standardImplementationDate"),
             ("废止日期", _date_text(standard.abolition_date), "standardAbolitionDate"),
+            ("软件支持", self._software_support_label(standard), "standardSoftwareSupport"),
         )
         for label_text, value_text, object_name in rows:
             row = QWidget(card)
@@ -357,6 +476,16 @@ class StandardLibraryPage(BasePage):
     def _render_detail(self, detail: StandardDetail) -> None:
         _replace_layout_contents(self.detail_layout)
         standard = detail.standard
+        supported = (
+            self._standard_registry.supports(standard.standard_id, standard.version)
+            and standard.calculation_status == "IMPLEMENTED"
+        )
+        if self.page_title is not None:
+            self.page_title.setText("标准详情")
+        if self.page_description is not None:
+            self.page_description.setText(
+                "单页连续呈现基本信息、适用范围和标准要求，不设置详情页签。"
+            )
 
         navigation_host = QWidget(self.detail_host)
         navigation_host.setObjectName("standardDetailActions")
@@ -372,29 +501,8 @@ class StandardLibraryPage(BasePage):
         )
         back_button.clicked.connect(self._return_to_list)
         navigation_row.addWidget(back_button)
-
-        source_button = QPushButton("查看标准原文", navigation_host)
-        source_button.setObjectName("viewOfficialSourceButton")
-        source_button.setProperty("officialSourceUrl", standard.official_source_url or "")
-        source_button.setEnabled(bool(standard.official_source_url))
-        if standard.official_source_url:
-            source_button.clicked.connect(
-                lambda _checked=False, url=standard.official_source_url: QDesktopServices.openUrl(QUrl(url))
-            )
-        else:
-            source_button.setToolTip("当前目录未配置标准官方页面，暂不能打开原文。")
-        navigation_row.addWidget(source_button)
-        if not standard.official_source_url:
-            source_unavailable = QLabel(
-                "当前目录未配置标准官方页面，暂不能打开原文。",
-                navigation_host,
-            )
-            source_unavailable.setObjectName("officialSourceUnavailable")
-            source_unavailable.setWordWrap(True)
-            navigation_row.addWidget(source_unavailable, 1)
-
         can_start = (
-            standard.standard_id == "gbt_32151_34_2024"
+            self._standard_registry.supports(standard.standard_id, standard.version)
             and detail.status is CatalogStatus.CURRENT
         )
         if can_start:
@@ -422,9 +530,32 @@ class StandardLibraryPage(BasePage):
             )
         else:
             accounting_button.setToolTip(accounting_tooltip)
-        navigation_row.addWidget(accounting_button)
         navigation_row.addStretch(1)
         self.detail_layout.addWidget(navigation_host)
+
+        summary_card, summary_layout = _card(standard.standard_number, self.detail_host)
+        summary_row = QWidget(summary_card)
+        summary_layout_row = QHBoxLayout(summary_row)
+        summary_layout_row.setContentsMargins(0, 0, 0, 0)
+        summary_layout_row.setSpacing(14)
+        name = QLabel(standard.standard_name, summary_row)
+        name.setObjectName("standardSummaryName")
+        name.setWordWrap(True)
+        summary_layout_row.addWidget(name, 1)
+        status = QLabel(self._service.status_label(detail.status), summary_row)
+        status.setObjectName("statusBadge")
+        status.setProperty("catalogStatus", detail.status.value)
+        summary_layout_row.addWidget(status, 0, Qt.AlignmentFlag.AlignVCenter)
+        support_text = self._software_support_label(standard)
+        support = QLabel(support_text, summary_row)
+        support.setObjectName("standardSupportBadge")
+        support.setProperty("implemented", supported)
+        summary_layout_row.addWidget(support, 0, Qt.AlignmentFlag.AlignVCenter)
+        accounting_button.setParent(summary_row)
+        accounting_button.setMinimumHeight(37)
+        summary_layout_row.addWidget(accounting_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        summary_layout.addWidget(summary_row)
+        self.detail_layout.addWidget(summary_card)
         self._add_basic_information(detail)
 
         scope_text = (
@@ -439,13 +570,74 @@ class StandardLibraryPage(BasePage):
                 scope_text,
             )
         )
-        self.detail_layout.addWidget(
-            _text_section(
-                "标准要求",
-                self.detail_host,
-                "当前目录尚未录入可核验的结构化标准要求。",
+        requirements, requirements_layout = _card("标准要求", self.detail_host)
+        requirement_cards = QWidget(requirements)
+        requirement_grid = QGridLayout(requirement_cards)
+        requirement_grid.setContentsMargins(0, 0, 0, 0)
+        requirement_grid.setHorizontalSpacing(14)
+        requirement_grid.setVerticalSpacing(14)
+        requirement_text = (
+            (
+                "化石燃料、煅烧、焙烧／炭化、石墨化、烟气治理、购入／输出电力与热力。",
+                "按正式行业标准及现有输入模型，区分活动量、实测数据与标准缺省值。",
+                "使用已实现的行业核算流程，并由冻结记录生成标准专属报告。",
+            )
+            if supported
+            else (
+                "当前仅显示目录信息，不提供正式业务核算。",
+                "尚未建立该行业可执行输入与计算规则。",
+                "当前仅展示目录，不开放按此标准新建核算。",
             )
         )
+        for column, (title, body) in enumerate(
+            zip(("适用业务", "活动数据", "核算与报告"), requirement_text)
+        ):
+            mini = QFrame(requirement_cards)
+            mini.setObjectName("standardRequirementCard")
+            mini_layout = QVBoxLayout(mini)
+            mini_layout.setContentsMargins(14, 14, 14, 14)
+            mini_layout.setSpacing(8)
+            heading = QLabel(title, mini)
+            heading.setObjectName("standardRequirementTitle")
+            description = QLabel(body, mini)
+            description.setObjectName("standardRequirementText")
+            description.setWordWrap(True)
+            mini_layout.addWidget(heading)
+            mini_layout.addWidget(description, 1)
+            requirement_grid.addWidget(mini, 0, column)
+        requirement_grid.setColumnStretch(0, 1)
+        requirement_grid.setColumnStretch(1, 1)
+        requirement_grid.setColumnStretch(2, 1)
+        requirements_layout.addWidget(requirement_cards)
+
+        source_row = QWidget(requirements)
+        source_layout = QHBoxLayout(source_row)
+        source_layout.setContentsMargins(0, 4, 0, 0)
+        has_official_url = bool(standard.official_source_url)
+        source_note = QLabel(
+            "标准原文入口仅使用已核验的官方来源。"
+            if has_official_url
+            else "当前目录未配置标准官方页面，暂不能打开原文。",
+            source_row,
+        )
+        source_note.setObjectName(
+            "standardSourceNote" if has_official_url else "officialSourceUnavailable"
+        )
+        source_note.setWordWrap(True)
+        source_layout.addWidget(source_note, 1)
+        source_button = QPushButton("查看标准原文", source_row)
+        source_button.setObjectName("viewOfficialSourceButton")
+        source_button.setProperty("officialSourceUrl", standard.official_source_url or "")
+        source_button.setEnabled(has_official_url)
+        if standard.official_source_url:
+            source_button.clicked.connect(
+                lambda _checked=False, url=standard.official_source_url: QDesktopServices.openUrl(QUrl(url))
+            )
+        else:
+            source_button.setToolTip("当前目录未配置标准官方页面，暂不能打开原文。")
+        source_layout.addWidget(source_button)
+        requirements_layout.addWidget(source_row)
+        self.detail_layout.addWidget(requirements)
         self.detail_layout.addStretch(1)
 
 
@@ -468,35 +660,79 @@ class ParameterFactorLibraryPage(BasePage):
 
     def _build_page(self) -> None:
         self.body_layout.setSpacing(16)
-        self.add_header("参数与因子库", "按来源浏览登记资料，或搜索参数与参考值；目录内容只读。")
+        self.add_header(
+            "参数与因子库",
+            "全库检索与按来源浏览使用同一份只读登记数据，切换后显示不同视图。",
+        )
 
-        mode_bar = QWidget(self)
-        mode_bar.setObjectName("referenceLibraryModeBar")
-        mode_layout = QHBoxLayout(mode_bar)
-        mode_layout.setContentsMargins(0, 0, 0, 0)
-        mode_layout.setSpacing(8)
-        mode_label = QLabel("查看方式", mode_bar)
-        mode_label.setObjectName("referenceLibraryModeLabel")
-        mode_layout.addWidget(mode_label)
-        self.view_mode_filter = QComboBox(mode_bar)
+        mode_card, mode_layout = _card("查询方式", self)
+        mode_row = QHBoxLayout()
+        mode_row.setContentsMargins(0, 0, 0, 0)
+        mode_row.setSpacing(10)
+        mode_buttons = QWidget(mode_card)
+        mode_buttons_layout = QHBoxLayout(mode_buttons)
+        mode_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        mode_buttons_layout.setSpacing(4)
+        self.mode_button_group = QButtonGroup(self)
+        self.mode_button_group.setExclusive(True)
+        self.search_mode_button = QPushButton("全库搜索", mode_buttons)
+        self.search_mode_button.setObjectName("referenceLibraryModeButton")
+        self.search_mode_button.setCheckable(True)
+        self.search_mode_button.setAccessibleName("全库搜索")
+        self.browse_mode_button = QPushButton("按来源浏览", mode_buttons)
+        self.browse_mode_button.setObjectName("referenceLibraryModeButton")
+        self.browse_mode_button.setCheckable(True)
+        self.browse_mode_button.setAccessibleName("按来源浏览")
+        self.mode_button_group.addButton(self.search_mode_button, 1)
+        self.mode_button_group.addButton(self.browse_mode_button, 0)
+        mode_buttons_layout.addWidget(self.search_mode_button)
+        mode_buttons_layout.addWidget(self.browse_mode_button)
+        mode_row.addWidget(mode_buttons, 0)
+
+        self.search_input = QLineEdit(mode_card)
+        self.search_input.setObjectName("referenceLibrarySearch")
+        self.search_input.setPlaceholderText("点击查看全部参数，输入即时筛选")
+        self.search_input.setAccessibleName("参数与因子搜索")
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.setMinimumWidth(280)
+        mode_row.addWidget(self.search_input, 1)
+        self.search_category_filter = QComboBox(mode_card)
+        self.search_category_filter.setObjectName("referenceLibraryCategoryFilter")
+        self.search_category_filter.setAccessibleName("数据类别")
+        for label, value in (
+            ("全部类别", None),
+            ("参数值", "parameter"),
+            ("排放因子", "factor"),
+            ("参考数据", "reference"),
+        ):
+            self.search_category_filter.addItem(label, value)
+        self.search_category_filter.setMinimumWidth(150)
+        mode_row.addWidget(self.search_category_filter, 0)
+        mode_layout.addLayout(mode_row)
+        self.view_mode_filter = QComboBox(self)
         self.view_mode_filter.setObjectName("referenceLibraryMode")
         self.view_mode_filter.addItem("按标准/文件查看", "browse")
         self.view_mode_filter.addItem("全库搜索", "search")
         self.view_mode_filter.setAccessibleName("参数与因子库查看方式")
-        self.view_mode_filter.setMinimumWidth(170)
-        mode_layout.addWidget(self.view_mode_filter, 0)
-        mode_layout.addStretch(1)
-        self.body_layout.addWidget(mode_bar)
+        self.view_mode_filter.hide()
+        self.body_layout.addWidget(mode_card)
 
-        self.browse_card, browse_layout = _card("标准与文件", self)
+        self.browse_card, browse_layout = _card("按来源浏览登记资料", self)
         browse_layout.setSpacing(10)
+        browse_notice = QLabel(
+            "此模式按资料文件、表格顺序浏览，完整展示原始登记信息；不同于全库搜索结果视图。",
+            self.browse_card,
+        )
+        browse_notice.setObjectName("sourceBrowseNotice")
+        browse_notice.setWordWrap(True)
+        browse_layout.addWidget(browse_notice)
         browse_filters = QHBoxLayout()
         browse_filters.setContentsMargins(0, 0, 0, 0)
         browse_filters.setSpacing(8)
-        browse_filters.addWidget(QLabel("资料文件", self.browse_card))
+        browse_filters.addWidget(QLabel("来源资料", self.browse_card))
         self.source_filter = QComboBox(self.browse_card)
         self.source_filter.setObjectName("sourceDocumentFilter")
-        self.source_filter.setAccessibleName("资料文件")
+        self.source_filter.setAccessibleName("来源资料")
         self.source_filter.setMinimumContentsLength(18)
         self.source_filter.setMinimumWidth(250)
         browse_filters.addWidget(self.source_filter, 2)
@@ -535,31 +771,11 @@ class ParameterFactorLibraryPage(BasePage):
 
         self.search_card, search_layout = _card("全库搜索", self)
         search_layout.setSpacing(10)
-        filters = QHBoxLayout()
-        filters.setContentsMargins(0, 0, 0, 0)
-        filters.setSpacing(8)
-        self.search_input = QLineEdit(self.search_card)
-        self.search_input.setObjectName("referenceLibrarySearch")
-        self.search_input.setPlaceholderText("搜索文件、表号、参数、适用对象或数值")
-        self.search_input.setAccessibleName("参数与因子搜索")
-        self.search_input.setClearButtonEnabled(True)
-        self.search_input.setMinimumWidth(280)
-        filters.addWidget(self.search_input, 3)
-        self.search_source_filter = QComboBox(self.search_card)
+        self.search_source_filter = QComboBox(self)
         self.search_source_filter.setObjectName("searchSourceDocumentFilter")
         self.search_source_filter.setAccessibleName("搜索范围：来源文件")
-        self.search_source_filter.setMinimumWidth(180)
         self.search_source_filter.addItem("全部资料", None)
-        for source in self._service.list_sources():
-            index = self.search_source_filter.count()
-            self.search_source_filter.addItem(source.document_no, source.source_id)
-            self.search_source_filter.setItemData(
-                index,
-                f"{source.document_no} · {source.document_name}",
-                Qt.ItemDataRole.ToolTipRole,
-            )
-        filters.addWidget(self.search_source_filter, 2)
-        search_layout.addLayout(filters)
+        self.search_source_filter.hide()
         self.result_summary = QLabel("", self.search_card)
         self.result_summary.setObjectName("referenceLibrarySummary")
         self.result_summary.setWordWrap(True)
@@ -567,10 +783,26 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_splitter = QSplitter(Qt.Orientation.Horizontal, self.search_card)
         self.search_splitter.setObjectName("referenceLibrarySplitter")
         self.search_splitter.setChildrenCollapsible(False)
-        self.search_result_table = QTableWidget(self.search_splitter)
+        self.search_source_panel, source_list_layout = _card("来源筛选", self.search_splitter)
+        self.search_source_list = QListWidget(self.search_source_panel)
+        self.search_source_list.setObjectName("referenceLibrarySourceList")
+        self.search_source_list.setAccessibleName("来源筛选")
+        self.search_source_list.setAccessibleDescription("按资料来源筛选全库搜索结果。")
+        self.search_source_list.setMinimumWidth(190)
+        self.search_source_list.setMinimumHeight(320)
+        source_list_layout.addWidget(self.search_source_list)
+
+        self.search_results_panel = QWidget(self.search_splitter)
+        results_layout = QVBoxLayout(self.search_results_panel)
+        results_layout.setContentsMargins(0, 0, 0, 0)
+        results_layout.setSpacing(10)
+        self.search_results_splitter = QSplitter(Qt.Orientation.Vertical, self.search_results_panel)
+        self.search_results_splitter.setObjectName("referenceLibraryResultsSplitter")
+        self.search_results_splitter.setChildrenCollapsible(False)
+        self.search_result_table = QTableWidget(self.search_results_splitter)
         _configure_table(
             self.search_result_table,
-            ("类别", "参数名称 / 资料", "数值", "单位", "来源与适用条件"),
+            ("参数名称", "数值", "单位", "类别"),
         )
         self.search_result_table.setObjectName("catalogTable")
         self.search_result_table.setAccessibleName("参数与因子搜索结果")
@@ -578,27 +810,33 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_result_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.search_result_table.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.search_result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.search_result_table.setMinimumHeight(320)
+        self.search_result_table.setMinimumHeight(260)
         self.search_result_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((68, 210, 90, 100, 250)):
+        for column, width in enumerate((340, 145, 125, 130)):
             self.search_result_table.setColumnWidth(column, width)
-        self.factor_detail_host = QWidget(self.search_splitter)
+        self.factor_detail_host = QWidget(self.search_results_splitter)
         self.factor_detail_host.setObjectName("parameterDetailHost")
         self.factor_detail_layout = QVBoxLayout(self.factor_detail_host)
         self.factor_detail_layout.setContentsMargins(12, 12, 12, 12)
         self.factor_detail_layout.setSpacing(12)
-        self.factor_detail_scroll = QScrollArea(self.search_splitter)
+        self.factor_detail_scroll = QScrollArea(self.search_results_splitter)
         self.factor_detail_scroll.setObjectName("parameterDetailScroll")
         self.factor_detail_scroll.setMinimumWidth(320)
         self.factor_detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.factor_detail_scroll.setWidgetResizable(True)
         self.factor_detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.factor_detail_scroll.setWidget(self.factor_detail_host)
-        self.search_splitter.addWidget(self.search_result_table)
-        self.search_splitter.addWidget(self.factor_detail_scroll)
-        self.search_splitter.setStretchFactor(0, 3)
-        self.search_splitter.setStretchFactor(1, 2)
-        self.search_splitter.setSizes([600, 400])
+        self.search_results_splitter.addWidget(self.search_result_table)
+        self.search_results_splitter.addWidget(self.factor_detail_scroll)
+        self.search_results_splitter.setStretchFactor(0, 3)
+        self.search_results_splitter.setStretchFactor(1, 2)
+        self.search_results_splitter.setSizes([420, 280])
+        results_layout.addWidget(self.search_results_splitter)
+        self.search_splitter.addWidget(self.search_source_panel)
+        self.search_splitter.addWidget(self.search_results_panel)
+        self.search_splitter.setStretchFactor(0, 0)
+        self.search_splitter.setStretchFactor(1, 1)
+        self.search_splitter.setSizes([210, 1100])
         search_layout.addWidget(self.search_splitter)
         self.body_layout.addWidget(self.search_card)
         self.body_layout.addStretch(1)
@@ -606,10 +844,13 @@ class ParameterFactorLibraryPage(BasePage):
         self._apply_library_style()
 
         self.view_mode_filter.currentIndexChanged.connect(self._change_mode)
+        self.mode_button_group.idClicked.connect(self.view_mode_filter.setCurrentIndex)
         self.source_filter.currentIndexChanged.connect(self._refresh_tables)
         self.table_filter.currentIndexChanged.connect(self._show_source_table)
         self.search_input.textChanged.connect(self._refresh_search)
         self.search_source_filter.currentIndexChanged.connect(self._refresh_search)
+        self.search_category_filter.currentIndexChanged.connect(self._refresh_search)
+        self.search_source_list.currentRowChanged.connect(self._select_search_source)
         self.search_result_table.itemSelectionChanged.connect(self._show_selected_search_detail)
         self._change_mode()
 
@@ -624,6 +865,7 @@ class ParameterFactorLibraryPage(BasePage):
                 font-size: 13px;
             }}
             QLineEdit#referenceLibrarySearch,
+            QComboBox#referenceLibraryCategoryFilter,
             QComboBox#referenceLibraryMode,
             QComboBox#sourceDocumentFilter,
             QComboBox#sourceTableFilter,
@@ -636,12 +878,54 @@ class ParameterFactorLibraryPage(BasePage):
                 color: {PRIMARY_TEXT};
             }}
             QLineEdit#referenceLibrarySearch:focus,
+            QComboBox#referenceLibraryCategoryFilter:focus,
             QComboBox#referenceLibraryMode:focus,
             QComboBox#sourceDocumentFilter:focus,
             QComboBox#sourceTableFilter:focus,
             QComboBox#searchSourceDocumentFilter:focus {{
                 border: 1px solid {PRIMARY_BRAND};
                 padding: 0 10px;
+            }}
+            QPushButton#referenceLibraryModeButton {{
+                min-height: 36px;
+                border: 1px solid {BORDER};
+                border-radius: 8px;
+                padding: 0 14px;
+                background: {CARD_BACKGROUND};
+                color: {SECONDARY_TEXT};
+                font-weight: 600;
+            }}
+            QPushButton#referenceLibraryModeButton:hover {{
+                border-color: {PRIMARY_BRAND};
+                color: {PRIMARY_BRAND};
+                background: #F4FAFE;
+            }}
+            QPushButton#referenceLibraryModeButton:checked {{
+                border-color: {PRIMARY_BRAND};
+                background: #E6F4FB;
+                color: {PRIMARY_BRAND};
+                font-weight: 700;
+            }}
+            QListWidget#referenceLibrarySourceList {{
+                border: none;
+                background: transparent;
+                outline: none;
+                color: {SECONDARY_TEXT};
+                font-size: 13px;
+            }}
+            QListWidget#referenceLibrarySourceList::item {{
+                min-height: 34px;
+                padding: 4px 10px;
+                border-radius: 7px;
+            }}
+            QListWidget#referenceLibrarySourceList::item:hover {{
+                background: #F3F8FC;
+                color: {PRIMARY_BRAND};
+            }}
+            QListWidget#referenceLibrarySourceList::item:selected {{
+                background: #E6F4FB;
+                color: {PRIMARY_BRAND};
+                font-weight: 700;
             }}
             QTableWidget#sourceTableView {{
                 background: {CARD_BACKGROUND};
@@ -657,6 +941,20 @@ class ParameterFactorLibraryPage(BasePage):
                 border-bottom: 1px solid {BORDER};
                 padding: 8px;
                 font-weight: 600;
+            }}
+            QTableWidget#catalogTable {{
+                background: {CARD_BACKGROUND};
+                border: 1px solid {BORDER};
+                selection-background-color: #E6F4FB;
+                selection-color: {PRIMARY_TEXT};
+            }}
+            QTableWidget#catalogTable QHeaderView::section {{
+                background: {SURFACE_MUTED};
+                color: {SECONDARY_TEXT};
+                border: none;
+                border-bottom: 1px solid {BORDER};
+                padding: 9px 10px;
+                font-weight: 650;
             }}
             QScrollArea#parameterDetailScroll {{
                 border: 1px solid {BORDER};
@@ -681,6 +979,15 @@ class ParameterFactorLibraryPage(BasePage):
                 color: {SECONDARY_TEXT};
                 font-size: 13px;
             }}
+            QLabel#sourceBrowseNotice {{
+                color: #47697F;
+                background: #EFF7FD;
+                border-left: 3px solid #4299C5;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                padding: 9px 11px;
+                font-size: 12px;
+            }}
             """
         )
 
@@ -688,7 +995,27 @@ class ParameterFactorLibraryPage(BasePage):
         sources = self._service.list_sources()
         source_by_id = {source.source_id: source for source in sources}
         table_source_ids = {table.source_id for table in self._service.list_source_tables()}
+        self.source_filter.clear()
+        self.search_source_filter.blockSignals(True)
+        self.search_source_filter.clear()
+        self.search_source_filter.addItem("全部来源", None)
+        self.search_source_list.blockSignals(True)
+        self.search_source_list.clear()
+        all_sources_item = QListWidgetItem("全部来源")
+        all_sources_item.setData(Qt.ItemDataRole.UserRole, None)
+        self.search_source_list.addItem(all_sources_item)
         for source in sources:
+            index = self.search_source_filter.count()
+            self.search_source_filter.addItem(source.document_no, source.source_id)
+            self.search_source_filter.setItemData(
+                index,
+                f"{source.document_no} · {source.document_name}",
+                Qt.ItemDataRole.ToolTipRole,
+            )
+            source_item = QListWidgetItem(source.document_no)
+            source_item.setData(Qt.ItemDataRole.UserRole, source.source_id)
+            source_item.setToolTip(f"{source.document_no} · {source.document_name}")
+            self.search_source_list.addItem(source_item)
             if source.source_id in table_source_ids:
                 index = self.source_filter.count()
                 self.source_filter.addItem(
@@ -699,6 +1026,9 @@ class ParameterFactorLibraryPage(BasePage):
                     f"{source.document_no} · {source.document_name} · {source.publisher}",
                     Qt.ItemDataRole.ToolTipRole,
                 )
+        self.search_source_filter.blockSignals(False)
+        self.search_source_list.setCurrentRow(0)
+        self.search_source_list.blockSignals(False)
         preferred = next(
             (index for index in range(self.source_filter.count())
              if "32151.34" in self.source_filter.itemText(index)),
@@ -711,10 +1041,19 @@ class ParameterFactorLibraryPage(BasePage):
 
     def _change_mode(self, *_args: object) -> None:
         is_browse = self.view_mode_filter.currentData() != "search"
+        self.browse_mode_button.setChecked(is_browse)
+        self.search_mode_button.setChecked(not is_browse)
         self.browse_card.setVisible(is_browse)
         self.search_card.setVisible(not is_browse)
         if not is_browse:
             self._refresh_search()
+
+    def _select_search_source(self, row: int) -> None:
+        item = self.search_source_list.item(row) if row >= 0 else None
+        source_id = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+        index = self.search_source_filter.findData(source_id)
+        if index >= 0 and self.search_source_filter.currentIndex() != index:
+            self.search_source_filter.setCurrentIndex(index)
 
     def _refresh_tables(self, *_args: object) -> None:
         source_id = self.source_filter.currentData()
@@ -747,23 +1086,47 @@ class ParameterFactorLibraryPage(BasePage):
         if table is None or view is None:
             return
         headers, rows, note = view
+        source = next(
+            (item for item in self._service.list_sources() if item.source_id == table.source_id),
+            None,
+        )
+        source_name = (
+            f"{source.document_no} · {source.document_name}"
+            if source is not None
+            else "标准资料"
+        )
         self.factor_table.clear()
         self.factor_table.setColumnCount(len(headers))
         self.factor_table.setHorizontalHeaderLabels(headers)
         self.factor_table.setRowCount(len(rows))
         for row_number, values in enumerate(rows):
             for column, value in enumerate(values):
-                item = QTableWidgetItem(str(value))
+                raw_value = str(value)
+                display_value = raw_value
+                if "定位" in headers[column]:
+                    display_value = format_source_reference(
+                        raw_value,
+                        source_name,
+                        table_number=table.display_number,
+                    )
+                item = QTableWidgetItem(display_value)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                item.setToolTip(str(value))
+                item.setToolTip(raw_value)
                 item.setData(
                     Qt.ItemDataRole.AccessibleTextRole,
-                    f"{headers[column]}：{value}",
+                    f"{headers[column]}：{display_value}",
                 )
                 self.factor_table.setItem(row_number, column, item)
         self.factor_table.resizeRowsToContents()
         self.browse_table_title.setText(f"{table.display_number} · {table.title} · {len(rows)} 行")
-        self.browse_table_note.setText(note)
+        short_reference = format_source_reference(
+            table.source_location,
+            source_name,
+            table_number=table.display_number,
+        )
+        visible_note = f"来源：{short_reference}。{strip_source_page_numbers(table.notes)}".strip()
+        self.browse_table_note.setText(visible_note)
+        self.browse_table_note.setToolTip(note)
 
     def _asset_display_name(self, result: object) -> str:
         asset = getattr(result, "asset", None)
@@ -812,6 +1175,27 @@ class ParameterFactorLibraryPage(BasePage):
             parts.append("有效期：" + "；".join(periods))
         return "；".join(parts) or "—"
 
+    def _reference_category(self, result: object) -> str:
+        if getattr(result, "result_type", "") != "asset":
+            return "reference"
+        asset = getattr(result, "asset", None)
+        parameter = (
+            self._display_parameters.get(asset.parameter_id)
+            if asset is not None
+            else None
+        )
+        factor_types = {
+            ParameterType.EMISSION_FACTOR,
+            ParameterType.ELECTRICITY_EMISSION_FACTOR,
+            ParameterType.HEAT_EMISSION_FACTOR,
+            ParameterType.PROCESS_CO2_FACTOR,
+        }
+        return (
+            "factor"
+            if parameter is not None and parameter.parameter_type in factor_types
+            else "parameter"
+        )
+
     def _refresh_search(self, *_args: object) -> None:
         # One read per refresh; these mappings only label the existing query results.
         self._display_parameters = {
@@ -821,38 +1205,39 @@ class ParameterFactorLibraryPage(BasePage):
             item.subject_id: item for item in self._service.repository.list_subjects()
         }
         source_id = self.search_source_filter.currentData()
-        self._search_results = self._service.search_reference_library(
+        results = self._service.search_reference_library(
             self.search_input.text(), source_id=source_id if isinstance(source_id, str) else None
+        )
+        category_filter = self.search_category_filter.currentData()
+        self._search_results = tuple(
+            result
+            for result in results
+            if category_filter is None or self._reference_category(result) == category_filter
         )
         self.search_result_table.setRowCount(0)
         for row_number, result in enumerate(self._search_results):
             self.search_result_table.insertRow(row_number)
-            source_label = result.subtitle
-            category = {
-                "standard": "标准",
-                "source": "来源文件",
-                "table": "标准表",
-                "asset": "参数值",
-            }.get(result.result_type, "资料")
+            category = (
+                {
+                    "standard": "标准",
+                    "source": "来源文件",
+                    "table": "标准表",
+                }.get(result.result_type, "资料")
+                if self._reference_category(result) == "reference"
+                else "排放因子"
+                if self._reference_category(result) == "factor"
+                else "参数值"
+            )
             display_name = (
                 self._asset_display_name(result)
                 if result.result_type == "asset"
                 else result.title
             )
-            condition = (
-                self._asset_condition_text(result)
-                if result.result_type == "asset"
-                else "—"
-            )
-            source_and_condition = source_label
-            if condition != "—":
-                source_and_condition += f"\n适用：{condition}"
             values = (
-                category,
                 display_name,
                 result.value_text or "—",
                 result.unit or "—",
-                source_and_condition,
+                category,
             )
             for column, text in enumerate(values):
                 item = QTableWidgetItem(text)
@@ -921,7 +1306,11 @@ class ParameterFactorLibraryPage(BasePage):
                 ("发布日期", _date_text(source.publication_date)),
                 ("生效日期", _date_text(source.effective_from)),
                 ("资料核对", self._service.review_status_label(source.review_status)),
-                ("说明", source.notes or "—"),
+                (
+                    "说明",
+                    strip_source_page_numbers(source.notes) or "—",
+                    source.notes or "",
+                ),
             )
             self.factor_detail_layout.addWidget(_detail_section("来源文件", self.factor_detail_host, rows))
             if source.official_url:
@@ -931,11 +1320,25 @@ class ParameterFactorLibraryPage(BasePage):
                 self.factor_detail_layout.addWidget(button)
         elif result.result_type == "table" and result.table is not None:
             source = next((item for item in self._service.list_sources() if item.source_id == result.table.source_id), None)
+            source_name = (
+                f"{source.document_no} · {source.document_name}"
+                if source is not None
+                else "标准资料"
+            )
+            short_locator = format_source_reference(
+                result.table.source_location,
+                source_name,
+                table_number=result.table.display_number,
+            )
             rows = (
                 ("资料文件", source.document_no if source else "标准资料"),
                 ("表格", f"{result.table.display_number} · {result.table.title}"),
-                ("依据定位", result.table.source_location),
-                ("说明", result.table.notes or "—"),
+                ("依据定位", short_locator, result.table.source_location),
+                (
+                    "说明",
+                    strip_source_page_numbers(result.table.notes) or "—",
+                    result.table.notes or "",
+                ),
             )
             self.factor_detail_layout.addWidget(_detail_section("表格来源", self.factor_detail_host, rows))
             button = QPushButton("按原表结构查看", self.factor_detail_host)
@@ -946,6 +1349,7 @@ class ParameterFactorLibraryPage(BasePage):
             asset = result.asset
             parameter = next((item for item in self._service.repository.list_parameters() if item.parameter_id == asset.parameter_id), None)
             subject = next((item for item in self._service.repository.list_subjects() if item.subject_id == asset.subject_id), None)
+            asset_notes = asset.notes or (parameter.notes if parameter else "") or ""
             rows = (
                 ("参数", parameter.name if parameter else "—"),
                 ("适用对象", subject.name if subject else "—"),
@@ -954,6 +1358,7 @@ class ParameterFactorLibraryPage(BasePage):
                 ("单位", asset.unit),
                 ("适用条件", self._asset_condition_text(result)),
                 ("数据类型", self._service.value_type_label(asset.value_type)),
+                ("说明", strip_source_page_numbers(asset_notes) or "—", asset_notes),
             )
             self.factor_detail_layout.addWidget(_detail_section("参数值", self.factor_detail_host, rows))
 
@@ -982,8 +1387,17 @@ class ParameterFactorLibraryPage(BasePage):
             for binding in result.bindings:
                 table = tables.get(binding.source_table_id)
                 source = sources.get(table.source_id) if table else None
-                label = f"{source.document_no} · {table.display_number}" if source and table else "标准资料"
-                binding_rows.append((label, binding.source_location))
+                source_name = (
+                    f"{source.document_no} · {source.document_name}"
+                    if source is not None
+                    else "标准资料"
+                )
+                short_location = format_source_reference(
+                    binding.source_location,
+                    source_name,
+                    table_number=table.display_number if table else None,
+                )
+                binding_rows.append(("来源定位", short_location, binding.source_location))
             if binding_rows:
                 trace_layout.addWidget(_detail_section("来源定位", trace_host, binding_rows))
 
@@ -1046,10 +1460,29 @@ class ParameterFactorLibraryPage(BasePage):
                 period_rows.append(("因子年度", "、".join(binding_years)))
             if standard_numbers:
                 period_rows.append(("适用标准", "、".join(standard_numbers)))
+            source_names = tuple(
+                dict.fromkeys(
+                    f"{sources[tables[binding.source_table_id].source_id].document_no} · "
+                    f"{sources[tables[binding.source_table_id].source_id].document_name}"
+                    for binding in result.bindings
+                    if binding.source_table_id in tables
+                    and tables[binding.source_table_id].source_id in sources
+                )
+            )
+            parameter_source = "、".join(source_names) or "标准资料"
+            parameter_location = parameter.source_location if parameter else ""
+            short_parameter_location = format_source_reference(
+                parameter_location,
+                parameter_source,
+            )
             period_rows.extend(
                 (
-                    ("参数定位", parameter.source_location if parameter else "—"),
-                    ("数据说明", asset.notes or (parameter.notes if parameter else "—") or "—"),
+                    ("参数定位", short_parameter_location, parameter_location),
+                    (
+                        "数据说明",
+                        strip_source_page_numbers(asset.notes or (parameter.notes if parameter else "")) or "—",
+                        asset.notes or (parameter.notes if parameter else "") or "",
+                    ),
                     ("资源版本", asset.asset_version or "—"),
                     ("原始值", f"{format(asset.source_value, 'f')} {asset.source_unit}"),
                     ("归一化值", f"{format(asset.normalized_value, 'f')} {asset.normalized_unit}"),

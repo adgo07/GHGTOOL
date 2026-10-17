@@ -16,7 +16,7 @@ Module ID：`qz.carbon_accounting`
 | 层级 | 文件 | 读取方式 |
 |---|---|---|
 | 中央 Frozen 基线 | 本仓 `platform-lock.json` + `PLATFORM_BASELINE.md` | 按 locked SHA 读取中央 Frozen 权威文件 |
-| 中央 ACTIVE 指南 | 中央 `GUIDE_INDEX` / `PRODUCT_DELIVERY_POLICY_V1` / `STANDARD_DEVELOPMENT_GUIDE_V0.1` / `UI_DESIGN_GUIDELINES_V0.1` | 按中央当前正式合并版本读取，**不是 Frozen Contract** |
+| 中央 ACTIVE 指南 | 中央 `GUIDE_INDEX` / `PRODUCT_DELIVERY_POLICY_V1` / `STANDARD_DEVELOPMENT_GUIDE_V0.1` / `UI_DESIGN_GUIDELINES_V0.2` | 按中央当前正式合并版本读取，**不是 Frozen Contract** |
 | 本仓长期硬规则 | `AGENTS.md` | 长期有效 |
 | 本仓当前产品路线 | 本文件 | 唯一当前路线 |
 | 本仓当前阶段交接 | `HANDOFF.md` | 当前阶段实施说明 |
@@ -353,10 +353,13 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- P3-AB PR #38、RPT02 PR #39、EXB01 PR #40、P3-DF PR #41、P3-C PR #42及P3-E PR #43均已通过对应验收，按独立PR整合到main。
-- P3-C只改核算记录列表与两个详情页签；P3-E只改附录B表格导入页面，后者与前者共同保留，均不改正式Calculator、Record、Excel Adapter、Word正式报告或数据库。
-- 原生Windows人工鼠标/键盘/系统DPI及Excel/WPS保存后回导仍为明确OPEN证据，不以自动测试结果替代。
-- 下一阶段需单独授权与正式Gate：RS04 Golden/正式标准支持候选、RS05 Windows Release；当前GB/T 32151.34—2024仍不得宣布SUPPORTED。PR #27维持CLOSED / UNMERGED。
+- PR47/A已合并main；现行R11 Mapping及Owner有效软件决定保留，候选状态不撤销这些批准，也不代表全部已接生产。
+- Owner 2026-10-17授权继续原PR46完成基线整合、已有五表查询/Resolver保留对账及回归；由源会话验收，不另设第三方验收、不另开替代PR。本轮不合并46、不关闭45。
+- 保留PR46已有生产能力、性能优化、模板v4及历史兼容、冻结Record/Word；不把旧六包授权扩大为本轮全部重做。原PR45已包含的成果不重复合入。
+- 基线整合已由源会话限定验收PASS，现按Owner授权启动燃料B1与电力B，采用固定共享接口和单一公共文件所有者；其他业务段和N不提前开始。
+- 具体来源资格与方法以当前Mapping/台账/批准决定为准，不用旧009概括性限制覆盖后续010/011/016等。Python实现不是专业批准权威。
+- 原生规则审阅表NOT_RUN/DEFERRED至下阶段首次正式使用前；原PR46模板v4已有WPS回导历史证据，本轮未重跑、不为未来资源修订背书。人工DPI/企业样例仍缺项。
+- RS04 Golden/RS05 Release及正式SUPPORTED仍需各自授权与Gate，不因基线整合提前宣布。
 
 ## 9. 相关治理登记项的归属
 
@@ -372,7 +375,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 本路线不自行授权新的产品阶段；P3-C/P3-E已完成独立验收与整合，RS04～RS06+仍需按各自Gate授权。
+- 本路线不自行授权新的产品阶段；PR46原六包成果作为既有依赖保留，当前有限授权见第8节；RS04～RS06+仍需按各自Gate授权。
 - EXB01附录B九表正式输入与RPT02 Word报告已合并；继续共享正式Application/Calculator及冻结Record，预览不能隐式写Record，报告不可重算历史。
 - 不修改中央Frozen Contract、platform-lock、Numeric或Schema，不宣布GB/T 32151.34—2024已SUPPORTED。
 - PR #27继续CLOSED/UNMERGED，不恢复旧V1和旧R2新下载路径。
@@ -380,8 +383,8 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 ## 当前延期与取消事项
 
 - 附录B正式输入模板和整工作簿导入已通过PR #40合并，RPT02 Word附录B报告已通过PR #39合并；不恢复核算结果Excel导出。
-- P3-DF（参数库与新建核算视觉）已合并；当前C记录页按独立工作包实施，E表格导入页仍未授权。
-- 真实Windows人工DPI和原生Excel/WPS保存回导仍保留OPEN；Golden与正式Windows发布验收须按RS04/RS05另行完成。
+- PR46已有模板、报告与Presentation同步成果保留，本轮不重做原六包；不恢复核算结果Excel导出。
+- 真实Windows人工DPI仍保留OPEN；原生Office按模板/版本区分证据：PR46模板v4有旧head回导记录，本轮未重跑，规则审阅表NOT_RUN/DEFERRED另行保留。Golden与正式Windows发布验收仍按RS04/RS05另行完成。
 - PR #27保持CLOSED/UNMERGED，历史R2仅保留既有项目与Record兼容。
 
 ### GHG-UAT03 V2 已合并基线（非当前包）
@@ -392,4 +395,4 @@ GHG-UAT03 V2已作为PR37合并基线 `708f78a455790946b4a728029bba768d8fb295fc`
 
 ### 当前授权内部工作包：标准业务规则统一
 
-Owner批准V1.2完整方案作为RS01/RS02/RS03现有阶段的实施输入：[批准全文](docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md)。A建立完整候选定义与审阅依据，不切生产；集中审阅及独立验收后B先燃料完整链，N保留实际导航性能专项。不新设产品路线、不启动第二真实行业、不升级SUPPORTED。PR46仍独立开放，A分支来自最新main并只记录其依赖。
+Owner批准V1.2完整方案作为RS01/RS02/RS03现有阶段的实施输入：[批准全文](docs/architecture/business-rules/APPROVED_IMPLEMENTATION_V1_2.md)。A已作为PR47验收合并，候选仍未切生产；当前先在原PR46整合最新main，完成后由源会话验收，再安排燃料B1与电力B共享接口下并行，N保留实际导航性能专项。不新设产品路线、不启动第二真实行业、不升级SUPPORTED。PR46继续原分支开放，本次不合并46或关闭45，具体当前状态见TASK_STATE。

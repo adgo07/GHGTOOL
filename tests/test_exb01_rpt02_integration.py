@@ -131,8 +131,9 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         self.assertEqual(sha256(template_bytes).hexdigest(), APPROVED_TEMPLATE_SHA256)
         workbook = load_workbook(BytesIO(template_bytes))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"], fuel["B14"] = "天然气", 1.25
-        fuel["D14"], fuel["F14"], fuel["I14"] = "计算值", "缺省值", "缺省值"
+        fuel['E14'], fuel['G14'], fuel['J14'], fuel['N14'] = "计算值", "缺省值", "缺省值", "缺省值"
         destination = self.root / "经批准附录B工作簿.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -227,6 +228,8 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         )
         self.assertEqual(report.layout_id, "gbt-32151-34-2024-appendix-b")
         self.assertEqual(report.template_sha256, APPROVED_SOURCE_SHA256)
+        self.assertEqual(report.input_template_version, raw_snapshot["ingress_provenance"]["workbook"]["template_version"])
+        self.assertEqual(report.input_template_sha256, "")  # Historical ingress freezes no master hash.
         b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
         totals = frozen_totals(record, self.repository.get_trace_snapshot(record.record_id))
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (totals["ES"], totals["ET"]))
@@ -239,8 +242,8 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         destination = self.root / "EXB01-正式记录-RPT02.docx"
         with (
             patch.object(record_page, "_report_supplementary_dialog", return_value=report_supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             record_page.export_word_button.click()
@@ -259,7 +262,7 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         for section in appendix_sections:
             self.assertIn(section.title, headings)
         _assert_word_tables_match_model(self, document, report)
-        self.assertEqual(document.core_properties.comments, f"布局：{report.layout_id}；批准模板 SHA256：{report.template_sha256}")
+        self.assertEqual(document.core_properties.comments, f"业务表式：{report.layout_id}（{report.schema_version}）；来源母版 SHA256：{report.template_sha256}；输入模板：{report.input_template_version or '未记录'} 母版 SHA256：{report.input_template_sha256 or '未记录'}")
         self.assertEqual(asdict(self.repository.get(record.record_id)), frozen_record)
         self.assertEqual(len(self.repository.list_all()), 1)
         self.assertEqual(

@@ -416,7 +416,7 @@ class CandidateAssetCoverageTests(unittest.TestCase):
                 r'<pre data-review-row="([^"]+)" data-review-property="([^"]+)">([\s\S]*?)</pre>', text
             )
         ]
-        self.assertEqual(len(visible), 442, "the historical 442 visible condition scopes remain the compatibility baseline")
+        self.assertEqual(len(visible), 450, "Issue010 table5 conventional branches append eight visible scopes; historical branch IDs are retained")
         self.assertEqual(len(visible), len(set(visible)), "visible condition scopes must remain unique")
 
         workbook = load_workbook(workbook_path, read_only=True, data_only=False)

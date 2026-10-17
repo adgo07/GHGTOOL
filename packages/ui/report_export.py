@@ -28,6 +28,13 @@ from packages.application.reporting import ReportModel, build_saved_record_repor
 from packages.core.models import AccountingRecord
 from packages.core.repositories import RecordRepository
 from packages.infrastructure.reporting import render_report_docx
+from .export_location import (
+    ExportLocationService,
+    choose_export_path,
+    report_export_filename,
+    service_for_parent,
+    show_export_success,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,6 +139,7 @@ def export_saved_record_report(
     *,
     supplementary_dialog: SupplementaryDialog | None = None,
     file_dialog: FileDialog | None = None,
+    export_location_service: ExportLocationService | None = None,
     renderer: Renderer | None = None,
 ) -> bool:
     """Run the shared collect, render, atomic-save, and audit flow for one Record."""
@@ -152,20 +160,26 @@ def export_saved_record_report(
         return False
 
     suffix = ".docx"
-    default_name = f"温室气体核算报告_{record.input_snapshot.period.start}_{record.input_snapshot.period.end}{suffix}"
-    choose_path = file_dialog or QFileDialog.getSaveFileName
-    target, _ = choose_path(parent, "保存 Word 核算报告", default_name, "Word 文档 (*.docx)")
+    default_name = report_export_filename(record)
+    location_service = export_location_service or service_for_parent(parent)
+    target, _ = choose_export_path(
+        parent,
+        "保存 Word 核算报告",
+        default_name,
+        "Word 文档 (*.docx)",
+        location_service=location_service,
+        file_dialog=file_dialog,
+    )
     if not target:
         return False
     path = Path(target)
-    suffix_added = path.suffix.lower() != suffix
-    if suffix_added:
+    if path.suffix.lower() != suffix:
         path = path.with_suffix(suffix)
-    if suffix_added and path.exists():
+    if path.exists():
         answer = QMessageBox.question(
             parent,
             "确认覆盖文件",
-            f"补全 Word 文件扩展名后的目标文件已存在：\n{path}\n是否覆盖？",
+            f"同名 Word 文件已存在：\n{path}\n是否覆盖？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -216,7 +230,12 @@ def export_saved_record_report(
             f"Word 核算报告已保存到：\n{path}\n该文件可使用；导出审计未完成，正式记录未改。请保留该文件，并保存诊断信息以便排查。",
         )
         return False
-    QMessageBox.information(parent, "报告已导出", f"Word 核算报告已保存到：\n{path}")
+    show_export_success(
+        parent,
+        "报告已导出",
+        f"Word 核算报告已保存到：\n{path}",
+        path,
+    )
     return True
 
 

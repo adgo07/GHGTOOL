@@ -7,6 +7,7 @@ from dataclasses import fields, is_dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from html import escape as html_escape
 import hashlib
 import json
 import logging
@@ -14,25 +15,29 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from PySide6.QtCore import QSignalBlocker, QSize, Qt, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QSignalBlocker, QPointF, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
+    QHeaderView,
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
     QMessageBox,
     QTextEdit,
     QTabWidget,
     QPushButton,
     QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
@@ -47,16 +52,22 @@ from packages.application.project_workspaces import (
     ProjectWorkspaceService,
 )
 from packages.core.models import AccountingPeriod, AccountingRecord, PeriodType, RecordStatus
+from packages.core.record_summaries import RecordSummary
 from packages.core.repositories import RecordRepository
 from packages.application.carbon_accounting import (
     CarbonAccountingPreviewUseCase,
     CarbonAccountingUseCase,
     RecordPersistenceError,
-    create_g06_parameter_resolver,
     resolve_formal_record_repository,
 )
-from packages.standards.carbon_material import CarbonMaterialCalculator, FuelPath, STANDARD_ID, STANDARD_VERSION
+from packages.application.standard_registry import StandardRuntime
 from .report_export import export_saved_record_report, report_supplementary_dialog
+from .export_location import (
+    choose_export_path,
+    service_for_parent,
+    show_export_success,
+    template_export_filename,
+)
 from .record_experience import (
     SnapshotState,
     REPORT_FIELD_LABELS,
@@ -65,15 +76,21 @@ from .record_experience import (
     build_parameter_view,
     build_calculation_basis_view,
     build_quality_view,
-    build_record_list_label,
-    build_report_view,
+    standard_label,
+    build_record_report_model,
     evidence_names_for,
     format_amount,
+    status_label,
     snapshot_state,
-    summary_with_trace,
 )
 
-from .design_tokens import WIDE_PAGE_MARGIN
+from .design_tokens import (
+    COMPACT_HOME_PAGE_SIDE_MARGIN,
+    HOME_CANVAS_GRADIENT,
+    HOME_CONTENT_MAX_WIDTH,
+    HOME_PAGE_SIDE_MARGIN,
+    WIDE_PAGE_MARGIN,
+)
 from .excel_import_components import ExcelImportPreviewPanel, create_excel_import_section
 from .icons import load_tinted_icon
 from .view_models import AppRoute, ShellViewModel
@@ -81,6 +98,42 @@ from .view_models import AppRoute, ShellViewModel
 
 Navigate = Callable[[AppRoute], None]
 _LOGGER = logging.getLogger(__name__)
+
+
+def _summary_from_record(record: AccountingRecord) -> RecordSummary:
+    period = record.input_snapshot.period
+    return RecordSummary(
+        record_id=record.record_id,
+        standard_id=record.standard_id,
+        standard_version=record.standard_version,
+        created_at=record.created_at,
+        enterprise_name=record.input_snapshot.enterprise_name,
+        period_type=period.period_type,
+        period_start=period.start,
+        period_end=period.end,
+        total_amount=record.calculation_result.total_amount,
+        total_unit=record.calculation_result.total_unit,
+        status=record.status,
+    )
+
+
+def _summary_period_label(summary: RecordSummary) -> str:
+    if summary.period_type is PeriodType.ANNUAL:
+        return f"{summary.period_start.year}年度"
+    if summary.period_type is PeriodType.MONTHLY:
+        return f"{summary.period_start.year}年{summary.period_start.month:02d}月"
+    return f"自定义期间 {summary.period_start.isoformat()} 至 {summary.period_end.isoformat()}"
+
+
+def _record_repository_change_token(repository: object | None) -> object | None:
+    if repository is None:
+        return None
+    token = getattr(repository, "change_token", None)
+    if callable(token):
+        return token()
+    if token is not None:
+        return token
+    return getattr(repository, "revision", None)
 
 
 _SNAPSHOT_LABELS = {
@@ -384,6 +437,79 @@ def _format_reporting_snapshot(reporting_snapshot: object) -> str:
     )
 
 
+def _record_summary_markup(summary: str) -> str:
+    """Style the already-built frozen-record summary without reinterpreting values."""
+
+    sections: dict[str, list[str]] = {"基本信息": [], "核算结果": []}
+    notes: list[str] = []
+    current: str | None = None
+    for raw_line in summary.splitlines():
+        line = raw_line.strip()
+        if line in sections:
+            current = line
+        elif line.startswith("关键提醒：") or line.startswith("标准报告数据 "):
+            notes.append(line)
+        elif line and current is not None:
+            sections[current].append(line)
+
+    info_rows = []
+    for line in sections["基本信息"]:
+        label, separator, value = line.partition("：")
+        if separator:
+            info_rows.append(
+                "<tr>"
+                f'<td style="padding:5px 12px 5px 0;color:#698198;white-space:nowrap">{html_escape(label)}</td>'
+                f'<td style="padding:5px 0;color:#213A4F">{html_escape(value)}</td>'
+                "</tr>"
+            )
+        else:
+            info_rows.append(
+                f'<tr><td colspan="2" style="padding:5px 0;color:#213A4F">{html_escape(line)}</td></tr>'
+            )
+
+    result_lines = sections["核算结果"]
+    total_line = next(
+        (line for line in result_lines if line.startswith("温室气体排放总量：")),
+        "历史记录未保存总排放量。",
+    )
+    other_results = [line for line in result_lines if line != total_line]
+    result_rows = []
+    for index in range(0, len(other_results), 2):
+        cells = other_results[index:index + 2]
+        rendered_cells = "".join(
+            '<td style="width:50%;vertical-align:top;padding:11px 12px;'
+            'border:1px solid #DCEAF3;border-radius:9px;background:#F7FBFE;'
+            f'color:#395B73">{html_escape(line)}</td>'
+            for line in cells
+        )
+        if len(cells) == 1:
+            rendered_cells += '<td style="width:50%"></td>'
+        result_rows.append(f"<tr>{rendered_cells}</tr>")
+    note_markup = "".join(
+        '<p style="margin:10px 0 0;padding:9px 11px;background:#EFF7FD;'
+        'border-left:3px solid #4299C5;color:#47697F">'
+        f"{html_escape(note)}</p>"
+        for note in notes
+    )
+    return (
+        '<html><body style="font-family:\'Microsoft YaHei UI\',\'Microsoft YaHei\',sans-serif;'
+        'font-size:10pt;color:#213A4F">'
+        '<h3 style="margin:2px 0 10px;color:#18364F;font-size:12pt">基本信息</h3>'
+        '<table width="100%" cellspacing="0" cellpadding="0" '
+        'style="border-collapse:collapse;margin-bottom:16px">'
+        + "".join(info_rows)
+        + '</table><h3 style="margin:6px 0 10px;color:#18364F;font-size:12pt">核算结果</h3>'
+        '<div style="padding:14px 16px;border:1px solid #CFE5F3;border-radius:10px;'
+        'background:#ECF7FF;color:#155C88;font-size:11pt;font-weight:600">'
+        + html_escape(total_line)
+        + '</div><table width="100%" cellspacing="8" cellpadding="0" style="margin:3px -8px 0">'
+        + "".join(result_rows)
+        + "</table>"
+        + note_markup
+        + "</body></html>"
+    )
+
+
 class BasePage(QWidget):
     """Page base with the common title/body layout and responsive margin hook."""
 
@@ -398,7 +524,7 @@ class BasePage(QWidget):
             WIDE_PAGE_MARGIN,
             WIDE_PAGE_MARGIN,
         )
-        self.body_layout.setSpacing(24)
+        self.body_layout.setSpacing(22)
 
     def set_page_margin(self, margin: int) -> None:
         self.body_layout.setContentsMargins(margin, margin, margin, margin)
@@ -427,7 +553,7 @@ def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
     card.setObjectName("card")
     card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
     layout = QVBoxLayout(card)
-    layout.setContentsMargins(20, 20, 20, 20)
+    layout.setContentsMargins(22, 19, 22, 19)
     layout.setSpacing(12)
     title_label = QLabel(title, card)
     title_label.setObjectName("cardTitle")
@@ -435,10 +561,59 @@ def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
     return card, layout
 
 
+class _HomeHillsDecoration(QWidget):
+    """Lightweight native decoration matching the V4 landing-page illustration."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("homeHillsDecoration")
+        self.setFixedSize(295, 78)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+
+    def paintEvent(self, event) -> None:  # type: ignore[override]
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.scale(self.width() / 295, self.height() / 78)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setOpacity(0.78)
+        painter.setBrush(QColor("#b6d9ec"))
+        painter.drawPolygon(QPolygonF((
+            QPointF(0, 62), QPointF(44, 45), QPointF(70, 56),
+            QPointF(131, 17), QPointF(180, 57), QPointF(228, 35),
+            QPointF(270, 60), QPointF(295, 64), QPointF(295, 69),
+            QPointF(0, 69),
+        )))
+        painter.setBrush(QColor("#9bccdc"))
+        painter.drawPolygon(QPolygonF((
+            QPointF(18, 64), QPointF(74, 54), QPointF(127, 65),
+            QPointF(182, 29), QPointF(231, 62), QPointF(277, 54),
+            QPointF(295, 65), QPointF(295, 69), QPointF(18, 69),
+        )))
+        painter.setBrush(QColor("#9bd6d5"))
+        painter.drawPolygon(QPolygonF((
+            QPointF(111, 63), QPointF(176, 48), QPointF(218, 58),
+            QPointF(259, 42), QPointF(292, 64), QPointF(292, 69),
+            QPointF(111, 69),
+        )))
+        painter.setBrush(QColor("#c9e6f3"))
+        painter.drawEllipse(0, 65, 295, 12)
+        painter.end()
+
+
 class HomePage(BasePage):
-    """Task-first home with saved projects and immutable records as recent work."""
+    """Task-first, standard-neutral home backed by saved projects and records."""
 
     record_requested = Signal(str)
+    project_requested = Signal(str)
+    project_manager_requested = Signal()
+
+    _ENTRY_DESCRIPTIONS = {
+        AppRoute.STANDARDS: "检索标准，查看适用范围与技术要求",
+        AppRoute.NEW_ACCOUNTING: "按已开放标准开展核算，管理核算项目",
+        AppRoute.EXCEL_IMPORT: "检查已支持标准的工作簿并保存项目",
+        AppRoute.RECORDS: "查看历史结果、依据及 Word 报告",
+        AppRoute.FACTORS: "浏览来源、核算参数与排放因子",
+    }
 
     def __init__(
         self,
@@ -454,36 +629,164 @@ class HomePage(BasePage):
         self.record_repository = record_repository
         self.project_service = project_service
         self._icon_directory = icon_directory
+        self._navigate = navigate
         self.entry_buttons: dict[AppRoute, QPushButton] = {}
         self.project_layout: QVBoxLayout
         self.recent_layout: QVBoxLayout
+        self.body_layout.setSpacing(0)
+        self.body_layout.setContentsMargins(
+            HOME_PAGE_SIDE_MARGIN, 36, HOME_PAGE_SIDE_MARGIN, 25
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet(
+            f"QWidget#page_home {{ background: {HOME_CANVAS_GRADIENT}; }}"
+        )
 
-        self._build_home_header(view_model, navigate, logo_path, icon_directory)
+        self.body_layout.addWidget(
+            self._build_home_header(view_model, logo_path)
+        )
+        self.body_layout.addSpacing(25)
+        self.body_layout.addWidget(self._build_entry_cards(view_model, navigate))
+        self.body_layout.addSpacing(20)
+        self.body_layout.addWidget(self._build_recent_work(navigate))
+        self.body_layout.addStretch(1)
+        self.body_layout.addWidget(self._build_home_footer(view_model, navigate))
+        self._project_data_dirty = True
+        self._record_data_dirty = True
+        self._loaded_record_token: object | None = None
 
+    def set_page_margin(self, margin: int) -> None:
+        compact = margin == COMPACT_HOME_PAGE_SIDE_MARGIN
+        self.body_layout.setContentsMargins(
+            margin,
+            26 if compact else 36,
+            margin,
+            23 if compact else 25,
+        )
+
+    def _icon_label(
+        self,
+        name: str,
+        color: str,
+        size: int,
+        parent: QWidget,
+    ) -> QLabel:
+        label = QLabel(parent)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        if self._icon_directory is not None:
+            icon = load_tinted_icon(
+                self._icon_directory / f"{name}.svg",
+                color,
+                size=size,
+            )
+            label.setPixmap(icon.pixmap(QSize(size, size)))
+        return label
+
+    @staticmethod
+    def _apply_home_shadow(widget: QWidget, alpha: int = 14) -> None:
+        shadow = QGraphicsDropShadowEffect(widget)
+        shadow.setBlurRadius(28)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(39, 81, 113, alpha))
+        widget.setGraphicsEffect(shadow)
+
+    def _build_home_header(
+        self,
+        view_model: ShellViewModel,
+        logo_path: Path | None,
+    ) -> QWidget:
+        header = QWidget(self)
+        header.setObjectName("homeHeader")
+        header.setMinimumHeight(130)
+        header.setMaximumHeight(130)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(30)
+
+        title_row = QWidget(header)
+        title_row.setObjectName("homeTitleRow")
+        title_layout = QHBoxLayout(title_row)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(21)
+
+        logo_label = QLabel(title_row)
+        logo_label.setObjectName("homeLogo")
+        logo_label.setAccessibleName("青舟节能")
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        logo_label.setFixedSize(186, 52)
+        if logo_path is not None:
+            logo = QPixmap(str(logo_path))
+            if not logo.isNull():
+                logo_label.setPixmap(
+                    logo.scaled(
+                        QSize(186, 52),
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+        if logo_label.pixmap() is None or logo_label.pixmap().isNull():
+            logo_label.setText("青舟节能")
+        title_layout.addWidget(logo_label)
+
+        divider = QFrame(title_row)
+        divider.setObjectName("homeBrandDivider")
+        divider.setFixedSize(1, 60)
+        divider.setStyleSheet(
+            "QFrame#homeBrandDivider { background: #bad0e0; border: none; }"
+        )
+        title_layout.addWidget(divider)
+
+        title_group = QWidget(title_row)
+        title_group.setObjectName("homeTitleGroup")
+        title_group_layout = QVBoxLayout(title_group)
+        title_group_layout.setContentsMargins(0, 0, 0, 0)
+        title_group_layout.setSpacing(6)
+        title = QLabel(view_model.home_title, title_group)
+        title.setObjectName("pageTitle")
+        title.setWordWrap(True)
+        title.setStyleSheet("font-size: 30px; font-weight: 800; color: #183c57;")
+        title.setFixedHeight(42)
+        title_group_layout.addWidget(title)
+        description = QLabel(view_model.home_description, title_group)
+        description.setObjectName("homeDescription")
+        description.setWordWrap(True)
+        description.setStyleSheet("color: #698198; font-size: 13px;")
+        title_group_layout.addWidget(description)
+        title_group.setFixedHeight(66)
+        title_layout.addWidget(title_group, 1)
+        header_layout.addWidget(title_row, 1)
+        header_layout.addWidget(
+            _HomeHillsDecoration(header),
+            0,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
+        return header
+
+    def _build_entry_cards(
+        self,
+        view_model: ShellViewModel,
+        navigate: Navigate,
+    ) -> QWidget:
         workspace = QWidget(self)
         workspace.setObjectName("primaryWorkspace")
-        workspace_layout = QVBoxLayout(workspace)
-        workspace_layout.setContentsMargins(0, 0, 0, 0)
-        workspace_layout.setSpacing(16)
-
-        start_panel, start_layout = _card("常用入口", workspace)
-        start_panel.setObjectName("startPanel")
-        entry_grid_widget = QWidget(start_panel)
-        entry_grid = QGridLayout(entry_grid_widget)
-        entry_grid.setContentsMargins(0, 0, 0, 0)
-        entry_grid.setHorizontalSpacing(12)
-        entry_grid.setVerticalSpacing(12)
-        entry_routes = [
+        layout = QHBoxLayout(workspace)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        entries = [
             item
             for item in view_model.navigation
             if item.route not in {AppRoute.HOME, AppRoute.SETTINGS}
         ]
-        for index, item in enumerate(entry_routes):
-            button = QPushButton(item.label, entry_grid_widget)
+        for item in entries:
+            button = QPushButton(item.label, workspace)
             button.setObjectName("homeEntryButton")
             button.setProperty("route", item.route.value)
-            button.setProperty("primary", item.route is AppRoute.NEW_ACCOUNTING)
+            button.setProperty("primary", item.route is AppRoute.STANDARDS)
             button.setAccessibleName(item.label)
+            description = self._ENTRY_DESCRIPTIONS.get(item.route, item.label)
+            button.setAccessibleDescription(description)
+            button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             button.setCursor(
                 Qt.CursorShape.ArrowCursor
                 if item.reserved
@@ -492,326 +795,604 @@ class HomePage(BasePage):
             button.setEnabled(not item.reserved)
             if item.reserved:
                 button.setToolTip(f"{item.label}当前暂未开放。")
-            if icon_directory is not None:
-                button.setIcon(
-                    load_tinted_icon(
-                        icon_directory / f"{item.icon_name}.svg",
-                        "#FFFFFF" if item.route is AppRoute.NEW_ACCOUNTING else "#12618D",
-                        size=20,
-                    )
-                )
-            button.setIconSize(QSize(20, 20))
-            button.setMinimumHeight(68)
-            button.setStyleSheet(
-                """
+
+            button_layout = QVBoxLayout(button)
+            button_layout.setContentsMargins(18, 23, 18, 18)
+            button_layout.setSpacing(0)
+
+            icon_box = QFrame(button)
+            icon_box.setObjectName("homeActionIcon")
+            icon_box.setFixedSize(43, 43)
+            icon_box_layout = QVBoxLayout(icon_box)
+            icon_box_layout.setContentsMargins(0, 0, 0, 0)
+            entry_icon = self._icon_label(
+                item.icon_name,
+                "#FFFFFF" if item.route is AppRoute.STANDARDS else "#197cc2",
+                24,
+                icon_box,
+            )
+            entry_icon.setObjectName("homeEntryIcon")
+            icon_box_layout.addWidget(entry_icon)
+            button_layout.addWidget(icon_box)
+            button_layout.addSpacing(24)
+
+            title = QLabel(item.label, button)
+            title.setObjectName("homeEntryTitle")
+            title.setWordWrap(True)
+            button_layout.addWidget(title)
+            button_layout.addSpacing(8)
+
+            detail = QLabel(description, button)
+            detail.setObjectName("homeEntryDescription")
+            detail.setWordWrap(True)
+            button_layout.addWidget(detail)
+            button_layout.addStretch(1)
+
+            arrow = QLabel("›", button)
+            arrow.setObjectName("homeEntryArrow")
+            arrow.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            button_layout.addWidget(arrow)
+
+            button.setStyleSheet("""
                 QPushButton#homeEntryButton {
-                    background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 8px;
-                    color: #182F43; font-size: 15px; font-weight: 600;
-                    padding: 0 18px; text-align: left;
+                    background: #FFFFFF; border: 1px solid #dae7f1; border-radius: 14px;
+                    color: transparent; text-align: left; min-height: 180px;
                 }
                 QPushButton#homeEntryButton:hover {
-                    background: #F5F8FB; border-color: #12618D;
+                    border-color: #a7cce9; background: #FFFFFF;
                 }
                 QPushButton#homeEntryButton:focus {
-                    border: 2px solid #12618D;
-                }
-                QPushButton#homeEntryButton[primary="true"] {
-                    background: #12618D; border-color: #12618D; color: #FFFFFF;
-                }
-                QPushButton#homeEntryButton[primary="true"]:hover {
-                    background: #0D5278; border-color: #0D5278;
-                QPushButton#homeEntryButton[primary="true"]:focus {
-                    border: 2px solid #9DD8F7;
-                }
+                    border: 2px solid #4a9fd5;
                 }
                 QPushButton#homeEntryButton:disabled {
-                    background: #F2F4F7; border-color: #E4E7EC; color: #98A2B3;
+                    background: #FFFFFF;
                 }
-                """
-            )
+                QPushButton#homeEntryButton[primary="true"] {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                        stop:0 #1679bf, stop:1 #3a97d0);
+                    border: 1px solid #1679bf;
+                }
+                QPushButton#homeEntryButton[primary="true"]:hover {
+                    border-color: #348fc2;
+                }
+                QLabel#homeEntryTitle {
+                    color: #18364f; font-size: 17px; font-weight: 700;
+                }
+                QLabel#homeEntryDescription {
+                    color: #698198; font-size: 12px;
+                }
+                QLabel#homeEntryArrow {
+                    color: #83abc8; font-size: 23px; padding-right: 1px;
+                }
+                QPushButton#homeEntryButton[primary="true"] QLabel#homeEntryTitle,
+                QPushButton#homeEntryButton[primary="true"] QLabel#homeEntryDescription,
+                QPushButton#homeEntryButton[primary="true"] QLabel#homeEntryArrow {
+                    color: #FFFFFF;
+                }
+                QFrame#homeActionIcon {
+                    background: #e9f4fd; border: none; border-radius: 12px;
+                }
+                QPushButton#homeEntryButton[primary="true"] QFrame#homeActionIcon {
+                    background: rgba(255, 255, 255, 0.19);
+                }
+            """)
+            button.setMinimumHeight(180)
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             button.clicked.connect(
                 lambda _checked=False, route=item.route: navigate(route)
             )
-            entry_grid.addWidget(button, index // 3, index % 3)
+            layout.addWidget(
+                button,
+                147 if item.route is AppRoute.STANDARDS else 100,
+            )
             self.entry_buttons[item.route] = button
-        for column in range(3):
-            entry_grid.setColumnStretch(column, 1)
-        start_layout.addWidget(entry_grid_widget)
-        workspace_layout.addWidget(start_panel)
-        self.body_layout.addWidget(workspace)
+            self._apply_home_shadow(
+                button,
+                alpha=19 if item.route is AppRoute.STANDARDS else 11,
+            )
+        return workspace
 
+    def _create_home_card(
+        self,
+        object_name: str,
+        title: str,
+        icon_name: str,
+        action_text: str,
+        action,
+    ) -> tuple[QFrame, QVBoxLayout]:
+        card = QFrame(self)
+        card.setObjectName(object_name)
+        card.setMinimumHeight(279)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(22, 20, 22, 20)
+        card_layout.setSpacing(14)
+
+        heading = QWidget(card)
+        heading.setObjectName("homeCardHeader")
+        heading_layout = QHBoxLayout(heading)
+        heading_layout.setContentsMargins(0, 0, 0, 0)
+        heading_layout.setSpacing(8)
+        icon = self._icon_label(icon_name, "#18364f", 18, heading)
+        icon.setFixedSize(20, 20)
+        heading_layout.addWidget(icon)
+        title_label = QLabel(title, heading)
+        title_label.setObjectName("homeCardTitle")
+        heading_layout.addWidget(title_label)
+        heading_layout.addStretch(1)
+        action_button = QPushButton(action_text, heading)
+        action_button.setObjectName("homeCardAction")
+        action_button.setAccessibleName(action_text)
+        action_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        action_button.clicked.connect(
+            lambda _checked=False: action()
+        )
+        heading_layout.addWidget(action_button)
+        card_layout.addWidget(heading)
+
+        content = QWidget(card)
+        content.setObjectName(f"{object_name}Content")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        card_layout.addWidget(content, 1)
+        card.setStyleSheet("""
+            QFrame#recentProjectsCard, QFrame#recentRecordsCard {
+                background: #FFFFFF; border: 1px solid #dae7f1; border-radius: 14px;
+            }
+            QLabel#homeCardTitle {
+                color: #18364f; font-size: 17px; font-weight: 700;
+            }
+            QPushButton#homeCardAction {
+                border: none; background: transparent; color: #12649a;
+                font-size: 13px; font-weight: 600; padding: 4px 2px;
+            }
+            QPushButton#homeCardAction:hover { text-decoration: underline; }
+            QPushButton#homeCardAction:focus {
+                border: 2px solid #4a9fd5; border-radius: 4px;
+            }
+        """)
+        self._apply_home_shadow(card)
+        if object_name == "recentProjectsCard":
+            self.project_layout = content_layout
+        else:
+            self.recent_layout = content_layout
+        return card, content_layout
+
+    def _build_recent_work(self, navigate: Navigate) -> QWidget:
         recent_work = QWidget(self)
         recent_work.setObjectName("recentWorkCard")
-        recent_layout = QVBoxLayout(recent_work)
-        recent_layout.setContentsMargins(0, 0, 0, 0)
-        recent_layout.setSpacing(12)
-        recent_title = QLabel("最近工作", recent_work)
-        recent_title.setObjectName("sectionTitle")
-        recent_layout.addWidget(recent_title)
+        layout = QHBoxLayout(recent_work)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        projects_card, _ = self._create_home_card(
+            "recentProjectsCard",
+            "继续工作",
+            "new",
+            "全部项目  ›",
+            lambda: self.project_manager_requested.emit(),
+        )
+        records_card, _ = self._create_home_card(
+            "recentRecordsCard",
+            "最近核算",
+            "records",
+            "查看全部  ›",
+            lambda: navigate(AppRoute.RECORDS),
+        )
+        layout.addWidget(projects_card, 94)
+        layout.addWidget(records_card, 135)
+        return recent_work
 
-        recent_columns = QWidget(recent_work)
-        recent_columns_layout = QHBoxLayout(recent_columns)
-        recent_columns_layout.setContentsMargins(0, 0, 0, 0)
-        recent_columns_layout.setSpacing(16)
-        projects_card, self.project_layout = _card("已保存项目", recent_columns)
-        projects_card.setObjectName("recentProjectsCard")
-        records_card, self.recent_layout = _card("核算记录", recent_columns)
-        records_card.setObjectName("recentRecordsCard")
-        recent_columns_layout.addWidget(projects_card, 1)
-        recent_columns_layout.addWidget(records_card, 1)
-        recent_layout.addWidget(recent_columns)
-        self.body_layout.addWidget(recent_work)
-
-        status = QLabel(view_model.status_summary, self)
-        status.setObjectName("statusSummary")
-        status.setWordWrap(True)
-        self.body_layout.addWidget(status)
-        self.body_layout.addStretch(1)
-
-    def _build_home_header(
+    def _build_home_footer(
         self,
         view_model: ShellViewModel,
         navigate: Navigate,
-        logo_path: Path | None,
-        icon_directory: Path | None,
-    ) -> None:
-        header = QWidget(self)
-        header.setObjectName("homeHeader")
-        layout = QHBoxLayout(header)
+    ) -> QWidget:
+        footer = QWidget(self)
+        footer.setObjectName("homeFooter")
+        layout = QHBoxLayout(footer)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
-
-        logo_label = QLabel(header)
-        logo_label.setObjectName("homeLogo")
-        logo_label.setAccessibleName("青舟")
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        logo_label.setFixedSize(176, 44)
-        if logo_path is not None:
-            logo = QPixmap(str(logo_path))
-            if not logo.isNull():
-                logo_label.setPixmap(
-                    logo.scaled(
-                        QSize(176, 44),
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-        if logo_label.pixmap() is None or logo_label.pixmap().isNull():
-            logo_label.setText("青舟")
-        layout.addWidget(logo_label)
-
-        title_group = QWidget(header)
-        title_layout = QVBoxLayout(title_group)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(4)
-        title = QLabel(view_model.home_title, title_group)
-        title.setObjectName("pageTitle")
-        title.setWordWrap(True)
-        description = QLabel(view_model.home_description, title_group)
-        description.setObjectName("pageDescription")
-        description.setWordWrap(True)
-        title_layout.addWidget(title)
-        title_layout.addWidget(description)
-        layout.addWidget(title_group, 1)
+        layout.setSpacing(8)
 
         settings_item = next(
             item for item in view_model.navigation if item.route is AppRoute.SETTINGS
         )
-        settings_button = QPushButton(settings_item.label, header)
+        settings_button = QPushButton(settings_item.label, footer)
         settings_button.setObjectName("homeSettingsButton")
         settings_button.setProperty("route", settings_item.route.value)
         settings_button.setAccessibleName(settings_item.label)
         settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        settings_button.setMinimumHeight(40)
-        if icon_directory is not None:
+        settings_button.setMinimumHeight(32)
+        if self._icon_directory is not None:
             settings_button.setIcon(
                 load_tinted_icon(
-                    icon_directory / f"{settings_item.icon_name}.svg",
-                    "#526A7D",
+                    self._icon_directory / f"{settings_item.icon_name}.svg",
+                    "#197cc2",
+                    size=16,
                 )
             )
-        settings_button.setIconSize(QSize(18, 18))
-        settings_button.setStyleSheet(
-            """
+        settings_button.setIconSize(QSize(16, 16))
+        settings_button.setStyleSheet("""
             QPushButton#homeSettingsButton {
-                background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 6px;
-                color: #182F43; padding: 0 14px; font-size: 14px;
+                border: none; background: transparent; color: #12649a;
+                padding: 2px 0; font-size: 12px; font-weight: 600; text-align: left;
             }
-            QPushButton#homeSettingsButton:hover {
-                background: #F5F8FB; border-color: #12618D;
-            }
+            QPushButton#homeSettingsButton:hover { text-decoration: underline; }
             QPushButton#homeSettingsButton:focus {
-                border: 2px solid #12618D;
+                border: 2px solid #4a9fd5; border-radius: 4px;
             }
-            """
+        """)
+        settings_button.clicked.connect(
+            lambda _checked=False: navigate(AppRoute.SETTINGS)
         )
-        settings_button.clicked.connect(lambda _checked=False: navigate(AppRoute.SETTINGS))
-        layout.addWidget(settings_button, 0, Qt.AlignmentFlag.AlignTop)
-        self.body_layout.addWidget(header)
+        layout.addWidget(settings_button)
+        layout.addStretch(1)
 
-    def _clear_recent_items(self, layout: QVBoxLayout) -> None:
-        while layout.count() > 1:
-            item = layout.takeAt(1)
+        brand = QLabel(view_model.product_name, footer)
+        brand.setObjectName("homeFooterBrand")
+        brand.setStyleSheet("color: #94a6b3; font-size: 11px;")
+        layout.addWidget(brand)
+        return footer
+
+    def _clear_layout(self, layout: QVBoxLayout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.setParent(None)
                 widget.deleteLater()
 
-    def _show_recent_empty(
-        self,
-        layout: QVBoxLayout,
-        title: str,
-        description: str,
-        object_name: str,
-    ) -> None:
-        self._clear_recent_items(layout)
-        empty_title = QLabel(title)
-        empty_title.setObjectName(f"{object_name}Title")
-        empty_title.setWordWrap(True)
-        layout.addWidget(empty_title)
-        empty_description = QLabel(description)
-        empty_description.setObjectName(f"{object_name}Description")
-        empty_description.setWordWrap(True)
-        layout.addWidget(empty_description)
-        layout.addStretch(1)
+    def _show_project_empty(self, title: str, description: str) -> None:
+        self._clear_layout(self.project_layout)
+        title_label = QLabel(title)
+        title_label.setObjectName("projectRecentStateTitle")
+        title_label.setWordWrap(True)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("color: #213a4f; font-size: 16px; font-weight: 700;")
+        description_label = QLabel(description)
+        description_label.setObjectName("projectRecentStateDescription")
+        description_label.setWordWrap(True)
+        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        description_label.setStyleSheet("color: #698198; font-size: 12px;")
+        self.project_layout.addStretch(1)
+        self.project_layout.addWidget(title_label)
+        self.project_layout.addSpacing(4)
+        self.project_layout.addWidget(description_label)
+        self.project_layout.addStretch(2)
 
-    def _recent_item_row(
+    def _show_record_empty(self, title: str, description: str) -> None:
+        self._clear_layout(self.recent_layout)
+        title_label = QLabel(title)
+        title_label.setObjectName("recordRecentStateTitle")
+        title_label.setWordWrap(True)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("color: #213a4f; font-size: 16px; font-weight: 700;")
+        description_label = QLabel(description)
+        description_label.setObjectName("recordRecentStateDescription")
+        description_label.setWordWrap(True)
+        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        description_label.setStyleSheet("color: #698198; font-size: 12px;")
+        self.recent_layout.addStretch(1)
+        self.recent_layout.addWidget(title_label)
+        self.recent_layout.addSpacing(4)
+        self.recent_layout.addWidget(description_label)
+        self.recent_layout.addStretch(2)
+
+    def _build_project_resume_card(
         self,
-        label_text: str,
-        action_text: str,
-        row_name: str,
-        button_name: str,
-        action,
-        parent: QWidget,
+        workspace: ProjectWorkspace,
+        updated_at: datetime | None,
     ) -> QWidget:
-        row = QWidget(parent)
-        row.setObjectName(row_name)
-        row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(10)
-        label = QLabel(label_text, row)
-        label.setObjectName("bodyText")
-        label.setWordWrap(True)
-        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        row_layout.addWidget(label, 1)
-        button = QPushButton(action_text, row)
-        button.setObjectName(button_name)
-        button.setAccessibleName(f"{action_text}：{label_text}")
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setMinimumHeight(36)
-        button.setStyleSheet(
-            """
-            QPushButton {
-                background: #FFFFFF; border: 1px solid #D8E3EC; border-radius: 6px;
-                color: #12618D; padding: 0 12px;
+        resume = QFrame()
+        resume.setObjectName("resumeProjectCard")
+        resume.setStyleSheet("""
+            QFrame#resumeProjectCard {
+                background: #f1faf9; border: 1px solid #cbe7e5; border-radius: 12px;
             }
-            QPushButton:hover { background: #F5F8FB; border-color: #12618D; }
-            QPushButton:focus { border: 2px solid #12618D; }
-            """
+            QFrame#homeProjectIconBox {
+                background: #e0f3ef; border: none; border-radius: 12px;
+            }
+            QLabel#recentProjectLabel {
+                color: #213a4f; font-size: 14px; font-weight: 700;
+            }
+            QLabel#homeProjectUpdated, QLabel#homeProjectDescription {
+                color: #698198; font-size: 12px;
+            }
+            QLabel#homeProjectBadge {
+                background: #eaf3fc; color: #287ab4; border-radius: 7px;
+                padding: 3px 9px; font-size: 11px; font-weight: 680;
+            }
+            QPushButton#resumeProjectButton {
+                background: #197cc2; border: 1px solid #197cc2; border-radius: 8px;
+                color: #FFFFFF; padding: 0 12px; min-height: 34px;
+                font-size: 12px; font-weight: 650;
+            }
+            QPushButton#resumeProjectButton:hover {
+                background: #12649a; border-color: #12649a;
+            }
+            QPushButton#resumeProjectButton:focus { border: 2px solid #7ec4ed; }
+        """)
+        layout = QHBoxLayout(resume)
+        layout.setContentsMargins(16, 15, 16, 15)
+        layout.setSpacing(12)
+
+        icon_box = QFrame(resume)
+        icon_box.setObjectName("homeProjectIconBox")
+        icon_box.setFixedSize(46, 46)
+        icon_layout = QVBoxLayout(icon_box)
+        icon_layout.setContentsMargins(0, 0, 0, 0)
+        icon_layout.addWidget(self._icon_label("new", "#168268", 24, icon_box))
+        layout.addWidget(icon_box, 0, Qt.AlignmentFlag.AlignTop)
+
+        details = QWidget(resume)
+        details_layout = QVBoxLayout(details)
+        details_layout.setContentsMargins(0, 0, 0, 0)
+        details_layout.setSpacing(4)
+        name = QLabel(workspace.name, details)
+        name.setObjectName("recentProjectLabel")
+        name.setWordWrap(True)
+        name.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        details_layout.addWidget(name)
+
+        badge = QLabel("已保存", details)
+        badge.setObjectName("homeProjectBadge")
+        badge.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        details_layout.addWidget(badge)
+
+        if updated_at is not None:
+            updated = QLabel(
+                f"最近修改：{updated_at.astimezone().strftime('%Y-%m-%d %H:%M')}",
+                details,
+            )
+            updated.setObjectName("homeProjectUpdated")
+            details_layout.addWidget(updated)
+
+        description = QLabel(
+            f"包含 {len(workspace.units)} 个核算单元，打开后可继续编辑。",
+            details,
         )
-        button.clicked.connect(action)
-        row_layout.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
-        return row
+        description.setObjectName("homeProjectDescription")
+        description.setWordWrap(True)
+        details_layout.addWidget(description)
+        layout.addWidget(details, 1)
 
-    def refresh_recent_records(self) -> None:
-        """Refresh recent projects and records from their existing read services."""
+        button = QPushButton("继续编辑", resume)
+        button.setObjectName("resumeProjectButton")
+        button.setAccessibleName(f"继续编辑项目：{workspace.name}")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.clicked.connect(
+            lambda _checked=False, project_id=workspace.project_id:
+                self.project_requested.emit(project_id)
+        )
+        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignTop)
+        return resume
 
-        if self.project_service is None:
-            self._show_recent_empty(
-                self.project_layout,
-                "项目暂不可用",
-                "当前无法读取已保存项目。",
-                "projectRecentState",
+    def _build_recent_record_table(
+        self,
+        records: tuple[RecordSummary, ...],
+    ) -> QTableWidget:
+        table = QTableWidget(len(records), 5)
+        table.setObjectName("homeRecentTable")
+        table.setAccessibleName("最近核算记录")
+        table.setAccessibleDescription(
+            "显示最近三条正式核算记录；选择打开可查看不可变记录详情。"
+        )
+        table.setHorizontalHeaderLabels(
+            ("企业 / 项目", "周期", "状态", "日期", "操作")
+        )
+        table.verticalHeader().setVisible(False)
+        table.setShowGrid(False)
+        table.setAlternatingRowColors(False)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        header = table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setDefaultAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+        header.setMinimumSectionSize(62)
+        for column, width in enumerate((190, 108, 140, 108, 80)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+            table.setColumnWidth(column, width)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        operation_header = table.horizontalHeaderItem(4)
+        if operation_header is not None:
+            operation_header.setTextAlignment(
+                Qt.AlignmentFlag.AlignCenter
             )
-        else:
-            try:
-                projects = self.project_service.list_all()
-                reader = getattr(self.project_service, "list_updated_at_by_project_id", None)
-                timestamps = reader() if callable(reader) else {}
-                projects = sorted(
-                    projects,
-                    key=lambda project: (
-                        timestamps[project.project_id].timestamp()
-                        if project.project_id in timestamps
-                        else 0
-                    ),
-                    reverse=True,
-                )[:5]
-            except Exception:
-                _LOGGER.exception("Unable to read saved projects for the home page")
-                projects = None
-            if projects is None:
-                self._show_recent_empty(
-                    self.project_layout,
-                    "项目暂不可用",
-                    "本地项目数据当前无法读取。",
-                    "projectRecentState",
-                )
-            elif not projects:
-                self._show_recent_empty(
-                    self.project_layout,
-                    "暂无已保存项目",
-                    "保存后的项目会显示在这里；请在“新建核算”的项目列表中打开。",
-                    "projectRecentState",
-                )
+        table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        table.setStyleSheet("""
+            QTableWidget#homeRecentTable {
+                border: none; background: transparent; color: #213a4f;
+                font-size: 12px; outline: none;
+            }
+            QTableWidget#homeRecentTable QHeaderView::section {
+                background: #f4f8fc; color: #597187; border: none;
+                padding: 9px 8px; font-size: 11px; font-weight: 650;
+            }
+            QTableWidget#homeRecentTable::item {
+                border-bottom: 1px solid #edf2f6; padding: 8px;
+            }
+            QTableWidget#homeRecentTable::item:hover { background: #f9fcff; }
+        """)
+        table.verticalHeader().setDefaultSectionSize(50)
+
+        for row, record in enumerate(records):
+            enterprise = record.enterprise_name or "未填写企业"
+            period = _summary_period_label(record)
+            name_item = QTableWidgetItem(enterprise)
+            name_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+            name_item.setToolTip(enterprise)
+            table.setItem(row, 0, name_item)
+            period_item = QTableWidgetItem(period)
+            period_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+            table.setItem(row, 1, period_item)
+
+            status_text = status_label(record.status)
+            status = QLabel(status_text)
+            status.setObjectName("homeRecordStatus")
+            status.setAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+            status.setAccessibleName(f"核算状态：{status_text}")
+            is_warning = record.status is RecordStatus.COMPLETED_WITH_WARNINGS
+            status_color = (
+                "background: #fff5e1; color: #956420;"
+                if is_warning
+                else "background: #e7f6f0; color: #168268;"
+            )
+            status.setStyleSheet(
+                f"QLabel {{ border-radius: 7px; padding: 3px 8px; font-size: 11px; {status_color} }}"
+            )
+            table.setCellWidget(row, 2, status)
+
+            date_item = QTableWidgetItem(
+                record.created_at.astimezone().date().isoformat()
+            )
+            date_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+            table.setItem(row, 3, date_item)
+
+            action = QPushButton("打开  ›")
+            action.setObjectName("openRecentRecordButton")
+            action.setAccessibleName(f"打开{enterprise} {period}的核算记录")
+            action.setCursor(Qt.CursorShape.PointingHandCursor)
+            action.setStyleSheet("""
+                QPushButton#openRecentRecordButton {
+                    border: none; background: transparent; color: #12649a;
+                    min-height: 24px; max-height: 24px;
+                    padding: 2px; font-size: 12px; font-weight: 600;
+                    text-align: left;
+                }
+                QPushButton#openRecentRecordButton:hover { text-decoration: underline; }
+                QPushButton#openRecentRecordButton:focus {
+                    border: 2px solid #4a9fd5; border-radius: 4px;
+                }
+            """)
+            action.clicked.connect(
+                lambda _checked=False, record_id=record.record_id:
+                    self.record_requested.emit(record_id)
+            )
+            action.setFixedHeight(28)
+            action_cell = QWidget(table)
+            action_layout = QHBoxLayout(action_cell)
+            action_layout.setContentsMargins(4, 0, 4, 0)
+            action_layout.setSpacing(0)
+            action_layout.addWidget(
+                action, 0, Qt.AlignmentFlag.AlignCenter
+            )
+            table.setCellWidget(row, 4, action_cell)
+        table.resizeRowsToContents()
+        for row in range(table.rowCount()):
+            table.setRowHeight(row, 44)
+        return table
+
+    def invalidate_project_data(self) -> None:
+        self._project_data_dirty = True
+
+    def invalidate_record_views(self, *, projects: bool = False) -> None:
+        self._record_data_dirty = True
+        if projects:
+            self._project_data_dirty = True
+
+    def refresh_if_dirty(self) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._record_data_dirty = True
+        if self._record_data_dirty or self._project_data_dirty:
+            self.refresh_recent_records(force_reload=False)
+
+    def refresh_recent_records(self, *, force_reload: bool = True) -> None:
+        """Refresh dirty home projections while keeping list reads lightweight."""
+
+        if force_reload:
+            self._project_data_dirty = True
+            self._record_data_dirty = True
+        if self._project_data_dirty:
+            project_refresh_succeeded = False
+            if self.project_service is None:
+                self._show_project_empty("项目暂不可用", "当前无法读取已保存项目。")
+                project_refresh_succeeded = True
             else:
-                self._clear_recent_items(self.project_layout)
-                for project in projects:
-                    label = QLabel(project.name, self.project_layout.parentWidget())
-                    label.setObjectName("recentProjectLabel")
-                    label.setWordWrap(True)
-                    label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                    self.project_layout.addWidget(label)
-                self.project_layout.addStretch(1)
+                try:
+                    projects = tuple(self.project_service.list_all())
+                    reader = getattr(self.project_service, "list_updated_at_by_project_id", None)
+                    timestamps = reader() if callable(reader) else {}
+                    projects = tuple(sorted(
+                        projects,
+                        key=lambda project: (
+                            timestamps[project.project_id].timestamp()
+                            if isinstance(timestamps.get(project.project_id), datetime)
+                            else 0
+                        ),
+                        reverse=True,
+                    ))
+                    project_refresh_succeeded = True
+                except Exception:
+                    _LOGGER.exception("Unable to read saved projects for the home page")
+                    projects = None
+                    timestamps = {}
+                if projects is None:
+                    self._show_project_empty("项目暂不可用", "本地项目数据当前无法读取。")
+                elif not projects:
+                    self._show_project_empty(
+                        "暂无已保存项目",
+                        "保存后的项目会显示在这里，可从新建核算中继续编辑。",
+                    )
+                else:
+                    latest = projects[0]
+                    self._clear_layout(self.project_layout)
+                    updated_at = timestamps.get(latest.project_id)
+                    self.project_layout.addWidget(
+                        self._build_project_resume_card(
+                            latest,
+                            updated_at if isinstance(updated_at, datetime) else None,
+                        )
+                    )
+                    self.project_layout.addStretch(1)
+            self._project_data_dirty = not project_refresh_succeeded
 
+        if not self._record_data_dirty:
+            return
         if self.record_repository is None:
-            self._show_recent_empty(
-                self.recent_layout,
-                "记录暂不可用",
-                "当前无法读取核算记录。",
-                "recordRecentState",
-            )
+            self._show_record_empty("记录暂不可用", "当前无法读取核算记录。")
+            self._record_data_dirty = False
+            self._loaded_record_token = None
             return
         try:
-            records = sorted(
-                self.record_repository.list_all(),
-                key=lambda record: record.created_at,
-                reverse=True,
-            )[:5]
+            summaries_reader = getattr(self.record_repository, "list_summaries", None)
+            if callable(summaries_reader):
+                records = tuple(summaries_reader(limit=3))
+            else:
+                records = tuple(sorted(
+                    (_summary_from_record(record) for record in self.record_repository.list_all()),
+                    key=lambda record: (record.created_at, record.record_id),
+                    reverse=True,
+                )[:3])
         except Exception:
-            _LOGGER.exception("Unable to read formal records for the home page")
+            _LOGGER.exception("Unable to read formal record summaries for the home page")
             records = None
         if records is None:
-            self._show_recent_empty(
-                self.recent_layout,
-                "记录暂不可用",
-                "本地核算记录当前无法读取。",
-                "recordRecentState",
-            )
+            self._show_record_empty("记录暂不可用", "本地核算记录当前无法读取。")
             return
+        self._record_data_dirty = False
+        self._loaded_record_token = _record_repository_change_token(self.record_repository)
         if not records:
-            self._show_recent_empty(
-                self.recent_layout,
+            self._show_record_empty(
                 "暂无核算记录",
                 "完成一次正式核算后，记录会显示在这里。",
-                "recordRecentState",
             )
             return
+        self._clear_layout(self.recent_layout)
+        self.recent_layout.addWidget(self._build_recent_record_table(records))
 
-        self._clear_recent_items(self.recent_layout)
-        for record in records:
-            label = build_home_record_label(record)
-            row = self._recent_item_row(
-                label,
-                "查看记录",
-                "recentRecordRow",
-                "openRecentRecordButton",
-                lambda _checked=False, record_id=record.record_id:
-                    self.record_requested.emit(record_id),
-                self.recent_layout.parentWidget(),
-            )
-            self.recent_layout.addWidget(row)
-        self.recent_layout.addStretch(1)
 
 class PlaceholderPage(BasePage):
     """Reachable G03 route with no later-stage business implementation."""
@@ -836,6 +1417,158 @@ class PlaceholderPage(BasePage):
         self.body_layout.addStretch(1)
 
 
+class SettingsPage(BasePage):
+    """Standard-neutral settings overview matching the V4 two-column layout."""
+
+    def __init__(
+        self,
+        view_model: ShellViewModel,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(AppRoute.SETTINGS, parent)
+        self.export_location_service = service_for_parent(self)
+        self.add_header(
+            "设置",
+            "统一设置 Word 报告与 Excel 输入模板的导出文件夹；其他业务设置暂未开放。",
+        )
+        card, card_layout = _card("当前版本", self)
+        columns = QWidget(card)
+        columns.setObjectName("settingsColumns")
+        columns_layout = QHBoxLayout(columns)
+        columns_layout.setContentsMargins(0, 0, 0, 0)
+        columns_layout.setSpacing(16)
+
+        info = QFrame(columns)
+        info.setObjectName("settingsSurface")
+        info_layout = QVBoxLayout(info)
+        info_layout.setContentsMargins(14, 14, 14, 14)
+        info_layout.setSpacing(12)
+        info_title = QLabel("软件信息", info)
+        info_title.setObjectName("cardTitle")
+        info_layout.addWidget(info_title)
+        facts = (
+            ("产品", view_model.product_name),
+            ("运行平台", "Windows 桌面版"),
+            ("界面技术", "PySide6 · Qt Widgets"),
+        )
+        for label_text, value_text in facts:
+            row = QWidget(info)
+            row_layout = QGridLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setHorizontalSpacing(14)
+            row_layout.setVerticalSpacing(8)
+            label = QLabel(label_text, row)
+            label.setObjectName("detailFieldLabel")
+            value = QLabel(value_text, row)
+            value.setObjectName("detailFieldValue")
+            value.setWordWrap(True)
+            row_layout.addWidget(label, 0, 0)
+            row_layout.addWidget(value, 0, 1)
+            row_layout.setColumnStretch(1, 1)
+            info_layout.addWidget(row)
+        info_layout.addStretch(1)
+
+        options = QFrame(columns)
+        options.setObjectName("settingsSurface")
+        options_layout = QVBoxLayout(options)
+        options_layout.setContentsMargins(14, 14, 14, 14)
+        options_layout.setSpacing(12)
+        options_title = QLabel("导出位置", options)
+        options_title.setObjectName("cardTitle")
+        options_layout.addWidget(options_title)
+        export_description = QLabel(
+            "Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。",
+            options,
+        )
+        export_description.setObjectName("emptyStateDescription")
+        export_description.setWordWrap(True)
+        options_layout.addWidget(export_description)
+        directory_label = QLabel("统一导出文件夹", options)
+        directory_label.setObjectName("detailFieldLabel")
+        options_layout.addWidget(directory_label)
+        directory_row = QWidget(options)
+        directory_row_layout = QHBoxLayout(directory_row)
+        directory_row_layout.setContentsMargins(0, 0, 0, 0)
+        directory_row_layout.setSpacing(8)
+        self.export_directory_path = QLineEdit(directory_row)
+        self.export_directory_path.setObjectName("exportDirectoryPath")
+        self.export_directory_path.setReadOnly(True)
+        directory_row_layout.addWidget(self.export_directory_path, 1)
+        self.choose_export_directory_button = QPushButton("更改…", directory_row)
+        self.choose_export_directory_button.setObjectName("chooseExportDirectoryButton")
+        self.choose_export_directory_button.clicked.connect(self._choose_export_directory)
+        directory_row_layout.addWidget(self.choose_export_directory_button)
+        options_layout.addWidget(directory_row)
+        self.export_directory_status = QLabel(options)
+        self.export_directory_status.setObjectName("exportDirectoryStatus")
+        self.export_directory_status.setWordWrap(True)
+        options_layout.addWidget(self.export_directory_status)
+        options_layout.addStretch(1)
+
+        columns_layout.addWidget(info, 1)
+        columns_layout.addWidget(options, 1)
+        card_layout.addWidget(columns, 1)
+        self.body_layout.addWidget(card)
+        self.body_layout.addStretch(1)
+        self._refresh_export_directory_display()
+
+
+    def _refresh_export_directory_display(self) -> None:
+        try:
+            directory = self.export_location_service.display_directory()
+        except Exception:
+            _LOGGER.exception("Unable to read the preferred export directory")
+            try:
+                fallback_display = self.export_location_service.default_directory()
+            except Exception:
+                fallback_display = None
+            self.export_directory_path.setText(str(fallback_display or ""))
+            can_save = self.export_location_service.settings_repository is not None
+            self.choose_export_directory_button.setEnabled(can_save)
+            self.export_directory_status.setText(
+                "当前导出文件夹设置无法读取。可选择新位置重新保存；如用户设置数据库不可用，保存仍会失败。"
+                if can_save
+                else "无法读取系统文档目录，且用户设置存储未配置。"
+            )
+            return
+
+        self.export_directory_path.setText(str(directory))
+        can_save = self.export_location_service.settings_repository is not None
+        self.choose_export_directory_button.setEnabled(can_save)
+        if can_save:
+            self.export_directory_status.setText("首次导出时创建文件夹。")
+        else:
+            self.export_directory_status.setText("用户设置存储未配置，当前路径可用于导出但无法保存更改。")
+
+    def _choose_export_directory(self) -> None:
+        if self.export_location_service.settings_repository is None:
+            QMessageBox.warning(
+                self,
+                "无法保存设置",
+                "用户设置存储未配置，无法保存统一导出文件夹。",
+            )
+            return
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            "选择统一导出文件夹",
+            self.export_directory_path.text(),
+        )
+        if not selected:
+            return
+        try:
+            self.export_location_service.set_preferred_directory(selected)
+        except Exception:
+            _LOGGER.exception("Unable to save the preferred export directory")
+            QMessageBox.critical(
+                self,
+                "导出文件夹未更改",
+                "无法保存统一导出文件夹设置。请检查用户设置数据库和所选路径后重试。",
+            )
+            self._refresh_export_directory_display()
+            return
+        self._refresh_export_directory_display()
+
+
 class RecordLibraryPage(BasePage):
     """Snapshot-backed business views over immutable calculation records."""
 
@@ -848,9 +1581,17 @@ class RecordLibraryPage(BasePage):
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
         self.project_service = project_service
-        self._records: tuple[AccountingRecord, ...] = ()
+        self._records: tuple[RecordSummary, ...] = ()
+        self._all_summaries: tuple[RecordSummary, ...] = ()
+        self._summaries_dirty = True
+        self._loaded_record_token: object | None = None
+        self._associations_dirty = True
+        self._association_cache: dict[str, str] = {}
         self._detail_record_id: str | None = None
+        self._detail_record: AccountingRecord | None = None
         self.add_header("核算记录", "搜索已保存的核算记录，查看历史结果和计算依据。")
+        self.page_title = self.findChild(QLabel, "pageTitle")
+        self.page_description = self.findChild(QLabel, "pageDescription")
         self.view_stack = QStackedWidget(self)
         self.view_stack.setObjectName("recordPageStack")
         self.list_view = QWidget(self.view_stack)
@@ -866,7 +1607,7 @@ class RecordLibraryPage(BasePage):
         self.search_input.setAccessibleName("搜索核算记录")
         self.search_input.setPlaceholderText("搜索企业名称、期间、标准或记录编号")
         self.search_input.setClearButtonEnabled(True)
-        self.search_input.textChanged.connect(self.refresh_records)
+        self.search_input.textChanged.connect(self._apply_filters)
         filter_row.addWidget(self.search_input, 1)
         self.status_filter = QComboBox(filter_card)
         self.status_filter.setObjectName("recordStatusFilter")
@@ -874,28 +1615,45 @@ class RecordLibraryPage(BasePage):
         self.status_filter.addItem("全部状态", "ALL")
         self.status_filter.addItem("已完成", RecordStatus.COMPLETED.value)
         self.status_filter.addItem("含提醒", RecordStatus.COMPLETED_WITH_WARNINGS.value)
-        self.status_filter.currentIndexChanged.connect(self.refresh_records)
+        self.status_filter.currentIndexChanged.connect(self._apply_filters)
         filter_row.addWidget(self.status_filter)
         filter_layout.addLayout(filter_row)
         list_layout.addWidget(filter_card)
 
         records_card, records_layout = _card("记录列表", self.list_view)
-        list_header = QHBoxLayout()
         self.result_count = QLabel(records_card)
         self.result_count.setObjectName("recordResultCount")
-        list_header.addWidget(self.result_count)
-        list_header.addStretch(1)
-        self.open_detail_button = QPushButton("查看记录", records_card)
-        self.open_detail_button.setObjectName("openRecordDetailButton")
-        self.open_detail_button.clicked.connect(self._open_selected_record)
-        list_header.addWidget(self.open_detail_button)
-        records_layout.addLayout(list_header)
-        self.record_list = QListWidget(records_card)
-        self.record_list.setObjectName("recordList")
+        records_layout.addWidget(self.result_count)
+        self.record_list = QTableWidget(records_card)
+        self.record_list.setObjectName("recordTable")
         self.record_list.setAccessibleName("核算记录列表")
+        self.record_list.setAccessibleDescription(
+            "按行浏览不可变核算记录；按 Enter 打开记录详情，也可使用行内操作按钮。"
+        )
+        self.record_list.setColumnCount(7)
+        self.record_list.setHorizontalHeaderLabels(
+            ("企业 / 项目", "核算期间", "标准", "排放总量", "状态", "日期", "操作")
+        )
+        self.record_list.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.record_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.record_list.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.record_list.setAlternatingRowColors(True)
         self.record_list.setWordWrap(True)
-        self.record_list.currentRowChanged.connect(self._selection_changed)
-        self.record_list.itemActivated.connect(lambda _item: self._open_selected_record())
+        self.record_list.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.record_list.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.record_list.setTabKeyNavigation(True)
+        self.record_list.verticalHeader().setVisible(False)
+        self.record_list.horizontalHeader().setStretchLastSection(True)
+        self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        for column, width in enumerate((230, 150, 205, 165, 100, 125, 115)):
+            self.record_list.setColumnWidth(column, width)
+        self.record_list.setMinimumHeight(340)
+        self.record_list.cellActivated.connect(
+            lambda row, _column: self._open_record_row(row)
+        )
+        self.record_list.cellDoubleClicked.connect(
+            lambda row, _column: self._open_record_row(row)
+        )
         records_layout.addWidget(self.record_list, 1)
         list_layout.addWidget(records_card, 1)
         self.view_stack.addWidget(self.list_view)
@@ -917,10 +1675,12 @@ class RecordLibraryPage(BasePage):
         detail_card, detail_card_layout = _card("历史记录 · 只读", self.detail_view)
         self.detail_tabs = QTabWidget(detail_card)
         self.detail_tabs.setObjectName("recordDetailTabs")
-        self.summary_text = self._readonly_text("recordSummaryView", self.detail_tabs)
-        self.input_basis_text = self._readonly_text("recordInputBasisView", self.detail_tabs)
-        self.detail_tabs.addTab(self.summary_text, "基本信息与结果")
-        self.detail_tabs.addTab(self.input_basis_text, "输入数据与计算依据")
+        from .record_tables import RecordReportTab
+
+        self.summary_view = RecordReportTab("recordSummaryView", include_audit=False, parent=self.detail_tabs)
+        self.input_basis_view = RecordReportTab("recordInputBasisView", include_audit=True, parent=self.detail_tabs)
+        self.detail_tabs.addTab(self.summary_view, "基本信息与结果")
+        self.detail_tabs.addTab(self.input_basis_view, "输入数据与计算依据")
         detail_card_layout.addWidget(self.detail_tabs, 1)
 
         actions = QHBoxLayout()
@@ -938,41 +1698,33 @@ class RecordLibraryPage(BasePage):
         self.view_stack.addWidget(self.detail_view)
         self.body_layout.addWidget(self.view_stack, 1)
         self.setStyleSheet("""
-            QLineEdit#recordSearchInput, QComboBox#recordStatusFilter {
-                min-height: 36px; border: 1px solid #D9E0E7; border-radius: 6px;
-                padding: 0 10px; background: white; font-size: 14px;
-            }
-            QListWidget#recordList {
-                border: none; background: white; font-size: 14px;
-                selection-background-color: #E6F4FB; selection-color: #1F2937;
-            }
-            QListWidget#recordList::item { padding: 12px; border-bottom: 1px solid #E2E8F0; }
-            QListWidget#recordList::item:selected { background: #E6F4FB; color: #1F2937; }
-            QPushButton#openRecordDetailButton, QPushButton#backToRecordListButton,
+            QPushButton#backToRecordListButton,
             QPushButton#deleteRecordButton, QPushButton#exportWordReportButton {
-                min-height: 36px; padding: 0 16px; border-radius: 6px;
-                border: 1px solid #D9E0E7; background: white; font-size: 14px;
+                min-height: 36px; padding: 0 16px; border-radius: 8px;
+                border: 1px solid #D4E4F0; background: white; font-size: 13px;
             }
-            QPushButton#exportWordReportButton { background: #087FBE; border-color: #087FBE; color: white; }
+            QPushButton#exportWordReportButton { background: #197CC2; border-color: #197CC2; color: white; }
             QPushButton#deleteRecordButton { color: #B42318; }
-            QPushButton:focus, QLineEdit#recordSearchInput:focus,
-            QComboBox#recordStatusFilter:focus { border: 2px solid #087FBE; }
-            QLabel#recordDetailHeading { font-size: 18px; font-weight: 600; }
-            QLabel#recordResultCount { color: #667085; font-size: 13px; }
-            QTextEdit#recordSummaryView, QTextEdit#recordInputBasisView {
-                border: none; padding: 12px; background: white; font-size: 14px;
+            QLabel#recordDetailHeading { font-size: 18px; font-weight: 700; color: #18364F; }
+            QLabel#recordResultCount { color: #698198; font-size: 12px; }
+            QTextEdit#recordAuditText {
+                border: 1px solid #DCE7EF; padding: 8px; background: white; font-size: 12px;
             }
-            QTabWidget#recordDetailTabs::pane { border: 1px solid #E2E8F0; }
-            QTabWidget#recordDetailTabs QTabBar::tab { padding: 10px 18px; font-size: 14px; }
+            QLabel#recordStatusBadge {
+                border-radius: 8px; padding: 4px 9px; font-size: 11px;
+                font-weight: 650; background: #E7F6F0; color: #168268;
+            }
+            QLabel#recordStatusBadge[warning="true"] { background: #FFF5E1; color: #956420; }
+            QPushButton#openRecordRowButton {
+                min-height: 30px; padding: 0 10px; border-radius: 7px;
+                background: transparent; border: 1px solid transparent;
+                color: #12649A; font-size: 12px; font-weight: 650;
+            }
+            QPushButton#openRecordRowButton:hover { background: #EAF4FC; border-color: #D1E6F3; }
+            QTabWidget#recordDetailTabs::pane { border: 1px solid #DAE7F1; border-radius: 9px; }
+            QTabWidget#recordDetailTabs QTabBar::tab { padding: 0 18px; font-size: 13px; }
         """)
-        self.refresh_records()
-
-    @staticmethod
-    def _readonly_text(object_name: str, parent: QWidget) -> QTextEdit:
-        text = QTextEdit(parent)
-        text.setObjectName(object_name)
-        text.setReadOnly(True)
-        return text
+        self.refresh_records(force_reload=True)
 
     def _read_snapshot(self, method_name: str, record_id: str) -> tuple[object, bool]:
         getter = getattr(self.record_repository, method_name, None)
@@ -983,61 +1735,186 @@ class RecordLibraryPage(BasePage):
         except Exception:
             return None, True
 
-    def _workspace_association(self, record_id: str) -> str:
-        if self.project_service is None:
-            return "当前无工作区关联"
-        try:
-            for workspace in self.project_service.list_all():
-                for unit in workspace.units:
-                    if record_id in unit.record_ids:
-                        return f"{workspace.name} / {unit.name}"
-        except Exception:
-            return "当前工作区关系暂不可用"
-        return "当前无工作区关联"
+    def invalidate_project_associations(self) -> None:
+        self._associations_dirty = True
 
-    def refresh_records(self, *_args: object, select_record_id: str | None = None) -> None:
+    def invalidate_record_views(self, *, projects: bool = False) -> None:
+        self._summaries_dirty = True
+        if projects:
+            self._associations_dirty = True
+
+    def refresh_if_dirty(self) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._summaries_dirty = True
+        if self._summaries_dirty or self._associations_dirty:
+            self.refresh_records(force_reload=self._summaries_dirty)
+
+    def refresh_records(
+        self,
+        *_args: object,
+        select_record_id: str | None = None,
+        force_reload: bool = True,
+    ) -> None:
+        if force_reload:
+            self._summaries_dirty = True
+            self._associations_dirty = True
+        if self._summaries_dirty:
+            summaries_reader = getattr(self.record_repository, "list_summaries", None)
+            if self.record_repository is None:
+                all_summaries = ()
+            elif callable(summaries_reader):
+                all_summaries = tuple(summaries_reader())
+            else:
+                all_summaries = tuple(
+                    _summary_from_record(record)
+                    for record in self.record_repository.list_all()
+                )
+            self._all_summaries = tuple(sorted(
+                all_summaries,
+                key=lambda record: (record.created_at, record.record_id),
+                reverse=True,
+            ))
+            self._loaded_record_token = _record_repository_change_token(self.record_repository)
+            self._summaries_dirty = False
+        self._apply_filters(select_record_id=select_record_id)
+
+    def _apply_filters(
+        self,
+        *_args: object,
+        select_record_id: str | None = None,
+    ) -> None:
+        change_token = _record_repository_change_token(self.record_repository)
+        if change_token is not None and change_token != self._loaded_record_token:
+            self._summaries_dirty = True
+            self.refresh_records(force_reload=False, select_record_id=select_record_id)
+            return
         selected_before = select_record_id or (
-            self.record_list.currentItem().data(Qt.ItemDataRole.UserRole)
-            if self.record_list.currentItem() is not None else None
+            self.record_list.item(self.record_list.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
+            if self.record_list.currentRow() >= 0
+            and self.record_list.item(self.record_list.currentRow(), 0) is not None
+            else None
         )
-        all_records = tuple(self.record_repository.list_all()) if self.record_repository is not None else ()
         query = self.search_input.text().strip().casefold()
         status = self.status_filter.currentData()
         self._records = tuple(
             record
-            for record in all_records
+            for record in self._all_summaries
             if (status == "ALL" or record.status.value == status)
             and (
                 not query
-                or query in build_record_list_label(record).casefold()
-                or query in record.record_id.casefold()
-                or query in record.standard_id.casefold()
-                or query in (record.input_snapshot.enterprise_name or "").casefold()
-                or query in str(record.input_snapshot.period.start).casefold()
-                or query in str(record.input_snapshot.period.end).casefold()
+                or query in " ".join((
+                    record.enterprise_name or "",
+                    _summary_period_label(record),
+                    standard_label(record.standard_id),
+                    format_amount(record.total_amount, record.total_unit),
+                    status_label(record.status),
+                    record.record_id,
+                    record.standard_id,
+                    record.period_start.isoformat(),
+                    record.period_end.isoformat(),
+                )).casefold()
             )
         )
-        self.record_list.clear()
-        selected_row = -1
-        for index, record in enumerate(self._records):
-            self.record_list.addItem(build_record_list_label(record).replace(" · ", "\n", 1))
-            self.record_list.item(index).setData(Qt.ItemDataRole.UserRole, record.record_id)
-            self.record_list.item(index).setToolTip(f"核算时间：{record.created_at.isoformat(timespec='seconds')}")
-            if record.record_id == selected_before:
-                selected_row = index
-        self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(all_records)} 条")
-        self.open_detail_button.setEnabled(bool(self._records))
-        self.delete_button.setEnabled(bool(self._records))
-        self.export_word_button.setEnabled(bool(self._records))
-        if self._records:
-            self.record_list.setCurrentRow(selected_row if selected_row >= 0 else 0)
-        else:
-            self._clear_details("暂无符合条件的核算记录。")
+        self.record_list.setUpdatesEnabled(False)
+        try:
+            self.record_list.clearContents()
+            self.record_list.setRowCount(len(self._records))
+            selected_row = -1
+            associations = self._workspace_associations()
+            for index, summary in enumerate(self._records):
+                company = summary.enterprise_name or "未填写企业名称"
+                workspace = associations.get(summary.record_id, "未关联项目")
+                total = format_amount(summary.total_amount, summary.total_unit)
+                created = summary.created_at.astimezone().date().isoformat()
+                period = _summary_period_label(summary)
+                values = (
+                    f"{company}\n{workspace}",
+                    period,
+                    standard_label(summary.standard_id),
+                    total,
+                    status_label(summary.status),
+                    created,
+                    "",
+                )
+                tooltip_suffix = (
+                    f"记录编号：{summary.record_id}\n"
+                    f"核算时间：{summary.created_at.isoformat(timespec='seconds')}"
+                )
+                for column, value in enumerate(values):
+                    item = QTableWidgetItem(value)
+                    item.setToolTip(f"{value}\n{tooltip_suffix}" if value else tooltip_suffix)
+                    if column == 0:
+                        item.setData(Qt.ItemDataRole.UserRole, summary.record_id)
+                    item.setData(
+                        Qt.ItemDataRole.AccessibleTextRole,
+                        f"{self.record_list.horizontalHeaderItem(column).text()}：{value or summary.record_id}",
+                    )
+                    self.record_list.setItem(index, column, item)
+                status_badge = QLabel(status_label(summary.status), self.record_list)
+                status_badge.setObjectName("recordStatusBadge")
+                warning = summary.status is RecordStatus.COMPLETED_WITH_WARNINGS
+                status_badge.setProperty("warning", "true" if warning else "false")
+                status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                status_badge.setAccessibleName(f"记录状态：{status_label(summary.status)}")
+                self.record_list.setCellWidget(index, 4, status_badge)
+                open_button = QPushButton("查看详情  ›", self.record_list)
+                open_button.setObjectName("openRecordRowButton")
+                open_button.setAccessibleName(f"打开 {company} 的核算记录详情")
+                open_button.clicked.connect(
+                    lambda _checked=False, selected=index: self._open_record_row(selected)
+                )
+                self.record_list.setCellWidget(index, 6, open_button)
+                self.record_list.setRowHeight(index, 62)
+                if summary.record_id == selected_before:
+                    selected_row = index
+            self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
+            self.delete_button.setEnabled(bool(self._records))
+            self.export_word_button.setEnabled(bool(self._records))
+            if self._records:
+                selected_row = selected_row if selected_row >= 0 else 0
+                self.record_list.setCurrentCell(selected_row, 0)
+                self.record_list.selectRow(selected_row)
+            else:
+                self.record_list.insertRow(0)
+                empty = QTableWidgetItem("没有符合条件的记录；可修改关键词或状态筛选。")
+                empty.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.record_list.setItem(0, 0, empty)
+                self.record_list.setSpan(0, 0, 1, self.record_list.columnCount())
+                self.record_list.setRowHeight(0, 80)
+                self._clear_details("暂无符合条件的核算记录。")
+        finally:
+            self.record_list.setUpdatesEnabled(True)
         if self.view_stack.currentWidget() is self.detail_view:
-            if any(record.record_id == self._detail_record_id for record in self._records):
-                self._show_selected_record(self.record_list.currentRow())
+            detail_row = next(
+                (index for index, item in enumerate(self._records) if item.record_id == self._detail_record_id),
+                -1,
+            )
+            if detail_row >= 0:
+                self._show_selected_record(detail_row)
             else:
                 self._back_to_list()
+
+    def _workspace_associations(self) -> dict[str, str]:
+        if not self._associations_dirty:
+            return self._association_cache
+        associations: dict[str, str] = {}
+        if self.project_service is None:
+            self._association_cache = associations
+            self._associations_dirty = False
+            return self._association_cache
+        try:
+            for workspace in self.project_service.list_all():
+                for unit in workspace.units:
+                    label = f"{workspace.name} / {unit.name}"
+                    for record_id in unit.record_ids:
+                        associations.setdefault(record_id, label)
+        except Exception:
+            self._association_cache = {}
+            return self._association_cache
+        self._association_cache = associations
+        self._associations_dirty = False
+        return self._association_cache
 
     def open_record(self, record_id: str) -> bool:
         self.search_input.blockSignals(True)
@@ -1046,40 +1923,91 @@ class RecordLibraryPage(BasePage):
         self.status_filter.blockSignals(True)
         self.status_filter.setCurrentIndex(0)
         self.status_filter.blockSignals(False)
-        self.refresh_records(select_record_id=record_id)
-        found = self.record_list.currentItem() is not None and self.record_list.currentItem().data(Qt.ItemDataRole.UserRole) == record_id
+        record_is_cached = any(item.record_id == record_id for item in self._all_summaries)
+        change_token = _record_repository_change_token(self.record_repository)
+        records_changed = (
+            change_token is not None
+            and change_token != self._loaded_record_token
+        )
+        if self._summaries_dirty or records_changed or not record_is_cached:
+            self.refresh_records(force_reload=True, select_record_id=record_id)
+        else:
+            self._apply_filters(select_record_id=record_id)
+        row = self._row_for_record(record_id)
+        found = row >= 0
         if found:
-            self._open_selected_record()
+            self._open_record_row(row)
         return found
+
+    def _row_for_record(self, record_id: str) -> int:
+        for row in range(len(self._records)):
+            item = self.record_list.item(row, 0)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == record_id:
+                return row
+        return -1
 
     def _back_to_list(self) -> None:
         self._detail_record_id = None
+        self._detail_record = None
         self.view_stack.setCurrentWidget(self.list_view)
         self.record_list.setFocus()
-
-    def _selection_changed(self, row: int) -> None:
-        self.open_detail_button.setEnabled(0 <= row < len(self._records))
+        if self.page_title is not None:
+            self.page_title.setText("核算记录")
+        if self.page_description is not None:
+            self.page_description.setText("搜索已保存的核算记录，查看历史结果和计算依据。")
 
     def _open_selected_record(self) -> None:
         row = self.record_list.currentRow()
+        self._open_record_row(row)
+
+    def _open_record_row(self, row: int) -> None:
         if not 0 <= row < len(self._records):
             return
+        self.record_list.setCurrentCell(row, 0)
+        self.record_list.selectRow(row)
         self._show_selected_record(row)
         self.detail_tabs.setCurrentIndex(0)
+        if self.page_title is not None:
+            self.page_title.setText("核算记录详情")
+        if self.page_description is not None:
+            self.page_description.setText("查看该条不可变记录的正式结果、输入快照和计算依据。")
         self.view_stack.setCurrentWidget(self.detail_view)
         self.back_to_records_button.setFocus()
 
     def _clear_details(self, message: str) -> None:
         self._detail_record_id = None
-        self.summary_text.setPlainText(message)
-        self.input_basis_text.setPlainText(message)
+        self._detail_record = None
+        self.summary_view.clear(message)
+        self.input_basis_view.clear(message)
+
+    def _load_detail_record(self, record_id: str) -> AccountingRecord | None:
+        if self._detail_record_id == record_id and self._detail_record is not None:
+            return self._detail_record
+        if self.record_repository is None:
+            return None
+        getter = getattr(self.record_repository, "get", None)
+        if callable(getter):
+            record = getter(record_id)
+        else:
+            record = next(
+                (item for item in self.record_repository.list_all() if item.record_id == record_id),
+                None,
+            )
+        self._detail_record_id = record_id if record is not None else None
+        self._detail_record = record
+        return record
 
     def _show_selected_record(self, row: int) -> None:
         if row < 0 or row >= len(self._records):
             self._clear_details("请选择一条核算记录。")
             return
-        record = self._records[row]
-        self._detail_record_id = record.record_id
+        summary = self._records[row]
+        record = self._load_detail_record(summary.record_id)
+        if record is None:
+            self._clear_details("这条记录已无法读取；请刷新列表后重试。")
+            return
+        self._detail_record_id = summary.record_id
+        self._detail_record = record
         getters = {
             "raw": "get_raw_input_snapshot",
             "rules": "get_effective_rule_set",
@@ -1107,16 +2035,12 @@ class RecordLibraryPage(BasePage):
         trace = values["trace"] if states["trace"] is SnapshotState.PRESENT else None
         reporting = values["reporting"] if states["reporting"] is SnapshotState.PRESENT else None
         raw = values["raw"] if states["raw"] is SnapshotState.PRESENT else None
-        self.summary_text.setPlainText(summary_with_trace(
-            record, values["qualification"], qualification_state, trace,
-            association=self._workspace_association(record.record_id),
-        ))
         if states["raw"] is SnapshotState.LEGACY:
-            report_text = "该历史记录生成时尚未保存完整业务输入；可查看以下已固化的核算汇总。\n\n" + build_report_view(record, None, trace, reporting)
+            report_notice="该历史记录生成时尚未保存完整业务输入；以下仅列出已冻结的信息。"
         elif states["raw"] is SnapshotState.CORRUPT:
-            report_text = "无法读取该历史记录的业务输入快照。\n\n" + build_report_view(record, None, trace, reporting)
+            report_notice="无法读取该历史记录的业务输入快照；以下仅列出其他可取得的冻结信息。"
         else:
-            report_text = build_report_view(record, raw, trace, reporting)
+            report_notice=""
         activity_text = build_activity_evidence_view(raw, reporting, states["reporting"])
         parameter_state = (
             SnapshotState.PRESENT if record.parameter_snapshots else
@@ -1137,26 +2061,56 @@ class RecordLibraryPage(BasePage):
             f"\n报告信息与证据快照：\n{_format_reporting_snapshot(values['reporting'])}"
         )
         sections = (
-            ("标准报告数据 B.1—B.9", report_text),
+            ("标准报告数据", report_notice),
             ("活动数据与来源证据", activity_text),
             ("参数与因子来源", parameter_text),
             ("数据质量与提醒", quality_text),
             ("计算过程与来源链", professional),
         )
-        self.input_basis_text.setPlainText("\n\n".join(
-            f"{title}\n{'─' * 24}\n{content}" for title, content in sections
-        ))
+        try:
+            model=build_record_report_model(record,raw,trace,reporting,provenance=values["provenance"],qualification=values["qualification"])
+        except ValueError:
+            fallback = "此标准尚未提供业务报告表式；可在核算结果与来源审计中查看已冻结的信息。"
+            self.summary_view.clear(fallback)
+            self.input_basis_view.set_sections((), audit_sections=(*sections[1:], ("标准报告数据", fallback)))
+        else:
+            summary_sections = tuple(
+                section for section in model.sections
+                if section.section_id in {"basic", "b1"}
+            )
+            detail_sections = tuple(
+                section for section in model.sections
+                if section.section_id not in {"basic", "b1"}
+            )
+            all_tables = tuple(table for section in model.sections for table in section.tables)
+            detail_notices = [report_notice] if report_notice else []
+            if not any(section.section_id == "evidence" for section in detail_sections):
+                if states["reporting"] is SnapshotState.LEGACY:
+                    detail_notices.append("该历史记录生成时未保存报告信息快照，独立来源证据不可用。")
+                elif states["reporting"] is SnapshotState.CORRUPT:
+                    detail_notices.append("无法读取该记录的报告信息快照，独立来源证据不可用。")
+                else:
+                    detail_notices.append("该记录未保存独立来源证据条目；已记录的活动数据和参数来源见 B.2—B.9。")
+            self.summary_view.set_sections(summary_sections, notices=model.notices)
+            self.input_basis_view.set_sections(
+                detail_sections,
+                notices=detail_notices,
+                audit_sections=sections[1:],
+                audit_tables=all_tables,
+            )
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 
     def _delete_selected(self) -> None:
-        row = next((i for i, record in enumerate(self._records) if record.record_id == self._detail_record_id), -1)
-        if row < 0 or row >= len(self._records) or self.record_repository is None:
+        summary = next(
+            (item for item in self._records if item.record_id == self._detail_record_id),
+            None,
+        )
+        if summary is None or self.record_repository is None:
             return
-        record = self._records[row]
         answer = QMessageBox.question(
             self,
             "确认删除核算记录",
-            f"将删除 {record.input_snapshot.enterprise_name or '未填写企业'} 的 {record.input_snapshot.period.start} 至 {record.input_snapshot.period.end} 核算记录。审计信息会保留，是否继续？",
+            f"将删除 {summary.enterprise_name or '未填写企业'} 的 {summary.period_start} 至 {summary.period_end} 核算记录。审计信息会保留，是否继续？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1164,8 +2118,11 @@ class RecordLibraryPage(BasePage):
             return
         delete = getattr(self.record_repository, "delete", None)
         if callable(delete):
-            delete(record.record_id, actor="current_user", reason="用户二次确认删除")
-        self.refresh_records()
+            delete(summary.record_id, actor="current_user", reason="用户二次确认删除")
+        self._detail_record = None
+        self._detail_record_id = None
+        self.invalidate_record_views()
+        self.refresh_records(force_reload=False)
         self._back_to_list()
 
     def _report_supplementary_dialog(self, record: AccountingRecord) -> dict[str, object] | None:
@@ -1174,13 +2131,15 @@ class RecordLibraryPage(BasePage):
         return report_supplementary_dialog(self, self.record_repository, record)
 
     def _export_selected_report(self) -> None:
-        row = next((i for i, record in enumerate(self._records) if record.record_id == self._detail_record_id), -1)
-        if row < 0 or row >= len(self._records) or self.record_repository is None:
+        if self._detail_record_id is None or self.record_repository is None:
+            return
+        record = self._load_detail_record(self._detail_record_id)
+        if record is None:
             return
         export_saved_record_report(
             self,
             self.record_repository,
-            self._records[row],
+            record,
             supplementary_dialog=self._report_supplementary_dialog,
         )
 
@@ -1197,12 +2156,19 @@ class ExcelImportPage(BasePage):
         calculation_use_case: CarbonAccountingUseCase | None = None,
         project_service: ProjectWorkspaceService | None = None,
         record_repository: RecordRepository | None = None,
+        standard_runtime=None,
+        standard_id: str | None = None,
     ) -> None:
         super().__init__(AppRoute.EXCEL_IMPORT, parent)
         self.calculation_use_case = calculation_use_case
         self.project_service = project_service
         self.record_repository = resolve_formal_record_repository(calculation_use_case, record_repository)
         self.catalog_service = catalog_service or CatalogQueryService.empty()
+        self.standard_runtime = standard_runtime or StandardRuntime(self.catalog_service, self.record_repository, calculation_use_case)
+        self.standard_id = standard_id or self.standard_runtime.registry.default_standard_id
+        self.implementation = self.standard_runtime.registry.require(self.standard_id)
+        _calculator, self.calculation_use_case, self.preview_use_case = self.standard_runtime.services(self.standard_id)
+        self.excel_adapter = self.standard_runtime.excel(self.standard_id)
         self._last_preview = None
         self._last_workbook_path: Path | None = None
         self._chosen_workbook_path: Path | None = None
@@ -1210,28 +2176,9 @@ class ExcelImportPage(BasePage):
         self._preview_workbook_warnings: tuple[object, ...] = ()
         self._workspace: ProjectWorkspace | None = None
         self._selected_unit_id: str | None = None
-        self._fuel_path_overrides: dict[str, FuelPath] = {}
+        self._fuel_path_overrides: dict[str, Any] = {}
         self._fuel_override_combos: dict[str, QComboBox] = {}
         self._preview_context_key: tuple[object, ...] | None = None
-
-        if calculation_use_case is not None:
-            self.preview_use_case = CarbonAccountingPreviewUseCase(calculation_use_case.calculator)
-        else:
-            resolver = None
-            try:
-                resolver = create_g06_parameter_resolver(self.catalog_service.repository)
-            except (AttributeError, KeyError, TypeError, ValueError):
-                pass
-            try:
-                calculator = CarbonMaterialCalculator(
-                    parameter_resolver=resolver,
-                    standard_version=self.catalog_service.standard_version(STANDARD_ID) or STANDARD_VERSION,
-                    standard_implementation_date=self.catalog_service.standard_implementation_date(STANDARD_ID),
-                    reference_data_identity_provider=self.catalog_service.reference_data_identity,
-                )
-            except (AttributeError, TypeError, ValueError):
-                calculator = CarbonMaterialCalculator(parameter_resolver=resolver)
-            self.preview_use_case = CarbonAccountingPreviewUseCase(calculator)
 
         self.add_header(
             "表格导入",
@@ -1244,12 +2191,12 @@ class ExcelImportPage(BasePage):
             "excelImportTemplateSection", "01 获取模板", self
         )
         template_row = QHBoxLayout()
-        self.templateButton = QPushButton("下载附录 B 填报模板", template_section)
+        self.templateButton = QPushButton(self.excel_adapter.template_button_label, template_section)
         self.templateButton.setObjectName("templateButton")
         self.templateButton.clicked.connect(self._download_template)
         template_row.addWidget(self.templateButton)
         template_row.addWidget(
-            QLabel("使用 GB/T 32151.34—2024 附录 B 模板，填写 B.2～B.9 活动数据。", template_section),
+            QLabel(self.excel_adapter.template_description, template_section),
             1,
         )
         template_layout.addLayout(template_row)
@@ -1417,23 +2364,37 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("暂无已保存的 Excel 项目；保存项目后可在此处重新打开。")
 
     def _download_template(self) -> None:
-        from packages.excel.templates import ExcelTemplateService
-
-        service = ExcelTemplateService.default()
-        template = service.get(STANDARD_ID)
-        target, _ = QFileDialog.getSaveFileName(
+        template_service = self.excel_adapter.templates
+        template = template_service.get(self.standard_id)
+        filename = template_export_filename(
+            template.standard_id,
+            template.template_version,
+        )
+        location_service = service_for_parent(self)
+        target, _ = choose_export_path(
             self,
-            "保存 GB/T 32151.34—2024 附录 B 模板",
-            "GB_T_32151_34_2024_Appendix_B.xlsx",
+            self.excel_adapter.template_dialog_title,
+            filename,
             "Excel 工作簿 (*.xlsx)",
+            location_service=location_service,
         )
         if not target:
             return
         path = Path(target)
         if path.suffix.lower() != ".xlsx":
             path = path.with_suffix(".xlsx")
+        if path.exists():
+            answer = QMessageBox.question(
+                self,
+                "确认覆盖文件",
+                f"同名 Excel 模板已存在：\n{path}\n是否覆盖？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
         try:
-            service.copy_to(path, standard_id=STANDARD_ID)
+            template_service.copy_to(path, standard_id=self.standard_id)
         except Exception:
             _LOGGER.exception("Unable to copy approved Appendix B template to %s", path)
             QMessageBox.critical(
@@ -1442,10 +2403,11 @@ class ExcelImportPage(BasePage):
                 f"无法保存附录 B 模板。\n目标位置：\n{path}\n请检查文件夹和权限后重试。",
             )
             return
-        QMessageBox.information(
+        show_export_success(
             self,
             "模板已保存",
-            f"{template.standard_version} 附录 B 模板已保存到：\n{path}",
+            f"{template.standard_version} 附录 B 模板（模板版本 {template.template_version}）已保存到：\n{path}",
+            path,
         )
 
     def _choose_workbook(self) -> None:
@@ -1502,11 +2464,7 @@ class ExcelImportPage(BasePage):
         regions: tuple[str, ...] = ()
         try:
             period = self._period_for_import()
-            resolver = self.preview_use_case.calculator.parameter_resolver
-            if resolver is not None:
-                from packages.application.uat03_parameter_queries import UAT03ParameterQueries
-
-                regions = UAT03ParameterQueries(self.catalog_service, resolver).electricity_regions(period)
+            regions = self.excel_adapter.regions(period)
         except (AttributeError, TypeError, ValueError):
             regions = ()
         blocker = QSignalBlocker(self.import_region)
@@ -1519,10 +2477,8 @@ class ExcelImportPage(BasePage):
         del blocker
 
     def _build_import_context(self):
-        from packages.excel.appendix_b import AppendixBImportContext
-
         enterprise_name = self.import_enterprise_name.text().strip() or None
-        return AppendixBImportContext(
+        return self.excel_adapter.context(
             period=self._period_for_import(),
             enterprise_name=enterprise_name,
             region=self.import_region.currentData(),
@@ -1555,7 +2511,7 @@ class ExcelImportPage(BasePage):
         errors = [
             item
             for item in preview.units[0].errors
-            if item.code == "EXB01_FUEL_PATH_REQUIRED"
+            if item.code == self.excel_adapter.path_error_code
         ]
         if not errors:
             return
@@ -1565,10 +2521,7 @@ class ExcelImportPage(BasePage):
         )
         heading.setWordWrap(True)
         self.fuel_override_layout.addWidget(heading)
-        path_labels = {
-            FuelPath.VOLUME: "体积计量",
-            FuelPath.MASS: "质量计量",
-        }
+        path_labels = self.excel_adapter.path_labels
         for error in errors:
             row = QHBoxLayout()
             label = QLabel(error.field_label or "燃料计量路径", self.fuel_override_panel)
@@ -1595,12 +2548,8 @@ class ExcelImportPage(BasePage):
         self.fuel_override_panel.show()
         self._update_fuel_override_button()
 
-    @staticmethod
-    def _fuel_path_from_widget(value) -> FuelPath | None:
-        try:
-            return value if isinstance(value, FuelPath) else FuelPath(value)
-        except (TypeError, ValueError):
-            return None
+    def _fuel_path_from_widget(self, value):
+        return self.excel_adapter.parse_path(value)
 
     def _update_fuel_override_button(self, *_args) -> None:
         button = getattr(self, "repreview_with_fuel_paths_button", None)
@@ -1687,13 +2636,8 @@ class ExcelImportPage(BasePage):
         self.selected_file_label.setToolTip(str(path))
         self.project_name.setText(path.stem)
         try:
-            from packages.excel.appendix_b import AppendixBWorkbookImporter
-
             context = self._build_import_context()
-            preview = AppendixBWorkbookImporter(
-                preview_use_case=self.preview_use_case,
-                catalog_service=self.catalog_service,
-            ).import_preview(path, context=context)
+            preview = self.excel_adapter.import_preview(path, context=context)
             preview_context_key = self._import_context_key()
         except Exception as exc:
             self._last_preview = None
@@ -2217,6 +3161,8 @@ def create_page(
     calculation_use_case: CarbonAccountingUseCase | None = None,
     logo_path: Path | None = None,
     icon_directory: Path | None = None,
+    standard_runtime=None,
+    standard_id: str | None = None,
 ) -> QWidget:
     """Create exactly one page for a validated public route."""
 
@@ -2237,11 +3183,14 @@ def create_page(
             calculation_use_case=calculation_use_case,
             project_service=project_service,
             record_repository=record_repository,
+            standard_runtime=standard_runtime,
+            standard_id=standard_id,
         )
     if route is AppRoute.STANDARDS:
         from .catalog_pages import StandardLibraryPage
 
-        return StandardLibraryPage(catalog_service or CatalogQueryService.empty(), navigate, parent)
+        return StandardLibraryPage(catalog_service or CatalogQueryService.empty(), navigate, parent,
+                                   standard_registry=getattr(standard_runtime, "registry", None))
     if route is AppRoute.FACTORS:
         from .catalog_pages import ParameterFactorLibraryPage
 
@@ -2251,21 +3200,22 @@ def create_page(
     if route is AppRoute.RECORDS:
         return RecordLibraryPage(record_repository, parent, project_service=project_service)
     if route is AppRoute.NEW_ACCOUNTING:
-        from .carbon_material_page import CarbonMaterialAccountingPage
-
-        return CarbonMaterialAccountingPage(
-            catalog_service=catalog_service or CatalogQueryService.empty(),
-            record_repository=record_repository,
-            project_service=project_service,
-            calculation_use_case=calculation_use_case,
-            parent=parent,
+        from .standard_editors import create_standard_editor
+        catalog = catalog_service or CatalogQueryService.empty()
+        runtime = standard_runtime or StandardRuntime(catalog, record_repository, calculation_use_case)
+        return create_standard_editor(
+            runtime, standard_id or runtime.registry.default_standard_id,
+            catalog_service=catalog, record_repository=record_repository,
+            project_service=project_service, parent=parent,
         )
+    if route is AppRoute.SETTINGS:
+        return SettingsPage(view_model, parent)
 
     placeholders = {
         AppRoute.STANDARDS: (
             "标准库",
-            "查看 GB/T 32151 系列标准及核算要求",
-            "标准库详细查询将在后续阶段实现。当前版本仅提供公共导航入口。",
+            "查看已登记标准、适用范围与核算要求",
+            "标准目录当前不可用。",
         ),
 
         AppRoute.RECORDS: (

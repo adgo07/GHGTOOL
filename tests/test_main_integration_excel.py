@@ -57,9 +57,9 @@ class MainIntegrationExcelTests(unittest.TestCase):
             if area.min_row >= 4:
                 process.unmerge_cells(str(area))
         process.insert_rows(5)
-        process["B5"], process["C5"], process["D5"] = "新增待煅烧原料", 20, 88
+        process["B5"], process["C5"], process["D5"], process["E5"], process["G5"], process["H5"] = "待煅烧原料", "新增待煅烧原料", 20, 88, "煅烧1", "物料5"
         process.insert_rows(7)
-        process["B7"], process["C7"], process["D7"] = "新增待煅烧原料", 20, 2
+        process["B7"], process["C7"], process["D7"], process["E7"], process["G7"], process["H7"] = "待煅烧原料", "新增待煅烧原料", 20, 2, "煅烧1", "物料5"
         # Make group boundaries explicit so role inference remains driven by
         # the approved labels after the test-only row insertions.
         group_labels = {
@@ -211,16 +211,17 @@ class MainIntegrationExcelTests(unittest.TestCase):
         path = write_valid_appendix_b_workbook(self.root / "exact-decimals.xlsx")
         workbook = load_workbook(path)
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"] = "天然气"
         fuel["B14"] = 1
-        fuel["C14"] = Decimal("0.01")
-        fuel["D14"] = "实测值"
+        fuel['D14'] = Decimal("0.01")
+        fuel['E14'] = "实测值"
         workbook.save(path)
         workbook.close()
         raw_activity = "1.23000000000000"
         raw_carbon = "1.23456789012345E-2"
         rewrite_numeric_lexeme(path, "B.2", "B14", raw_activity)
-        rewrite_numeric_lexeme(path, "B.2", "C14", raw_carbon)
+        rewrite_numeric_lexeme(path, "B.2", "D14", raw_carbon)
 
         preview = self.importer.import_preview(path, context=self._context(fuel_row=14))
         unit = preview.units[0]
@@ -230,9 +231,9 @@ class MainIntegrationExcelTests(unittest.TestCase):
         self.assertEqual(fuel_input.carbon_content.value, Decimal(raw_carbon))
         evidence = {(item.sheet, item.cell): item for item in preview.numeric_evidence}
         self.assertEqual(evidence[("B.2", "B14")].serialized_numeric_text, raw_activity)
-        self.assertEqual(evidence[("B.2", "C14")].serialized_numeric_text, raw_carbon)
+        self.assertEqual(evidence[("B.2", "D14")].serialized_numeric_text, raw_carbon)
         self.assertEqual(evidence[("B.2", "B14")].normalized_decimal, Decimal(raw_activity))
-        self.assertEqual(evidence[("B.2", "C14")].normalized_decimal, Decimal(raw_carbon))
+        self.assertEqual(evidence[("B.2", "D14")].normalized_decimal, Decimal(raw_carbon))
 
     def test_more_than_15_significant_digits_blocks_workbook(self) -> None:
         path = write_valid_appendix_b_workbook(self.root / "overprecision.xlsx", all_sources=True)

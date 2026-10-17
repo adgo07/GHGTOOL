@@ -117,11 +117,13 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
     def _workbook(self, year: int = 2025) -> Path:
         workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
         fuel = workbook["B.2"]
+        fuel["C14"] = "10⁴Nm³"
         fuel["A14"] = "天然气"
         fuel["B14"] = 1.25
-        fuel["D14"] = "计算值"
-        fuel["F14"] = "缺省值"
-        fuel["I14"] = "缺省值"
+        fuel['E14'] = "计算值"
+        fuel['G14'] = "缺省值"
+        fuel['J14'] = "缺省值"
+        fuel['N14'] = "缺省值"
         destination = self.root / f"输入-{year}.xlsx"
         workbook.save(destination)
         workbook.close()
@@ -242,8 +244,8 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value=supplementary),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
@@ -301,7 +303,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
                 "_report_supplementary_dialog",
                 side_effect=RuntimeError("private supplementary metadata detail"),
             ),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName") as file_dialog,
+            patch("packages.ui.report_export.choose_export_path") as file_dialog,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
             patch.object(self.repository, "record_report_export") as audit,
         ):
@@ -327,10 +329,14 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch("packages.ui.report_export.render_report_docx", side_effect=RuntimeError("private renderer detail")),
+            patch(
+                "packages.ui.report_export.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.Yes,
+            ),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
@@ -367,10 +373,14 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch("packages.ui.report_export.os.replace", side_effect=OSError("private filesystem detail")),
+            patch(
+                "packages.ui.report_export.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.Yes,
+            ),
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
         ):
             page.export_word_button.click()
@@ -406,10 +416,10 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(destination), "")),
             patch.object(self.repository, "record_report_export", side_effect=RuntimeError("private audit detail")),
             patch("packages.ui.report_export.QMessageBox.warning") as warning,
-            patch("packages.ui.report_export.QMessageBox.information") as success,
+            patch("packages.ui.report_export.show_export_success") as success,
             patch("packages.ui.report_export.QMessageBox.critical") as failure,
         ):
             page.export_word_button.click()
@@ -453,7 +463,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
         with (
             patch.object(page, "_report_supplementary_dialog", return_value={"prepared_on": "2026-10-07"}),
-            patch("packages.ui.report_export.QFileDialog.getSaveFileName", return_value=(str(selected), "")),
+            patch("packages.ui.report_export.choose_export_path", return_value=(str(selected), "")),
             patch(
                 "packages.ui.report_export.QMessageBox.question",
                 return_value=QMessageBox.StandardButton.No,
@@ -480,8 +490,8 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
         page = self.shell.pages[AppRoute.EXCEL_IMPORT]
         destination = self.root / "exported-Appendix-B-template.xlsx"
         with (
-            patch("packages.ui.pages.QFileDialog.getSaveFileName", return_value=(str(destination), "")),
-            patch("packages.ui.pages.QMessageBox.information") as success,
+            patch("packages.ui.pages.choose_export_path", return_value=(str(destination), "")),
+            patch("packages.ui.pages.show_export_success") as success,
         ):
             page.templateButton.click()
             self.app.processEvents()

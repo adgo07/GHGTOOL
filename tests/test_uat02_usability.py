@@ -75,6 +75,10 @@ class UAT02UsabilityTests(unittest.TestCase):
         QApplication.sendEvent(row.fuel_type, wheel)
         self.assertEqual(row.fuel_type.currentData(), before_fuel)
         self.assertGreaterEqual(scrollbar.value(), before_scroll)
+        QTest.mouseClick(row.path, Qt.MouseButton.LeftButton)
+        self.application.processEvents()
+        self.assertTrue(row.path.view().isVisible())
+        row.path.hidePopup()
         year = self.page.period_year.value()
         QApplication.sendEvent(self.page.period_year, QWheelEvent(
             QPointF(5, 5), QPointF(5, 5), QPoint(), QPoint(0, -120),
@@ -86,22 +90,48 @@ class UAT02UsabilityTests(unittest.TestCase):
         QTest.keyClick(self.page.period_year, Qt.Key.Key_Up)
         self.assertEqual(self.page.period_year.value(), year + 1)
 
-        # The V2 fuel selector is searchable and accepts a concrete custom
-        # name in its editable text field; choosing a Catalog option remains
-        # an explicit popup action.
+        # Typing a name creates a draft until explicitly confirmed. Clicking
+        # the editable area does not force the option popup; the arrow still
+        # opens it so a Catalog choice remains selectable.
         line_edit = row.fuel_type.lineEdit()
         self.assertIsNotNone(line_edit)
         assert line_edit is not None
+        committed_before_typing = row._committed_name
         line_edit.setText("测试燃料")
         self.assertEqual(row.fuel_type.currentText(), "测试燃料")
-        row.fuel_type.setCurrentIndex(natural_gas)
-        before_popup = row.fuel_type.currentIndex()
-        row.fuel_type.showPopup()
+        self.assertEqual(row._committed_name, committed_before_typing)
+        row.fuel_type.confirm_name(force=True)
+        self.assertEqual(row._committed_name, "测试燃料")
+        QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
+        self.application.processEvents()
+        self.assertFalse(row.fuel_type.view().isVisible())
+        QTest.mouseClick(
+            row.fuel_type,
+            Qt.MouseButton.LeftButton,
+            pos=QPoint(row.fuel_type.width() - 5, row.fuel_type.height() // 2),
+        )
         self.application.processEvents()
         self.assertTrue(row.fuel_type.view().isVisible())
-        QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Down)
+        row.fuel_type.view().setCurrentIndex(row.fuel_type.model().index(natural_gas, 0))
         QTest.keyClick(row.fuel_type.view(), Qt.Key.Key_Return)
-        self.assertNotEqual(row.fuel_type.currentIndex(), before_popup)
+        self.assertEqual(row.fuel_type.currentIndex(), natural_gas)
+        self.assertEqual(row.fuel_type.currentData(), FuelType.NATURAL_GAS)
+        self.assertEqual(row._committed_name, "天然气")
+
+    def test_accounting_page_event_filter_follows_page_visibility(self) -> None:
+        self.assertTrue(self.page._application_event_filter_installed)
+        self.shell.navigate(AppRoute.HOME)
+        self.application.processEvents()
+        self.assertFalse(self.page._application_event_filter_installed)
+
+        self.shell.navigate(AppRoute.NEW_ACCOUNTING)
+        self.application.processEvents()
+        self.assertTrue(self.page._application_event_filter_installed)
+
+        self.window.close()
+        self.application.processEvents()
+        self.assertFalse(self.page._application_event_filter_installed)
+
     def test_twenty_dynamic_rows_expand_and_shrink_scroll_host(self) -> None:
         self.page._source_toggle_buttons["fuel"].click()
         self.application.processEvents()
@@ -136,6 +166,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         toggle.click()
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("测试燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -146,7 +177,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         row.carbon_direct.setText("0.02")
         row.oxidation.setText("98")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         self.page._run_calculation()
         self.assertFalse(self.page.result_card.isHidden(), tree_texts(self.page.validation_list))
         record = self.page.record_repository.list_all()[0]
@@ -164,6 +195,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         toggle.click()
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("测试燃料")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("1")
@@ -188,7 +220,7 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertFalse(hasattr(records, "audit_button"))
         self.assertIsNone(records.findChild(QPushButton, "openRecordAuditButton"))
         self.assertEqual(records.detail_tabs.count(), 2)
-        self.assertTrue(records.input_basis_text.isReadOnly())
+        self.assertTrue(records.input_basis_view.isReadOnly())
 
 
 if __name__ == "__main__":

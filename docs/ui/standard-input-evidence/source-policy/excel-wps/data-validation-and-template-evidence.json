@@ -1,0 +1,541 @@
+{
+  "status": "PASS",
+  "source_head": "ed18aa6ad760fac298d0d237e45229301b944784",
+  "data_validation_count_before": 17,
+  "data_validation_count_after": 17,
+  "raw_ordered_equal": false,
+  "data_validations_semantically_equal": true,
+  "before": {
+    "B.1": [],
+    "B.2": [
+      {
+        "attributes": {
+          "sqref": "D4:D18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 D 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($E4=\"实测值\",D4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "E4:E18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"计算值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "F4:F18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 F 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($G4=\"计算值\",$G4=\"实测值\",F4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "G4:G18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,计算值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "I4:I18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 I 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($J4=\"计算值\",$J4=\"实测值\",I4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "M4:M18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"目录,自定义\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "C4:C18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"t,10⁴Nm³\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "N4:N18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择FCh来源",
+          "error": "请选择缺省值、计算值或实测值。",
+          "type": "list",
+          "errorStyle": "stop"
+        },
+        "formula1": "\"缺省值,计算值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "J4:J18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "碳氧化率来源请选择缺省值或实测值。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.3": [
+      {
+        "attributes": {
+          "sqref": "F4:F9",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.4": [
+      {
+        "attributes": {
+          "sqref": "F4:F9",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.5": [
+      {
+        "attributes": {
+          "sqref": "F4:F8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.6": [],
+    "B.7": [
+      {
+        "attributes": {
+          "sqref": "I3:I8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"目录,自定义\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "J3:J8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择因子来源",
+          "error": "请选择缺省值或实测值。",
+          "type": "list",
+          "errorStyle": "stop"
+        },
+        "formula1": "\"缺省值,实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.8": [
+      {
+        "attributes": {
+          "sqref": "B3:B4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "0",
+          "allowBlank": "1",
+          "type": "list"
+        },
+        "formula1": "\"电网电力,非化石电力\"",
+        "formula2": null
+      }
+    ],
+    "B.9": [
+      {
+        "attributes": {
+          "sqref": "B3:B4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"饱和蒸汽,过热蒸汽\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "E3:E4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "选择“饱和蒸汽”时，不允许填写蒸汽温度。",
+          "type": "custom"
+        },
+        "formula1": "OR($B3<>\"饱和蒸汽\",E3=\"\")",
+        "formula2": null
+      }
+    ]
+  },
+  "after": {
+    "B.1": [],
+    "B.2": [
+      {
+        "attributes": {
+          "sqref": "C4:C18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"t,10⁴Nm³\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "D4:D18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 D 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($E4=\"实测值\",D4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "E4:E18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"计算值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "F4:F18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 F 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($G4=\"计算值\",$G4=\"实测值\",F4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "G4:G18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,计算值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "I4:I18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "仅在相应数据来源选择“实测值”后可填写 I 列。",
+          "type": "custom"
+        },
+        "formula1": "OR($J4=\"计算值\",$J4=\"实测值\",I4=\"\")",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "J4:J18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "碳氧化率来源请选择缺省值或实测值。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,实测值\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "M4:M18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"目录,自定义\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "N4:N18",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择FCh来源",
+          "error": "请选择缺省值、计算值或实测值。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,计算值,实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.3": [
+      {
+        "attributes": {
+          "sqref": "F4:F9",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.4": [
+      {
+        "attributes": {
+          "sqref": "F4:F9",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.5": [
+      {
+        "attributes": {
+          "sqref": "F4:F8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.6": [],
+    "B.7": [
+      {
+        "attributes": {
+          "sqref": "I3:I8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "请核实填写值",
+          "error": "请选择本列允许的选项。",
+          "type": "list"
+        },
+        "formula1": "\"目录,自定义\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "J3:J8",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择因子来源",
+          "error": "请选择缺省值或实测值。",
+          "type": "list"
+        },
+        "formula1": "\"缺省值,实测值\"",
+        "formula2": null
+      }
+    ],
+    "B.8": [
+      {
+        "attributes": {
+          "sqref": "B3:B4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "0",
+          "allowBlank": "1",
+          "type": "list"
+        },
+        "formula1": "\"电网电力,非化石电力\"",
+        "formula2": null
+      }
+    ],
+    "B.9": [
+      {
+        "attributes": {
+          "sqref": "B3:B4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "0",
+          "errorTitle": "请选择有效选项",
+          "error": "此字段只能从下拉列表中选择。",
+          "type": "list"
+        },
+        "formula1": "\"饱和蒸汽,过热蒸汽\"",
+        "formula2": null
+      },
+      {
+        "attributes": {
+          "sqref": "E3:E4",
+          "showDropDown": "0",
+          "showInputMessage": "0",
+          "showErrorMessage": "1",
+          "allowBlank": "1",
+          "errorTitle": "当前不能填写",
+          "error": "选择“饱和蒸汽”时，不允许填写蒸汽温度。",
+          "type": "custom"
+        },
+        "formula1": "OR($B3<>\"饱和蒸汽\",E3=\"\")",
+        "formula2": null
+      }
+    ]
+  },
+  "normalization_policy": "Compare per-sheet unordered complete DV definitions; absent errorStyle uses OOXML default stop. All sqref, formula and other attributes retained.",
+  "normalization_authority": "https://learn.microsoft.com/en-us/openspecs/office_standards/ms-xlsx/89029dfc-1ca8-4ff9-afe0-46f9454d09c6",
+  "raw_difference_explanation": "WPS reorders DV definitions and omits explicit errorStyle=stop; this is not loss of protection or validation.",
+  "template_id": "GHGTOOL_GBT_32151_34_2024_APPENDIX_B",
+  "template_version": "2.2.0",
+  "template_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
+  "download_sha256": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
+  "download_byte_equal": true,
+  "python": "3.12.14 (main, Sep  1 2026, 14:17:39) [MSC v.1944 64 bit (AMD64)]",
+  "native_command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "docs/ui/standard-input-evidence/excel-wps/native_excel_roundtrip.ps1",
+    "-SourcePath",
+    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb\\complete.xlsx",
+    "-OutputRoot",
+    "C:\\Users\\WANGWEI\\AppData\\Local\\Temp\\ghg-pr46-v4-final-ge8tcahb"
+  ],
+  "native_command_working_directory": "C:\\Users\\WANGWEI\\.codex\\worktrees\\ghg-standard-input-unification\\GHGTOOL",
+  "scope": "本地WPS ET COM原生保存与程序回导；不构成人工鼠标/中文输入验收；不修改用户Office文档。"
+}

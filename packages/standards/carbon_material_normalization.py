@@ -227,10 +227,10 @@ def _parse_percent(
                 field_id,
             ))
         return None
-    if source is MaterialDataSource.STANDARD_DEFAULT:
+    if source is not MaterialDataSource.MEASURED:
         problems.append(MaterialNormalizationProblem(
-            "CAR-VAL-MATERIAL-DEFAULT-MISSING",
-            f"当前没有可用的{label}标准缺省值，请改用实测值或化学计算并填写数值。",
+            "CAR-VAL-MATERIAL-SOURCE-INAPPLICABLE",
+            f"附录B该{label}字段仅接受实测值来源，请确认来源后重新核算。",
             field_id,
         ))
         return None

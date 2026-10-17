@@ -134,7 +134,10 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.page.enterprise_name.setText("卡片保持企业")
         self.page.boundary_confirmed.setChecked(True)
         process = self.page._process_rows["calcination"][0]
-        feed, = process["materials"]
+        feed = next(
+            item for item in process["materials"]
+            if item["role"].currentData() == MaterialRole.CALCINATION_FEED
+        )
         feed["role"].setCurrentIndex(feed["role"].findData(MaterialRole.CALCINATION_FEED))
         feed["name"].setText("煅烧原料")
         feed["mass"].setText("100")
@@ -232,13 +235,14 @@ class UIR02SourceCardTests(unittest.TestCase):
         toggle.click()
         row = self.page._fuel_rows[0]
         row.fuel_type.setEditText("天然气")
+        row.fuel_type.confirm_name(force=True)
         row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
         row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
         row.activity.setText("10")
-        row.carbon_direct.setText("0.02")
         row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
+        row.carbon_direct.setText("0.02")
+        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
         row.oxidation.setText("98")
-        row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("USER_DEFINED"))
         row.source_reference.setText("检测报告-UIR02")
         card = self._card(source_id)
         card.set_expanded(False)

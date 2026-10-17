@@ -14,20 +14,42 @@ import json
 import sqlite3
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree as ET
+from zipfile import BadZipFile, ZipFile
 
 
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
 PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx")
-APPROVED_TEMPLATE_SHA256 = "e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d"
+PRIOR_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx")
+PRIOR_TEMPLATE_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx")
+APPROVED_TEMPLATE_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890"
+PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
+PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
+COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
+COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
+TEMPLATE_SHA256_BY_PATH = {
+    PRIOR_TEMPLATE_PATH: PRIOR_TEMPLATE_SHA256,
+    APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+    PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
+    COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
+}
+from packages.standards.carbon_material_business_policy import RUNTIME_RESOURCE, RUNTIME_SHA256
+
+BUSINESS_RULES_PATH = Path("resources") / RUNTIME_RESOURCE
+
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
 ALLOWED_RESOURCE_FILES = frozenset({
+    BUSINESS_RULES_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
+    PRIOR_TEMPLATE_PATH.as_posix(),
+    PREVIOUS_TEMPLATE_PATH.as_posix(),
+    COMPATIBILITY_TEMPLATE_PATH.as_posix(),
     "resources/branding/qingzhou_logo.png",
     *(f"resources/icons/{name}.svg" for name in
-      ("factors", "excel", "home", "records", "new", "settings", "standards")),
+      ("factors", "excel", "home", "records", "new", "settings", "standards", "chevron-down")),
 })
 EXCEL_SUFFIXES = frozenset(
     {".xls", ".xlsx", ".xlsm", ".xlsb", ".xltx", ".xltm", ".xlam", ".xla", ".ods", ".ots", ".fods", ".et", ".ett"}
@@ -38,6 +60,25 @@ FORBIDDEN_SUFFIXES = frozenset(
 FORBIDDEN_PARTS = frozenset(
     {"tests", "test", "计算表", ".venv", "tmp", "data-source", ".git", ".github"}
 )
+
+
+def excel_row_boolean_issues(path: Path) -> list[str]:
+    """Inspect the known template format failure in actual packaged resources."""
+    boolean_names = {"customHeight", "hidden", "collapsed", "customFormat", "thickTop", "thickBot", "ph"}
+    issues = []
+    try:
+        with ZipFile(path) as archive:
+            for name in archive.namelist():
+                if not (name.startswith("xl/worksheets/") and name.endswith(".xml")):
+                    continue
+                root = ET.fromstring(archive.read(name))
+                for row in root.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row"):
+                    for attribute in boolean_names & row.attrib.keys():
+                        if row.get(attribute) not in {"0", "1", "true", "false"}:
+                            issues.append(f"invalid Excel row boolean: {path.name}/{name} row {row.get('r')} {attribute}={row.get(attribute)}")
+    except (OSError, BadZipFile, ET.ParseError) as exc:
+        issues.append(f"invalid Excel template XML: {path.name}: {type(exc).__name__}")
+    return issues
 
 
 def _sha256(path: Path) -> str:
@@ -126,8 +167,18 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
         issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / PRIOR_TEMPLATE_PATH).is_file():
+        issues.append(f"missing prior Excel template: {PRIOR_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / PREVIOUS_TEMPLATE_PATH).is_file():
+        issues.append(f"missing previous Excel template: {PREVIOUS_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / COMPATIBILITY_TEMPLATE_PATH).is_file():
+        issues.append(f"missing compatibility Excel template: {COMPATIBILITY_TEMPLATE_PATH.as_posix()}")
     if not (artifact / REPORT_LAYOUT_PATH).is_file():
         issues.append(f"missing packaged Word report layout: {REPORT_LAYOUT_PATH.as_posix()}")
+    if not (artifact / BUSINESS_RULES_PATH).is_file():
+        issues.append(f"missing fuel/power runtime rules: {BUSINESS_RULES_PATH.as_posix()}")
+    elif _sha256(artifact / BUSINESS_RULES_PATH) != RUNTIME_SHA256:
+        issues.append(f"fuel/power runtime rules hash mismatch: {BUSINESS_RULES_PATH.as_posix()}")
     for path in _relative_files(artifact):
         relative = Path(path)
         normalized = relative.as_posix()
@@ -138,10 +189,13 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         if parts & {part.lower() for part in FORBIDDEN_PARTS}:
             issues.append(f"forbidden development or user-data path: {normalized}")
         if relative.suffix.lower() in EXCEL_SUFFIXES:
-            if relative.suffix.lower() != ".xlsx" or relative != APPROVED_TEMPLATE_PATH:
+            expected_hash = TEMPLATE_SHA256_BY_PATH.get(relative)
+            if relative.suffix.lower() != ".xlsx" or expected_hash is None:
                 issues.append(f"unexpected Excel workbook file: {normalized}")
-            elif _sha256(artifact / relative) != APPROVED_TEMPLATE_SHA256:
-                issues.append(f"approved Excel template hash mismatch: {normalized}")
+            else:
+                if _sha256(artifact / relative) != expected_hash:
+                    issues.append(f"approved Excel template hash mismatch: {normalized}")
+                issues.extend(excel_row_boolean_issues(artifact / relative))
         elif relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
             relative.suffix.lower() == ".docx"
             and normalized.lower() == PYTHON_DOCX_DEFAULT_TEMPLATE

@@ -6,15 +6,15 @@ from dataclasses import dataclass
 
 from packages.application.catalog_queries import CatalogQueryService
 from packages.core.errors import IssueLevel
-from packages.core.models import AccountingPeriod, ParameterType, ReviewStatus
+from packages.core.models import AccountingPeriod, ElectricityAttribute, ParameterType, ReviewStatus
 from packages.core.parameter_resolution import (
     NATIONAL_ELECTRICITY_PARAMETER_ID,
     NONFOSSIL_ELECTRICITY_PARAMETER_ID,
-    PROVINCIAL_ELECTRICITY_PARAMETER_ID,
     ParameterResolutionContext,
     ParameterResolver,
 )
 from packages.standards.carbon_material import FuelType, STANDARD_ID
+from packages.standards.carbon_material_business_policy import electricity_catalogue_parameters
 from packages.standards.catalog import FactorCatalogRecord, ReferenceDataBindingCatalogRecord
 
 
@@ -47,6 +47,10 @@ class UAT03FactorOption:
     selection_reason: str
     region: str | None = None
     aliases: tuple[str, ...] = ()
+    selectable: bool = True
+    unavailable_reason: str | None = None
+    table_number: str | None = None
+    source_document_name: str | None = None
 
 
 class UAT03ParameterQueries:
@@ -114,6 +118,17 @@ class UAT03ParameterQueries:
             and binding.factor_id in self._factors
             and binding.asset_id in self._assets
             and self._verified(binding, self._factors[binding.factor_id])
+        )
+
+    def _electricity_table_bindings(self, display_number: str) -> tuple[ReferenceDataBindingCatalogRecord, ...]:
+        """Join catalog rows; production qualification comes from the Resolver."""
+        return tuple(
+            binding for binding in self._bindings
+            if binding.binding_type == "FACTOR_SOURCE"
+            and (factor := self._factors.get(binding.factor_id)) is not None
+            and self._verified(binding, factor)
+            and (table := self._table_by_id.get(binding.source_table_id)) is not None
+            and table.display_number == display_number
         )
 
     def _bound_factor_ids(
@@ -274,21 +289,45 @@ class UAT03ParameterQueries:
             )
         return tuple(options)
 
-    def electricity_regions(self, period: AccountingPeriod) -> tuple[str, ...]:
+    @staticmethod
+    def _electricity_parameters_for_level(geographic_level: str) -> tuple[tuple[str, str], ...]:
+        geography_tags = {"全国": None, "区域": "region", "省级": "province"}
+        if geographic_level not in geography_tags:
+            return ()
+        return tuple(
+            (f"表{table}", parameter_id)
+            for table, parameter_id, tag in electricity_catalogue_parameters()
+            if tag == geography_tags[geographic_level]
+        )
+
+    def electricity_regions(
+        self,
+        period: AccountingPeriod,
+        geographic_level: str = "省级",
+    ) -> tuple[str, ...]:
+        """Keep the provincial default; group identities come from adopted policy."""
+        if geographic_level not in {"区域", "省级"}:
+            return ()
         regions = dict.fromkeys(
             binding.region
-            for binding in self._bindings
+            for table, parameter_id in self._electricity_parameters_for_level(geographic_level)
+            for binding in self._electricity_table_bindings(table)
             if binding.region
-            and binding.binding_type == "FACTOR_SOURCE"
-            and binding.factor_id in self._factors
             and (asset := self._assets.get(binding.asset_id)) is not None
-            and asset.parameter_id == PROVINCIAL_ELECTRICITY_PARAMETER_ID
-            and self._verified(binding, self._factors[binding.factor_id])
+            and asset.parameter_id == parameter_id
         )
         return tuple(
             region for region in regions
-            if self.electricity_options(region, period)
+            if self.electricity_catalog_options(geographic_level, region, period)
         )
+
+    def electricity_regions_by_level(self, period: AccountingPeriod) -> dict[str, tuple[str, ...]]:
+        """Expose current geography choices in the UI's national/region/province order."""
+        return {
+            "全国": ("全国",) if self.electricity_catalog_options("全国", None, period) else (),
+            "区域": self.electricity_regions(period, "区域"),
+            "省级": self.electricity_regions(period, "省级"),
+        }
 
     def preferred_electricity_region(self, period: AccountingPeriod) -> str | None:
         regions = self.electricity_regions(period)
@@ -301,48 +340,102 @@ class UAT03ParameterQueries:
         region: str | None,
         period: AccountingPeriod,
     ) -> tuple[UAT03FactorOption, ...]:
-        parameter_id = PROVINCIAL_ELECTRICITY_PARAMETER_ID if region is not None else NATIONAL_ELECTRICITY_PARAMETER_ID
-        allowed = self._bound_factor_ids(parameter_id=parameter_id, region=region)
-        if not allowed:
-            return ()
-        answer = self._resolve(
-            parameter_id,
-            "purchased_electricity",
-            period,
-            region=region,
-            allowed_factor_ids=allowed,
-        )
-        if answer is None:
-            return ()
-        _, values = answer
-        return tuple(
-            UAT03FactorOption(
-                subject_id=item.factor.subject_id,
-                label=(region or "全国") + "电力平均排放因子",
-                factor=item.factor,
-                selection_reason=item.selection_reason,
-                region=region,
+        """Compatibility default choices; special national bases never fill a gap."""
+        if region in (None, "全国"):
+            return tuple(
+                option for option in self.electricity_catalog_options("全国", None, period)
+                if option.factor.parameter_id == NATIONAL_ELECTRICITY_PARAMETER_ID
             )
-            for item in values
-        )
+        regional = self.electricity_catalog_options("区域", region, period)
+        provincial = self.electricity_catalog_options("省级", region, period)
+        if bool(regional) == bool(provincial):
+            return ()
+        return regional or provincial
+
+    def electricity_catalog_options(
+        self,
+        geographic_level: str,
+        region: str | None,
+        period: AccountingPeriod,
+    ) -> tuple[UAT03FactorOption, ...]:
+        """Return only verified table bindings that the formal Resolver accepts."""
+        table_parameters = self._electricity_parameters_for_level(geographic_level)
+        if not table_parameters:
+            return ()
+        if geographic_level == "全国":
+            if region not in (None, "全国"):
+                return ()
+            resolver_region = None
+            binding_regions = {None, "全国"}
+        else:
+            if region is None or not region.strip():
+                return ()
+            resolver_region = region.strip()
+            binding_regions = {resolver_region}
+
+        options: list[UAT03FactorOption] = []
+        for table_number, parameter_id in table_parameters:
+            bindings = tuple(
+                binding for binding in self._electricity_table_bindings(table_number)
+                if binding.region in binding_regions
+                and (asset := self._assets.get(binding.asset_id)) is not None
+                and asset.parameter_id == parameter_id
+            )
+            factor_ids = tuple(dict.fromkeys(binding.factor_id for binding in bindings if binding.factor_id))
+            if not factor_ids:
+                continue
+            for factor_id in factor_ids:
+                resolution = self.resolver.resolve(ParameterResolutionContext(
+                    parameter_id=parameter_id,
+                    standard_id=STANDARD_ID,
+                    accounting_period=period,
+                    region=resolver_region,
+                    subject_id="purchased_electricity",
+                    parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+                    electricity_attribute=ElectricityAttribute.ORDINARY,
+                    confirmed_factor_id=factor_id,
+                    confirmation_reason="核对本条目录候选的实际适用绑定。",
+                ))
+                binding = self.resolver.reference_binding_for(resolution).binding
+                if binding is None or binding.factor_id != factor_id:
+                    continue
+                factor = self._factors.get(binding.factor_id)
+                table = self._table_by_id.get(binding.source_table_id)
+                if factor is None or table is None:
+                    continue
+                item = UAT03ResolvedFactor(factor, resolution.selection_reason)
+                source = self._sources.get(item.factor.source_id)
+                options.append(
+                    UAT03FactorOption(
+                        subject_id=item.factor.subject_id,
+                        label=f"{table.display_number} · {table.title}",
+                        factor=item.factor,
+                        selection_reason=item.selection_reason,
+                        region=resolver_region,
+                        selectable=True,
+                        table_number=table.display_number,
+                        source_document_name=source.document_name if source is not None else None,
+                    )
+                )
+        return tuple(options)
 
     def nonfossil_electricity_factor(self, period: AccountingPeriod) -> UAT03ResolvedFactor | None:
         allowed = self._bound_factor_ids(parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID)
-        answer = self._resolve(
-            NONFOSSIL_ELECTRICITY_PARAMETER_ID,
-            "purchased_electricity",
-            period,
-            allowed_factor_ids=allowed,
-        )
-        if answer is None:
+        resolution = self.resolver.resolve(ParameterResolutionContext(
+            parameter_id=NONFOSSIL_ELECTRICITY_PARAMETER_ID,
+            standard_id=STANDARD_ID,
+            accounting_period=period,
+            subject_id="purchased_electricity",
+            parameter_type=ParameterType.ELECTRICITY_EMISSION_FACTOR,
+            electricity_attribute=ElectricityAttribute.NONFOSSIL,
+        ))
+        if self.resolver.reference_binding_for(resolution).binding is None:
             return None
-        resolution, values = answer
-        if resolution.blocked or resolution.recommended is None:
+        factor_id = resolution.recommended.factor_id
+        factor = self._factors.get(factor_id)
+        if factor_id not in allowed or factor is None:
             return None
-        return next(
-            (item for item in values if item.factor.factor_id == resolution.recommended.factor_id),
-            None,
-        )
+        return UAT03ResolvedFactor(factor, resolution.selection_reason)
 
 
 __all__ = [

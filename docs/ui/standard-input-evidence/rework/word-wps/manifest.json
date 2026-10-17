@@ -1,0 +1,43 @@
+{
+  "evidence_type": "WPS Word-compatible COM render of a read-only TEMP synthetic Record report",
+  "pdf_metadata": {
+    "/Author": "python-docx",
+    "/Comments": "",
+    "/Company": "",
+    "/CreationDate": "D:20261014173011+08'00'",
+    "/Creator": "WPS 文字",
+    "/Keywords": "",
+    "/ModDate": "D:20261014173011+08'00'",
+    "/Producer": "",
+    "/SourceModified": "D:20261014173011+08'00'",
+    "/Subject": "",
+    "/Title": "",
+    "/Trapped": "/False"
+  },
+  "pdf_sha256": "bc36ced27fff81bca38c5616f88174e712247d709fd7a972b2930cfd56daecba",
+  "docx_sha256": "cc85e4d398a89bfffc1fd31b39563fe3b55e83c490eb8287d0c6e2803d77faa8",
+  "pages": 11,
+  "business_tables": 10,
+  "contains_all_B1_to_B9": true,
+  "coordinate_tailnotes_absent": true,
+  "B9_redundant_result_tailnotes_absent": true,
+  "B8_necessary_deduction_note_preserved": true,
+  "native_human_acceptance": "OPEN",
+  "source_files_sha256": {
+    "packages/application/reporting/appendix_b.py": "302b66ab16872704ddf81acffbfcf34d042fee86df1b1320fd0a8b192d0908b9",
+    "packages/application/reporting/carbon_material_model.py": "4522c8323d82cf807b5baea05cc7398c0bcf9f03ef806ecadf5c5287b28679bc",
+    "packages/application/reporting/appendix_b_layout.json": "37a3e167e9a3c001fe35b4194552f8e18d182d9ae03491f990d39fc40ff02894"
+  },
+  "com": {
+    "status": "PASS",
+    "engine": "WPS Word-compatible COM",
+    "application_version": "",
+    "initial_documents": 0,
+    "final_documents": 0,
+    "shared_instance_possible": true,
+    "application_quit_called": false,
+    "opened_document_readonly": true,
+    "source_sha256": "cc85e4d398a89bfffc1fd31b39563fe3b55e83c490eb8287d0c6e2803d77faa8",
+    "pdf_sha256": "bc36ced27fff81bca38c5616f88174e712247d709fd7a972b2930cfd56daecba"
+  }
+}

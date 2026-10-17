@@ -4,6 +4,8 @@
 
 ## 当前候选审阅复现
 
+当前燃料/电力逐段采用修订为`adoption-2026-10-17-fuel-power1`，通则固定依赖为`pr46-integration-2026-10-17-g05`。按既有Issue010精确追加表5普通购入条件，旧稳定分支保留；只接燃料B1/电力B，不表示其余R11已接管。PR47原`19a9c2b`四件套仍以固定历史提交/原工作树保留，新生成表不能冒称原件。
+
 从 GHGTOOL 仓库根目录打开 Windows PowerShell。候选验证器生成紧凑审阅投影、同源技术详情和只读目录快照；工作簿 builder 消费这些输入并生成审阅表、同源 HTML 详情与 `review-view-manifest.json`；往返夹具按正式投影生成反馈场景；仓内 Python checks 工具核对工作簿结构、意见保留、候选来源及生成器绑定，并检查 HTML 内嵌的投影 SHA、technical semantic SHA 和工作簿 scope 指纹是否与本轮输入一致。
 
 `@oai/artifact-tool` 只用于本地开发工作簿和 JavaScript 往返夹具，不是产品依赖。先调用 `load_workspace_dependencies`，把返回的 Node.js executable、Node.js packages 根目录和 Python executable 粘贴到提示中。builder 的 `--python` 使用该 Python 的标准库折叠技术列；`scripts/business_rules_review_checks.py` 使用现有 `openpyxl` 读取工作簿，不调用 Node，也不新增产品依赖。

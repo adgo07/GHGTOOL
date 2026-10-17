@@ -7,6 +7,18 @@ calculation evidence. Record persistence and adapters live outside this module.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_business_policy import (
+    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity,
+)
+
+from packages.standards.carbon_material_input_policy import (
+    InputOrigin,
+    carbonate_c2_identity,
+    infer_fuel_origin,
+    parameter_source_policy,
+    validate_parameter_source_policy,
+)
+
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -37,6 +49,8 @@ from packages.core.models import (
 )
 from packages.core.parameter_resolution import (
     ElectricityConsumptionDetail,
+    NATIONAL_ELECTRICITY_PARAMETER_ID,
+    OFFICIAL_ELECTRICITY_PARAMETER_IDS,
     PROVINCIAL_ELECTRICITY_PARAMETER_ID,
     ElectricityResolutionRoute,
     ParameterResolutionContext,
@@ -53,7 +67,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-09-G06.2"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-14-G06.5"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -145,6 +159,12 @@ class ParameterSourceKind(str, Enum):
     OFFICIAL_PUBLISHED = "OFFICIAL_PUBLISHED"
     USER_DEFINED = "USER_DEFINED"
     PROJECT_SPECIFIED = "PROJECT_SPECIFIED"
+
+
+STANDARD_PARAMETER_SOURCE_KINDS = {
+    ParameterSourceKind.STANDARD_DEFAULT,
+    ParameterSourceKind.STANDARD_SPECIFIED,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -406,6 +426,8 @@ class FuelInput:
     electricity_detail_id: str | None = None
     fuel_type: FuelType | None = None
     fuel_label: str | None = None
+    origin: InputOrigin | None = None
+    catalog_subject_id: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.fuel_id, str) or not self.fuel_id.strip():
@@ -418,6 +440,10 @@ class FuelInput:
             not isinstance(self.fuel_label, str) or not self.fuel_label.strip()
         ):
             raise DomainValidationError("fuel_label must be a non-blank string when supplied")
+        if self.origin is not None and not isinstance(self.origin, InputOrigin):
+            raise DomainValidationError("origin must be a InputOrigin")
+        if self.catalog_subject_id is not None and not self.catalog_subject_id.strip():
+            raise DomainValidationError("catalog_subject_id cannot be blank")
         activity_unit = {
             FuelPath.VOLUME: "ten_thousand_Nm3",
             FuelPath.MASS: "t",
@@ -475,9 +501,12 @@ class CalcinationInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "calcination-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -528,9 +557,12 @@ class BakingInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "baking-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -581,9 +613,12 @@ class GraphitizationInput:
     volatile_matter_component_kind: MaterialComponentKind | None = None
     instance_id: str = "graphitization-1"
     material_rows: tuple[MaterialInputLine, ...] | None = None
+    instance_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        if self.instance_name is not None and (not isinstance(self.instance_name,str) or not self.instance_name.strip()):
+            raise DomainValidationError("instance_name must be nonblank text")
         for field in ("mass_basis", "composition_basis"):
             if not isinstance(getattr(self, field), MaterialBasis):
                 raise DomainValidationError(f"{field} must be a MaterialBasis")
@@ -639,6 +674,7 @@ class CarbonateComponent:
     emission_factor: object | None
     conversion_rate: object = 1
     carbonate_type: str | None = None
+    origin: InputOrigin | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "amount", _coerce_input(self.amount, "t"))
@@ -647,6 +683,8 @@ class CarbonateComponent:
         object.__setattr__(self, "emission_factor", _coerce_parameter(self.emission_factor, "CAR-PAR-P04B-EF1", "tCO2/t", source_location="第5.2.5.2条、附录C.2"))
         if not isinstance(self.conversion_rate, ParameterValue):
             object.__setattr__(self, "conversion_rate", _coerce_input(self.conversion_rate, "ratio"))
+        if self.origin is not None and not isinstance(self.origin, InputOrigin):
+            raise DomainValidationError("origin must be an InputOrigin")
         if self.carbonate_type is not None and not self.carbonate_type.strip():
             raise DomainValidationError("carbonate_type cannot be blank")
 
@@ -1439,6 +1477,7 @@ class CarbonMaterialCalculator:
             "standard": {"standard_id": STANDARD_ID, "version": self.standard_version},
             "mapping": {"version": MAPPING_VERSION, "status": "FROZEN"},
             "calculator": {"algorithm_version": ALGORITHM_VERSION},
+            "adopted_business_policy": fuel_power_policy_identity(),
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -1502,6 +1541,26 @@ class CarbonMaterialCalculator:
                 "standard_location": trace.standard_location or standard_location,
                 "mapping_location": trace.mapping_location or mapping_location,
             })
+        # New display evidence uses the exact adopted parameters and the declared
+        # profile. It does not alter any emission formula or its operation order.
+        by_detail = {item.detail_id:item for item in parameter_snapshots}
+        derived_display = {}
+        for lhv in parameter_snapshots:
+            if not lhv.detail_id.startswith("CAR-FLD-F01-") or not lhv.detail_id.endswith("-LHV"):
+                continue
+            prefix = lhv.detail_id[:-4]
+            carbon = by_detail.get(prefix+"-CARBON")
+            if carbon is None or carbon.unit_used != "tC/GJ":
+                continue
+            unit = "tC/10^4Nm3" if lhv.unit_used in {"GJ/10⁴Nm³","GJ/10^4Nm3"} else "tC/t"
+            derived_display[prefix] = {"value":str(self.policy.multiply(lhv.value_used,carbon.value_used)),
+                "unit":unit,"source_kind":"CALCULATED","parameter_detail_ids":[lhv.detail_id,carbon.detail_id]}
+        source_types = {}
+        read_factor = getattr(self.parameter_resolver,"get_factor",None)
+        for parameter in parameter_snapshots:
+            factor = read_factor(parameter.factor_id) if callable(read_factor) and parameter.factor_id else None
+            if factor is not None and parameter.detail_id:
+                source_types[parameter.detail_id+"|"+parameter.unit_used] = factor.value_type.value
         direct = Decimal("0")
         for key in ("fuel", "calcination", "baking", "graphitization", "gas_control"):
             direct = self.policy.add(direct, source_subtotals[key])
@@ -1517,6 +1576,9 @@ class CarbonMaterialCalculator:
             "mapping_version": MAPPING_VERSION,
             "calculated_at": calculation_result.calculated_at.isoformat(),
             "formula_steps": steps,
+            "display_evidence_schema_version": 1,
+            "derived_display_evidence": derived_display,
+            "parameter_source_types": source_types,
             "parameter_snapshots": _snapshot_value(tuple(parameter_snapshots)),
             "effective_rule_ids": sorted(self._effective_rule_ids),
             "source_subtotals": {key: str(value) for key, value in source_subtotals.items()},
@@ -1678,11 +1740,13 @@ class CarbonMaterialCalculator:
             return None
         return self._parameter(value, "ratio", field_id, snapshots, problems, snapshot_at)
 
-    def _resolve_parameter(self, context: ParameterResolutionContext, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, detail_id: str | None = None) -> Decimal | None:
+    def _resolve_parameter(self, context: ParameterResolutionContext, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, detail_id: str | None = None, resolved=None) -> Decimal | None:
         if self.parameter_resolver is None:
             problems.append(_problem("CAR-VAL-PARAMETER-RESOLVER-MISSING", IssueLevel.ERROR, f"参数 {context.parameter_id} 没有接入 G05 参数解析服务。", context.parameter_id))
             return None
-        resolution = self.parameter_resolver.resolve(context)
+        resolution = resolved if resolved is not None else self.parameter_resolver.resolve(context)
+        if resolution.context != context:
+            raise DomainValidationError("已解析参数与当前核算上下文不一致。")
         self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
         problems.extend(resolution.warnings)
         if resolution.blocked or resolution.recommended is None or resolution.selection_method is None:
@@ -1707,7 +1771,305 @@ class CarbonMaterialCalculator:
             problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, f"排放源 {source_id} 已标记涉及但缺少输入。", source_id))
         return status
 
-    def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime) -> Decimal | None:
+    def _resolved_source_factor(
+        self,
+        parameter_id: str,
+        subject_id: str,
+        parameter_type: ParameterType,
+        accounting_period: AccountingPeriod,
+    ):
+        if self.parameter_resolver is None or not subject_id:
+            return None
+        context = ParameterResolutionContext(
+            parameter_id=parameter_id,
+            standard_id=STANDARD_ID,
+            accounting_period=accounting_period,
+            subject_id=subject_id,
+            parameter_type=parameter_type,
+        )
+        resolution = self.parameter_resolver.resolve(context)
+        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
+        if resolution.blocked or resolution.recommended is None:
+            return None
+        return resolution.recommended.factor
+
+    def _standard_parameter_binding(
+        self,
+        value: object,
+        expected_parameter_id: str,
+        accounting_period: AccountingPeriod,
+    ):
+        if not isinstance(value, ParameterValue) or value.parameter_id.casefold() != expected_parameter_id.casefold():
+            return None
+        if self.parameter_resolver is None:
+            return None
+        repository = self.parameter_resolver.repository
+        parameter_id = expected_parameter_id.casefold()
+        parameter = repository.get_parameter(parameter_id)
+        if (
+            parameter is None
+            or parameter.parameter_id.casefold() != expected_parameter_id.casefold()
+            or parameter.subject_id != "fgd"
+            or parameter.parameter_type is not ParameterType.PROCESS_DEFAULT_PARAMETER
+        ):
+            return None
+        candidate = self._resolved_source_factor(
+            parameter.parameter_id,
+            parameter.subject_id,
+            parameter.parameter_type,
+            accounting_period,
+        )
+        if (
+            candidate is None
+            or candidate.value_type is not ValueType.STANDARD_DEFAULT
+            or candidate.source_id != "SRC-32151-34-2024"
+            or candidate.source_location is None
+            or "第5.2.5.2条" not in candidate.source_location
+            or STANDARD_ID not in candidate.applicable_standard_ids
+        ):
+            return None
+        if value.factor_id:
+            registered = repository.get_factor(value.factor_id)
+            if (
+                registered is None
+                or registered.factor_id != candidate.factor_id
+                or registered.parameter_id.casefold() != expected_parameter_id.casefold()
+            ):
+                return None
+        return candidate
+
+    def _electricity_source_policy_invalid(self, resolution, *, direction, attribute,
+                                          problems, field_id, other=False) -> bool:
+        if other:
+            context = {"source_path": "ARBITRARY_OVERRIDE", "direction": direction,
+                       "attribute": attribute, "business_source": "OTHER"}
+        elif self.parameter_resolver is None or resolution is None:
+            context = {"origin": "CATALOG", "binding_status": "PENDING",
+                       "direction": direction, "attribute": attribute}
+        else:
+            context = electricity_source_context(self.parameter_resolver, resolution,
+                                                 direction=direction, attribute=attribute)
+            context["business_source"] = "STANDARD_DEFAULT"
+        outcome = evaluate_fuel_power_field("electricity.factor", context)
+        if outcome["status"] == "READY":
+            return False
+        problems.append(_problem(
+            "CAR-VAL-ELECTRICITY-SOURCE-POLICY", IssueLevel.ERROR,
+            "所选电力因子的来源身份、方向、属性或适用绑定尚未核实，请重新选择；不自动改用其他因子。",
+            field_id,
+        ))
+        return True
+
+    def _fuel_default_binding(
+        self,
+        value: ParameterValue | None,
+        subject_id: str | None,
+        parameter_type: ParameterType,
+        accounting_period: AccountingPeriod,
+    ):
+        if value is None or not subject_id or self.parameter_resolver is None:
+            return None
+        field_id = {
+            ParameterType.LOWER_HEATING_VALUE: "fuel.lhv",
+            ParameterType.CARBON_CONTENT_PER_HEAT: "fuel.fch",
+            ParameterType.OXIDATION_RATE: "fuel.oxidation",
+        }[parameter_type]
+        context = fuel_source_context(
+            field_id, resolver=self.parameter_resolver, origin=InputOrigin.CATALOG,
+            subject_id=subject_id, accounting_period=accounting_period,
+            selected_factor_id=value.factor_id,
+        )
+        if context.get("binding_status") != "VERIFIED" or context.get("parameter_id") != value.parameter_id:
+            return None
+        resolution = self.parameter_resolver.resolve(ParameterResolutionContext(
+            parameter_id=value.parameter_id, standard_id=STANDARD_ID, accounting_period=accounting_period,
+            subject_id=subject_id, parameter_type=parameter_type, confirmed_factor_id=value.factor_id,
+            confirmation_reason="核对燃料当前明确选择" if value.factor_id else None,
+        ))
+        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
+        return resolution.recommended.factor if not resolution.blocked and resolution.recommended is not None else None
+
+    def _factor_value_matches(self, value: ParameterValue, factor: object) -> bool:
+        expected_source_kind = {
+            ValueType.STANDARD_SPECIFIED: ParameterSourceKind.STANDARD_SPECIFIED,
+            ValueType.STANDARD_DEFAULT: ParameterSourceKind.STANDARD_DEFAULT,
+            ValueType.GOVERNMENT_PUBLISHED: ParameterSourceKind.OFFICIAL_PUBLISHED,
+            ValueType.SCIENTIFIC_REFERENCE: ParameterSourceKind.USER_DEFINED,
+            ValueType.MEASURED: ParameterSourceKind.MEASURED,
+            ValueType.DERIVED: ParameterSourceKind.CALCULATED,
+            ValueType.SYSTEM_CONSTANT: ParameterSourceKind.CALCULATED,
+            ValueType.HISTORICAL: ParameterSourceKind.USER_DEFINED,
+        }.get(getattr(factor, "value_type", None))
+        if (
+            value.factor_id != getattr(factor, "factor_id", None)
+            or value.parameter_id != getattr(factor, "parameter_id", None)
+            or value.source_kind is not expected_source_kind
+            or value.source_id != getattr(factor, "source_id", None)
+            or value.source_version != getattr(factor, "version", None)
+            or value.source_location != getattr(factor, "source_location", None)
+            or value.factor_year != getattr(factor, "factor_year", None)
+        ):
+            return False
+        try:
+            normalized = self.units.convert(value.value, value.unit, factor.unit) if value.unit != factor.unit else value.value
+        except (UnitError, ValueError):
+            return False
+        return normalized == factor.value
+
+    def _registered_factor_value_matches(self, value: ParameterValue) -> bool:
+        if self.parameter_resolver is None or value.factor_id is None:
+            return False
+        factor = self.parameter_resolver.repository.get_factor(value.factor_id)
+        return factor is not None and self._factor_value_matches(value, factor)
+
+    @staticmethod
+    def _source_kind_for_policy(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, ParameterValue):
+            return value.source_kind.value
+        return "UNSPECIFIED"
+
+    def _carbonate_default_binding(self, component: CarbonateComponent, accounting_period: AccountingPeriod):
+        """Resolve a C.2 candidate only for an explicit catalog identity."""
+        if component.origin is not InputOrigin.CATALOG or self.parameter_resolver is None:
+            return None
+        identity = carbonate_c2_identity(component.carbonate_type)
+        if identity is None:
+            return None
+        repository = self.parameter_resolver.repository
+        parameter = repository.get_parameter(identity.parameter_id)
+        if (
+            parameter is None
+            or parameter.parameter_id != identity.parameter_id
+            or parameter.subject_id != identity.subject_id
+            or parameter.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
+        ):
+            return None
+        candidates = []
+        for factor in repository.list_factors(identity.parameter_id):
+            if (
+                factor.parameter_id != identity.parameter_id
+                or factor.subject_id != identity.subject_id
+                or factor.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
+                or factor.value_type is not ValueType.STANDARD_SPECIFIED
+                or factor.review_status.value != "VERIFIED"
+                or factor.source_id != "SRC-32151-34-2024"
+                or factor.source_location is None
+                or "附录C表C.2" not in factor.source_location
+                or STANDARD_ID not in factor.applicable_standard_ids
+            ):
+                continue
+            candidate = self._resolved_source_factor(
+                factor.parameter_id,
+                factor.subject_id,
+                factor.parameter_type,
+                accounting_period,
+            )
+            if candidate is not None and candidate.factor_id == factor.factor_id:
+                candidates.append(candidate)
+        return candidates[0] if len(candidates) == 1 else None
+
+    def _append_source_policy_problem(
+        self,
+        field_id: str,
+        value: object | None,
+        problems: list[ValidationProblem],
+        *,
+        origin: InputOrigin | None = None,
+        has_resolver_binding: bool = False,
+        carbonate_component_count: int = 1,
+        input_basis: str | None = None,
+        problem_field_id: str | None = None,
+        resolved_context: Mapping[str, str] | None = None,
+    ) -> bool:
+        issue = validate_parameter_source_policy(
+            field_id,
+            self._source_kind_for_policy(value),
+            origin=origin,
+            has_resolver_binding=has_resolver_binding,
+            carbonate_component_count=carbonate_component_count,
+            input_basis=input_basis,
+            resolved_context=resolved_context,
+        )
+        if issue is None:
+            return False
+        _policy_field, code, message = issue
+        problems.append(_problem(code, IssueLevel.ERROR, message, problem_field_id or field_id))
+        return True
+
+    def _fuel(self, item: FuelInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, accounting_period: AccountingPeriod) -> Decimal | None:
+        if item.path is FuelPath.HEAT and item.lower_heating_value is not None:
+            problems.append(_problem(
+                "CAR-VAL-FUEL-LHV-NOT-APPLICABLE",
+                IssueLevel.ERROR,
+                "热量路径的活动量已经是热量，不应再填写低位发热量；请清空该字段。",
+                f"CAR-FLD-F01-{item.fuel_id}-LHV",
+            ))
+            return None
+        origin = infer_fuel_origin(item.fuel_type.value if item.fuel_type else None, item.origin)
+        direct = item.lower_heating_value is None and item.path is not FuelPath.HEAT
+        binding_by_field = {
+            "fuel.lhv": self._fuel_default_binding(
+                item.lower_heating_value, item.catalog_subject_id, ParameterType.LOWER_HEATING_VALUE, accounting_period,
+            ) if origin is InputOrigin.CATALOG and isinstance(item.lower_heating_value, ParameterValue) and (item.lower_heating_value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.lower_heating_value.factor_id is not None) else None,
+            "fuel.fch": self._fuel_default_binding(
+                item.carbon_content, item.catalog_subject_id, ParameterType.CARBON_CONTENT_PER_HEAT, accounting_period,
+            ) if origin is InputOrigin.CATALOG and not direct and isinstance(item.carbon_content, ParameterValue) and (item.carbon_content.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.carbon_content.factor_id is not None) else None,
+            "fuel.oxidation": self._fuel_default_binding(
+                item.oxidation_rate, item.catalog_subject_id, ParameterType.OXIDATION_RATE, accounting_period,
+            ) if origin is InputOrigin.CATALOG and isinstance(item.oxidation_rate, ParameterValue) and (item.oxidation_rate.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or item.oxidation_rate.factor_id is not None) else None,
+        }
+        policy_fields = []
+        if direct:
+            policy_fields.append(("fuel.direct_carbon", item.carbon_content, False, "CARBON"))
+        else:
+            if item.lower_heating_value is not None:
+                policy_fields.append(("fuel.lhv", item.lower_heating_value, binding_by_field["fuel.lhv"] is not None, "LHV"))
+            policy_fields.append(("fuel.fch", item.carbon_content, binding_by_field["fuel.fch"] is not None, "CARBON"))
+        policy_fields.append(("fuel.oxidation", item.oxidation_rate, binding_by_field["fuel.oxidation"] is not None, "FOX"))
+        source_contexts = {
+            field: fuel_source_context(
+                field, resolver=self.parameter_resolver, origin=origin,
+                subject_id=item.catalog_subject_id, accounting_period=accounting_period,
+                selected_factor_id=getattr(value, "factor_id", None),
+            ) for field, value, _bound, _suffix in policy_fields
+        }
+        policy_invalid = False
+        for policy_field, value, is_bound, suffix in policy_fields:
+            row_field_id = f"CAR-FLD-F01-{item.fuel_id}-{suffix}"
+            policy_invalid |= self._append_source_policy_problem(
+                policy_field, value, problems, origin=origin, has_resolver_binding=is_bound,
+                input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
+                problem_field_id=row_field_id,
+                resolved_context=source_contexts[policy_field],
+            )
+        if policy_invalid:
+            return None
+        for policy_field, value, is_bound, suffix in policy_fields:
+            if value is None or not isinstance(value, ParameterValue):
+                continue
+            candidate = binding_by_field.get(policy_field)
+            has_factor_identity = value.factor_id is not None
+            if value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS:
+                matches = candidate is not None and self._factor_value_matches(value, candidate)
+            elif has_factor_identity:
+                matches = self._registered_factor_value_matches(value)
+            else:
+                continue
+            if not matches:
+                label = parameter_source_policy(
+                    policy_field, origin=origin, has_resolver_binding=is_bound,
+                    resolved_context=source_contexts[policy_field],
+                    input_basis="DIRECT" if policy_field == "fuel.direct_carbon" else "HEAT_CONTENT" if policy_field in {"fuel.lhv", "fuel.fch"} else None,
+                ).short_label
+                problems.append(_problem(
+                    "CAR-VAL-PARAMETER-BINDING-MISMATCH", IssueLevel.ERROR,
+                    f"{label}与当前核验的参数来源信息不一致，请重新选择适用来源。",
+                    f"CAR-FLD-F01-{item.fuel_id}-{suffix}",
+                ))
+                return None
+        carbon_value = item.carbon_content
         activity = self._quantity(item.activity, {FuelPath.VOLUME: "ten_thousand_Nm3", FuelPath.MASS: "t", FuelPath.HEAT: "GJ"}[item.path], f"CAR-FLD-F01-{item.fuel_id}-ACTIVITY", problems)
         if item.lower_heating_value is not None:
             lhv_unit = {FuelPath.VOLUME: "GJ/10⁴Nm³", FuelPath.MASS: "GJ/t", FuelPath.HEAT: "GJ/GJ"}[item.path]
@@ -1719,14 +2081,6 @@ class CarbonMaterialCalculator:
         }[item.path]
         carbon = self._parameter(item.carbon_content, carbon_unit, f"CAR-FLD-F01-{item.fuel_id}-CARBON", snapshots, problems, snapshot_at)
         fox = self._parameter(item.oxidation_rate, "ratio", f"CAR-FLD-F01-{item.fuel_id}-FOX", snapshots, problems, snapshot_at)
-        if item.path is FuelPath.HEAT and item.lower_heating_value is not None:
-            problems.append(_problem(
-                "CAR-VAL-FUEL-LHV-NOT-APPLICABLE",
-                IssueLevel.ERROR,
-                "热量路径的活动量已经是热量，不应再填写低位发热量；请清空该字段。",
-                f"CAR-FLD-F01-{item.fuel_id}-LHV",
-            ))
-            return None
         if activity is None or carbon is None or fox is None:
             return None
         if lhv is not None:
@@ -1957,7 +2311,7 @@ class CarbonMaterialCalculator:
                 if fuel.fuel_id in seen_paths:
                     problems.append(_problem("CAR-VAL-FUEL-PATH-DUPLICATE", IssueLevel.ERROR, f"燃料 {fuel.fuel_id} 按多个路径重复计入。", fuel.fuel_id))
                 seen_paths[fuel.fuel_id] = fuel.path
-                amount = self._fuel(fuel, snapshots, problems, snapshot_at)
+                amount = self._fuel(fuel, snapshots, problems, snapshot_at, accounting_period=input_value.period)
                 if amount is not None:
                     fuel_total += amount
                     lines.append(CalculationLine(f"{SOURCE_FUEL}.{fuel.fuel_id}", SOURCE_FUEL, CO2_ID, amount, "tCO2"))
@@ -2105,6 +2459,49 @@ class CarbonMaterialCalculator:
                 validated: list[CarbonateComponent] = []
                 for index, component in enumerate(unit.components):
                     component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{index}"
+                    fraction_binding = self._standard_parameter_binding(
+                        component.carbonate_fraction, "CAR-PAR-P04B-I", input_value.period,
+                    ) if isinstance(component.carbonate_fraction, ParameterValue) and (component.carbonate_fraction.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.carbonate_fraction.factor_id is not None) and len(unit.components) == 1 else None
+                    factor_binding = self._carbonate_default_binding(component, input_value.period)
+                    conversion_binding = self._standard_parameter_binding(
+                        component.conversion_rate, "CAR-PAR-P04B-TR", input_value.period,
+                    ) if isinstance(component.conversion_rate, ParameterValue) and (component.conversion_rate.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.conversion_rate.factor_id is not None) else None
+                    for policy_field, value, bound, suffix in (
+                        ("fgd.ratio", component.carbonate_fraction, fraction_binding is not None, "I"),
+                        ("fgd.factor", component.emission_factor, factor_binding is not None, "EF1"),
+                        ("fgd.conversion", component.conversion_rate, conversion_binding is not None, "TR"),
+                    ):
+                        row_field_id = f"{component_prefix}-{suffix}"
+                        policy_invalid = self._append_source_policy_problem(
+                            policy_field, value, problems,
+                            origin=component.origin,
+                            has_resolver_binding=bound,
+                            carbonate_component_count=len(unit.components),
+                            problem_field_id=row_field_id,
+                        )
+                        if not policy_invalid and isinstance(value, ParameterValue):
+                            candidate = {
+                                "fgd.ratio": fraction_binding,
+                                "fgd.factor": factor_binding,
+                                "fgd.conversion": conversion_binding,
+                            }[policy_field]
+                            if value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS:
+                                matches = candidate is not None and self._factor_value_matches(value, candidate)
+                            elif value.factor_id is not None:
+                                matches = self._registered_factor_value_matches(value)
+                            else:
+                                continue
+                            if not matches:
+                                label = parameter_source_policy(
+                                    policy_field, origin=component.origin,
+                                    has_resolver_binding=bound,
+                                    carbonate_component_count=len(unit.components),
+                                ).short_label
+                                problems.append(_problem(
+                                    "CAR-VAL-PARAMETER-BINDING-MISMATCH", IssueLevel.ERROR,
+                                    f"{label}与当前核验的参数来源信息不一致，请重新选择适用来源。",
+                                    row_field_id,
+                                ))
                     amount = self._quantity(component.amount, "t", f"{component_prefix}-CAL", problems)
                     fraction_field = f"{component_prefix}-I"
                     if isinstance(component.carbonate_fraction, ParameterValue):
@@ -2203,6 +2600,13 @@ class CarbonMaterialCalculator:
                     problems.extend(resolution.problems)
                     if resolution.blocked or resolution.snapshot is None or resolution.result is None or resolution.result.recommended is None:
                         continue
+                    if detail.acquisition_mode is ElectricityAcquisitionMode.PURCHASED:
+                        attribute = "NONFOSSIL" if detail.attribute is ElectricityAttribute.NONFOSSIL else "FOSSIL" if detail.attribute is ElectricityAttribute.FOSSIL else "CONVENTIONAL"
+                        if self._electricity_source_policy_invalid(
+                            resolution.parameter_resolution, direction="PURCHASED", attribute=attribute,
+                            problems=problems, field_id=detail.detail_id, other=detail.factor_override is not None,
+                        ):
+                            continue
                     snapshots.append(resolution.snapshot)
                     quantity = self._quantity(InputValue(detail.electricity_amount, detail.electricity_unit), "MWh", detail.detail_id, problems)
                     if quantity is None:
@@ -2218,7 +2622,13 @@ class CarbonMaterialCalculator:
             for line in input_value.exported_electricity:
                 quantity = self._quantity(line.amount, "MWh", line.line_id, problems)
                 factor = line.factor
-                parameter_id = PROVINCIAL_ELECTRICITY_PARAMETER_ID if line.region is not None else "electricity_emission_factor_national"
+                parameter_id = (
+                    factor.parameter_id
+                    if factor is not None and factor.parameter_id in OFFICIAL_ELECTRICITY_PARAMETER_IDS
+                    else PROVINCIAL_ELECTRICITY_PARAMETER_ID
+                    if line.region is not None
+                    else NATIONAL_ELECTRICITY_PARAMETER_ID
+                )
                 parameter_context = ParameterResolutionContext(
                     parameter_id=parameter_id,
                     standard_id=STANDARD_ID,
@@ -2230,49 +2640,85 @@ class CarbonMaterialCalculator:
                     electricity_attribute=ElectricityAttribute.ORDINARY,
                     extra_context=(("energy_direction", "exported"),),
                 )
-                if factor is None:
-                    factor_value = self._resolve_parameter(
-                        parameter_context, snapshots, problems, snapshot_at, detail_id=line.line_id
+                if factor is not None and factor.factor_id is None:
+                    # An absent ID is not permission to reinterpret a claimed
+                    # catalogue default as an independent user-provided source.
+                    if factor.source_kind not in {
+                        ParameterSourceKind.USER_DEFINED, ParameterSourceKind.MEASURED,
+                        ParameterSourceKind.CALCULATED, ParameterSourceKind.PROJECT_SPECIFIED,
+                    }:
+                        problems.append(_problem(
+                            "CAR-VAL-ELECTRICITY-SOURCE-MISMATCH", IssueLevel.ERROR,
+                            "输出电力的目录来源缺少明确因子身份；请重新选择目录因子或明确选择其他来源。",
+                            line.line_id,
+                        ))
+                        continue
+                    if self._electricity_source_policy_invalid(
+                        None, direction="EXPORTED", attribute="CONVENTIONAL",
+                        problems=problems, field_id=line.line_id, other=True,
+                    ):
+                        continue
+                    factor_value = self._parameter(
+                        factor, "tCO2/MWh", f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}",
+                        snapshots, problems, snapshot_at,
                     )
-                elif (
-                    factor.parameter_id in {
-                        "electricity_emission_factor_national",
-                        PROVINCIAL_ELECTRICITY_PARAMETER_ID,
-                    }
-                    and factor.parameter_id != parameter_id
-                ):
                     problems.append(_problem(
-                        "CAR-VAL-ELECTRICITY-PARAMETER-REGION",
-                        IssueLevel.ERROR,
-                        "外供电力因子参数必须与所选地区对应；当前输入不能回退到其他地区或全国参数。",
+                        "GEN-VAL-USER-OVERRIDE-REVIEW", IssueLevel.WARNING,
+                        "请核实其他来源电力因子的适用性与有效年份；来源说明选填，本次按填写值计算。",
                         line.line_id,
                     ))
-                    factor_value = None
-                elif (
-                    factor.factor_id is not None
-                    and factor.source_kind in {
-                        ParameterSourceKind.STANDARD_DEFAULT,
-                        ParameterSourceKind.STANDARD_SPECIFIED,
-                        ParameterSourceKind.OFFICIAL_PUBLISHED,
-                    }
-                ):
-                    selected_context = replace(
-                        parameter_context,
-                        confirmed_factor_id=factor.factor_id,
-                        confirmation_reason=factor.selection_reason,
-                    )
-                    factor_value = self._resolve_parameter(
-                        selected_context, snapshots, problems, snapshot_at, detail_id=line.line_id
-                    )
                 else:
-                    factor_value = self._parameter(
-                        factor,
-                        "tCO2/MWh",
-                        f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}",
-                        snapshots,
-                        problems,
-                        snapshot_at,
+                    if self.parameter_resolver is None:
+                        problems.append(_problem(
+                            "CAR-VAL-PARAMETER-RESOLVER-MISSING", IssueLevel.ERROR,
+                            "输出电力目录因子没有接入参数解析服务。", line.line_id,
+                        ))
+                        continue
+                    selected_context = replace(
+                        parameter_context, confirmed_factor_id=factor.factor_id,
+                        confirmation_reason=factor.selection_reason,
+                    ) if factor is not None else parameter_context
+                    actual_resolution = self.parameter_resolver.resolve(selected_context)
+                    if actual_resolution.blocked or actual_resolution.recommended is None:
+                        self._resolve_parameter(selected_context, snapshots, problems, snapshot_at,
+                                                detail_id=line.line_id, resolved=actual_resolution)
+                        continue
+                    selected_factor = actual_resolution.recommended.factor
+                    association = self.parameter_resolver.reference_binding_for(actual_resolution)
+                    # Source edition and factor year are distinct. The existing
+                    # bridge used Factor.version; Excel already keeps the real
+                    # Source edition. Accept only these actually verified forms.
+                    source_versions = {selected_factor.version}
+                    if association.binding is not None and association.binding.source_version is not None:
+                        source_versions.add(association.binding.source_version)
+                    comparable_factor = replace(
+                        factor, unit=selected_factor.unit, source_version=selected_factor.version,
+                    ) if (
+                        factor is not None and factor.unit.replace("₂", "2") == selected_factor.unit.replace("₂", "2")
+                        and factor.source_version in source_versions
+                    ) else factor
+                    if comparable_factor is not None and not self._factor_value_matches(
+                        comparable_factor, selected_factor,
+                    ):
+                        problems.append(_problem(
+                            "CAR-VAL-ELECTRICITY-SOURCE-MISMATCH", IssueLevel.ERROR,
+                            "输出电力的采用值、单位或来源与所选目录因子不一致；保留原输入，请重新确认来源。",
+                            line.line_id,
+                        ))
+                        continue
+                    if self._electricity_source_policy_invalid(
+                        actual_resolution, direction="EXPORTED", attribute="CONVENTIONAL",
+                        problems=problems, field_id=line.line_id,
+                    ):
+                        continue
+                    # The very same resolution supplies qualification, arithmetic
+                    # and the immutable snapshot. Do not resolve it a second time.
+                    factor_value = self._resolve_parameter(
+                        selected_context, snapshots, problems, snapshot_at,
+                        detail_id=line.line_id, resolved=actual_resolution,
                     )
+                    # The original Source edition remains frozen in raw_input;
+                    # keep the existing stable Factor-version snapshot contract.
                 if quantity is not None and factor_value is not None:
                     amount = purchased_electricity_emission(quantity, factor_value)
                     exported_power_total += amount

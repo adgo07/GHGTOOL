@@ -1,21 +1,21 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_json_file_sha256": "8989a7b964fd690f81736dc79e1708c1027967746f717742e575d66911ae9721",
-  "workbook_sha256": "f85f2bd7e2351cf53af5f9af619054e803682e7f8a41ad7ebd76409ecf769e6a",
+  "review_json_file_sha256": "12805e414e327a529f111a0ba44d44daf3aa00149bc7c8e1b40494c6faa92a87",
+  "workbook_sha256": "46d4d0f98a4f3ffc51e31a64b63afa7a8cc3ee19617be99e2d5577d7aed2464a",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "66f78a8ab47220ecef3d947a272855e1a9f4dc7956b1ac725f30a9ee1440a0bb",
+  "generator_sha256": "1efcc97bbfe3d094ebe0f025713506d2465d2b4338bdf1ed99b0826132e8d405",
   "fixture_script": "scripts/test_business_rules_review.mjs",
   "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "05c7f43545c50eb468b2bef477d23550148b9d9a991ab6e7aed2b7fb63400b1b",
-  "details_source_revision": "candidate-2026-10-17-r11",
+  "details_file_sha256": "4f7eaabe191a8921a4dcb4703a8bacabc388ba0302b58eabb64c3fa8ac6a6c81",
+  "details_source_revision": "adoption-2026-10-17-fuel-power1",
   "details_source_counts": {
-    "fields": 649,
+    "fields": 652,
     "operations": 21,
     "changes": 11
   },
-  "details_semantic_sha256": "330d6b2781910aa4343a9b59fbbbf4bcf5949ff8de1c278a48e84f3bba6e69dd",
+  "details_semantic_sha256": "2ab1da197a1ce16c2a91b824f9d19c78d6cdce1a00a0d9b6b867ad9bb6c2e288",
   "details_projection_bound": true,
   "serialization_aliases": {
     "review_mode": "compact_business_v2",
@@ -120,21 +120,21 @@
   "freeze_panes": "D6",
   "formulas": 0,
   "error_cells": 0,
-  "maximum_cell_characters": 3087,
+  "maximum_cell_characters": 3635,
   "maximum_row_height_points": 344.0,
   "view_scope": {
     "power_rows": "按真实输入路径与方向拆分，不作为新增业务对象",
     "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
     "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
     "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
-    "compatibility": "候选未接生产；codec/模板/DB迁移/正式Record/报告结构未改。映射澄清已独立提交。"
+    "compatibility": "仅限本审阅视图生成：不改生产codec、DB迁移或历史Record；PR46的v5模板与报告变化见IMPLEMENTATION_REPORT，不能推断整个PR无兼容变化。"
   },
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
-    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "d3917226d0ce9f30c3426a46d245e843cde04c57434e9d6dce852c3be737beb3",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "d3ad88176c860959cc98639b3b31cb8c6842a68f7a5cf35a9426bc6ead00403b",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "c3bd016e421b2a2373a9f3343450803cdd33cfabe82dd5082c440db4ca0c12a4"
+    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "bfd443404a86a4f469b901e92236ec9a11ad4863975eff7cd3bae6498a5f31d7",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "26007853c2dc53a0f1398564e61ee0245bdfe314619af9ccef0f21fa19adca4d",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "3e93c0930fad8986eca2fb0e154e801da853d19b0965d580bfe41b21ed4de5aa"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",
@@ -155,8 +155,8 @@
     "status": "VERIFIED"
   },
   "condition_scopes": {
-    "count": 442,
-    "unique": 442,
+    "count": 450,
+    "unique": 450,
     "source": "HTML与业务规则内容指纹双向核对；详情摘要绑定当前technical JSON"
   },
   "catalog_snapshot": {
@@ -288,19 +288,19 @@
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "86119775c215eb6290b81b909aa68b0c710c25e1fefc3e52965aa4990ef2c313",
+    "report_sha256": "4232de2957f189457dda5e4f8944d8a60b00e040122f96ff8f913feba1863b8a",
     "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
     "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
     "status": "PASS",
     "actual_scenario_count": 25,
     "input_mode": "formal compact and technical projection",
-    "formal_projection_sha256": "df5a801fb23f504fe0b2c5cf84c579139f8a6c2f7b2624853e47a7b456880b37",
-    "formal_details_sha256": "79ad08a3baa99583ac20e7e6b7d9a7ad5083b2a338ccfac816b1003fd8b93bbe"
+    "formal_projection_sha256": "65d8d7f6532a0855efc78b7cc8d4ef6b930f03b2c3df6424f4adbb22fe6846d0",
+    "formal_details_sha256": "3ae7ce4930e8fc7ac9fbdeb9da9caba8c22440f3a087bd6bde780c6d10504161"
   },
   "technical_combinations": {
-    "total": 649,
-    "READY": 281,
-    "BLOCKED": 368
+    "total": 652,
+    "READY": 282,
+    "BLOCKED": 370
   }
 }

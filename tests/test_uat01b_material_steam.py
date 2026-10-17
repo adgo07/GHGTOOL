@@ -8,6 +8,7 @@ import unittest
 from packages.core import AccountingPeriod, PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.application.carbon_accounting import CarbonAccountingUseCase
+from packages.application.canonical_input_codec import decode_canonical_input, encode_canonical_input
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import (
     BakingInput,
@@ -151,6 +152,40 @@ class UAT01BMaterialNormalizationTests(unittest.TestCase):
         self.assertEqual(result_by_source["CAR-SRC-CALCINATION-001"], expected_calc)
         self.assertEqual(result_by_source["CAR-SRC-BAKING-001"], expected_bake)
         self.assertEqual(result_by_source["CAR-SRC-GRAPHITIZATION-001"], expected_graph)
+
+    def test_legacy_chemical_calculation_source_round_trips_but_blocks_new_calculation(self) -> None:
+        feed = MaterialInputLine(
+            "legacy-feed", MaterialRole.CALCINATION_FEED, "旧原料", "10",
+            "80", MaterialDataSource.MEASURED, "2",
+            MaterialDataSource.CHEMICAL_CALCULATION,
+        )
+        product = MaterialInputLine(
+            "legacy-product", MaterialRole.CALCINED_PRODUCT, "煅后料", "9",
+            "85", MaterialDataSource.MEASURED, "1",
+            MaterialDataSource.MEASURED,
+        )
+        input_value = _input(calcination=CalcinationInput(
+            gc="10", wfc="0.8", cc="9", ucc="0", du="0", wfc_c="0.85",
+            wvar="0.02", wvar_c="0.01", k1="0.35",
+            material_rows=(feed, product),
+        ))
+        decoded = decode_canonical_input(encode_canonical_input(input_value))
+        self.assertIs(
+            decoded.calcination.material_rows[0].volatile_matter_source,
+            MaterialDataSource.CHEMICAL_CALCULATION,
+        )
+
+        repository = InMemoryRecordRepository()
+        outcome = CarbonAccountingUseCase(
+            CarbonMaterialCalculator(), repository
+        ).calculate(decoded, calculated_at=CALCULATED_AT)
+        self.assertTrue(outcome.blocked)
+        self.assertIn(
+            "CAR-VAL-MATERIAL-SOURCE-INAPPLICABLE",
+            {problem.code for problem in outcome.problems},
+        )
+        self.assertIsNone(outcome.record)
+        self.assertEqual(repository.list_all(), ())
 
     def test_absent_optional_rows_and_explicit_zero_are_distinct(self) -> None:
         rows = (
