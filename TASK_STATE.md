@@ -51,3 +51,9 @@ instance_id、line_id与role共同定位，不以名称/行号代替；切源/�
 全量证据仍为2368380的816项812PASS/4FAIL/0ERROR；四失败对应旧模板夹具已13/13定向闭环，后续Numeric/材料64项及交付16项通过，不宣称最新head全量PASS。完整命令、失败历史、SHA、商业待办及NOT_RUN见IMPLEMENTATION_REPORT.md。
 
 C/M/F/N本包工作完成并停止，F/N未生产集成。不push/公开PR/上传/合并/删除，不自动进入下一包；原生Office/鼠标/IME/DPI/企业案例/干净机器/正式商业与IP仍未完成。
+
+## 私有 CI250 断点
+
+用户已授权私有化后push/PR/CI；已实际GET复核private，推送4b656911并创建PR49。旧“仅本地/不push/未CI”是历史停止点，已由新授权解除，其他范围不扩大。
+
+CI250/run39038977148实际819项817PASS/2FAIL/0ERROR（1189.610s），exact-head构建跳过。只修EXB01新v6母版空断言与UAT03旧算法字符串断言，精确核冻结母版/填写SHA分离和声明版本；PR46历史空证据/Numeric正式Record一致保护保留。受影响5模块本地49/49，8.650s。生产树不变；新head送源会话复核并重跑CI及实包审计，不merge/不启动下包。详情见IMPLEMENTATION_REPORT末尾。

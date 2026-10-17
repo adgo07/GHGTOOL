@@ -229,7 +229,10 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         self.assertEqual(report.layout_id, "gbt-32151-34-2024-appendix-b")
         self.assertEqual(report.template_sha256, APPROVED_SOURCE_SHA256)
         self.assertEqual(report.input_template_version, raw_snapshot["ingress_provenance"]["workbook"]["template_version"])
-        self.assertEqual(report.input_template_sha256, "")  # Historical ingress freezes no master hash.
+        frozen_workbook = raw_snapshot["ingress_provenance"]["workbook"]
+        self.assertEqual(report.input_template_sha256, frozen_workbook["template_master_sha256"])
+        self.assertEqual(report.input_template_sha256, APPROVED_TEMPLATE_SHA256)
+        self.assertNotEqual(report.input_template_sha256, frozen_workbook["sha256"])
         b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
         totals = frozen_totals(record, self.repository.get_trace_snapshot(record.record_id))
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (totals["ES"], totals["ET"]))

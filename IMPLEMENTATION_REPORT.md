@@ -78,3 +78,15 @@ N 中位数 handler/eventpump：首次新建4571/4801ms，首次记录630/671，
 - 不修改计算表用户参考文件；中央锁/PLATFORM_BASELINE/历史Numeric conformance未改。
 
 本地送源会话独立验收后停止。验收可按以上完整失败历史、定向闭环、生产冻结提交及实际包体证据复核，不将本报告当独立验收结论。
+
+## 私有仓推送与 CI250 退修断点（2026-10-17）
+
+Owner 后续明确授权仓库转私有后推送及CI。源会话已执行私有化，本会话GET复核visibility=private，origin/main仍dada7a18；推送受验4b656911并创建私有PR49。此前“未push/未PR/未CI”是当时记录，不是当前状态；未授权merge、销售或下一包。
+
+GitHub Actions Windows CI #250，run39038977148，PR head4b656911，实际checkout merge-ref af0edeba37fa49b755f752db97a7db805e3aa14d。Canonical/编译/pip check/数据库/GUI/缩放均成功；全量819项1189.610s，817PASS/2FAIL/0ERROR，exact-head standalone因needs跳过，不能称CI通过。
+
+失败定位：新v6冻结母版后，EXB01整链测试仍断言母版空；当前真实算法身份修复后，UAT03仍断言旧G06.2字符串。仅更新这两处测试：核同Record冻结母版=当前受控母版且与填写SHA不同；核outcome/result精确等于声明ALGORITHM_VERSION。已有Numeric正式Record版本一致及PR46旧无母版仍空保护保留并同组执行，未放宽为任意非空。
+
+本地命令：python -B -m unittest tests.test_exb01_rpt02_integration tests.test_uat03_rules tests.test_pr46_report_template_identity tests.test_numeric_contract_v1_adoption tests.test_qzc_n01_c_numeric_unit_pilot -v；49/49，8.650s，日志tmp/material-ci250-fixture-closure.log。无生产/资源/依赖策略修改。新提交须源会话复核及重新CI/此前跳过的exact-head构建审计。
+
+CI实装CPython3.12.10、PySide6/Essentials/Addons/shiboken6 6.12.0及新增拆分包PySide6-WebEngine/Pdf；本地旧包为Python3.12.14/Qt6.11.2。该环境差异如实保留，不能把未生成CI包当作本地包相同；不自行改依赖策略或付费设置。
