@@ -276,52 +276,35 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
         self.assertFalse(first.remove_button.isVisible())
 
     def test_direct_carbon_path_keeps_heat_defaults_and_full_decimal_precision(self) -> None:
-        def factor(parameter_id: str, value: str, unit: str, suffix: str):
-            return SimpleNamespace(
-                parameter_id=parameter_id,
-                value=Decimal(value),
-                unit=unit,
-                value_type=ValueType.STANDARD_DEFAULT,
-                source_id=f"SOURCE-{suffix}",
-                version="2025",
-                source_location=f"Appendix C.1 {suffix}",
-                factor_id=f"FACTOR-{suffix}",
-                factor_year=2025,
-            )
-
-        resolved = (
-            factor("LOWER_HEATING_VALUE", "389.31", "GJ/t", "LHV"),
-            factor("CARBON_CONTENT_PER_HEAT", "0.0153", "tC/GJ", "C"),
-            factor("OXIDATION_RATE", "0.94", "ratio", "OX"),
-        )
+        # Default qualification is proven by the real Catalog/Resolver, never
+        # by a SimpleNamespace pretending to be an official factor.
+        self.page.close()
+        self.page = CarbonMaterialAccountingPage(catalog_service=CatalogQueryService(SQLiteCatalogRepository(self.catalog_path)))
         row = self.page._fuel_rows[0]
-        row.path.setCurrentIndex(row.path.findData(FuelPath.MASS))
-        with patch.object(self.page, "_fuel_default_factors", return_value=resolved):
-            self.page._refresh_fuel_row(row, initialize_defaults=True)
-            self.assertEqual(row.lower_heating_value.text(), "389.31")
-            self.assertEqual(row.carbon.text(), "0.0153")
-            self.assertIn("5.96", row.calculated_carbon_label.text())
-            row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
-            row.carbon_direct.setText("0.001234567890123")
-            self.page._refresh_fuel_row(row)
-            self.assertEqual(row.lower_heating_value.text(), "389.31")
-            self.assertEqual(row.carbon.text(), "0.0153")
-            self.assertEqual(row.lhv_source.currentData(), "STANDARD_DEFAULT")
-            self.assertEqual(row.direct_carbon_source.currentData(), "MEASURED")
-            direct = self.page._fuel()[0]
-            self.assertIsNone(direct.lower_heating_value)
-            self.assertEqual(direct.carbon_content.value, Decimal("0.001234567890123"))
-            self.assertEqual(direct.carbon_content.unit, "tC/t")
-            self.assertIs(direct.carbon_content.source_kind, ParameterSourceKind.MEASURED)
-
-            row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("HEAT_CONTENT"))
-            self.page._refresh_fuel_row(row)
-            calculation = self.page._fuel()[0]
-            self.assertEqual(calculation.lower_heating_value.value, Decimal("389.31"))
-            self.assertEqual(calculation.carbon_content.value, Decimal("0.0153"))
-            self.assertEqual(row.lower_heating_value.text(), "389.31")
-            self.assertEqual(row.carbon.text(), "0.0153")
-
+        row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+        row.path.setCurrentIndex(row.path.findData(FuelPath.VOLUME))
+        self.assertEqual(row.lower_heating_value.text(), "389.31")
+        self.assertEqual(row.carbon.text(), "0.0153")
+        self.assertIn("5.96", row.calculated_carbon_label.text())
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))
+        row.carbon_direct.setText("0.001234567890123")
+        self.page._refresh_fuel_row(row)
+        self.assertEqual(row.lower_heating_value.text(), "389.31")
+        self.assertEqual(row.carbon.text(), "0.0153")
+        self.assertEqual(row.lhv_source.currentData(), "STANDARD_DEFAULT")
+        self.assertEqual(row.direct_carbon_source.currentData(), "MEASURED")
+        direct = self.page._fuel()[0]
+        self.assertIsNone(direct.lower_heating_value)
+        self.assertEqual(direct.carbon_content.value, Decimal("0.001234567890123"))
+        self.assertEqual(direct.carbon_content.unit, "tC/10^4Nm3")
+        self.assertIs(direct.carbon_content.source_kind, ParameterSourceKind.MEASURED)
+        row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("HEAT_CONTENT"))
+        self.page._refresh_fuel_row(row)
+        calculation = self.page._fuel()[0]
+        self.assertEqual(calculation.lower_heating_value.value, Decimal("389.31"))
+        self.assertEqual(calculation.carbon_content.value, Decimal("0.0153"))
+        self.assertEqual(row.lower_heating_value.text(), "389.31")
+        self.assertEqual(row.carbon.text(), "0.0153")
 
     def test_project_unit_controls_are_attached_and_folded_by_default(self) -> None:
         self.assertTrue(self.page.project_unit_card.isHidden())

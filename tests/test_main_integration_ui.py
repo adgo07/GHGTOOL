@@ -137,8 +137,8 @@ class MainIntegrationUiTests(unittest.TestCase):
                 with self.subTest(path=path,direct=direct):
                     row.path.setCurrentIndex(row.path.findData(path))
                     row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT" if direct else "HEAT_CONTENT"))
-                    row.lhv_source.setCurrentIndex(row.lhv_source.findData("CALCULATED"))
-                    row.carbon_source.setCurrentIndex(row.carbon_source.findData("CALCULATED"))
+                    row.lhv_source.setCurrentIndex(row.lhv_source.findData("MEASURED"))
+                    row.carbon_source.setCurrentIndex(row.carbon_source.findData("MEASURED"))
                     row.direct_carbon_source.setCurrentIndex(row.direct_carbon_source.findData("MEASURED"))
                     row.oxidation_source.setCurrentIndex(row.oxidation_source.findData("MEASURED"))
                     row.activity.setText("10")
@@ -150,8 +150,8 @@ class MainIntegrationUiTests(unittest.TestCase):
                     workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
                     sheet = workbook["B.2"]
                     for cell,value in {"A4":"同名自定义燃料批次","B4":10,"C4":"t" if path is FuelPath.MASS else "10⁴Nm³",
-                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"计算值",
-                        "H4":None,"I4":98,"J4":"实测值","L4":0.03,"M4":"自定义","N4":"计算值" if not direct else None}.items():
+                        "D4":0.4 if direct else None,"E4":"实测值" if direct else "计算值","F4":8,"G4":"实测值",
+                        "H4":None,"I4":98,"J4":"实测值","L4":0.03,"M4":"自定义","N4":"实测值" if not direct else None}.items():
                         sheet[cell]=value
                     destination=self.root / "自定义燃料等价.xlsx"
                     workbook.save(destination);workbook.close()

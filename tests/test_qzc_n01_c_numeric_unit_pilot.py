@@ -25,6 +25,7 @@ from packages.standards.carbon_material import (
     CarbonMaterialCalculator,
     CarbonMaterialInput,
     FuelInput,
+    FuelPath, InputOrigin, ParameterSourceKind,
     FumeIncinerationInput,
     GraphitizationInput,
     HeatInput,
@@ -45,6 +46,13 @@ SNAPSHOT_AT = datetime(2026, 9, 30, 0, 0, tzinfo=timezone.utc)
 PERIOD = AccountingPeriod(PeriodType.ANNUAL, date(2025, 1, 1), date(2025, 12, 31))
 
 
+def _numeric_fuel(fuel_id, activity):
+    return FuelInput(fuel_id, FuelPath.MASS, activity,
+                     ParameterValue("numeric.carbon", "1", "tC/t", source_kind=ParameterSourceKind.MEASURED),
+                     ParameterValue("numeric.oxidation", "1", "ratio", source_kind=ParameterSourceKind.MEASURED),
+                     origin=InputOrigin.CUSTOM, fuel_label="Numeric测试燃料")
+
+
 def _fuel_only_input(activity: str = "1") -> CarbonMaterialInput:
     return CarbonMaterialInput(
         input_id="n01c.context",
@@ -52,7 +60,7 @@ def _fuel_only_input(activity: str = "1") -> CarbonMaterialInput:
         enterprise_name="N01-C",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.context", activity, InputValue("1", "tC/t"), InputValue("1", "ratio")),),
+        fuel_inputs=(_numeric_fuel("fuel.context", activity),),
     )
 
 
@@ -65,7 +73,7 @@ def _full_profile_input() -> CarbonMaterialInput:
         enterprise_name="N01-C-R1",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.profile", "1", InputValue("1", "tC/t"), InputValue("1", "ratio")),),
+        fuel_inputs=(_numeric_fuel("fuel.profile", "1"),),
         calcination=CalcinationInput(
             gc="100",
             wfc="0.008",

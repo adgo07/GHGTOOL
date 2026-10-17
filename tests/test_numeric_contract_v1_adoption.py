@@ -18,6 +18,7 @@ from packages.standards.carbon_material import (
     CarbonMaterialInput,
     FuelInput,
     InputValue,
+    FuelPath, ParameterValue, ParameterSourceKind, InputOrigin,
 )
 
 
@@ -38,7 +39,10 @@ def _fuel_only_input() -> CarbonMaterialInput:
         enterprise_name="Numeric v1 adoption",
         period=PERIOD,
         boundary_confirmed=True,
-        fuel_inputs=(FuelInput.mass("fuel.numeric-v1", "1", InputValue("1", "tC/t"), InputValue("1", "ratio")),),
+        fuel_inputs=(FuelInput("fuel.numeric-v1", FuelPath.MASS, "1",
+            ParameterValue("numeric.carbon", "1", "tC/t", source_kind=ParameterSourceKind.MEASURED),
+            ParameterValue("numeric.oxidation", "1", "ratio", source_kind=ParameterSourceKind.MEASURED),
+            origin=InputOrigin.CUSTOM, fuel_label="Numeric测试燃料"),),
     )
 
 

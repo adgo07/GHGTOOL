@@ -57,19 +57,19 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 }
                 for sheet in workbook.worksheets
             }
-            self.assertIn(("E4:E18", "list", '"计算值,实测值"'), validations["B.2"])
-            self.assertIn(("G4:G18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("E4:E18", "list", '"计算值,实测值,直接计算值"'), validations["B.2"])
+            self.assertIn(("G4:G18", "list", '"缺省值,实测值"'), validations["B.2"])
             self.assertIn(("J4:J18", "list", '"缺省值,实测值"'), validations["B.2"])
-            self.assertIn(("N4:N18", "list", '"缺省值,计算值,实测值"'), validations["B.2"])
+            self.assertIn(("N4:N18", "list", '"缺省值,实测值"'), validations["B.2"])
             self.assertIn(("J3:J8", "list", '"缺省值,实测值"'), validations["B.7"])
             b2_by_range = {str(item.sqref): item for item in workbook["B.2"].data_validations.dataValidation}
-            self.assertEqual(b2_by_range["D4:D18"].error, "仅在相应数据来源选择“实测值”后可填写 D 列。")
+            self.assertEqual(b2_by_range["D4:D18"].formula1, 'OR($E4="实测值",$E4="直接计算值",D4="")')
             self.assertEqual(b2_by_range["F4:F18"].error, "仅在相应数据来源选择“实测值”后可填写 F 列。")
             self.assertEqual(b2_by_range["I4:I18"].error, "仅在相应数据来源选择“实测值”后可填写 I 列。")
             b7_by_range = {str(item.sqref): item for item in workbook["B.7"].data_validations.dataValidation}
             self.assertEqual(b7_by_range["J3:J8"].error, "请选择缺省值或实测值。")
             self.assertTrue(all(workbook[name].protection.sheet for name in APPENDIX_B_SHEETS))
-            self.assertIn("Resolver 绑定", workbook["B.2"]["A20"].value)
+            self.assertTrue(workbook["B.2"]["A20"].value.startswith("燃料输入规则 V5："))
             self.assertIn("多组分逐项填实测", workbook["B.7"]["A9"].value)
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
             self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
@@ -91,7 +91,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                     self.assertFalse(workbook[sheet][cell].protection.locked,(sheet,cell))
             for sheet,cell in (("B.2","H4"),("B.2","K4"),("B.7","E3"),("B.7","G3"),("B.8","E3")):
                 self.assertTrue(workbook[sheet][cell].protection.locked,(sheet,cell))
-            self.assertEqual(self.service.validate_structure(workbook),"2.2.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.3.0")
         finally:
             workbook.close()
 

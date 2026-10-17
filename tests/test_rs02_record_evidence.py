@@ -120,7 +120,9 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             )
             input_value = _input(
                 reporting_data=reporting,
-                fuel_inputs=(FuelInput.mass("fuel.coke", "2", measured_carbon, InputValue("0.98", "ratio")),),
+                fuel_inputs=(FuelInput("fuel.coke", FuelPath.MASS, "2", measured_carbon,
+                    ParameterValue("fuel.oxidation", "0.98", "ratio", source_kind=ParameterSourceKind.MEASURED),
+                    origin=InputOrigin.CUSTOM, fuel_label="证据快照燃料"),),
             )
 
             outcome = use_case.calculate(input_value, calculated_at=NOW)
@@ -226,7 +228,9 @@ class RS02RecordEvidenceTests(unittest.TestCase):
             _input(
                 reporting_data=reporting,
                 source_states=(EmissionSourceState(SOURCE_FUEL, EmissionSourceStatus.INVOLVED),),
-                fuel_inputs=(FuelInput("coke-line", FuelPath.MASS, activity, carbon, InputValue("0.98", "ratio")),),
+                fuel_inputs=(FuelInput("coke-line", FuelPath.MASS, activity, carbon,
+                    ParameterValue("fuel.oxidation", "0.98", "ratio", source_kind=ParameterSourceKind.MEASURED),
+                    origin=InputOrigin.CUSTOM, fuel_label="证据快照燃料"),),
             ),
             calculated_at=NOW,
         )
