@@ -10,6 +10,62 @@ from .name_selector import NameSelector
 from .field_specs import get_field_spec
 from .typed_inputs import create_typed_input
 
+
+class FuelParameterDrafts:
+    """Presentation drafts scoped to a confirmed identity and quantity path.
+
+    This store never selects a source or supplies calculation values. Callers
+    explicitly restore drafts after a business operation has been confirmed.
+    """
+
+    def __init__(self) -> None:
+        self._values: dict[tuple[str, str, str, str, str], str] = {}
+
+    @staticmethod
+    def _context(identity: str, path: str, basis: str) -> tuple[str, str, str]:
+        if not all(isinstance(value, str) and value for value in (identity, path, basis)):
+            raise ValueError("fuel draft context requires a confirmed identity, path and basis")
+        return identity, path, basis
+
+    def save(self, identity: str, path: str, basis: str, field: str, source: str, value: str) -> None:
+        context = self._context(identity, path, basis)
+        if not all(isinstance(item, str) for item in (field, source, value)) or not field or not source:
+            raise ValueError("fuel draft field, source and text must be explicit")
+        self._values[(*context, field, source)] = value
+
+    def load(self, identity: str, path: str, basis: str, field: str, source: str) -> str | None:
+        # None and an explicitly empty draft are different states.
+        return self._values.get((*self._context(identity, path, basis), field, source))
+
+    def export(self) -> list[dict[str, str]]:
+        return [
+            dict(zip(("identity", "path", "basis", "field", "source", "value"), (*key, value)))
+            for key, value in self._values.items()
+        ]
+
+    def restore(self, values: object, *, legacy_context: tuple[str, str, str] | None = None) -> None:
+        """Read old pairs only when the saved confirmed context is known.
+
+        Unknown context is never guessed from a current or pending selector.
+        Invalid entries are ignored without changing valid retained drafts.
+        """
+        self._values.clear()
+        if not isinstance(values, list):
+            return
+        for item in values:
+            if not isinstance(item, dict):
+                continue
+            if any(key in item for key in ("identity", "path", "basis")):
+                context = tuple(item.get(key) for key in ("identity", "path", "basis"))
+            elif legacy_context is not None:
+                context = legacy_context
+            else:
+                continue
+            try:
+                self.save(*context, item.get("field"), item.get("source"), item.get("value"))
+            except (TypeError, ValueError):
+                continue
+
 class _FuelRow(QWidget):
     """Compact two-line fuel entry with separate heat-based and direct-carbon paths."""
 
@@ -190,6 +246,7 @@ class _FuelRow(QWidget):
         self._legacy_source_modes: dict[str, str] = {}
         self._active_source_modes: dict[str, str | None] = {}
         self._parameter_source_drafts: dict[tuple[str, str], str] = {}
+        self.parameter_drafts = FuelParameterDrafts()
         self.parameter_source = "AUTO"
 
     @staticmethod
