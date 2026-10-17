@@ -104,7 +104,12 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 self.assertEqual(len(records.list_all()),1)
                 self.assertIsNotNone(page._last_preview)
                 self.assertTrue(page._last_preview.units[0].can_calculate, page._last_preview.units[0].errors)
-                page.project_name.setText('材料Excel项目');page._save_preview_as_project();page._calculate_selected_unit()
+                page.project_name.setText('材料Excel项目');page._save_preview_as_project()
+                saved_id=page._workspace.project_id
+                reopened=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/'projects.sqlite')).get(saved_id)
+                frozen_ingress=reopened.units[0].ingress_provenance['workbook']
+                self.assertEqual(frozen_ingress['template_master_sha256'],ExcelTemplateService.default().get().sha256)
+                page.open_project(saved_id);page._calculate_selected_unit()
                 self.assertEqual(len(records.list_all()),2)
                 latest=records.list_all()[0]
                 self.assertEqual(latest.calculation_result.total_amount,gui_record.calculation_result.total_amount)
@@ -118,6 +123,22 @@ class MaterialGuiExcelTests(unittest.TestCase):
                     records.get_reporting_snapshot(imported_record.record_id),records.get_report_qualification(imported_record.record_id))
                 self.assertEqual(frozen_model.input_template_version,'2.4.0')
                 self.assertEqual(frozen_model.input_template_sha256,ingress['template_master_sha256'])
+                from importlib.resources import files
+                from packages.excel.templates import APPROVED_TEMPLATE_V5_RESOURCE
+                old_book=load_workbook(BytesIO(files('resources').joinpath(APPROVED_TEMPLATE_V5_RESOURCE).read_bytes()))
+                old_book['B.8']['B3']='电网电力';old_book['B.8']['C3']=1;old_book['B.8']['D3']=Decimal('.5')
+                old_path=root/'旧v5.xlsx';old_book.save(old_path);old_book.close()
+                context=page.excel_adapter.context(period=gui._period(),boundary_confirmed=True,enterprise_name='历史v5')
+                old_preview=page.excel_adapter.import_preview(old_path,context)
+                self.assertEqual(old_preview.provenance.template_version,'2.3.0')
+                self.assertIsNone(old_preview.provenance.template_master_sha256)
+                self.assertEqual(len(records.list_all()),2)
+                broken_book=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+                broken_book['B.4']['I3']='任意新增表头';broken_path=root/'非受控结构.xlsx';broken_book.save(broken_path);broken_book.close()
+                from packages.excel.ingress import WorkbookFatalError
+                with self.assertRaisesRegex(WorkbookFatalError,'B.4!I3'):
+                    page.excel_adapter.import_preview(broken_path,context)
+                self.assertEqual(len(records.list_all()),2)
                 original_workspace=page._workspace
                 legacy_units=tuple(replace(unit,canonical_input=replace(unit.canonical_input,material_execution_version='MATERIAL_V1')) for unit in original_workspace.units)
                 legacy_workspace=replace(original_workspace,units=legacy_units)

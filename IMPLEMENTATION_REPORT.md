@@ -1,50 +1,80 @@
-# PR46 独立验收退修实施报告
+# B-MATERIAL 本地实施送验报告
 
-2026-10-17。Owner直接授权修复旧HEAD `7e6bdd5f45f30c7f44db0d4dbae4b808d9736159` 的阻断项。该HEAD独立验收NOT PASS；旧770项和CI245均通过，但未覆盖此次反例。继续原PR46，不自动合并或关闭PR45，修复后交源会话复验。
+2026-10-17。状态：LOCAL_IMPLEMENTED / 待源会话独立验收。本包完成后停止，不自动转下一包，不宣布正式标准 SUPPORTED 或商业发行就绪。唯一产品路线仍为 REFERENCE_STANDARD_ROADMAP.md。PR46 已合并、PR45 已关闭；固定历史退修/验收报告保持原样。
 
-## 平台 / Contract预检查
+## 平台 / Contract 预检查
 
-origin实际核实为adgo07/GHGTOOL，原分支codex/ghg-standard-input-unification，main基线d0c26351200099a8e62c8adabadac266c77f7c8c。中央Frozen锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。保持Architecture V2.1分层、Numeric v1与本项目Decimal40/HALF_UP、环境独立性、完整值比较和显示不回流。Record/Workspace等DRAFT不冒称Frozen。
+实际核验 origin 为 adgo07/GHGTOOL，fetch 后从 main `dada7a188db55a2384ea3aad48038aa4472158b2` 创建隔离分支 codex/b-material-integration。执行不使用原 checkout 的用户工作簿。
 
-问题分类LOCAL DEFECT：按既有Issue010/014与Owner燃料B1/电力B决定修实现，不改变标准解释、公式、Numeric、数据库或历史Record。无中央Contract升级，无新的官方因子。不实施材料/过程/烟气/蒸汽后续规则、N、Word排版或CU。
+中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，按该 SHA 读取 Architecture V2.1、Numeric Contract v1、Numeric Profiles v1。适用 MUST：分层、共享 Canonical/Application/Calculator、declared-profile consistency、ambient independence、正式完整值比较、不可变 Record 与历史快照不漂移。MUST NOT：未声明 float、隐式中间修约、业务 epsilon、显示回流、自动升级 Frozen。项目 p40/ROUND_HALF_UP 为 ALLOWED PROJECT DIFFERENCE；版本守卫缺陷属 LOCAL DEFECT。无 CENTRAL CONTRACT GAP，无中央 Contract 修改。Workspace 等 DRAFT 不称 Frozen。
 
-## 修复与真实范围
+当前 ACTIVE UI v0.2 及家族清单已读取，不据此升级 Frozen。相关 Standard Issue：004、016、018；本包落实已有效的软件决定，不新增标准原文解释。干基到收到基方法由 Owner 在材料会话明确授权；原文事实、技术判断和软件决定分开，未将该实现写成标准明文。无新官方因子。无长期知识条目新增。
 
-1. 输出电力只resolve一次，同一真实结果控制资格、参数/值/单位/来源一致性、计算与快照；身份和值冲突明确阻断，原输入保持。缺ID的官方缺省不当OTHER，明确OTHER保留独立来源与可选说明。已核验Source版次与原Factor版本分别接受精确证明；raw_input保留真实来源版次，既有稳定快照版本格式不变。
-2. 共享求值对小型结果作深复制，嵌套allowed/locking不再别名到缓存；不复制整份运行资源，规则SHA不变。
-3. v5仅窄修B.2 row20的ht/customHeight。修复前严格ArtifactTool因`45, Boolean`拒绝；修复后严格读取及截图检查通过。新SHA `7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890`；旧未发布错误SHA `ce929968b8659889b0b6aba581b6782b96b8afcb8b378bc1b27c9768521e3d09`仅历史证据。除sheet2.xml外所有ZIP内容不变，旧v2/v3/v4原字节保留。发布审计在现有白名单/hash检查中增加实际包内rowBoolean检查，不另造门禁。
-4. Word读取当前Record的冻结输入模板版本，母版SHA仅在快照确有独立字段时输出；旧证据无母版SHA显示未记录，不拿用户填写工作簿sha256或当前layout伪造，不改历史记录。来源母版/报告布局身份与原输入身份分开。
-5. 文档说明候选Mapping与已批准实际采用范围；生产仅五字段(fuel.direct_carbon/lhv/fch/oxidation、electricity.factor)。审阅表A4/checks兼容声明限于审阅视图，不冒称全PR没有模板/报告变化。四件套同源重生保留意见0→0，25夹具通过；没有添加新的业务规则。
+## 实际交付范围
 
-## 真实验证及失败历史
+- material.json 为 R11 中固定碳/挥发分两字段的独立机械投影；原燃料/电力五字段资源、SHA、采用身份保留。共享 evaluator 保持唯一求值入口，材料薄 Adapter 不建立第二套算法。
+- MaterialInputLine 增加兼容尾字段。质量基准、含量基准分别归一且各执行一次；干基方法要求明确收到基水分及方法，0 水分合法，缺方法/必要值阻断。百分数/ratio 严格解析，不猜测空气干燥基/干燥无灰基，不虚构附件门槛。
+- MATERIAL_V2 按煅后料、欠烧回收料、粉尘各自碳量扣减，不跨角色共享平均含量；公式系数与既有执行次序保持。原始行和收到基采用行分别进入冻结 trace。旧 MATERIAL_V1 仅显式兼容原收到基实测组合，未知执行版本可读、不能正式核算。
+- GUI 保留 instance/line/role 身份、分来源草稿，覆盖改名、中间删行、保存重开。升级须明确确认；取消不写回。Canonical 项目升级另存新项目/持久化单元身份，保留原项目和原始输入，不复用全局唯一 unit_id。
+- codec2 兼容 codec1，旧缺字段按真实旧语义恢复；不迁移数据库，不改历史 Record。预览不写 Record；保存 Canonical 项目后正式 Application 核算成功新增不可变 Record，失败零新增。
+- v6 / 2.4.0 只在 B.3—B.5 增加 I—M 辅助列，九工作表结构保留，无数值默认；Excel 与 GUI 共用归一化/核算链。v2—v5 原字节与基线逐一核对不变。
+- 新 v6 在入口实际识别并验证后冻结独立 template_master_sha256；填写工作簿 sha256 保持独立。项目 SQLite 重开、Record、Word 原样消费同一证据；旧 v5/历史无母版证据不补，异常结构直接拒绝。Word 从所选 Record trace 读取采用值与方法，不再次 resolve 或归一。
+- 真实包内检查发现 Numeric guard 把当前 Calculator 身份重标为旧 N01C；已移除该版本覆盖，保留 guard/上下文/历史常量与历史向量。当前输入/结果/Record 的真实算法版本一致。
 
-本地Python3.12.14，Qt offscreen，临时隔离工作簿与SQLite，无用户数据写入。
+当前生产代码冻结提交：`5859ba7e71a5e4add659efeb4a8392adb3896d86`。其后只补反向测试与本文等文档，不修改生产树。算法 `CAR-SM01-2026-10-17-MATERIAL.1`；归一化 `CAR-MATERIAL-NORMALIZATION-V2`；材料采用 `GHGTOOL_MATERIAL_R11_V1`。
 
-|运行|实际结果|
+|资产|SHA256|
 |---|---|
-|首轮baseline/channels/table5/runtime|20项10failure，12.545s；复合单位ASCII/Unicode精确别名未规范|
-|单位规范后同组|20项5failure，17.914s；Source版次与Factor版本区别|
-|尝试将实际Source中文版次写稳定快照|20项5error，16.314s；既有稳定标识约束拒绝，已撤销此尝试，raw_input保留版次|
-|baseline/channels/table5/resolved-binding/新来源一致性|23/23，17.445s，OK|
-|template/G08/runtime|31/31，7.274s，OK|
-|G06/UAT03-page/UAT03-rules/EXB01|110项3failure，67.385s；旧输出电力夹具无ID却默认STANDARD_DEFAULT|
-|G06/EXB01-RPT02/RPT02/新来源一致性/缓存隔离|50/50，10.784s，OK；电力夹具改明确OTHER，原数值/零值/单位断言不删|
-|审阅表|25fixture PASS；61行、652组合、450意见范围；意见0→0，纯展示声明更新|
-|v5|严格导入PASS；row20 XML与旧资源字节保护通过；非原生Office证明|
+|material.json|1737efec0f3b27bc14b373d4e70f8870f162a3bef6a702931207f4dc6cd93c02|
+|v6 母版|ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a|
+|最终本地 EXE|2755698bce622a67ce4afd2d63591370d7625a78e5ab5c68f9cd1c9f6a8f2da3|
 
-修复提交cd18da1完整回归781项/826.361s，1failure/0error：唯一失败为G08布局测试仍硬编码2.2.0，与正式v5/2.3.0不符。已改为检查实际注册版本，保留布局/哈希断言。cd18da1本地Windows构建成功，发布审计272文件、归档往返273可见文件、实际包内v5严格读取及2次隔离启动PASS；最终测试修订HEAD需重跑对应验证，旧制品不能冒用。
+## 本地验证与失败历史
 
-最终HEAD完整回归/构建/发布审计/归档/启动和GitHub CI尚待完成；未执行或运行中的项目不标PASS。最终精确HEAD、base/merge、真实计数和制品身份将在原PR46送验说明中汇总，后续文档若仅更新证据也须区分受验代码与新提交。
+环境：Python 3.12.14、PySide6/Qt 6.11.2、PyInstaller 6.22.3。以下均为本地执行，非 GitHub Actions；各测试组有重叠，不累加。临时工作簿/Repository 使用测试临时路径；最终命令另设 LOCALAPPDATA/TEMP/TMP 到隔离输出。用户数据库元数据时间仅辅助观察，不作为隔离证明。
 
-## 剩余验收缺项
+命令中的 python 为上述真实 3.12 解释器，PYTHONPATH 指向已有依赖目录；Qt 使用 offscreen。
 
-v5原生Excel/WPS保存回导NOT_RUN/OPEN，正式外部交付前补；CU Esc未解除，不用程序重存或旧v4证据替代。真实鼠标/中文输入/人工系统DPI/企业样例OPEN。独立复验待新固定HEAD，当前不宣称最终验收PASS或标准SUPPORTED。
+|命令/范围|实际结果与处置|
+|---|---|
+|python -B -m unittest tests.test_b_material_normalization tests.test_b_material_policy -v（M）|30/30，0.226s；此前 SQLite 夹具冲突 28 PASS/1 ERROR 已修正|
+|python -B -m unittest tests.test_b_material_policy tests.test_b_material_normalization tests.test_b_material_chain tests.test_b_material_gui_excel -v|首轮35项34 PASS/1 ERROR（升级副本 unit_id）；修复后35/35，10.049s|
+|原五字段/渠道/模板/交付保护8文件|首轮74项68 PASS/4 FAIL/2 ERROR；修复夹具与版本预期后受影响4文件36/36，10.054s|
+|python -B -m unittest discover -s tests -v，提交2368380|816项，1122.271s，812 PASS/4 FAIL/0 ERROR；四失败均为 v5/下载测试仍引用当前默认 v6 或写死2.3文件名。完整日志 tmp/material-full-final.log|
+|python -B -m unittest tests.test_fuel_power_template_v5 tests.test_p3_e_excel_import -v|原 v5 测试绑定保留 v5 资源，当前下载核实际登记版本；13/13，1.777s。没有删去旧 OOXML/字节/版本断言|
+|python -B -m unittest tests.test_numeric_contract_v1_adoption tests.test_qzc_n01_c_numeric_unit_pilot tests.test_b_material_policy tests.test_b_material_normalization tests.test_b_material_chain tests.test_b_material_gui_excel -v|版本修复首轮63项62 PASS/1 FAIL（历史向量身份预期）；修正后64/64，11.033s，保留历史向量版本|
+|python -B -m unittest tests.test_g08_delivery -v|16/16，6.406s，含精确包体排除/拒绝混入测试|
+|python -B -m unittest tests.test_b_material_gui_excel tests.test_pr46_report_template_identity tests.test_rs03_record_ingress_evidence tests.test_rs03_excel_project_workflow -v|最终15/15，25.865s；SQLite重开/不同母版和填写SHA/旧v5不补证据/异常表头拒绝/历史报告保护。补充首轮15项1 ERROR为测试错期望返回对象，实际入口抛 WorkbookFatalError；已按拒绝行为修正。一次误写两个模块名导致3 ERROR属命令错误，已纠正|
 
-本轮不删除历史Record或分支，不关闭PR45、不合并PR46；主目录用户修改不覆盖。跨会话进度外发曾被自动审批拒绝，未绕过；本地实现和PR更新继续执行。
+首次全量运行曾在发现历史来源夹具失败后中断，不当完整证据。完整816项运行的四失败由上述13项定向闭环；后续 Numeric/包体/母版改动各有定向覆盖。按源会话决定不重复无关全量，故**没有“最新 head 全量 PASS”的证据**。
 
+离屏1366×900使用现有Windows字体检查材料行和窗口，中文可读、未见裁切，截图 tmp/material-visual/material-row-font.png；不代表真实鼠标/IME/人工DPI验收。
 
-## 后续固定HEAD运行汇总
+## 最终包体及商业依赖预检查
 
-9de4d63本地完整回归781/781，0failure/0error，841.589s；同HEAD本地Windows构建、272文件发布审计、273文件ZIP往返、实际包内v5严格读取及2次隔离启动PASS。GitHub CI247实际781项/886.305s，2failure/0error；制品任务SKIPPED，不能称CI或CI制品通过。两失败均为审阅生成器原字节SHA：本地编辑留下CRLF，而仓库既有.gitattributes要求LF、CI检出LF。已将本地生成器规范为受控LF（Git中代码不变），重新运行正式builder、25夹具与checks生成证据，不手填哈希、不放宽校验，意见0→0。LF生成器SHA1efcc97bbfe3d094ebe0f025713506d2465d2b4338bdf1ed99b0826132e8d405。
+本地命令：`python -B -m scripts.build_standalone --output-root tmp/material-build-evidence-final`，成功，内置交付/归档审计通过。manifest source_commit 为5859ba7完整SHA；265文件含manifest，12个Qt DLL、21插件。
 
-最后一项修订仅审阅证据及运行说明，不改变9de4d63生产代码；新HEAD仍须对应CI完整回归与Windows交付验证，最终结果以原PR46精确HEAD送验说明为准。本地全量9de4d63不冒称在后续证据提交HEAD重跑。
+`python -B -m scripts.smoke_standalone tmp/material-build-evidence-final/QingzhouCarbonAccounting --starts 2`：两次独立临时用户目录离屏启动 PASS。
+
+`python -B tmp/material_packaged_code_proof.py tmp/material-build-evidence-final/QingzhouCarbonAccounting tmp/material-packaged-proof-evidence-final`：从交付EXE实际PYZ加载业务代码及包内资源，禁止业务模块回退源码；逐角色结果226.8291666666666666666666666666666666667、干基案例158.9041666666666666666666666666666666667；非法方法零新增，两个成功Record，冻结Word42421字节。当前算法身份一致。该证据明确为 EXE_PYZ_CODE_WITH_PACKAGED_RESOURCES_NOT_NATIVE_UI，不冒充原生EXE业务点击。
+
+实包先前自动收集未使用的 Qt Virtual Keyboard（官方Qt6.11许可列表为GPL-only）。仅在路径/符号链接边界检查后精确排除 Qt6VirtualKeyboard.dll 和 qtvirtualkeyboardplugin.dll，保留其他插件正常收集；不改安装环境。最终实际路径与PE正常/延迟imports检查均无该组件或引用，也无iapws。许可文件名路径枚举为空只说明当前文件枚举结果，不证明上游无许可或分发义务已满足。
+
+直接依赖/构建工具实际版本已记 docs/DELIVERY.md 与 requirements-build.txt。Qt/PySide LGPL履约、第三方通知、源码/重新链接安排、其他DLL分发权利与正式发行材料仍待完成；不作法律或商业放行。官方依据见 docs/DELIVERY.md，未采购许可、未提交知识产权申请。
+
+本地可检查证据：tmp/material-build-evidence-final.log、tmp/material-smoke-evidence-final.log、tmp/material-packaged-proof-evidence-final/proof.json、tmp/material-package-license-inventory-evidence-final.json、tmp/material-master-negatives-final.log。输出保留本地忽略目录，未上传。
+
+## 有限并行交接
+
+M 原提交 ffd27e9 已以91312cf集成；F 准备557f2c6独立烟气段模块及测试33/33、Numeric28/28，未 cherry-pick 到本包，无生产消费者。N 最终0805b10为独立测量脚本，未集成本包；固定产品dada7a18，5/5独立进程、360计时操作（不是测试），20:37:03—20:43:51本地正式采样。
+
+N 中位数 handler/eventpump：首次新建4571/4801ms，首次记录630/671，首次因子224/243，热标准998/1042，热记录1016/1063，草稿恢复2350/2648，20行恢复3278/3764，记录详情355/395；构造2719ms。观察到200次get嵌套list_all，仅作基线，不宣称根因或完成优化。原始数据留N本地 .n-benchmark-local/formal，格式化脚本AST一致。F/N均已停止，不转下一包。
+
+## NOT_RUN 与停止边界
+
+- 公开CI未触发（披露暂停）；无push、公开PR、日志/制品上传、merge或分支/工作树删除。
+- 原生EXE完整业务点击、Excel/WPS v6原生填写保存再导入、真实鼠标/中文IME/人工DPI、企业真实案例、干净机器发行验收未执行。历史v5原生Office缺项不因本包自动关闭。
+- RS04/RS05、第二标准、烟气生产接入、蒸汽/iapws、性能优化、Word排版延期项、商业法律/IP正式程序未实施。
+- 不修改计算表用户参考文件；中央锁/PLATFORM_BASELINE/历史Numeric conformance未改。
+
+本地送源会话独立验收后停止。验收可按以上完整失败历史、定向闭环、生产冻结提交及实际包体证据复核，不将本报告当独立验收结论。
