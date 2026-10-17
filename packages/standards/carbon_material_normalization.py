@@ -7,12 +7,15 @@ future import adapters use the same aggregation semantics.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from enum import Enum
 from typing import Iterable
 
 from packages.core.decimal_policy import DecimalPolicy, DecimalPolicyError
+from packages.standards.carbon_material_business_policy import (
+    BusinessPolicyConfigurationError, evaluate_material_field,
+)
 
 
 MATERIAL_NORMALIZATION_VERSION = "CAR-MATERIAL-NORMALIZATION-V1"
@@ -112,6 +115,12 @@ class MaterialInputLine:
     fixed_carbon_source: MaterialDataSource = MaterialDataSource.MEASURED
     volatile_matter_percent: object | None = None
     volatile_matter_source: MaterialDataSource = MaterialDataSource.MEASURED
+    mass_basis: str = "RECEIVED"
+    composition_basis: str = "RECEIVED"
+    moisture_received_percent: object | None = None
+    conversion_method: str | None = None
+    fixed_carbon_unit: str = "%"
+    volatile_matter_unit: str = "%"
 
     def __post_init__(self) -> None:
         if not isinstance(self.line_id, str) or not self.line_id.strip():
@@ -137,6 +146,8 @@ class NormalizedMaterialProcess:
     values: tuple[tuple[str, Decimal], ...]
     problems: tuple[MaterialNormalizationProblem, ...]
     included_lines: tuple[MaterialInputLine, ...]
+    # Adopted-value evidence, not a replacement for original calculation input.
+    normalized_lines: tuple[MaterialInputLine, ...] = ()
 
     def value(self, name: str) -> Decimal:
         return dict(self.values)[name]
@@ -216,9 +227,39 @@ def _parse_percent(
     field_id: str,
     label: str,
     required: bool,
+    unit: str,
+    calculated_allowed: bool,
+    policy_field_id: str,
+    composition_basis: str,
     policy: DecimalPolicy,
     problems: list[MaterialNormalizationProblem],
 ) -> Decimal | None:
+    business_source = "CALCULATED" if source is MaterialDataSource.CHEMICAL_CALCULATION else source.value
+    context = {"binding_status": "ABSENT", "business_source": business_source}
+    if calculated_allowed:
+        context["material_calculation_path"] = "DEFINED_RECEIVED_BASIS_CONVERSION"
+    try:
+        outcome = evaluate_material_field(policy_field_id, context)
+    except BusinessPolicyConfigurationError as exc:
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-POLICY-CONFIGURATION", str(exc), field_id,
+        ))
+        return None
+    qualification = outcome["source_qualification"].get("value")
+    qualified = qualification.get("values", []) if isinstance(qualification, dict) else []
+    if outcome["status"] != "READY" or business_source not in qualified:
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-SOURCE-INAPPLICABLE",
+            f"该{label}来源不符合当前材料规则，请选择合法来源并补全计算定义。",
+            field_id,
+        ))
+        return None
+    if composition_basis == "DRY" and source is MaterialDataSource.MEASURED and _present(value):
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-SOURCE-INAPPLICABLE",
+            f"干基{label}需换算后采用，请将收到基采用来源选择为计算。", field_id,
+        ))
+        return None
     if not _present(value):
         if required:
             problems.append(MaterialNormalizationProblem(
@@ -227,15 +268,8 @@ def _parse_percent(
                 field_id,
             ))
         return None
-    if source is not MaterialDataSource.MEASURED:
-        problems.append(MaterialNormalizationProblem(
-            "CAR-VAL-MATERIAL-SOURCE-INAPPLICABLE",
-            f"附录B该{label}字段仅接受实测值来源，请确认来源后重新核算。",
-            field_id,
-        ))
-        return None
     try:
-        parsed = policy.parse(str(value))
+        parsed = policy.parse(value)
     except (DecimalPolicyError, ValueError):
         problems.append(MaterialNormalizationProblem(
             "GEN-VAL-NUMERIC-INVALID",
@@ -243,15 +277,69 @@ def _parse_percent(
             field_id,
         ))
         return None
-    if not Decimal("0") <= parsed <= Decimal("100"):
+    if unit not in ("%", "ratio"):
+        problems.append(MaterialNormalizationProblem(
+            "GEN-VAL-UNIT-INCOMPATIBLE", f"{label}单位应为%或ratio。", field_id,
+        ))
+        return None
+    upper = Decimal("100") if unit == "%" else Decimal("1")
+    if not Decimal("0") <= parsed <= upper:
         problems.append(MaterialNormalizationProblem(
             "CAR-VAL-PERCENT-RANGE",
             f"{label}应在0%到100%之间。",
             field_id,
         ))
         return None
-    return policy.divide(parsed, Decimal("100"))
+    return policy.divide(parsed, Decimal("100")) if unit == "%" else parsed
 
+
+
+def _received_conversion(
+    line: MaterialInputLine,
+    *,
+    policy: DecimalPolicy,
+    problems: list[MaterialNormalizationProblem],
+) -> tuple[str, str, Decimal | None]:
+    """SM01-006 normalization by the Owner-approved explicit mass balance.
+
+    M_ar = water mass / received material mass. With d = 1 - M_ar:
+    m_ar = m_d / d and x_ar = x_d * d. These are software method
+    definitions, not formulas quoted from GB/T. Air-dried and dry-ash-free
+    bases have no method here. Mass and composition normalize separately.
+    """
+    mass_basis = getattr(line.mass_basis, "value", line.mass_basis)
+    composition_basis = getattr(line.composition_basis, "value", line.composition_basis)
+    if mass_basis not in ("RECEIVED", "DRY") or composition_basis not in ("RECEIVED", "DRY"):
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-BASIS-CONSISTENCY", "物料原始基准未知或尚无支持的换算方法。", _field(line, "basis"),
+        ))
+        return mass_basis, composition_basis, None
+    if "DRY" not in (mass_basis, composition_basis):
+        if line.conversion_method not in (None, ""):
+            problems.append(MaterialNormalizationProblem(
+                "CAR-VAL-MATERIAL-BASIS-CONVERSION", "收到基数据不应再次指定干基换算。", _field(line, "conversion_method"),
+            ))
+        return mass_basis, composition_basis, Decimal("1")
+    if line.conversion_method != "DRY_TO_RECEIVED_MOISTURE":
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-BASIS-CONVERSION", "干基数据需要明确的干基到收到基水分换算方法。", _field(line, "conversion_method"),
+        ))
+        return mass_basis, composition_basis, None
+    try:
+        moisture = policy.parse(line.moisture_received_percent)
+    except (DecimalPolicyError, ValueError):
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-BASIS-CONVERSION", "请填写有效的收到基水分质量百分数。", _field(line, "moisture_received_percent"),
+        ))
+        return mass_basis, composition_basis, None
+    if not Decimal("0") <= moisture < Decimal("100"):
+        problems.append(MaterialNormalizationProblem(
+            "CAR-VAL-MATERIAL-BASIS-CONVERSION", "收到基水分应大于等于0%且小于100%。", _field(line, "moisture_received_percent"),
+        ))
+        return mass_basis, composition_basis, None
+    # Subtract in percent space before dividing: a valid value just below
+    # 100% must not first round to ratio 1 and manufacture a zero divisor.
+    return mass_basis, composition_basis, policy.divide(policy.subtract("100", moisture), "100")
 
 def normalize_material_inputs(
     process: str,
@@ -259,9 +347,9 @@ def normalize_material_inputs(
     *,
     policy: DecimalPolicy,
 ) -> NormalizedMaterialProcess:
-    """Aggregate physical material lines into the frozen formula variables.
+    """Normalize rows and provide legacy variables plus Issue018 role terms.
 
-    Percentages are entered as 0..100 values and normalized to ratios.  An
+    Declared percent (0..100) or ratio (0..1) values normalize once to ratios.  An
     absent optional role contributes zero.  A zero mass is explicit valid
     data, and does not require composition values because its contribution is
     exactly zero.
@@ -271,6 +359,7 @@ def normalize_material_inputs(
 
     problems: list[MaterialNormalizationProblem] = []
     parsed_rows: list[_ParsedLine] = []
+    normalized_lines: list[MaterialInputLine] = []
     included_lines: list[MaterialInputLine] = []
     for line in rows:
         if not isinstance(line, MaterialInputLine):
@@ -296,7 +385,7 @@ def normalize_material_inputs(
             ))
             continue
         try:
-            mass = policy.parse(str(line.mass_t))
+            mass = policy.parse(line.mass_t)
         except (DecimalPolicyError, ValueError):
             problems.append(MaterialNormalizationProblem(
                 "GEN-VAL-NUMERIC-INVALID", "物料数量必须填写有效数字。", _field(line, "mass"),
@@ -307,6 +396,12 @@ def normalize_material_inputs(
                 "CAR-VAL-NONNEGATIVE", "物料数量不能为负数。", _field(line, "mass"),
             ))
             continue
+        mass_basis, composition_basis, dry_fraction = _received_conversion(line, policy=policy, problems=problems)
+        if dry_fraction is None:
+            continue
+        if mass_basis == "DRY":
+            mass = policy.divide(mass, dry_fraction)
+        calculated_allowed = composition_basis == "DRY" and line.conversion_method == "DRY_TO_RECEIVED_MOISTURE"
         needs_fixed = line.role in _FIXED_CARBON_ROLES
         needs_volatile = line.role in _VOLATILE_MATTER_ROLES
         fixed = _parse_percent(
@@ -315,6 +410,10 @@ def normalize_material_inputs(
             field_id=_field(line, "fixed_carbon"),
             label="固定碳含量",
             required=needs_fixed and mass > 0,
+            unit=line.fixed_carbon_unit,
+            calculated_allowed=calculated_allowed,
+            policy_field_id="material.fixed_carbon",
+            composition_basis=composition_basis,
             policy=policy,
             problems=problems,
         )
@@ -324,10 +423,26 @@ def normalize_material_inputs(
             field_id=_field(line, "volatile_matter"),
             label="挥发分",
             required=needs_volatile and mass > 0,
+            unit=line.volatile_matter_unit,
+            calculated_allowed=calculated_allowed,
+            policy_field_id="material.volatile_matter",
+            composition_basis=composition_basis,
             policy=policy,
             problems=problems,
         )
+        if composition_basis == "DRY":
+            fixed = policy.multiply(fixed, dry_fraction) if fixed is not None else None
+            volatile = policy.multiply(volatile, dry_fraction) if volatile is not None else None
         parsed_rows.append(_ParsedLine(line, mass, fixed, volatile))
+        # Output evidence only; included_lines retains the original method/data.
+        # A calculated source is never relabelled as measured.
+        normalized_lines.append(replace(
+            line, mass_t=mass,
+            fixed_carbon_percent=policy.multiply(fixed, "100") if fixed is not None else None,
+            volatile_matter_percent=policy.multiply(volatile, "100") if volatile is not None else None,
+            mass_basis="RECEIVED", composition_basis="RECEIVED",
+            conversion_method=None, fixed_carbon_unit="%", volatile_matter_unit="%",
+        ))
 
     present_roles = {line.line.role for line in parsed_rows}
     for role in _REQUIRED_ROLES[process]:
@@ -371,9 +486,20 @@ def normalize_material_inputs(
             MaterialRole.UNDERBURN_RECOVERED,
             MaterialRole.CARBON_DUST,
         }, "fixed_carbon")
+        _, wfc_c_cc, output_carbon_cc = aggregate({MaterialRole.CALCINED_PRODUCT}, "fixed_carbon")
+        _, wfc_c_ucc, output_carbon_ucc = aggregate({MaterialRole.UNDERBURN_RECOVERED}, "fixed_carbon")
+        _, wfc_c_du, output_carbon_du = aggregate({MaterialRole.CARBON_DUST}, "fixed_carbon")
         ucc, _, _ = aggregate({MaterialRole.UNDERBURN_RECOVERED})
         du, _, _ = aggregate({MaterialRole.CARBON_DUST})
         values = {"gc": gc, "wfc": wfc, "cc": cc, "ucc": ucc, "du": du, "wfc_c": wfc_c, "wvar": wvar, "wvar_c": wvar_c}
+        # Issue018: wfc_c remains for explicitly versioned legacy consumers.
+        # New authoritative output terms sum the actual role carbon masses.
+        values.update({
+            "wfc_c_cc": wfc_c_cc, "wfc_c_ucc": wfc_c_ucc, "wfc_c_du": wfc_c_du,
+            "output_carbon_cc": output_carbon_cc, "output_carbon_ucc": output_carbon_ucc,
+            "output_carbon_du": output_carbon_du,
+            "output_carbon_total": policy.add(policy.add(output_carbon_cc, output_carbon_ucc), output_carbon_du),
+        })
     elif process == "baking":
         bpm, bpmfc, _ = aggregate({MaterialRole.BAKING_FILLER}, "fixed_carbon")
         _, bpmvar, _ = aggregate({MaterialRole.BAKING_FILLER}, "volatile_matter")
@@ -395,6 +521,7 @@ def normalize_material_inputs(
         values=tuple(values.items()),
         problems=tuple(problems),
         included_lines=tuple(included_lines),
+        normalized_lines=tuple(normalized_lines),
     )
 
 
