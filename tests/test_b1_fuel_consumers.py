@@ -85,6 +85,18 @@ class FuelConsumerTests(unittest.TestCase):
         self.assertIsNone(value.lower_heating_value)
         self.assertEqual(self.records.list_all(), ())
 
+    def test_catalog_name_without_applicable_binding_cannot_offer_defaults(self):
+        from unittest.mock import patch
+        with patch.object(self.page, "_fuel_default_factors", return_value=None):
+            self.select(FuelType.DIESEL)
+            for combo, edit in ((self.row.lhv_source, self.row.lower_heating_value),
+                                (self.row.carbon_source, self.row.carbon),
+                                (self.row.oxidation_source, self.row.oxidation)):
+                self.assertEqual(self.enabled_sources(combo), {"MEASURED"})
+                self.assertEqual(combo.currentData(), "MEASURED")
+                self.assertEqual(edit.text(), "")
+                self.assertFalse(edit.isReadOnly())
+
     def test_same_confirmed_identity_preserves_parameters_basis_and_sources(self):
         self.source(self.row.lhv_source, "MEASURED")
         self.row.lower_heating_value.setText("400.1234567890123456789")
