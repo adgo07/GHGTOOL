@@ -73,14 +73,16 @@ class MaterialChainTests(unittest.TestCase):
             table=next(t for section in model.sections for t in section.tables if t.table_id.startswith('b3'))
             text=' '.join(cell.value for row in table.rows for cell in row.cells)
             self.assertIn('72',text)
-            self.assertIn('收到基换算',text)
+            self.assertIn('计算值',text)
+            self.assertEqual(table.rows[0].cells[5].value,'计算值')
             self.assertTrue(any('原质量80' in note for note in table.footnotes))
             from packages.infrastructure.reporting import render_report_docx
             from docx import Document
             from io import BytesIO
             document=Document(BytesIO(render_report_docx(model)))
             word_text=' '.join(cell.text for t in document.tables for row in t.rows for cell in row.cells)
-            self.assertIn('收到基换算',word_text)
+            self.assertIn('计算值',word_text)
+            self.assertNotIn('收到基换算',word_text)
             self.assertIn('72',word_text)
             self.assertIn('原质量80',' '.join(p.text for p in document.paragraphs))
 

@@ -92,7 +92,7 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 w=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()));s=w['B.3']
                 for row,mass,percentage in [(4,'80','90'),(5,'80','10'),(6,'20','80'),(7,'30','40'),(8,'10','25'),(9,'20','5')]:
                     s[f'C{row}']='同名';s[f'D{row}']=Decimal(mass);s[f'E{row}']=Decimal(percentage)
-                    s[f'F{row}']='收到基换算' if row in (4,5) else '实测值'
+                    s[f'F{row}']='计算值' if row in (4,5) else '实测值'
                     if row in (4,5):
                         s[f'I{row}']='干基';s[f'J{row}']='干基';s[f'K{row}']=20;s[f'L{row}']='按收到基水分归一'
                 workbook_path=root/'材料v6.xlsx';w.save(workbook_path);w.close()
@@ -121,8 +121,16 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 frozen_model=build_report_model(imported_record,records.get_raw_input_snapshot(imported_record.record_id),
                     records.get_trace_snapshot(imported_record.record_id),records.get_provenance_snapshot(imported_record.record_id),
                     records.get_reporting_snapshot(imported_record.record_id),records.get_report_qualification(imported_record.record_id))
-                self.assertEqual(frozen_model.input_template_version,'2.4.0')
+                self.assertEqual(frozen_model.input_template_version,'2.5.0')
                 self.assertEqual(frozen_model.input_template_sha256,ingress['template_master_sha256'])
+                material_table=next(section for section in frozen_model.sections if section.section_id=='b3').tables[0]
+                self.assertEqual(material_table.rows[0].cells[5].value,'计算值')
+                self.assertTrue(any('按水分质量守恒归一' in note for note in material_table.footnotes))
+                from packages.infrastructure.reporting import render_report_docx
+                from docx import Document
+                document=Document(BytesIO(render_report_docx(frozen_model)))
+                self.assertIn('计算值',' '.join(cell.text for table in document.tables for row in table.rows for cell in row.cells))
+                self.assertIn('按水分质量守恒归一',' '.join(p.text for p in document.paragraphs))
                 from importlib.resources import files
                 from packages.excel.templates import APPROVED_TEMPLATE_V5_RESOURCE
                 old_book=load_workbook(BytesIO(files('resources').joinpath(APPROVED_TEMPLATE_V5_RESOURCE).read_bytes()))

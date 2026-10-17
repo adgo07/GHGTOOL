@@ -26,13 +26,16 @@ PRIOR_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendi
 PRIOR_TEMPLATE_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
 V5_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx")
 V5_TEMPLATE_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v6.xlsx")
-APPROVED_TEMPLATE_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
+V6_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v6.xlsx")
+V6_TEMPLATE_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx")
+APPROVED_TEMPLATE_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
 PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
 PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
 COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 TEMPLATE_SHA256_BY_PATH = {
+    V6_TEMPLATE_PATH: V6_TEMPLATE_SHA256,
     V5_TEMPLATE_PATH: V5_TEMPLATE_SHA256,
     PRIOR_TEMPLATE_PATH: PRIOR_TEMPLATE_SHA256,
     APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
@@ -47,6 +50,7 @@ REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json
 ALLOWED_RESOURCE_FILES = frozenset({
     BUSINESS_RULES_PATH.as_posix(),
     (Path("resources") / MATERIAL_RUNTIME_RESOURCE).as_posix(),
+    V6_TEMPLATE_PATH.as_posix(),
     V5_TEMPLATE_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
     PRIOR_TEMPLATE_PATH.as_posix(),
@@ -172,6 +176,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
         issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / V6_TEMPLATE_PATH).is_file():
+        issues.append(f"missing prior v6 Excel template: {V6_TEMPLATE_PATH.as_posix()}")
     if not (artifact / V5_TEMPLATE_PATH).is_file():
         issues.append(f"missing prior v5 Excel template: {V5_TEMPLATE_PATH.as_posix()}")
     if not (artifact / PRIOR_TEMPLATE_PATH).is_file():

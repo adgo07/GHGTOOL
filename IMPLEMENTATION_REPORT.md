@@ -1,6 +1,6 @@
 # B-MATERIAL 本地实施送验报告
 
-2026-10-18更新。状态：PR49六项验收意见修订 / 新head待独立验收与CI。原d5205f5已技术+CI验收通过，cad63f19及本轮提交需单独验证。本包完成后停止，不自动转下一包，不宣布正式标准 SUPPORTED 或商业发行就绪。唯一产品路线仍为 REFERENCE_STANDARD_ROADMAP.md。PR46 已合并、PR45 已关闭；固定历史退修/验收报告保持原样。
+2026-10-18更新。状态：PR49六项说明及F02/F03修复 / 最终head待联合测试、独立验收与CI。原d5205f5已技术+CI验收通过，cad63f19及本轮提交需单独验证。本包完成后停止，不自动转下一包，不宣布正式标准 SUPPORTED 或商业发行就绪。唯一产品路线仍为 REFERENCE_STANDARD_ROADMAP.md。PR46 已合并、PR45 已关闭；固定历史退修/验收报告保持原样。
 
 ## 平台 / Contract 预检查
 
@@ -21,7 +21,7 @@
 - 新 v6 在入口实际识别并验证后冻结独立 template_master_sha256；填写工作簿 sha256 保持独立。项目 SQLite 重开、Record、Word 原样消费同一证据；旧 v5/历史无母版证据不补，异常结构直接拒绝。Word 从所选 Record trace 读取采用值与方法，不再次 resolve 或归一。
 - 真实包内检查发现 Numeric guard 把当前 Calculator 身份重标为旧 N01C；已移除该版本覆盖，保留 guard/上下文/历史常量与历史向量。当前输入/结果/Record 的真实算法版本一致。
 
-原业务链断点为`5859ba7e71a5e4add659efeb4a8392adb3896d86`，仅代表当时的材料整链与本地包证据。随后e04d1fc修测试、d5205f5新增Qt6.12精确构建路径加固；`cad63f19cf5a25cc5e25fc2d1b8bdceaefb6b389`又新增材料重复line_id业务身份校验及6项测试，故最终业务实现不能再称冻结于5859。当前本轮基点为cad63f19，本轮只修文档/审阅生成器及产物；最终送验提交以PR49 head与对应CI为准。算法 `CAR-SM01-2026-10-17-MATERIAL.1`；归一化 `CAR-MATERIAL-NORMALIZATION-V2`；材料采用 `GHGTOOL_MATERIAL_R11_V1`。
+原业务链断点为`5859ba7e71a5e4add659efeb4a8392adb3896d86`，仅代表当时的材料整链与本地包证据。随后e04d1fc修测试、d5205f5新增Qt6.12精确构建路径加固；`cad63f19cf5a25cc5e25fc2d1b8bdceaefb6b389`又新增材料重复line_id业务身份校验及6项测试，故最终业务实现不能再称冻结于5859。随后db25234完成六项说明/审阅产物修订，4440df7修复F03实例草稿隔离，F02另修来源展示/导入/报告和受控v7模板；这些均不得用5859或旧CI252自动背书。最终送验提交以PR49 head与对应CI为准。算法 `CAR-SM01-2026-10-17-MATERIAL.1`；归一化 `CAR-MATERIAL-NORMALIZATION-V2`；材料采用 `GHGTOOL_MATERIAL_R11_V1`。
 
 |资产|SHA256|
 |---|---|
@@ -121,3 +121,15 @@ e04d1fc的GitHub Actions CI251/run39040774659：merge-ref04b182bfa63e20291310586
 F03修复：控件Presentation objectName纳入工序类型/实例，正式instance_id/line_id不改；material_source_drafts版本2按工序类型→实例→行→字段→来源隔离。旧仅line_id草稿及扁平控件名仅唯一对应时恢复；歧义不猜贴、不覆盖当前可辨识输入，原未采用草稿/扁平值随form_state保留，来源提示显示原草稿供核实，不新增DB/通用迁移框架。两实例同局部ID、同名不同ID、中间删行、来源往返、SQLite保存重开、旧唯一与歧义保留已覆盖。
 
 本地命令：python -B -m unittest（F03三用例、test_b_material_gui_excel、test_accounting_projects_ui）-v：25项24PASS/1ERROR，126.263s；唯一错误为提示控件误用addItem（实际QTreeWidget），已改正确addTopLevelItem。修正后python -B -m unittest tests.test_b_material_draft_scope -v：3/3，26.210s（tmp/material-f03-final.log）。其余22项此前通过，不冒称25项已重跑全过。F02标签/实际模板/来源报告分离继续处理，后续最终head统一CI。
+
+## F02 来源与方法分离及最终联合送验准备（2026-10-18）
+
+GUI计算来源显示为计算值；Excel新2.5.0只识别实测值/计算值，原2.4.0的收到基换算仅限该版本输入别名。方法/水分独立沿用I—M及展开区；资格、必要方法/水分拒绝和所有专业公式/Decimal不变。Word来源列显示计算值，原质量/基准/水分/方法单独在同Record冻结脚注输出，未重算历史Record。
+
+沿用既有窄OOXML受控修订方式，新增scripts/project_appendix_b_v7.py，从固定SHA的v6机械生成v7/2.5.0，只改变B.3—B.5三个XML部件的来源下拉及说明文案；不手工改最终xlsx。v2—v6原字节/登记身份保留，新增受控登记/下载默认/包资源与hash审计，旧v6不会冒新版母版SHA。混合v6/v7说明拒绝。v7 SHA e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a；Word布局元数据3.0.2仅同步当前输入模板身份，历史母版缺失不补。ArtifactTool严格导入/三表渲染已执行，非原生Office验收。
+
+F02初组（新来源+GUI整链+G08+模板，含误被发现的3项已导入F03测试）28项，27PASS/1测试2子情形ERROR，44.465s；错误是测试访问不存在calcination_instances而非真实calcinations，已修，移除导入测试类导致的重复发现。之后python -B -m unittest tests.test_b_material_source_review tests.test_fuel_power_template_v5 tests.test_p3_e_excel_import tests.test_pr46_parameter_source_policy tests.test_pr46_report_template_identity -v：29/29，8.446s。python -B -m unittest tests.test_fuel_power_runtime_policy tests.test_pr46_electricity_source_consistency tests.test_pr46_fuel_confirmation -v：27/27，26.756s。组间重叠不相加。
+
+之后进一步补混合模板拒绝、歧义提示可见性、实际导入→Canonical→项目重开→Record→DOCX来源/方法分离断言，并缩短新说明文字后机械重生登记最终hash。以上小组不当作最终联合全过证据。最终提交后将一次联合执行F02/F03/材料链/项目UI/G08/模板与相关燃料电力/历史报告保护，实际命令与结果保留本地最终摘要和PR说明，不把修改前22项和修改后3项拼为最终25/25。随后只监测最终head CI，旧CI254仅背书db25234；必要失败修复另留历史。
+
+F01 cad63保留，F03本地小提交4440df7可追溯；本轮无专业解释/范围/Numeric/Frozen/DB迁移/Record变更。原生v6/v7 Office、真实鼠标IME/DPI、企业样例及商业发行仍OPEN，不启动CU，不合并或启动下一包。

@@ -2359,6 +2359,7 @@ class CarbonMaterialAccountingPage(BasePage):
                         facts = "；".join(f"{labels.get(k, '历史来源')}：{v}" for k, v in pending[key].items())
                         source.setToolTip("历史来源草稿有多条物料对应，未自动采用，请核实：" + facts)
         if self._material_drafts_unresolved or self._material_legacy_values_unresolved:
+            self.quality_card.setVisible(True)
             self.validation_list.addTopLevelItem(QTreeWidgetItem(["部分历史物料草稿无法唯一对应，已保留但未自动采用；请查看来源提示并核实原输入。"]))
         self._restoring_workspace = False
         self._input_dirty = False
@@ -4557,7 +4558,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if "MEASURED" in policy.allowed_sources:
             combo.addItem("实测值", MaterialDataSource.MEASURED)
         if "CALCULATED" in policy.allowed_sources:
-            combo.addItem("收到基换算", MaterialDataSource.CHEMICAL_CALCULATION)
+            combo.addItem("计算值", MaterialDataSource.CHEMICAL_CALCULATION)
         combo.setCurrentIndex(0)
 
     def _remove_material_line(self, process_row: dict[str, object], line_id: str) -> None:

@@ -358,7 +358,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 - 本包落实material.fixed_carbon/volatile_matter、合法收到基换算与018角色表达，必要GUI/Excel/Canonical/项目版本/Record/Word共同演进。具体专业依据仍以原Mapping和有效台账决定为准，不复制V2为第二路线。
 - 已从origin/main建立隔离分支。Owner已授权仓库转私有、push、私有PR49及GitHub Actions CI，取代此前本地提交限制；不授权公开上传或商业发布。包末交源会话独立验收，不合并、不自动进入下包。
 - 依赖和实际包体许可预检查并行，不构成法律或销售放行；不引入iapws/不自动替换017、不购买许可、不正式申请专利软著。
-- v5原生Excel/WPS、真实鼠标/中文输入/人工DPI/企业样例仍OPEN；v6模板改变需按最终交付版本另验，不借v4历史证据或离屏测试替代。
+- v5原生Excel/WPS、真实鼠标/中文输入/人工DPI/企业样例仍OPEN；v6及来源文案修订v7模板需按最终交付版本另验，不借v4历史证据或离屏测试替代。
 - RS04 Golden/RS05 Release及SUPPORTED仍须各自授权与Gate；中央Frozen及platform-lock保持不变。
 
 ## 9. 相关治理登记项的归属

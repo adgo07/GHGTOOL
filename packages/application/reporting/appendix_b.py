@@ -282,9 +282,8 @@ def _process_table(key, process, step, ordinal, source, raw):
                 prefix = f"material.{material.get('line_id')}.adopted."
                 mass = adopted.get(prefix + "mass_t", material.get("mass_t"))
                 composition = adopted.get(prefix + component, material.get(component))
-                source_name = _enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录'
+                source_name = '计算值' if material.get(source_key) == 'CHEMICAL_CALCULATION' else (_enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录')
                 if material.get("conversion_method") == "DRY_TO_RECEIVED_MOISTURE":
-                    source_name = "收到基换算" if material.get(source_key) == "CHEMICAL_CALCULATION" else source_name
                     note = f"{material.get('name') or _ROLE_NAMES[role]}：原质量{material.get('mass_t')} t，质量基准{ {'DRY':'干基','RECEIVED':'收到基'}.get(material.get('mass_basis'),'未记录')}；原含量{material.get(component)} {material.get('fixed_carbon_unit' if component == 'fixed_carbon_percent' else 'volatile_matter_unit', '%')}，含量基准{ {'DRY':'干基','RECEIVED':'收到基'}.get(material.get('composition_basis'),'未记录')}；收到基水分{material.get('moisture_received_percent')}%，按水分质量守恒归一。"
                     if note not in method_notes: method_notes.append(note)
                 rows.append((group, _ROLE_NAMES[role], material.get('name') or _ROLE_NAMES[role], _value(mass), _value(composition), source_name))
