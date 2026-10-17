@@ -130,6 +130,16 @@ class FuelConsumerTests(unittest.TestCase):
         self.source(self.row.lhv_source, "MEASURED")
         self.assertEqual(self.row.lower_heating_value.text(), "400.123456789")
 
+    def test_switching_same_unit_fuel_keeps_activity_with_original_identity(self):
+        self.select(FuelType.DIESEL)
+        self.row.activity.setText("42.123456789")
+        self.select(FuelType.GASOLINE)
+        self.assertEqual(self.row.path.currentData(), FuelPath.MASS)
+        self.assertEqual(self.row.activity.text(), "")
+        self.select(FuelType.DIESEL)
+        self.row.restore_activity_button.click()
+        self.assertEqual(self.row.activity.text(), "42.123456789")
+
     def test_illegal_old_calculated_fch_remains_visible_and_can_be_corrected(self):
         state = self.page._capture_form_state()
         state["fuel_rows"][0].update(carbon_source_kind="CALCULATED", carbon="0.019123456789")
