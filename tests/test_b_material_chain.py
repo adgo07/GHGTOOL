@@ -6,7 +6,7 @@ import json, tempfile, unittest
 from unittest.mock import patch
 from tests.test_g06_carbon_material import _input, _measured_parameter
 from tests.test_b_material_normalization import rows, line, Role, Source
-from packages.standards.carbon_material import CarbonMaterialCalculator, CalcinationInput
+from packages.standards.carbon_material import CarbonMaterialCalculator, CalcinationInput, ALGORITHM_VERSION
 from packages.application.carbon_accounting import CarbonAccountingUseCase
 from packages.application.canonical_input_codec import encode_canonical_input, decode_canonical_input
 from packages.application.carbon_material_implementation import CarbonMaterialExcel
@@ -22,6 +22,9 @@ class MaterialChainTests(unittest.TestCase):
         calculator=CarbonMaterialCalculator()
         value=calculator.calculate(self.payload())
         self.assertTrue(value.successful, value.problems)
+        self.assertEqual(ALGORITHM_VERSION,"CAR-SM01-2026-10-17-MATERIAL.1")
+        self.assertEqual(value.algorithm_version,ALGORITHM_VERSION)
+        self.assertEqual(value.result.algorithm_version,ALGORITHM_VERSION)
         self.assertEqual(value.result.total_amount, Decimal("226.8291666666666666666666666666666666667"))
         value=calculator.calculate(self.payload(rows(cc="0",ucc="5",du="0",carbon=(None,"80",None))))
         self.assertTrue(value.successful, value.problems)
@@ -80,6 +83,19 @@ class MaterialChainTests(unittest.TestCase):
             self.assertIn('收到基换算',word_text)
             self.assertIn('72',word_text)
             self.assertIn('原质量80',' '.join(p.text for p in document.paragraphs))
+
+    def test_numeric_guard_does_not_relabel_historical_record(self):
+        from packages.standards._numeric_authority import N01C_ALGORITHM_VERSION, install_declared_decimal_context
+        from packages.persistence.in_memory_records import InMemoryRecordRepository
+        records=InMemoryRecordRepository()
+        current=CarbonAccountingUseCase(CarbonMaterialCalculator(),records).calculate(self.payload())
+        old=replace(current.record,record_id="old-fixture",algorithm_version=N01C_ALGORITHM_VERSION,
+            calculation_result=replace(current.record.calculation_result,algorithm_version=N01C_ALGORITHM_VERSION))
+        records.create(old)
+        install_declared_decimal_context()
+        self.assertEqual(records.get("old-fixture"),old)
+        self.assertEqual(records.get("old-fixture").algorithm_version,N01C_ALGORITHM_VERSION)
+        self.assertEqual(current.record.algorithm_version,ALGORITHM_VERSION)
 
     def test_codec_roundtrip_and_legacy_read_execution_identity(self):
         current=self.payload()
