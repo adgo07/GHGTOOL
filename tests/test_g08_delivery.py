@@ -33,6 +33,8 @@ from scripts.build_standalone import (
 )
 from scripts.inspect_release import (
     BUSINESS_RULES_PATH,
+    V5_TEMPLATE_PATH,
+    MATERIAL_RUNTIME_RESOURCE,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
@@ -53,7 +55,10 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     runtime_rules = root / BUSINESS_RULES_PATH
     runtime_rules.parent.mkdir(parents=True, exist_ok=True)
     runtime_rules.write_bytes((PROJECT_ROOT / BUSINESS_RULES_PATH).read_bytes())
-    for relative in (APPROVED_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+    material_rules = root / "resources" / MATERIAL_RUNTIME_RESOURCE
+    material_rules.parent.mkdir(parents=True, exist_ok=True)
+    material_rules.write_bytes((PROJECT_ROOT / "resources" / MATERIAL_RUNTIME_RESOURCE).read_bytes())
+    for relative in (APPROVED_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((PROJECT_ROOT / relative).read_bytes())

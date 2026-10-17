@@ -26,6 +26,7 @@ from scripts.inspect_release import (
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
     COMPATIBILITY_TEMPLATE_SHA256,
+    V5_TEMPLATE_PATH, V5_TEMPLATE_SHA256,
     PRIOR_TEMPLATE_PATH,
     PRIOR_TEMPLATE_SHA256,
     PREVIOUS_TEMPLATE_PATH,
@@ -35,6 +36,7 @@ from scripts.inspect_release import (
 )
 from scripts.verify_release_archive import verify_release_archive
 from scripts.project_fuel_power_rules import verify_projection
+from scripts.project_material_rules import verify_material_projection
 
 
 APP_NAME = "QingzhouCarbonAccounting"
@@ -164,6 +166,7 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
     resource_root = project_root / "resources"
     expected_hashes = {
         APPROVED_TEMPLATE_PATH: APPROVED_TEMPLATE_SHA256,
+        V5_TEMPLATE_PATH: V5_TEMPLATE_SHA256,
         PRIOR_TEMPLATE_PATH: PRIOR_TEMPLATE_SHA256,
         PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
         COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
@@ -200,6 +203,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         raise RuntimeError("G08 standalone build must run on Windows")
     _validate_approved_template_inputs()
     verify_projection()
+    verify_material_projection()
     output_directory = Path(output_root)
     artifact = output_directory / APP_NAME
     if artifact.exists():

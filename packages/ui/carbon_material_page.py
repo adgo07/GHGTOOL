@@ -1807,6 +1807,16 @@ class CarbonMaterialAccountingPage(BasePage):
         }
         values["business_fingerprint_version"] = 2
         values["steam_input_version"] = 2
+        values["material_execution_version"] = getattr(self, "_material_execution_version", "MATERIAL_V2")
+        original_material = getattr(self, "_material_upgrade_original_state", None)
+        if original_material is not None:
+            values["material_upgrade_original_state"] = original_material
+        values["material_source_drafts"] = {
+            str(material["line_id"]): {key: dict(material[key].property("materialDrafts") or {})
+                for key in ("fixed_carbon_source", "volatile_matter_source")}
+            for prefix in _PROCESS_MATERIAL_ROLES for process in self._process_rows.get(prefix, ())
+            for material in process.get("materials", ())
+        }
         return values
 
     def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
@@ -1878,6 +1888,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     self._refresh_fgd_factor_reference(component)
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
+        self._material_execution_version = state.get("material_execution_version", "MATERIAL_V1")
+        self._material_upgrade_original_state = state.get("material_upgrade_original_state")
         self._restoring_workspace = True
         active_before_restore = self._unit() if self._workspace.units else None
         legacy_fingerprint_matches = bool(
@@ -2298,6 +2310,15 @@ class CarbonMaterialAccountingPage(BasePage):
         self._calculation_has_result = False
         for card in self._source_cards.values():
             card.check_result_label.clear()
+        drafts = state.get("material_source_drafts", {})
+        if isinstance(drafts, dict):
+            for prefix in _PROCESS_MATERIAL_ROLES:
+                for process in self._process_rows.get(prefix, ()):
+                    for material in process.get("materials", ()):
+                        saved = drafts.get(str(material["line_id"]), {})
+                        for key in ("fixed_carbon_source", "volatile_matter_source"):
+                            material[key].setProperty("materialDrafts", saved.get(key, {}))
+                            material[key].setProperty("materialPreviousSource", getattr(material[key].currentData(), "value", material[key].currentData()))
         self._restoring_workspace = False
         self._input_dirty = False
         self._refresh_heat_factor_details()
@@ -4323,7 +4344,11 @@ class CarbonMaterialAccountingPage(BasePage):
 
         container = QWidget(parent)
         container.setObjectName(f"{prefix}_material_{line_id}")
-        row_layout = QHBoxLayout(container)
+        outer_layout = QVBoxLayout(container)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        main_row = QWidget(container)
+        outer_layout.addWidget(main_row)
+        row_layout = QHBoxLayout(main_row)
         row_layout.setContentsMargins(0, 2, 0, 2)
         row_layout.setSpacing(6)
         role = QComboBox(container)
@@ -4369,7 +4394,7 @@ class CarbonMaterialAccountingPage(BasePage):
             cell_layout.setContentsMargins(0, 0, 0, 0)
             cell_layout.setSpacing(3)
             cell_layout.addWidget(edit)
-            cell_layout.addWidget(SegmentedChoiceControl(source, parent=cell, values=parameter_source_policy(field_id, origin=InputOrigin.CUSTOM).allowed_sources))
+            cell_layout.addWidget(SegmentedChoiceControl(source, parent=cell, values=tuple(source.itemData(i) for i in range(source.count()))))
             composition_controls.append(cell)
         for widget, stretch in ((role, 2), (name, 2), (mass, 1), (composition_controls[0], 1), (composition_controls[1], 1), (remove, 0)):
             row_layout.addWidget(widget, stretch)
@@ -4384,8 +4409,53 @@ class CarbonMaterialAccountingPage(BasePage):
             source.currentIndexChanged.connect(
                 lambda _index, _source=source, _edit=edit: self._on_material_source_confirmed(_source, _edit)
             )
+        conversion = QWidget(container)
+        conversion.setObjectName(f"{prefix}_materialConversion_{line_id}")
+        conversion_form = QFormLayout(conversion)
+        conversion_form.setContentsMargins(0, 4, 0, 4)
+        mass_basis = QComboBox(conversion)
+        composition_basis = QComboBox(conversion)
+        method = QComboBox(conversion)
+        moisture = QLineEdit(conversion)
+        for key, combo in (("MassBasis", mass_basis), ("CompositionBasis", composition_basis)):
+            combo.setObjectName(f"{prefix}_material{key}_{line_id}")
+            combo.addItem("收到基", "RECEIVED")
+            combo.addItem("干基", "DRY")
+        method.setObjectName(f"{prefix}_materialMethod_{line_id}")
+        method.addItem("请选择换算方法", None)
+        method.addItem("按收到基水分归一", "DRY_TO_RECEIVED_MOISTURE")
+        moisture.setObjectName(f"{prefix}_materialMoisture_{line_id}")
+        moisture.setPlaceholderText("实际收到基水分，不自动填值")
+        conversion_form.addRow("质量基准", mass_basis)
+        conversion_form.addRow("含量基准", composition_basis)
+        conversion_form.addRow("收到基水分（%）", moisture)
+        conversion_form.addRow("换算方法", method)
+        conversion_button = QPushButton("数据基准与换算", container)
+        conversion_button.setCheckable(True)
+        conversion_button.toggled.connect(conversion.setVisible)
+        outer_layout.addWidget(conversion_button)
+        upgrade_button = QPushButton("采用当前材料规则", container)
+        upgrade_button.setObjectName(f"{prefix}_materialUpgrade_{line_id}")
+        upgrade_button.clicked.connect(self._upgrade_material_rules)
+        upgrade_button.setVisible(getattr(self, "_material_execution_version", "MATERIAL_V2") != "MATERIAL_V2")
+        outer_layout.addWidget(upgrade_button)
+        outer_layout.addWidget(conversion)
+        conversion.hide()
+        for control in (mass_basis, composition_basis, method, moisture):
+            self._wire_dirty_tracking(control)
+            signal = control.textChanged if isinstance(control, QLineEdit) else control.currentIndexChanged
+            signal.connect(lambda *_args, _row=process_row: self._refresh_material_summary(_row))
+        for source in (carbon_source, volatile_source):
+            source.currentIndexChanged.connect(lambda *_args, _c=conversion, _a=carbon_source, _b=volatile_source:
+                _c.setVisible(_a.currentData() == MaterialDataSource.CHEMICAL_CALCULATION or
+                              _b.currentData() == MaterialDataSource.CHEMICAL_CALCULATION))
+        for source, edit in ((carbon_source, carbon), (volatile_source, volatile)):
+            source.setProperty("materialPreviousSource", getattr(source.currentData(), "value", source.currentData()))
+            source.setProperty("materialDrafts", {})
         material = {
             "line_id": line_id,
+            "mass_basis": mass_basis, "composition_basis": composition_basis,
+            "moisture_received_percent": moisture, "conversion_method": method,
             "widget": container,
             "remove_button": remove,
             "role": role,
@@ -4408,22 +4478,44 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_source_cards()
         return material
 
+    def _upgrade_material_rules(self) -> None:
+        if getattr(self, "_material_execution_version", "MATERIAL_V2") == "MATERIAL_V2":
+            return
+        answer = QMessageBox.question(self, "确认材料输入升级",
+            "将启用煅烧各输出角色分别计碳及明确的收到基换算。原字段、单位、来源和物料身份保留；不会补默认值。"
+            "尚未试算，不能据此确定排放差异。确认后原输入副本随项目保存，取消不改输入，也不生成记录。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        original = self._capture_form_state()
+        original.pop("material_upgrade_original_state", None)
+        self._material_upgrade_original_state = original
+        self._material_execution_version = "MATERIAL_V2"
+        for button in self.findChildren(QPushButton):
+            if "_materialUpgrade_" in button.objectName():
+                button.hide()
+        self._mark_input_dirty()
+
     def _on_material_source_confirmed(self, source: QComboBox, edit: QLineEdit) -> None:
-        if not self._restoring_workspace and source.currentData() == MaterialDataSource.MEASURED:
-            # Explicitly changing a historical source must not relabel its old value.
-            edit.clear()
+        current = getattr(source.currentData(), "value", source.currentData())
+        previous = source.property("materialPreviousSource")
+        if not self._restoring_workspace:
+            drafts = dict(source.property("materialDrafts") or {})
+            if previous is not None:
+                drafts[previous] = edit.text()
+            blocker = QSignalBlocker(edit)
+            edit.setText(str(drafts.get(current, "")))
+            del blocker
+            source.setProperty("materialDrafts", drafts)
+        source.setProperty("materialPreviousSource", current)
 
     @staticmethod
     def _populate_material_source_combo(combo: QComboBox, field_id: str) -> None:
         policy = parameter_source_policy(field_id, origin=InputOrigin.CUSTOM)
         if "MEASURED" in policy.allowed_sources:
             combo.addItem("实测值", MaterialDataSource.MEASURED)
-        combo.addItem("历史计算来源（需确认）", MaterialDataSource.CHEMICAL_CALCULATION)
-        legacy = combo.count() - 1
-        combo.view().setRowHidden(legacy, True)
-        item = combo.model().item(legacy) if hasattr(combo.model(), "item") else None
-        if item is not None:
-            item.setEnabled(False)
+        if "CALCULATED" in policy.allowed_sources:
+            combo.addItem("收到基换算", MaterialDataSource.CHEMICAL_CALCULATION)
         combo.setCurrentIndex(0)
 
     def _remove_material_line(self, process_row: dict[str, object], line_id: str) -> None:
@@ -4473,6 +4565,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 fixed_carbon_source=_enum(fixed_source.currentData(), MaterialDataSource),
                 volatile_matter_percent=volatile_matter,
                 volatile_matter_source=_enum(volatile_source.currentData(), MaterialDataSource),
+                mass_basis=row["mass_basis"].currentData(),
+                composition_basis=row["composition_basis"].currentData(),
+                moisture_received_percent=_value(row["moisture_received_percent"]),
+                conversion_method=row["conversion_method"].currentData(),
             ))
         return tuple(result)
 
@@ -4516,7 +4612,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if prefix == "calcination":
             text = (
                 f"原料 {format_value(values['gc'])} t · 固定碳 {format_value(policy.multiply(values['wfc'], Decimal('100')))}% · 挥发分 {format_value(policy.multiply(values['wvar'], Decimal('100')))}%；"
-                f"输出 {format_value(policy.add(policy.add(values['cc'], values['ucc']), values['du']))} t · 固定碳 {format_value(policy.multiply(values['wfc_c'], Decimal('100')))}% · 挥发分 {format_value(policy.multiply(values['wvar_c'], Decimal('100')))}%"
+                f"输出固定碳：煅后料 {format_value(values['output_carbon_cc'])} tC、欠烧料 {format_value(values['output_carbon_ucc'])} tC、粉尘 {format_value(values['output_carbon_du'])} tC"
             )
         elif prefix == "baking":
             text = (
@@ -6968,6 +7064,8 @@ class CarbonMaterialAccountingPage(BasePage):
         if has_material_input:
             normalized = normalize_material_inputs(prefix, material_lines, policy=self.calculator.policy)
             for name, value in normalized.values:
+                if name not in values:
+                    continue
                 unit = get_field_spec(f"{prefix}.{name}").domain_unit
                 if unit:
                     values[name] = InputValue(value, unit)
@@ -7344,6 +7442,7 @@ class CarbonMaterialAccountingPage(BasePage):
             purchased_heat=self._heat("heat") if self._source_is_enabled("CAR-SRC-PURCHASED-HEAT-001") else (),
             exported_heat=self._heat("exported_heat") if self._source_is_enabled("CAR-SRC-EXPORTED-HEAT-001") else (),
             reporting_data=self._reporting_data(),
+            material_execution_version=getattr(self, "_material_execution_version", "MATERIAL_V2"),
         )
 
     def _reporting_data(self) -> CarbonReportingData:
@@ -7439,6 +7538,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_live_feedback()
 
     def _reset_for_new_accounting(self) -> None:
+        self._material_execution_version = "MATERIAL_V2"
         """Restore every G06 control to the initial new-accounting state."""
 
         self._calculation_index = 0

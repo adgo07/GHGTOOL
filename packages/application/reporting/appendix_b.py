@@ -272,12 +272,22 @@ def _process_table(key, process, step, ordinal, source, raw):
     materials = _entries(process, 'material_rows')
     rows, merges = [], []
     variables = _variables(step)
+    adopted = _mapping(_mapping(step).get("calculation_provenance"))
+    method_notes = []
     for group, role, component, mass_key, ratio_key in _PROCESS_ROWS[key]:
         matching = [m for m in materials if m.get('role') == role]
         if matching:
             for material in matching:
                 source_key = 'fixed_carbon_source' if component == 'fixed_carbon_percent' else 'volatile_matter_source'
-                rows.append((group, _ROLE_NAMES[role], material.get('name') or _ROLE_NAMES[role], _value(material.get('mass_t')), _value(material.get(component)), _enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录'))
+                prefix = f"material.{material.get('line_id')}.adopted."
+                mass = adopted.get(prefix + "mass_t", material.get("mass_t"))
+                composition = adopted.get(prefix + component, material.get(component))
+                source_name = _enum(material.get(source_key), _SOURCE_NAMES) or '来源未记录'
+                if material.get("conversion_method") == "DRY_TO_RECEIVED_MOISTURE":
+                    source_name = "收到基换算" if material.get(source_key) == "CHEMICAL_CALCULATION" else source_name
+                    note = f"{material.get('name') or _ROLE_NAMES[role]}：原质量{material.get('mass_t')} t，质量基准{ {'DRY':'干基','RECEIVED':'收到基'}.get(material.get('mass_basis'),'未记录')}；原含量{material.get(component)} {material.get('fixed_carbon_unit' if component == 'fixed_carbon_percent' else 'volatile_matter_unit', '%')}，含量基准{ {'DRY':'干基','RECEIVED':'收到基'}.get(material.get('composition_basis'),'未记录')}；收到基水分{material.get('moisture_received_percent')}%，按水分质量守恒归一。"
+                    if note not in method_notes: method_notes.append(note)
+                rows.append((group, _ROLE_NAMES[role], material.get('name') or _ROLE_NAMES[role], _value(mass), _value(composition), source_name))
         elif materials:
             rows.append((group, _ROLE_NAMES[role], '未列示此物流', '—', '—', '—'))
         else:
@@ -300,7 +310,8 @@ def _process_table(key, process, step, ordinal, source, raw):
     rows.append(('排放量（tCO₂）', '', '', _step_result(step) or '历史未记录', '', ''))
     merges.extend(((last, 0, last, 2), (last, 3, last, 5)))
     return replace(_table(key, rows, source=source, raw=raw, suffix=f'-{ordinal}', merges=merges),
-                   context_label=process.get('instance_name') or f'过程单元{ordinal}')
+                   context_label=process.get('instance_name') or f'过程单元{ordinal}',
+                   footnotes=tuple(_table(key, (), source=source, raw=raw).footnotes) + tuple(method_notes))
 
 
 def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=None):

@@ -18,7 +18,7 @@ from packages.standards.carbon_material_business_policy import (
 )
 
 
-MATERIAL_NORMALIZATION_VERSION = "CAR-MATERIAL-NORMALIZATION-V1"
+MATERIAL_NORMALIZATION_VERSION = "CAR-MATERIAL-NORMALIZATION-V2"
 
 
 class MaterialRole(str, Enum):

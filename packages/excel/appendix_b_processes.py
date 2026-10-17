@@ -22,7 +22,7 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
         stop=next((r for r in range(4,sheet.max_row+1) if _is_appendix_footer_row(sheet,r)),sheet.max_row+1)
         materials={}
         for row in range(4,stop):
-            if not any(_has_value(sheet[f"{column}{row}"]) for column in "DE"):
+            if not any(_has_value(sheet[f"{column}{row}"]) for column in ("DEIJKLM" if template_version == "2.4.0" else "DE")):
                 continue
             category=reader.text(workbook,sheet_name,f"B{row}",errors,required=True,field_label="物料类别")
             name=reader.text(workbook,sheet_name,f"C{row}",errors,required=True,field_label="实际物料名称")
@@ -40,28 +40,33 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
             mass=reader.number(workbook,sheet_name,f"D{row}",errors,required=True,field_label="活动数据")
             percentage=reader.number(workbook,sheet_name,f"E{row}",errors,field_label="碳/挥发分含量")
             source=reader.text(workbook,sheet_name,f"F{row}",errors,field_label="碳/挥发分来源")
-            if template_version == "2.2.0":
-                from packages.standards.carbon_material_input_policy import (
-                    InputOrigin, MEASURED, parameter_source_policy,
-                    validate_parameter_source_policy,
-                )
-                field_id = "material.fixed_carbon" if component == "fixed" else "material.volatile_matter"
-                source_policy = parameter_source_policy(field_id, origin=InputOrigin.CATALOG)
-                if source is None and source_policy.default_source == MEASURED:
-                    source_kind = MEASURED
-                else:
-                    source_kind = {"实测值": MEASURED}.get(source)
-                issue = validate_parameter_source_policy(field_id, source_kind, origin=InputOrigin.CATALOG)
-                if issue is not None:
-                    errors.append(ImportMessage(issue[1],issue[2],f"{sheet_name}!F{row}","碳/挥发分来源"))
-                elif source is not None and source != "实测值":
-                    errors.append(ImportMessage("EXB01_PROCESS_SOURCE_UNSUPPORTED","该字段仅支持实测来源。",f"{sheet_name}!F{row}","碳/挥发分来源"))
-            elif source not in (None,"实测值"):
-                errors.append(ImportMessage("EXB01_PROCESS_SOURCE_UNSUPPORTED","该表的碳/挥发分来源仅支持实测值。",f"{sheet_name}!F{row}","碳/挥发分来源"))
+            source_kind = {None:MaterialDataSource.MEASURED, "实测值":MaterialDataSource.MEASURED}.get(source)
+            extra = {}
+            unit = "%"
+            if template_version == "2.4.0":
+                source_kind = {None:MaterialDataSource.MEASURED, "实测值":MaterialDataSource.MEASURED,
+                               "收到基换算":MaterialDataSource.CHEMICAL_CALCULATION}.get(source)
+                mass_basis = reader.text(workbook,sheet_name,f"I{row}",errors,field_label="质量基准")
+                comp_basis = reader.text(workbook,sheet_name,f"J{row}",errors,field_label="含量基准")
+                moisture = reader.number(workbook,sheet_name,f"K{row}",errors,field_label="收到基水分")
+                method = reader.text(workbook,sheet_name,f"L{row}",errors,field_label="换算方法")
+                unit = reader.text(workbook,sheet_name,f"M{row}",errors,field_label="含量单位") or "%"
+                bases = {None:"RECEIVED", "收到基":"RECEIVED", "干基":"DRY"}
+                extra = {"mass_basis":bases.get(mass_basis, "UNKNOWN"),
+                         "composition_basis":bases.get(comp_basis, "UNKNOWN"),
+                         "moisture_received_percent":moisture,
+                         "conversion_method": {None:None, "按收到基水分归一":"DRY_TO_RECEIVED_MOISTURE"}.get(method, "UNKNOWN")}
+            if source_kind is None:
+                errors.append(ImportMessage("EXB01_PROCESS_SOURCE_UNSUPPORTED","请选择此模板支持的材料来源。",f"{sheet_name}!F{row}","碳/挥发分来源"))
+                source_kind = MaterialDataSource.STANDARD_DEFAULT
             if not all((name,process,material)):
                 continue
             key=(process,material)
-            entry=materials.setdefault(key,{"role":role,"name":name,"masses":[],"fixed":[],"volatile":[]})
+            entry=materials.setdefault(key,{"role":role,"name":name,"masses":[],"fixed":[],"volatile":[], "extra":extra, "sources":{}, "units":{}})
+            if entry["extra"] != extra:
+                errors.append(ImportMessage("EXB01_PROCESS_BASIS_MISMATCH","同一物料两行的基准、水分和方法必须一致。",f"{sheet_name}!I{row}","基准换算"))
+            entry["sources"][component] = source_kind
+            entry["units"][component] = unit
             if entry["role"] is not role or entry["name"]!=name:
                 errors.append(ImportMessage("EXB01_PROCESS_IDENTITY_MISMATCH","同一工序与物料序号必须对应同一类别和实际名称；新物料请使用独立序号。",f"{sheet_name}!C{row}","物料归属"))
                 continue
@@ -78,9 +83,11 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
             line=MaterialInputLine(line_id=_stable_id("material",unit_id,sheet_name,process,material),role=entry["role"],name=entry["name"],
                 mass_t=masses[0][1] if masses else None,
                 fixed_carbon_percent=entry["fixed"][0][1] if entry["fixed"] else None,
-                fixed_carbon_source=MaterialDataSource.MEASURED,
+                fixed_carbon_source=entry["sources"].get("fixed",MaterialDataSource.MEASURED),
                 volatile_matter_percent=entry["volatile"][0][1] if entry["volatile"] else None,
-                volatile_matter_source=MaterialDataSource.MEASURED)
+                volatile_matter_source=entry["sources"].get("volatile",MaterialDataSource.MEASURED),
+                fixed_carbon_unit=entry["units"].get("fixed","%"),
+                volatile_matter_unit=entry["units"].get("volatile","%"), **entry["extra"])
             processes.setdefault(process,[]).append(line)
         for process,lines in processes.items():
             factor=importer._default_factor(parameter_id,context.period)

@@ -8,7 +8,7 @@ calculation evidence. Record persistence and adapters live outside this module.
 from __future__ import annotations
 
 from packages.standards.carbon_material_business_policy import (
-    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity,
+    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity, material_policy_identity,
 )
 
 from packages.standards.carbon_material_input_policy import (
@@ -67,7 +67,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-14-G06.5"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-17-MATERIAL.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -807,6 +807,7 @@ class CarbonMaterialInput:
     fume_incinerations: tuple[FumeIncinerationInput, ...] = ()
     fgd_units: tuple[FGDInput, ...] = ()
     reporting_data: CarbonReportingData = CarbonReportingData()
+    material_execution_version: str = "MATERIAL_V2"
 
     def __post_init__(self) -> None:
         for field in ("input_id", "enterprise_id"):
@@ -1478,6 +1479,7 @@ class CarbonMaterialCalculator:
             "mapping": {"version": MAPPING_VERSION, "status": "FROZEN"},
             "calculator": {"algorithm_version": ALGORITHM_VERSION},
             "adopted_business_policy": fuel_power_policy_identity(),
+            "adopted_material_policy": material_policy_identity(),
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -2345,6 +2347,11 @@ class CarbonMaterialCalculator:
                 instance_line_id = line_id if len(payloads) == 1 else f"{line_id}.{instance_id}"
                 problem_count = len(problems)
                 material_provenance: tuple[tuple[str, str], ...] = ()
+                role_output_carbon = None
+                if input_value.material_execution_version not in {"MATERIAL_V1", "MATERIAL_V2"}:
+                    problems.append(_problem("CAR-VAL-MATERIAL-VERSION", IssueLevel.ERROR,
+                        "此项目的材料执行版本尚不支持，可查看原输入；请明确升级后核算。", field_line_prefix))
+                    continue
                 if payload.material_rows is not None:
                     normalization = normalize_material_inputs(
                         "calcination" if isinstance(payload, CalcinationInput)
@@ -2353,6 +2360,15 @@ class CarbonMaterialCalculator:
                         payload.material_rows,
                         policy=self.policy,
                     )
+                    if input_value.material_execution_version == "MATERIAL_V1" and any(
+                        getattr(row, "mass_basis", "RECEIVED") != "RECEIVED" or
+                        getattr(row, "composition_basis", "RECEIVED") != "RECEIVED" or
+                        row.fixed_carbon_source.value != "MEASURED" or row.volatile_matter_source.value != "MEASURED"
+                        for row in payload.material_rows):
+                        problems.append(_problem("CAR-VAL-MATERIAL-VERSION", IssueLevel.ERROR,
+                            "旧材料执行组合仅支持原收到基实测输入；请明确升级以使用基准换算。", field_line_prefix))
+                    if isinstance(payload, CalcinationInput) and input_value.material_execution_version == "MATERIAL_V2":
+                        role_output_carbon = normalization.value("output_carbon_total")
                     for issue in normalization.problems:
                         suffix = issue.field_id
                         field_id = f"{field_line_prefix}-material-{suffix}"
@@ -2372,6 +2388,16 @@ class CarbonMaterialCalculator:
                     )
                     if any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
                         continue
+                    material_provenance += (("material.execution_version", input_value.material_execution_version),) + tuple(
+                        (f"material.{row.line_id}.adopted.{name}", "" if getattr(row, name) is None else str(getattr(row, name)))
+                        for row in normalization.normalized_lines
+                        for name in ("mass_t", "fixed_carbon_percent", "volatile_matter_percent")
+                    ) + tuple(
+                        (f"material.{row.line_id}.original.{name}", str(getattr(row, name)))
+                        for row in normalization.included_lines
+                        for name in ("mass_basis", "composition_basis", "moisture_received_percent",
+                                     "conversion_method", "fixed_carbon_unit", "volatile_matter_unit")
+                    )
                     normalized_units = {
                         CalcinationInput: {"gc": "t", "wfc": "ratio", "cc": "t", "ucc": "t", "du": "t", "wfc_c": "ratio", "wvar": "ratio", "wvar_c": "ratio"},
                         BakingInput: {"bpm": "t", "bpmfc": "ratio", "bg": "t", "bgfc": "ratio", "bwt": "tC", "bp": "t", "bpfc": "ratio", "bpmvar": "ratio", "bgvar": "ratio"},
@@ -2381,7 +2407,7 @@ class CarbonMaterialCalculator:
                         payload,
                         **{
                             name: InputValue(value, normalized_units[name])
-                            for name, value in normalization.values
+                            for name, value in normalization.values if name in normalized_units
                         },
                     )
                 self._basis(payload, f"{source_id}.{instance_id}", problems)
@@ -2406,13 +2432,24 @@ class CarbonMaterialCalculator:
                     if k3 is not None: values["k3"] = k3
                 if len(values) < len(field_defs[type(payload)]) + 1 or any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
                     continue
-                amount = fn(**values)
+                if role_output_carbon is not None:
+                    # Issue018: direct role carbon sum; no cross-role average roundtrip.
+                    fixed_term = self.policy.divide(self.policy.multiply(self.policy.subtract(
+                        self.policy.multiply(values["gc"], values["wfc"]), role_output_carbon), "44"), "12")
+                    volatile_term = self.policy.divide(self.policy.multiply(self.policy.multiply(self.policy.subtract(
+                        self.policy.multiply(values["gc"], values["wvar"]),
+                        self.policy.multiply(values["cc"], values["wvar_c"])), values["k1"]), "44"), "16")
+                    amount = self.policy.add(fixed_term, volatile_term)
+                    values.update({name: value for name, value in normalization.values
+                                   if name.startswith("output_carbon") or name.startswith("wfc_c_")})
+                else:
+                    amount = fn(**values)
                 if amount < 0:
                     problems.append(_problem("CAR-VAL-MATERIAL-BALANCE-NEGATIVE", IssueLevel.ERROR, f"{source_id} 物料平衡结果为负。", f"{source_id}.{instance_id}"))
                 if getattr(payload, "carbon_output_included_in_input", False):
                     problems.append(_problem("CAR-VAL-CARBON-OUTPUT-DUPLICATE", IssueLevel.ERROR, f"{source_id} 的碳输出已在输入/产量中重复使用。", f"{source_id}.{instance_id}"))
                 lines.append(CalculationLine(instance_line_id, source_id, CO2_ID, amount, "tCO2"))
-                traces.append(CalculationTrace(instance_line_id, formula_id, source_id, tuple((key, value, "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入；实例 {instance_id}", amount, instance_id=instance_id, provenance=material_provenance))
+                traces.append(CalculationTrace(instance_line_id, formula_id, source_id, tuple((key, value, "tC" if key.startswith("output_carbon") else "ratio" if key.startswith("w") or key.startswith("b") and key.endswith(("fc", "var")) else "") for key, value in values.items()), f"{formula_id} 按映射变量代入；实例 {instance_id}", amount, instance_id=instance_id, provenance=material_provenance))
                 total += amount
             return total
 

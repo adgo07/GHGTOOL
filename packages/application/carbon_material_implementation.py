@@ -32,6 +32,27 @@ class CarbonMaterialExcel:
         from packages.excel.appendix_b import AppendixBWorkbookImporter
         return AppendixBWorkbookImporter(preview_use_case=self.preview, catalog_service=self.catalog).import_preview(path, context=context)
 
+    @staticmethod
+    def can_upgrade_workspace(workspace):
+        return any(getattr(unit.canonical_input, "material_execution_version", None) == "MATERIAL_V1"
+                   for unit in workspace.units)
+
+    @staticmethod
+    def upgrade_workspace(workspace):
+        from dataclasses import replace
+        from uuid import uuid4
+        from packages.standards.carbon_material import CarbonMaterialInput
+        units = []
+        unit_ids = {unit.unit_id: f"unit.{uuid4().hex}" for unit in workspace.units}
+        for unit in workspace.units:
+            value = unit.canonical_input
+            if value is not None:
+                if not isinstance(value, CarbonMaterialInput) or value.material_execution_version not in {"MATERIAL_V1", "MATERIAL_V2"}:
+                    raise ValueError("此项目材料执行组合不支持自动升级；原项目未修改。")
+                value = replace(value, material_execution_version="MATERIAL_V2")
+            units.append(replace(unit, unit_id=unit_ids[unit.unit_id], canonical_input=value, result_snapshot=None, input_fingerprint=None))
+        return replace(workspace, project_id=f"project.{uuid4().hex}", name=workspace.name + "（材料规则升级副本）", active_unit_id=unit_ids[workspace.active_unit_id], units=tuple(units))
+
     def regions(self, period):
         from .uat03_parameter_queries import UAT03ParameterQueries
         resolver = self.preview.calculator.parameter_resolver

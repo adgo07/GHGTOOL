@@ -2333,6 +2333,10 @@ class ExcelImportPage(BasePage):
         self.calculate_button.setObjectName("formalCalculateButton")
         self.calculate_button.clicked.connect(self._calculate_selected_unit)
         unit_row.addWidget(self.calculate_button)
+        self.material_upgrade_button = QPushButton("升级材料输入副本", action_section)
+        self.material_upgrade_button.setObjectName("upgradeMaterialProjectButton")
+        self.material_upgrade_button.clicked.connect(self._upgrade_material_project)
+        unit_row.addWidget(self.material_upgrade_button)
         project_layout.addLayout(unit_row)
 
         record_row = QHBoxLayout()
@@ -3041,6 +3045,8 @@ class ExcelImportPage(BasePage):
         self.preview_text.setPlainText("\n".join(lines))
 
     def _update_controls(self) -> None:
+        can_upgrade = getattr(self.excel_adapter, "can_upgrade_workspace", None)
+        self.material_upgrade_button.setVisible(bool(self._workspace is not None and callable(can_upgrade) and can_upgrade(self._workspace)))
         for control in (
             self.import_enterprise_name, self.import_period_type,
             self.import_period_start, self.import_period_end,
@@ -3062,6 +3068,28 @@ class ExcelImportPage(BasePage):
         self.preview_button.setEnabled(
             self._chosen_workbook_path is not None and self._workspace is None
         )
+
+    def _upgrade_material_project(self) -> None:
+        upgrade = getattr(self.excel_adapter, "upgrade_workspace", None)
+        if self._workspace is None or self.project_service is None or not callable(upgrade):
+            return
+        answer = QMessageBox.question(self, "确认材料输入升级",
+            "将保留原项目并另存材料规则升级副本：各输出角色分别计碳，换算须明确方法和必要数值；字段、单位、来源与身份保留，不补默认。"
+            "尚未试算，不声明数值差异。升级不产生核算记录；取消不写回。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            upgraded = upgrade(self._workspace)
+            self.project_service.save(upgraded)
+        except Exception:
+            _LOGGER.exception("材料项目升级副本保存失败")
+            self.status_label.setText("升级未完成，原项目保持不变。")
+            return
+        self._workspace = upgraded
+        self._refresh_saved_projects()
+        self._selected_unit_changed()
+        self.status_label.setText("已保存材料规则升级副本；必要数据仍需校验，尚未生成核算记录。")
 
     def _calculate_selected_unit(self) -> None:
         unit = self._selected_unit()
