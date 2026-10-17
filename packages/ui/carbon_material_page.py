@@ -1812,11 +1812,19 @@ class CarbonMaterialAccountingPage(BasePage):
         if original_material is not None:
             values["material_upgrade_original_state"] = original_material
         values["material_source_drafts"] = {
-            str(material["line_id"]): {key: dict(material[key].property("materialDrafts") or {})
-                for key in ("fixed_carbon_source", "volatile_matter_source")}
-            for prefix in _PROCESS_MATERIAL_ROLES for process in self._process_rows.get(prefix, ())
-            for material in process.get("materials", ())
+            "version": 2,
+            "processes": {
+                prefix: {str(process["instance_id"]): {
+                    str(material["line_id"]): {
+                        key: dict(material[key].property("materialDrafts") or {})
+                        for key in ("fixed_carbon_source", "volatile_matter_source")
+                    } for material in process.get("materials", ())
+                } for process in self._process_rows.get(prefix, ())}
+                for prefix in _PROCESS_MATERIAL_ROLES
+            },
+            "unresolved": getattr(self, "_material_drafts_unresolved", {}),
         }
+        values["material_legacy_values_unresolved"] = getattr(self, "_material_legacy_values_unresolved", {})
         return values
 
     def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
@@ -2155,6 +2163,23 @@ class CarbonMaterialAccountingPage(BasePage):
         for widget in self.findChildren(QWidget):
             if widget.objectName():
                 by_name[widget.objectName()] = widget
+        material_owners = {}
+        for prefix in _PROCESS_MATERIAL_ROLES:
+            for process in self._process_rows.get(prefix, ()):
+                for material in process.get("materials", ()):
+                    material_owners.setdefault(str(material["line_id"]), []).append((prefix, process, material))
+        self._material_legacy_values_unresolved = dict(state.get("material_legacy_values_unresolved", {}) or {})
+        for line_id, owners in material_owners.items():
+            for prefix, process, material in owners:
+                scope = f"{prefix}_{process['instance_id']}_"
+                for control in material.values():
+                    if not isinstance(control, (QLineEdit, QComboBox)):
+                        continue
+                    legacy_name = control.objectName().replace(scope, f"{prefix}_", 1)
+                    if len(owners) == 1:
+                        by_name.setdefault(legacy_name, control)
+                    elif legacy_name in state:
+                        self._material_legacy_values_unresolved[legacy_name] = state[legacy_name]
         def apply_values(values: dict[str, object]) -> None:
             for name, value in values.items():
                 widget = by_name.get(name)
@@ -2311,14 +2336,30 @@ class CarbonMaterialAccountingPage(BasePage):
         for card in self._source_cards.values():
             card.check_result_label.clear()
         drafts = state.get("material_source_drafts", {})
-        if isinstance(drafts, dict):
-            for prefix in _PROCESS_MATERIAL_ROLES:
-                for process in self._process_rows.get(prefix, ()):
-                    for material in process.get("materials", ()):
-                        saved = drafts.get(str(material["line_id"]), {})
-                        for key in ("fixed_carbon_source", "volatile_matter_source"):
-                            material[key].setProperty("materialDrafts", saved.get(key, {}))
-                            material[key].setProperty("materialPreviousSource", getattr(material[key].currentData(), "value", material[key].currentData()))
+        drafts = drafts if isinstance(drafts, dict) else {}
+        scoped = drafts.get("version") == 2 and isinstance(drafts.get("processes"), dict)
+        self._material_drafts_unresolved = dict(drafts.get("unresolved", {}) or {}) if scoped else dict(drafts)
+        for line_id, owners in material_owners.items():
+            for prefix, process, material in owners:
+                if scoped:
+                    saved = drafts["processes"].get(prefix, {}).get(str(process["instance_id"]), {}).get(line_id, {})
+                elif len(owners) == 1:
+                    saved = drafts.get(line_id, {})
+                    self._material_drafts_unresolved.pop(line_id, None)
+                else:
+                    saved = {}
+                saved = saved if isinstance(saved, dict) else {}
+                for key in ("fixed_carbon_source", "volatile_matter_source"):
+                    source = material[key]
+                    source.setProperty("materialDrafts", dict(saved.get(key, {}) or {}))
+                    source.setProperty("materialPreviousSource", getattr(source.currentData(), "value", source.currentData()))
+                    pending = self._material_drafts_unresolved.get(line_id, {})
+                    if isinstance(pending, dict) and isinstance(pending.get(key), dict):
+                        labels = {"MEASURED": "实测值", "CHEMICAL_CALCULATION": "计算值"}
+                        facts = "；".join(f"{labels.get(k, '历史来源')}：{v}" for k, v in pending[key].items())
+                        source.setToolTip("历史来源草稿有多条物料对应，未自动采用，请核实：" + facts)
+        if self._material_drafts_unresolved or self._material_legacy_values_unresolved:
+            self.validation_list.addTopLevelItem(QTreeWidgetItem(["部分历史物料草稿无法唯一对应，已保留但未自动采用；请查看来源提示并核实原输入。"]))
         self._restoring_workspace = False
         self._input_dirty = False
         self._refresh_heat_factor_details()
@@ -4337,13 +4378,14 @@ class CarbonMaterialAccountingPage(BasePage):
         parent = process_row.get("materials_host")
         if not isinstance(material_rows, list) or not isinstance(layout, QVBoxLayout) or not isinstance(parent, QWidget):
             return {}
+        control_scope = f"{prefix}_{process_row['instance_id']}"
         used_ids = {str(item.get("line_id", "")) for item in material_rows if isinstance(item, dict)}
         line_id = line_id or uuid4().hex
         while line_id in used_ids:
             line_id = uuid4().hex
 
         container = QWidget(parent)
-        container.setObjectName(f"{prefix}_material_{line_id}")
+        container.setObjectName(f"{control_scope}_material_{line_id}")
         outer_layout = QVBoxLayout(container)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         main_row = QWidget(container)
@@ -4352,7 +4394,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row_layout.setContentsMargins(0, 2, 0, 2)
         row_layout.setSpacing(6)
         role = QComboBox(container)
-        role.setObjectName(f"{prefix}_materialRole_{line_id}")
+        role.setObjectName(f"{control_scope}_materialRole_{line_id}")
         for label, value in _PROCESS_MATERIAL_ROLES[prefix]:
             role.addItem(label, value)
         default_role = role_value or _PROCESS_MATERIAL_DEFAULT_ROLE[prefix]
@@ -4361,22 +4403,22 @@ class CarbonMaterialAccountingPage(BasePage):
         else:
             role.setCurrentIndex(max(0, role.findData(default_role)))
         name = QLineEdit(container)
-        name.setObjectName(f"{prefix}_materialName_{line_id}")
+        name.setObjectName(f"{control_scope}_materialName_{line_id}")
         name.setPlaceholderText("如：煅烧石油焦")
         mass = QLineEdit(container)
-        mass.setObjectName(f"{prefix}_materialMass_{line_id}")
+        mass.setObjectName(f"{control_scope}_materialMass_{line_id}")
         mass.setPlaceholderText("数量")
         carbon = QLineEdit(container)
-        carbon.setObjectName(f"{prefix}_materialFixedCarbon_{line_id}")
+        carbon.setObjectName(f"{control_scope}_materialFixedCarbon_{line_id}")
         carbon.setPlaceholderText("固定碳")
         carbon_source = QComboBox(container)
-        carbon_source.setObjectName(f"{prefix}_materialFixedCarbonSource_{line_id}")
+        carbon_source.setObjectName(f"{control_scope}_materialFixedCarbonSource_{line_id}")
         self._populate_material_source_combo(carbon_source, "material.fixed_carbon")
         volatile = QLineEdit(container)
-        volatile.setObjectName(f"{prefix}_materialVolatile_{line_id}")
+        volatile.setObjectName(f"{control_scope}_materialVolatile_{line_id}")
         volatile.setPlaceholderText("挥发分")
         volatile_source = QComboBox(container)
-        volatile_source.setObjectName(f"{prefix}_materialVolatileSource_{line_id}")
+        volatile_source.setObjectName(f"{control_scope}_materialVolatileSource_{line_id}")
         self._populate_material_source_combo(volatile_source, "material.volatile_matter")
         for widget, label in (
             (role, "物料类别"), (name, "物料名称"), (mass, "物料数量（t）"),
@@ -4385,7 +4427,7 @@ class CarbonMaterialAccountingPage(BasePage):
         ):
             widget.setProperty("businessFieldLabel", label)
         remove = QPushButton("删除", container)
-        remove.setObjectName(f"remove_{prefix}_material_{line_id}")
+        remove.setObjectName(f"remove_{control_scope}_material_{line_id}")
         remove.clicked.connect(lambda _checked=False, _row=process_row, _id=line_id: self._remove_material_line(_row, _id))
         composition_controls = []
         for edit, source, field_id in ((carbon, carbon_source, "material.fixed_carbon"), (volatile, volatile_source, "material.volatile_matter")):
@@ -4410,7 +4452,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 lambda _index, _source=source, _edit=edit: self._on_material_source_confirmed(_source, _edit)
             )
         conversion = QWidget(container)
-        conversion.setObjectName(f"{prefix}_materialConversion_{line_id}")
+        conversion.setObjectName(f"{control_scope}_materialConversion_{line_id}")
         conversion_form = QFormLayout(conversion)
         conversion_form.setContentsMargins(0, 4, 0, 4)
         mass_basis = QComboBox(conversion)
@@ -4418,13 +4460,13 @@ class CarbonMaterialAccountingPage(BasePage):
         method = QComboBox(conversion)
         moisture = QLineEdit(conversion)
         for key, combo in (("MassBasis", mass_basis), ("CompositionBasis", composition_basis)):
-            combo.setObjectName(f"{prefix}_material{key}_{line_id}")
+            combo.setObjectName(f"{control_scope}_material{key}_{line_id}")
             combo.addItem("收到基", "RECEIVED")
             combo.addItem("干基", "DRY")
-        method.setObjectName(f"{prefix}_materialMethod_{line_id}")
+        method.setObjectName(f"{control_scope}_materialMethod_{line_id}")
         method.addItem("请选择换算方法", None)
         method.addItem("按收到基水分归一", "DRY_TO_RECEIVED_MOISTURE")
-        moisture.setObjectName(f"{prefix}_materialMoisture_{line_id}")
+        moisture.setObjectName(f"{control_scope}_materialMoisture_{line_id}")
         moisture.setPlaceholderText("实际收到基水分，不自动填值")
         conversion_form.addRow("质量基准", mass_basis)
         conversion_form.addRow("含量基准", composition_basis)
@@ -4435,7 +4477,7 @@ class CarbonMaterialAccountingPage(BasePage):
         conversion_button.toggled.connect(conversion.setVisible)
         outer_layout.addWidget(conversion_button)
         upgrade_button = QPushButton("采用当前材料规则", container)
-        upgrade_button.setObjectName(f"{prefix}_materialUpgrade_{line_id}")
+        upgrade_button.setObjectName(f"{control_scope}_materialUpgrade_{line_id}")
         upgrade_button.clicked.connect(self._upgrade_material_rules)
         upgrade_button.setVisible(getattr(self, "_material_execution_version", "MATERIAL_V2") != "MATERIAL_V2")
         outer_layout.addWidget(upgrade_button)

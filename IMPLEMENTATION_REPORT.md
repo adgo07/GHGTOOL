@@ -113,3 +113,11 @@ e04d1fc的GitHub Actions CI251/run39040774659：merge-ref04b182bfa63e20291310586
 本地定向命令：python -B -m unittest tests.test_business_rules_candidate_assets tests.test_pr48_mapping_arithmetic tests.test_b_material_policy -v，30/30，12.698s；python -B -m scripts.project_material_rules机械投影PASS。只读对比同版本前后表数据仅三表A3/A4共6处改变，表范围/冻结窗格/其他值保留；ArtifactTool渲染三表开头可读，非原生Office验收。日志/预览位于tmp/review-rework-r11；固定四件套同源重生后入仓。
 
 本轮未重复完整本地回归/旧包构建，等待新head CI；此前本地816失败历史、CI250/251失败及CI252成功各有独立身份，不互相替代。不合并、不启动下一包、不改专业口径或历史Record。
+
+## F03 实例来源草稿隔离（2026-10-18，F02仍处理中）
+
+完整读取Owner新增cad63独立验收报告，F01保留不重复修。实际Qt离屏反例（tmp/material-f02-f03-before.log）2项均FAIL：计算来源标签仍收到基换算；两个煅烧实例复用feed-local经SQLite重开后未各自恢复。该反例不冒充原生鼠标/IME。
+
+F03修复：控件Presentation objectName纳入工序类型/实例，正式instance_id/line_id不改；material_source_drafts版本2按工序类型→实例→行→字段→来源隔离。旧仅line_id草稿及扁平控件名仅唯一对应时恢复；歧义不猜贴、不覆盖当前可辨识输入，原未采用草稿/扁平值随form_state保留，来源提示显示原草稿供核实，不新增DB/通用迁移框架。两实例同局部ID、同名不同ID、中间删行、来源往返、SQLite保存重开、旧唯一与歧义保留已覆盖。
+
+本地命令：python -B -m unittest（F03三用例、test_b_material_gui_excel、test_accounting_projects_ui）-v：25项24PASS/1ERROR，126.263s；唯一错误为提示控件误用addItem（实际QTreeWidget），已改正确addTopLevelItem。修正后python -B -m unittest tests.test_b_material_draft_scope -v：3/3，26.210s（tmp/material-f03-final.log）。其余22项此前通过，不冒称25项已重跑全过。F02标签/实际模板/来源报告分离继续处理，后续最终head统一CI。

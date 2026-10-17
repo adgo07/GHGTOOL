@@ -69,3 +69,5 @@ CI251全量819/819（1178.754s），但exact-head构建因Qt6.12的PySide6/Qt6Vi
 Mapping采用范围、三表A3/A4/HTML/checks兼容文字、路线/DELIVERY/HANDOFF已同步；v6各B3—B5增加5列+1说明行已核实。审阅同版本四件套机械重生，25/25夹具PASS、意见0→0，4资产hash核对PASS；Python定向30/30，12.698s，material投影PASS。源会话cad63身份测试6/6，本会话不重复。CI252本地可读摘要只含运行身份/统计/hash，不能背书新head；新提交CI待实际完成并交源复验。
 
 原生v6Office/真实鼠标IME/DPI/企业样例继续OPEN；不启动CU/下一包、不合并。详见IMPLEMENTATION_REPORT末尾六项修订及实际PR head。
+
+F03稳定断点：实际Qt/SQLite复现跨实例局部ID碰撞，已按工序/实例/行/字段/来源隔离草稿及控件名；旧唯一恢复、歧义保留待核实，不重编号/新DB。初回归25项24PASS/1ERROR（QTreeWidget提示调用错误）修后专属3/3，26.210s；其他22项此前通过。F02仍处理中，最终head未送验，不CU/不合并。细节及日志见报告末尾。
