@@ -1,10 +1,10 @@
 """电力五表跨入口采用值、方向与来源的独立回归。仅使用离屏Qt。"""
-from dataclasses import replace
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from openpyxl import load_workbook
 from PySide6.QtWidgets import QApplication
@@ -104,6 +104,24 @@ class ElectricityChannelTests(unittest.TestCase):
                 page.deleteLater()
                 self.app.processEvents()
 
+    def test_word_projection_uses_frozen_electricity_when_live_catalog_and_calculator_are_unavailable(self):
+        from packages.application.reporting import build_saved_record_report
+        records = SQLiteRecordRepository(self.root / "frozen-word-records.sqlite")
+        formal = CarbonAccountingUseCase(self.calculator, records)
+        frozen = []
+        for case in CASES:
+            input_value = self.workbook_input(case, False)
+            outcome = formal.calculate(input_value, calculated_at=NOW)
+            self.assertTrue(outcome.successful, outcome.problems)
+            record = records.get(outcome.record.record_id)
+            model = build_saved_record_report(records, record, supplementary_info={"prepared_on": PERIOD.end.isoformat()})
+            table = next(section for section in model.sections if section.section_id == "b8").tables[0]
+            self.assertEqual(table.rows[0].cells[-1].value, case[6])
+            frozen.append((record.record_id, model))
+        with patch.object(SQLiteCatalogRepository, "list_factors", side_effect=AssertionError("报告不得查询实时因子")), patch.object(CarbonMaterialCalculator, "calculate", side_effect=AssertionError("报告不得重新计算")):
+            for record_id, model in frozen:
+                self.assertEqual(build_saved_record_report(records, records.get(record_id), supplementary_info={"prepared_on": PERIOD.end.isoformat()}), model)
+
     def test_other_source_description_is_optional_without_a_blank_specific_warning(self):
         from packages.core.models import ElectricityAcquisitionMode, ElectricityAttribute
         from packages.core.parameter_resolution import ElectricityConsumptionDetail
@@ -142,4 +160,3 @@ class ElectricityChannelTests(unittest.TestCase):
             page.close()
             page.deleteLater()
             self.app.processEvents()
-
