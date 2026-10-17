@@ -296,7 +296,7 @@ class UAT03RuleTests(unittest.TestCase):
             measured("mass.carbon", "0.02", "tC/t"),
             measured("mass.oxidation", "1", "ratio"),
             lower_heating_value=None,
-            fuel_type=FuelType.DIESEL,
+            fuel_type=FuelType.DIESEL, origin=InputOrigin.CATALOG, catalog_subject_id="diesel",
         )
         volume = FuelInput(
             "fuel.volume.measured",
@@ -305,7 +305,7 @@ class UAT03RuleTests(unittest.TestCase):
             measured("volume.carbon", "0.015", "tC/10^4Nm3"),
             measured("volume.oxidation", "0.98", "ratio"),
             lower_heating_value=None,
-            fuel_type=FuelType.NATURAL_GAS,
+            fuel_type=FuelType.NATURAL_GAS, origin=InputOrigin.CATALOG, catalog_subject_id="natural_gas",
         )
         input_value = CarbonMaterialInput(
             "input.direct-carbon",
@@ -316,7 +316,7 @@ class UAT03RuleTests(unittest.TestCase):
             fuel_inputs=(mass, volume),
         )
 
-        outcome = CarbonMaterialCalculator().calculate(input_value, calculated_at=SNAPSHOT_AT)
+        outcome = CarbonMaterialCalculator(parameter_resolver=self.resolver).calculate(input_value, calculated_at=SNAPSHOT_AT)
 
         self.assertTrue(outcome.successful, outcome.problems)
         amounts = {line.line_id: line.amount for line in outcome.result.lines}
