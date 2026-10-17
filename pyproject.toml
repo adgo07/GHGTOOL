@@ -27,7 +27,7 @@ include = ["apps*", "packages*", "resources*"]
 
 [tool.setuptools.package-data]
 resources = [
-    "business_rules/fuel_power.json",
+    "business_rules/fuel_power.json", "business_rules/material.json",
     "branding/qingzhou_logo.png",
     "icons/factors.svg", "icons/excel.svg", "icons/home.svg", "icons/records.svg",
     "icons/new.svg", "icons/settings.svg", "icons/standards.svg",

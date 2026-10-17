@@ -63,6 +63,10 @@ def evaluate_fuel_power_field(field_id: str, context: Mapping[str, Any]) -> dict
         entry = _document()["fields"][field_id]
     except KeyError as exc:
         raise ValueError("此字段尚未采用燃料与电力共享规则。") from exc
+    return _evaluate_entry(entry, context)
+
+
+def _evaluate_entry(entry, context):
     current = dict(context)
     tag_keys = {key for policy in entry["policies"].values()
                 for branch in policy["branches"] for key in branch["when"]["tags"]}
@@ -171,3 +175,38 @@ def electricity_source_context(resolver, resolution, *, direction: str, attribut
     if len(conditions) != 1:
         return {**current, "binding_status": "PENDING"}
     return {**conditions[0], **current, "binding_status": "VERIFIED"}
+
+
+MATERIAL_RUNTIME_RESOURCE = "business_rules/material.json"
+MATERIAL_ADOPTION_ID = "GHGTOOL_MATERIAL_R11_V1"
+MATERIAL_RUNTIME_SHA256 = "1737efec0f3b27bc14b373d4e70f8870f162a3bef6a702931207f4dc6cd93c02"
+
+
+@lru_cache(maxsize=1)
+def _material_document():
+    try:
+        content = files("resources").joinpath(MATERIAL_RUNTIME_RESOURCE).read_bytes()
+        if sha256(content).hexdigest() != MATERIAL_RUNTIME_SHA256:
+            raise BusinessPolicyConfigurationError("材料业务规则资源校验失败，请重新安装完整软件。")
+        document = json.loads(content)
+        if document["format_version"] != 1 or document["adoption_id"] != MATERIAL_ADOPTION_ID:
+            raise BusinessPolicyConfigurationError("材料业务规则版本不兼容。")
+        return document
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        raise BusinessPolicyConfigurationError("材料业务规则资源缺失或损坏。") from exc
+
+
+def material_policy_identity():
+    document = _material_document()
+    return {"adoption_id": MATERIAL_ADOPTION_ID, "resource_sha256": MATERIAL_RUNTIME_SHA256,
+            "adopted_fields": sorted(document["fields"]),
+            "sources": [{key: source[key] for key in ("rule_set_id", "revision", "sha256")}
+                        for source in document["sources"]]}
+
+
+def evaluate_material_field(field_id: str, context: Mapping[str, Any]):
+    try:
+        entry = _material_document()["fields"][field_id]
+    except KeyError as exc:
+        raise ValueError("此字段尚未采用材料共享规则。") from exc
+    return _evaluate_entry(entry, context)

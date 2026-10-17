@@ -23,11 +23,11 @@ ADOPTED_FIELDS = ("fuel.direct_carbon", "fuel.lhv", "fuel.fch", "fuel.oxidation"
 PROPERTIES = ("source_qualification", "default_source", "default", "locking")
 
 
-def projected_bytes(root: Path = ROOT) -> bytes:
+def projected_bytes(root: Path = ROOT, *, adopted_fields=ADOPTED_FIELDS, adoption_id="GHGTOOL_FUEL_POWER_R11_V1") -> bytes:
     bundle = load_bundle(root / name for name in SOURCE_PATHS)
     entries = {}
     for package, field in bundle._field_entries():
-        if field["id"] not in ADOPTED_FIELDS:
+        if field["id"] not in adopted_fields:
             continue
         if field["id"] in entries:
             raise ValueError("Ambiguous adopted runtime field: " + field["id"])
@@ -38,11 +38,11 @@ def projected_bytes(root: Path = ROOT) -> bytes:
             "field": {"id": field["id"], **{key: field[key] for key in PROPERTIES}},
             "policies": {key: package.policies[key] for key in sorted(policy_ids)},
         }
-    if set(entries) != set(ADOPTED_FIELDS):
+    if set(entries) != set(adopted_fields):
         raise ValueError("Missing adopted fuel/power field")
     document = {
         "format_version": 1,
-        "adoption_id": "GHGTOOL_FUEL_POWER_R11_V1",
+        "adoption_id": adoption_id,
         "sources": [
             {"path": name, "sha256": sha256((root / name).read_bytes()).hexdigest(),
              "rule_set_id": package.rule_set_id, "revision": package.revision,
