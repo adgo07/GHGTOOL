@@ -17,13 +17,13 @@ class CandidateBusinessPathTests(unittest.TestCase):
             SOURCE / "software_policy.json",
         ])
 
-    def test_candidate_and_software_dependency_are_pinned_to_r11(self):
-        self.assertEqual(self.bundle.primary.revision, "candidate-2026-10-17-r11")
+    def test_candidate_and_software_dependency_are_pinned_to_r11_integration(self):
+        self.assertEqual(self.bundle.primary.revision, "candidate-2026-10-17-r11-integration1")
         dependency = next(
             item for item in self.bundle.primary.document["dependency"]
             if item["rule_set_id"] == "qz.carbon_accounting.software_policy"
         )
-        self.assertEqual(dependency["revision"], "candidate-2026-10-17-r11")
+        self.assertEqual(dependency["revision"], "candidate-2026-10-17-r11-integration1")
 
     def outcome(self, field, **context):
         result = self.bundle.apply_context(context, field_ids=[field])

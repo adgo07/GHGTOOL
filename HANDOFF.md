@@ -18,7 +18,7 @@ Owner已授权在原PR46工作树/分支整合最新main；本轮完成后由源
 - 保留PR46已有标准分派、逐字段来源政策、燃料确认/草稿、过程与FGD、五表查询/Resolver/三级选择、Canonical项目恢复、Record/Word冻结投影、视觉与导航优化。
 - 正式模板v4/2.2.0逐字节下载及v2/v3历史兼容保留；现有模板、Catalog和发布白名单不因整合而重写或放开。
 - Issue010明确批准全国表1/4/5、区域表2、省级表3；全国表4/5不自动补位，失效选择要求重选。014 OTHER与官方五表独立，非化石零因子及输出扣减不扩解释。
-- 已定位PR47冻结G05快照两类与PR46生产五类的两条parameter_ids差异。仅按010对齐候选范围并同修订重生派生资产；不以Python实现充当批准权威。PR47固定提交及原工作树的证据/意见保留，当前派生视图不能伪称历史原件。
+- 已定位PR47冻结G05快照两类与PR46生产五类的两条parameter_ids差异。已仅按010对齐候选范围并同修订重生派生资产；不以Python实现充当批准权威。PR47固定提交及原工作树的证据/意见保留，当前派生视图不能伪称历史原件。
 - 生产共用Canonical提供者的接管仍留B。现有Python政策与R11之间燃料LHV/FCh、DIRECT、材料、014 OTHER、017/018/020等待接入差异按各批准决定逐段迁移，不在本基线整合中隐式改变结果，也不宣称已经生产同源。
 - PR46既有导航计时与v4原生回导是旧head证据；本轮定向/全量/CI必须单列真实结果，不能沿用旧绿色CI。
 
@@ -96,10 +96,14 @@ Owner已授权在原PR46工作树/分支整合最新main；本轮完成后由源
 |燃料B1执行|ui/carbon_material_fuel.py、燃料专属政策消费者与测试；共享文件仅提交燃料段补丁|GUI/Excel共用源资格结果及正式Canonical；精确身份/单位/路径和分来源草稿，避免新建/恢复混同|
 |电力B执行|五表查询/绑定专属消费者与测试；共享文件仅提交电力/B.8段补丁|复用electricity_catalog_options及electricity_regions_by_level和现有UAT03FactorOption；值、参数、因子、地区、年度同步，Catalog绑定不能冒充Record已冻结字段|
 
+建议优先保留现有内部签名：`parameter_source_policy(field_id, origin, has_resolver_binding, carbonate_component_count, input_basis) -> ParameterSourcePolicy`（合法来源、初始来源、锁定、精确绑定要求），`fuel_input_policy(origin, direct_carbon, heat_activity, carbon_source_kind) -> FuelInputPolicy`（必要参数/缺省资格/可编辑性）。B由共享负责人把它们变为Canonical执行表达的薄适配，而不是让燃料和电力分别重写来源集合。电力继续复用`electricity_catalog_options(level, region, period)`及`electricity_regions_by_level(period)`；所有正式入口仍消费同一Resolver/Canonical/Application。
+
+现有Record已冻结parameter_id、factor_id、factor_year、source/location和采用值，模型没有独立binding_id字段。当前Catalog可对账绑定/来源表，但不能回查Catalog冒充历史Record已冻结binding；若B需要扩展来源快照，先明确最小版本化兼容方案，不在本基线整合扩模型。
+
 Word继续只读冻结Record。实际公共提供者和业务来源策略由共享集成负责人一次接管；不并行新增两套允许运算来源或规则缓存。
 
 ## 5. 验证与停止边界
 
 原生规则审阅表验证为NOT_RUN/DEFERRED，至下一阶段首次正式使用审阅表前补验；CU Esc有效，本轮不启动电脑操作。实际Windows鼠标/中文输入/人工系统DPI及Owner企业样例仍为明确缺项，不以自动截图或旧证据替代。
 
-完整回归及Windows CI对应本轮最终head；本地与CI、merge-ref与exact-head分别记录。完成后交源会话验收并停止，执行代理不合并PR46或关闭PR45。
+本地正式路径完整回归705/705、0失败/错误/跳过，687.989秒；候选+新保护103项与25场景夹具通过。Windows CI对应最终提交单列原PR送验评论；本地与CI、merge-ref与exact-head分别记录。完成后交源会话验收并停止，执行代理不合并PR46或关闭PR45。

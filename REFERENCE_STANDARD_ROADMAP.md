@@ -375,7 +375,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 10. 路线与实施授权边界
 
-- 本路线不自行授权新的产品阶段；当前六包已获专项授权，RS04～RS06+仍需按各自Gate授权。
+- 本路线不自行授权新的产品阶段；PR46原六包成果作为既有依赖保留，当前有限授权见第8节；RS04～RS06+仍需按各自Gate授权。
 - EXB01附录B九表正式输入与RPT02 Word报告已合并；继续共享正式Application/Calculator及冻结Record，预览不能隐式写Record，报告不可重算历史。
 - 不修改中央Frozen Contract、platform-lock、Numeric或Schema，不宣布GB/T 32151.34—2024已SUPPORTED。
 - PR #27继续CLOSED/UNMERGED，不恢复旧V1和旧R2新下载路径。
@@ -383,8 +383,8 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 ## 当前延期与取消事项
 
 - 附录B正式输入模板和整工作簿导入已通过PR #40合并，RPT02 Word附录B报告已通过PR #39合并；不恢复核算结果Excel导出。
-- 当前六包包含输入模板、报告与Presentation同步；不恢复核算结果Excel导出。
-- 真实Windows人工DPI和原生Excel/WPS保存回导仍保留OPEN；Golden与正式Windows发布验收须按RS04/RS05另行完成。
+- PR46已有模板、报告与Presentation同步成果保留，本轮不重做原六包；不恢复核算结果Excel导出。
+- 真实Windows人工DPI仍保留OPEN；原生Office按模板/版本区分证据：PR46模板v4有旧head回导记录，本轮未重跑，规则审阅表NOT_RUN/DEFERRED另行保留。Golden与正式Windows发布验收仍按RS04/RS05另行完成。
 - PR #27保持CLOSED/UNMERGED，历史R2仅保留既有项目与Record兼容。
 
 ### GHG-UAT03 V2 已合并基线（非当前包）

@@ -2,16 +2,16 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
   "kind": "INDUSTRY",
-  "revision": "candidate-2026-10-17-r11",
-  "base": "PR48已合并R8为历史映射基线；当前R11执行候选依据现行Mapping及Owner已批准014/018/019/020软件决定；G05固定规则快照仍源自main@204dded5。CANDIDATE表示执行接入尚未完成，不撤销标准原文事实或已批准软件决定。",
+  "revision": "candidate-2026-10-17-r11-integration1",
+  "base": "现行R11 Mapping及014/017/018/019/020有效决定保持；G05主体保留204dded5快照，仅两条电力规则范围按Issue010/Mapping §9.4对齐PR46五表已有能力。PR47固定受验r11及派生资产保留历史身份；integration1候选尚未接管生产共享提供者，不撤销批准决定。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
-      "revision": "main-204dded5-g05"
+      "revision": "pr46-integration-2026-10-17-g05"
     },
     {
       "rule_set_id": "qz.carbon_accounting.software_policy",
-      "revision": "candidate-2026-10-17-r11"
+      "revision": "candidate-2026-10-17-r11-integration1"
     }
   ],
   "status": "CANDIDATE",
@@ -70,7 +70,7 @@
   "adopts": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
-      "revision": "main-204dded5-g05",
+      "revision": "pr46-integration-2026-10-17-g05",
       "group_ids": [
         "common.activity",
         "common.aggregation",
@@ -343,6 +343,10 @@
       },
       "applies_to_parameter_ids": [
         "electricity_emission_factor_national",
+        "electricity_emission_factor_regional_average",
+        "electricity_emission_factor_provincial_average",
+        "electricity_emission_factor_national_average_excluding_market_nonfossil",
+        "electricity_emission_factor_national_fossil",
         "electricity_emission_factor_nonfossil",
         "heat_emission_factor_default"
       ],

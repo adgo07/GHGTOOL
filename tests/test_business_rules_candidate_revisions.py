@@ -2,11 +2,13 @@
 import ast
 import json
 import unittest
+from io import BytesIO
 from decimal import Decimal, localcontext
 from pathlib import Path
 from openpyxl import load_workbook
 from packages.application.business_rules_candidate import load_bundle, CandidateBundleError
 from packages.core.decimal_policy import DecimalPolicy
+from packages.excel.templates import ExcelTemplateService
 from packages.core.units import UnitService
 from packages.standards.carbon_material import HeatInput
 from packages.standards.carbon_material_normalization import MaterialInputLine, MaterialRole, normalize_material_inputs
@@ -72,9 +74,9 @@ class CandidateRevisionExpectations(unittest.TestCase):
         for f in fields.values():
             for projection in f['channel_projections']:
                 self.assertEqual(projection['binding'],'business:'+f['id'])
-        w=load_workbook(ROOT/'resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx',read_only=True)
+        w=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()),read_only=True)
         try:
-            for sheet,cell in [('B.2','H3'),('B.7','D2'),('B.7','F2')]:self.assertIn('%',w[sheet][cell].value)
+            for sheet,cell in [('B.2','I3'),('B.7','D2'),('B.7','F2')]:self.assertIn('%',w[sheet][cell].value)
         finally:w.close()
 
     def test_existing_unit_and_material_services_preserve_raw_inputs(self):

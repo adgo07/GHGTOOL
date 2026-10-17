@@ -2,12 +2,12 @@
   "schema_version": "1.2",
   "rule_set_id": "qz.carbon_accounting.software_policy",
   "kind": "SOFTWARE",
-  "revision": "candidate-2026-10-17-r11",
-  "base": "当前R11软件执行候选依据现行Mapping及Owner有效批准；PR48已合并R8仅为历史基线。CANDIDATE表示生产接入尚未完成，不撤销标准原文事实或已批准软件决定。",
+  "revision": "candidate-2026-10-17-r11-integration1",
+  "base": "R11已批准软件决定的integration1执行候选；仅更新固定依赖修订以配合Issue010五表范围对账，不改变本包来源/操作策略。生产共享提供者接管留B，PR47原候选保留历史身份。",
   "dependency": [
     {
       "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
-      "revision": "main-204dded5-g05"
+      "revision": "pr46-integration-2026-10-17-g05"
     }
   ],
   "status": "CANDIDATE",

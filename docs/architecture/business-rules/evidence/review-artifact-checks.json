@@ -1,21 +1,21 @@
 {
   "candidate_only": true,
   "review_mode": "compact_business_v2",
-  "review_json_file_sha256": "8989a7b964fd690f81736dc79e1708c1027967746f717742e575d66911ae9721",
-  "workbook_sha256": "f85f2bd7e2351cf53af5f9af619054e803682e7f8a41ad7ebd76409ecf769e6a",
+  "review_json_file_sha256": "3bebbdf6a51f48c318ac15f889302b22ff16acddf03a271209a3a0171bed762e",
+  "workbook_sha256": "b571c1f5d0d7309d78d2580bf350c00aef215f17abc9108ef4de52b8f6a65c3c",
   "generator": "scripts/build_business_rules_review.mjs",
   "generator_sha256": "66f78a8ab47220ecef3d947a272855e1a9f4dc7956b1ac725f30a9ee1440a0bb",
   "fixture_script": "scripts/test_business_rules_review.mjs",
   "fixture_script_sha256": "c9ce7ec32cb16162e022b85eca5f7b75e8424bebaf5963cd47b038f5f424346b",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "05c7f43545c50eb468b2bef477d23550148b9d9a991ab6e7aed2b7fb63400b1b",
-  "details_source_revision": "candidate-2026-10-17-r11",
+  "details_file_sha256": "32d612104605bec390afcaa6a1393c9493e5a1cd57e978a12281f884d82e35a0",
+  "details_source_revision": "candidate-2026-10-17-r11-integration1",
   "details_source_counts": {
     "fields": 649,
     "operations": 21,
     "changes": 11
   },
-  "details_semantic_sha256": "330d6b2781910aa4343a9b59fbbbf4bcf5949ff8de1c278a48e84f3bba6e69dd",
+  "details_semantic_sha256": "be8f97c5940181bbaf9f5244afc8817b25663e09257d1c47c1ce04413298fadd",
   "details_projection_bound": true,
   "serialization_aliases": {
     "review_mode": "compact_business_v2",
@@ -131,10 +131,10 @@
   },
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
-    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "f16f5ee68ca78247f0a1d0bdad861b5a00e025905153bbe57a88e76520541677",
-    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "d3917226d0ce9f30c3426a46d245e843cde04c57434e9d6dce852c3be737beb3",
-    "data-source/carbon_accounting/business-rules/software_policy.json": "d3ad88176c860959cc98639b3b31cb8c6842a68f7a5cf35a9426bc6ead00403b",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "c3bd016e421b2a2373a9f3343450803cdd33cfabe82dd5082c440db4ca0c12a4"
+    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "0694d459bb58aad4e36cc28f5766a2531393987c6394b0234bf799e7ffccae09",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "a0f409d44eee47d7cdbddefe3f4b6259ea8a006fcd52b862ef553d2ef9de25a2",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "1d2e4883ccb8e1b8b129afee1897127d0c1a695225d677afdde9eb6efc6c0d57"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",
@@ -288,15 +288,15 @@
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "86119775c215eb6290b81b909aa68b0c710c25e1fefc3e52965aa4990ef2c313",
+    "report_sha256": "8763d2379e33f3e4eace994f3310e272ea08a8d7c28e5aba0c5dcb351f2c25e3",
     "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
     "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
     "status": "PASS",
     "actual_scenario_count": 25,
     "input_mode": "formal compact and technical projection",
-    "formal_projection_sha256": "df5a801fb23f504fe0b2c5cf84c579139f8a6c2f7b2624853e47a7b456880b37",
-    "formal_details_sha256": "79ad08a3baa99583ac20e7e6b7d9a7ad5083b2a338ccfac816b1003fd8b93bbe"
+    "formal_projection_sha256": "69f4bf5d6591030fe83fec06abb28bfad139911eab7bb867f76dfde2439a5d90",
+    "formal_details_sha256": "a33af974e067ce8b59d497ab2ea372d6a4e34d64ed82830680c22af82583e8e7"
   },
   "technical_combinations": {
     "total": 649,
