@@ -228,8 +228,8 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         )
         self.assertEqual(report.layout_id, "gbt-32151-34-2024-appendix-b")
         self.assertEqual(report.template_sha256, APPROVED_SOURCE_SHA256)
-        self.assertEqual(report.input_template_version, "2.2.0")
-        self.assertEqual(report.input_template_sha256, APPROVED_TEMPLATE_SHA256)
+        self.assertEqual(report.input_template_version, raw_snapshot["ingress_provenance"]["workbook"]["template_version"])
+        self.assertEqual(report.input_template_sha256, "")  # Historical ingress freezes no master hash.
         b1 = next(section for section in report.sections if section.section_id == "b1").tables[0]
         totals = frozen_totals(record, self.repository.get_trace_snapshot(record.record_id))
         self.assertEqual((b1.rows[-2].cells[2].value, b1.rows[-1].cells[2].value), (totals["ES"], totals["ET"]))
@@ -262,7 +262,7 @@ class Exb01RPT02IntegrationTests(unittest.TestCase):
         for section in appendix_sections:
             self.assertIn(section.title, headings)
         _assert_word_tables_match_model(self, document, report)
-        self.assertEqual(document.core_properties.comments, f"业务表式：{report.layout_id}（{report.schema_version}）；来源母版 SHA256：{report.template_sha256}；输入模板：{report.input_template_version} SHA256：{report.input_template_sha256}")
+        self.assertEqual(document.core_properties.comments, f"业务表式：{report.layout_id}（{report.schema_version}）；来源母版 SHA256：{report.template_sha256}；输入模板：{report.input_template_version or '未记录'} 母版 SHA256：{report.input_template_sha256 or '未记录'}")
         self.assertEqual(asdict(self.repository.get(record.record_id)), frozen_record)
         self.assertEqual(len(self.repository.list_all()), 1)
         self.assertEqual(

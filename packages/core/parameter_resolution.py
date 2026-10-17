@@ -181,6 +181,7 @@ class ReferenceBindingEvidence:
     valid_from: date | None = None
     valid_to: date | None = None
     region: str | None = None
+    source_version: str | None = None
 
     def matches(self, context: "ParameterResolutionContext", factor: Factor) -> bool:
         return (

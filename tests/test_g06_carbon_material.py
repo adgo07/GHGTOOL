@@ -214,7 +214,10 @@ def _input(**kwargs: object) -> CarbonMaterialInput:
 
 
 def _explicit_factor(parameter_id: str, value: str, unit: str) -> ParameterValue:
-    return ParameterValue(parameter_id, value, unit, source_location="G06 regression fixture")
+    # Explicit non-catalog electricity fixtures use the approved OTHER channel.
+    # Heat fixtures retain their existing source semantics and numeric vectors.
+    source = ParameterSourceKind.USER_DEFINED if unit == "tCO2/MWh" else ParameterSourceKind.STANDARD_DEFAULT
+    return ParameterValue(parameter_id, value, unit, source_kind=source, source_location="G06 regression fixture")
 
 
 def _measured_parameter(parameter_id: str, value: object, unit: str) -> ParameterValue:

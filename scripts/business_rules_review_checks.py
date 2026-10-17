@@ -349,7 +349,7 @@ def build_checks(
                 "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
                 "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
                 "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
-                "compatibility": "候选未接生产；codec/模板/DB迁移/正式Record/报告结构未改。映射澄清已独立提交。",
+                "compatibility": "仅限本审阅视图生成：不改生产codec、DB迁移或历史Record；PR46的v5模板与报告变化见IMPLEMENTATION_REPORT，不能推断整个PR无兼容变化。",
             },
             "definition_assets_hash_policy": manifest.get("definition_assets_hash_policy"),
             "definition_assets_sha256": manifest.get("definition_assets_sha256"),

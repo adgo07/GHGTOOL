@@ -5,6 +5,7 @@ The review adapter and adopted production fields use the same final outcome.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from decimal import Decimal
 from typing import Any, Mapping
 
@@ -47,7 +48,7 @@ def apply_policy(policy: Mapping[str, Any], context: Mapping[str, Any]) -> dict[
     matches = [branch for branch in policy["branches"] if condition_matches(branch["when"], context)]
     if len(matches) == 1:
         branch = matches[0]
-        state = dict(branch["value"])
+        state = deepcopy(branch["value"])
         if policy["property"] == "locking":
             status = "RESOLVED"
             message = None
@@ -87,7 +88,7 @@ def evaluate_field(field: Mapping[str, Any], policies: Mapping[str, Mapping[str,
                 else "RESOLVED"
             )
             outcome = {
-                "status": status, "value": dict(source), "condition_id": None,
+                "status": status, "value": deepcopy(source), "condition_id": None,
                 "policy_id": None, "message": source.get("reason"),
             }
         state_map[property_name] = outcome
@@ -160,7 +161,7 @@ def evaluate_field(field: Mapping[str, Any], policies: Mapping[str, Mapping[str,
         )
     else:
         locking_outcome = {
-            "status": "RESOLVED", "value": dict(locking_source), "condition_id": None,
+            "status": "RESOLVED", "value": deepcopy(locking_source), "condition_id": None,
             "policy_id": None, "message": None,
         }
     locking = locking_outcome["value"] if locking_outcome["status"] == "RESOLVED" else None
@@ -220,7 +221,7 @@ def evaluate_field(field: Mapping[str, Any], policies: Mapping[str, Mapping[str,
                     "message": locking[key]["reason"],
                 })
     return {
-        **state_map, "locking": dict(locking) if locking is not None else dict(locking_source),
+        **state_map, "locking": deepcopy(locking) if locking is not None else deepcopy(locking_source),
         "locking_outcome": locking_outcome,
         "status": "BLOCKED" if local_problems else "READY",
         "problems": local_problems,

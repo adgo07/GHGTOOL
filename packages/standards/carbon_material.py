@@ -1740,11 +1740,13 @@ class CarbonMaterialCalculator:
             return None
         return self._parameter(value, "ratio", field_id, snapshots, problems, snapshot_at)
 
-    def _resolve_parameter(self, context: ParameterResolutionContext, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, detail_id: str | None = None) -> Decimal | None:
+    def _resolve_parameter(self, context: ParameterResolutionContext, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, detail_id: str | None = None, resolved=None) -> Decimal | None:
         if self.parameter_resolver is None:
             problems.append(_problem("CAR-VAL-PARAMETER-RESOLVER-MISSING", IssueLevel.ERROR, f"参数 {context.parameter_id} 没有接入 G05 参数解析服务。", context.parameter_id))
             return None
-        resolution = self.parameter_resolver.resolve(context)
+        resolution = resolved if resolved is not None else self.parameter_resolver.resolve(context)
+        if resolution.context != context:
+            raise DomainValidationError("已解析参数与当前核算上下文不一致。")
         self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
         problems.extend(resolution.warnings)
         if resolution.blocked or resolution.recommended is None or resolution.selection_method is None:
@@ -2638,48 +2640,85 @@ class CarbonMaterialCalculator:
                     electricity_attribute=ElectricityAttribute.ORDINARY,
                     extra_context=(("energy_direction", "exported"),),
                 )
-                if factor is None:
-                    factor_value = self._resolve_parameter(
-                        parameter_context, snapshots, problems, snapshot_at, detail_id=line.line_id
-                    )
-                elif (
-                    factor.factor_id is not None
-                    and factor.parameter_id in OFFICIAL_ELECTRICITY_PARAMETER_IDS
-                    and factor.source_kind in {
-                        ParameterSourceKind.STANDARD_DEFAULT,
-                        ParameterSourceKind.STANDARD_SPECIFIED,
-                        ParameterSourceKind.OFFICIAL_PUBLISHED,
-                    }
-                ):
-                    selected_context = replace(
-                        parameter_context,
-                        confirmed_factor_id=factor.factor_id,
-                        confirmation_reason=factor.selection_reason,
-                    )
-                    factor_value = self._resolve_parameter(
-                        selected_context, snapshots, problems, snapshot_at, detail_id=line.line_id
-                    )
-                else:
-                    factor_value = self._parameter(
-                        factor,
-                        "tCO2/MWh",
-                        f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}",
-                        snapshots,
-                        problems,
-                        snapshot_at,
-                    )
-                if factor_value is not None:
-                    other = factor is not None and factor.factor_id is None
-                    actual_resolution = None
-                    if not other and self.parameter_resolver is not None:
-                        checked_context = replace(parameter_context, confirmed_factor_id=factor.factor_id,
-                            confirmation_reason=factor.selection_reason) if factor is not None else parameter_context
-                        actual_resolution = self.parameter_resolver.resolve(checked_context)
+                if factor is not None and factor.factor_id is None:
+                    # An absent ID is not permission to reinterpret a claimed
+                    # catalogue default as an independent user-provided source.
+                    if factor.source_kind not in {
+                        ParameterSourceKind.USER_DEFINED, ParameterSourceKind.MEASURED,
+                        ParameterSourceKind.CALCULATED, ParameterSourceKind.PROJECT_SPECIFIED,
+                    }:
+                        problems.append(_problem(
+                            "CAR-VAL-ELECTRICITY-SOURCE-MISMATCH", IssueLevel.ERROR,
+                            "输出电力的目录来源缺少明确因子身份；请重新选择目录因子或明确选择其他来源。",
+                            line.line_id,
+                        ))
+                        continue
                     if self._electricity_source_policy_invalid(
-                        actual_resolution, direction="EXPORTED", attribute="CONVENTIONAL",
-                        problems=problems, field_id=line.line_id, other=other,
+                        None, direction="EXPORTED", attribute="CONVENTIONAL",
+                        problems=problems, field_id=line.line_id, other=True,
                     ):
                         continue
+                    factor_value = self._parameter(
+                        factor, "tCO2/MWh", f"CAR-FLD-POWER-EXPORTED-EF.{line.line_id}",
+                        snapshots, problems, snapshot_at,
+                    )
+                    problems.append(_problem(
+                        "GEN-VAL-USER-OVERRIDE-REVIEW", IssueLevel.WARNING,
+                        "请核实其他来源电力因子的适用性与有效年份；来源说明选填，本次按填写值计算。",
+                        line.line_id,
+                    ))
+                else:
+                    if self.parameter_resolver is None:
+                        problems.append(_problem(
+                            "CAR-VAL-PARAMETER-RESOLVER-MISSING", IssueLevel.ERROR,
+                            "输出电力目录因子没有接入参数解析服务。", line.line_id,
+                        ))
+                        continue
+                    selected_context = replace(
+                        parameter_context, confirmed_factor_id=factor.factor_id,
+                        confirmation_reason=factor.selection_reason,
+                    ) if factor is not None else parameter_context
+                    actual_resolution = self.parameter_resolver.resolve(selected_context)
+                    if actual_resolution.blocked or actual_resolution.recommended is None:
+                        self._resolve_parameter(selected_context, snapshots, problems, snapshot_at,
+                                                detail_id=line.line_id, resolved=actual_resolution)
+                        continue
+                    selected_factor = actual_resolution.recommended.factor
+                    association = self.parameter_resolver.reference_binding_for(actual_resolution)
+                    # Source edition and factor year are distinct. The existing
+                    # bridge used Factor.version; Excel already keeps the real
+                    # Source edition. Accept only these actually verified forms.
+                    source_versions = {selected_factor.version}
+                    if association.binding is not None and association.binding.source_version is not None:
+                        source_versions.add(association.binding.source_version)
+                    comparable_factor = replace(
+                        factor, unit=selected_factor.unit, source_version=selected_factor.version,
+                    ) if (
+                        factor is not None and factor.unit.replace("₂", "2") == selected_factor.unit.replace("₂", "2")
+                        and factor.source_version in source_versions
+                    ) else factor
+                    if comparable_factor is not None and not self._factor_value_matches(
+                        comparable_factor, selected_factor,
+                    ):
+                        problems.append(_problem(
+                            "CAR-VAL-ELECTRICITY-SOURCE-MISMATCH", IssueLevel.ERROR,
+                            "输出电力的采用值、单位或来源与所选目录因子不一致；保留原输入，请重新确认来源。",
+                            line.line_id,
+                        ))
+                        continue
+                    if self._electricity_source_policy_invalid(
+                        actual_resolution, direction="EXPORTED", attribute="CONVENTIONAL",
+                        problems=problems, field_id=line.line_id,
+                    ):
+                        continue
+                    # The very same resolution supplies qualification, arithmetic
+                    # and the immutable snapshot. Do not resolve it a second time.
+                    factor_value = self._resolve_parameter(
+                        selected_context, snapshots, problems, snapshot_at,
+                        detail_id=line.line_id, resolved=actual_resolution,
+                    )
+                    # The original Source edition remains frozen in raw_input;
+                    # keep the existing stable Factor-version snapshot contract.
                 if quantity is not None and factor_value is not None:
                     amount = purchased_electricity_emission(quantity, factor_value)
                     exported_power_total += amount

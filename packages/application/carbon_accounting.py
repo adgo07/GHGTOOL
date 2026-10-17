@@ -276,6 +276,7 @@ def _verified_fuel_power_bindings(repository: CatalogRepository) -> tuple[Refere
             factor.source_id, table.source_table_id, table.display_number,
             binding.applicable_standard_ids, binding.valid_from, binding.valid_to,
             next((region for region in matching if region is not None), None),
+            source_version=source.version,
         ))
     return tuple(evidence)
 

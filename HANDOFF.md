@@ -125,3 +125,8 @@ GUI/Excel/Domain逐入口一起迁移，不因旧调用没新ID而静默取消�
 ## 2026-10-17 燃料B1/电力B交付入口
 
 Owner直接完整批准三项准备补丁，已实施；当前对象仍原PR46。具体范围、受控v5与运行规则SHA、真实成功/失败及未闭合项以IMPLEMENTATION_REPORT/TASK_STATE和PR46最新HEAD验收证据为准，前文基线705/CI242仅历史。最终检查仍由源会话执行；不自动合并46或关闭45，不继续材料/过程/烟气/蒸汽/N。CU Esc未解除，v5原生回导OPEN，不借v4证据。
+
+
+## 2026-10-17 PR46 独立验收退修
+
+旧7e6bdd5独立验收NOT PASS，Owner已直接授权按报告修复。现有电力同一次Resolver与采用值/来源绑定、共享返回值隔离、v5 rowBoolean窄修及Word冻结输入身份修复见当前TASK_STATE/IMPLEMENTATION_REPORT。旧770/CI245仅历史，不证明修复；新固定HEAD需完整回归、包内模板审计、Windows CI及源会话复验。母版SHA缺证据显示未记录，不拿填写工作簿SHA或当前库伪造。仍不合并46、不关闭45、不CU，不扩其余业务段。

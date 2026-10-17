@@ -60,3 +60,34 @@ class FuelPowerTemplateV5Tests(TestCase):
    workbook["B.2"]["A21"]="来源栏用于确认参数来源；缺省值须有当前期间适用的 Resolver 绑定。"
    with self.assertRaisesRegex(ValueError,"冲突"): service.validate_structure(workbook)
   finally: workbook.close()
+
+ def test_row_boolean_lexemes_and_exact_height_are_valid(self):
+  from xml.etree import ElementTree as ET
+  ns={"s":"http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+  with ZipFile(Path("resources")/APPROVED_TEMPLATE_RESOURCE) as archive:
+   for name in archive.namelist():
+    if name.startswith("xl/worksheets/") and name.endswith(".xml"):
+     root=ET.fromstring(archive.read(name))
+     for row in root.findall(".//s:row",ns):
+      for attribute in ("customHeight","hidden","collapsed","customFormat","thickTop","thickBot","ph"):
+       if attribute in row.attrib:
+        self.assertIn(row.get(attribute),{"0","1","true","false"},(name,row.get("r"),attribute))
+   row=ET.fromstring(archive.read("xl/worksheets/sheet2.xml")).find(".//s:row[@r='20']",ns)
+   self.assertEqual(row.get("customHeight"),"1")
+   self.assertEqual(row.get("ht"),"45")
+ def test_narrow_repair_does_not_match_custom_height_as_height(self):
+  from scripts.repair_appendix_b_v5_xml import repair_row_height
+  xml=b'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="20" ht="34" customHeight="45" s="42"/></sheetData></worksheet>'
+  repaired=repair_row_height(xml)
+  self.assertIn(b'ht="45" customHeight="1"',repaired)
+  self.assertEqual(repair_row_height(repaired),repaired)
+
+ def test_delivery_audit_rejects_invalid_boolean_even_when_xml_parses(self):
+  from scripts.inspect_release import excel_row_boolean_issues
+  xml=b'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="20" ht="34" customHeight="45"/></sheetData></worksheet>'
+  with TemporaryDirectory() as directory:
+   bad=Path(directory)/"bad.xlsx"
+   with ZipFile(bad,"w") as archive: archive.writestr("xl/worksheets/sheet2.xml",xml)
+   issues=excel_row_boolean_issues(bad)
+   self.assertTrue(any("customHeight=45" in issue for issue in issues))
+  self.assertEqual(excel_row_boolean_issues(Path("resources")/APPROVED_TEMPLATE_RESOURCE),[])

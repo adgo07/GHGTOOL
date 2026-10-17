@@ -189,7 +189,7 @@ def render_report_docx(model: ReportModel, destination: str | Path | None = None
         _set_run_font(run,size=9,color="000000")
 
     document.core_properties.version = model.schema_version
-    document.core_properties.comments = f"业务表式：{model.layout_id}（{model.schema_version}）；来源母版 SHA256：{model.template_sha256}；输入模板：{model.input_template_version} SHA256：{model.input_template_sha256}"
+    document.core_properties.comments = f"业务表式：{model.layout_id}（{model.schema_version}）；来源母版 SHA256：{model.template_sha256}；输入模板：{model.input_template_version or '未记录'} 母版 SHA256：{model.input_template_sha256 or '未记录'}"
     current_landscape = False
     for report_section in model.sections:
         renderable_tables = tuple(table for table in report_section.tables if table.rows)

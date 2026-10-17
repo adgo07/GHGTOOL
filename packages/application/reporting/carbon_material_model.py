@@ -334,6 +334,13 @@ def _build_carbon_material_report_model(
         notices.append(_text(qualification.get("message")) or "该核算期间不满足年度报告资格要求。")
     if _mapping(provenance_snapshot) == {}:
         notices.append("历史来源快照不完整；报告未使用当前参数库补齐历史值。")
+    # Input identity belongs to this Record, never to the current template registry.
+    # workbook.sha256 is the filled workbook hash, not an approved master hash.
+    ingress = _mapping(raw.get("ingress_provenance"))
+    workbook_evidence = _mapping(ingress.get("workbook"))
+    excel_ingress = ingress.get("source") in {"EXCEL_APPENDIX_B", "EXCEL_R2"}
+    input_template_version = str(workbook_evidence.get("template_version") or "") if excel_ingress else ""
+    input_template_sha256 = str(workbook_evidence.get("template_master_sha256") or "") if excel_ingress else ""
     return ReportModel(
         schema_version=REPORT_SCHEMA_VERSION,
         record_id=record.record_id,
@@ -346,8 +353,8 @@ def _build_carbon_material_report_model(
         notices=tuple(notices),
         supplementary_note=_text(supplementary.get("supplementary_note")) or None,
         template_sha256=APPROVED_TEMPLATE_SHA256,
-        input_template_sha256=_LAYOUT.get("input_template_sha256", ""),
-        input_template_version=_LAYOUT.get("input_template_version", ""),
+        input_template_sha256=input_template_sha256,
+        input_template_version=input_template_version,
         layout_id=LAYOUT_ID,
     )
 

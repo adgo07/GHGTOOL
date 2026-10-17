@@ -14,6 +14,8 @@ import json
 import sqlite3
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree as ET
+from zipfile import BadZipFile, ZipFile
 
 
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
@@ -23,7 +25,7 @@ PYTHON_DOCX_DEFAULT_TEMPLATE = "docx/templates/default.docx"
 PRIOR_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx")
 PRIOR_TEMPLATE_SHA256 = "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f"
 APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx")
-APPROVED_TEMPLATE_SHA256 = "ce929968b8659889b0b6aba581b6782b96b8afcb8b378bc1b27c9768521e3d09"
+APPROVED_TEMPLATE_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890"
 PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
 PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
@@ -58,6 +60,25 @@ FORBIDDEN_SUFFIXES = frozenset(
 FORBIDDEN_PARTS = frozenset(
     {"tests", "test", "计算表", ".venv", "tmp", "data-source", ".git", ".github"}
 )
+
+
+def excel_row_boolean_issues(path: Path) -> list[str]:
+    """Inspect the known template format failure in actual packaged resources."""
+    boolean_names = {"customHeight", "hidden", "collapsed", "customFormat", "thickTop", "thickBot", "ph"}
+    issues = []
+    try:
+        with ZipFile(path) as archive:
+            for name in archive.namelist():
+                if not (name.startswith("xl/worksheets/") and name.endswith(".xml")):
+                    continue
+                root = ET.fromstring(archive.read(name))
+                for row in root.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row"):
+                    for attribute in boolean_names & row.attrib.keys():
+                        if row.get(attribute) not in {"0", "1", "true", "false"}:
+                            issues.append(f"invalid Excel row boolean: {path.name}/{name} row {row.get('r')} {attribute}={row.get(attribute)}")
+    except (OSError, BadZipFile, ET.ParseError) as exc:
+        issues.append(f"invalid Excel template XML: {path.name}: {type(exc).__name__}")
+    return issues
 
 
 def _sha256(path: Path) -> str:
@@ -171,8 +192,10 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
             expected_hash = TEMPLATE_SHA256_BY_PATH.get(relative)
             if relative.suffix.lower() != ".xlsx" or expected_hash is None:
                 issues.append(f"unexpected Excel workbook file: {normalized}")
-            elif _sha256(artifact / relative) != expected_hash:
-                issues.append(f"approved Excel template hash mismatch: {normalized}")
+            else:
+                if _sha256(artifact / relative) != expected_hash:
+                    issues.append(f"approved Excel template hash mismatch: {normalized}")
+                issues.extend(excel_row_boolean_issues(artifact / relative))
         elif relative.suffix.lower() in FORBIDDEN_SUFFIXES and not (
             relative.suffix.lower() == ".docx"
             and normalized.lower() == PYTHON_DOCX_DEFAULT_TEMPLATE
