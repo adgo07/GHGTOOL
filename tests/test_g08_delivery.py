@@ -263,7 +263,8 @@ class G08DeliveryTests(unittest.TestCase):
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
             self.assertEqual(layout["version"], "3.0.1")
-            self.assertEqual(layout["input_template_version"], "2.2.0")
+            from packages.excel.templates import ExcelTemplateService
+            self.assertEqual(layout["input_template_version"], ExcelTemplateService.default().get().template_version)
             self.assertEqual(layout["input_template_sha256"], APPROVED_TEMPLATE_SHA256)
             self.assertEqual(
                 layout["approved_sha256"],
