@@ -361,6 +361,7 @@ def normalize_material_inputs(
     parsed_rows: list[_ParsedLine] = []
     normalized_lines: list[MaterialInputLine] = []
     included_lines: list[MaterialInputLine] = []
+    seen_line_ids: set[str] = set()
     for line in rows:
         if not isinstance(line, MaterialInputLine):
             raise TypeError("rows must contain MaterialInputLine values")
@@ -375,6 +376,17 @@ def normalize_material_inputs(
         if not active:
             continue
         included_lines.append(line)
+        # Frozen material evidence is keyed by line_id within this process.
+        # Never let two active rows overwrite one another's adopted values.
+        # Separate process instances call this function independently.
+        if line.line_id in seen_line_ids:
+            problems.append(MaterialNormalizationProblem(
+                "CAR-VAL-MATERIAL-LINE-ID-DUPLICATE",
+                "同一工序实例的物料行标识重复，请为各物料使用独立标识。",
+                _field(line, "line_id"),
+            ))
+            continue
+        seen_line_ids.add(line.line_id)
         if not line.name.strip():
             problems.append(MaterialNormalizationProblem(
                 "GEN-VAL-REQUIRED-MISSING", "请填写物料名称。", _field(line, "name"),
