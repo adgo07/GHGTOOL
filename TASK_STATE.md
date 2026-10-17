@@ -1,15 +1,13 @@
-# 当前任务状态
+# 当前任务状态 — 原PR46基线整合
 
-最后更新：2026-10-14。状态：原PR46第二轮本地技术验收通过，提交最终检查；不自行合并。
+更新：2026-10-17。Owner已授权继续原PR46；本轮完成由源会话验收，不新增第三方验收。当前IN_PROGRESS，不合并PR46、不关闭PR45、不提前启动完整燃料B1/电力B/N。
 
-- 实际origin为adgo07/GHGTOOL，任务分支codex/ghg-standard-input-unification。base main为204dded5d03853617f79a1f05693e89b619df9d1；已提交生产head ed18aa6ad760fac298d0d237e45229301b944784；测试迁移提交0ee7d4c，最终PR head以原PR46正文为准。主目录用户文件/分支未覆盖。
-- Owner最新决定：目录燃料FCh默认缺省但可修改，自定义燃料参数全部手填。Issue011已先登记，共享逐字段policy贯通GUI/Excel/Domain；来源切换保留分来源草稿，首次改源不冒用缺省数值。旧来源保留且须明确确认；百分比按精确Decimal指数位移转换。
-- 来源简写/相连分段/电力短标签及只读Record摘要导航完成；保留完整冻结来源、历史项目和Record。200记录/20项目实测冷点击302.465ms、缓存重访中位93.682ms，原版留存摘要分别约1045.574/657.654ms，证据不补造缺失baseline JSON。
-- 正式模板2.2.0/v4 SHA e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f；最终WPS原生TEMP保存回导17/17、17项DV语义一致。当前Windows Qt100%/125%/150%各12检查、共21截图为程序驱动。
-- ed18aa6本地完整602项：591通过/10失败/1错误，694.510s；八文件旧fixture/断言迁移完成，不削弱正式校验；Excel/报告14/14，GUI旧断言修正后5/5，最终完整offscreen回归602/602通过（678.406s，0失败/错误）。此前34/34 GUI正式链、23/23来源/精度/FGD、58/58 Excel/交付专项均为定向证据。
-- ed18aa6本地Windows独立版构建、270文件审计、271可见文件ZIP回导、两次隔离启动通过。独立Luna静态源码审查无阻断。最终本地回归通过；最新head GitHub CI与候选下载以PR46正文/Checks为准，旧d36 CI222不替代本轮。
-- 中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；公式/系数/Profile/Frozen/数据库结构不改，不扩大标准或新增结果Excel导出。
+- 实际origin adgo07/GHGTOOL，工作分支codex/ghg-standard-input-unification；开工head77d36a155323bc82199cb516c4ac58a2e1c60309，开工clean。最新main d0c26351200099a8e62c8adabadac266c77f7c8c已fetch并整合；主目录用户脏文件、PR47原工作树及意见不动。
+- 平台锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；按locked Frozen读取Architecture/Numeric适用MUST，当前ACTIVE UI指南v0.2。无公共Contract变更、无新专业解释。
+- 实际4治理冲突：HANDOFF、IMPLEMENTATION_REPORT、STANDARD_ISSUES_REGISTER、TASK_STATE；生产代码零冲突。台账001～020保留，009/010/011原PR46批准与实施证据、R11 014/017/018/019/020现行决定同时保留。
+- 原PR46五表查询/Resolver/GUI、来源草稿、模板v4兼容、Project/Record/Word、导航优化保留。共享Canonical生产接管仍留B，不宣称R11全部已生产采用。
+- 定向快照对账初跑1个test中2个subtest失败，均为GEN-RULE-ELECTRICITY-001及CAR-RULE-POWER-HEAT-001的两类/五类parameter_ids差异，其他规则一致。正按Issue010批准范围有限对齐候选，并同修订重生派生资产；不拿Python实现当权威，不删除失败断言。
+- 既有电力9模块首轮117/117通过，0失败/错误，136.975秒；该项为整合中定向证据，不替最终head全量/CI。pytest不可用，未安装，使用标准库unittest。
+- 当前模板与Catalog未改；v4旧head WPS17/17是历史证据，本轮未启动原生Office。规则审阅表仍NOT_RUN/DEFERRED至下阶段首次正式使用前。人工DPI/中文鼠标及企业样例仍缺项。
 
-独立Luna已复核最终源码、八个测试迁移与CI前置脚本，未发现阻断或断言弱化。CI前置五场景及125%/150%程序检查通过。
-
-未闭合：用户真实鼠标/中文输入/系统DPI与企业样例操作验收。提交最终检查，不自行合并；最新head CI以原PR实时Checks为准。详见IMPLEMENTATION_REPORT.md；不实施后续阶段。
+下一稳定断点：候选与生产五表范围有限对齐、定向/全量回归、最新head Windows CI和原PR交付。共享文件所有权/最小接口见HANDOFF；最终报告归IMPLEMENTATION_REPORT，不另建规范。
