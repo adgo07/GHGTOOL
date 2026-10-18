@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "scope": "B-FUME Issue020生产接管，等待新head CI/实际包/源独立验收",
+  "scope": "B-FUME Issue020生产接管；固定受验源码CI268及实际包PASS，已备源独立最终验收；不合并",
   "base_sha": "8d054d2480d744882f4f11f56b59e68df91dc50f",
-  "fixed_tested_commit": null,
+  "fixed_tested_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
   "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
   "segment_calculator_version": "CAR-FUME-SEGMENTS-020.1",
   "locked_central_sha": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
@@ -122,6 +122,16 @@
       "seconds": "5.129",
       "log": "tmp/b-fume/shared-rename-before.log",
       "reason": "shared stable source/boundary old label could overwrite rename"
+    },
+    "package_proof_first": {
+      "exit_code": 1,
+      "log": "tmp/b-fume/package-proof-ci268.log",
+      "reason": "证明脚本以中文描述充当稳定source_reference，正式来源标识校验正确拒绝；仅修合成数据"
+    },
+    "package_proof_second": {
+      "exit_code": 1,
+      "log": "tmp/b-fume/package-proof-ci268-r2.log",
+      "reason": "证明脚本payload遗漏INVOLVED状态，却对无源输入断言致命；补明确源状态后用全新目录通过，不改生产代码/制品"
     }
   },
   "source_text_lf_sha256": {
@@ -154,8 +164,154 @@
     "records": 1,
     "new_code_old_record_word_unchanged": true
   },
-  "ci": null,
-  "artifact": null,
+  "ci": {
+    "run_id": 39106389790,
+    "run_number": 268,
+    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39106389790",
+    "status": "completed",
+    "conclusion": "success",
+    "pr_head_sha": "b0e42f069ee479840b2508bfa7080724d1336fef",
+    "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+    "merge_job": {
+      "id": 117613028826,
+      "command": "python -m unittest discover -s tests -t . -v",
+      "tests": 935,
+      "passed": 935,
+      "seconds": "1597.245",
+      "log": "tmp/b-fume/ci268-merge-raw.log",
+      "log_sha256": "95e922d477ed3166f3a479e4f8408c1e6a82d9df9d3828d3a637538260925ecd"
+    },
+    "standalone_job": {
+      "id": 117618533685,
+      "command": "python -m unittest tests.test_g08_delivery -v",
+      "tests": 17,
+      "passed": 17,
+      "seconds": "6.902",
+      "isolated_native_starts": 2,
+      "canonical_compile_dependencies_databases_gui_scale": "PASS",
+      "build_manifest_provenance_archive_audit": "PASS",
+      "log": "tmp/b-fume/ci268-standalone-raw.log",
+      "log_sha256": "8c3248005356a22c04bb33db08aa5b17ffc853a529bf96a6396814d8b5f89119"
+    },
+    "execution_source": "GitHub Actions，非本地全量"
+  },
+  "artifact": {
+    "zip_sha256": "e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c",
+    "zip_size": 59903387,
+    "manifest_sha256": "c6017e1c07081460c6b0dc1762e62d72193b27946a8230b4aec5c4623783f190",
+    "exe_sha256": "3edb91a6e7a94da6ea08956560bc62a8c0079c34e4d5e4fdf4d5b5e6f2472d12",
+    "source_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+    "pr_head_sha": "b0e42f069ee479840b2508bfa7080724d1336fef",
+    "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+    "manifest_entries": 278,
+    "visible_files": 279,
+    "all_sizes_and_hashes_match": true,
+    "pe_files": 129,
+    "normal_and_delay_import_names": 114,
+    "virtualkeyboard_paths_or_imports": 0,
+    "iapws_paths": 0,
+    "qt_dlls": [
+      {
+        "path": "PySide6/Qt6Core.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Gui.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Network.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6OpenGL.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Pdf.dll",
+        "versions": [
+          "6.140.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Qml.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlMeta.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlModels.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlWorkerScript.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Quick.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Svg.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Widgets.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      }
+    ],
+    "qt_plugin_dlls": [
+      "PySide6/plugins/generic/qtuiotouchplugin.dll",
+      "PySide6/plugins/iconengines/qsvgicon.dll",
+      "PySide6/plugins/imageformats/qgif.dll",
+      "PySide6/plugins/imageformats/qicns.dll",
+      "PySide6/plugins/imageformats/qico.dll",
+      "PySide6/plugins/imageformats/qjpeg.dll",
+      "PySide6/plugins/imageformats/qpdf.dll",
+      "PySide6/plugins/imageformats/qsvg.dll",
+      "PySide6/plugins/imageformats/qtga.dll",
+      "PySide6/plugins/imageformats/qtiff.dll",
+      "PySide6/plugins/imageformats/qwbmp.dll",
+      "PySide6/plugins/imageformats/qwebp.dll",
+      "PySide6/plugins/networkinformation/qnetworklistmanager.dll",
+      "PySide6/plugins/platforms/qdirect2d.dll",
+      "PySide6/plugins/platforms/qminimal.dll",
+      "PySide6/plugins/platforms/qoffscreen.dll",
+      "PySide6/plugins/platforms/qwindows.dll",
+      "PySide6/plugins/styles/qmodernwindowsstyle.dll",
+      "PySide6/plugins/tls/qcertonlybackend.dll",
+      "PySide6/plugins/tls/qopensslbackend.dll",
+      "PySide6/plugins/tls/qschannelbackend.dll"
+    ],
+    "artifact_id": 12129870161,
+    "name": "QingzhouCarbonAccounting-b0e42f069ee479840b2508bfa7080724d1336fef",
+    "github_digest": "sha256:e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c",
+    "post_business_proof_release_audit": "PASS (278 files)"
+  },
   "not_run": [
     "原生Office保存回导",
     "真实鼠标/中文IME/人工DPI",
@@ -180,6 +336,14 @@
       "seconds": "9.907",
       "source": "源会话实际独立运行",
       "scope": "before shared rename fix; not final PASS"
+    },
+    {
+      "head": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "14.525",
+      "source": "源会话实际独立运行",
+      "scope": "共享源/边界稳定ID名称、同名不同ID、切换、未保存No、新窗口服务SQLite；非最终CI/包验收"
     }
   ],
   "superseded_ci": [
@@ -195,5 +359,81 @@
       "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
       "boundary": "not final code/artifact"
     }
-  ]
+  ],
+  "actual_package_business_proof": {
+    "source_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+    "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+    "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
+    "execution": "EXE_PYZ_BUSINESS_CODE_WITH_PACKAGED_RESOURCES_AND_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_INTERACTION",
+    "no_business_source_fallback": true,
+    "partial_total": "0.2112000000000000000000000000000000000000",
+    "full_total": "25.696",
+    "gap_total": "25.344",
+    "domain_records": 3,
+    "legacy_codec_versions_read_without_intervals": [
+      1,
+      2,
+      3
+    ],
+    "invalid_segments_no_added_record": true,
+    "frozen_word_bytes": 42166,
+    "frozen_word_sha256": "97529fe5099d023ad9a253a029cd133f0042b36a1fc24a7f5978d6b2fe2cb4fd",
+    "actual_old_b4_fume_record_model_word_unchanged": true,
+    "qt_runtime_from_package": true,
+    "qt_incomplete_added_records": 0,
+    "qt_partial_total": ".2112",
+    "qt_records": 1,
+    "actual_new_window_and_service": true,
+    "stable_ids_and_hour_unit_recovered": true,
+    "shared_source_and_boundary_rename_recovered": true,
+    "distinct_same_name_ids_not_merged": true,
+    "unsaved_rename_discarded": true,
+    "old_upgrade_cancel_unchanged": true,
+    "old_upgrade_no_fabricated_intervals": true,
+    "legacy_v2_to_v8": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "record_card_intervals_and_gap_visible": true,
+    "excel_invalid_rows_not_filtered": true,
+    "actual_old_b4_fgd_record_word_unchanged": [
+      {
+        "record_id": "record.appendix-b-input-a2ae218dfa0b52653e48.6a1aab56d21a46d5ba41d32e911abe4a",
+        "template_version": "2.5.0",
+        "document_xml_sha256": "3dd5df347029c65b4dc1b0afeaeb6067e164ac889df7f38c49d13d9e6cb8581e"
+      },
+      {
+        "record_id": "record.mixed.57dcf28d23774d6ca4b2298a11bc193f",
+        "template_version": "",
+        "document_xml_sha256": "240e33911b9bcc1df0263f3fee16c907ed487a64a85966d9ac53f9fc4159c152"
+      }
+    ],
+    "command": "python -B tmp/b-fume/package-proof.py tmp/b-fume/ci268-package tmp/b-fume/package-proof-ci268-r3 b0e42f069ee479840b2508bfa7080724d1336fef tmp/b-fume/actual-old-b4-fume tmp/b-fume/actual-old-b4-fgd",
+    "log": "tmp/b-fume/package-proof-ci268-r3.log",
+    "log_sha256": "22bf625b6cce4733f056373bc4b8bc978b9f7600094e8fe5fcb679576addaa44",
+    "script_sha256": "30db13b41c896077681ae77d74c0e009ca47940d7263a25dc45076223b4c3411",
+    "boundary": "业务代码仅EXE/PYZ、资源与Qt来自实际制品；宿主Python/验证工具/工作簿写入器，不冒称原生人工交互"
+  },
+  "actual_old_b4_fgd_history": [
+    {
+      "record_id": "record.appendix-b-input-a2ae218dfa0b52653e48.6a1aab56d21a46d5ba41d32e911abe4a",
+      "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+      "template_version": "2.5.0",
+      "word_document_xml_sha256": "3dd5df347029c65b4dc1b0afeaeb6067e164ac889df7f38c49d13d9e6cb8581e",
+      "unchanged": true
+    },
+    {
+      "record_id": "record.mixed.57dcf28d23774d6ca4b2298a11bc193f",
+      "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+      "template_version": "",
+      "word_document_xml_sha256": "240e33911b9bcc1df0263f3fee16c907ed487a64a85966d9ac53f9fc4159c152",
+      "unchanged": true
+    }
+  ],
+  "evidence_commit_boundary": "后续提交仅本摘要/TASK_STATE/IMPLEMENTATION_REPORT；制品与CI严格固定上述源码提交，不将文档head冒充制品head"
 }

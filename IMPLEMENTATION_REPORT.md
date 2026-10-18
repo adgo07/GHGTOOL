@@ -1,6 +1,6 @@
 # B-FUME 实施报告
 
-日期：2026-10-18。状态：生产接管与本地定向验证已实施，最终CI、精确head实包与源独立验收待完成。本包不自行合并或扩下一包。
+日期：2026-10-18。状态：生产接管、本地定向验证、CI268及精确head实际包验证已完成；等待源独立最终验收。本包不自行合并或扩下一包。
 
 ## 问题与最终行为
 
@@ -41,30 +41,36 @@ Python3.12.14，offscreen，独立tmp/app-data/SQLite；没有原生CU。命令�
 
 首次整链导入用错既有Word renderer路径，1加载ERROR；接线纠正后9项1FAIL/3ERROR、30.965s（把dict再json.loads、把GUI当表格页、有限位独立算例用精确比较）。测试接线和仅测试数值参考断言纠正后9/9；正式full-value与运算顺序不改。所有原失败日志位于tmp/b-fume，未删改。
 
-后续最终联合命令/结果、CI、包按固定受验对象的仓内摘要及PR说明补证，不令摘要提交自指制品head。
+## 最终显示修复与独立复验
 
-## 兼容与视觉证据
+冻结ReportRow.note原先仅Word消费，已补齐Qt记录卡/文本/HTML消费者，真实区间同样可见。只读投影联合40/40、58.024s；首次40项39通过/1失败、58.526s为新输入时长栏与历史Word栏的保护断言混比，已分别核对，旧Word表头保持。
 
-实际复用已验收b4/CI263包的EXE/PYZ生成隔离旧烟气Record/Word（不是旧源码假扮旧包）。新代码读取时mock Calculator禁止重算，输入hash、ReportModel、Word document.xml hash一致，记录数保持1；证据tmp/b-fume/actual-old-b4-fume/created-proof.json与read-proof.json。原PR49/FGD历史保护继续按固定证据和受影响测试验证，新精确head包还须重复核。
+63182共享身份名称旧候选覆盖问题先真实复现1FAIL、5.129s，再按稳定ID同步各行候选与已选名称；不按同名合并、不改ID/数值。联合命令 python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：41/41、70.491s。强化同名不同ID、source/boundary切换、未保存No、新窗口服务SQLite单项1/1、12.783s；生产不再改变。python -B -m unittest tests.test_g06_carbon_material tests.test_standard_dispatch tests.test_exb01_rpt02_integration -v：37/37、9.437s。原日志与阶段边界见docs/ci/B_FUME_SUMMARY.json。
 
-Artifact Tool CLI只读渲染B.6新旧母版，新增表头/单位/提示可读，未重导出模板；实际OOXML仅sheet6变更。node_repl内部依赖node:process不可用，改用已提供CLI运行时，不绕过模板校验。GUI离屏预览先发现offscreen无中文字体，再仅在预览进程显式加载Windows字体复核，布局正常、0Record；未改生产字体、不冒称原生IME/DPI通过。
+源实际独立证据：旧e171的41/41、69.341s与63182的18/18、9.907s仅背书各自当时范围；b0e42f0名称回归1/1、14.525s通过。最终CI/实包验收仍由源独立决定，不自行宣布独立PASS。
 
-## 保留的OPEN与停止边界
+## GitHub Actions 与固定制品
 
-PR50 F01—F03技术独立PASS与CI263固定证据保留，旧工作树不清理。根用户工作簿/参考文件未动。原生Office保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机和商业履约仍OPEN/NOT_RUN。未新增热力/外部CO₂/N/第二标准、无主要依赖/DB迁移/标准全文打包，不自动合并或商业发布；完成本包CI/实包送源后停止。
+受验源码 b0e42f069ee479840b2508bfa7080724d1336fef，算法 CAR-SM01-2026-10-18-FUME.1。CI268 / run39106389790 SUCCESS：
+- Merge job117613028826，merge 2d91747cef7cca85204e714918f98c4cea5cbac3：python -m unittest discover -s tests -t . -v，935/935、1597.245s。
+- Exact-head standalone job117618533685：python -m unittest tests.test_g08_delivery -v，17/17、6.902s；Canonical/编译/依赖/DB/GUI/缩放/构建/清单/归档/来源检查均PASS，实际EXE两次隔离启动PASS。
 
-## 只读记录投影补齐
+以上为GitHub Actions执行，不冒称本地全量。CI266/e171、267/63182不背书本最终制品。原始日志ci268-merge-raw.log与ci268-standalone-raw.log保存于tmp/b-fume，hash入仓内摘要。
 
-交付复核发现ReportRow.note虽被Word消费，但既有Qt表卡/文本/HTML未消费，故补齐三个只读显示消费者，使每段真实区间在记录页同样可见；增强既有烟气整链中的实际ReportTableCard与文本/HTML断言。未改算法、Canonical、模板或来源。源指示同步纠正专属模块顶部“尚未接入”的陈旧职责说明，F原算法内容不变。
+实际下载artifact12129870161，59,903,387 bytes；ZIP SHA256 e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c；manifest SHA256 c6017e1c07081460c6b0dc1762e62d72193b27946a8230b4aec5c4623783f190；EXE SHA256 3edb91a6e7a94da6ea08956560bc62a8c0079c34e4d5e4fdf4d5b5e6f2472d12。manifest source_commit/pr_head_sha均为固定源码，tested_merge_sha为上述merge。安全解包后278清单条目/279可见文件的尺寸与hash全匹配；129PE普通/延迟导入共114名称，VirtualKeyboard与iapws路径/导入均0。Qt原始版本逐DLL入摘要（含Qt6Pdf 6.140.0.0），不假称全部一致。
 
-python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：首次40项39通过/1失败、58.526s，原Word表头保护测试把v9输入段时长栏与旧报告期栏混比；现明确核对新输入栏、历史Word栏及其余全部表头不变。最终40/40、58.024s，日志tmp/b-fume/final-record-projection-pass.log。该次包含全部15项烟气整链与真实记录表卡；原本地82项仍按其实际执行边界记录。
+## 实际包业务与兼容证明
 
-CI266只对应被替代的e1715fc，不作为最新head的CI/制品；送验以该小修后的新head CI与实包为准，不混用旧结果。
+命令：python -B tmp/b-fume/package-proof.py tmp/b-fume/ci268-package tmp/b-fume/package-proof-ci268-r3 b0e42f069ee479840b2508bfa7080724d1336fef tmp/b-fume/actual-old-b4-fume tmp/b-fume/actual-old-b4-fgd；exit0、proof.json完整生成。业务模块仅从实际EXE/PYZ读取，阻止源码回退；资源与Qt来自实际包，宿主Python/验证工具/工作簿写入器用于程序化离屏证明，不是原生人工界面操作。
 
-## 共享身份显示名定向修复
+部分合计0.2112、完整25.696、缺口25.344；Domain成功3条，GUI成功1条。重叠/缺Q/缺FCh/时长不配/明确INVOLVED空段不新增Record。两段同源边界、h/d、改名稳定ID/同名不同ID/切换、未保存No、实际新窗口新服务SQLite恢复、旧升级取消及不造区间、B.6合法预览不写Record/坏行不暴露部分Canonical、codec1/2/3读取/4往返、旧模板v2～v8、实际记录表卡区间与缺口、冻结Word禁止重算/回查均PASS。
 
-63182共享源/边界的多段改名未同步候选，可能在切换或重开时被另一段旧名称覆盖。新增真实Qt/SQLite回归先复现1FAIL、5.129s（shared-rename-before.log），再按稳定ID同步所有候选与当前选择，保留编辑光标，不按名称合并、不改ID/数值/算法。源码只增UI名称同步，不建新身份体系。
+实际旧b4/CI263 EXE/PYZ生成烟气Record，由新包读取时模型/Word正文XML保持，记录数1不变。实际旧b4脱硫历史副本两份Word正文XML同样逐字节保持，记录总数3不变。原旧树和用户数据未修改。原始旧记录hash与proof全部见仓内摘要。
 
-python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：41/41、70.491s（新增第16项烟气整链，shared-rename-final.log）。其后仅强化该项测试：不同ID同名不合并、source/boundary分别切换往返、改名不改ID、保存后未保存更改关闭No丢弃、新窗口/新服务恢复；单项1/1、12.783s（shared-rename-owner-boundaries.log），生产不再改变。包证明脚本也包含同样边界，尚待新包实际执行。补核既有混合Domain/标准分派/Excel-Word37/37、9.437s（additional-domain-dispatch-report.log）。
+首次证明exit1：合成source_reference用中文说明，不满足稳定标识，正式门禁正确拒绝。第二次exit1：脚本遗漏INVOLVED却断言空源失败。仅修忽略目录中的证明脚本、每次新输出目录，未改生产源码/制品；两次原始日志保留。最终通过后 python -B -m scripts.inspect_release tmp/b-fume/ci268-package 再次PASS（278文件），确认制品未被验证修改。
 
-源在63182独立单例+RPT02共18/18、9.907s，只为当时范围；最新改名修复仍等源独立复验。CI267/63182与CI266/e171均不作为本次最终head制品证据。
+## 视觉、OPEN与停止边界
+
+Artifact Tool CLI只读渲染新旧B.6，未重导出模板；仅sheet6机械变更。GUI离屏预览在预览进程加载Windows中文字体后可读，未改生产字体。无原生CU。原生Office保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机和商业履约仍OPEN/NOT_RUN。
+
+仅本报告/TASK_STATE/仓内摘要补证据；文档提交不冒充已测试制品head。完整统计、source LF hash、制品/原始日志hash与执行边界以docs/ci/B_FUME_SUMMARY.json追溯。PR51保持未合并，交源独立最终验收后停止；不扩下一包/热力/外部CO₂/N/第二标准，不清理旧树或根用户文件，不商业发布。
