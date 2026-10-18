@@ -1,51 +1,47 @@
 # 当前任务状态 — B-FGD
 
-更新：2026-10-18。状态：生产实现收口／最终统一head验证与送验。当前最终测试、CI和实包身份以当前私有PR及tmp/fgd-final-evidence/summary.json实际记录为准；未取得证据前不称PASS。
+更新：2026-10-18。状态：**实施已送源独立验收，尚未取得独立验收结论**。C已完成下列送验证据；源验收正在执行关键链回归，并提出旧B.7模板兼容疑点，现先复现、对照main核查，关闭前不宣布最终验收PASS。不进入其他工作包，不合并。
 
-PR49已按Owner授权合并；main/本包起点为1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e。材料受验head40778c7及CI256（832项全量、17项exact-head G08、实际包审计/归档/两次启动）证据保留于PR49收口记录，不能当本包测试。F01/F02/F03、v7/2.5.0及旧模板字节为保护基线。旧材料工作树和根用户修改保留。
+## 送验对象与范围
 
-## 本包范围与所有权
+- 私有PR：[PR50](https://github.com/adgo07/GHGTOOL/pull/50)，OPEN、未合并。
+- 已完成验证的送验head：`7b43c23d31264dd5b5fe23d28599d05f6452d112`。
+- 最后生产提交：`6e417b4f83e4a7d4d55193076063cb10816bbea2`；后续送验提交仅测试夹具与治理同步。本次仅整理本文件，不改变该生产对象或既有验证证据。
+- base/main：`1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e`（PR49已合并）；CI260实测merge：`463aefd2489fce418455d67b854b26b88de7c09f`。
+- 本包范围：`fgd.ratio` / `fgd.factor` / `fgd.conversion`及脱硫GUI、B.7、Canonical、项目保存重开、正式Record、冻结Word完整链。依据Mapping §9.1/§9.3、Issue016和已批准方案；原公式、Numeric与历史Record语义保持。
 
-仅接管fgd.ratio、fgd.factor、fgd.conversion及脱硫GUI/B.7/Canonical/项目保存重开/正式Record/冻结Word完整链。依据Mapping §9.1/§9.3、Issue016与批准V2第8节；不新解释原公式、Numeric、来源资格，不夹带烟气/热力/外部CO₂。
+C负责共享实现与整链；M专属测试已集成并纳入最终联合/CI，现停止；F烟气准备未进入本包，保持停止。FGD_V2稳定设施/批次/组分身份，codec3读取1/2；旧输入不回填，升级另存项目副本，无数据库迁移。V1/V2正式入口共同按归一实际CAL校验同组整剂分母，独立旧组不合并。v8/2.6.0仅机械扩展B.7来源及企业设施编号，v2—v7原字节保留；旧模板业务兼容性以本轮复核为准。
 
-| 所有者 | 独占写入范围 | 当前接口 |
+## 已完成送验证据
+
+以下结果对应上述7b43c23送验对象，不能外推为后续生产变更的验证或源独立验收结论。
+
+| 证据来源 | 命令或检查 | 实际结果 |
 |---|---|---|
-| C共享集成 | policy/Resolver/混合Calculator/UI/Excel/codec/Project/报告/资源/构建/治理、整链测试 | 原Canonical/Application；生产接口经本包小提交发布给M |
-| M脱硫核对 | 新tests/test_b_fgd_specialist.py | 先只读真实C.2和通用I/TR绑定、独立预期；待C确定API后补专属测试 |
-| F烟气准备 | 原carbon_material_fume_segments.py/test_b_fume_segments.py | 557f2c6准备补丁保留，最新main静态兼容核对完成并停止，不接本包 |
+| 本地 | 30模块联合；完整命令见PR50与本地摘要 | 357/357，430.886s，0FAIL/0ERROR |
+| GitHub Actions CI260 merge-ref | `python -m unittest discover -s tests -t . -v` | 873/873，1370.590s |
+| GitHub Actions CI260 exact-head | `python -m unittest tests.test_g08_delivery -v` | 17/17，6.741s |
+| CI260两个任务 | Canonical、compile、pip check、数据库、GUI、125%/150%缩放 | PASS |
+| CI260 standalone | 目录/归档审计及隔离启动smoke | 277文件、278上传文件、2次启动PASS |
+| 本地实际下载包 | 全manifest大小/哈希、head/merge provenance、普通/延迟PE导入 | 277条匹配；129PE；VirtualKeyboard路径/导入0、iapws路径0 |
+| 本地EXE/PYZ业务代码及包内资源 | 禁止业务源码回退；2.8174/11.88、缺值/错绑定/V1不等量拒绝、冻结Word | PASS；仅2条Record；执行后包体再审计PASS；不是原生UI操作 |
+| 实际PR49历史对象 | 旧MATERIAL.1生成Record/Word，最终源码及包内代码禁用Calculator/Resolver读取 | 冻结快照、报告模型及Word正文XML一致；仍1条Record |
+| 同范围审阅四件套 | validator/builder/fixture/checks及raw LF/Git字节核验 | 25/25，意见0→0 |
 
-I单批单有效组分且通用绑定适用才新建初始化90%；多组分不复制90%，空行不计有效组分，已填未完行不忽略。TR通用100%绑定独立C.2。EF真实精确C.2绑定锁定，否则批准实测，不猜物种。实测空白不回缺省，单多单保留草稿且不重标旧缺省。同批整剂分母校验，不跨批合并、不归一、不重复乘用量；设施/批次/组分用稳定身份。
+CI260：[运行记录](https://github.com/adgo07/GHGTOOL/actions/runs/39085860291)，两任务SUCCESS。实际下载artifact `12121850125`，59,850,968字节；source_commit/pr_head_sha为7b43c23，tested_merge_sha为上述merge。
 
-## 平台 / Contract 预检查
+- ZIP SHA256：`c35647782e409c4c852bfffe547333770617fd32c4ff276fb585d744e8bbce2a`
+- manifest SHA256：`30ad46142df611a649f1ab3048df412e997b99377cc1f4392891de83ebd9fa44`
+- EXE SHA256：`329efa1c926ef80cd657745c44d2b690372134e02a2e17f6d8324531848055c6`
 
-origin已实际核实adgo07/GHGTOOL，fetch后从最新origin/main建立干净隔离codex/b-fgd-integration，默认main。locked central SHA ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；Architecture V2.1、Numeric v1及Profiles v1按该SHA读取，UI v0.2按当前ACTIVE读取。MUST：分层、共享内核、declared-profile consistency、ambient independence、full-value exact、历史不漂移。MUST NOT：未声明float、隐式修约/业务epsilon、算法复制、自动升级Frozen、Qt状态充当公共Workspace。p40/HALF_UP属ALLOWED PROJECT DIFFERENCE；无中央Contract冲突，无需修改中央Contract。相关Standard Issue016，落实已有软件决定，不改变既有解释。
+完整统计、命令和包体/历史对象核验见PR50及本次本地证据`tmp/fgd-final-evidence/summary.json`。实施过程、失败原因和修复依据见[IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md)及Git历史；本文件不再累加旧断点。旧714候选已撤回，CI258成功不替代本包最终证据；CI259的既有合法夹具失败及后续修正保留于实施报告/PR50。
 
-## 授权与验收边界
+## 平台 / Contract 与标准预检查
 
-Owner已授权下一包及既有M/F/源协调、私有push/PR/CI。完成单一脱硫PR与最终head CI/实际包后送源独立验收，停止；不合并、不CU、不删除旧工作树、不公开上传、不商业发布。必要模板演进机械生成并保留旧字节，能复用v7则复用。原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约仍OPEN。本包尚未运行测试，不宣称PASS或SUPPORTED。
+origin已核实为adgo07/GHGTOOL，默认main。locked central `ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变；Architecture V2.1、Numeric v1及Profiles v1按锁读取，UI v0.2按ACTIVE读取。适用MUST为分层/共享内核、declared-profile consistency、ambient independence、full-value exact、历史不漂移；MUST NOT为业务epsilon、显示回流、复制算法、自动升级Frozen、Qt状态充当公共Workspace。p40/HALF_UP属ALLOWED PROJECT DIFFERENCE，无中央冲突，无需改中央Contract。相关Standard Issue016，未新增标准解释。本次状态文档整理不涉及中央公共Contract变更。
 
-## 当前实施断点
+## 当前未决项与停止边界
 
-Owner在本会话明确批准脱硫稳定身份尾字段、codec3兼容1/2及Calculator同次Resolver接管/按批校验；原公式/Numeric/历史Record不变，无数据库迁移。e09cf83状态同步、f2e2f5b解析API、37807b1专属测试已提交。M只写专属测试，真实13绑定及错asset/unit/year/period反例15/15（作者1.206s）。C首次联合22项4失败记录、GUI第二轮7项3ERROR（夹具变量初始化）及48项1FAIL/1ERROR（来源状态改为隔离后旧夹具）均保留失败历史。修后四模块联合65/65，61.022s；当时测试源码版本与后续小修须按最终head另验，不能当最终整链通过。
+旧B.7模板兼容核查：对照main及真实旧母版，确认1.0.0/2.0.0无J来源列和旧版I/TR空白适用缺省路径是否回归；先证明再决定修复，显式实测空白不得回落。当前尚未给出核查结论。
 
-v7无法表达I/TR已选实测空白，必要v8/2.6.0仅机械改B.7增加K/L来源与M企业设施编号，旧v2—v7原字节保留。v8 SHA a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4。新输入FGD_V2和codec3；旧FGD_V1读取不补键，确认升级另存副本/留原输入，组分旧用量不同不猜统一。模型/GUI/导入/Word及包体保护仍在联合闭环，不称本包已完成。C新整链首轮3项2通过1ERROR（夹具WorkbookProvenance属性名错误），正修复，未生成发布/正式验收结论。
-
-
-生产链已提交5af702d；其后针对真实未完成行、旧歧义投影及升级用量语义补强。旧组分用量以显式Decimal/UnitService归一量比较，不以资料引用等对象元数据判异；Canonical旧项目另存新project/unit键，原项目输入不回写。新增实际Qt/SQLite/Word组最终9/9，58.304s（tmp/fgd-legacy-final.log）；之前6/6 37.556s、7/7 40.557s是各自断点，不累加。M Domain/API30/30已由73a7bc5单次集成。44项正式链/政策/M联合32.185s通过；四模块65/65 61.022s为更早断点。
-
-全表输入+整链51项77.835s有1FAIL：重复入站随机ID导致Canonical比较不一致；已改为整工作簿身份命名空间下的冻结不透明键，针对性ambient+模板6/6 1.767s。初次新链17项4FAIL为v8材料路由与夹具证据/文字；28项1FAIL/14ERROR为退出私有helper后的旧测试调用及来源字段断言；现已改为真实API且44联合通过。旧Word短来源可能只显示B.7定位，新FGD_V2已独立显示冻结实测/缺省标签，完整定位留审计，历史V1显示不重解释。
-
-曾拟移除asset_id一致性校验的提交被自动审批拒绝，该整条编辑未执行；安全替代保留原门禁，不降低错资产测试要求。当前无未决审批。审阅同版本四件套机械重生25/25场景、意见0→0、29/21/11行、652组合/450条件，未扩大审阅范围。最终统一head联合、私有PR/CI及实包仍待完成，不合并/不进入下包。
-
-
-最后生产提交bc55cdcb8c2c2b09ffcf83d86dd64fa998cd95d3；阶段联合30模块352/352、361.249s（5af生产断点及当时治理工作区），不背书随后补强。源追加的同填表重导/独立项目单元持久化ID反例1/1、6.690s通过，现有正式保存路径已随机生成独立project/unit键，未改存储实现；入站稳定键只作来源定位。最终head另含本反例和治理说明，必须同head联合+CI/实包实际完成后送源；最终统计及身份见当前PR与本地摘要，不为补统计反复改head。
-
-
-## V1正式入口校验补漏
-
-7146115撤回最终候选身份：其同head本地30模块356/356、552.628s只保留原断点；CI258也仅背书该旧断点。补充实际探针发现旧FGD_V1同组CAL=10t/20t仍成功新增Record（4.8920），属于本包批准校验遗漏。依据Mapping §9.1/§9.3，同组组分共享整剂分母；旧FGDInput group同样是这一组，不能因缺新身份跳过。现将归一实际CAL的精确一致性校验移至V1/V2共同入口；不同旧group独立，不猜合并/拆批。读取codec1/2仍成功、不补身份；旧Record不重写，原排放公式与Numeric不变。这是落实已批准业务约束，不是新标准解释或公式变更。
-
-C新增真实codec1/2→Application反例，首次1项2FAIL/1ERROR：两个不等量正式入口确实漏拒绝，ERROR为测试误用record.result属性；修后1项2ERROR为测试反馈字段误用rule_id，均修正夹具而不放宽断言。最终该项1/1、11.194s（tmp/fgd-v1-fixed.log）：不等量零Record，同量10t/10000kg且来源不同可算3.326；原合法V1仍可算；两个独立旧group各10t/20t算4.892；SQLite既存V1 Record和冻结Word在Calculator/Resolver禁用下照原读取、记录数不增加。新最终生产提交及head以本次修复commit/当前PR和本地摘要为准，受影响联合与新CI仍须实际完成。
-
-
-6e417b4同head30模块实际357项、487.480s，356通过/1FAIL（tmp/fgd-final-6e417b4-joint.log）：既有G06多实例合法汇总夹具把同一fgd-a组的整剂CAL写成10t/2t，被新共同校验正确拒绝。该测试目的是实例独立计算后汇总，不是批准同组不同分母；现保留两组和混合组分，把fgd-a两组分统一10t，新增独立预期fgd-a=4.329、fgd-b=1.8675。V1不等量零Record反例不删除/不放宽。两项针对性2/2、7.347s（tmp/fgd-v1-fixture-fixed.log）。本次仅测试/治理同步，最后生产提交仍6e417b4f83e4a7d4d55193076063cb10816bbea2；最终head须重新联合/CI，CI259仅该失败断点，不冒称最终PASS。
+源独立验收尚未结束。原生Office保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机及商业许可履约仍OPEN/NOT_RUN。不CU、不删除旧工作树、不公开上传、不接烟气/热力/N/外部CO₂，不宣称SUPPORTED或商业发行就绪。除上述源验收反馈核查外，保持停止等待验收。
