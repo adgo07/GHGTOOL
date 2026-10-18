@@ -136,3 +136,5 @@ F原始调查及REV2分别持久保存在docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json�
 物性子Profile GHGTOOL_COOLPROP_IF97_PROPERTY_V1采用binary64，非Decimal40物性精度。原规范MPa/℃、实际库工作Pa/K binary64词法、库原始J/kg输出词法、SAT Q=1、采用Decimal焓、实际phase、方法/版本/revision/依赖分开冻结。API不提供IF97区号，不伪造region。官方参考容差仅为conformance，30MPa700K仅库验证，不表示产品接受超临界流体。正式自动仅干饱和或低于临界压力的合法单相过热，实际API域错误不放行、不外推；known合法路径不依赖自动参考。
 
 本阶段仅私有CI/工程候选验证；不CU、不商业发布，不以作者专属/本地/包内程序化验证替代正式客户履约或原生Office/IME/DPI/干净机验收。最终实际包身份和测试统计以本轮实施报告/仓内CI摘要为准。
+
+工作状态门禁同时约束原输入和实际binary64 Pa/K：实际Pa须严格低于临界Pa，过热实际K须严格高于同压库Tsat并通过气相校验；极微小原差在工作值折叠时拒绝，不夹值/加epsilon/抬温。此为既有017原则落实，Profile、公式和known路径不变；24901e1的旧CI即使通过也不背书该修复，最终新head须重新CI/精确包。

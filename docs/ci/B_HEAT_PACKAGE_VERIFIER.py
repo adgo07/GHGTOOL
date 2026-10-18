@@ -41,7 +41,7 @@ from openpyxl import load_workbook
 from packages.core.errors import DomainValidationError
 from io import BytesIO
 from zipfile import ZipFile
-import shutil,tempfile
+import shutil,tempfile,math
 from packages.core.models import AccountingPeriod,PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.standards.carbon_material import *
@@ -106,8 +106,23 @@ with patch.object(resolver,'resolve',side_effect=AssertionError('measured no def
  negative=formal.calculate(value(line(factor_mode=HeatFactorMode.MEASURED,factor=replace(zero_factor,value=Decimal('-1')))))
  assert not negative.successful
 before=len(records.list_all())
-for bad in (line(source_boundary='UNCONFIRMED'),line(source_boundary='INSIDE_ENTERPRISE',fuel_emissions_accounted=False),line(enthalpy=None,manual_enthalpy=True,pressure_mpa='1'),replace(auto_line,pressure_mpa='.1',temperature_c='90'),replace(auto_line,pressure_mpa='1000'),line(factor_mode=HeatFactorMode.MEASURED)):
+for bad in (line(source_boundary='UNCONFIRMED'),line(source_boundary='INSIDE_ENTERPRISE',fuel_emissions_accounted=False),line(enthalpy=None,manual_enthalpy=True,pressure_mpa='1'),replace(auto_line,pressure_mpa='.1',temperature_c='90'),replace(auto_line,pressure_mpa='1000'),line(enthalpy=None,manual_enthalpy=False,pressure_mpa='22.06399999999999999999999999999999999999'),replace(auto_line,pressure_mpa='22.06399999999999999999999999999999999999',temperature_c='426.85'),line(factor_mode=HeatFactorMode.MEASURED)):
  outcome=formal.calculate(value(bad));assert not outcome.successful and len(records.list_all())==before
+sat_state=cp.AbstractState('IF97','Water');sat_state.update(cp.PQ_INPUTS,100000.,1.)
+tsat=Decimal(repr(float(sat_state.T())))
+folded_c=calc.policy.add(calc.policy.subtract(tsat,Decimal('273.15')),Decimal('1e-30'))
+folded=formal.calculate(value(replace(auto_line,pressure_mpa='.1',temperature_c=folded_c)))
+assert not folded.successful and len(records.list_all())==before
+assert any('工作温度' in p.message for p in folded.problems)
+adjacent_pa=math.nextafter(22064000.,0.)
+adjacent=physics.evaluate_if97_steam(steam_kind=SteamKind.SATURATED,pressure_mpa=calc.policy.divide(Decimal(repr(adjacent_pa)),Decimal('1000000')),temperature_c=None,policy=calc.policy,numeric_profile_id=calc.numeric_profile_id)
+assert adjacent.working_pressure_pa_lexeme==repr(adjacent_pa) and adjacent.quality_lexeme=='1'
+legal_k=float(str(calc.policy.add(tsat,Decimal('.01'))))
+legal_temperatures=[]
+for working_k in (legal_k,math.nextafter(legal_k,math.inf)):
+ current=physics.evaluate_if97_steam(steam_kind=SteamKind.SUPERHEATED,pressure_mpa=Decimal('.1'),temperature_c=calc.policy.subtract(Decimal(repr(working_k)),Decimal('273.15')),policy=calc.policy,numeric_profile_id=calc.numeric_profile_id)
+ assert current.working_temperature_k_lexeme==repr(working_k)
+ legal_temperatures.append(current.working_temperature_k_lexeme)
 with patch.object(physics,'_runtime',side_effect=DomainValidationError('unavailable')):
  assert not formal.calculate(value(auto_line)).successful
  assert formal.calculate(value(line())).successful
@@ -187,5 +202,5 @@ with fresh_qt() as (gui,projects,store,shell):
  outcome=CarbonAccountingUseCase(gui.calculator,store).calculate(recovered.units[0].canonical_input);assert outcome.successful and outcome.result.total_amount==expected.result.total_amount
  rid=outcome.record.record_id;model,xml=frozen_word(store,rid,output/'qt-auto-frozen.docx');assert b'IF97' in xml and b'8.0.0' in xml
  row.pressure.setText('.1');row.temperature.setText('90');bad=CarbonAccountingUseCase(gui.calculator,store).calculate(gui._input(increment=False));assert not bad.successful and len(store.list_all())==1
-proof={'source_commit':manifest['source_commit'],'tested_merge_sha':manifest['tested_merge_sha'],'algorithm':ALGORITHM_VERSION,'execution':'ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI','source_fallback':False,'native_coolprop':str(Path(cp.__file__).relative_to(root)),'native_numpy':str(Path(np_native.__file__).relative_to(root)),'if97':{'enthalpy':str(result.enthalpy_kj_per_kg),'emission':str(auto.result.total_amount),'phase':result.actual_phase,'working_pa':result.working_pressure_pa_lexeme,'working_k':result.working_temperature_k_lexeme,'library_jkg':result.library_output_j_per_kg_lexeme},'ambient_independence':[6,17,60],'invalid_cases_zero_added_records':True,'known_runtime_independent':True,'nonpositive_known_warning_frozen':True,'internal_no_unrelated_values':True,'internal_original_fuel_preserved':str(inside_fuel.result.total_amount),'saturated_quality_one_enthalpy':str(sat_h.enthalpy_kj_per_kg),'measured_zero_no_default_and_negative_blocked':True,'purchase_export_once_total':str(mixed.result.total_amount),'real_c3_periods':periods,'actual_old_ci273_frozen_records':history,'qt_project_reopen_excel_formal_frozen_word':True,'qt_invalid_state_zero_added_records':True,'qt_records':len(store.list_all()),'commercial_release':False}
+proof={'source_commit':manifest['source_commit'],'tested_merge_sha':manifest['tested_merge_sha'],'algorithm':ALGORITHM_VERSION,'execution':'ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI','source_fallback':False,'native_coolprop':str(Path(cp.__file__).relative_to(root)),'native_numpy':str(Path(np_native.__file__).relative_to(root)),'if97':{'enthalpy':str(result.enthalpy_kj_per_kg),'emission':str(auto.result.total_amount),'phase':result.actual_phase,'working_pa':result.working_pressure_pa_lexeme,'working_k':result.working_temperature_k_lexeme,'library_jkg':result.library_output_j_per_kg_lexeme},'ambient_independence':[6,17,60],'working_boundary_checks':{'critical_pressure_collapse_rejected_both_paths':True,'temperature_fold_to_saturation_rejected':True,'adjacent_valid_pressure_pa':repr(adjacent_pa),'adjacent_valid_gas_temperatures_k':legal_temperatures,'no_epsilon_or_clamping':True},'invalid_cases_zero_added_records':True,'known_runtime_independent':True,'nonpositive_known_warning_frozen':True,'internal_no_unrelated_values':True,'internal_original_fuel_preserved':str(inside_fuel.result.total_amount),'saturated_quality_one_enthalpy':str(sat_h.enthalpy_kj_per_kg),'measured_zero_no_default_and_negative_blocked':True,'purchase_export_once_total':str(mixed.result.total_amount),'real_c3_periods':periods,'actual_old_ci273_frozen_records':history,'qt_project_reopen_excel_formal_frozen_word':True,'qt_invalid_state_zero_added_records':True,'qt_records':len(store.list_all()),'commercial_release':False}
 (output/'proof.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(proof,ensure_ascii=False))

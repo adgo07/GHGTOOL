@@ -291,6 +291,8 @@ Issue 007的软件核验边界已标注于历史R8 Mapping；“冻结Mapping保
 
 | 2026-10-18当前实施 | 具体授权后已接入固定CoolProp8.0.0/NumPy2.3.3显式IF97Backend、方法CAR-HEAT-IF97-017.1、binary64子Profile GHGTOOL_COOLPROP_IF97_PROPERTY_V1。原/规范/实际工作输入、原库输出、采用焓和实现身份冻结；已知焓独立、失败不回旧表、历史Record不重算。F官方参考/Windows验证及C共享链已实际执行；准确限域、参考容差和许可证据见Mapping§9.7当前实施与docs/ci原始证据。新实际包/全量CI仍待执行；原始指定iapws的行保留历史时点，当前具体实现以上述受控替换为准，不构成新标准解释或商业发布。 |
 
+| 2026-10-18物性工作状态一致性修复 | 017原有临界点排除/合法实际相态原则的LOCAL DEFECT修复，不新增专业裁定：原Decimal合法但转换到binary64后落临界Pa不得采用，过热工作K须严格高于同压库Tsat且真实phase为气相；保留原输入/工作词法，不夹值、不epsilon、不抬温、不改Profile/公式，独立已知焓不受影响。真实后端反例、相邻实际合法点、正式零Record及ambient6/17/60见docs/ci/B_HEAT_WORKING_BOUNDARY_PROOF.json和IF97/runtime测试；原249制品不得据旧全量通过作最终放行。 |
+
 ### GHG-STD-32151-34-018 — 式(6)多输出各自含量的展开边界
 
 | 字段 | 记录 |

@@ -57,3 +57,9 @@ C独占共享消费者、资源、GUI、构建和治理；F仅交热力helper/te
 CI276旧head f85e058、测试merge a4de96d507c4a9bdcd121a5835a58f4022ce705a：实际1006项、2027.458s、1FAIL+2ERROR；standalone跳过，不是超时或通过。三项为UIR04旧边界/文案夹具、heat Canonical来源字节、Mapping更改后审阅定义资产登记旧hash。前两项已定向修；最后一项按PREFLIGHT机械重生同R11四件套，原三Canonical字节不改，新旧工作簿全部单元格值和Table名/范围相同；原仓内这一份意见0→0，不推断用户附件。实际3表61行、450个原有可见scope（既有442+Issue010追加8，未改）、8隐藏技术列/表、最大行高344点；23项Python资产/来源审阅测试18.334s全通过，25个真实ArtifactTool往返场景全通过，均为本地证据，不冒称CI执行了JS。原表和四件套在Git/本树tmp备份。四件套/4定义hash见docs/ci/B_HEAT_REVIEW_ASSET_PROOF.json；干净Git源证明见B_HEAT_CANONICAL_BYTE_PROOF.json。
 
 有45秒单项堆栈界限的字段/来源卡/项目/codec+Word缩小组合49/49、187.332s通过，初次组合停顿未复现，原因不冒称已确定。CI277/278均被最后资产修复取代，当前源代码断点a7d5d46，最终受验head以PR52最新说明和实际制品manifest为准；固定稳定资产回执后才新全量CI/精确head实包，不自行合并。
+
+## 实际物性工作状态门禁修复（最后候选）
+
+补查真实后端发现raw22.063999…MPa在binary64成为22064000.0Pa，旧249仍采用临界工作点，违反017既有排除原则。按既有范围LOCAL DEFECT定向修复：raw与working都须在域，工作Pa严格低于临界Pa；过热工作K严格高于同压Tsat且真实气相，不夹值、不epsilon、不抬温、不改Profile/公式。原输入和工作词法保留，已知焓不受影响。真实临界反例/相邻合法Pa、温度折叠/实际气相相邻K、正式零Record与ambient6/17/60证明见B_HEAT_WORKING_BOUNDARY_PROOF.json。首次新89项有1正例夹具ERROR（错误假设Tsat首ULP为气相；真实库仍液相），修正实际合法正例后3/3、0.229s；最终同包联合89/89、96.081s，0失败/错误/跳过。
+
+CI279旧249/merge fc0cee485bab1e3148ac00c4f20036d7cd1a9979实际全量1007/1007、1860.444s通过，但未覆盖新发现工作状态缺陷，只保留历史，不作最终放行；最终新head须重新全量/精确包。未编辑Mapping或原R11，审阅四件套当前hash继续有效。

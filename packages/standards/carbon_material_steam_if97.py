@@ -26,6 +26,8 @@ BACKEND = "IF97"
 FLUID = "Water"
 # Mapping9.7/IAPWS R7-97(2012)常数；本产品仅干饱和/单相过热蒸汽。
 CRITICAL_PRESSURE_MPA = Decimal("22.064")
+# 同一临界常量的精确SI表示，不经调用方工作舍入改变物理边界。
+CRITICAL_PRESSURE_PA = Decimal("22064000")
 KELVIN_OFFSET = Decimal("273.15")
 MPA_TO_PA = Decimal("1000000")
 J_PER_KJ = Decimal("1000")
@@ -122,6 +124,8 @@ def evaluate_if97_steam(
             raise DomainValidationError("自动过热蒸汽温度超出IF97有效域")
         kelvin = policy.add(temperature, KELVIN_OFFSET)
     p_pa = _binary64(policy.multiply(pressure, MPA_TO_PA), "绝压Pa")
+    if Decimal(repr(p_pa)) >= CRITICAL_PRESSURE_PA:
+        raise DomainValidationError(f"自动蒸汽工作绝压达到临界点（{repr(p_pa)} Pa），当前物性精度不能安全求值。")
     cp = _runtime()
     working_temperature = None
     try:
@@ -139,6 +143,8 @@ def evaluate_if97_steam(
             if not tsat.is_finite() or kelvin <= tsat:
                 raise DomainValidationError("声明过热但温度未高于同一绝压的饱和温度")
             working_temperature = _binary64(kelvin, "温度K")
+            if Decimal(repr(working_temperature)) <= tsat:
+                raise DomainValidationError(f"工作温度{repr(working_temperature)} K未高于同压饱和温度{tsat} K，当前物性精度不能确认过热蒸汽。")
             state.update(cp.PT_INPUTS, p_pa, working_temperature)
             if state.phase() not in (cp.iphase_gas, cp.iphase_supercritical_gas):
                 raise DomainValidationError("声明过热与实际库相态不一致")

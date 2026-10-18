@@ -8,6 +8,7 @@ https://iapws.org/technical-guidance/release/IF97-Rev.download
 from dataclasses import FrozenInstanceError
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_EVEN, ROUND_HALF_UP, localcontext
 import unittest
+import math
 from unittest.mock import patch
 
 import CoolProp
@@ -104,6 +105,47 @@ class IF97AllowedStateTests(unittest.TestCase):
         self.assertTrue(result.enthalpy_kj_per_kg.is_finite())
         with self.assertRaises(DomainValidationError):
             evaluate(".1", "2000.0000000000000000000000000000000000000000000000000001")
+
+    def test_working_pressure_cannot_round_to_critical_and_adjacent_value_is_valid(self):
+        raw = "22.06399999999999999999999999999999999999"
+        self.assertLess(D(raw), D("22.064"))
+        self.assertEqual(float(str(POLICY.multiply(D(raw), D("1000000")))), 22064000.0)
+        # 真实后端仍会把临界工作点标为Q=1/twophase，不能仅信粗phase标签。
+        critical = cp.AbstractState("IF97", "Water")
+        critical.update(cp.PQ_INPUTS, 22064000.0, 1.0)
+        self.assertEqual(critical.Q(), 1.0)
+        for kind in (SteamKind.SATURATED, SteamKind.SUPERHEATED):
+            with self.subTest(kind=kind), self.assertRaisesRegex(DomainValidationError, "临界"):
+                evaluate(raw, None if kind is SteamKind.SATURATED else "426.85", kind)
+        adjacent_pa = math.nextafter(22064000.0, 0.0)
+        adjacent_mpa = POLICY.divide(D(repr(adjacent_pa)), D("1000000"))
+        result = evaluate(str(adjacent_mpa), None, SteamKind.SATURATED)
+        self.assertEqual(result.working_pressure_pa_lexeme, repr(adjacent_pa))
+        self.assertEqual(result.quality_lexeme, "1")
+
+    def test_working_temperature_fold_to_saturation_is_rejected_and_adjacent_is_valid(self):
+        saturation = cp.AbstractState("IF97", "Water")
+        saturation.update(cp.PQ_INPUTS, 100000.0, 1.0)
+        tsat = D(repr(float(saturation.T())))
+        raw_c = POLICY.add(POLICY.subtract(tsat, D("273.15")), D("1e-30"))
+        self.assertGreater(POLICY.add(raw_c, D("273.15")), tsat)
+        self.assertEqual(float(str(POLICY.add(raw_c, D("273.15")))), float(tsat))
+        with self.assertRaisesRegex(DomainValidationError, "工作温度"):
+            evaluate(".1", str(raw_c))
+        # Tsat之上的首个ULP在真实库仍被标为非气相，不伪造合法状态。
+        first_k = math.nextafter(float(tsat), math.inf)
+        first = cp.AbstractState("IF97", "Water")
+        first.update(cp.PT_INPUTS, 100000.0, first_k)
+        self.assertNotIn(first.phase(), (cp.iphase_gas, cp.iphase_supercritical_gas))
+        with self.assertRaises(DomainValidationError):
+            evaluate(".1", str(POLICY.subtract(D(repr(first_k)), D("273.15"))))
+        # 已核实际气相中的相邻可表示K都允许，且不夹值/抬温。
+        legal_k = float(str(POLICY.add(tsat, D(".01"))))
+        for adjacent_k in (legal_k, math.nextafter(legal_k, math.inf)):
+            adjacent_c = POLICY.subtract(D(repr(adjacent_k)), D("273.15"))
+            result = evaluate(".1", str(adjacent_c))
+            self.assertEqual(result.working_temperature_k_lexeme, repr(adjacent_k))
+            self.assertIn("iphase_gas", result.actual_phase)
 
     def test_critical_and_supercritical_pressure_rejected_for_both_paths(self):
         for p in ("22.064", "22.06400000000000000000001", "30", "100"):

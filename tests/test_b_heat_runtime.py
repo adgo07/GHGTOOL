@@ -228,6 +228,22 @@ class HeatRuntimeTests(unittest.TestCase):
                 values.append((outcome.result.total_amount,adopted))
         self.assertTrue(all(x==values[0] for x in values))
 
+    def test_working_boundary_collapse_creates_no_record_and_known_is_independent(self):
+        from packages.standards.carbon_material import SteamKind
+        raw = "22.06399999999999999999999999999999999999"
+        for pressure in (InputValue(raw, "MPa"), InputValue("22063999.99999999999999999999999999999999", "Pa")):
+            original = input_with(heat(enthalpy=None, manual_enthalpy=False, pressure_mpa=pressure))
+            outcome = self.formal.calculate(original)
+            self.assertFalse(outcome.successful)
+            self.assertEqual(outcome.input.purchased_heat[0].pressure_mpa, pressure)
+            self.assertTrue(any("22064000.0" in p.message for p in outcome.problems))
+            self.assertEqual(len(self.records.list_all()), 0)
+        with patch("packages.standards.carbon_material_steam_if97._runtime", side_effect=AssertionError("known independent")):
+            known = self.formal.calculate(input_with(heat(pressure_mpa=raw)))
+        self.assertTrue(known.successful, known.problems)
+        self.assertEqual(known.result.total_amount, self.calc.policy.add(self.original_fuel, Decimal(".308")))
+        self.assertEqual(len(self.records.list_all()), 1)
+
     def test_failed_auto_dependency_cannot_block_independent_known_or_fall_back(self):
         from packages.core.errors import DomainValidationError
         from packages.standards.carbon_material import SteamKind

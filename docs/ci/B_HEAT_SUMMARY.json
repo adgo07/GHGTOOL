@@ -1,6 +1,6 @@
 {
   "stage": "B-HEAT",
-  "status": "ALL_KNOWN_CI276_DEFECTS_REPAIRED_NEW_HEAD_CI_REQUIRED",
+  "status": "WORKING_STATE_LOCAL_DEFECT_REPAIRED_NEW_HEAD_CI_REQUIRED",
   "base": "a1aeebc1b6809397e61a2ffa7a2333a3b440c756",
   "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
   "algorithm": "CAR-SM01-2026-10-18-HEAT.1",
@@ -87,6 +87,21 @@
       "errors": 0,
       "per_test_stack_timeout_seconds": 45,
       "original_stall_not_reproduced": true
+    },
+    "working_state_joint": {
+      "modules": [
+        "tests.test_b_heat_if97",
+        "tests.test_b_heat_specialist",
+        "tests.test_b_heat_runtime",
+        "tests.test_b_heat_chain.HeatQtTests",
+        "tests.test_b_heat_chain.HeatExcelTests",
+        "tests.test_numeric_contract_v1_adoption",
+        "tests.test_g08_delivery"
+      ],
+      "tests": 89,
+      "seconds": 96.081,
+      "failures": 0,
+      "errors": 0
     }
   },
   "counts_not_summed": "Selected suites overlap; no local full-suite claim.",
@@ -121,7 +136,11 @@
     "First local actual-package verifier preloaded host openpyxl, then loaded packaged lxml and failed with duplicate native context types. Verifier now imports openpyxl from bundle after the import hook; separate output r2 passed. Product unchanged.",
     "Read-only scan found one additional UIR04 heat fixture omitted from selected suites: reproduced 1 FAIL in 3.921s due to unknown boundary/old generic wording; fixture now explicitly external, asserts actual absolute-pressure message and retains clickable own-card/no-internal-ID checks; repaired 1/1 in 4.202s. CI276 on f85 may still be running and is superseded by the test/receipt revision, not claimed passed.",
     "Actual e931c21 Git blob isolated reproduction: C3 Canonical file was LF in Git but CRLF locally; projected source metadata had CRLF SHA f816d704... instead of Git LF 1dd97fd8.... Fixed working source LF, regenerated resource mechanically (37844a5b...), and projector now rejects CRLF source rather than normalizing hash. Structure comparison proves only appended source SHA differs; all fields/policies and other sources unchanged. Old local f85 package remains historical, not new-head proof. Runtime/G08 30/30 passed in16.363s. CI276/277 superseded; actual CI counts not yet known.",
-    "Actual CI276 full log:1006 tests/2027.458s,1FAIL+2ERROR (UIR04, heat raw-byte projection, stale Mapping definition-asset hash). Standalone skipped. Third issue repaired via existing same-version review generator, previous tracked workbook retained0 opinions, all cell values/Table names/refs unchanged; four artifacts mechanically regenerated with23 Python tests and25 actual ArtifactTool feedback scenarios. Original3 Canonical files unchanged.450 visible scopes already existed (442+existing Issue010 eight), not newly expanded."
+    "Actual CI276 full log:1006 tests/2027.458s,1FAIL+2ERROR (UIR04, heat raw-byte projection, stale Mapping definition-asset hash). Standalone skipped. Third issue repaired via existing same-version review generator, previous tracked workbook retained0 opinions, all cell values/Table names/refs unchanged; four artifacts mechanically regenerated with23 Python tests and25 actual ArtifactTool feedback scenarios. Original3 Canonical files unchanged.450 visible scopes already existed (442+existing Issue010 eight), not newly expanded.",
+    "Before fix:2 tests/3 FAIL incl2 pressure acceptances and temperature explicit-reason assertion; temperature was already rejected by coarse phase.",
+    "First89-case joint:1 ERROR because test assumed Tsat firstULP was gas; real backend says liquid. Corrected legitimate positive examples, no production gate relaxed.",
+    "Targeted3/3 .229s; final joint89/89 96.081s.",
+    "Real critical bridge defect: raw22.063999...MPa converts to22064000.0Pa, backend falsely permits dryQ1/overheated classification at excluded critical pressure. Fixed actual workingPa and workingK gates under existing017; 249 full1007 pass is historical only."
   ],
   "ci": {
     "run_id": 39128755391,
@@ -171,5 +190,19 @@
     "not_a_pass": true
   },
   "review_asset_proof": "B_HEAT_REVIEW_ASSET_PROOF.json",
-  "canonical_byte_proof": "B_HEAT_CANONICAL_BYTE_PROOF.json"
+  "canonical_byte_proof": "B_HEAT_CANONICAL_BYTE_PROOF.json",
+  "ci_249_full_pass_not_final": {
+    "run": 279,
+    "run_id": 39132032103,
+    "head": "24901e12e9bc406a7da4a1616bd85818afb8c8b1",
+    "tested_merge_sha": "fc0cee485bab1e3148ac00c4f20036d7cd1a9979",
+    "tests": 1007,
+    "seconds": 1860.444,
+    "failures": 0,
+    "errors": 0,
+    "conclusion": "PASS_BUT_SUPERSEDED_BY_WORKING_BOUNDARY_DEFECT",
+    "standalone": "IN_PROGRESS_AT_RECEIPT",
+    "not_final_acceptance": true
+  },
+  "working_state_proof": "B_HEAT_WORKING_BOUNDARY_PROOF.json"
 }
