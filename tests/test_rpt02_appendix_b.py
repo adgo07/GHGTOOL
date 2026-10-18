@@ -63,6 +63,13 @@ class RPT02AppendixBTests(unittest.TestCase):
                     tuple(sheet.cell(row=2 + ri, column=ci + 1).value or "" for ci in range(len(headers[0])))
                     for ri in range(len(headers))
                 )
+                if key == "b6":
+                    # v9 input asks for an explicit per-segment unit. Historical
+                    # Word headers stay frozen; monitored records override T only.
+                    self.assertEqual(actual[0][5], "监测段时长\n（单位见M列）")
+                    self.assertEqual(headers[0][5], "报告期的时长\nd")
+                    actual = tuple(tuple(headers[ri][ci] if (ri,ci)==(0,5) else value
+                                         for ci,value in enumerate(row)) for ri,row in enumerate(actual))
                 self.assertEqual(actual, tuple(tuple(row) for row in headers), sheet.title)
                 self.assertEqual(
                     tuple(item for item in _header_merges_from_sheet(sheet,len(headers)) if item[3]<len(headers[0])),

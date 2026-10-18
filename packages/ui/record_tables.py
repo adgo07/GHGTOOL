@@ -183,7 +183,7 @@ class ReportTableCard(QFrame):
         layout.addWidget(table)
         self.table_widget = table
 
-        for footnote in report.footnotes:
+        for footnote in (*report.footnotes, *(row.note for row in report.rows if row.note)):
             label = QLabel(footnote, self)
             label.setObjectName("recordReportFootnote")
             label.setWordWrap(True)

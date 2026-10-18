@@ -34,6 +34,14 @@
       "sources": 12,
       "parameters": 102,
       "factors": 138
+    },
+    "record_projection": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v",
+      "tests": 40,
+      "passed": 40,
+      "seconds": "58.024",
+      "log": "tmp/b-fume/final-record-projection-pass.log",
+      "boundary": "new Qt record-card/text/HTML consume frozen segment row notes; Word/calculation/template unchanged"
     }
   },
   "original_failures": {
@@ -71,15 +79,23 @@
       "tests": 1,
       "passed": 1,
       "seconds": "9.725"
+    },
+    "record_projection_first": {
+      "tests": 40,
+      "failures": 1,
+      "seconds": "58.526",
+      "reason": "v9输入段时长与历史Word表头差异未在保护测试明确区分"
     }
   },
   "source_text_lf_sha256": {
     "packages/standards/carbon_material.py": "159c2bf7fde0ebfb1fea59be046f03f9bdfedb11ab593e21fac11e1c4d47868e",
-    "packages/standards/carbon_material_fume_segments.py": "b839b1179b14f8e76b7efd7e916b9b24c9899d4ba962dfd99c224aa43b71cbe9",
+    "packages/standards/carbon_material_fume_segments.py": "c09ed5830a9c7269416a473c7d04caae3bc42f675258b50618c4702330c15908",
     "packages/application/carbon_material_input_codec.py": "114417608395514a90428c10f02d171110cdeebf914cd5a9fea11683d93a631b",
     "packages/ui/carbon_material_page.py": "96431ada1220842e38a8ff784c61f26b399df73cb8dddb063e6e57ac2d7ae0fc",
     "packages/excel/appendix_b.py": "2b783e22271fe37e1a9e2fb3ada0a72455a725be301324322854ba54dfff1ad7",
-    "tests/test_b_fume_chain.py": "e365abf9effc174f2c129890e1ab672eb11f08027c8f2970a41e43434a38e493"
+    "tests/test_b_fume_chain.py": "ec621e21184485889425ffe009e4d23be3e665800886b52a956b759447ea610c",
+    "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
+    "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560"
   },
   "template": {
     "version": "2.7.0",
@@ -110,5 +126,19 @@
     "干净目标机",
     "商业履约"
   ],
-  "merge_status": "NOT_MERGED"
+  "merge_status": "NOT_MERGED",
+  "independent_interim": {
+    "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+    "tests": 41,
+    "passed": 41,
+    "seconds": "69.341",
+    "source": "源会话实际独立运行",
+    "scope": "before record projection fix; not final PASS"
+  },
+  "superseded_ci": {
+    "run_id": 39105323380,
+    "number": 266,
+    "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+    "boundary": "not final code/artifact"
+  }
 }

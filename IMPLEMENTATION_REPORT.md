@@ -52,3 +52,11 @@ Artifact Tool CLI只读渲染B.6新旧母版，新增表头/单位/提示可读�
 ## 保留的OPEN与停止边界
 
 PR50 F01—F03技术独立PASS与CI263固定证据保留，旧工作树不清理。根用户工作簿/参考文件未动。原生Office保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机和商业履约仍OPEN/NOT_RUN。未新增热力/外部CO₂/N/第二标准、无主要依赖/DB迁移/标准全文打包，不自动合并或商业发布；完成本包CI/实包送源后停止。
+
+## 只读记录投影补齐
+
+交付复核发现ReportRow.note虽被Word消费，但既有Qt表卡/文本/HTML未消费，故补齐三个只读显示消费者，使每段真实区间在记录页同样可见；增强既有烟气整链中的实际ReportTableCard与文本/HTML断言。未改算法、Canonical、模板或来源。源指示同步纠正专属模块顶部“尚未接入”的陈旧职责说明，F原算法内容不变。
+
+python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：首次40项39通过/1失败、58.526s，原Word表头保护测试把v9输入段时长栏与旧报告期栏混比；现明确核对新输入栏、历史Word栏及其余全部表头不变。最终40/40、58.024s，日志tmp/b-fume/final-record-projection-pass.log。该次包含全部15项烟气整链与真实记录表卡；原本地82项仍按其实际执行边界记录。
+
+CI266只对应被替代的e1715fc，不作为最新head的CI/制品；送验以该小修后的新head CI与实包为准，不混用旧结果。

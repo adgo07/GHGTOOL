@@ -219,6 +219,16 @@ class FumeQtExcelTests(unittest.TestCase):
             with patch.object(gui.calculator,"calculate",side_effect=AssertionError("不得重算")),patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("不得回查")):
                 model=report(records,result.record.record_id);self.assertEqual(model.input_template_version,"2.7.0")
                 self.assertIn("不补零",str(model));self.assertGreater(len(render_docx(model)),30000)
+                from packages.ui.record_tables import ReportTableCard
+                from PySide6.QtWidgets import QLabel
+                from packages.application.reporting.presentation import report_text,report_html
+                table=next(section for section in model.sections if section.section_id=="b6").tables[0]
+                card=ReportTableCard(table)
+                labels="\n".join(label.text() for label in card.findChildren(QLabel))
+                self.assertIn("监测段：2025-01-01",labels);self.assertIn("监测段：2025-01-02",labels)
+                self.assertIn("不补零",labels)
+                self.assertIn("监测段：2025-01-02",report_text(model));self.assertIn("监测段：2025-01-02",report_html(model))
+                card.deleteLater()
     def test_gui_invalid_second_row_no_record_and_hour_day_equivalence(self):
         with tempfile.TemporaryDirectory() as directory,self.fresh_page(Path(directory)) as (gui,projects,records,shell):
             self.prepare(gui);first=gui._process_rows["fume"][0];self.fill(first)
