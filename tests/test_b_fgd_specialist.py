@@ -237,5 +237,264 @@ class FGDResolverSpecialistTests(unittest.TestCase):
             _fgd_document.cache_clear()
 
 
+class FGDDomainSpecialistTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        FGDResolverSpecialistTests.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        FGDResolverSpecialistTests.tearDownClass.__func__(cls)
+
+    resolve = FGDResolverSpecialistTests.resolve
+    mutated_resolver = FGDResolverSpecialistTests.mutated_resolver
+    targets = FGDResolverSpecialistTests.targets
+
+    def parameter(self, field, label="CaCO3", *, value=None, unit=None, custom=False):
+        from packages.standards.carbon_material import ParameterValue, ParameterSourceKind
+        if value is not None:
+            return ParameterValue("test.fgd." + field, value, unit or ("tCO2/t" if field == "fgd.factor" else "ratio"),
+                                  ParameterSourceKind.MEASURED, "TEST-FGD-M", "2026", "独立测试实测数值", "独立测试")
+        selected = self.resolve(field, carbonate_type=label, origin="CUSTOM" if custom else "CATALOG")
+        factor = selected.factor
+        self.assertIsNotNone(factor)
+        return ParameterValue(factor.parameter_id, factor.value, factor.unit,
+                              ParameterSourceKind.STANDARD_SPECIFIED if field == "fgd.factor" else ParameterSourceKind.STANDARD_DEFAULT,
+                              factor.source_id, factor.version, factor.source_location,
+                              "真实Resolver已选因子", factor.factor_id, factor.factor_year)
+
+    def component(self, label="CaCO3", amount="10", *, fraction=None, conversion=None,
+                  factor=None, component_id="component-A", custom=False):
+        from packages.standards.carbon_material import CarbonateComponent, InputOrigin
+        return CarbonateComponent(amount,
+            self.parameter("fgd.ratio", label, value=fraction, custom=custom),
+            self.parameter("fgd.factor", label, value=factor, custom=custom),
+            self.parameter("fgd.conversion", label, value=conversion, custom=custom),
+            label, InputOrigin.CUSTOM if custom else InputOrigin.CATALOG, component_id)
+
+    def batch(self, components, batch_id="batch-A", facility_id="facility-A", **kwargs):
+        from packages.standards.carbon_material import FGDInput
+        defaults = dict(instance_id=batch_id, reagent_name="同名脱硫剂", facility_id=facility_id,
+                        facility_name="同名设施", batch_id=batch_id, execution_version="FGD_V2")
+        defaults.update(kwargs)
+        return FGDInput(components=tuple(components), **defaults)
+
+    def payload(self, *batches):
+        from packages.standards.carbon_material import CarbonMaterialInput
+        return CarbonMaterialInput("fgd-specialist", "enterprise.fgd", "脱硫测试", PERIOD,
+            boundary_confirmed=True, fgd_units=tuple(batches), material_execution_version="MATERIAL_V2")
+
+    def calculate(self, *batches, policy=None):
+        from packages.standards.carbon_material import CarbonMaterialCalculator
+        return CarbonMaterialCalculator(policy=policy, parameter_resolver=self.resolver).calculate(self.payload(*batches))
+
+    def assert_rejected_without_record(self, *batches, code=None, resolver=None):
+        from packages.application.carbon_accounting import CarbonAccountingUseCase
+        from packages.persistence import SQLiteRecordRepository
+        from packages.standards.carbon_material import CarbonMaterialCalculator
+        with tempfile.TemporaryDirectory(prefix="record-", dir=self.root) as directory:
+            path = Path(directory) / "records.sqlite"
+            repository = SQLiteRecordRepository(path)
+            usecase = CarbonAccountingUseCase(CarbonMaterialCalculator(parameter_resolver=resolver or self.resolver), repository)
+            result = usecase.calculate(self.payload(*batches))
+            self.assertTrue(result.blocked, result.problems)
+            self.assertIsNone(result.record)
+            self.assertEqual(SQLiteRecordRepository(path).list_all(), ())
+            if code:
+                self.assertIn(code, {problem.code for problem in result.problems})
+            return result
+
+    def test_eleven_c2_formal_single_batches_match_independent_table(self):
+        from packages.application.carbon_accounting import CarbonAccountingUseCase
+        from packages.persistence import SQLiteRecordRepository
+        from packages.standards.carbon_material import CarbonMaterialCalculator
+        with tempfile.TemporaryDirectory(prefix="eleven-records-", dir=self.root) as directory:
+            path = Path(directory) / "records.sqlite"
+            usecase = CarbonAccountingUseCase(CarbonMaterialCalculator(parameter_resolver=self.resolver), SQLiteRecordRepository(path))
+            for index, (label, _key, _factor, expected) in enumerate(C2, 1):
+                with self.subTest(species=label):
+                    outcome = usecase.calculate(self.payload(self.batch((self.component(label),))))
+                    self.assertTrue(outcome.successful, outcome.problems)
+                    self.assertEqual(outcome.result.total_amount, Decimal(expected))
+                    self.assertEqual(outcome.record.algorithm_version, "CAR-SM01-2026-10-18-FGD.1")
+                    self.assertEqual(len(SQLiteRecordRepository(path).list_all()), index)
+
+    def mixed_components(self):
+        return (self.component("CaCO3", fraction=".4", conversion=".8", component_id="ca"),
+                self.component("MgCO3", fraction=".3", conversion=".9", component_id="mg"))
+
+    def test_mixed_batch_whole_reagent_denominator_is_not_renormalized(self):
+        result = self.calculate(self.batch(self.mixed_components()))
+        self.assertTrue(result.successful, result.problems)
+        self.assertEqual(result.result.total_amount, Decimal("2.8174"))
+
+    def test_same_facility_two_batches_do_not_add_their_fractions(self):
+        result = self.calculate(self.batch((self.component(amount="10"),), "batch-A"),
+                                self.batch((self.component(amount="20"),), "batch-B"))
+        self.assertTrue(result.successful, result.problems)
+        self.assertEqual(result.result.total_amount, Decimal("11.88"))
+
+    def test_same_batch_id_in_different_facilities_is_independent(self):
+        first = self.batch((self.component(),), facility_id="facility-A", instance_id="row-A")
+        second = self.batch((self.component(),), facility_id="facility-B", instance_id="row-B")
+        result = self.calculate(first, second)
+        self.assertTrue(result.successful, result.problems)
+        self.assertEqual(result.result.total_amount, Decimal("7.92"))
+
+    def test_batch_fraction_exact_one_is_valid_but_above_one_is_not(self):
+        from dataclasses import replace
+        ca = self.component(fraction=".5", component_id="ca")
+        mg = self.component("MgCO3", fraction=".5", component_id="mg")
+        equal = self.calculate(self.batch((ca, mg)))
+        self.assertTrue(equal.successful, equal.problems)
+        self.assertEqual(equal.result.total_amount, Decimal("4.81"))
+        too_high = replace(mg, carbonate_fraction=self.parameter("fgd.ratio", value=".500000000000000000000000000001"))
+        self.assert_rejected_without_record(self.batch((ca, too_high)), code="CAR-VAL-CARBONATE-SUM")
+
+    def test_same_batch_cal_inconsistency_is_rejected_without_record(self):
+        from dataclasses import replace
+        components = self.mixed_components()
+        self.assert_rejected_without_record(self.batch((components[0], replace(components[1], amount="12"))),
+                                            code="CAR-VAL-FGD-BATCH-AMOUNT")
+
+    def test_mass_units_are_normalized_once_before_same_batch_check(self):
+        from dataclasses import replace
+        from packages.standards.carbon_material import InputValue
+        components = self.mixed_components()
+        result = self.calculate(self.batch((components[0], replace(components[1], amount=InputValue("10000", "kg")))))
+        self.assertTrue(result.successful, result.problems)
+        self.assertEqual(result.result.total_amount, Decimal("2.8174"))
+
+    def test_blank_and_zero_are_distinct_for_cal_i_tr_and_ef(self):
+        from dataclasses import replace
+        component = self.component(custom=True, label="未登记物种", factor=".5", fraction="0", conversion="0")
+        for field in ("amount", "carbonate_fraction", "conversion_rate", "emission_factor"):
+            with self.subTest(missing=field):
+                self.assert_rejected_without_record(self.batch((replace(component, **{field: None}),)))
+        for field in ("amount", "carbonate_fraction", "conversion_rate", "emission_factor"):
+            with self.subTest(zero=field):
+                if field == "amount":
+                    changed = replace(component, amount="0")
+                else:
+                    policy_field = {"carbonate_fraction": "fgd.ratio", "conversion_rate": "fgd.conversion", "emission_factor": "fgd.factor"}[field]
+                    changed = replace(component, **{field: self.parameter(policy_field, value="0")})
+                result = self.calculate(self.batch((changed,)))
+                self.assertTrue(result.successful, result.problems)
+                self.assertEqual(result.result.total_amount, Decimal("0"))
+
+    def test_duplicate_component_or_facility_batch_ids_never_create_record(self):
+        from dataclasses import replace
+        components = self.mixed_components()
+        duplicate_component = replace(components[1], component_id=components[0].component_id)
+        self.assert_rejected_without_record(self.batch((components[0], duplicate_component)), code="CAR-VAL-FGD-IDENTITY")
+        first = self.batch((self.component(),), instance_id="row-A")
+        second = replace(first, instance_id="row-B")
+        self.assert_rejected_without_record(first, second, code="CAR-VAL-FGD-BATCH-DUPLICATE")
+
+    def test_missing_stable_identity_and_unknown_version_never_create_record(self):
+        from dataclasses import replace
+        batch = self.batch((self.component(),))
+        for changed in (replace(batch, facility_id=None), replace(batch, batch_id=None),
+                        replace(batch, components=(replace(batch.components[0], component_id=None),))):
+            self.assert_rejected_without_record(changed, code="CAR-VAL-FGD-IDENTITY")
+        self.assert_rejected_without_record(replace(batch, execution_version="FGD_FUTURE"), code="CAR-VAL-FGD-VERSION")
+
+    def test_custom_measured_ef_uses_independent_general_i_and_tr(self):
+        result = self.calculate(self.batch((self.component("未登记物种", factor=".5", custom=True),)))
+        self.assertTrue(result.successful, result.problems)
+        self.assertEqual(result.result.total_amount, Decimal("4.5"))
+
+    def test_measured_and_default_i_same_value_are_not_interchangeable_in_multicomponent_batch(self):
+        ca = self.component(fraction=None, component_id="ca")
+        mg = self.component("MgCO3", fraction=".1", component_id="mg")
+        self.assert_rejected_without_record(self.batch((ca, mg)))
+
+    def test_corrupt_asset_unit_year_or_period_is_rejected_by_formal_application(self):
+        # Input was built from the genuine catalog before its isolated copy is
+        # corrupted. Formal Application must re-check; successful API tests
+        # alone are not evidence that a caller cannot bypass the boundary.
+        batch = self.batch((self.component(),))
+        for field, factor_id, other, bad_unit in self.targets():
+            for kind, statements in (
+                ("asset", (("UPDATE reference_data_bindings SET asset_id=? WHERE binding_id=?", ("asset-" + other, "binding-" + factor_id)),)),
+                ("unit", (("UPDATE factor_values SET unit=?, normalized_unit=? WHERE factor_id=?", (bad_unit, bad_unit, factor_id)),
+                          ("UPDATE reference_data_assets SET unit=?, normalized_unit=? WHERE asset_id=?", (bad_unit, bad_unit, "asset-" + factor_id)))),
+                ("year", (("UPDATE factor_values SET factor_year=? WHERE factor_id=?", (2099, factor_id)),
+                          ("UPDATE reference_data_bindings SET factor_year=? WHERE binding_id=?", (2099, "binding-" + factor_id)))),
+                ("period", (("UPDATE factor_values SET valid_to=? WHERE factor_id=?", ("2025-12-31", factor_id)),
+                            ("UPDATE reference_data_bindings SET valid_to=? WHERE binding_id=?", ("2025-12-31", "binding-" + factor_id)))),
+            ):
+                with self.subTest(field=field, corruption=kind):
+                    self.assert_rejected_without_record(batch, resolver=self.mutated_resolver(*statements))
+
+    def test_actual_declared_profile_is_consumed_independently_of_ambient_decimal(self):
+        from decimal import localcontext, ROUND_DOWN, ROUND_HALF_UP
+        from packages.core.decimal_policy import DecimalPolicy
+        from packages.standards import carbon_material as module
+        from packages.standards._numeric_authority import current_declared_numeric_profile
+        component = self.component("未登记物种", amount="9.87654321098765432109876543210987654321",
+            fraction=".123456789012345678901234567890123456789",
+            conversion=".987654321098765432109876543210987654321",
+            factor=".555555555555555555555555555555555555555", custom=True)
+        batch = self.batch((component,))
+        policy = DecimalPolicy(precision=50)
+        consumed = []
+        original = module.fgd_emission
+        def observed(components):
+            consumed.append(current_declared_numeric_profile())
+            return original(components)
+        with patch.object(module, "fgd_emission", observed):
+            with localcontext() as context:
+                context.prec = 6
+                context.rounding = ROUND_DOWN
+                low = self.calculate(batch, policy=policy)
+            with localcontext() as context:
+                context.prec = 70
+                high = self.calculate(batch, policy=policy)
+        self.assertTrue(low.successful, low.problems)
+        self.assertTrue(high.successful, high.problems)
+        self.assertEqual(consumed, [policy, policy])
+        with localcontext() as context:
+            context.prec = 50
+            context.rounding = ROUND_HALF_UP
+            expected = (Decimal("9.87654321098765432109876543210987654321")
+                * Decimal(".123456789012345678901234567890123456789")
+                * Decimal(".555555555555555555555555555555555555555")
+                * Decimal(".987654321098765432109876543210987654321"))
+        self.assertEqual(low.result.total_amount, expected)
+        self.assertEqual(high.result.total_amount, expected)
+        self.assertNotEqual(self.calculate(batch).result.total_amount, expected)
+
+    def test_old_codec_1_and_2_restore_without_fabricating_new_identities(self):
+        import json
+        from packages.application import carbon_material_input_codec as codec
+        original = self.payload(self.batch((self.component(),)))
+        def strip_new_fields(node):
+            if isinstance(node, dict):
+                if node.get("type") == "fgd_input" and node.get("$kind") == "dataclass":
+                    for key in ("facility_id", "facility_name", "batch_id", "execution_version"):
+                        node["fields"].pop(key, None)
+                if node.get("type") == "carbonate_component" and node.get("$kind") == "dataclass":
+                    node["fields"].pop("component_id", None)
+                for child in node.values():
+                    strip_new_fields(child)
+            elif isinstance(node, list):
+                for child in node:
+                    strip_new_fields(child)
+        for version in (1, 2):
+            with self.subTest(version=version):
+                document = json.loads(codec.encode_canonical_input(original))
+                document["version"] = version
+                strip_new_fields(document)
+                payload = json.dumps(document, ensure_ascii=False)
+                restored = codec.decode_canonical_input(payload)
+                self.assertIsNone(restored.fgd_units[0].facility_id)
+                self.assertIsNone(restored.fgd_units[0].batch_id)
+                self.assertIsNone(restored.fgd_units[0].components[0].component_id)
+                self.assertEqual(restored.fgd_units[0].execution_version, "FGD_V1")
+                self.assertEqual(restored.fgd_units[0].components[0].amount.value, Decimal("10"))
+                self.assertEqual(json.loads(payload), document)
+
+
 if __name__ == "__main__":
     unittest.main()
