@@ -52,7 +52,7 @@ from packages.excel.templates import ExcelTemplateService
 from packages.standards.carbon_material_input_policy import (
     InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS,
     STANDARD_DEFAULT, CALCULATED, MEASURED, parameter_source_policy,
-    validate_parameter_source_policy,
+    validate_parameter_source_policy, carbonate_c2_identity,
 )
 
 
@@ -1456,6 +1456,7 @@ class AppendixBWorkbookImporter:
                 ))
 
         explicit_ratios = template_version == "2.6.0"
+        explicit_factor_source = template_version not in {"1.0.0", "2.0.0"}
         facilities = {}
         for ordinal, (start, end, _merged) in enumerate(groups, 1):
             batch_name = reader.text(workbook, "B.7", f"A{start}", errors, field_label="脱硫剂 / 批次名称")
@@ -1484,7 +1485,10 @@ class AppendixBWorkbookImporter:
                 name_mode = reader.text(workbook, "B.7", f"I{row}", errors, required=current, field_label="名称类型") if current else None
                 if name_mode not in {"目录", "自定义"} and current:
                     errors.append(ImportMessage("EXB01_CARBONATE_IDENTITY_REQUIRED", "请选择目录或自定义碳酸盐身份。", f"B.7!I{row}", "名称类型"))
-                origin = InputOrigin.CATALOG if name_mode == "目录" else InputOrigin.CUSTOM
+                # The original schema has no identity selector. Recognize only
+                # the shared exact C.2 identity; Resolver still proves eligibility.
+                origin = (InputOrigin.CATALOG if name_mode == "目录" else InputOrigin.CUSTOM) if current else (
+                    InputOrigin.CATALOG if carbonate_c2_identity(label) is not None else InputOrigin.CUSTOM)
                 selected = {field: resolve_fgd_field(field, resolver=self.resolver, origin=origin,
                     carbonate_type=label, accounting_period=context.period, component_count=len(active_rows))
                     for field in ("fgd.ratio", "fgd.factor", "fgd.conversion")}
@@ -1494,13 +1498,30 @@ class AppendixBWorkbookImporter:
                     ("fgd.factor", "E", "J", "fgd_carbonate_emission_factor_user", "tCO2/t"),
                     ("fgd.conversion", "F", "L", "CAR-PAR-P04B-TR", "ratio"),
                 ):
-                    source_label = reader.text(workbook, "B.7", f"{source_col}{row}", errors,
-                        required=True, field_label="参数来源") if field == "fgd.factor" or explicit_ratios else "实测值"
+                    explicit_source = explicit_factor_source if field == "fgd.factor" else explicit_ratios
+                    source_location = f"B.7!{source_col if explicit_source else value_col}{row}"
+                    legacy_blank_ratio = not explicit_ratios and field != "fgd.factor" and not _has_value(ws[f"{value_col}{row}"])
+                    if explicit_source:
+                        source_label = reader.text(workbook, "B.7", f"{source_col}{row}", errors,
+                            required=True, field_label="参数来源")
+                    elif field == "fgd.factor":
+                        # No J column exists in v1/v2. Exact catalog identity
+                        # denotes the old default path; do not invent measured
+                        # provenance for an undeclared custom factor.
+                        source_label = "缺省值" if origin is InputOrigin.CATALOG else None
+                    else:
+                        # Old schemas have no I/TR source selectors. Their
+                        # established blank convention is distinct from v8's
+                        # explicit measured blank. Invalid nonempty cells stay
+                        # measured and are rejected by the numeric reader.
+                        source_label = "缺省值" if legacy_blank_ratio else "实测值"
                     result = selected[field]
                     source = _SOURCE_LABEL_KINDS.get(source_label)
                     if source not in {STANDARD_DEFAULT, MEASURED}:
                         code = ("EXB01_CARBONATE_FACTOR_SOURCE_REQUIRED" if source_label is None else "EXB01_CARBONATE_FACTOR_SOURCE_INVALID") if field == "fgd.factor" else "EXB01_FGD_SOURCE_REQUIRED"
-                        errors.append(ImportMessage(code, "请明确选择缺省值或实测值，空白不补默认。", f"B.7!{source_col}{row}", "参数来源"))
+                        message = ("旧模板未声明此因子来源，请在当前模板确认来源后导入。" if not explicit_source else
+                                   "请明确选择缺省值或实测值，空白不补默认。")
+                        errors.append(ImportMessage(code, message, source_location, "参数来源"))
                         adopted[field] = None
                         continue
                     issue = validate_parameter_source_policy(field, source, origin=origin,
@@ -1511,12 +1532,12 @@ class AppendixBWorkbookImporter:
                             code = "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED"
                         elif source == STANDARD_DEFAULT and field in {"fgd.ratio", "fgd.conversion"}:
                             code = "EXB01_CARBONATE_CONTENT_UNRESOLVED" if field == "fgd.ratio" else "EXB01_CARBONATE_CONVERSION_UNRESOLVED"
-                        errors.append(ImportMessage(code, issue[2], f"B.7!{source_col}{row}", "参数来源"))
+                        errors.append(ImportMessage(code, issue[2], source_location, "参数来源"))
                         adopted[field] = None
                         continue
                     col = "H" if field == "fgd.factor" and source == MEASURED else value_col
                     raw = reader.number(workbook, "B.7", f"{col}{row}", errors, required=source == MEASURED, field_label="脱硫参数")
-                    if field == "fgd.factor":
+                    if field == "fgd.factor" and current:
                         other = "E" if source == MEASURED else "H"
                         if _has_value(ws[f"{other}{row}"]):
                             errors.append(ImportMessage("EXB01_CARBONATE_FACTOR_SOURCE_CONFLICT", "EF来源与填写列冲突，请清空另一来源列。", f"B.7!{other}{row}", "排放因子"))
@@ -1530,7 +1551,14 @@ class AppendixBWorkbookImporter:
                         elif _has_value(ws[f"{col}{row}"]) and raw is None:
                             adopted[field] = None
                         else:
-                            adopted[field] = self._parameter_value(result.factor, "按明确选择的标准缺省来源，采用同次Resolver核验参数。")
+                            reason = ("按旧版模板的空白约定，采用同次Resolver核验缺省参数。" if legacy_blank_ratio else
+                                      "按明确选择的标准缺省来源，采用同次Resolver核验参数。" if explicit_source else
+                                      "按旧版模板的目录缺省约定，采用同次Resolver核验参数。")
+                            adopted[field] = self._parameter_value(result.factor, reason)
+                            if legacy_blank_ratio:
+                                warnings.append(ImportMessage("EXB01_STANDARD_DEFAULT_APPLIED",
+                                    "旧版模板该参数空白；已采用当前期间适用的标准缺省值，请核对来源。",
+                                    f"B.7!{value_col}{row}", "脱硫参数"))
                     else:
                         adopted[field] = _user_parameter(normalized, parameter_id, unit, f"B.7!{col}{row}", ParameterSourceKind.MEASURED) if normalized is not None else None
                         self._warn_missing_source(warnings, f"B.7!{col}{row}", "脱硫参数")
