@@ -298,7 +298,7 @@ class FumeQtExcelTests(unittest.TestCase):
             result=usecase.calculate(reopened.units[0].canonical_input,ingress_provenance=reopened.units[0].ingress_provenance)
             self.assertTrue(result.successful,result.problems);self.assertEqual(len(records.list_all()),1)
             with patch.object(gui.calculator,"calculate",side_effect=AssertionError("不得重算")),patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("不得回查")):
-                model=report(records,result.record.record_id);self.assertEqual(model.input_template_version,"2.7.0")
+                model=report(records,result.record.record_id);self.assertEqual(model.input_template_version,"2.8.0")
                 self.assertIn("不补零",str(model));self.assertGreater(len(render_docx(model)),30000)
                 from packages.ui.record_tables import ReportTableCard
                 from PySide6.QtWidgets import QLabel

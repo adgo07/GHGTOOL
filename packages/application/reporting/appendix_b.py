@@ -553,13 +553,19 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
                 enthalpy_source = f'{enthalpy_source}；GB/T 32151.34—2024 附录{provenance["table"]}'
             reference = provenance.get('automatic_reference_enthalpy_kj_per_kg')
             enthalpy_detail = enthalpy_source or None
+            if provenance.get('enthalpy_source') == 'IAPWS-IF97自动物性':
+                enthalpy_detail = 'IAPWS-IF97；' + _text(provenance.get('property_implementation')) + ' ' + _text(provenance.get('property_implementation_version'))
+                method_note = '蒸汽焓采用本记录冻结的IAPWS-IF97物性结果；实现：' + _text(provenance.get('property_implementation')) + ' ' + _text(provenance.get('property_implementation_version')) + '。'
+                if method_note not in notes:
+                    notes.append(method_note)
+
             if reference is not None and provenance.get('enthalpy_source') in {'USER_MANUAL','用户手动填写'}:
                 enthalpy_detail = '；'.join(part for part in (
                     enthalpy_detail,
                     f'冻结自动参考焓值：{_text(reference)} kJ/kg；仅供对照，未替换采用值。',
                 ) if part)
             factor = _energy_parameter(record,item,iid,f'CAR-FLD-HEAT-{iid}-EF3','tCO2/GJ','EF3',step,source_types=_mapping(trace.get('parameter_source_types')))
-            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _value(item.get('pressure_mpa')), _value(item.get('temperature_c')) if item.get('steam_kind')!='SATURATED' else '不适用', _display_cell(value,source={'USER_MANUAL':'填写值','用户手动填写':'填写值','标准表自动确定':'标准查表','SATURATED_TABLE':'标准查表','SUPERHEATED_TABLE':'标准查表'}.get(provenance.get('enthalpy_source'),'历史来源未记录'),detail=enthalpy_detail,unit='kJ/kg') if value is not None else ReportCell('历史未记录'), factor))
+            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _value(item.get('pressure_mpa')), _value(item.get('temperature_c')) if item.get('steam_kind')!='SATURATED' else '不适用', _display_cell(value,source={'USER_MANUAL':'填写值','用户手动填写':'填写值','标准表自动确定':'标准查表','IAPWS-IF97自动物性':'物性计算','SATURATED_TABLE':'标准查表','SUPERHEATED_TABLE':'标准查表'}.get(provenance.get('enthalpy_source'),'历史来源未记录'),detail=enthalpy_detail,unit='kJ/kg') if value is not None else ReportCell('历史未记录'), factor))
     for collection,direction,source in (('purchased_heat','购入',SOURCE_PURCHASED_HEAT),('exported_heat','输出',SOURCE_EXPORTED_HEAT)):
         if not _entries(raw,collection):
             for line in (line for line in record.calculation_result.lines if line.emission_source_id == source):

@@ -105,8 +105,6 @@ from packages.standards.carbon_material import (
     ParameterSourceKind,
     ParameterValue,
     SteamKind,
-    saturated_steam_enthalpy,
-    superheated_steam_enthalpy,
 )
 from packages.standards.carbon_material_normalization import (
     MaterialDataSource,
@@ -564,7 +562,7 @@ class _UnifiedEnergyRow(QWidget):
         self.temperature_field = labeled_field("蒸汽温度", self.temperature, "℃（过热蒸汽）")
         self.enthalpy_mode = QComboBox(self.heat_details)
         self.enthalpy_mode.setObjectName(f"energyHeatEnthalpyMode{index}")
-        self.enthalpy_mode.addItem("自动物性（暂不可用）", "AUTO")
+        self.enthalpy_mode.addItem("IF97自动焓", "AUTO")
         self.enthalpy_mode.addItem("独立已知焓", "MANUAL")
         self.enthalpy_mode_choices = SegmentedChoiceControl(self.enthalpy_mode, values={"AUTO", "MANUAL"})
         self.enthalpy_mode_field = labeled_field("焓值获取方式", self.enthalpy_mode_choices)
@@ -3546,7 +3544,17 @@ class CarbonMaterialAccountingPage(BasePage):
         elif row.enthalpy_mode.currentData() == "MANUAL":
             status = "已知焓：待填写有依据的数值。" if not row.enthalpy.text().strip() else "采用独立已知焓，不查询自动物性或旧表。"
         else:
-            status = "自动物性的受控实现暂未启用；请提供独立已知焓，不回退旧表。"
+            problems = []
+            try:
+                kind = _enum(row.heat_kind.currentData(), SteamKind)
+                line = HeatInput("heat-preview", None, manual_enthalpy=False, steam_kind=kind,
+                    pressure_mpa=_value(row.pressure),
+                    temperature_c=_value(row.temperature) if kind is SteamKind.SUPERHEATED else None)
+                result = self.calculator._enthalpy(line, problems)
+                status = ("IF97焓值：" + self.calculator.policy.format_for_display(result.value, 2) + " kJ/kg（仅显示修约）"
+                          if result is not None else "自动焓：" + (problems[0].message if problems else "请核对蒸汽状态。"))
+            except (ValueError, DomainValidationError, ArithmeticError):
+                status = "自动焓：请核对蒸汽压力（绝压）和过热蒸汽温度。"
         row.status.setText(status)
 
     def _energy_source_is_enabled(self, source_id: str) -> bool:
@@ -6405,35 +6413,23 @@ class CarbonMaterialAccountingPage(BasePage):
         mode_widget = row.get("enthalpy_mode")
         if not isinstance(preview, QLabel) or not isinstance(pressure_widget, QLineEdit) or not isinstance(steam_widget, QComboBox):
             return
-        pressure_text = pressure_widget.text().strip()
-        try:
-            kind = _enum(steam_widget.currentData(), SteamKind)
-        except ValueError:
-            preview.setText("自动计算焓值：请选择蒸汽类型。")
-            return
-        temperature_text = temperature_widget.text().strip() if isinstance(temperature_widget, QLineEdit) else ""
-        try:
-            if not pressure_text or (kind is SteamKind.SUPERHEATED and not temperature_text):
-                missing = "蒸汽压力（绝压）" if not pressure_text else "过热蒸汽温度"
-                preview.setText(f"自动计算焓值：请填写{missing}。")
-                return
-            policy = self.calculator.policy
-            pressure = policy.parse(pressure_text)
-            if kind is SteamKind.SUPERHEATED:
-                reference = superheated_steam_enthalpy(pressure, policy.parse(temperature_text), policy=policy)[0]
-                table_name = "附录 C.5"
-            else:
-                reference = saturated_steam_enthalpy(pressure, policy=policy)[0]
-                table_name = "附录 C.4"
-        except (ValueError, InvalidOperation, DomainValidationError):
-            preview.setText("自动计算焓值：当前压力或温度超出标准表范围，或格式无效。")
-            return
-        formatted = policy.format_for_display(reference, 1)
         manual = isinstance(mode_widget, QComboBox) and mode_widget.currentData() == "MANUAL"
         if manual:
-            preview.setText(f"按{table_name}计算的参考焓值：{formatted} kJ/kg；本次将采用手动填写值。")
-        else:
-            preview.setText(f"自动计算焓值：{formatted} kJ/kg（{table_name}）。")
+            preview.setText("独立已知焓：采用填写值，不查询自动物性或旧表参考。")
+            return
+        try:
+            kind = _enum(steam_widget.currentData(), SteamKind)
+            line = HeatInput("legacy-heat-preview", None, manual_enthalpy=False, steam_kind=kind,
+                pressure_mpa=_value(pressure_widget),
+                temperature_c=_value(temperature_widget) if kind is SteamKind.SUPERHEATED and isinstance(temperature_widget,QLineEdit) else None)
+            problems = []
+            result = self.calculator._enthalpy(line,problems)
+            if result is None:
+                preview.setText("自动焓：" + (problems[0].message if problems else "请核对蒸汽状态。"))
+            else:
+                preview.setText("IF97自动焓：" + self.calculator.policy.format_for_display(result.value,2) + " kJ/kg（仅显示修约）")
+        except (ValueError, ArithmeticError, DomainValidationError):
+            preview.setText("自动焓：请核对蒸汽压力（绝压）和过热蒸汽温度。")
 
     def _refresh_all_heat_enthalpy_previews(self) -> None:
         for rows in self._heat_rows.values():
@@ -7088,9 +7084,12 @@ class CarbonMaterialAccountingPage(BasePage):
                 return True
             if boundary != "OUTSIDE_ENTERPRISE" or accounted is True:
                 return False
-        if row.enthalpy_mode.currentData() != "MANUAL":
-            return False
-        enthalpy_ready = bool(row.enthalpy.text().strip()) and row.enthalpy.hasAcceptableInput()
+        if row.enthalpy_mode.currentData() == "MANUAL":
+            enthalpy_ready = bool(row.enthalpy.text().strip()) and row.enthalpy.hasAcceptableInput()
+        else:
+            enthalpy_ready = bool(row.pressure.text().strip()) and row.pressure.hasAcceptableInput()
+            if _enum(row.heat_kind.currentData(), SteamKind) is SteamKind.SUPERHEATED:
+                enthalpy_ready = enthalpy_ready and bool(row.temperature.text().strip()) and row.temperature.hasAcceptableInput()
         factor_ready = (_enum(row.heat_factor_mode.currentData(), HeatFactorMode) is not HeatFactorMode.MEASURED
                         or bool(row.measured_heat_factor.text().strip()) and row.measured_heat_factor.hasAcceptableInput())
         return enthalpy_ready and factor_ready
@@ -8146,6 +8145,11 @@ class CarbonMaterialAccountingPage(BasePage):
                 value = self.calculator.policy.format_for_display(factor.value, 2)
                 return f"当前无法读取热力参数服务；标准缺省值 {value} tCO₂/GJ 暂不可供本次计算使用，请检查参数服务后重试。"
             return "当前无法取得适用的热力标准缺省值，请检查核算期间和标准参数目录，或提供有依据的实测因子。"
+        if code == "CAR-VAL-STEAM-STATE":
+            message = str(getattr(problem,"message",""))
+            if "版本" in message or "实现不可用" in message:
+                return "自动蒸汽焓计算组件不可用或版本不匹配，请检查软件安装；也可提供有依据的独立已知焓。"
+            return self._sanitize_business_message(message)
         fixed_messages = {
             "CAR-VAL-MATERIAL-BASIS-CONVERSION": "材料数据的口径或换算资料不完整，当前不能直接计算。请补充数据来源、换算依据和报告/台账编号或来源说明。",
             "CAR-VAL-MATERIAL-BASIS-CONSISTENCY": "质量数据和成分含量的数据口径不一致，当前不能直接计算。请统一两项口径并提供换算依据。",

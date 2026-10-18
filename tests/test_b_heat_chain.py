@@ -167,7 +167,7 @@ class HeatExcelTests(HeatQtTests):
                 ("internal",{"J3":"边界内","K3":"已计入","G3":"unused invalid draft"},True,Decimal("0")),
                 ("internal-unknown",{"J3":"边界内","K3":"待核实"},False,None),
                 ("known-missing",{"B3":"饱和蒸汽","C3":1,"H3":"已知焓","I3":"缺省值","J3":"边界外","D3":1},False,None),
-                ("auto-no-fallback",{"B3":"饱和蒸汽","C3":1,"F3":2800,"D3":1,"H3":"自动物性","I3":"缺省值","J3":"边界外"},False,None),
+                ("auto-no-fallback",{"B3":"饱和蒸汽","C3":1,"F3":2800,"D3":1000,"H3":"自动物性","I3":"缺省值","J3":"边界外"},False,None),
             )
             for name,cells,valid,expected in cases:
                 with self.subTest(name=name):
@@ -234,4 +234,56 @@ class HeatExcelTests(HeatQtTests):
                 self.assertIn("2800",xml)
                 self.assertIn("0.11",xml)
                 self.assertNotIn("附录C.4",xml)
+            self.assertEqual(len(records.list_all()),1)
+
+
+    def test_auto_gui_excel_project_record_word_same_if97_and_no_invalid_record(self):
+        from packages.standards.carbon_material import SteamKind
+        from packages.excel.templates import ExcelTemplateService
+        from packages.ui.view_models import AppRoute
+        from packages.application.reporting.model import build_report_model
+        from packages.infrastructure.reporting import render_report_docx
+        from openpyxl import load_workbook
+        from io import BytesIO
+        from zipfile import ZipFile
+        import json
+        with self.page() as (gui,projects,root,shell,records):
+            row=self.prepare(gui)
+            row.enthalpy_mode.setCurrentIndex(row.enthalpy_mode.findData("AUTO"))
+            row.heat_kind.setCurrentIndex(row.heat_kind.findData(SteamKind.SUPERHEATED))
+            row.pressure.setText(".0035");row.temperature.setText("26.85")
+            row.enthalpy.setText("9999") # unselected known draft must not replace automatic h
+            gui_value=gui._input(increment=False)
+            self.assertIsNone(gui_value.purchased_heat[0].enthalpy)
+            expected=gui.calculator.calculate(gui_value)
+            self.assertTrue(expected.successful,expected.problems)
+            wb=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+            for cell,value in {"B3":"过热蒸汽","C3":1,"D3":.0035,"E3":26.85,"F3":9999,"H3":"自动物性","I3":"缺省值","J3":"边界外"}.items():wb["B.9"][cell]=value
+            path=root/"if97.xlsx";wb.save(path);wb.close()
+            page=shell.pages[AppRoute.EXCEL_IMPORT]
+            preview=page.excel_adapter.import_preview(path,page.excel_adapter.context(period=gui._period(),boundary_confirmed=True,enterprise_name="热力整链"))
+            self.assertTrue(preview.units[0].can_calculate,preview.units[0].errors)
+            canonical=preview.units[0].input_value
+            self.assertIsNone(canonical.purchased_heat[0].enthalpy)
+            workspace=projects.new_workspace("IF97项目")
+            projects.save(replace(workspace,units=(replace(workspace.units[0],canonical_input=canonical),)))
+            reopened=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite")).get(workspace.project_id)
+            self.assertEqual(reopened.units[0].canonical_input,canonical)
+            self.assertEqual(len(records.list_all()),0)
+            result=CarbonAccountingUseCase(gui.calculator,records).calculate(reopened.units[0].canonical_input)
+            self.assertTrue(result.successful,result.problems)
+            self.assertEqual(result.result.total_amount,expected.result.total_amount)
+            self.assertEqual(result.record.algorithm_version,"CAR-SM01-2026-10-18-HEAT.1")
+            rid=result.record.record_id
+            trace=json.dumps(records.get_trace_snapshot(rid),ensure_ascii=False)
+            for key in ("property_library_output_j_per_kg_lexeme","property_working_pressure_pa_lexeme","property_working_temperature_k_lexeme","actual_phase","GHGTOOL_COOLPROP_IF97_PROPERTY_V1"):
+                self.assertIn(key,trace)
+            with patch.object(type(gui.calculator),"calculate",side_effect=AssertionError("frozen")),patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("frozen")),patch("packages.standards.carbon_material_steam_if97._runtime",side_effect=AssertionError("frozen")):
+                model=build_report_model(records.get(rid),raw_input_snapshot=records.get_raw_input_snapshot(rid),trace_snapshot=records.get_trace_snapshot(rid),
+                    provenance_snapshot=records.get_provenance_snapshot(rid),reporting_snapshot=records.get_reporting_snapshot(rid),report_qualification=records.get_report_qualification(rid))
+                with ZipFile(BytesIO(render_report_docx(model))) as archive:xml=archive.read("word/document.xml").decode()
+                self.assertIn("IF97",xml);self.assertIn("8.0.0",xml)
+            row.pressure.setText(".1");row.temperature.setText("90")
+            rejected=CarbonAccountingUseCase(gui.calculator,records).calculate(gui._input(increment=False))
+            self.assertFalse(rejected.successful)
             self.assertEqual(len(records.list_all()),1)

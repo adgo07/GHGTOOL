@@ -123,3 +123,16 @@ PR50旧脱硫输入兼容边界：旧FGD_V1项目仍可打开、保存未完成�
 ## B-FUME交付候选增量
 
 Issue020监测分段完整链采用CAR-SM01-2026-10-18-FUME.1；输入codec4兼容1/2/3，无数据库迁移。新模板v9/2.7.0仅改B.6，旧v2～v8原字节保留并随包受控登记；Word布局3.0.4冻结分段与覆盖说明。不得将有缺口的已覆盖合计称完整期间，不补零或年化；旧无区间输入不补造全年证据，升级副本缺区间仍拒绝正式计算。历史Record/Word不回填重算。精确受验head/新CI/实包以本包PR及docs/ci/B_FUME_SUMMARY.json固定对应关系为准，PR50已验收包不背书本包。原生Office/鼠标/IME/人工DPI、企业样例、干净目标机和商业履约仍OPEN。
+
+
+## B-HEAT 固定物性实现（工程验证，不是商业发布）
+
+Owner于2026-10-18原始消息01a14ee7-32ba批准验证后接入Python CoolProp8.0.0的明确IF97后端；固定NumPy2.3.3，revision ae81610e7d23efc57f9d051c8e70a4d66e87537f。原017指定iapws作为历史决定保留，当前具体实现受控替换；不安装/打包iapws、不回旧表，不更改IF97方法/相态范围或Carbon p40排放算术。
+
+当前母版v10/2.8.0仅演进B.9；旧v2-v9保留原字节。v10最终候选SHA705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729。14份受控通知/来源文件在resources/licenses/steam_if97，来源清单记录两固定wheel/sdist SHA与原始来源；构建/包审计核原文件字节，不把MIT标签等同全包许可。CoolProp顶层/IF97及内嵌header依其各自MIT/MPL2/BSL/BSD等文本；NumPy实际wheel另含OpenBLAS/LAPACK及GPL3 WITH GCC Runtime Exception3.1原文，不能概括为全部MIT/BSD。MSVCP140随两wheel实际出现，VC再分发依据及全产品第三方商业履约继续OPEN。
+
+F原始调查及REV2分别持久保存在docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json和B_HEAT_IF97_CANDIDATE_REV2_RAW.json，原SHA保留。C独立核固定sdist的include/CoolProp/fluids/Helmholtz.h与Helmholtz.cpp的ENABLE_CATCH guard、root CMake CatchTestRunner的PRIVATE define/include、Python模块目标；结合实际wheel文件/符号检查，限定multicomplex为TEST_ONLY_NOT_SELECTED_RUNTIME。完整未公开编译命令/stripped符号限制保留，不能仅凭strings阴性作绝对证明；若分发其源码/测试或换配置，原NIST README指向的缺失LICENSE及foreign rights澄清仍OPEN，不能由CoolProp顶层MIT覆盖。
+
+物性子Profile GHGTOOL_COOLPROP_IF97_PROPERTY_V1采用binary64，非Decimal40物性精度。原规范MPa/℃、实际库工作Pa/K binary64词法、库原始J/kg输出词法、SAT Q=1、采用Decimal焓、实际phase、方法/版本/revision/依赖分开冻结。API不提供IF97区号，不伪造region。官方参考容差仅为conformance，30MPa700K仅库验证，不表示产品接受超临界流体。正式自动仅干饱和或低于临界压力的合法单相过热，实际API域错误不放行、不外推；known合法路径不依赖自动参考。
+
+本阶段仅私有CI/工程候选验证；不CU、不商业发布，不以作者专属/本地/包内程序化验证替代正式客户履约或原生Office/IME/DPI/干净机验收。最终实际包身份和测试统计以本轮实施报告/仓内CI摘要为准。

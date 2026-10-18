@@ -140,7 +140,7 @@ class FGDChainTests(unittest.TestCase):
                 model=build_report_model(snapshots.get(record_id),raw_input_snapshot=snapshots.get_raw_input_snapshot(record_id),
                     trace_snapshot=snapshots.get_trace_snapshot(record_id),reporting_snapshot=snapshots.get_reporting_snapshot(record_id),
                     provenance_snapshot=snapshots.get_provenance_snapshot(record_id),report_qualification=snapshots.get_report_qualification(record_id))
-                self.assertEqual(model.input_template_version,"2.7.0")
+                self.assertEqual(model.input_template_version,"2.8.0")
                 table=next(table for section in model.sections for table in section.tables if table.table_id=="b7")
                 self.assertEqual(len(table.rows),2)
                 self.assertIn("实测",table.rows[0].cells[3].source or "")

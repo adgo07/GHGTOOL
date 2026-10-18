@@ -321,8 +321,8 @@ def resolve_fgd_field(field_id, *, resolver, origin, carbonate_type=None,
 
 
 HEAT_RUNTIME_RESOURCE = "business_rules/heat.json"
-HEAT_ADOPTION_ID = "GHGTOOL_HEAT_R11_V1"
-HEAT_RUNTIME_SHA256 = "90f69e6511eab23b54a325d1027b78b948d8ab4f72460f641511a3f8863a810e"
+HEAT_ADOPTION_ID = "GHGTOOL_HEAT_R11_C3_V2"
+HEAT_RUNTIME_SHA256 = "2f472b6a4774076472e0fae19e552986d67f4ed3ca29f63cd496d31002f215de"
 
 
 @lru_cache(maxsize=1)

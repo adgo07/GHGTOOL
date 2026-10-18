@@ -1144,13 +1144,22 @@ class AppendixBWorkbookImporter:
     def _parse_heat(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id, *, template_version="1.0.0"):
         if template_version == "2.8.0":
             return self._parse_heat_v28(workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id)
+        # v2-v9 share the original B.9 seeds; v10 deliberately has no numerical seed.
+        # Compare the protected historical master's lexical cell, never a live factor's value.
+        from importlib.resources import files
+        from .templates import APPROVED_TEMPLATE_V9_RESOURCE, APPROVED_TEMPLATE_V9_SHA256
+        historical_master = files("resources").joinpath(APPROVED_TEMPLATE_V9_RESOURCE).read_bytes()
+        if sha256(historical_master).hexdigest() != APPROVED_TEMPLATE_V9_SHA256:
+            raise WorkbookFatalError("历史热力母版校验失败，不能安全识别预置展示值。")
+        historical_seeds = read_worksheet_numeric_lexemes(historical_master)
         ws = workbook["B.9"]
         stop = next((r for r in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, r)), ws.max_row + 1)
         for row in range(3, stop):
             if _has_value(ws[f"F{row}"]):
                 reader.observe_unused(workbook, "B.9", f"F{row}", warnings, field_label="蒸汽焓值", reason="焓值为模板只读/自动路径；工作簿内容不作为正式焓值。")
-            factor_is_template_seed = self._is_template_numeric_seed(reader, "B.9", f"G{row}")
+            factor_is_template_seed = (historical_seeds.get(("B.9", f"G{row}")) is not None
+                                       and reader.numeric_lexemes.get(("B.9", f"G{row}")) == historical_seeds[("B.9", f"G{row}")])
             active = any(_has_value(ws[f"{col}{row}"]) for col in "BCDE") or (
                 _has_value(ws[f"G{row}"]) and not factor_is_template_seed
             )
@@ -1247,7 +1256,10 @@ class AppendixBWorkbookImporter:
                 kind = text("B","蒸汽类别",True)
                 method = text("H","焓值方式",True)
                 factor_source = text("I","因子来源",True)
-                if kind not in STEAM_KIND_LABELS or method not in {"已知焓","自动物性"} or factor_source not in {"缺省值","实测值"}:
+                if kind not in STEAM_KIND_LABELS:
+                    errors.append(ImportMessage("EXB01_HEAT_KIND_UNSUPPORTED","当前正式模型只支持饱和蒸汽或过热蒸汽。",f"B.9!B{row}","热力类别"))
+                    continue
+                if method not in {"已知焓","自动物性"} or factor_source not in {"缺省值","实测值"}:
                     errors.append(ImportMessage("EXB01_HEAT_SELECTION_INVALID","请明确选择蒸汽类别、焓值方式及因子来源。",f"B.9!H{row}","热力输入方式"))
                     continue
                 known = method == "已知焓"
@@ -1257,7 +1269,9 @@ class AppendixBWorkbookImporter:
                     for col in "DE":reader.observe_unused(workbook,"B.9",f"{col}{row}",warnings,field_label="辅助蒸汽状态",reason="已知焓独立，不消费自动状态或旧表。")
                 else:
                     pressure = number("D","蒸汽压力（绝压）",True)
-                    temperature = number("E","过热蒸汽温度",kind == "过热蒸汽")
+                    temperature = number("E","过热蒸汽温度",True) if kind == "过热蒸汽" else None
+                    if kind == "饱和蒸汽":
+                        reader.observe_unused(workbook,"B.9",f"E{row}",warnings,field_label="未采用的辅助温度",reason="干饱和自动焓按绝压与Q=1，不消费额外温度定义。")
                     enthalpy = None
                     reader.observe_unused(workbook,"B.9",f"F{row}",warnings,field_label="未选已知焓",reason="自动路径不借用手填焓值回退。")
                 source_note = text("L","来源说明")

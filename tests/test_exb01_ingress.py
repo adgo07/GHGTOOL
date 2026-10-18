@@ -859,9 +859,9 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             "EXB01_MULTI_CARBONATE_CONTENT_REQUIRED",
             {item.code for item in blocked.errors},
         )
-    def test_saturated_steam_default_is_resolved_and_uses_the_reference_enthalpy(self) -> None:
+    def test_known_saturated_steam_default_resolves_real_source(self) -> None:
         path = self._workbook("default-steam.xlsx")
-        self._set_cells(path, {"B.9": {"B3": "饱和蒸汽", "C3": 1000, "D3": 1}})
+        self._set_cells(path, {"B.9": {"B3": "饱和蒸汽", "C3": 1000, "D3": 1,"F3":2777,"H3":"已知焓","I3":"缺省值","J3":"边界外"}})
         preview = self.importer.import_preview(path, context=self._context())
         unit = preview.units[0]
 

@@ -71,6 +71,7 @@ class MainIntegrationExcelTests(unittest.TestCase):
         for row, label in group_labels.items():
             process[f"A{row}"] = label
         workbook["B.9"]["G3"], workbook["B.9"]["G4"] = 0.10, 0.12
+        workbook["B.9"]["I3"] = "实测值"
         workbook.save(path)
         workbook.close()
         preview = self.importer.import_preview(path, context=self._context())

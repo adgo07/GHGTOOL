@@ -162,7 +162,9 @@ class UIR01FieldSemanticsTests(unittest.TestCase):
             else:
                 self.assertEqual(validator.validate("1.25", 0)[0], QValidator.State.Invalid, spec.internal_key)
             widget.setText("-1")  # type: ignore[attr-defined]
-            self.assertEqual(widget.text(), "", spec.internal_key)  # type: ignore[attr-defined]
+            # 独立已知焓的有限非正值由共享Domain保留并提醒；其他业务字段仍拒负。
+            expected = "-1" if spec.internal_key in {"heat_enthalpy", "exported_heat_enthalpy"} else ""
+            self.assertEqual(widget.text(), expected, spec.internal_key)  # type: ignore[attr-defined]
 
         percentage = create_typed_input(parent, get_field_spec("calcination.wfc"), "percentage")
         percentage.setText("0")  # type: ignore[attr-defined]

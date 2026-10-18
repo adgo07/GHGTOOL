@@ -249,6 +249,12 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
         table = tables.get(binding.source_table_id)
         parameter = parameters.get(factor.parameter_id) if factor else None
         source = sources.get(factor.source_id) if factor else None
+        # C.3 and the common rule share one value asset but retain independent sources.
+        heat_c3_source = (standard is not None and factor is not None and parameter is not None and table is not None
+                         and parameter.parameter_id == "heat_emission_factor_default"
+                         and binding.binding_id == "binding-heat_default_gbt32151_34_c3"
+                         and table.source_table_id == "tab-32151-34-c3"
+                         and factor.source_id == standard.official_source_id)
         if (
             standard is None or factor is None or asset is None or table is None or parameter is None or source is None
             or binding.binding_type != "FACTOR_SOURCE"
@@ -256,7 +262,7 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
             or parameter.review_status not in reviews or source.review_status not in reviews
             or parameter.parameter_id != asset.parameter_id or parameter.parameter_id != factor.parameter_id
             or parameter.subject_id != asset.subject_id or parameter.subject_id != factor.subject_id
-            or parameter.source_id != factor.source_id or table.source_id != factor.source_id
+            or (parameter.source_id != factor.source_id and not heat_c3_source) or table.source_id != factor.source_id
             or asset.value_type != factor.value_type
             or asset.normalized_value != factor.normalized_value or asset.normalized_unit != factor.normalized_unit
             or binding.factor_year != factor.factor_year
@@ -271,9 +277,11 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
                 continue
             if field == "heat.factor":
                 common_standard = next((item for item in repository.list_standards() if item.standard_id == "gbt_32150_2025"), None)
-                valid = (common_standard is not None and table.source_id == common_standard.official_source_id
-                         and table.source_table_id == "tab-32150-756-757"
-                         and binding.asset_id == "asset-" + binding.binding_id.removeprefix("binding-")
+                common_source = (common_standard is not None and table.source_id == common_standard.official_source_id
+                                 and table.source_table_id == "tab-32150-756-757"
+                                 and binding.binding_id == "binding-heat_default_2025")
+                valid = ((common_source or heat_c3_source)
+                         and binding.asset_id == "asset-heat_default_2025"
                          and factor.value_type is ValueType.STANDARD_DEFAULT
                          and factor.normalized_unit in {"tCO2/GJ", "tCO₂/GJ"} and asset.normalized_unit == factor.normalized_unit
                          and binding.valid_from == factor.valid_from and binding.valid_to == factor.valid_to

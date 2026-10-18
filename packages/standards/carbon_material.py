@@ -65,12 +65,12 @@ from packages.standards.carbon_material_normalization import (
     MaterialInputLine,
     normalize_material_inputs,
 )
-from packages.core.units import UnitError, UnitService
+from packages.core.units import UnitError, UnitService, UnitDefinition
 
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-18-FUME.2"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-18-HEAT.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -792,7 +792,7 @@ class HeatInput:
             raise DomainValidationError("factor_source_note must be text")
         if self.factor_source_note is not None and not self.factor_source_note.strip():
             object.__setattr__(self, "factor_source_note", None)
-        if self.source_boundary not in {"OUTSIDE_ENTERPRISE", "INSIDE_ENTERPRISE", "UNCONFIRMED"}:
+        if not isinstance(self.source_boundary, str) or self.source_boundary not in {"OUTSIDE_ENTERPRISE", "INSIDE_ENTERPRISE", "UNCONFIRMED"}:
             raise DomainValidationError("热源边界必须明确或保留待核实")
         if self.fuel_emissions_accounted is not None and type(self.fuel_emissions_accounted) is not bool:
             raise DomainValidationError("供热燃料是否已计必须为布尔值或待核实")
@@ -971,6 +971,7 @@ class SteamEnthalpyEvaluation:
     interpolated: bool
     pressure_bounds: tuple[Decimal, Decimal] | None = None
     temperature_bounds: tuple[Decimal, Decimal] | None = None
+    method_provenance: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1697,7 +1698,7 @@ class CarbonMaterialCalculator:
                 problems.append(_problem("CAR-VAL-PARAMETER-RATIO-RANGE", IssueLevel.ERROR, f"参数 {field_id} 必须处于 0 到 1 之间。", field_id))
             return
         nonnegative_units = {
-            "tC/GJ", "tC/t", "tC/10^4Nm3", "tCO2/GJ", "tCO2/t",
+            "tC/GJ", "tC/t", "tC/10^4Nm3", "tCO2/GJ", "tCO₂/GJ", "tCO2/t",
             "tCO2/MWh", "tCO₂/MWh", "GJ", "GJ/t", "GJ/10⁴Nm³", "GJ/GJ", "kJ/kg",
         }
         if expected_unit in nonnegative_units and value < 0:
@@ -2030,6 +2031,8 @@ class CarbonMaterialCalculator:
         measured = line.factor_mode is HeatFactorMode.MEASURED or (
             line.factor_mode is None and explicit is not None and explicit.source_kind is ParameterSourceKind.MEASURED)
         field_id = f"CAR-FLD-HEAT-{line.line_id}-EF3"
+        if explicit is not None:
+            self._check_parameter_semantics(explicit.value, "tCO2/GJ", field_id, problems)
         if measured:
             if explicit is None:
                 problems.append(_problem("CAR-VAL-HEAT-FACTOR-MISSING", IssueLevel.ERROR,
@@ -2074,6 +2077,7 @@ class CarbonMaterialCalculator:
                                        detail_id=field_id, resolved=actual_resolution)
 
     def _steam_reference(self, line: HeatInput) -> SteamEnthalpyEvaluation | None:
+        """Historical table utility only; authoritative _enthalpy never calls it."""
         if line.pressure_mpa is None:
             return None
         if line.steam_kind is SteamKind.SUPERHEATED and line.temperature_c is None:
@@ -2106,9 +2110,61 @@ class CarbonMaterialCalculator:
         from .carbon_material_heat import evaluate_known_enthalpy
         field_id = f"CAR-FLD-HEAT-{line.line_id}-HM"
         if not line.manual_enthalpy:
-            problems.append(_problem("CAR-VAL-STEAM-AUTO-UNAVAILABLE", IssueLevel.ERROR,
-                "自动蒸汽物性计算的受控实现尚未启用，请明确提供有依据的已知焓值；不回退旧表。", field_id))
-            return None
+            from .carbon_material_steam_if97 import evaluate_if97_steam
+            if line.pressure_mpa is None:
+                problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR,
+                    "自动蒸汽焓需要填写蒸汽压力（绝压）。", f"CAR-FLD-HEAT-{line.line_id}-PRESSURE"))
+                return None
+            try:
+                pressure_units = UnitService(self.policy, (
+                    UnitDefinition("heat_pressure_mpa", "MPa", "pressure", Decimal("1")),
+                    UnitDefinition("heat_pressure_kpa", "kPa", "pressure", Decimal("0.001")),
+                    UnitDefinition("heat_pressure_pa", "Pa", "pressure", Decimal("0.000001")),
+                    UnitDefinition("heat_pressure_bar", "bar", "pressure", Decimal("0.1")),
+                ))
+                pressure = pressure_units.convert(self.policy.parse(line.pressure_mpa.value), line.pressure_mpa.unit, "MPa")
+                temperature = None
+                if line.steam_kind is SteamKind.SUPERHEATED:
+                    if line.temperature_c is None:
+                        raise DomainValidationError("自动过热蒸汽焓需要填写蒸汽温度。")
+                    raw_temperature = self.policy.parse(line.temperature_c.value)
+                    if line.temperature_c.unit in {"C", "°C", "℃", "degC"}:
+                        temperature = raw_temperature
+                    elif line.temperature_c.unit == "K":
+                        if not Decimal("273.15") <= raw_temperature <= Decimal("2273.15"):
+                            raise DomainValidationError("自动过热蒸汽温度超出IF97有效域。")
+                        temperature = self.policy.subtract(raw_temperature, Decimal("273.15"))
+                    else:
+                        raise DomainValidationError("自动蒸汽温度仅接受摄氏度或K，不猜测其他单位。")
+                automatic = evaluate_if97_steam(steam_kind=line.steam_kind, pressure_mpa=pressure,
+                    temperature_c=temperature, policy=self.policy, numeric_profile_id=self.numeric_profile_id)
+                metadata = (
+                    ("enthalpy_method_version", automatic.method_version),
+                    ("property_numeric_profile_id", automatic.numeric_profile_id),
+                    ("property_representation", "IEEE-754 binary64; not Decimal40 property accuracy"),
+                    ("property_implementation", automatic.implementation),
+                    ("property_implementation_version", automatic.implementation_version),
+                    ("property_implementation_revision", automatic.implementation_revision),
+                    ("property_dependency_versions", json.dumps(dict(automatic.dependency_versions), sort_keys=True)),
+                    ("declared_steam_state", automatic.declared_state),
+                    ("actual_phase", automatic.actual_phase),
+                    ("normalized_pressure_mpa_lexeme", automatic.input_pressure_lexeme),
+                    ("normalized_temperature_c_lexeme", automatic.input_temperature_lexeme or ""),
+                    ("property_output_kj_per_kg_lexeme", automatic.output_enthalpy_lexeme),
+                    ("property_working_pressure_pa_lexeme", automatic.working_pressure_pa_lexeme),
+                    ("property_working_temperature_k_lexeme", automatic.working_temperature_k_lexeme or ""),
+                    ("property_library_output_j_per_kg_lexeme", automatic.library_output_j_per_kg_lexeme),
+                    ("property_quality_lexeme", automatic.quality_lexeme or ""),
+                    ("raw_pressure_value", str(line.pressure_mpa.value)), ("raw_pressure_unit", line.pressure_mpa.unit),
+                    ("raw_temperature_value", str(line.temperature_c.value) if line.temperature_c is not None else ""),
+                    ("raw_temperature_unit", line.temperature_c.unit if line.temperature_c is not None else ""),
+                )
+                return SteamEnthalpyEvaluation(automatic.enthalpy_kj_per_kg, None, "IF97", None, False,
+                                              method_provenance=metadata)
+            except (DomainValidationError, UnitError, ValueError, ArithmeticError) as exc:
+                problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR, str(exc),
+                    f"CAR-FLD-HEAT-{line.line_id}-TEMPERATURE" if line.steam_kind is SteamKind.SUPERHEATED else f"CAR-FLD-HEAT-{line.line_id}-PRESSURE"))
+                return None
         try:
             evaluation = evaluate_known_enthalpy(line, policy=self.policy, numeric_profile_id=self.numeric_profile_id)
         except DomainValidationError as exc:
@@ -2125,11 +2181,11 @@ class CarbonMaterialCalculator:
     def _steam_trace_provenance(self, line: HeatInput, evaluation: SteamEnthalpyEvaluation) -> tuple[tuple[str, str], ...]:
         from .carbon_material_heat import KNOWN_ENTHALPY_METHOD_VERSION
         entries: list[tuple[str, str]] = [
-            ("enthalpy_method_version", KNOWN_ENTHALPY_METHOD_VERSION),
+            ("enthalpy_method_version", dict(evaluation.method_provenance).get("enthalpy_method_version", KNOWN_ENTHALPY_METHOD_VERSION)),
             ("numeric_profile_id", self.numeric_profile_id),
             ("source_boundary", line.source_boundary),
             ("fuel_emissions_accounted", str(line.fuel_emissions_accounted)),
-            ("enthalpy_source", "用户手动填写" if evaluation.source == "USER_MANUAL" else "标准表自动确定"),
+            ("enthalpy_source", "用户手动填写" if evaluation.source == "USER_MANUAL" else "IAPWS-IF97自动物性"),
             ("standard", "GB/T 32151.34—2024"),
             ("table", evaluation.table_id or ""),
             ("pressure_basis", "绝压（MPa）"),
@@ -2155,6 +2211,7 @@ class CarbonMaterialCalculator:
             ))
         if evaluation.interpolated:
             entries.append(("interpolation", "线性内插；" + ALGORITHM_VERSION))
+        entries.extend((key,value) for key,value in evaluation.method_provenance if key not in dict(entries))
         return tuple(entries)
 
     def calculate(self, input_value: CarbonMaterialInput, *, calculated_at: datetime | None = None) -> CarbonMaterialCalculationOutcome:
@@ -2746,7 +2803,7 @@ class CarbonMaterialCalculator:
                     traces.append(CalculationTrace(
                         line.line_id, "CAR-FML-PURCHASED-HEAT-001", SOURCE_PURCHASED_HEAT,
                         tuple(variables),
-                        "EGd = BGd × HM × EF3 / 10⁶；焓值来源：" + ("用户手动填写" if enthalpy.source == "USER_MANUAL" else f"GB/T 32151.34—2024 附录 {enthalpy.table_id} 自动确定"),
+                        "EGd = BGd × HM × EF3 / 10⁶；焓值来源：" + ("用户手动填写" if enthalpy.source == "USER_MANUAL" else "IAPWS-IF97自动物性"),
                         amount,
                         instance_id=line.line_id,
                         provenance=self._steam_trace_provenance(line, enthalpy),
@@ -2771,7 +2828,7 @@ class CarbonMaterialCalculator:
                     traces.append(CalculationTrace(
                         line.line_id, "CAR-FML-EXPORTED-HEAT-001", SOURCE_EXPORTED_HEAT,
                         tuple(variables),
-                        "ESd = BSd × HM × EF3 / 10⁶；焓值来源：" + ("用户手动填写" if enthalpy.source == "USER_MANUAL" else f"GB/T 32151.34—2024 附录 {enthalpy.table_id} 自动确定"),
+                        "ESd = BSd × HM × EF3 / 10⁶；焓值来源：" + ("用户手动填写" if enthalpy.source == "USER_MANUAL" else "IAPWS-IF97自动物性"),
                         amount,
                         instance_id=line.line_id,
                         provenance=self._steam_trace_provenance(line, enthalpy),

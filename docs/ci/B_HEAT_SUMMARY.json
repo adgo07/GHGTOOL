@@ -1,0 +1,89 @@
+{
+  "stage": "B-HEAT",
+  "status": "LOCAL_TARGETED_PASS_CI_PENDING",
+  "base": "a1aeebc1b6809397e61a2ffa7a2333a3b440c756",
+  "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "algorithm": "CAR-SM01-2026-10-18-HEAT.1",
+  "template_sha256": "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729",
+  "local_execution": {
+    "python": "3.12.14 Windows x64",
+    "heat_final": {
+      "modules": [
+        "tests.test_b_heat_if97",
+        "tests.test_b_heat_specialist",
+        "tests.test_b_heat_runtime",
+        "tests.test_b_heat_chain.HeatQtTests",
+        "tests.test_b_heat_chain.HeatExcelTests",
+        "tests.test_numeric_contract_v1_adoption",
+        "tests.test_g08_delivery"
+      ],
+      "command": "python -B -m unittest <modules> -v",
+      "tests": 85,
+      "seconds": 65.099,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "report_final": {
+      "modules": [
+        "tests.test_main_integration_ui",
+        "tests.test_rpt01_report_excel",
+        "tests.test_rpt02_appendix_b",
+        "tests.test_p3_c_records_ui",
+        "tests.test_rs03_excel_entrypoints"
+      ],
+      "command": "python -B -m unittest <modules> -v",
+      "tests": 46,
+      "seconds": 135.016,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "gui_failure_repair": {
+      "tests": 5,
+      "seconds": 22.471,
+      "failures": 0,
+      "errors": 0
+    },
+    "numeric_excel_word_previous": {
+      "tests": 66,
+      "seconds": 76.226,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "counts_not_summed": "Selected suites overlap; no local full-suite claim.",
+  "old_actual_bundle_frozen_records": [
+    {
+      "record_id": "record.input.actual-old-known-with-old-reference.7155ec958c1040af92c4a9b7b307a1e4",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "29a564bbbdc221c5a34c223c39e8001352d853f3f60d2a1d8fa65c675d7ddc2c",
+      "document_xml_sha256": "e93c2ef859cc44a547a16b9a3e02a756426e1d09089126f13caf194bbb5955fe",
+      "word_body_bytes_unchanged": true
+    },
+    {
+      "record_id": "record.input.actual-old-old-auto-table.a88d8b2107964fd9b25abf54179a1c81",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "0578d13aead197d0b8f14f6c9a344be3946236e76fd4729b40a4d6d6802d6bb1",
+      "document_xml_sha256": "51735e78cf9571f0d074010ba26e4be6ee504b96ab0a1ab230de097e980d4df5",
+      "word_body_bytes_unchanged": true
+    }
+  ],
+  "failure_ledger": [
+    "Legacy GUI broad run stopped at Word entrypoint without final statistics; 5 old assertions failed before interruption.",
+    "Four heat GUI failures reproduced independently: missing explicit boundary and old-table provenance; repaired and checked.",
+    "All-negative field assertion narrowed only for the two known-enthalpy fields; other negative gates retained.",
+    "Standalone Word entrypoint passed 1/1 in 9.057s; full five-module report group then passed 46/46.",
+    "New nonpositive test initially used nonexistent severity property (2 subtest errors); corrected to level, strict original/adopted freeze asserts pass.",
+    "Low-pressure 0.0001MPa/300K initial specialist success claim withdrawn; actual backend PT fails and is rejected.",
+    "Earlier 55-case chain had one IF97 Word method omission; new-only B9 note fixed; old Word unchanged."
+  ],
+  "ci": null,
+  "actual_new_bundle": null,
+  "commercial_release": false,
+  "next": "Private heat PR, exact-head CI/artifact proof, source independent acceptance; no merge."
+}

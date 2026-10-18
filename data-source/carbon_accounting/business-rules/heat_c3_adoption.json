@@ -1,0 +1,15 @@
+{
+  "format_version": 1,
+  "adoption_id": "GHGTOOL_HEAT_R11_C3_V2",
+  "rule_set_id": "GHGTOOL_HEAT_C3_ADOPTION",
+  "revision": "adoption-2026-10-18-heat-c3",
+  "field_id": "heat.factor",
+  "base_binding_id": "binding-heat_default_2025",
+  "additional_binding_id": "binding-heat_default_gbt32151_34_c3",
+  "parameter_id": "heat_emission_factor_default",
+  "authority": [
+    "GHG-STD-32151-34-005",
+    "GHG-STD-32151-34-006"
+  ],
+  "owner_message_id": "01a14ee7-32ba-7283-ab49-ad6b89b633aa"
+}
