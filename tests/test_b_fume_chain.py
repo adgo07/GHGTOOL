@@ -311,3 +311,45 @@ class FumeQtExcelTests(unittest.TestCase):
             path=self.workbook(root,[(1000,1000,40,.02,100,1,"A","炉口","1","2025-01-01 00:00:00","2025-01-02 00:00:00","d")])
             book=load_workbook(path);book["B.6"]["H9"]="误放表后真实源";book.save(path);book.close()
             preview=self.preview(gui,shell,path);self.assertFalse(preview.units[0].can_calculate);self.assertIsNone(preview.units[0].input_value)
+
+    def test_shared_source_and_boundary_rename_survive_real_new_window(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            with self.fresh_page(root) as (gui,projects,records,shell):
+                self.prepare(gui);first=gui._process_rows["fume"][0];self.fill(first)
+                second=gui._add_process_row("fume",instance_id="shared-renamed")
+                self.fill(second,"2025-01-02 00:00:00","2025-01-04 00:00:00","2","500","2000")
+                for key in ("source","boundary"):
+                    combo=second[key+"_selector"];combo.setCurrentIndex(combo.findData(first[key+"_selector"].currentData()))
+                first["source_selector"].setEditText("共用焚烧炉改名")
+                first["boundary_selector"].setEditText("共用排口改名")
+                self.assertEqual(second["source_selector"].currentText(),"共用焚烧炉改名")
+                self.assertEqual(second["boundary_selector"].currentText(),"共用排口改名")
+                for key,name in (("source","共用焚烧炉改名"),("boundary","共用排口改名")):
+                    combo=first[key+"_selector"];identity=combo.currentData()
+                    alternate=next(i for i in range(combo.count()) if combo.itemData(i)!=identity)
+                    combo.setCurrentIndex(alternate);combo.setCurrentIndex(combo.findData(identity))
+                    self.assertEqual(combo.currentText(),name)
+                    self.assertEqual(second[key+"_selector"].currentText(),name)
+                source_id=first["source_selector"].currentData();boundary_id=first["boundary_selector"].currentData()
+                third=gui._add_process_row("fume",instance_id="different-same-name");self.fill(third)
+                third["source_selector"].setEditText("共用焚烧炉改名");third["boundary_selector"].setEditText("共用排口改名")
+                self.assertNotEqual(third["source_selector"].currentData(),source_id)
+                self.assertNotEqual(third["boundary_selector"].currentData(),boundary_id)
+                first["source_selector"].setEditText("共用焚烧炉最终名");first["boundary_selector"].setEditText("共用排口最终名")
+                self.assertEqual(second["source_selector"].currentText(),"共用焚烧炉最终名")
+                self.assertEqual(second["boundary_selector"].currentText(),"共用排口最终名")
+                self.assertEqual(third["source_selector"].currentText(),"共用焚烧炉改名")
+                self.assertEqual(third["boundary_selector"].currentText(),"共用排口改名")
+                self.assertEqual(first["source_selector"].currentData(),source_id)
+                self.assertEqual(first["boundary_selector"].currentData(),boundary_id)
+                before=gui._input(increment=False).fume_segments
+                gui.project_name.setText("共享名称往返");self.assertTrue(gui._save_project());project_id=gui._workspace.project_id
+                first["source_selector"].setEditText("未保存的源名称")
+                first["boundary_selector"].setEditText("未保存的边界名称")
+                # Closing No discards only these unsaved changes; saved identities
+                # and names must survive in a real new window/service.
+            with self.fresh_page(root) as (gui,projects,records,shell):
+                with patch.object(QMessageBox,"question",return_value=QMessageBox.StandardButton.No):self.assertTrue(gui.open_project_from_home(project_id))
+                self.assertEqual(gui._input(increment=False).fume_segments,before)
+                self.assertEqual(len(records.list_all()),0)

@@ -60,3 +60,11 @@ PR50 F01—F03技术独立PASS与CI263固定证据保留，旧工作树不清理
 python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：首次40项39通过/1失败、58.526s，原Word表头保护测试把v9输入段时长栏与旧报告期栏混比；现明确核对新输入栏、历史Word栏及其余全部表头不变。最终40/40、58.024s，日志tmp/b-fume/final-record-projection-pass.log。该次包含全部15项烟气整链与真实记录表卡；原本地82项仍按其实际执行边界记录。
 
 CI266只对应被替代的e1715fc，不作为最新head的CI/制品；送验以该小修后的新head CI与实包为准，不混用旧结果。
+
+## 共享身份显示名定向修复
+
+63182共享源/边界的多段改名未同步候选，可能在切换或重开时被另一段旧名称覆盖。新增真实Qt/SQLite回归先复现1FAIL、5.129s（shared-rename-before.log），再按稳定ID同步所有候选与当前选择，保留编辑光标，不按名称合并、不改ID/数值/算法。源码只增UI名称同步，不建新身份体系。
+
+python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v：41/41、70.491s（新增第16项烟气整链，shared-rename-final.log）。其后仅强化该项测试：不同ID同名不合并、source/boundary分别切换往返、改名不改ID、保存后未保存更改关闭No丢弃、新窗口/新服务恢复；单项1/1、12.783s（shared-rename-owner-boundaries.log），生产不再改变。包证明脚本也包含同样边界，尚待新包实际执行。补核既有混合Domain/标准分派/Excel-Word37/37、9.437s（additional-domain-dispatch-report.log）。
+
+源在63182独立单例+RPT02共18/18、9.907s，只为当时范围；最新改名修复仍等源独立复验。CI267/63182与CI266/e171均不作为本次最终head制品证据。

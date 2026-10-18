@@ -4903,6 +4903,7 @@ class CarbonMaterialAccountingPage(BasePage):
             combo.editTextChanged.connect(self._mark_input_dirty)
             combo.currentIndexChanged.connect(lambda _index, _row=row: _row.update(business_touched=True))
             combo.editTextChanged.connect(lambda _text, _row=row: _row.update(business_touched=True))
+            combo.editTextChanged.connect(lambda text, _row=row, _key=key: self._sync_fume_identity_name(_row,_key,text))
             row[key+"_selector"] = combo
             form.addRow(label+"（同一实例请选择已有项）", combo)
         for key, label in (("segment_start", "监测开始"), ("segment_end", "监测结束（不含终点）")):
@@ -4943,6 +4944,26 @@ class CarbonMaterialAccountingPage(BasePage):
                 previous = other[key+"_selector"]
                 if combo.findData(previous.currentData()) < 0:
                     combo.addItem(previous.currentText(), previous.currentData())
+
+    def _sync_fume_identity_name(self, row, key, text):
+        owner = row.get(key+"_selector")
+        identity = owner.currentData() if isinstance(owner,QComboBox) else None
+        if not identity:
+            return
+        for other in self._process_rows.get("fume", ()):
+            combo = other.get(key+"_selector")
+            if not isinstance(combo,QComboBox):
+                continue
+            index = combo.findData(identity)
+            if index < 0:
+                continue
+            cursor = combo.lineEdit().cursorPosition() if combo is owner and combo.lineEdit() else None
+            with QSignalBlocker(combo):
+                combo.setItemText(index,text)
+                if combo.currentData() == identity:
+                    combo.setEditText(text)
+                if cursor is not None:
+                    combo.lineEdit().setCursorPosition(cursor)
 
     def _rebuild_fume_choices(self):
         for key in ("source", "boundary"):

@@ -42,6 +42,35 @@
       "seconds": "58.024",
       "log": "tmp/b-fume/final-record-projection-pass.log",
       "boundary": "new Qt record-card/text/HTML consume frozen segment row notes; Word/calculation/template unchanged"
+    },
+    "shared_rename_joint": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v",
+      "tests": 41,
+      "passed": 41,
+      "seconds": "70.491",
+      "log": "tmp/b-fume/shared-rename-final.log",
+      "boundary": "16 fume chain methods; later strengthened one method with no further production changes"
+    },
+    "shared_rename_strong_boundary": {
+      "command": "python -B -m unittest tests.test_b_fume_chain.FumeQtExcelTests.test_shared_source_and_boundary_rename_survive_real_new_window -v",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "12.783",
+      "log": "tmp/b-fume/shared-rename-owner-boundaries.log",
+      "scope": [
+        "same stable IDs synchronize names",
+        "different same-name IDs stay distinct",
+        "source and boundary switching roundtrip",
+        "unsaved No discarded",
+        "real new window/service SQLite recovery"
+      ]
+    },
+    "domain_dispatch_report": {
+      "command": "python -B -m unittest tests.test_g06_carbon_material tests.test_standard_dispatch tests.test_exb01_rpt02_integration -v",
+      "tests": 37,
+      "passed": 37,
+      "seconds": "9.437",
+      "log": "tmp/b-fume/additional-domain-dispatch-report.log"
     }
   },
   "original_failures": {
@@ -85,15 +114,23 @@
       "failures": 1,
       "seconds": "58.526",
       "reason": "v9输入段时长与历史Word表头差异未在保护测试明确区分"
+    },
+    "shared_rename_before": {
+      "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+      "tests": 1,
+      "failures": 1,
+      "seconds": "5.129",
+      "log": "tmp/b-fume/shared-rename-before.log",
+      "reason": "shared stable source/boundary old label could overwrite rename"
     }
   },
   "source_text_lf_sha256": {
     "packages/standards/carbon_material.py": "159c2bf7fde0ebfb1fea59be046f03f9bdfedb11ab593e21fac11e1c4d47868e",
     "packages/standards/carbon_material_fume_segments.py": "c09ed5830a9c7269416a473c7d04caae3bc42f675258b50618c4702330c15908",
     "packages/application/carbon_material_input_codec.py": "114417608395514a90428c10f02d171110cdeebf914cd5a9fea11683d93a631b",
-    "packages/ui/carbon_material_page.py": "96431ada1220842e38a8ff784c61f26b399df73cb8dddb063e6e57ac2d7ae0fc",
+    "packages/ui/carbon_material_page.py": "47bce03d0b299322a4e57aec714a50f3f6bf3024e8f95a81e2d2463e3d413148",
     "packages/excel/appendix_b.py": "2b783e22271fe37e1a9e2fb3ada0a72455a725be301324322854ba54dfff1ad7",
-    "tests/test_b_fume_chain.py": "ec621e21184485889425ffe009e4d23be3e665800886b52a956b759447ea610c",
+    "tests/test_b_fume_chain.py": "1ef23447f94b6c1d48753c7ebecae5ecdeb8d18c6213164e6063094222871a93",
     "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
     "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560"
   },
@@ -127,18 +164,36 @@
     "商业履约"
   ],
   "merge_status": "NOT_MERGED",
-  "independent_interim": {
-    "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
-    "tests": 41,
-    "passed": 41,
-    "seconds": "69.341",
-    "source": "源会话实际独立运行",
-    "scope": "before record projection fix; not final PASS"
-  },
-  "superseded_ci": {
-    "run_id": 39105323380,
-    "number": 266,
-    "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
-    "boundary": "not final code/artifact"
-  }
+  "independent_interim": [
+    {
+      "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+      "tests": 41,
+      "passed": 41,
+      "seconds": "69.341",
+      "source": "源会话实际独立运行",
+      "scope": "before record projection fix; not final PASS"
+    },
+    {
+      "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+      "tests": 18,
+      "passed": 18,
+      "seconds": "9.907",
+      "source": "源会话实际独立运行",
+      "scope": "before shared rename fix; not final PASS"
+    }
+  ],
+  "superseded_ci": [
+    {
+      "run_id": 39105323380,
+      "number": 266,
+      "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+      "boundary": "not final code/artifact"
+    },
+    {
+      "run_id": 39105684533,
+      "number": 267,
+      "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+      "boundary": "not final code/artifact"
+    }
+  ]
 }
