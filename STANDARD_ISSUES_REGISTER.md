@@ -335,3 +335,5 @@ Issue 007的软件核验边界已标注于历史R8 Mapping；“冻结Mapping保
 - Owner本次软件决定：经源会话转达用户明确“烟气时间精确到小时就足够”，新正式FUME_V2采用整小时起止边界；分钟/秒/微秒非零明确拒绝，不截断/舍入/改写真实区间。旧细时间Canonical/项目仍可读、保留并保存，正式新算提示限制；旧Record/Word不回填不重算。
 - 表示与采用：区间精确取得整数小时；h原值须全值等于该整数；d原值须全值等于声明Numeric Profile下整数小时/24的规范化日值（不是与物理有理时长绝对相等）。h/d均消费同一规范化日值，原录入值与采用值分别冻结；真不一致仍拒绝，无epsilon或显示回流。GUI/B.6推荐h，避免手抄循环小数。
 - 追踪：CAR-FUME-SEGMENTS-020.2、CAR-SM01-2026-10-18-FUME.2；test_b_fume_segments/test_b_fume_chain小时/拒绝/历史恢复回归。仅软件方法细化，不改标准公式、中央Frozen或当前标准支持状态。
+
+Issue020整小时实现补漏：PR51真实入口发现Python datetime解析会丢弃第7位非零小数秒，导致非法非整小时被接受。此为LOCAL DEFECT而非新的标准解释；GUI/B.6共享无损词法检查，超出微秒表达的非零尾数明确拒绝，超位全零保持同物理时刻。旧可表达细时间与历史Record不改；tests/test_b_fume_segments/test_b_fume_chain对应无损解析及零Record回归。源确认沿用既有普通Bug授权。

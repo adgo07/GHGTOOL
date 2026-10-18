@@ -214,6 +214,30 @@ class FumeQtExcelTests(unittest.TestCase):
     def preview(gui,shell,path):
         from packages.excel.appendix_b import AppendixBImportContext
         return shell.pages[AppRoute.EXCEL_IMPORT].excel_adapter.import_preview(path,context=AppendixBImportContext(gui._period(),boundary_confirmed=True,enterprise_name="烟气整链"))
+    def test_gui_excel_submicrosecond_text_cannot_be_truncated_to_valid_hour(self):
+        with tempfile.TemporaryDirectory() as directory,self.fresh_page(Path(directory)) as (gui,projects,records,shell):
+            root=Path(directory);self.prepare(gui);row=gui._process_rows["fume"][0]
+            for clock in ("00:00:00","00:00","00"):
+                for separator in (".",","):
+                    raw="2025-01-02 "+clock+separator+"0000001"
+                    self.fill(row,end=raw)
+                    gui._run_calculation()
+                    self.assertFalse(gui._calculation_has_result)
+                    self.assertEqual(row["segment_end"].text(),raw)
+                    self.assertEqual(len(records.list_all()),0)
+                    unit=self.preview(gui,shell,self.workbook(root,[(1000,1000,40,.02,100,1,"A","口","1","2025-01-01 00:00:00",raw,"d")])).units[0]
+                    self.assertFalse(unit.can_calculate)
+                    self.assertIsNone(unit.input_value)
+                    self.assertIn("不能自动截断",str(unit.errors))
+                    self.assertEqual(len(records.list_all()),0)
+            self.fill(row,end="2025-01-02 00:00:00.0000000")
+            gui._run_calculation();self.assertTrue(gui._calculation_has_result)
+            self.assertEqual(len(records.list_all()),1)
+            unit=self.preview(gui,shell,self.workbook(root,[(1000,1000,40,.02,100,1,"A","口","1","2025-01-01 00:00:00","2025-01-02 00:00:00,0000000","d")])).units[0]
+            self.assertTrue(unit.can_calculate,unit.errors)
+            self.assertTrue(CarbonAccountingUseCase(gui.calculator,records).calculate(unit.input_value).successful)
+            self.assertEqual(len(records.list_all()),2)
+
     def test_hour_precision_gui_excel_formal_freeze_and_non_hour_zero_record(self):
         from packages.core.decimal_policy import DecimalPolicy
         with tempfile.TemporaryDirectory() as directory,self.fresh_page(Path(directory)) as (gui,projects,records,shell):

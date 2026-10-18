@@ -6,7 +6,7 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
-from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment, parse_fume_timestamp
 from packages.standards.carbon_material_business_policy import resolve_fgd_field
 
 from packages.standards.carbon_material_business_policy import fuel_source_context
@@ -5002,8 +5002,10 @@ class CarbonMaterialAccountingPage(BasePage):
             if not row.get("business_touched") and not any(edit.text().strip() for edit in row["fields"].values()) and not row["segment_start"].text().strip() and not row["segment_end"].text().strip():
                 continue
             try:
-                start = datetime.fromisoformat(row["segment_start"].text().strip())
-                end = datetime.fromisoformat(row["segment_end"].text().strip())
+                start = parse_fume_timestamp(row["segment_start"].text())
+                end = parse_fume_timestamp(row["segment_end"].text())
+            except DomainValidationError:
+                raise
             except ValueError as exc:
                 raise DomainValidationError("请填写本监测段真实开始和结束时间（年-月-日 时:00，整小时），不能使用报告期代填。") from exc
             source = row["source_selector"].currentData()

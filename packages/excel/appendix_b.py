@@ -15,7 +15,7 @@ from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
-from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment, parse_fume_timestamp
 from packages.core.errors import DomainValidationError
 from packages.application.project_workspaces import AccountingUnitType
 from packages.application.uat03_parameter_queries import UAT03ParameterQueries
@@ -1397,7 +1397,7 @@ class AppendixBWorkbookImporter:
                     segments.append(FumeMonitoringSegment(source_id,
                         _stable_id("fume-boundary",unit_id,identity["source"],identity["boundary"]),
                         _stable_id("fume-segment",unit_id,identity["source"],identity["boundary"],identity["segment"]),
-                        datetime.fromisoformat(identity["start"]),datetime.fromisoformat(identity["end"]),measurement))
+                        parse_fume_timestamp(identity["start"]),parse_fume_timestamp(identity["end"]),measurement))
                 except (ValueError,DomainValidationError) as exc:
                     errors.append(ImportMessage("EXB01_FUME_INTERVAL",str(exc),f"B.6!K{row}:L{row}","监测区间"))
             else:

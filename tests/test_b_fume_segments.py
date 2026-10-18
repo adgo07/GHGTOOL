@@ -12,7 +12,7 @@ from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError
 from packages.standards.carbon_material import FumeIncinerationInput, InputValue
 from packages.standards.carbon_material_fume_segments import (
-    FumeMonitoringSegment, FumeReportingWindow, evaluate_fume_segments,
+    FumeMonitoringSegment, FumeReportingWindow, evaluate_fume_segments, parse_fume_timestamp,
 )
 
 START = datetime(2025, 1, 1)
@@ -253,6 +253,19 @@ class FumeInvalidInputTests(unittest.TestCase):
 
 
 class FumeHourPrecisionTests(unittest.TestCase):
+    def test_timestamp_lexical_precision_cannot_be_silently_discarded(self):
+        for clock in ("00:00:00","00:00","00"):
+            for separator in (".",","):
+                text="2025-01-02 "+clock+separator+"0000001"
+                with self.assertRaisesRegex(DomainValidationError,"不能自动截断"):
+                    parse_fume_timestamp(text)
+                self.assertEqual(parse_fume_timestamp("2025-01-02 "+clock+separator+"0000000"),datetime(2025,1,2))
+        for text in ("2025-01-01 00:05:00","2025-01-01 00:00:01","2025-01-01 00:00:00.000001000"):
+            value=parse_fume_timestamp(text)
+            self.assertEqual(value,datetime.fromisoformat(text))
+            with self.assertRaisesRegex(DomainValidationError,"只支持整小时"):
+                evaluate((replace(segment(),start=value,end=value+timedelta(days=1)),))
+
     def test_integer_hours_and_declared_profile_days_are_identical(self):
         for precision, rounding in ((28, ROUND_HALF_EVEN), (40, ROUND_HALF_UP), (50, ROUND_DOWN)):
             policy=DecimalPolicy(precision=precision,rounding=rounding)

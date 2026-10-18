@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "PR51-F01小时修复；CI271装配验证器错误已定向修复，本地38通过，等待新源码CI/精确包",
+  "scope": "PR51-F01小时精度词法必要补漏：共享解析禁止非零精度丢失，定向68通过，等待新源码CI/精确包",
   "base_sha": "8d054d2480d744882f4f11f56b59e68df91dc50f",
   "fixed_tested_commit": null,
   "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
@@ -39,6 +39,14 @@
       "seconds": "18.961",
       "log": "tmp/b-fume/verifier-fix-final.log",
       "boundary": "验证器/测试改动；同时注入非规范临时路径和sitecustomize预导入源码resources，真实wheel/sdist/安装字节及Numeric原守卫通过"
+    },
+    "text_loss_fix": {
+      "command": "python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v",
+      "tests": 68,
+      "passed": 68,
+      "seconds": "70.196",
+      "log": "tmp/b-fume/text-loss-targeted.log",
+      "scope": "包括小时/分钟/秒后点逗号超精度拒绝、真实GUI/Excel零Record、全零尾数对照、旧细值保留与实际装配"
     }
   },
   "original_failures": {
@@ -137,11 +145,11 @@
   },
   "source_text_lf_sha256": {
     "packages/standards/carbon_material.py": "e92297e61866bfd160aad287fe5a9b9961da0ad4e2c6bda1b52213e8cab50d6f",
-    "packages/standards/carbon_material_fume_segments.py": "47643db4ee3c9311388bda729744e8d51efb8541bce0e334e67613ee89f53802",
+    "packages/standards/carbon_material_fume_segments.py": "92761ed4549c9c605e7763b34867ff51c2db4684d66ff2b3360658a3930cf52e",
     "packages/application/carbon_material_input_codec.py": "114417608395514a90428c10f02d171110cdeebf914cd5a9fea11683d93a631b",
-    "packages/ui/carbon_material_page.py": "cc3bb8b368a121febb43000191788a9da96be9ebe7898c1469717aedbb33bd14",
-    "packages/excel/appendix_b.py": "2b783e22271fe37e1a9e2fb3ada0a72455a725be301324322854ba54dfff1ad7",
-    "tests/test_b_fume_chain.py": "e8f07fbca6d63ab652301ea4f5e58b8bdfb00457f766d63153cd753f3d1152e1",
+    "packages/ui/carbon_material_page.py": "c1c3222106d348fe095c64a01e56c7eba631e2074ce01a7219337d32aa85cd8f",
+    "packages/excel/appendix_b.py": "22b30beadef03ed9a001aff1bdfbf6cc6d07fb39ca1aaa0993ca9675671b3565",
+    "tests/test_b_fume_chain.py": "5a58ea5f113f699de07d008210a9c9c7a8458958160428619b8fc06adf55e44c",
     "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
     "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560",
     "scripts/verify_distribution_templates.py": "3321f369fe87d3fbb7aa25630899d831a1f111f8bfa18f824e780dd45d0bc39e",
@@ -520,7 +528,8 @@
     "policy": "整小时端点；h原值等于整数小时；d原值等于declared Profile下hours/24规范化值；两路统一采用该日值；无epsilon/截断/显示回流",
     "historical": "旧细时间codec/项目可读保存原值，新正式计算明确拒绝；旧Record/Word不重算",
     "authority": "Owner软件产品精度决定，不称标准原文限制",
-    "independent_report": "PR51_独立验收报告_cdbec958.md"
+    "independent_report": "PR51_独立验收报告_cdbec958.md",
+    "lexical_guard": "GUI/B.6同源parse_fume_timestamp在datetime解析前检查所有点/逗号小数，超六位含非零尾数拒绝；尾部全零才允许同物理时刻；已可表达旧细时间保留，正式小时门禁不变"
   },
   "actual_wheel_sdist": {
     "templates": {
@@ -589,6 +598,27 @@
       "standalone_conclusion": "skipped",
       "error_excerpt": "tmp/b-fume/ci271-failure-excerpt.log",
       "boundary": "唯一installed resources来源断言错误；无本次制品，不能背书新head"
+    },
+    {
+      "run_id": 39115319393,
+      "number": 272,
+      "head": "c8dacd84ad6475dfcec531407028971ed37d08f0",
+      "merge": "d04fd1355617102248de9e976ee3ab6e13071cbb",
+      "status_at_last_observation": "in_progress",
+      "boundary": "词法补漏前，不能背书本次新源码或最终制品；不推断后续结论"
     }
-  ]
+  ],
+  "lexical_before_evidence": {
+    "head": "c8dacd84ad6475dfcec531407028971ed37d08f0",
+    "raw_end": "2025-01-02 00:00:00.0000001",
+    "gui_accepted": true,
+    "gui_records": 1,
+    "excel_preview_accepted": true,
+    "excel_formal_accepted": true,
+    "total_records": 2,
+    "canonical_end": "2025-01-02T00:00:00",
+    "log": "tmp/b-fume/submicrosecond-before.log",
+    "log_sha256": "233245847299eb78ed5ef118f027fcafa04f7c88f02ba41e6fddadbe008a642d",
+    "boundary": "作者真实GUI/B.6/Application/隔离SQLite探针；不是原生人工操作"
+  }
 }

@@ -45,3 +45,11 @@ Python3.12.14，离屏Qt、隔离SQLite/临时目录；未做原生CU或Office�
 CI271/run39113048982实际全量942项，941通过/1ERROR、1532.572s；唯一为新G08 installed-resources来源路径断言，standalone跳过，无新制品。原CI未打印路径，不能声称已实证8.3或editable具体成因。本地有效非规范临时目录别名复现同一断言：实际从wheel安装目录导入，但子路径resolve/父路径未resolve误判。验证器现统一resolve，并用-I/-S隔离安装探针，打印实际资源与安装根诊断；严格来源及8份模板字节断言保持。回归同时注入路径别名与sitecustomize预导入源码resources。
 
 python -B -m unittest tests.test_g08_delivery tests.test_qzc_n01_c_numeric_unit_pilot -v：首次38项37通过/1ERROR、32.766s为回归覆盖既有PYTHONPATH致本机构建缺setuptools；保留原构建路径并额外注入后38/38、18.961s。实际wheel/sdist/安装资源证明再次PASS。原小时业务/模板未改；此前66/135属验证器修复前范围。原始失败/复现/最终日志保留，新head继续全量CI与精确包后送源，不借CI271失败或CI268旧证据放行。
+
+## 小时边界词法必要补漏
+
+c8实际入口补核发现datetime.fromisoformat将第7位非零小数秒静默截掉：2025-01-02 00:00:00.0000001变为整小时，GUI与B.6正式链合计生成2条隔离Record。before证据submicrosecond-before.log保留；源确认此为本次“不截断、明确拒绝非整小时”决定内普通Bug，立即补漏，不新增标准解释。
+
+GUI/B.6共用parse_fume_timestamp，在datetime解析前检查所有点/逗号小数（含Python实际接受的小时/分钟后小数形态）；六位之后任何非零数字明确拒绝，超位全零才与可表达时间同一物理时刻。原可表达分钟/秒/微秒仍能构造/保存，正式整小时门禁不变；不改公式/Profile/算法版本/codec/模板。python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v：68/68、70.196s，包含真实渠道零Record与全零对照、旧细时间保留。diffcheck发现docstring空行空白已在提交前规范化；无功能改动。
+
+CI272对应补漏前c8；即使其后通过，也不能背书本补丁。当前继续新head CI及精确包，完成送源验收合并，不启动下一包。

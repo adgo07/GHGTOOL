@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Sequence
+import re
 
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError
@@ -28,6 +29,28 @@ STANDARD_ISSUE_ID = "GHG-STD-32151-34-020"
 def _identity(value: str, name: str) -> None:
     if not isinstance(value, str) or not value.strip() or value != value.strip():
         raise DomainValidationError(f"{name} 必须为非空、无首尾空白的稳定身份")
+
+
+def parse_fume_timestamp(value: str) -> datetime:
+    """保持已有可表达时间；在datetime解析前禁止丢弃非零小数秒。
+
+    Python也接受小时/分钟后的小数形式；统一检查所有点/逗号小数，
+    不只检查HH:MM:SS形态。尾部全零才与六位微秒表达同一物理时刻。
+    正式整小时限制仍由evaluate负责，旧分钟/秒/微秒对象可开存。
+    """
+    if not isinstance(value, str):
+        raise DomainValidationError("请以文字填写真实监测时间。")
+    text = value.strip()
+    for fraction in re.findall(r"[.,]([0-9]+)", text):
+        if any(digit != "0" for digit in fraction[6:]):
+            raise DomainValidationError(
+                "烟气监测时间含无法保存的非零小数秒，不能自动截断；"
+                "当前正式核算只支持整小时，请核实真实时间。")
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise DomainValidationError(
+            "请填写真实监测时间（年-月-日 时:分[:秒[小数]]）；正式核算须为整小时。") from exc
 
 
 def _interval(start: datetime, end: datetime) -> None:
