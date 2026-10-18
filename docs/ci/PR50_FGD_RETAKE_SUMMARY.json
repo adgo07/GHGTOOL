@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "scope": "PR50 F01-F03定向退修；固定受验对象，不以摘要自身提交作为制品身份",
+  "fixed_tested_commit": null,
+  "status": "本地回归已记录；固定CI/实包结果完成后以明确受验提交补入",
+  "baseline": {
+    "fixed_head": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+    "scope": "原已检范围证据；本轮F01-F03重新OPEN，不外推为本轮通过",
+    "ci": {
+      "status": "SUCCESS",
+      "run_id": 39088760183,
+      "run_number": 262,
+      "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39088760183",
+      "expected_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "merge_job_id": 117560773183,
+      "merge_tests": 883,
+      "merge_passed": 883,
+      "merge_failures": 0,
+      "merge_errors": 0,
+      "merge_seconds": "1462.601",
+      "merge_conclusion": "SUCCESS",
+      "tested_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "standalone_job_id": 117565678257,
+      "merge_command": "python -m unittest discover -s tests -t . -v",
+      "gui_scenarios": "PASS",
+      "scale_1_25": "PASS",
+      "scale_1_5": "PASS",
+      "standalone_conclusion": "SUCCESS",
+      "standalone_g08_tests": 17,
+      "standalone_g08_seconds": "6.363",
+      "standalone_g08_command": "python -m unittest tests.test_g08_delivery -v",
+      "release_audit_files": 277,
+      "release_archive_visible_files": 278,
+      "smoke_isolated_starts": 2
+    },
+    "artifact": {
+      "id": 12122323716,
+      "name": "QingzhouCarbonAccounting-a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "size": 59850646,
+      "github_digest": "sha256:2d3bb53da206319e00e76ee6b365ec9b2cc5d7f045e5b44b1f8277a8d483f071"
+    },
+    "artifact_hashes": {
+      "zip_sha256": "2d3bb53da206319e00e76ee6b365ec9b2cc5d7f045e5b44b1f8277a8d483f071",
+      "manifest_sha256": "3f9314585358cdcb4325368f3fdfa1ce28689dad231d78fe902863ca5ece3830",
+      "exe_sha256": "a1bc0fb707ff0acef4a6539b7b53e9bb527c11c1eea3488ed0328c9d0862f05b",
+      "source_commit": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "pr_head_sha": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "tested_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "manifest_entries": 277,
+      "pe_files": 129
+    }
+  },
+  "reproduction": {
+    "head": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+    "evidence_file": "PR50_FGD_A683_REPRO.json",
+    "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes -v",
+    "tests": 14,
+    "failures": 3,
+    "seconds": "87.790",
+    "boundary": "首次直接导入TestCase额外发现11项原链测试；其后改模块别名避免重复发现。F01/F02均实际生成错误Record1，F03实际新窗口/服务显示丢失。"
+  },
+  "local_validation": {
+    "affected": {
+      "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes tests.test_b_fgd_legacy_templates tests.test_g06_fgd_ui tests.test_accounting_projects_ui tests.test_exb01_ingress tests.test_main_integration_excel tests.test_business_rules_candidate_assets tests.test_pr46_parameter_source_policy tests.test_exb01_rpt02_integration -v",
+      "tests": 126,
+      "passed": 126,
+      "seconds": "355.499",
+      "execution_boundary": "提交前工作区；与本轮生产源内容一致，不冒称从最终head启动",
+      "log": "tmp/fgd-final-evidence/retake-affected-joint.log"
+    },
+    "boundaries": {
+      "tests": 28,
+      "passed": 28,
+      "seconds": "229.747",
+      "log": "tmp/fgd-final-evidence/retake-boundaries.log"
+    },
+    "f02_direct_application": {
+      "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes.FGDAcceptanceFixTests.test_f02_identity_only_excel_component_is_not_ignored -v",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "8.586",
+      "formal_success_for_incomplete": false,
+      "records_for_incomplete": 0,
+      "completed_total": "2.8174",
+      "log": "tmp/fgd-final-evidence/retake-f02-formal.log"
+    }
+  },
+  "source_files_sha256": {
+    "packages/ui/carbon_material_page.py": "280007fd10547346e9d3fab492496a890351182e7b533403a05ca81e2410ce54",
+    "packages/excel/appendix_b.py": "9ea9a6d7ff218abb203336187f6e5c35402709996981f2e08844c95be00331f9",
+    "tests/test_b_fgd_acceptance_fixes.py": "fdfa0377f3f3b05c04debf11dbebce84c3cde5400517ca0a0bb6484a8b1d68c5"
+  },
+  "ci252_original_sha256": "92d63cff11f5ecbf9ec002f0a5fad7646197c9d72b7fe267794a338630858f17",
+  "ci252_fixed_history": "CI252_SUMMARY.json",
+  "current_pr": "https://github.com/adgo07/GHGTOOL/pull/50",
+  "current_ci_checks": "https://github.com/adgo07/GHGTOOL/pull/50/checks",
+  "not_run": [
+    "原生Office保存回导",
+    "真实鼠标/中文IME/人工DPI",
+    "企业样例",
+    "干净目标机",
+    "商业许可履约"
+  ],
+  "merge_status": "NOT_MERGED"
+}

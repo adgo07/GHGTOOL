@@ -1,0 +1,31 @@
+{
+  "head": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+  "evidence": "actual offscreen Qt/Excel/Application/SQLite",
+  "probes": [
+    {
+      "issue": "F01",
+      "ui_batches": 2,
+      "canonical_batches": 1,
+      "records_after_formal": 1,
+      "gui_complete": true
+    },
+    {
+      "issue": "F02",
+      "preview_can_calculate": true,
+      "canonical_components": 1,
+      "formal_success": true,
+      "records_after_formal": 1,
+      "errors": []
+    },
+    {
+      "issue": "F03",
+      "saved_id": "2137668f0c524587a9b074d18c038d84",
+      "restored_id": "2137668f0c524587a9b074d18c038d84",
+      "saved_display": "脱硫设施 2",
+      "restored_display": "",
+      "findData": -1,
+      "canonical_facility_name": null,
+      "records": 0
+    }
+  ]
+}

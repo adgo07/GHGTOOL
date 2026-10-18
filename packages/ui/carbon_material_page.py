@@ -1834,6 +1834,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 "identity_drafts": component.get("identity_drafts", {}), "business_touched": bool(component.get("business_touched"))}
             for component in unit.get("components", ())} for unit in self._process_rows.get("fgd", ())}
         values["fgd_identities"] = {str(unit["instance_id"]): {"facility_id": unit.get("facility_id"),
+            "facility_name": unit["facility_selector"].currentText() or unit.get("facility_name"),
             "batch_id": unit.get("batch_id"), "execution_version": unit.get("execution_version", "FGD_V1")}
             for unit in self._process_rows.get("fgd", ())}
         return values
@@ -1860,6 +1861,37 @@ class CarbonMaterialAccountingPage(BasePage):
             component["_widget"].setToolTip("历史脱硫来源与多个批次组分存在重复对应，原信息已保留待核实，未自动采用。")
         return default
 
+    def _rebuild_fgd_facility_choices(self):
+        """Rebuild Presentation choices from all saved/used stable identities."""
+        rows = self._process_rows.get("fgd", ())
+        known_names = {}
+        for unit in rows:
+            selector = unit.get("facility_selector")
+            if isinstance(selector, QComboBox):
+                for index in range(selector.count()):
+                    known_names.setdefault(selector.itemData(index), selector.itemText(index))
+        facilities = {}
+        for unit in rows:
+            identifier = unit.get("facility_id")
+            if not identifier or identifier in facilities:
+                continue
+            name = unit.get("facility_name") or known_names.get(identifier)
+            unresolved = not bool(name)
+            facilities[identifier] = (name or f"已保存脱硫设施 {len(facilities)+1}（名称待核实）", unresolved)
+        for unit in rows:
+            selector = unit.get("facility_selector")
+            if not isinstance(selector, QComboBox):
+                continue
+            blocker = QSignalBlocker(selector)
+            selector.clear()
+            for identifier, (name, _unresolved) in facilities.items():
+                selector.addItem(name, identifier)
+            selector.setCurrentIndex(selector.findData(unit.get("facility_id")))
+            del blocker
+            selected = facilities.get(unit.get("facility_id"))
+            selector.setToolTip("旧项目未保存设施名称，原设施对应关系已保留，请核实名称。" if selected and selected[1] else "")
+            unit["facility_name"] = selector.currentText() or None
+
     def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
         self._fgd_upgrade_original_state = state.get("fgd_upgrade_original_state")
         saved_modes = state.get("fgd_ratio_modes")
@@ -1872,6 +1904,13 @@ class CarbonMaterialAccountingPage(BasePage):
         if not isinstance(saved_legacy_names, list):
             saved_legacy_names = []
         legacy_project = bool(state and isinstance(state.get("process_instances"), dict))
+        # Assign all identities before building any selector, including facilities
+        # whose first owning batch was deleted. Do not select an unrelated first item.
+        for unit in self._process_rows.get("fgd", ()):
+            identity = state.get("fgd_identities", {}).get(str(unit.get("instance_id", "")), {})
+            unit.update({"facility_id": identity.get("facility_id"), "facility_name": identity.get("facility_name"),
+                         "batch_id": identity.get("batch_id"), "execution_version": identity.get("execution_version", "FGD_V1")})
+        self._rebuild_fgd_facility_choices()
         for unit in self._process_rows.get("fgd", ()):
             instance_id = str(unit.get("instance_id", ""))
             group_amount = unit.get("group_amount")
@@ -4266,7 +4305,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     facility_selector.addItem(f"脱硫设施 {index}", identifier)
                     seen_facilities.add(identifier)
             facility_selector.setCurrentIndex(facility_selector.findData(row["facility_id"]))
-            facility_selector.currentIndexChanged.connect(lambda _index, _row=row, _combo=facility_selector: _row.update(facility_id=_combo.currentData()) if not self._restoring_workspace else None)
+            facility_selector.currentIndexChanged.connect(lambda _index, _row=row, _combo=facility_selector: _row.update(facility_id=_combo.currentData(), facility_name=_combo.currentText() or None) if not self._restoring_workspace else None)
             row["facility_selector"] = facility_selector
             self._wire_dirty_tracking(facility_selector)
             facility_row.addWidget(facility_selector, 1)
@@ -4428,6 +4467,8 @@ class CarbonMaterialAccountingPage(BasePage):
             row["flags"] = flags
         self._process_rows_layout[prefix].addWidget(host)
         rows.append(row)
+        if prefix == "fgd":
+            self._rebuild_fgd_facility_choices()
         remove_button.setVisible(len(rows) > 1)
         self._bind_process_aliases(prefix)
         self._refresh_repeat_delete_controls()
@@ -4838,7 +4879,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 selector = unit["facility_selector"]
                 selector.addItem(f"脱硫设施 {len(self._process_rows.get('fgd', ()))+1}", unit["facility_id"])
                 selector.setCurrentIndex(selector.count()-1)
+                unit["facility_name"] = selector.currentText() or None
                 unit["upgrade_button"].hide()
+        self._rebuild_fgd_facility_choices()
         self._mark_input_dirty()
 
     @staticmethod
@@ -5354,6 +5397,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     widget.setParent(None)
                     widget.deleteLater()
                 rows.remove(row)
+        if prefix == "fgd":
+            self._rebuild_fgd_facility_choices()
         for index, row in enumerate(rows, start=1):
             title = row.get("title")
             display_title = row.get("display_title")
@@ -7094,9 +7139,13 @@ class CarbonMaterialAccountingPage(BasePage):
         if prefix == "fgd":
             reagent_name_widget = row.get("reagent_name")
             reagent_name = reagent_name_widget.text().strip() if isinstance(reagent_name_widget, QLineEdit) else ""
+            group_amount_widget = row.get("group_amount")
+            has_batch_input = bool(reagent_name or (isinstance(group_amount_widget, QLineEdit) and group_amount_widget.text())
+                                   or any(self._fgd_component_active(component) for component in row.get("components", ())))
+            if not has_batch_input:
+                return None
             if not reagent_name and not row.get("legacy_missing_reagent_name"):
                 raise DomainValidationError("请填写本组实际使用的脱硫剂名称。")
-            group_amount_widget = row.get("group_amount")
             group_amount = _ui_value("fgd.cal", group_amount_widget) if isinstance(group_amount_widget, QWidget) else None
             legacy_amounts = bool(row.get("legacy_component_amounts"))
             components: list[CarbonateComponent] = []
@@ -7233,7 +7282,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 reagent_name=reagent_name or None,
                 facility_id=row.get("facility_id"), facility_name=row["facility_selector"].currentText() or None, batch_id=row.get("batch_id"),
                 execution_version=row.get("execution_version", "FGD_V1"),
-            ) if components else None
+            )
 
         field_names = {
             "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),

@@ -1444,11 +1444,31 @@ class AppendixBWorkbookImporter:
             next_start = next((item for item in all_starts if item > start), stop)
             groups.append((start, next_start - 1, False))
         groups.sort(key=lambda item: item[0])
+        # C/I labels are placeholders only while they still match controlled
+        # template cells. Include the second empty group and its default I values;
+        # changed identity cells are business input even without parameters.
+        # The registered old templates share these cells; v1 has no I selector.
+        master = load_workbook(BytesIO(self.template_service.read_bytes()))
+        try:
+            approved = master["B.7"]
+            master_stop = next((row for row in range(3, approved.max_row + 1)
+                                if _is_appendix_footer_row(approved, row)), approved.max_row + 1)
+            static_identities = {row: (approved[f"C{row}"].value,
+                                       approved[f"I{row}"].value if current else None) for row in range(3, master_stop)}
+        finally:
+            master.close()
+        def identity_entered(row):
+            actual = (ws[f"C{row}"].value, ws[f"I{row}"].value if current else None)
+            if not any(value is not None and value != "" for value in actual):
+                return False
+            expected = static_identities.get(row, (None, "目录" if current else None))
+            return actual != expected
+
         grouped_rows = {row for start, end, _ in groups for row in range(start, end + 1)}
         for row in range(3, stop):
             if row in grouped_rows:
                 continue
-            if any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version == "2.6.0" else "DEFHJ" if current else "DEF")):
+            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version == "2.6.0" else "DEFHJ" if current else "DEF")):
                 errors.append(ImportMessage(
                     "EXB01_FGD_BATCH_BOUNDARY_REQUIRED",
                     "该碳酸盐组分数据没有落在明确的 A/B 批次合并组或新批次边界内。",
@@ -1463,7 +1483,7 @@ class AppendixBWorkbookImporter:
             amount = reader.number(workbook, "B.7", f"B{start}", errors, field_label="本批整剂净耗量")
             active_columns = "DEFHJKL" if explicit_ratios else "DEFHJ"
             active_rows = [row for row in range(start, end + 1)
-                           if any(_has_value(ws[f"{col}{row}"]) for col in active_columns)]
+                           if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in active_columns)]
             if amount is None and batch_name is None and not active_rows:
                 continue
             if not batch_name or amount is None:
