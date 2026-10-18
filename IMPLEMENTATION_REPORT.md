@@ -1,6 +1,6 @@
 # B-FGD 实施报告
 
-日期：2026-10-18。状态：生产实现收口，进入最终统一head验证与源独立验收；不自行合并。PR49材料已合并，基线main为1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e。本报告替换当前工作包报告，PR49原报告和失败历史仍可从Git及PR49收口恢复，不复制成第二路线。
+日期：2026-10-18。状态：生产实现收口，进入最终统一head验证与源独立验收；不自行合并。PR49材料已合并，基线main为1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e。最后生产提交为bc55cdcb8c2c2b09ffcf83d86dd64fa998cd95d3；最终head另含治理/测试补充，以当前PR与本地摘要冻结。本报告替换当前工作包报告，PR49原报告和失败历史仍可从Git及PR49收口恢复，不复制成第二路线。
 
 ## 平台 / Contract 预检查
 
@@ -35,6 +35,8 @@ C单写公共消费者/模板/资源/构建/治理及整链；M只提交test_b_f
 | python -B -m unittest tests.test_exb01_ingress.AppendixBIngressIntegrationTests.test_ambient_low_precision_does_not_change_canonical_input_or_result tests.test_exb01_template_acceptance -v | 6/6，1.767s | 修复入站身份确定性及新栏可编辑，tmp/fgd-ingress-identity.log |
 | python -B -m scripts.project_fgd_rules；python -B -m scripts.project_appendix_b_v8 | PASS | 同源资源及v8机械原字节核验 |
 | 既有审阅validator/builder/fixture/checks pipeline | 25/25场景、意见0→0、29/21/11行、652组合/450条件，hash核验PASS | 同版本四件套机械重生；不扩大审阅范围/不改变Canonical规则 |
+
+补充阶段联合30模块352/352，361.249s（tmp/fgd-5af702d-joint.log，生产断点5af702d及当时治理工作区，不能背书随后bc55兼容补强）；源要求的真实重复导入/两独立SQLite项目隔离反例1/1，6.690s（test_b_fgd_chain.py:test_reimport_keeps_ingress_identity_but_saved_projects_have_independent_unit_ids）。同填表入站键可相同，保存后project_id/unit_id各自不同；来源importer_unit_id只作定位，两个项目重开成功且零Record。不改现有项目存储实现。
 
 ArtifactTool实际导入并渲染旧v7/newv8 B.7，新增栏可读、源模板其余部件一致；不是原生Office人工验收。最终同head联合组、GitHub Actions全量/exact-head构建与下载实包证据必须实际完成后分别登记于当前PR和本地摘要；旧PR49 CI256仅背书材料受验head，不当本包结果。
 

@@ -320,3 +320,39 @@ class FGDChainTests(unittest.TestCase):
             self.assertTrue(all(component.component_id for component in new.fgd_units[0].components))
             self.assertEqual(gui.calculator.calculate(new).result.total_amount,Decimal("3.492"))
             self.assertEqual(len(records.list_all()),0)
+
+    def test_reimport_keeps_ingress_identity_but_saved_projects_have_independent_unit_ids(self):
+        with self.page() as (gui,projects,root,shell,records):
+            self.prepare(gui)
+            workbook=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()))
+            for cell,value in {"A3":"重复导入批次","B3":10,"J3":"缺省值","K3":"缺省值","L3":"缺省值"}.items():workbook["B.7"][cell]=value
+            path=root/"同一填表文件.xlsx";workbook.save(path);workbook.close()
+            page=shell.pages[AppRoute.EXCEL_IMPORT]
+            page.import_enterprise_name.setText("同一企业")
+            page.import_period_type.setCurrentIndex(page.import_period_type.findData("ANNUAL"))
+            page.import_period_start.setText("2026-01-01")
+            page.import_period_end.setText("2026-12-31")
+            page.import_boundary_confirmed.setChecked(True)
+            saved=[];parsed=[]
+            for name in ("独立项目甲","独立项目乙"):
+                page._preview_workbook(path)
+                preview=page._last_preview
+                self.assertIsNotNone(preview)
+                self.assertTrue(preview.units[0].can_calculate,preview.units[0].errors)
+                parsed.append(preview.units[0])
+                page.project_name.setText(name)
+                with patch.object(QMessageBox,"warning",side_effect=AssertionError("独立项目保存不应碰撞")):
+                    page._save_preview_as_project()
+                saved.append(page._workspace)
+            self.assertEqual(parsed[0].unit_id,parsed[1].unit_id)
+            self.assertEqual(parsed[0].input_value,parsed[1].input_value)
+            self.assertNotEqual(saved[0].project_id,saved[1].project_id)
+            self.assertNotEqual(saved[0].units[0].unit_id,saved[1].units[0].unit_id)
+            for workspace in saved:
+                self.assertNotEqual(workspace.units[0].unit_id,parsed[0].unit_id)
+                self.assertEqual(workspace.units[0].ingress_provenance["accounting_unit"]["importer_unit_id"],parsed[0].unit_id)
+            reopened=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite"))
+            self.assertEqual(len(reopened.list_all()),2)
+            for workspace in saved:
+                self.assertEqual(reopened.get(workspace.project_id).units[0].canonical_input,parsed[0].input_value)
+            self.assertEqual(len(records.list_all()),0)
