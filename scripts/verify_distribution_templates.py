@@ -87,4 +87,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     proof = verify_distribution_templates(Path(__file__).resolve().parents[1], args.output_dir)
     print(f"distribution-templates: PASS ({len(proof['templates'])} actual templates; wheel, sdist, installed bytes)")
-

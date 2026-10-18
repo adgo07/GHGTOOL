@@ -53,4 +53,3 @@ if __name__ == "__main__":
     parser.add_argument("--expected-docx", type=Path, required=True)
     args = parser.parse_args()
     print(json.dumps(verify(args.records, args.record_id, args.expected_docx), ensure_ascii=False))
-

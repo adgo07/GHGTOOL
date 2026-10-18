@@ -107,6 +107,10 @@
       "seconds": "49.652",
       "log": "tmp/b-fume/hour-related-pass.log",
       "reason": "验证脚本替换import sys误改探针字符串导致语法错；修正脚本并编译后最终135通过，不改业务算法"
+    },
+    "hour_commit_diffcheck": {
+      "reason": "首次暂存diffcheck提示两个新脚本EOF多余空行；提交命令未据此提前退出，随后独立提交规范化并重新通过，业务字节语义不变",
+      "production_head_before_whitespace": "2b5da78218649ac61bfb63f068a3e90a03e06ab5"
     }
   },
   "source_text_lf_sha256": {
@@ -118,8 +122,8 @@
     "tests/test_b_fume_chain.py": "e8f07fbca6d63ab652301ea4f5e58b8bdfb00457f766d63153cd753f3d1152e1",
     "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
     "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560",
-    "scripts/verify_distribution_templates.py": "ff51d054eaf63f5e87d96f53c077ccea9b30f3536f854ad7ee1e151a82379487",
-    "scripts/verify_frozen_record_word.py": "ebbd0a5890e51097056747bbe5da6310fdc7084e64c59037577eba352e70b535"
+    "scripts/verify_distribution_templates.py": "c1c703f69e402135fd6a4ed2095cd4fc922db7a7d574dc3968b50df00f9519d7",
+    "scripts/verify_frozen_record_word.py": "bd395251a35cd298aafc59f86adf2fc685f049a2fc308e76ca9653e94a09433e"
   },
   "template": {
     "version": "2.7.0",
