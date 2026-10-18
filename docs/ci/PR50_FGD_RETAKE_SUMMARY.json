@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "scope": "PR50 F01-F03定向退修；固定受验对象，不以摘要自身提交作为制品身份",
+  "fixed_tested_commit": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+  "status": "固定生产对象已完成本地/CI263/实际包核验，待源独立最终复验；不合并",
+  "baseline": {
+    "fixed_head": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+    "scope": "原已检范围证据；本轮F01-F03重新OPEN，不外推为本轮通过",
+    "ci": {
+      "status": "SUCCESS",
+      "run_id": 39088760183,
+      "run_number": 262,
+      "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39088760183",
+      "expected_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "merge_job_id": 117560773183,
+      "merge_tests": 883,
+      "merge_passed": 883,
+      "merge_failures": 0,
+      "merge_errors": 0,
+      "merge_seconds": "1462.601",
+      "merge_conclusion": "SUCCESS",
+      "tested_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "standalone_job_id": 117565678257,
+      "merge_command": "python -m unittest discover -s tests -t . -v",
+      "gui_scenarios": "PASS",
+      "scale_1_25": "PASS",
+      "scale_1_5": "PASS",
+      "standalone_conclusion": "SUCCESS",
+      "standalone_g08_tests": 17,
+      "standalone_g08_seconds": "6.363",
+      "standalone_g08_command": "python -m unittest tests.test_g08_delivery -v",
+      "release_audit_files": 277,
+      "release_archive_visible_files": 278,
+      "smoke_isolated_starts": 2
+    },
+    "artifact": {
+      "id": 12122323716,
+      "name": "QingzhouCarbonAccounting-a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "size": 59850646,
+      "github_digest": "sha256:2d3bb53da206319e00e76ee6b365ec9b2cc5d7f045e5b44b1f8277a8d483f071"
+    },
+    "artifact_hashes": {
+      "zip_sha256": "2d3bb53da206319e00e76ee6b365ec9b2cc5d7f045e5b44b1f8277a8d483f071",
+      "manifest_sha256": "3f9314585358cdcb4325368f3fdfa1ce28689dad231d78fe902863ca5ece3830",
+      "exe_sha256": "a1bc0fb707ff0acef4a6539b7b53e9bb527c11c1eea3488ed0328c9d0862f05b",
+      "source_commit": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "pr_head_sha": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+      "tested_merge_sha": "d41196191b9c1c4a27c0a078a985b24a74dbe506",
+      "manifest_entries": 277,
+      "pe_files": 129
+    }
+  },
+  "reproduction": {
+    "head": "a6830e98f3e41f8748dfd86bfcefa58603fab150",
+    "evidence_file": "PR50_FGD_A683_REPRO.json",
+    "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes -v",
+    "tests": 14,
+    "failures": 3,
+    "seconds": "87.790",
+    "boundary": "首次直接导入TestCase额外发现11项原链测试；其后改模块别名避免重复发现。F01/F02均实际生成错误Record1，F03实际新窗口/服务显示丢失。"
+  },
+  "local_validation": {
+    "affected": {
+      "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes tests.test_b_fgd_legacy_templates tests.test_g06_fgd_ui tests.test_accounting_projects_ui tests.test_exb01_ingress tests.test_main_integration_excel tests.test_business_rules_candidate_assets tests.test_pr46_parameter_source_policy tests.test_exb01_rpt02_integration -v",
+      "tests": 126,
+      "passed": 126,
+      "seconds": "355.499",
+      "execution_boundary": "提交前工作区；与本轮生产源内容一致，不冒称从最终head启动",
+      "log": "tmp/fgd-final-evidence/retake-affected-joint.log"
+    },
+    "boundaries": {
+      "tests": 28,
+      "passed": 28,
+      "seconds": "229.747",
+      "log": "tmp/fgd-final-evidence/retake-boundaries.log"
+    },
+    "f02_direct_application": {
+      "command": "python -B -m unittest tests.test_b_fgd_acceptance_fixes.FGDAcceptanceFixTests.test_f02_identity_only_excel_component_is_not_ignored -v",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "8.586",
+      "formal_success_for_incomplete": false,
+      "records_for_incomplete": 0,
+      "completed_total": "2.8174",
+      "log": "tmp/fgd-final-evidence/retake-f02-formal.log"
+    }
+  },
+  "source_files_sha256": {
+    "packages/ui/carbon_material_page.py": "280007fd10547346e9d3fab492496a890351182e7b533403a05ca81e2410ce54",
+    "packages/excel/appendix_b.py": "9ea9a6d7ff218abb203336187f6e5c35402709996981f2e08844c95be00331f9",
+    "tests/test_b_fgd_acceptance_fixes.py": "fdfa0377f3f3b05c04debf11dbebce84c3cde5400517ca0a0bb6484a8b1d68c5"
+  },
+  "ci252_original_sha256": "92d63cff11f5ecbf9ec002f0a5fad7646197c9d72b7fe267794a338630858f17",
+  "ci252_fixed_history": "CI252_SUMMARY.json",
+  "current_pr": "https://github.com/adgo07/GHGTOOL/pull/50",
+  "current_ci_checks": "https://github.com/adgo07/GHGTOOL/pull/50/checks",
+  "not_run": [
+    "原生Office保存回导",
+    "真实鼠标/中文IME/人工DPI",
+    "企业样例",
+    "干净目标机",
+    "商业许可履约"
+  ],
+  "merge_status": "NOT_MERGED",
+  "evidence_document_note": "本摘要只记录固定b4源码/测试、CI263和artifact12125193590。摘要后续提交不是该制品head，不回写固定对应关系；最新PR文档head可与b4比较确认仅此证据文件变动。",
+  "ci": {
+    "run_id": 39096094622,
+    "run_number": 263,
+    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39096094622",
+    "status": "SUCCESS",
+    "tested_merge_sha": "f463da7a6483a325199af450cae1ddb9e096811a",
+    "merge_job_id": 117582745841,
+    "merge_command": "python -m unittest discover -s tests -t . -v",
+    "merge_tests": 893,
+    "merge_passed": 893,
+    "merge_failures": 0,
+    "merge_errors": 0,
+    "merge_seconds": "1596.011",
+    "standalone_job_id": 117587728200,
+    "standalone_g08_command": "python -m unittest tests.test_g08_delivery -v",
+    "standalone_g08_tests": 17,
+    "standalone_g08_seconds": "8.504",
+    "canonical_compile_dependencies_database_gui_scales": "PASS for both jobs",
+    "release_audit_files": 277,
+    "release_archive_visible_files": 278,
+    "smoke_isolated_starts": 2
+  },
+  "artifact": {
+    "id": 12125193590,
+    "name": "QingzhouCarbonAccounting-b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+    "size_in_bytes": 59853848,
+    "github_digest": "sha256:700957818c28abf7a06788a3d20ed305b93b97fb0316d989722aa8512b76a16a",
+    "download_and_upload_digest_match": true,
+    "audit": {
+      "zip_sha256": "700957818c28abf7a06788a3d20ed305b93b97fb0316d989722aa8512b76a16a",
+      "zip_size": 59853848,
+      "manifest_sha256": "e771a0f3330290a02f89ab85002343501923e31a5f31a806bba3f84bb236ddd9",
+      "exe_sha256": "04f9dbf2ed6a3290d374fa51abf010ca6a3aa0816ef882307d6161041a0bfdd3",
+      "source_commit": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+      "pr_head_sha": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+      "tested_merge_sha": "f463da7a6483a325199af450cae1ddb9e096811a",
+      "manifest_entries": 277,
+      "visible_files": 278,
+      "all_sizes_and_hashes_match": true,
+      "pe_files": 129,
+      "normal_and_delay_import_names": 114,
+      "virtualkeyboard_paths_or_imports": 0,
+      "iapws_paths": 0,
+      "qt_dlls": [
+        {
+          "path": "PySide6/Qt6Core.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Gui.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Network.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6OpenGL.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Pdf.dll",
+          "versions": [
+            "6.140.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Qml.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlMeta.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlModels.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlWorkerScript.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Quick.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Svg.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Widgets.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        }
+      ],
+      "qt_plugin_dlls": [
+        "PySide6/plugins/generic/qtuiotouchplugin.dll",
+        "PySide6/plugins/iconengines/qsvgicon.dll",
+        "PySide6/plugins/imageformats/qgif.dll",
+        "PySide6/plugins/imageformats/qicns.dll",
+        "PySide6/plugins/imageformats/qico.dll",
+        "PySide6/plugins/imageformats/qjpeg.dll",
+        "PySide6/plugins/imageformats/qpdf.dll",
+        "PySide6/plugins/imageformats/qsvg.dll",
+        "PySide6/plugins/imageformats/qtga.dll",
+        "PySide6/plugins/imageformats/qtiff.dll",
+        "PySide6/plugins/imageformats/qwbmp.dll",
+        "PySide6/plugins/imageformats/qwebp.dll",
+        "PySide6/plugins/networkinformation/qnetworklistmanager.dll",
+        "PySide6/plugins/platforms/qdirect2d.dll",
+        "PySide6/plugins/platforms/qminimal.dll",
+        "PySide6/plugins/platforms/qoffscreen.dll",
+        "PySide6/plugins/platforms/qwindows.dll",
+        "PySide6/plugins/styles/qmodernwindowsstyle.dll",
+        "PySide6/plugins/tls/qcertonlybackend.dll",
+        "PySide6/plugins/tls/qopensslbackend.dll",
+        "PySide6/plugins/tls/qschannelbackend.dll"
+      ]
+    },
+    "post_business_proof_release_audit": "PASS 277 files unchanged",
+    "rule_and_template_bytes_match_source": true
+  },
+  "actual_package_proof": {
+    "package_source_commit": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+    "exe_sha256": "04f9dbf2ed6a3290d374fa51abf010ca6a3aa0816ef882307d6161041a0bfdd3",
+    "execution": "EXE_PYZ_CODE_WITH_PACKAGED_RESOURCES_NOT_NATIVE_UI",
+    "no_business_source_fallback": true,
+    "algorithm": "CAR-SM01-2026-10-18-FGD.1",
+    "fgd_policy": {
+      "adoption_id": "GHGTOOL_FGD_R11_V1",
+      "resource_sha256": "560c7151e797c47aeb0da698440ed773d1335d8498fbda35aac9e2781fa7bce7",
+      "adopted_fields": [
+        "fgd.conversion",
+        "fgd.factor",
+        "fgd.ratio"
+      ],
+      "sources": [
+        {
+          "rule_set_id": "qz.carbon_accounting.common.gbt_32150_2025",
+          "revision": "pr46-integration-2026-10-17-g05",
+          "sha256": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c"
+        },
+        {
+          "rule_set_id": "qz.carbon_accounting.industry.gbt_32151_34_2024",
+          "revision": "adoption-2026-10-17-fuel-power1",
+          "sha256": "bfd443404a86a4f469b901e92236ec9a11ad4863975eff7cd3bae6498a5f31d7"
+        },
+        {
+          "rule_set_id": "qz.carbon_accounting.software_policy",
+          "revision": "adoption-2026-10-17-fuel-power1",
+          "sha256": "26007853c2dc53a0f1398564e61ee0245bdfe314619af9ccef0f21fa19adca4d"
+        }
+      ]
+    },
+    "mixed_result": "2.81740",
+    "two_batch_result": "11.88000",
+    "missing_value_blocked": true,
+    "wrong_binding_blocked": true,
+    "legacy_v1_unequal_amount_blocked": true,
+    "legacy_template_cases": [
+      {
+        "version": "1.0.0",
+        "input": "appendix_b_v1.xlsx",
+        "fixture_only": true,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "1.0.0",
+        "input": "appendix_b_v1.xlsx",
+        "fixture_only": true,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.0.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v2.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.0.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v2.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.1.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v3.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.1.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v3.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.2.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v4.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.2.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v4.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.3.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v5.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.3.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v5.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.4.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v6.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.4.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v6.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      },
+      {
+        "version": "2.5.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v7.xlsx",
+        "fixture_only": false,
+        "ratios": "filled",
+        "result": "3.9600"
+      },
+      {
+        "version": "2.5.0",
+        "input": "gb_t_32151_34_2024_appendix_b_v7.xlsx",
+        "fixture_only": false,
+        "ratios": "blank",
+        "result": "3.96000"
+      }
+    ],
+    "legacy_invalid_rejected": true,
+    "legacy_wrong_binding_rejected": true,
+    "v8_explicit_blank_rejected": true,
+    "legacy_formal_result": "3.96000",
+    "legacy_word_template_version": "2.5.0",
+    "legacy_word_default_sources_frozen": true,
+    "legacy_word_sha256": "fc8e2152a0d3f26dc3d69a6eabcf5267c5b3628847730b93891154649b135032",
+    "actual_pr49_record_and_word_unchanged": true,
+    "records": 3,
+    "word_bytes": 42125,
+    "word_sha256": "477b9a449cf700017cce43f996f0c426fa956865a223eae4a1279a20215d0210",
+    "qt_runtime_from_package": true,
+    "qt_execution": "PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_USER_INTERACTION",
+    "f01_incomplete_canonical_batches": 2,
+    "f01_incomplete_records": 0,
+    "f01_completed_total": "11.88000",
+    "f02_incomplete_components_retained": true,
+    "f02_incomplete_formal_rejected": true,
+    "f02_incomplete_records": 0,
+    "f02_completed_total": "2.81740",
+    "f03_real_new_window_and_service": true,
+    "f03_facility_id": "c2fef16f8eed4779adc63458c26f5de4",
+    "f03_facility_name": "脱硫设施 3",
+    "f03_shared_two_batches": true,
+    "f03_source_draft": "75",
+    "f03_cancel_upgrade_unchanged": true,
+    "qt_records": 2,
+    "evidence_boundary": "实际EXE/PYZ业务代码、包内Qt运行库与资源；程序化offscreen，不是原生人工Office/鼠标/IME/DPI验收。Domain/Excel合成records3，另一个Qt合成库records2；F01/F02未完阶段各绝对0Record。",
+    "command": "python -B tmp/fgd-retake-evidence/package_code_proof_retake.py tmp/fgd-retake-evidence/ci263-package tmp/fgd-retake-evidence/package-proof-ci263 tmp/fgd-final-evidence/historical-record tests/fixtures/exb01/appendix_b_v1.xlsx",
+    "log": "tmp/fgd-retake-evidence/package-proof-ci263.log"
+  },
+  "package_environment_precheck": {
+    "scope": "复用既有a683 CI262包预检宿主Qt方式；不是新b4结果，不重建旧包",
+    "qtwidgets_from_existing_package": true,
+    "f01_existing_package_canonical_batches": 1,
+    "f01_existing_package_records": 1,
+    "log": "tmp/fgd-retake-evidence/a683-bundle-environment.log"
+  }
+}

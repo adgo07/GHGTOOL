@@ -59,8 +59,8 @@ from packages.standards.carbon_material_normalization import (
 )
 
 
-CANONICAL_INPUT_CODEC_VERSION = 2
-SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2)
+CANONICAL_INPUT_CODEC_VERSION = 3
+SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3)
 _CODEC_ID = "ghgtool.carbon_material_input"
 
 
@@ -227,12 +227,12 @@ def _decode_value(value: object) -> object:
         compatible_optional_fields = {
             "electricity_consumption_detail": {"region", "selected_factor_id", "factor_selection_reason", "factor_override"},
             "electricity_output_line": {"region"},
-            "fgd_input": {"reagent_name"},
+            "fgd_input": {"reagent_name", "facility_id", "facility_name", "batch_id", "execution_version"},
             "calcination_input": {"instance_name"},
             "baking_input": {"instance_name"},
             "graphitization_input": {"instance_name"},
             "fuel_input": {"origin", "catalog_subject_id"},
-            "carbonate_component": {"origin"},
+            "carbonate_component": {"origin", "component_id"},
             "carbon_material_input": {"material_execution_version"},
             "material_input_line": {"mass_basis", "composition_basis", "moisture_received_percent",
                                     "conversion_method", "fixed_carbon_unit", "volatile_matter_unit"},
@@ -240,7 +240,7 @@ def _decode_value(value: object) -> object:
         missing_fields = declared_fields.difference(encoded_fields)
         if set(encoded_fields).difference(declared_fields) or not missing_fields.issubset(compatible_optional_fields):
             raise CanonicalInputCodecError(f"fields do not match {node['type']} schema")
-        defaults = {"material_execution_version": "MATERIAL_V1", "mass_basis": "RECEIVED",
+        defaults = {"execution_version": "FGD_V1", "material_execution_version": "MATERIAL_V1", "mass_basis": "RECEIVED",
                     "composition_basis": "RECEIVED", "fixed_carbon_unit": "%", "volatile_matter_unit": "%"}
         for name in missing_fields:
             encoded_fields[name] = defaults.get(name)
@@ -301,7 +301,7 @@ def decode_canonical_input(payload: str) -> CarbonMaterialInput:
         raise CanonicalInputCodecError("invalid canonical input envelope")
     if document["codec"] != _CODEC_ID:
         raise CanonicalInputCodecError("unrecognized canonical input codec")
-    if type(document["version"]) is not int or document["version"] not in {1, CANONICAL_INPUT_CODEC_VERSION}:
+    if type(document["version"]) is not int or document["version"] not in SUPPORTED_INPUT_CODEC_VERSIONS:
         raise CanonicalInputCodecError("unsupported canonical input codec version")
     try:
         input_value = _decode_value(document["value"])

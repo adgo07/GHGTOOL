@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-17（PR46收口后B-MATERIAL有限并行实施）
+最后更新：2026-10-18（PR49材料收口后B-FGD实施）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -353,13 +353,12 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 
 ## 8. 当前阶段与下一步
 
-- PR46已合并、PR45已关闭；原五字段及四项退修收口作为保护基线，固定历史报告保持原样。PR47/A的R11有效Mapping和Owner决定保留；候选READY不等于全部业务已生产接管。
-- Owner批准2026-10-17 V2有限并行实施输入，当前唯一正式出口是B-MATERIAL完整链。C独占公共文件；M只写材料归一化和专属测试；F烟气模块只准备不进入本包；N只读基线测量，不顺手优化。
-- 本包落实material.fixed_carbon/volatile_matter、合法收到基换算与018角色表达，必要GUI/Excel/Canonical/项目版本/Record/Word共同演进。具体专业依据仍以原Mapping和有效台账决定为准，不复制V2为第二路线。
-- 已从origin/main建立隔离分支。Owner已授权仓库转私有、push、私有PR49及GitHub Actions CI，取代此前本地提交限制；不授权公开上传或商业发布。包末交源会话独立验收，不合并、不自动进入下包。
-- 依赖和实际包体许可预检查并行，不构成法律或销售放行；不引入iapws/不自动替换017、不购买许可、不正式申请专利软著。
-- v5原生Excel/WPS、真实鼠标/中文输入/人工DPI/企业样例仍OPEN；v6及来源文案修订v7模板需按最终交付版本另验，不借v4历史证据或离屏测试替代。
-- RS04 Golden/RS05 Release及SUPPORTED仍须各自授权与Gate；中央Frozen及platform-lock保持不变。
+- PR46/PR47及PR49已合并，PR45已关闭；PR49 F01/F02/F03、v7/2.5.0、材料完整链及CI256证据为保护基线，不能背书新脱硫包。
+- Owner批准V2作为既有路线内实施输入，当前唯一正式出口是B-FGD完整链。C独占公共消费者/资源/构建/治理；M只写脱硫专属测试；F烟气只准备且已停止，N不启动新采样。具体分工见TASK_STATE。
+- 按Mapping §9.1/9.3与016落实fgd.ratio/factor/conversion同源、按批整剂分母及必要GUI/B.7/Canonical/项目/Record/Word链，不另解释专业公式或来源资格。
+- 最新main独立工作树与codex分支；私有push/PR/CI授权沿用，最终head及实际包送源独立验收后停止，不自行合并/进入烟气或热力。
+- v7不能表达I/TR已选实测空白，本包必要机械演进v8/2.6.0；旧v2—v7原字节保留。原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机与许可履约仍OPEN，不CU/不商业发布。
+- 唯一产品路线不变，RS04/RS05及SUPPORTED仍须各自授权与Gate；中央Frozen和platform-lock不升级。
 
 ## 9. 相关治理登记项的归属
 
@@ -395,4 +394,4 @@ GHG-UAT03 V2已作为PR37合并基线 `708f78a455790946b4a728029bba768d8fb295fc`
 
 ### 当前授权内部工作包：标准业务规则统一
 
-Owner批准V1.2及后续V2作为既有RS01/RS02/RS03路线内实施输入。A已通过PR47合并，燃料B1/电力B及PR46退修已合并；当前B-MATERIAL及限定F/N准备见第8节和TASK_STATE。一个业务包送验后停止，不新增产品阶段、不启动第二真实行业、不升级SUPPORTED。
+Owner批准V1.2及后续V2作为既有RS01/RS02/RS03路线内实施输入。A已通过PR47合并，燃料B1/电力B及PR46退修已合并；PR49材料已收口，当前B-FGD及限定F准备见第8节和TASK_STATE。一个业务包送验后停止，不新增产品阶段、不启动第二真实行业、不升级SUPPORTED。

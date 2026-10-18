@@ -212,7 +212,7 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
     return tuple(rules)
 
 
-def _verified_fuel_power_bindings(repository: CatalogRepository) -> tuple[ReferenceBindingEvidence, ...]:
+def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd: bool = False) -> tuple[ReferenceBindingEvidence, ...]:
     """Prove associations from actual catalog rows, not text or non-empty IDs."""
     from packages.standards.carbon_material import STANDARD_ID
     from packages.standards.carbon_material_business_policy import adopted_binding_conditions
@@ -224,6 +224,13 @@ def _verified_fuel_power_bindings(repository: CatalogRepository) -> tuple[Refere
         "electricity.factor": ParameterType.ELECTRICITY_EMISSION_FACTOR,
     }
     conditions = [(field, tags) for field in field_types for tags in adopted_binding_conditions(field)]
+    if include_fgd:
+        from packages.standards.carbon_material_business_policy import fgd_binding_conditions
+        fgd_types = {"fgd.ratio": ParameterType.PROCESS_DEFAULT_PARAMETER,
+                     "fgd.factor": ParameterType.PROCESS_CO2_FACTOR,
+                     "fgd.conversion": ParameterType.PROCESS_DEFAULT_PARAMETER}
+        conditions.extend((field, tags) for field in fgd_types for tags in fgd_binding_conditions(field))
+        field_types.update(fgd_types)
     parameters = {item.parameter_id: item for item in repository.list_parameters()}
     factors = {item.factor_id: item for item in repository.list_factors()}
     assets = {item.asset_id: item for item in repository.list_reference_data_assets()}
@@ -258,7 +265,16 @@ def _verified_fuel_power_bindings(repository: CatalogRepository) -> tuple[Refere
                 continue
             if parameter.parameter_type is not field_types[field]:
                 continue
-            if field.startswith("fuel."):
+            if field.startswith("fgd."):
+                expected_table = "tab-32151-34-c2" if field == "fgd.factor" else "tab-32151-34-5252"
+                expected_type = ValueType.STANDARD_SPECIFIED if field == "fgd.factor" else ValueType.STANDARD_DEFAULT
+                expected_unit = "tCO2/t" if field == "fgd.factor" else "ratio"
+                valid = (table.source_table_id == expected_table and table.source_id == standard.official_source_id
+                         and binding.asset_id == "asset-" + binding.binding_id.removeprefix("binding-")
+                         and factor.value_type is expected_type and factor.unit == expected_unit
+                         and asset.unit == expected_unit and factor.factor_year == 2024
+                         and binding.valid_from == factor.valid_from and binding.valid_to == factor.valid_to)
+            elif field.startswith("fuel."):
                 valid = table.display_number == "C.1" and table.source_id == standard.official_source_id
             elif "catalog_table" in tags:
                 valid = table.display_number == "表" + tags["catalog_table"]
@@ -291,7 +307,7 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
     from packages.standards.carbon_material import STANDARD_ID
 
     common, industry = default_g05_rules()
-    verified_bindings = _verified_fuel_power_bindings(repository)
+    verified_bindings = _verified_fuel_power_bindings(repository, include_fgd=True)
     verified_factor_ids = {item.factor_id for item in verified_bindings}
     unverified_binding_factor_ids = {
         item.factor_id for item in repository.list_reference_data_bindings()

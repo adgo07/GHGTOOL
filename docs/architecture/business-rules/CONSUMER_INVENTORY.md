@@ -35,4 +35,11 @@ Report Schema的结构、类型、版本、必填性及渠道投影仍有必要�
 
 `MATERIAL_V2`的煅烧输出直接消费`output_carbon_cc/ucc/du/total`，不经过跨角色wfc_c平均。旧wfc_c键仅`MATERIAL_V1`明确组合和原scalar共同含量入口保留兼容；未知组合不可正式执行，读取不补默认。旧项目的明确升级保留原输入副本/另存Canonical项目，取消不写回。Record冻结原行与收到基采用值，B.3—B.5/Word只读同Record Trace采用事实，不重算或回查目录。
 
-烟气专属分段模块仅在独立F分支准备，不在本材料包生产采用。脱硫/热力/外部CO₂及其余R11消费者留后续明确包，不因候选READY宣布已接管。
+烟气专属分段模块仅在独立F分支准备，不在本材料包生产采用。热力/外部CO₂及其余R11消费者留后续明确包，不因候选READY宣布已接管。
+
+
+## B-FGD 当前消费者增量
+
+FGD资格/默认/锁定由fgd.json三字段机械投影及evaluate_fgd_field唯一提供。resolve_fgd_field返回同次真实Resolver的context/factor/resolution；生产装配只核验对应13项真实来源绑定，保留其他unverified门禁。parameter_source_policy为薄适配，不再持有FGD手写资格；旧Calculator私有绑定筛选和旧Excel空值默认实现退出。
+
+Domain按批整剂分母校验，FGD_V2尾字段表达设施/批次/组分；GUI和v8 B.7进入同一Canonical/Application。codec3兼容1/2，旧输入不补键，显式升级保留原输入；projects.sqlite与不可变records.sqlite继续分开。新Word读取冻结输入/参数/来源，不查询当前Catalog。原燃料/电力和材料采用身份原样保留，烟气等未接管。完成状态及真实测试以TASK_STATE/当前PR为准。

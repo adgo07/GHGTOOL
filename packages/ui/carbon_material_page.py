@@ -6,6 +6,8 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_business_policy import resolve_fgd_field
+
 from packages.standards.carbon_material_business_policy import fuel_source_context
 from packages.standards.carbon_material_input_policy import InputOrigin, parameter_source_policy, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS, SUPPORTED_STEAM_KINDS, FUEL_QUANTITIES, match_fuel_option
 
@@ -1729,13 +1731,13 @@ class CarbonMaterialAccountingPage(BasePage):
             for row in self._fuel_rows
         ]
         values["fgd_carbonate_texts"] = {
-            str(component.get("component_id")): component["carbonate_type"].currentText()
+            self._fgd_state_key(unit, component): component["carbonate_type"].currentText()
             for unit in self._process_rows.get("fgd", ())
             for component in unit.get("components", ())
             if isinstance(component, dict) and component.get("component_id") and isinstance(component.get("carbonate_type"), QComboBox)
         }
         values["fgd_carbonate_confirmations"] = {
-            str(component.get("component_id")): {
+            self._fgd_state_key(unit, component): {
                 "confirmed_name": component.get("confirmed_name", ""),
                 "legacy_custom_identity": bool(component.get("legacy_custom_identity")),
             }
@@ -1744,7 +1746,7 @@ class CarbonMaterialAccountingPage(BasePage):
             if isinstance(component, dict) and component.get("component_id")
         }
         values["fgd_factor_provenance"] = {
-            str(component.get("component_id")): {
+            self._fgd_state_key(unit, component): {
                 "mode": component.get("factor_mode"),
                 "factor_id": component.get("catalog_factor_id"),
                 "legacy_custom_identity": bool(component.get("legacy_custom_identity")),
@@ -1754,7 +1756,7 @@ class CarbonMaterialAccountingPage(BasePage):
             if isinstance(component, dict) and component.get("component_id")
         }
         values["fgd_ratio_modes"] = {
-            str(component.get("component_id")): {
+            self._fgd_state_key(unit, component): {
                 field: mode.currentData()
                 for field in ("i", "tr")
                 if isinstance((mode := component.get(f"{field}_source")), QComboBox)
@@ -1825,9 +1827,73 @@ class CarbonMaterialAccountingPage(BasePage):
             "unresolved": getattr(self, "_material_drafts_unresolved", {}),
         }
         values["material_legacy_values_unresolved"] = getattr(self, "_material_legacy_values_unresolved", {})
+        values["fgd_legacy_unresolved"] = getattr(self, "_fgd_legacy_unresolved", {})
+        values["fgd_upgrade_original_state"] = getattr(self, "_fgd_upgrade_original_state", None)
+        values["fgd_source_drafts"] = {str(unit["instance_id"]): {
+            str(component["component_id"]): {"source_drafts": component.get("source_drafts", {}),
+                "identity_drafts": component.get("identity_drafts", {}), "business_touched": bool(component.get("business_touched"))}
+            for component in unit.get("components", ())} for unit in self._process_rows.get("fgd", ())}
+        values["fgd_identities"] = {str(unit["instance_id"]): {"facility_id": unit.get("facility_id"),
+            "facility_name": unit["facility_selector"].currentText() or unit.get("facility_name"),
+            "batch_id": unit.get("batch_id"), "execution_version": unit.get("execution_version", "FGD_V1")}
+            for unit in self._process_rows.get("fgd", ())}
         return values
 
+    @staticmethod
+    def _fgd_state_key(unit, component):
+        return json.dumps([str(unit["instance_id"]), str(component["component_id"])], separators=(",", ":"))
+
+    def _fgd_saved_entry(self, saved, unit, component, default=None):
+        key = self._fgd_state_key(unit, component)
+        if key in saved:
+            return saved[key]
+        old = str(component["component_id"])
+        count = sum(str(item["component_id"]) == old for row in self._process_rows.get("fgd", ()) for item in row.get("components", ()))
+        if count == 1:
+            return saved.get(old, default)
+        if old in saved:
+            unresolved = dict(getattr(self, "_fgd_legacy_unresolved", {}) or {})
+            projections = list(unresolved.get("projections", ()))
+            if saved not in projections:
+                projections.append(dict(saved))
+            unresolved["projections"] = projections
+            self._fgd_legacy_unresolved = unresolved
+            component["_widget"].setToolTip("历史脱硫来源与多个批次组分存在重复对应，原信息已保留待核实，未自动采用。")
+        return default
+
+    def _rebuild_fgd_facility_choices(self):
+        """Rebuild Presentation choices from all saved/used stable identities."""
+        rows = self._process_rows.get("fgd", ())
+        known_names = {}
+        for unit in rows:
+            selector = unit.get("facility_selector")
+            if isinstance(selector, QComboBox):
+                for index in range(selector.count()):
+                    known_names.setdefault(selector.itemData(index), selector.itemText(index))
+        facilities = {}
+        for unit in rows:
+            identifier = unit.get("facility_id")
+            if not identifier or identifier in facilities:
+                continue
+            name = unit.get("facility_name") or known_names.get(identifier)
+            unresolved = not bool(name)
+            facilities[identifier] = (name or f"已保存脱硫设施 {len(facilities)+1}（名称待核实）", unresolved)
+        for unit in rows:
+            selector = unit.get("facility_selector")
+            if not isinstance(selector, QComboBox):
+                continue
+            blocker = QSignalBlocker(selector)
+            selector.clear()
+            for identifier, (name, _unresolved) in facilities.items():
+                selector.addItem(name, identifier)
+            selector.setCurrentIndex(selector.findData(unit.get("facility_id")))
+            del blocker
+            selected = facilities.get(unit.get("facility_id"))
+            selector.setToolTip("旧项目未保存设施名称，原设施对应关系已保留，请核实名称。" if selected and selected[1] else "")
+            unit["facility_name"] = selector.currentText() or None
+
     def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
+        self._fgd_upgrade_original_state = state.get("fgd_upgrade_original_state")
         saved_modes = state.get("fgd_ratio_modes")
         if not isinstance(saved_modes, dict):
             saved_modes = {}
@@ -1838,6 +1904,13 @@ class CarbonMaterialAccountingPage(BasePage):
         if not isinstance(saved_legacy_names, list):
             saved_legacy_names = []
         legacy_project = bool(state and isinstance(state.get("process_instances"), dict))
+        # Assign all identities before building any selector, including facilities
+        # whose first owning batch was deleted. Do not select an unrelated first item.
+        for unit in self._process_rows.get("fgd", ()):
+            identity = state.get("fgd_identities", {}).get(str(unit.get("instance_id", "")), {})
+            unit.update({"facility_id": identity.get("facility_id"), "facility_name": identity.get("facility_name"),
+                         "batch_id": identity.get("batch_id"), "execution_version": identity.get("execution_version", "FGD_V1")})
+        self._rebuild_fgd_facility_choices()
         for unit in self._process_rows.get("fgd", ()):
             instance_id = str(unit.get("instance_id", ""))
             group_amount = unit.get("group_amount")
@@ -1873,12 +1946,25 @@ class CarbonMaterialAccountingPage(BasePage):
                         self._set_fgd_legacy_amounts(unit, True)
                     elif present and len(present) == len(amounts):
                         group_amount.setText(present[0])
+            identity = state.get("fgd_identities", {}).get(instance_id, {})
+            unit.update({"facility_id": identity.get("facility_id"), "batch_id": identity.get("batch_id"),
+                         "execution_version": identity.get("execution_version", "FGD_V1")})
+            if isinstance(unit.get("upgrade_button"), QPushButton):
+                unit["upgrade_button"].setVisible(unit["execution_version"] != "FGD_V2")
+            facility = unit.get("facility_selector")
+            if isinstance(facility, QComboBox):
+                index = facility.findData(unit["facility_id"])
+                facility.setCurrentIndex(index)
             components = unit.get("components", [])
             for component in components:
                 if not isinstance(component, dict):
                     continue
                 component_id = str(component.get("component_id", ""))
-                saved = saved_modes.get(component_id)
+                stored_drafts = state.get("fgd_source_drafts", {}).get(instance_id, {}).get(component_id, {})
+                component["source_drafts"] = stored_drafts.get("source_drafts", {})
+                component["identity_drafts"] = stored_drafts.get("identity_drafts", {})
+                component["business_touched"] = stored_drafts.get("business_touched") is True
+                saved = self._fgd_saved_entry(saved_modes, unit, component)
                 for field in ("i", "tr"):
                     mode_combo = component.get(f"{field}_source")
                     edit = component.get(field)
@@ -1896,6 +1982,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     self._refresh_fgd_factor_reference(component)
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
+        self._fgd_legacy_unresolved = state.get("fgd_legacy_unresolved", {})
         self._material_execution_version = state.get("material_execution_version", "MATERIAL_V1")
         self._material_upgrade_original_state = state.get("material_upgrade_original_state")
         self._restoring_workspace = True
@@ -2218,9 +2305,9 @@ class CarbonMaterialAccountingPage(BasePage):
                     selector = component.get("carbonate_type")
                     component_id = component.get("component_id")
                     component_key = str(component_id) if component_id else ""
-                    text = c2_texts.get(component_key, "")
-                    saved_confirmation = c2_confirmations.get(component_key, {})
-                    saved = c2_provenance.get(component_key, {})
+                    text = self._fgd_saved_entry(c2_texts, unit, component, "")
+                    saved_confirmation = self._fgd_saved_entry(c2_confirmations, unit, component, {})
+                    saved = self._fgd_saved_entry(c2_provenance, unit, component, {})
                     if not isinstance(saved_confirmation, dict):
                         saved_confirmation = {}
                     if not isinstance(saved, dict):
@@ -4105,7 +4192,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._process_rows_layout[prefix] = host_layout
         parent_layout.addWidget(host)
         buttons = QHBoxLayout()
-        add_button = QPushButton("新增脱硫剂种类" if prefix == "fgd" else f"新增{title.split('（')[0]}", host)
+        add_button = QPushButton("新增脱硫批次" if prefix == "fgd" else f"新增{title.split('（')[0]}", host)
         add_button.setObjectName(f"add_{prefix}_instance")
         add_button.clicked.connect(
             lambda _checked=False, _prefix=prefix: self._add_process_row(
@@ -4191,25 +4278,48 @@ class CarbonMaterialAccountingPage(BasePage):
             toolbar.insertWidget(1,process_name,1)
             row["instance_name"] = process_name
         if prefix == "fgd":
+            row.update({"facility_id": instance_id, "batch_id": uuid4().hex, "execution_version": "FGD_V2"})
             group_fields = QWidget(host)
             group_layout = QVBoxLayout(group_fields)
             group_layout.setContentsMargins(0, 0, 0, 0)
             name_row = QWidget(group_fields)
             name_layout = QHBoxLayout(name_row)
             name_layout.setContentsMargins(0, 0, 0, 0)
-            name_layout.addWidget(QLabel("脱硫剂名称", name_row))
+            name_layout.addWidget(QLabel("脱硫剂 / 批次名称", name_row))
             reagent_name = QLineEdit(name_row)
             reagent_name.setObjectName("fgdReagentNameInput" if first else f"fgd_{instance_id}_reagentName")
             reagent_name.setProperty("fieldSpecKey", "fgd.reagent_name")
-            reagent_name.setPlaceholderText("填写全厂实际使用的脱硫剂名称")
+            reagent_name.setPlaceholderText("填写本批次实际脱硫剂名称")
             reagent_name.setMaxLength(120)
             name_layout.addWidget(reagent_name, 1)
             self._wire_dirty_tracking(reagent_name)
             group_layout.addWidget(name_row)
+            facility_row = QHBoxLayout()
+            facility_row.addWidget(QLabel("所属脱硫设施", group_fields))
+            facility_selector = QComboBox(group_fields)
+            facility_selector.setObjectName(f"fgd_{instance_id}_facility")
+            seen_facilities = set()
+            for index, existing in enumerate((*rows, row), 1):
+                identifier = existing.get("facility_id")
+                if identifier and identifier not in seen_facilities:
+                    facility_selector.addItem(f"脱硫设施 {index}", identifier)
+                    seen_facilities.add(identifier)
+            facility_selector.setCurrentIndex(facility_selector.findData(row["facility_id"]))
+            facility_selector.currentIndexChanged.connect(lambda _index, _row=row, _combo=facility_selector: _row.update(facility_id=_combo.currentData(), facility_name=_combo.currentText() or None) if not self._restoring_workspace else None)
+            row["facility_selector"] = facility_selector
+            self._wire_dirty_tracking(facility_selector)
+            facility_row.addWidget(facility_selector, 1)
+            group_layout.addLayout(facility_row)
+            upgrade_button = QPushButton("确认采用脱硫批次输入", group_fields)
+            upgrade_button.setObjectName(f"fgd_{instance_id}_upgrade")
+            upgrade_button.clicked.connect(self._upgrade_fgd_rules)
+            upgrade_button.hide()
+            row["upgrade_button"] = upgrade_button
+            group_layout.addWidget(upgrade_button)
             group_amount_row = QWidget(group_fields)
             amount_layout = QHBoxLayout(group_amount_row)
             amount_layout.setContentsMargins(0, 0, 0, 0)
-            amount_layout.addWidget(QLabel("脱硫剂用量（t）", group_amount_row))
+            amount_layout.addWidget(QLabel("本批整剂净耗量（t）", group_amount_row))
             group_amount = create_typed_input(
                 group_amount_row, get_field_spec("fgd.cal"),
                 "fgdGroupAmountInput" if first else f"fgd_{instance_id}_groupAmount",
@@ -4357,6 +4467,8 @@ class CarbonMaterialAccountingPage(BasePage):
             row["flags"] = flags
         self._process_rows_layout[prefix].addWidget(host)
         rows.append(row)
+        if prefix == "fgd":
+            self._rebuild_fgd_facility_choices()
         remove_button.setVisible(len(rows) > 1)
         self._bind_process_aliases(prefix)
         self._refresh_repeat_delete_controls()
@@ -4748,24 +4860,99 @@ class CarbonMaterialAccountingPage(BasePage):
         except StopIteration:
             return -1
 
+    def _upgrade_fgd_rules(self):
+        answer = QMessageBox.question(self, "确认脱硫输入升级",
+            "将明确设施、批次与组分身份，按本批整剂净耗量核算。原输入副本保留，不补缺省值、不改历史记录。"
+            "旧组分用量不一致时，请先确认本批净耗量。取消保持原输入。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        if any(unit.get("legacy_component_amounts") for unit in self._process_rows.get("fgd", ())):
+            QMessageBox.information(self, "请先确认用量", "旧组分用量不一致，请先核实并填写本批整剂净耗量。")
+            return
+        original = self._capture_form_state()
+        original.pop("fgd_upgrade_original_state", None)
+        self._fgd_upgrade_original_state = original
+        for unit in self._process_rows.get("fgd", ()):
+            if unit.get("execution_version") != "FGD_V2":
+                unit.update(facility_id=uuid4().hex, batch_id=uuid4().hex, execution_version="FGD_V2")
+                selector = unit["facility_selector"]
+                selector.addItem(f"脱硫设施 {len(self._process_rows.get('fgd', ()))+1}", unit["facility_id"])
+                selector.setCurrentIndex(selector.count()-1)
+                unit["facility_name"] = selector.currentText() or None
+                unit["upgrade_button"].hide()
+        self._rebuild_fgd_facility_choices()
+        self._mark_input_dirty()
+
+    @staticmethod
+    def _fgd_component_active(component):
+        if component.get("business_touched"):
+            return True
+        name = component.get("carbonate_type")
+        if isinstance(name, NameSelector) and name.currentText().strip() not in {"", "未选择碳酸盐种类"}:
+            return True
+        for field in ("i", "ef1", "tr", "cal", "factor_source_reference"):
+            if field == "cal" and not component.get("unit", {}).get("legacy_component_amounts"):
+                continue
+            edit = component.get(field)
+            mode = component.get(f"{field}_source")
+            if isinstance(edit, QLineEdit) and edit.text().strip() and (
+                field in {"cal", "factor_source_reference"} or not isinstance(mode, QComboBox) or mode.currentData() != "STANDARD_DEFAULT"
+            ):
+                return True
+        return False
+
+    def _fgd_resolution(self, component, field):
+        unit = component.get("unit", {})
+        count = sum(self._fgd_component_active(item) for item in unit.get("components", ()))
+        option = self._fgd_component_option(component)
+        return resolve_fgd_field(
+            {"i": "fgd.ratio", "tr": "fgd.conversion", "ef1": "fgd.factor"}[field],
+            resolver=self._parameter_resolver, origin=InputOrigin.CATALOG if option else InputOrigin.CUSTOM,
+            carbonate_type=option.label if option else component.get("confirmed_name"),
+            accounting_period=self._period(), component_count=max(1, count),
+        )
+
     def _fgd_source_policy(self, component: dict[str, object], field: str):
-        unit = component.get("unit")
-        count = len(unit.get("components", [])) if isinstance(unit, dict) else 1
-        if field == "ef1":
-            bound = self._fgd_component_option(component) is not None
-        else:
-            bound = self._fgd_default_ratio(field)[0] is not None
+        result = self._fgd_resolution(component, field)
+        mode = component.get(f"{field}_source")
         return parameter_source_policy(
             {"i": "fgd.ratio", "tr": "fgd.conversion", "ef1": "fgd.factor"}[field],
             origin=InputOrigin.CATALOG if self._fgd_component_option(component) else InputOrigin.CUSTOM,
-            has_resolver_binding=bound, carbonate_component_count=max(1, count),
+            resolved_context=result.context,
+            business_source=mode.currentData() if isinstance(mode, QComboBox) else None,
         )
+
+    def _refresh_fgd_batch(self, unit):
+        if self._restoring_workspace or unit.get("refreshing"):
+            return
+        unit["refreshing"] = True
+        try:
+            for component in unit.get("components", ()):
+                mode = component.get("i_source")
+                if isinstance(mode, QComboBox) and mode.currentData() == "STANDARD_DEFAULT" and not self._fgd_ratio_default_allowed(component):
+                    component.setdefault("source_drafts", {}).setdefault("i", {})["STANDARD_DEFAULT"] = component["i"].text()
+                    blocker = QSignalBlocker(mode)
+                    mode.setCurrentIndex(-1)
+                    del blocker
+                    component["i_source_mode"] = None
+                    blocker = QSignalBlocker(component["i"])
+                    component["i"].clear()
+                    del blocker
+                for field in ("i", "tr"):
+                    self._refresh_fgd_ratio_control(component, field)
+        finally:
+            unit["refreshing"] = False
 
     def _fgd_ratio_default_allowed(self, component: dict[str, object], field: str = "i") -> bool:
         return "STANDARD_DEFAULT" in self._fgd_source_policy(component, field).allowed_sources
 
     def _set_fgd_ratio_default(self, component: dict[str, object], field: str) -> None:
-        factor, default_text = self._fgd_default_ratio(field)
+        result = self._fgd_resolution(component, field)
+        factor = result.factor
+        default_text = format(Decimal(str(factor.value)) * Decimal("100"), "f") if factor is not None else ""
+        if "." in default_text:
+            default_text = default_text.rstrip("0").rstrip(".")
         mode_combo = component.get(f"{field}_source")
         edit = component.get(field)
         if factor is None or not isinstance(mode_combo, QComboBox) or not isinstance(edit, QLineEdit):
@@ -4810,20 +4997,6 @@ class CarbonMaterialAccountingPage(BasePage):
         if isinstance(group_amount, QWidget):
             group_amount.setEnabled(True)
 
-    def _fgd_default_ratio(self, field: str) -> tuple[object | None, str]:
-        parameter_id = "CAR-PAR-P04B-I" if field == "i" else "CAR-PAR-P04B-TR"
-        factor = self._canonical_default_factor(parameter_id)
-        if factor is None:
-            return None, ""
-        try:
-            value = Decimal(str(getattr(factor, "value"))) * Decimal("100")
-        except (AttributeError, InvalidOperation, ValueError):
-            return factor, ""
-        rendered = format(value, "f")
-        if "." in rendered:
-            rendered = rendered.rstrip("0").rstrip(".")
-        return factor, rendered
-
     def _refresh_fgd_ratio_control(self, component: dict[str, object], field: str) -> None:
         edit = component.get(field)
         mode_combo = component.get(f"{field}_source")
@@ -4836,31 +5009,24 @@ class CarbonMaterialAccountingPage(BasePage):
         component[f"{field}_source_mode"] = mode
 
     def _on_fgd_ratio_mode_changed(self, component: dict[str, object], field: str) -> None:
-        mode_combo = component.get(f"{field}_source")
-        if not isinstance(mode_combo, QComboBox):
-            return
-        mode = mode_combo.currentData()
-        if self._restoring_workspace:
-            component[f"{field}_source_mode"] = mode
-            self._refresh_fgd_ratio_control(component, field)
-            return
-        previous = component.get(f"{field}_source_mode")
-        edit = component.get(field)
-        if mode == "STANDARD_DEFAULT":
-            if not self._fgd_ratio_default_allowed(component, field):
-                blocker = QSignalBlocker(mode_combo)
-                mode_combo.setCurrentIndex(-1)
-                del blocker
-                mode = None
-            else:
+        combo, edit = component[f"{field}_source"], component[field]
+        mode = combo.currentData()
+        if not self._restoring_workspace:
+            component["business_touched"] = True
+            previous = component.get(f"{field}_source_mode")
+            drafts = component.setdefault("source_drafts", {}).setdefault(field, {})
+            if previous is not None:
+                drafts[previous] = edit.text()
+            if mode == "STANDARD_DEFAULT" and self._fgd_ratio_default_allowed(component, field):
                 self._set_fgd_ratio_default(component, field)
-        elif previous != mode and previous is not None and isinstance(edit, QLineEdit):
-            blocker = QSignalBlocker(edit)
-            edit.clear()
-            del blocker
+            elif previous != mode:
+                blocker = QSignalBlocker(edit)
+                edit.setText(str(drafts.get(mode, "")))
+                del blocker
         component[f"{field}_source_mode"] = mode
         self._refresh_fgd_ratio_control(component, field)
         self._refresh_fgd_factor_reference(component)
+        self._refresh_fgd_batch(component["unit"])
 
     def _on_fgd_carbonate_text_changed(self, component: dict[str, object], confirmed_name: str | None = None) -> None:
         if self._restoring_workspace:
@@ -4874,6 +5040,16 @@ class CarbonMaterialAccountingPage(BasePage):
         if entered == "未选择碳酸盐种类":
             entered = ""
         option = self._carbonate_option_for_text(entered) if entered else None
+        if entered and normalized_name(entered) == normalized_name(str(component.get("confirmed_name", ""))):
+            self._refresh_fgd_batch(component["unit"])
+            return
+        previous_name = str(component.get("confirmed_name", ""))
+        identity_drafts = component.setdefault("identity_drafts", {})
+        if previous_name:
+            identity_drafts[previous_name] = {"drafts": component.get("source_drafts", {}),
+                "values": {field: component[field].text() for field in ("i", "tr", "ef1")},
+                "modes": {field: component[f"{field}_source"].currentData() for field in ("i", "tr", "ef1")}}
+        component["source_drafts"] = {}
         component["confirmed_name"] = str(option.label) if option is not None else entered
         component["legacy_custom_identity"] = False
         selector.setProperty("legacyCustomIdentity", False)
@@ -4894,10 +5070,11 @@ class CarbonMaterialAccountingPage(BasePage):
             factor_source.setCurrentIndex(factor_source.findData("STANDARD_DEFAULT"))
             del blocker
             blocker = QSignalBlocker(factor_edit)
-            factor_edit.setText(str(option.factor.value))
+            resolved_factor = self._fgd_resolution(component, "ef1").factor
+            factor_edit.setText(str(resolved_factor.value) if resolved_factor is not None else "")
             del blocker
             component["factor_mode"] = "STANDARD_DEFAULT"
-            component["catalog_factor_id"] = option.factor.factor_id
+            component["catalog_factor_id"] = resolved_factor.factor_id if resolved_factor is not None else None
             factor_edit.setReadOnly(True)
             for field in ("i", "tr"):
                 if self._fgd_ratio_default_allowed(component, field):
@@ -4940,8 +5117,21 @@ class CarbonMaterialAccountingPage(BasePage):
                     edit.clear()
                     component[f"{field}_source_mode"] = "MEASURED"
                 self._refresh_fgd_ratio_control(component, field)
+        restored = identity_drafts.get(str(component.get("confirmed_name", "")))
+        if restored:
+            component["source_drafts"] = restored["drafts"]
+            for field in ("i", "tr", "ef1"):
+                combo, edit = component[f"{field}_source"], component[field]
+                blocker = QSignalBlocker(combo)
+                combo.setCurrentIndex(combo.findData(restored["modes"][field]))
+                del blocker
+                blocker = QSignalBlocker(edit)
+                edit.setText(restored["values"][field])
+                del blocker
+                component["factor_mode" if field == "ef1" else f"{field}_source_mode"] = combo.currentData()
         self._apply_source_policy(factor_source, component["_widget"], self._fgd_source_policy(component, "ef1"))
         self._refresh_fgd_factor_reference(component)
+        self._refresh_fgd_batch(component["unit"])
 
     def _on_fgd_factor_mode_changed(self, component: dict[str, object]) -> None:
         mode_combo = component.get("ef1_source")
@@ -4964,9 +5154,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 mode = None
             else:
                 blocker = QSignalBlocker(factor_edit)
-                factor_edit.setText(str(option.factor.value))
+                resolved_factor = self._fgd_resolution(component, "ef1").factor
+                factor_edit.setText(str(resolved_factor.value) if resolved_factor is not None else "")
                 del blocker
-                component["catalog_factor_id"] = option.factor.factor_id
+                component["catalog_factor_id"] = resolved_factor.factor_id if resolved_factor is not None else None
                 factor_edit.setReadOnly(True)
         else:
             if previous != mode and previous is not None:
@@ -5152,6 +5343,8 @@ class CarbonMaterialAccountingPage(BasePage):
         factor_mode.currentIndexChanged.connect(lambda _index, _component=widgets: self._on_fgd_factor_mode_changed(_component))
         factor_edit.textChanged.connect(lambda _text, _component=widgets: self._on_fgd_factor_value_changed(_component))
         components.append(widgets)
+        for field in ("i", "ef1", "tr"):
+            widgets[field].textChanged.connect(lambda _text, _unit=unit: self._refresh_fgd_batch(_unit))
         if not self._restoring_workspace:
             for field in ("i", "tr"):
                 if self._fgd_ratio_default_allowed(widgets, field):
@@ -5189,6 +5382,7 @@ class CarbonMaterialAccountingPage(BasePage):
         for component in components:
             for field in ("i", "tr"):
                 self._refresh_fgd_ratio_control(component, field)
+        self._refresh_fgd_batch(unit)
         self._refresh_repeat_delete_controls()
         self._refresh_source_cards()
 
@@ -5203,6 +5397,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     widget.setParent(None)
                     widget.deleteLater()
                 rows.remove(row)
+        if prefix == "fgd":
+            self._rebuild_fgd_facility_choices()
         for index, row in enumerate(rows, start=1):
             title = row.get("title")
             display_title = row.get("display_title")
@@ -6943,14 +7139,20 @@ class CarbonMaterialAccountingPage(BasePage):
         if prefix == "fgd":
             reagent_name_widget = row.get("reagent_name")
             reagent_name = reagent_name_widget.text().strip() if isinstance(reagent_name_widget, QLineEdit) else ""
+            group_amount_widget = row.get("group_amount")
+            has_batch_input = bool(reagent_name or (isinstance(group_amount_widget, QLineEdit) and group_amount_widget.text())
+                                   or any(self._fgd_component_active(component) for component in row.get("components", ())))
+            if not has_batch_input:
+                return None
             if not reagent_name and not row.get("legacy_missing_reagent_name"):
                 raise DomainValidationError("请填写本组实际使用的脱硫剂名称。")
-            group_amount_widget = row.get("group_amount")
             group_amount = _ui_value("fgd.cal", group_amount_widget) if isinstance(group_amount_widget, QWidget) else None
             legacy_amounts = bool(row.get("legacy_component_amounts"))
             components: list[CarbonateComponent] = []
             for component in row.get("components", []):
                 assert isinstance(component, dict)
+                if not self._fgd_component_active(component):
+                    continue
                 amount = (
                     _ui_value("fgd.cal", component["cal"])
                     if legacy_amounts else group_amount
@@ -6973,24 +7175,25 @@ class CarbonMaterialAccountingPage(BasePage):
                 factor_combo = component.get("ef1_source")
                 factor_mode = factor_combo.currentData() if isinstance(factor_combo, QComboBox) else component.get("factor_mode")
                 if factor_mode == "STANDARD_DEFAULT":
-                    if option is None:
+                    actual_factor = self._fgd_resolution(component, "ef1").factor
+                    if option is None or actual_factor is None:
                         raise DomainValidationError(
                             "已保存的脱硫剂标准排放因子无法匹配当前目录项；请重新选择碳酸盐目录项，"
                             "或确认适用的实测来源并填写。"
                         )
-                    if component.get("catalog_factor_id") != option.factor.factor_id:
+                    if component.get("catalog_factor_id") != actual_factor.factor_id:
                         raise DomainValidationError(
                             "已保存的脱硫剂标准排放因子目录身份与当前目录项不一致；请重新选择碳酸盐目录项，"
                             "或确认适用的实测来源并填写。"
                         )
-                    current_factor_value = Decimal(str(option.factor.value))
+                    current_factor_value = Decimal(str(actual_factor.value))
                     if ef_text is not None and Decimal(str(ef_text)) != current_factor_value:
                         raise DomainValidationError(
                             f"脱硫剂碳酸盐标准排放因子保存值 {ef_text} tCO₂/t 与当前目录值 "
                             f"{current_factor_value} tCO₂/t 不一致；请重新选择碳酸盐目录项确认，"
                             "或确认适用的实测来源并填写。"
                         )
-                    factor_value = self._parameter_value_from_factor(option.factor, option.selection_reason)
+                    factor_value = self._parameter_value_from_factor(actual_factor, "按同次Resolver核验的精确C.2来源采用。")
                 elif factor_mode in {"CALCULATED", "MEASURED", "USER_DEFINED"} and ef_text is not None:
                     source_kind = {
                         "MEASURED": ParameterSourceKind.MEASURED,
@@ -7021,7 +7224,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     mode_widget = component.get(f"{field}_source")
                     mode = mode_widget.currentData() if isinstance(mode_widget, QComboBox) else component.get(f"{field}_source_mode")
                     if mode == "STANDARD_DEFAULT" and self._fgd_ratio_default_allowed(component, field):
-                        factor = self._canonical_default_factor(parameter_id)
+                        factor = self._fgd_resolution(component, field).factor
                         if factor is not None and raw is not None:
                             current_default = Decimal(str(factor.value))
                             if Decimal(str(raw)) != current_default:
@@ -7033,6 +7236,8 @@ class CarbonMaterialAccountingPage(BasePage):
                                     f"{current_shown_value}% 不一致；请重新选择碳酸盐目录项确认，"
                                     "或确认适用的实测来源并填写。"
                                 )
+                        if raw is None:
+                            return None
                         return self._parameter_value_from_factor(
                             factor, "采用当前核算期间 Resolver 核验的标准缺省参数。"
                         ) if factor is not None else None
@@ -7069,12 +7274,15 @@ class CarbonMaterialAccountingPage(BasePage):
                     fgd_ratio("tr", "CAR-PAR-P04B-TR"),
                     carbonate_type,
                     origin=InputOrigin.CATALOG if option else InputOrigin.CUSTOM,
+                    component_id=str(component["component_id"]),
                 ))
             return kind(
                 components=tuple(components),
                 instance_id=instance_id,
                 reagent_name=reagent_name or None,
-            ) if components else None
+                facility_id=row.get("facility_id"), facility_name=row["facility_selector"].currentText() or None, batch_id=row.get("batch_id"),
+                execution_version=row.get("execution_version", "FGD_V1"),
+            )
 
         field_names = {
             "calcination": ("gc", "wfc", "cc", "ucc", "du", "wfc_c", "wvar", "wvar_c"),

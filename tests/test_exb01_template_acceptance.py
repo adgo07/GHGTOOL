@@ -70,7 +70,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             self.assertEqual(b7_by_range["J3:J8"].error, "请选择缺省值或实测值。")
             self.assertTrue(all(workbook[name].protection.sheet for name in APPENDIX_B_SHEETS))
             self.assertTrue(workbook["B.2"]["A20"].value.startswith("燃料输入规则 V5："))
-            self.assertIn("多组分逐项填实测", workbook["B.7"]["A9"].value)
+            self.assertIn("多组分逐项实测", workbook["B.7"]["A9"].value)
             self.assertIn(("B3:B4", "list", '"电网电力,非化石电力"'), validations["B.8"])
             self.assertIn(("B3:B4", "list", '"饱和蒸汽,过热蒸汽"'), validations["B.9"])
         finally:
@@ -83,7 +83,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
                 "B.2":("A4","B4","C4","D4","E4","F4","G4","I4","J4","L4","M4","N4"),
                 "B.3":("B4","C4","D4","E4","F4","G4","H4"),"B.4":("B4","C4","D4","E4","F4","G4","H4"),
                 "B.5":("B4","C4","D4","E4","F4","G4","H4"),"B.6":("A3","F3","A7","F7"),
-                "B.7":("A3","B3","C3","D3","F3","H3","I3","J3","A6","B6"),
+                "B.7":("A3","B3","C3","D3","F3","H3","I3","J3","K3","L3","M3","A6","B6"),
                 "B.8":("A3","B3","C3","D3"),"B.9":("A3","B3","C3","D3","E3","F3","G3"),
             }.items():
                 self.assertTrue(workbook[sheet].protection.sheet,sheet)
@@ -94,7 +94,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             for sheet in ("B.3", "B.4", "B.5"):
                 for col in "IJKLM":
                     self.assertFalse(workbook[sheet][f"{col}4"].protection.locked, (sheet,col))
-            self.assertEqual(self.service.validate_structure(workbook),"2.5.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.6.0")
         finally:
             workbook.close()
 

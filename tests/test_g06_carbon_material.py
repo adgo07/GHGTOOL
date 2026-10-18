@@ -428,7 +428,7 @@ class G06CalculatorTests(unittest.TestCase):
             FumeIncinerationInput("500", "15", "25", "0.03", "0.95", "2", instance_id="fume-b"),
         )
         fgd_units = (
-            FGDInput(components=(_measured_fgd_component("10", "0.45", "0.44", "1"), _measured_fgd_component("2", "0.45", "0.522", "1")), instance_id="fgd-a"),
+            FGDInput(components=(_measured_fgd_component("10", "0.45", "0.44", "1"), _measured_fgd_component("10", "0.45", "0.522", "1")), instance_id="fgd-a"),
             FGDInput(components=(_measured_fgd_component("5", "0.90", "0.415", "1"),), instance_id="fgd-b"),
         )
         exported_power = (
@@ -464,6 +464,10 @@ class G06CalculatorTests(unittest.TestCase):
             "CAR-FLD-HEAT-EXPORTED-RESULT.heat-out-a", "CAR-FLD-HEAT-EXPORTED-RESULT.heat-out-b",
         ):
             self.assertIn(line_id, lines)
+        # Each old group is one whole-reagent denominator, not per-component
+        # independent consumption. Distinct groups still retain their own CAL.
+        self.assertEqual(lines["CAR-FLD-P04B-RESULT.fgd-a"].amount, Decimal("4.329"))
+        self.assertEqual(lines["CAR-FLD-P04B-RESULT.fgd-b"].amount, Decimal("1.8675"))
         with localcontext() as context:
             context.prec = 60
             calc_sum = lines["CAR-FLD-P01-RESULT.calc-a"].amount + lines["CAR-FLD-P01-RESULT.calc-b"].amount
@@ -1117,7 +1121,7 @@ class G06CalculatorTests(unittest.TestCase):
             "measured_carbonate_factor", "0.50", "tCO2/t", ParameterSourceKind.MEASURED,
             "TEST-LAB-2026-01", "2026", "report page 3", "measured factor test",
         )
-        outcome = CarbonMaterialCalculator().calculate(
+        outcome = CarbonMaterialCalculator(parameter_resolver=_resolver()).calculate(
             _input(fgd=FGDInput(components=(
                 _measured_fgd_component("10", "0.90", measured, "1", origin=InputOrigin.CUSTOM),
             ))),

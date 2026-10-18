@@ -2333,7 +2333,7 @@ class ExcelImportPage(BasePage):
         self.calculate_button.setObjectName("formalCalculateButton")
         self.calculate_button.clicked.connect(self._calculate_selected_unit)
         unit_row.addWidget(self.calculate_button)
-        self.material_upgrade_button = QPushButton("升级材料输入副本", action_section)
+        self.material_upgrade_button = QPushButton("升级输入规则副本", action_section)
         self.material_upgrade_button.setObjectName("upgradeMaterialProjectButton")
         self.material_upgrade_button.clicked.connect(self._upgrade_material_project)
         unit_row.addWidget(self.material_upgrade_button)
@@ -3075,8 +3075,8 @@ class ExcelImportPage(BasePage):
         upgrade = getattr(self.excel_adapter, "upgrade_workspace", None)
         if self._workspace is None or self.project_service is None or not callable(upgrade):
             return
-        answer = QMessageBox.question(self, "确认材料输入升级",
-            "将保留原项目并另存材料规则升级副本：各输出角色分别计碳，换算须明确方法和必要数值；字段、单位、来源与身份保留，不补默认。"
+        answer = QMessageBox.question(self, "确认输入规则升级",
+            "将保留原项目并另存输入规则升级副本：材料按角色计碳及显式换算，脱硫明确设施、批次与组分身份；字段、单位及来源保留，不补默认。"
             "尚未试算，不声明数值差异。升级不产生核算记录；取消不写回。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if answer != QMessageBox.StandardButton.Yes:
