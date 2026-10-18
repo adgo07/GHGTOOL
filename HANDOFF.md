@@ -15,3 +15,7 @@ C负责共享Canonical/codec、正式Calculator/Application、GUI/B.6、SQLite�
 项目保存与正式Record继续分离；旧Record和Word只读冻结输入/参数/规则/追溯，永不回填或重算。原生Office、真实鼠标/中文IME/人工DPI、企业样例、干净目标机与商业交付缺项仍OPEN。
 
 [CI252固定历史摘要](docs/ci/CI252_SUMMARY.json)原字节迁至CI证据目录，仅背书其固定PR49阶段提交，不作为本轮PR50结果。最终新CI/实际包摘要引用固定受验提交与运行/产物身份，后续文档说明不得改写这些对应关系。
+
+## PR51-F01 当前小时精度退修（2026-10-18）
+
+Owner已明确烟气精确到小时足够。新正式FUME_V2只接受整小时端点，h与整数小时全值比较，d与声明Profile的hours/24规范化值全值比较，两路采用同一日值；无epsilon/截断。旧细时间项目可读保存原值，旧Record/Word冻结不改。v9仅小时提示必要机械更新，资源装配/历史读验脚本与新回归见当前TASK_STATE、IMPLEMENTATION_REPORT及B_FUME_SUMMARY。新CI/精确包完成后送源验收并由源合并，C不合并或扩包，CI268不背书本次小时修复。

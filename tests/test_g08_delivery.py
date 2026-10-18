@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import closing
 import os
+from fnmatch import fnmatchcase
 import json
 from hashlib import sha256
 import sqlite3
@@ -319,9 +320,11 @@ class G08DeliveryTests(unittest.TestCase):
             with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
                 package_data = tomllib.load(stream)["tool"]["setuptools"]["package-data"]
             self.assertIn("*.json", package_data["packages.application.reporting"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx", package_data["resources"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx", package_data["resources"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx", package_data["resources"])
+            actual_templates = tuple((PROJECT_ROOT / "resources/excel_templates").glob("*.xlsx"))
+            self.assertTrue(actual_templates)
+            for actual in actual_templates:
+                resource = actual.relative_to(PROJECT_ROOT / "resources").as_posix()
+                self.assertTrue(any(fnmatchcase(resource, pattern) for pattern in package_data["resources"]), resource)
 
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
@@ -535,6 +538,14 @@ class G08DeliveryTests(unittest.TestCase):
         self.assertIn("include-hidden-files: false", workflow)
         self.assertTrue((PROJECT_ROOT / "docs" / "DELIVERY.md").is_file())
         self.assertIn("DELIVERY.md", (PROJECT_ROOT / "README.md").read_text(encoding="utf-8"))
+
+    def test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource(self):
+        from scripts.verify_distribution_templates import verify_distribution_templates
+        with tempfile.TemporaryDirectory() as directory:
+            result=verify_distribution_templates(PROJECT_ROOT,Path(directory)/"distribution")
+            actual={(path.relative_to(PROJECT_ROOT)).as_posix() for path in (PROJECT_ROOT/"resources/excel_templates").glob("*.xlsx")}
+            self.assertEqual(set(result["templates"]),actual)
+            self.assertTrue(result["wheel_sdist_and_installed_resources_match"])
 
 
 if __name__ == "__main__":

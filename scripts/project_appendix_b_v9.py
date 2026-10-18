@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx'
 TARGET=ROOT/'resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx'
 SOURCE_SHA='a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4'
-NOTE='数据提示：烟气分段输入规则 V9（2.7.0）。每行对应真实源实例/同计量边界的一个监测段；同实例同边界复用同编号，不同真实实例用不同编号；段编号唯一。K/L以文字填写真实起止时间（年-月-日 时:分:秒，终点不含），M选d或h，F为本段时长且与区间精确一致。Q与QVar及参数只属于本段。报告期独立，不回填段时长；缺口只形成已覆盖合计，不补零、不年化。结果列G不填写，新增行位于本提示上方。'
+NOTE='数据提示：烟气分段输入规则 V9（2.7.0）。每行对应真实源实例/同计量边界的一个监测段；同实例同边界复用同编号，不同真实实例用不同编号；段编号唯一。K/L以文字填写真实起止时间（年-月-日 时:00，须为整小时，分钟/秒为0，终点不含，不自动截断），M优先选h并在F填整数小时；d按软件小时转天规范化值全值校验，不用显示近似值。Q与QVar及参数只属于本段。报告期独立，不回填段时长；缺口只形成已覆盖合计，不补零、不年化。结果列G不填写，新增行位于本提示上方。'
 HEADERS={'H':'排放源编号','I':'计量边界编号','J':'监测段编号','K':'监测开始（文字）','L':'监测结束（文字，不含终点）','M':'时长单位（d/h）'}
 def cell(col,row,value,style=47):
  return f'<c r="{col}{row}" s="{style}" t="inlineStr"><is><t>{escape(value)}</t></is></c>'

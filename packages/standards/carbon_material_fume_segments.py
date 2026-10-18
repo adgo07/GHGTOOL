@@ -20,7 +20,7 @@ from packages.standards.carbon_material import (
 )
 
 CALCULATOR_ID = "CAR-FUME-SEGMENTS"
-CALCULATOR_VERSION = "CAR-FUME-SEGMENTS-020.1"
+CALCULATOR_VERSION = "CAR-FUME-SEGMENTS-020.2"
 FORMULA_ID = "CAR-FML-FUME-INCINERATION-001"
 STANDARD_ISSUE_ID = "GHG-STD-32151-34-020"
 
@@ -107,6 +107,8 @@ class FumeSegmentsResult:
     numeric_contract_version: str = "v1"
     formula_id: str = FORMULA_ID
     standard_issue_id: str = STANDARD_ISSUE_ID
+    time_precision: str = "HOUR"
+    duration_normalization: str = "INTEGER_HOURS_TO_DAYS_DECLARED_PROFILE"
 
     @property
     def complete(self) -> bool:
@@ -142,7 +144,8 @@ def evaluate_fume_segments(
 ) -> FumeSegmentsResult:
     """逐段复用式(9)，返回已覆盖合计及真实缺口；任一非法段整体抛错。
 
-    duration 为既有输入中的必要段时长，支持 d/h；与起止区间精确核对，
+    duration 保留原录入值；正式起止须为整小时，h与整数小时精确核对，
+    d与声明Profile下整数小时/24的规范化日值全值核对，两路采用同一日值。
     不从报告期回填。所有运算使用调用者声明的 Profile，结果保留其身份
     和配置。参数资格及真实 Resolver 仍由正式公共入口负责。
     """
@@ -197,15 +200,19 @@ def evaluate_fume_segments(
                     gaps.append((cursor, segment.start))
                 values = segment.measurements
                 _quantity(values.duration, "h", "T", policy, time_units)
-                # 使用原始有限Decimal的整数比精确配对，不让工作修约隐藏微小时差。
-                numerator, denominator = values.duration.value.as_integer_ratio()
-                factor = time_units.definition(values.duration.unit).factor_to_base
-                factor_numerator, factor_denominator = factor.as_integer_ratio()
-                if numerator * factor_numerator * 3600000000 != (
-                        _elapsed_microseconds(segment.start, segment.end)
-                        * denominator * factor_denominator):
-                    raise DomainValidationError("烟气段时长与起止区间不一致")
-                duration = time_units.convert(values.duration.value, values.duration.unit, "d")
+                # Owner整小时产品精度决定；只限制正式新算，不限制旧对象解码/保存。
+                if any((point.minute, point.second, point.microsecond) != (0, 0, 0)
+                       for point in (segment.start, segment.end)):
+                    raise DomainValidationError(
+                        "当前烟气分段核算只支持整小时起止时间，分钟、秒和微秒必须为0；"
+                        "原时间不会自动截断或改写，请核实真实监测区间。")
+                hours = Decimal(_elapsed_microseconds(segment.start, segment.end) // 3600000000)
+                duration = policy.divide(hours, Decimal("24"))
+                expected = hours if values.duration.unit == "h" else duration
+                if values.duration.value != expected:
+                    raise DomainValidationError(
+                        f"烟气段时长与起止区间不一致；请优先选择小时并填写{hours}。"
+                        "天值须与软件采用的小时转天规范化值全值一致，不能填写显示近似值。")
                 q = _quantity(values.q, "Nm3/h", "Q", policy, units)
                 qvar = _quantity(values.qvar, "mg/Nm3", "QVar", policy, units)
                 hm = _quantity(values.hm, "GJ/t", "HM", policy, units)

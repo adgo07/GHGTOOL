@@ -1,6 +1,6 @@
 # 当前任务状态 — B-FUME
 
-更新：2026-10-18。状态：IMPLEMENTED / CI_AND_PACKAGE_PASS / WAIT_SOURCE_FINAL_ACCEPTANCE。PR50已合并（8d054d2480d744882f4f11f56b59e68df91dc50f），F01—F03源独立技术复验PASS；固定b4/CI263证据按docs/ci/PR50_FGD_RETAKE_SUMMARY.json追溯，文档head不冒充制品head。本包唯一正式出口为P04A烟气监测分段完整链，完成送源独立验收后停止。
+更新：2026-10-18。状态：PR51_F01_HOUR_FIX / LOCAL_PASS / WAIT_NEW_CI_PACKAGE。PR50已合并（8d054d2480d744882f4f11f56b59e68df91dc50f），F01—F03源独立技术复验PASS；固定b4/CI263证据按docs/ci/PR50_FGD_RETAKE_SUMMARY.json追溯，文档head不冒充制品head。本包唯一正式出口为P04A烟气监测分段完整链，完成送源独立验收后停止。
 
 ## 执行与接口
 
@@ -10,7 +10,7 @@
 |---|---|
 | 身份 | FumeMonitoringSegment：真实source_instance_id、metering_boundary_id、segment_id；不由显示名或行号替代 |
 | 测量 | 既有FumeIncinerationInput配对Q/QVar/段时长与参数；FCh由正式门禁同次核验/采用/快照 |
-| 时间 | 无时区同一报告时钟半开区间；核算期独立，段时长显式输入精确配对；d/h只归一一次 |
+| 时间 | 无时区半开区间，正式起止整小时；h与整数小时全值相等，d与Profile下hours/24规范化值全值相等；两路采用同一日值；旧细时间可读保存 |
 | 完整性 | 有效段完整覆盖可称完整期间；缺口仅已覆盖合计+WARNING；重叠/倒置/坏段/INVOLVED无段整体拒绝零Record |
 | 版本 | Carbon Canonical codec4兼容1/2/3；尾字段FUME_V2分段。旧FUME_V1可开存/按旧组合资格计算且明确未证明覆盖，不补造区间；显式升级保留原项目副本/旧Record |
 | 退出 | 分段版正式入口退出旧逐行时长判断；旧路径仅显式旧组合保留，不作失败回退 |
@@ -20,12 +20,12 @@
 
 业务base8d054d2480d744882f4f11f56b59e68df91dc50f；locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20保持。中央origin已实际核验，按锁定读取Architecture2.1/Numericv1/Profilesv1；ACTIVE UIv0.2按当前合并入口读取。MUST：分层/共享内核、declared-profile consistency、ambient independence、full-value exact、历史不漂移；MUST NOT：隐式float/业务epsilon/display回流/复制算法/Qt状态成为公共Workspace/自动Frozen升级。p40/HALF_UP属ALLOWED PROJECT DIFFERENCE，无中央缺口/修改。Issue020已RESOLVED Owner软件决定，落实Mapping§7.2/§8/§12与V2§9，不改标准式(9)或既有解释。
 
-## 验证与边界
+## PR51-F01 当前退修
 
-本地最终烟气/多实例GUI/Numeric/FGD专属/材料/codec联合82/82、69.983s；全源表格/烟气/G08联合76/76、121.482s。早期97项1失败为旧布局版本断言，82项1失败为旧结果ID断言，修正后最终82通过；原始失败日志和测试接线错误见IMPLEMENTATION_REPORT。Canonical/编译/pip check及v9机械投影通过。实际旧b4实包生成的烟气Record由新代码读取，原输入/模型/Word正文XML不变。交付复核补齐Qt记录表卡/文本/HTML对冻结行说明的消费，最新烟气/记录/Word联合40/40、58.024s，Word历史表头保持。源在旧e171独立41/41、69.341s只背书当时范围。共享稳定源/边界改名已真实复现并修复，最新41/41、70.491s；强化同名不同ID/未保存关闭No/真实新窗口边界单项1/1、12.783s，不改ID/计算。CI266/e171及CI267/63182均已被当前必要小修替代，固定b0e42f0的CI268与精确head实际包已完成，不将F专属测试或PR50旧CI写成本包通过。保留FGD10项退修、燃料/电力/材料、旧模板与历史Record保护。原生Office回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机及商业履约继续OPEN/NOT_RUN；不CU、不合并、不扩热力/外部CO₂/N、不删树、不商业发布。
+Owner于2026-10-18决定烟气时间精确到小时；此为产品输入精度决定，不称标准要求。共享正式校验拒绝分钟/秒/微秒非零端点，不截断、不改写旧值；原输入与采用日值分别冻结。算法CAR-SM01-2026-10-18-FUME.2，方法CAR-FUME-SEGMENTS-020.2。GUI/B.6推荐小时；v9仍2.7.0，仅sheet6小时提示机械变化，hash 0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9。旧v2-v8不变。
 
-## 固定受验对象与最终交接
+本地小时/正式链/G08 66/66、64.768s；后续相关联合135/135、62.699s，包含最终实际wheel/sdist验证器。8份模板在真实wheel/sdist与安装后逐字节一致，未包含用户数据库/计算表。两次验证接线失败及修复原因保留于摘要，不改Numeric守卫。编译/依赖/Canonical/投影PASS。
 
-源码 b0e42f069ee479840b2508bfa7080724d1336fef；CI268/run39106389790 SUCCESS，merge 2d91747cef7cca85204e714918f98c4cea5cbac3 全量935/935、1597.245s；精确head G08 17/17、6.902s。两次隔离原生启动PASS。下载artifact12129870161，ZIP e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c；全部278清单/279可见文件、129PE普通及延迟导入审计通过，无VirtualKeyboard/iapws。
+实际旧CI268包生成当时合法3分钟Record，由当前代码读取模型/Word XML保持；原细时间Canonical/SQLite可开存，新正式核算明确拒绝且零Record。实际旧b4烟气与两份脱硫Word也由仓内可复现只读脚本验证不变。CI252仅docs/ci一处，PR50已迁移，无需重复处理。
 
-实际EXE/PYZ业务代码+包内资源/Qt离屏证明PASS：部分0.2112/完整25.696/缺口25.344；Domain成功3条，GUI成功1条，坏段/INVOLVED空段零新增；新窗口SQLite/身份改名/旧codec1-3/旧模板2-8/冻结Word与实际旧b4烟气及脱硫历史保持。宿主验证工具边界和两次脚本接线失败原日志完整保留，制品未改，复审PASS。源对b0名称回归独立1/1、14.525s通过，最终CI/包仍交源独立验收。完整命令/统计/hash见docs/ci/B_FUME_SUMMARY.json；此后仅补证据文档，不将文档head冒充制品head。PR51不合并，不开下一包，等待源最终验收。
+当前新源码CI与精确head实际包尚待完成；CI268/b0只为前轮历史证据，不能背书本修复。完整命令/失败/来源/hash见docs/ci/B_FUME_SUMMARY.json。保留原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约OPEN。完成送源验收，合并由源会话执行；C不合并、不CU、不扩下一包、不动根用户修改或旧树。

@@ -316,7 +316,7 @@ class FGDDomainSpecialistTests(unittest.TestCase):
                     outcome = usecase.calculate(self.payload(self.batch((self.component(label),))))
                     self.assertTrue(outcome.successful, outcome.problems)
                     self.assertEqual(outcome.result.total_amount, Decimal(expected))
-                    self.assertEqual(outcome.record.algorithm_version, "CAR-SM01-2026-10-18-FUME.1")
+                    self.assertEqual(outcome.record.algorithm_version, "CAR-SM01-2026-10-18-FUME.2")
                     self.assertEqual(len(SQLiteRecordRepository(path).list_all()), index)
 
     def mixed_components(self):

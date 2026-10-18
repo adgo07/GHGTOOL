@@ -169,6 +169,28 @@ class FumeFormalTests(unittest.TestCase):
                     self.assertEqual(json.loads(result.evidence.provenance_snapshot_json)["numeric_provenance"]["profile_id"],calculator.numeric_profile_id)
                     self.assertEqual(context.prec,ambient)
 
+    def test_old_finer_time_codec_and_sqlite_preserve_values_but_new_calculation_rejects(self):
+        item=replace(fume_fixtures.segment(duration=InputValue(".08333333333333333333333333333333333333333","h")),
+                     end=datetime(2025,1,1,0,5))
+        value=payload(item)
+        decoded=decode_canonical_input(encode_canonical_input(value))
+        self.assertEqual(decoded,value)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);projects=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite"))
+            workspace=projects.new_workspace("细时间旧输入")
+            projects.save(replace(workspace,units=(replace(workspace.units[0],canonical_input=decoded),)))
+            service=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite"))
+            restored=service.get(workspace.project_id).units[0].canonical_input
+            self.assertEqual(restored,value)
+            service.save(service.get(workspace.project_id))
+            records=SQLiteRecordRepository(root/"records.sqlite")
+            outcome=CarbonAccountingUseCase(CarbonMaterialCalculator(),records).calculate(restored)
+            self.assertFalse(outcome.successful)
+            self.assertIn("只支持整小时",str(outcome.problems))
+            self.assertEqual(len(records.list_all()),0)
+            self.assertEqual(service.get(workspace.project_id).units[0].canonical_input,value)
+
+
 class FumeQtExcelTests(unittest.TestCase):
     fresh_page=qt_fixtures.FGDAcceptanceFixTests.fresh_page
     @classmethod
@@ -192,6 +214,41 @@ class FumeQtExcelTests(unittest.TestCase):
     def preview(gui,shell,path):
         from packages.excel.appendix_b import AppendixBImportContext
         return shell.pages[AppRoute.EXCEL_IMPORT].excel_adapter.import_preview(path,context=AppendixBImportContext(gui._period(),boundary_confirmed=True,enterprise_name="烟气整链"))
+    def test_hour_precision_gui_excel_formal_freeze_and_non_hour_zero_record(self):
+        from packages.core.decimal_policy import DecimalPolicy
+        with tempfile.TemporaryDirectory() as directory,self.fresh_page(Path(directory)) as (gui,projects,records,shell):
+            root=Path(directory);self.prepare(gui);row=gui._process_rows["fume"][0]
+            self.fill(row,end="2025-01-01 01:00:00",duration="1")
+            row["duration_unit"].setCurrentIndex(row["duration_unit"].findData("h"))
+            gui._run_calculation();self.assertTrue(gui._calculation_has_result)
+            self.assertEqual(len(records.list_all()),1)
+            record=records.list_all()[0]
+            frozen=records.get_trace_snapshot(record.record_id)["fume_monitoring"]
+            self.assertEqual(frozen["time_precision"],"HOUR")
+            self.assertEqual(frozen["coverage"][0]["segments"][0]["duration_days"],str(DecimalPolicy().divide(1,24)))
+            raw=records.get_raw_input_snapshot(record.record_id)["fume_segments"][0]
+            self.assertEqual(raw["measurements"]["duration"]["value"],"1")
+            self.assertEqual(raw["end"],"2025-01-01T01:00:00")
+            row["segment_end"].setText("2025-01-01 00:05:00")
+            original=gui._input(increment=False)
+            gui._run_calculation();self.assertFalse(gui._calculation_has_result)
+            self.assertEqual(len(records.list_all()),1)
+            self.assertEqual(gui._input(increment=False).fume_segments[0].end,original.fume_segments[0].end)
+            valid=(1000,1000,40,.02,100,1,"A","口","1","2025-01-01 00:00:00","2025-01-01 01:00:00","h")
+            unit=self.preview(gui,shell,self.workbook(root,[valid])).units[0]
+            self.assertTrue(unit.can_calculate,unit.errors)
+            self.assertEqual(len(records.list_all()),1)
+            outcome=CarbonAccountingUseCase(gui.calculator,records).calculate(unit.input_value)
+            self.assertTrue(outcome.successful,outcome.problems)
+            self.assertEqual(outcome.result.total_amount,record.calculation_result.total_amount)
+            invalid=list(valid);invalid[10]="2025-01-01 00:05:00"
+            unit=self.preview(gui,shell,self.workbook(root,[invalid])).units[0]
+            self.assertFalse(unit.can_calculate)
+            self.assertIn("只支持整小时",str(unit.errors))
+            self.assertIsNotNone(unit.input_value)
+            self.assertFalse(CarbonAccountingUseCase(gui.calculator,records).calculate(unit.input_value).successful)
+            self.assertEqual(len(records.list_all()),2)
+
     def test_gui_excel_canonical_project_reopen_formal_word_parity(self):
         with tempfile.TemporaryDirectory() as directory,self.fresh_page(Path(directory)) as (gui,projects,records,shell):
             root=Path(directory);self.prepare(gui);first=gui._process_rows["fume"][0];self.fill(first)

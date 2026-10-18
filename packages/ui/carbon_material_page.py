@@ -4909,7 +4909,7 @@ class CarbonMaterialAccountingPage(BasePage):
         for key, label in (("segment_start", "监测开始"), ("segment_end", "监测结束（不含终点）")):
             edit = QLineEdit(controls)
             edit.setObjectName(f"fume_{row['instance_id']}_{key}")
-            edit.setPlaceholderText("2026-01-01 00:00:00")
+            edit.setPlaceholderText("2026-01-01 08:00（整小时）")
             edit.setAccessibleName(label)
             self._wire_dirty_tracking(edit)
             row[key] = edit
@@ -4917,11 +4917,11 @@ class CarbonMaterialAccountingPage(BasePage):
         unit = QComboBox(controls)
         unit.setObjectName(f"fume_{row['instance_id']}_durationUnit")
         unit.addItem("天", "d")
-        unit.addItem("小时", "h")
+        unit.addItem("小时（推荐）", "h")
         unit.currentIndexChanged.connect(self._mark_input_dirty)
         row["duration_unit"] = unit
         form.addRow("监测段时长单位", unit)
-        note = QLabel("每条为一个监测段；流量、浓度及参数对应同一段。报告期独立保存，不回填段时长。有缺口只计算已覆盖部分。", controls)
+        note = QLabel("每条为一个监测段；真实起止须为整小时，分钟和秒为0，不自动截断。时长优先用小时填写，与区间一致；天值按小时转天规范化校验。报告期独立，有缺口只计算已覆盖部分。", controls)
         note.setWordWrap(True)
         form.addRow(note)
         layout.addWidget(controls)
@@ -5005,7 +5005,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 start = datetime.fromisoformat(row["segment_start"].text().strip())
                 end = datetime.fromisoformat(row["segment_end"].text().strip())
             except ValueError as exc:
-                raise DomainValidationError("请填写本监测段真实开始和结束时间（年-月-日 时:分:秒），不能使用报告期代填。") from exc
+                raise DomainValidationError("请填写本监测段真实开始和结束时间（年-月-日 时:00，整小时），不能使用报告期代填。") from exc
             source = row["source_selector"].currentData()
             boundary = row["boundary_selector"].currentData()
             if not source or not boundary or not row["source_selector"].currentText().strip() or not row["boundary_selector"].currentText().strip():

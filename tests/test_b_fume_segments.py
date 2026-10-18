@@ -251,5 +251,58 @@ class FumeInvalidInputTests(unittest.TestCase):
             evaluate((old,))
 
 
+
+class FumeHourPrecisionTests(unittest.TestCase):
+    def test_integer_hours_and_declared_profile_days_are_identical(self):
+        for precision, rounding in ((28, ROUND_HALF_EVEN), (40, ROUND_HALF_UP), (50, ROUND_DOWN)):
+            policy=DecimalPolicy(precision=precision,rounding=rounding)
+            for hours in (1,5,10,24,48):
+                days=policy.divide(Decimal(hours),Decimal(24))
+                items=[replace(segment(duration=InputValue(value,unit)),end=START+timedelta(hours=hours))
+                       for value,unit in ((str(hours),"h"),(days,"d"))]
+                expected=None
+                for ambient in (6,17,60):
+                    with localcontext() as ctx:
+                        ctx.prec=ambient;ctx.rounding=ROUND_DOWN
+                        results=[evaluate((item,),policy=policy,numeric_profile_id=f"explicit.{precision}.{rounding}") for item in items]
+                    self.assertEqual(results[0].covered_amount_tco2,results[1].covered_amount_tco2)
+                    self.assertEqual(results[0].coverage[0].segments[0].duration_days,days)
+                    self.assertEqual(results[1].coverage[0].segments[0].segment.measurements.duration.value,days)
+                    self.assertEqual(results[0].time_precision,"HOUR")
+                    if expected is None:expected=results[0].covered_amount_tco2
+                    self.assertEqual(results[0].covered_amount_tco2,expected)
+
+    def test_non_hour_endpoints_remain_constructible_but_formal_evaluation_rejects(self):
+        for delta in (timedelta(minutes=1),timedelta(minutes=5),timedelta(minutes=10),
+                      timedelta(seconds=1),timedelta(microseconds=1)):
+            item=replace(segment(duration=InputValue("1","h")),end=START+delta)
+            self.assertEqual(item.end,START+delta)
+            with self.assertRaisesRegex(DomainValidationError,"只支持整小时"):
+                evaluate((item,))
+            offset=replace(segment(),start=START+delta,end=START+timedelta(days=1)+delta)
+            with self.assertRaisesRegex(DomainValidationError,"只支持整小时"):
+                evaluate((offset,))
+
+    def test_adjacent_hour_segments_have_no_false_gap_or_overlap(self):
+        cursor=0;items=[]
+        for index,hours in enumerate((1,5,10,8)):
+            items.append(replace(segment(sid=f"h{index}",duration=InputValue(str(hours),"h")),
+                start=START+timedelta(hours=cursor),end=START+timedelta(hours=cursor+hours)))
+            cursor+=hours
+        result=evaluate(items,(window(days=1),))
+        self.assertTrue(result.complete)
+        self.assertEqual(result.coverage[0].uncovered_intervals,())
+        self.assertEqual(sum(item.duration_days for item in result.coverage[0].segments),Decimal(1))
+
+    def test_wrong_finite_days_and_hour_values_still_fail_exactly(self):
+        expected=POLICY.divide(1,24)
+        with localcontext() as ctx:
+            ctx.prec=80
+            near=expected+Decimal("1e-60")
+        for value,unit in ((near,"d"),("0.0416667","d"),("2","h"),("0","h"),("-1","h")):
+            item=replace(segment(duration=InputValue(value,unit)),end=START+timedelta(hours=1))
+            with self.assertRaises(DomainValidationError):evaluate((item,))
+
+
 if __name__ == "__main__":
     unittest.main()
