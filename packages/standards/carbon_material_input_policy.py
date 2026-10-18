@@ -189,7 +189,9 @@ def parameter_source_policy(
         effective = evaluate_fgd_field(field_id, current)
         return ParameterSourcePolicy(
             field_id, allowed, default, default == STANDARD_DEFAULT,
-            True, "FGD", None,
+            True, {"fgd.ratio": "SINGLE_COMPONENT" if carbonate_component_count == 1 else "MULTI_COMPONENT",
+                   "fgd.factor": "EXACT_C2_MATCH" if current.get("binding_status") == "VERIFIED" else "NO_EXACT_C2_BINDING",
+                   "fgd.conversion": "GENERAL_STANDARD_PARAMETER"}[field_id], None,
             {"fgd.ratio": "碳酸盐含量 I", "fgd.factor": "碳酸盐排放因子 EF1", "fgd.conversion": "脱硫转化率 TR"}[field_id],
             current.get("binding_status") == "VERIFIED",
             effective["locking"].get("value", {}).get("state") == "LOCKED",

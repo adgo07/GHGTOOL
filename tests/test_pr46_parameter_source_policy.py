@@ -7,6 +7,7 @@ from pathlib import Path
 import unittest
 
 from packages.application.carbon_accounting import create_g06_parameter_resolver
+from packages.standards.carbon_material_business_policy import resolve_fgd_field
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.models import AccountingPeriod, ParameterType, PeriodType
 from packages.persistence import SQLiteCatalogRepository, build_catalog_database
@@ -49,6 +50,12 @@ class ParameterSourcePolicyTests(unittest.TestCase):
         from packages.standards.carbon_material_business_policy import fuel_source_context
         return fuel_source_context(field_id, resolver=self.resolver, origin=InputOrigin.CATALOG,
             subject_id="natural_gas", accounting_period=AccountingPeriod(PeriodType.ANNUAL, date(2026,1,1), date(2026,12,31)))
+    def fgd_context(self, field, count=1, origin=InputOrigin.CATALOG):
+        from packages.standards.carbon_material_business_policy import resolve_fgd_field
+        return resolve_fgd_field(field, resolver=self.resolver, origin=origin,
+            carbonate_type="CaCO3", component_count=count,
+            accounting_period=AccountingPeriod(PeriodType.ANNUAL,date(2026,1,1),date(2026,12,31))).context
+
     def test_fuel_source_choices_are_field_and_origin_specific(self) -> None:
         catalog_fch = parameter_source_policy(
             "fuel.fch", origin=InputOrigin.CATALOG, has_resolver_binding=True,
@@ -97,6 +104,7 @@ class ParameterSourcePolicyTests(unittest.TestCase):
         one_component_i = parameter_source_policy(
             "fgd.ratio", origin=InputOrigin.CUSTOM,
             has_resolver_binding=True, carbonate_component_count=1,
+            resolved_context=self.fgd_context("fgd.ratio", origin=InputOrigin.CUSTOM),
         )
         self.assertEqual(one_component_i.allowed_sources, ("STANDARD_DEFAULT", "MEASURED"))
         self.assertEqual(one_component_i.default_source, "STANDARD_DEFAULT")
@@ -105,24 +113,25 @@ class ParameterSourcePolicyTests(unittest.TestCase):
         multiple_component_i = parameter_source_policy(
             "fgd.ratio", origin=InputOrigin.CATALOG,
             has_resolver_binding=True, carbonate_component_count=2,
+            resolved_context=self.fgd_context("fgd.ratio", count=2),
         )
         self.assertEqual(multiple_component_i.allowed_sources, ("MEASURED",))
         self.assertEqual(multiple_component_i.default_source, "MEASURED")
         self.assertFalse(multiple_component_i.default_locked)
 
-        matched_ef = parameter_source_policy("fgd.factor", has_resolver_binding=True)
+        matched_ef = parameter_source_policy("fgd.factor", origin=InputOrigin.CATALOG, has_resolver_binding=True, resolved_context=self.fgd_context("fgd.factor"))
         self.assertEqual(matched_ef.allowed_sources, ("STANDARD_DEFAULT",))
         self.assertTrue(matched_ef.default_locked)
-        unmatched_ef = parameter_source_policy("fgd.factor", has_resolver_binding=False)
+        unmatched_ef = parameter_source_policy("fgd.factor", origin=InputOrigin.CUSTOM, resolved_context=self.fgd_context("fgd.factor",origin=InputOrigin.CUSTOM))
         self.assertEqual(unmatched_ef.allowed_sources, ("MEASURED",))
-        self.assertIsNone(unmatched_ef.default_source)
+        self.assertEqual(unmatched_ef.default_source,"MEASURED")
 
-        conversion = parameter_source_policy("fgd.conversion", has_resolver_binding=True)
+        conversion = parameter_source_policy("fgd.conversion", has_resolver_binding=True, resolved_context=self.fgd_context("fgd.conversion"))
         self.assertEqual(conversion.allowed_sources, ("STANDARD_DEFAULT", "MEASURED"))
         self.assertEqual(conversion.default_source, "STANDARD_DEFAULT")
         self.assertEqual(conversion.context, "GENERAL_STANDARD_PARAMETER")
 
-        unbound_conversion = parameter_source_policy("fgd.conversion", has_resolver_binding=False)
+        unbound_conversion = parameter_source_policy("fgd.conversion", resolved_context={"binding_status":"ABSENT"})
         self.assertEqual(unbound_conversion.allowed_sources, ("MEASURED",))
         self.assertEqual(unbound_conversion.default_source, "MEASURED")
         self.assertFalse(unbound_conversion.default_locked)
@@ -166,15 +175,18 @@ class ParameterSourcePolicyTests(unittest.TestCase):
     def test_legacy_and_unsupported_sources_are_rejected_by_policy_validator(self) -> None:
         self.assertIsNone(validate_parameter_source_policy(
             "fgd.factor", "STANDARD_SPECIFIED", origin=InputOrigin.CATALOG, has_resolver_binding=True,
+            resolved_context=self.fgd_context("fgd.factor"),
         ))
         issue = validate_parameter_source_policy(
             "fgd.factor", "CALCULATED", origin=InputOrigin.CATALOG, has_resolver_binding=True,
+            resolved_context=self.fgd_context("fgd.factor"),
         )
         self.assertIsNotNone(issue)
         self.assertEqual(issue[1], "CAR-VAL-CARBONATE-FACTOR-SOURCE")
         multi_default = validate_parameter_source_policy(
             "fgd.ratio", "STANDARD_DEFAULT", origin=InputOrigin.CATALOG,
             has_resolver_binding=True, carbonate_component_count=2,
+            resolved_context=self.fgd_context("fgd.ratio", count=2),
         )
         self.assertIsNotNone(multi_default)
         self.assertEqual(multi_default[1], "CAR-VAL-PARAMETER-SOURCE-INAPPLICABLE")
@@ -230,7 +242,7 @@ class CanonicalC2BindingTests(unittest.TestCase):
                 component = CarbonateComponent(
                     "1", "0.9", "0.44", "1", identity.label, InputOrigin.CATALOG,
                 )
-                factor = self.calculator._carbonate_default_binding(component, self.period)
+                factor = resolve_fgd_field("fgd.factor", resolver=self.resolver, origin=component.origin, carbonate_type=component.carbonate_type, accounting_period=self.period).factor
                 self.assertIsNotNone(factor)
                 self.assertEqual(factor.parameter_id, identity.parameter_id)
                 self.assertEqual(factor.subject_id, identity.subject_id)
@@ -246,14 +258,14 @@ class CanonicalC2BindingTests(unittest.TestCase):
         for origin in (InputOrigin.CUSTOM, None):
             with self.subTest(origin=origin):
                 component = CarbonateComponent("1", "0.9", "0.44", "1", "CaCO3", origin)
-                self.assertIsNone(self.calculator._carbonate_default_binding(component, self.period))
+                self.assertIsNone(resolve_fgd_field("fgd.factor", resolver=self.resolver, origin=component.origin, carbonate_type=component.carbonate_type, accounting_period=self.period).factor)
 
     def test_fgd_catalog_metadata_must_match_resolver_factor_and_locate_the_component(self) -> None:
         def selected_value(parameter_id: str, subject_id: str, parameter_type: ParameterType,
                            source_kind: ParameterSourceKind) -> ParameterValue:
-            factor = self.calculator._resolved_source_factor(
-                parameter_id, subject_id, parameter_type, self.period,
-            )
+            field = {"car-par-p04b-i": "fgd.ratio", "car-par-p04b-tr": "fgd.conversion"}.get(parameter_id, "fgd.factor")
+            factor = resolve_fgd_field(field, resolver=self.resolver, origin=InputOrigin.CATALOG,
+                carbonate_type="CaCO3", accounting_period=self.period).factor
             self.assertIsNotNone(factor)
             assert factor is not None
             return ParameterValue(

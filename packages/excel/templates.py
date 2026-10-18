@@ -23,8 +23,10 @@ APPROVED_TEMPLATE_V5_SHA256 = "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd8
 APPROVED_TEMPLATE_V5_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx"
 APPROVED_TEMPLATE_V6_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v6.xlsx"
 APPROVED_TEMPLATE_V6_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx"
-APPROVED_TEMPLATE_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
+APPROVED_TEMPLATE_V7_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx"
+APPROVED_TEMPLATE_V7_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx"
+APPROVED_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -44,7 +46,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.5.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.6.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -136,9 +138,20 @@ class ExcelTemplateService:
                            for row in workbook[name].iter_rows(min_col=1, max_col=1)) for name in ("B.3", "B.4", "B.5")]
         if any(v25_markers) and (not all(v25_markers) or not is_v24):
             raise ValueError("材料说明包含冲突模板版本，请使用完整受控模板。")
-        if all(v25_markers):
-            template_version = "2.5.0"
+        v26 = workbook["B.7"]["K2"].value == "含量来源" and workbook["B.7"]["L2"].value == "转化率来源"
+        has_v26_note = any(isinstance(row[0].value, str) and row[0].value.startswith("数据提示：脱硫输入规则 V8（2.6.0）")
+                           for row in workbook["B.7"].iter_rows(min_col=1, max_col=1))
+        partial_v26_headers = any(workbook["B.7"][cell].value is not None for cell in ("K2", "L2", "M2"))
+        if v26 != has_v26_note or (partial_v26_headers and not v26) or (v26 and not all(v25_markers)):
+            raise ValueError("脱硫来源栏与模板说明版本冲突。")
+        if v26:
+            template_version = "2.6.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif all(v25_markers):
+            template_version = "2.5.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V7_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V7_SHA256:
+                raise ValueError("旧版2.5模板校验失败。")
         elif is_v24:
             template_version = "2.4.0"
             reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V6_RESOURCE).read_bytes()

@@ -127,13 +127,13 @@ class G06FgdUiTests(unittest.TestCase):
         self._select_catalog(first, "car-par-c2-caco3")
         second = self.page._add_fgd_component(unit)
         self.assertEqual((first["i_source"].currentData(), first["i"].text()), ("STANDARD_DEFAULT", "90"))
-        self.assertFalse(self.page._fgd_ratio_default_allowed(first, "i"))
-        self.assertEqual((second["i_source"].currentData(), second["i"].text()), ("MEASURED", ""))
+        self.assertTrue(self.page._fgd_ratio_default_allowed(first, "i"))
+        self.assertEqual((second["i_source"].currentData(), second["i"].text()), ("STANDARD_DEFAULT", "90"))
         self.assertEqual((second["tr_source"].currentData(), second["tr"].text()), ("STANDARD_DEFAULT", "100"))
         self._select_catalog(second, "car-par-c2-mgco3")
         self.assertEqual((second["i_source"].currentData(), second["i"].text()), ("MEASURED", ""))
-        with self.assertRaisesRegex(DomainValidationError, "多组分"):
-            self.page._process("fgd", FGDInput)
+        self.assertEqual((first["i_source"].currentData(), first["i"].text()), (None, ""))
+        self.assertIsNone(self.page._process("fgd", FGDInput).components[0].carbonate_fraction)
         first["i_source"].setCurrentIndex(first["i_source"].findData("MEASURED"))
         self.assertEqual(first["i"].text(), "")
         first["i"].setText("60.123456789")
@@ -168,9 +168,10 @@ class G06FgdUiTests(unittest.TestCase):
         self.assertEqual(restored["ef1"].text(), "")
 
         legacy_state = dict(saved_state)
-        legacy_state["fgd_carbonate_confirmations"] = dict(saved_state["fgd_carbonate_confirmations"])
-        legacy_state["fgd_factor_provenance"] = dict(saved_state["fgd_factor_provenance"])
         component_id = restored["component_id"]
+        scoped_key = self.page._fgd_state_key(self._unit(), restored)
+        for key in ("fgd_carbonate_texts", "fgd_carbonate_confirmations", "fgd_factor_provenance", "fgd_ratio_modes"):
+            legacy_state[key] = {component_id: saved_state[key][scoped_key]}
         legacy_state["fgd_carbonate_confirmations"][component_id] = {
             "confirmed_name": option.label,
             "legacy_custom_identity": True,
@@ -196,7 +197,7 @@ class G06FgdUiTests(unittest.TestCase):
         component = self._unit()["components"][0]
         self._select_catalog(component, "car-par-c2-caco3")
         state = self.page._capture_form_state()
-        component_id = component["component_id"]
+        component_id = self.page._fgd_state_key(self._unit(), component)
         state["fgd_factor_provenance"][component_id]["mode"] = "STD"
         state["fgd_ratio_modes"][component_id]["i"] = "STD"
         state["fgd_ratio_modes"][component_id]["tr"] = "CALC"
@@ -226,8 +227,8 @@ class G06FgdUiTests(unittest.TestCase):
 
         restored_unit = self.page._input(increment=False, render_electricity=False).fgd_units[0]
         restored = restored_unit.components[0]
-        i_factor, _ = self.page._fgd_default_ratio("i")
-        tr_factor, _ = self.page._fgd_default_ratio("tr")
+        i_factor = self.page._fgd_resolution(self._unit()["components"][0], "i").factor
+        tr_factor = self.page._fgd_resolution(self._unit()["components"][0], "tr").factor
         expected_ef = self.page._parameter_value_from_factor(
             option.factor, option.selection_reason
         )
@@ -250,6 +251,10 @@ class G06FgdUiTests(unittest.TestCase):
             with self.subTest(field=field):
                 unit = self._unit()
                 component = unit["components"][0]
+                for reset_field, reset_value in (("ef1", "0.440"), ("i", "90"), ("tr", "100")):
+                    blocker = QSignalBlocker(component[reset_field])
+                    component[reset_field].setText(reset_value)
+                    del blocker
                 self._select_catalog(component, "car-par-c2-caco3")
                 self._enable_fgd()
                 blocker = QSignalBlocker(component[field])

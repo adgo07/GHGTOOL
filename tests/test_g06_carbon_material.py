@@ -1117,7 +1117,7 @@ class G06CalculatorTests(unittest.TestCase):
             "measured_carbonate_factor", "0.50", "tCO2/t", ParameterSourceKind.MEASURED,
             "TEST-LAB-2026-01", "2026", "report page 3", "measured factor test",
         )
-        outcome = CarbonMaterialCalculator().calculate(
+        outcome = CarbonMaterialCalculator(parameter_resolver=_resolver()).calculate(
             _input(fgd=FGDInput(components=(
                 _measured_fgd_component("10", "0.90", measured, "1", origin=InputOrigin.CUSTOM),
             ))),

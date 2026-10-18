@@ -712,6 +712,9 @@ class FGDInput:
         for identifier in (self.facility_id, self.batch_id):
             if identifier is not None:
                 _validate_instance_id(identifier)
+        if self.facility_name is not None and not isinstance(self.facility_name, str):
+            raise DomainValidationError("facility_name must be text")
+        object.__setattr__(self, "facility_name", self.facility_name.strip() or None if self.facility_name is not None else None)
         components = tuple(self.components)
         if any(not isinstance(item, CarbonateComponent) for item in components):
             raise DomainValidationError("components must contain CarbonateComponent values")

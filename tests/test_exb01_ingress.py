@@ -174,7 +174,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         path = self._workbook("custom-carbonate-resolver-defaults.xlsx")
         self._set_cells(path, {"B.7": {
             "A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
-            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值",
+            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值","K3":"缺省值","L3":"缺省值",
         }})
         unit = self.importer.import_preview(path,context=self._context()).units[0]
         self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
@@ -189,7 +189,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
     def test_exact_c2_factor_allows_only_resolved_standard_source(self) -> None:
         path = self._workbook("catalog-carbonate-standard-factor.xlsx")
         self._set_cells(path, {"B.7": {
-            "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":"缺省值",
+            "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":"缺省值","K3":"实测值","L3":"实测值",
         }})
         unit = self.importer.import_preview(path, context=self._context()).units[0]
         self.assertTrue(unit.can_calculate, tuple((e.code,e.location) for e in unit.errors))
@@ -203,7 +203,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             with self.subTest(source=source_label):
                 measured_path = self._workbook(f"catalog-carbonate-{source_label}-blocked.xlsx")
                 self._set_cells(measured_path, {"B.7": {
-                    "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"H3":0.5,"J3":source_label,
+                    "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"H3":0.5,"J3":source_label,"K3":"实测值","L3":"实测值",
                 }})
                 blocked = self.importer.import_preview(measured_path, context=self._context()).units[0]
                 self.assertFalse(blocked.can_calculate)
@@ -214,8 +214,8 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         path = self._workbook("custom-multi-carbonate-requires-fractions.xlsx")
         self._set_cells(path, {"B.7": {
             "A3":"自定义脱硫剂","B3":2,"C3":"自定义组分甲","D3":None,"F3":None,
-            "H3":0.5,"I3":"自定义","J3":"实测值",
-            "C4":"自定义组分乙","D4":None,"F4":None,"H4":0.3,"I4":"自定义","J4":"实测值",
+            "H3":0.5,"I3":"自定义","J3":"实测值","K3":"实测值","L3":"缺省值",
+            "C4":"自定义组分乙","D4":None,"F4":None,"H4":0.3,"I4":"自定义","J4":"实测值","K4":"实测值","L4":"缺省值",
         }})
         unit = self.importer.import_preview(path, context=self._context()).units[0]
         self.assertFalse(unit.can_calculate)
@@ -227,13 +227,9 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         path = self._workbook("fgd-no-resolver-bindings.xlsx")
         self._set_cells(path, {"B.7": {
             "A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
-            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值",
+            "D3":None,"F3":None,"H3":0.5,"I3":"自定义","J3":"实测值","K3":"缺省值","L3":"缺省值",
         }})
-        original = self.importer._default_factor
-        self.importer._default_factor = lambda parameter_id, period, **kwargs: (
-            None if parameter_id in {"CAR-PAR-P04B-I", "CAR-PAR-P04B-TR"}
-            else original(parameter_id, period, **kwargs)
-        )
+        self.importer.resolver = None  # the new provider must fail closed without real associations
         unit = self.importer.import_preview(path, context=self._context()).units[0]
         self.assertFalse(unit.can_calculate)
         self.assertIn("EXB01_CARBONATE_CONTENT_UNRESOLVED", {e.code for e in unit.errors})
@@ -245,7 +241,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
     def test_missing_v22_catalog_carbonate_source_does_not_default_silently(self) -> None:
         path = self._workbook("missing-catalog-carbonate-source.xlsx")
         self._set_cells(path, {"B.7": {
-            "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":None,
+            "A3":"脱硫批次A","B3":2,"D3":90,"F3":95,"J3":None,"K3":"实测值","L3":"实测值",
         }})
         unit = self.importer.import_preview(path, context=self._context()).units[0]
         self.assertFalse(unit.can_calculate)
@@ -259,7 +255,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
         from packages.standards.carbon_material_input_policy import InputOrigin
         path = self._workbook("custom-carbonate-filled-parameters.xlsx")
         self._set_cells(path, {"B.7":{"A3":"自定义脱硫剂","B3":2,"C3":"自定义碳酸盐",
-                                     "D3":80,"H3":0.5,"F3":90,"I3":"自定义","J3":"实测值"}})
+                                     "D3":80,"H3":0.5,"F3":90,"I3":"自定义","J3":"实测值","K3":"实测值","L3":"实测值"}})
         unit = self.importer.import_preview(path,context=self._context()).units[0]
         self.assertTrue(unit.can_calculate,unit.errors)
         component=unit.input_value.fgd_units[0].components[0]
@@ -577,7 +573,7 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
     def test_fgd_batch_name_is_not_footer_and_trailing_activity_is_located_error(self) -> None:
         path = self._workbook("fgd-a-prefix-batch.xlsx")
         self._set_cells(path, {"B.7": {
-            "A3":"A Sample Batch","B3":2,"D3":None,"E3":0.440,"F3":None,
+            "A3":"A Sample Batch","B3":2,"D3":None,"E3":0.440,"F3":None,"J3":"缺省值","K3":"缺省值","L3":"缺省值",
             "A10":"Activity after footer","B10":99,"C10":"CaCO₃",
             "D10":100,"E10":0.440,"F10":100,
         }})
@@ -828,8 +824,8 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
     def test_fgd_blank_resolver_defaults_are_snapshotted_and_excess_defaults_block(self) -> None:
         path = self._workbook("fgd-resolved-defaults.xlsx", all_sources=True)
         self._set_cells(path, {"B.7": {
-            "D3": None, "E3": 0.440, "F3": None,
-            "D4": None, "E4": None, "F4": None,
+            "D3": None, "E3": 0.440, "F3": None, "K3":"缺省值","L3":"缺省值",
+            "D4": None, "E4": None, "F4": None, "J4":None,"K4":None,"L4":None,
         }})
         unit = self.importer.import_preview(
             path, context=self._context(fuel_path=FuelPath.VOLUME)
@@ -848,8 +844,8 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
 
         over_path = self._workbook("fgd-excess-default-fractions.xlsx", all_sources=True)
         self._set_cells(over_path, {"B.7": {
-            "D3": None, "E3": 0.440, "F3": None,
-            "D4": None, "E4": 0.522, "F4": None,
+            "D3": None, "E3": 0.440, "F3": None,"K3":"缺省值","L3":"缺省值",
+            "D4": None, "E4": 0.522, "F4": None,"K4":"缺省值","L4":"缺省值",
         }})
         blocked = self.importer.import_preview(
             over_path, context=self._context(fuel_path=FuelPath.VOLUME)
