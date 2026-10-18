@@ -11,3 +11,6 @@
 沿用现有FGDInput作为批次容器；instance_id继续唯一标识该输入批次及已有结果/Trace行，新增可选facility_id表达真实设施归属，batch_id明确批次身份，CarbonateComponent尾部新增component_id。新GUI/Excel产生稳定键，不以显示名或行号代替；同设施允许多个独立批次，I合计按每个批次校验。旧输入无新键时只读恢复原组合，不凭名称合并设施或虚构批次；确认升级另存副本时生成新键，旧Record永不回填/重算。项目仍使用现有projects.sqlite和codec，版本演进不改数据库公共Schema。来源草稿按设施/批次/组分/字段/来源隔离；冻结输入、参数快照及Word按相同身份对应。
 
 先发布resolve_fgd_field最小API：返回context、实际factor和同次resolution；真实关联核验只补三字段采用范围，不取消其他unverified门禁。I/TR通用身份与C.2的11个物种身份分开。当前小探针只证明CaCO3/I/TR三项真实SQLite解析READY，不构成整链或全部13项验收。
+
+
+Excel初次入站以整工作簿内容身份作为命名空间，为原始分组/组分生成不透明稳定键；原单元格仅作为入站定位，不是跨项目业务身份。保存后直接恢复Canonical键，不随显示名称/行号重新生成；变更工作簿视为新的导入。企业设施编号只用于显式归属和业务展示，内部facility_id/batch_id/component_id仍独立冻结。审阅范围/规则版本不扩张，四件套仅同步采用状态并机械重生。

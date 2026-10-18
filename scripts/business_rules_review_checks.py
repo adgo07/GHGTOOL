@@ -349,7 +349,7 @@ def build_checks(
                 "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
                 "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
                 "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
-                "compatibility": "审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6/v7（B.3—B.5各增5列和1说明行，v7另修来源文案）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。",
+                "compatibility": "审阅视图自身生成不改生产；PR49材料链已合并并作为保护基线。当前脱硫包另含v8显式I/TR来源、设施批次组分身份、codec3及冻结来源证据；旧codec1/2可读，无数据库迁移，历史Record不自动升级。具体变化见IMPLEMENTATION_REPORT，不据视图生成推断整个业务包无兼容变化。",
             },
             "definition_assets_hash_policy": manifest.get("definition_assets_hash_policy"),
             "definition_assets_sha256": manifest.get("definition_assets_sha256"),

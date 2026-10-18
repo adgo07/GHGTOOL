@@ -112,4 +112,7 @@ Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研�
 
 CI251补充：实装Qt6.12将同一未使用VirtualKeyboard DLL收集到`PySide6/Qt6VirtualKeyboard.dll`；原审计成功拒绝漏排组件。构建排除列表只增加这个实证精确路径，旧root DLL/插件路径及边界保护保留。[Qt6.12官方许可页](https://doc.qt.io/qt-6.12/licensing.html)仍列VirtualKeyboard为GPL模块。未改依赖策略，6.12实包仍须独立审计；两种路径不等于允许任意Qt目录批量删除，原生IME仍NOT_RUN。
 
-F02受控来源修订：当前下载候选v7/2.5.0，SHA e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a。运行python -B -m scripts.project_appendix_b_v7 --write机械生成，省略--write核原字节一致；以固定旧v6为输入，仅变三个材料表XML的下拉/说明，旧v2—v6保持。来源统一计算值/实测值，方法独立；2.4旧方法来源文字仅输入兼容，新2.5拒绝该文字。当前候选需新head CI实包审计；旧CI252制品不是新版包，原生v6/v7 Office/IME仍OPEN，许可履约/商业发布未放行。
+F02历史受控来源修订（PR49已合并）：当时下载v7/2.5.0，SHA e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a。运行python -B -m scripts.project_appendix_b_v7 --write机械生成，省略--write核原字节一致；以固定旧v6为输入，仅变三个材料表XML的下拉/说明，旧v2—v6保持。来源统一计算值/实测值，方法独立；2.4旧方法来源文字仅输入兼容，新2.5拒绝该文字。当前候选需新head CI实包审计；旧CI252制品不是新版包，原生v6/v7 Office/IME仍OPEN，许可履约/商业发布未放行。
+
+
+当前B-FGD候选下载v8/2.6.0，SHA a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4；`python -B -m scripts.project_appendix_b_v8 --write`以固定v7为输入，仅机械修改B.7 XML，新增I/TR来源及可选企业设施编号，旧v2—v7原字节保留。I/TR实测空白不补缺省，标准缺省必须明确选择且同次Resolver真实适用。独立fgd.json投影由`python -B -m scripts.project_fgd_rules`核验。产品仍不含标准全文/iapws/VirtualKeyboard；本包最终head CI实包、原生Office和商业履约状态分别记录，不借旧制品放行。

@@ -2,13 +2,13 @@
   "candidate_only": true,
   "review_mode": "compact_business_v2",
   "review_json_file_sha256": "12805e414e327a529f111a0ba44d44daf3aa00149bc7c8e1b40494c6faa92a87",
-  "workbook_sha256": "9636c0355c0a2e45e061082b5611a367508d5861b6da58abd4cf1f7ffe16765c",
+  "workbook_sha256": "64131643ad42c63223063783cf3e9484d4abfb1f59d38d940ab7c00da9143b04",
   "generator": "scripts/build_business_rules_review.mjs",
-  "generator_sha256": "b3f2d4bf29e89791d3f0d67759d232b5dd12a4b43c436083d1707f253bcf8e0f",
+  "generator_sha256": "b383f7731de46d8869e662bac4fa6e7c1207b8e4cd3420a6e085b5dc697fd775",
   "fixture_script": "scripts/test_business_rules_review.mjs",
   "fixture_script_sha256": "128f8aedd34e8782e82efc4545fda72ef43dd212d93668a91a283df6d097db67",
   "details_file": "业务规则审阅详情.html",
-  "details_file_sha256": "a282c6473c2d2d83b23846e8bb646fd923eb6f02fc978b291be4bd631b524386",
+  "details_file_sha256": "21e6cb72edc307dc9172b31fe429109c4f9e6bd0fdd1a7f087ded7e0e500f649",
   "details_source_revision": "adoption-2026-10-17-fuel-power1",
   "details_source_counts": {
     "fields": 652,
@@ -127,14 +127,14 @@
     "visible": "来源/默认/锁定及适用条件、操作初始/触发/确认、必要边界、意见属性与条件",
     "details": "同源HTML对象目录保留渠道/消费者/案例/真实绑定/完整条件和理由；定位列为文本路径与锚点",
     "omitted_from_main": "内部镜像与重复技术组合保留在详情，不在主表重复展开",
-    "compatibility": "审阅视图自身生成不改生产codec、数据库迁移或历史Record；本PR49另含v6/v7（B.3—B.5各增5列和1说明行，v7另修来源文案）、材料输入/归一化/身份校验及冻结报告证据变更，见IMPLEMENTATION_REPORT，不据审阅视图推断整个PR无兼容变化。"
+    "compatibility": "审阅视图自身生成不改生产；PR49材料链已合并并作为保护基线。当前脱硫包另含v8显式I/TR来源、设施批次组分身份、codec3及冻结来源证据；旧codec1/2可读，无数据库迁移，历史Record不自动升级。具体变化见IMPLEMENTATION_REPORT，不据视图生成推断整个业务包无兼容变化。"
   },
   "definition_assets_hash_policy": "UTF8_TEXT_CRLF_TO_LF_SHA256",
   "definition_assets_sha256": {
     "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c",
     "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "bfd443404a86a4f469b901e92236ec9a11ad4863975eff7cd3bae6498a5f31d7",
     "data-source/carbon_accounting/business-rules/software_policy.json": "26007853c2dc53a0f1398564e61ee0245bdfe314619af9ccef0f21fa19adca4d",
-    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "01e5adff362b5e4f1d15ad6141c0d1359a4ef5a3a31bbcd30abf57f84d84b5c7"
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "d5e9d2938a2c586ee8fd8f5e5c45bc23a7c1a39e0aff06ed1fe8e86eb9c2cbbc"
   },
   "historical_electricity_evidence": {
     "file": "electricity-paths.json",
@@ -288,7 +288,7 @@
   },
   "feedback_test": {
     "report": "review-feedback-fixture.json",
-    "report_sha256": "fc8a3b3b0b2b04e4510de6167081fed048807e2f58253eb8a3d8079a4222ba95",
+    "report_sha256": "beda91f68014c6097ddc750a0c2ffd0b9e2d5c9788ab1b92a5d9caeacab3e2f4",
     "command": "node scripts/test_business_rules_review.mjs --builder scripts/build_business_rules_review.mjs --input <review-json> --technical-input <technical-json> --output <stage>/review-feedback-fixture.json",
     "method": "真实Table数据范围逆转、ArtifactTool导出/重开/再生成；不冒充原生排序",
     "input_relation": "从本轮真实投影选择对象；意见跨版本、删除、属性及技术详情变更按fixture报告核验",
