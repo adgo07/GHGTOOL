@@ -301,7 +301,7 @@ def decode_canonical_input(payload: str) -> CarbonMaterialInput:
         raise CanonicalInputCodecError("invalid canonical input envelope")
     if document["codec"] != _CODEC_ID:
         raise CanonicalInputCodecError("unrecognized canonical input codec")
-    if type(document["version"]) is not int or document["version"] not in {1, CANONICAL_INPUT_CODEC_VERSION}:
+    if type(document["version"]) is not int or document["version"] not in SUPPORTED_INPUT_CODEC_VERSIONS:
         raise CanonicalInputCodecError("unsupported canonical input codec version")
     try:
         input_value = _decode_value(document["value"])
