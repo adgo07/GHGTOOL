@@ -210,3 +210,111 @@ def evaluate_material_field(field_id: str, context: Mapping[str, Any]):
     except KeyError as exc:
         raise ValueError("此字段尚未采用材料共享规则。") from exc
     return _evaluate_entry(entry, context)
+
+
+FGD_RUNTIME_RESOURCE = "business_rules/fgd.json"
+FGD_ADOPTION_ID = "GHGTOOL_FGD_R11_V1"
+FGD_RUNTIME_SHA256 = "560c7151e797c47aeb0da698440ed773d1335d8498fbda35aac9e2781fa7bce7"
+
+
+@lru_cache(maxsize=1)
+def _fgd_document():
+    try:
+        content = files("resources").joinpath(FGD_RUNTIME_RESOURCE).read_bytes()
+        if sha256(content).hexdigest() != FGD_RUNTIME_SHA256:
+            raise BusinessPolicyConfigurationError("脱硫业务规则资源校验失败，请重新安装完整软件。")
+        document = json.loads(content)
+        if document["format_version"] != 1 or document["adoption_id"] != FGD_ADOPTION_ID:
+            raise BusinessPolicyConfigurationError("脱硫业务规则版本不兼容。")
+        return document
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        raise BusinessPolicyConfigurationError("脱硫业务规则资源缺失或损坏。") from exc
+
+
+def fgd_policy_identity():
+    document = _fgd_document()
+    return {"adoption_id": FGD_ADOPTION_ID, "resource_sha256": FGD_RUNTIME_SHA256,
+            "adopted_fields": sorted(document["fields"]),
+            "sources": [{key: source[key] for key in ("rule_set_id", "revision", "sha256")}
+                        for source in document["sources"]]}
+
+
+def fgd_binding_conditions(field_id):
+    entry = _fgd_document()["fields"][field_id]
+    source = entry["field"]["source_qualification"]
+    return tuple(dict(branch["when"]["tags"])
+                 for branch in entry["policies"][source["policy_id"]]["branches"]
+                 if branch["when"]["tags"].get("binding_status") == "VERIFIED")
+
+
+def evaluate_fgd_field(field_id, context):
+    entry = _fgd_document()["fields"][field_id]
+    tags = {key for policy in entry["policies"].values()
+            for branch in policy["branches"] for key in branch["when"]["tags"]}
+    ranges = {key for policy in entry["policies"].values()
+              for branch in policy["branches"] for key in branch["when"]["ranges"]}
+    for key, value in context.items():
+        if key in ranges:
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError("脱硫有效组分数无效。")
+        elif key not in tags or not isinstance(value, str) or not value or value.strip() != value:
+            raise ValueError("脱硫来源上下文包含未知或无效字段：" + str(key))
+    return evaluate_field(entry["field"], entry["policies"], context, rule_set_id=entry["rule_set_id"])
+
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class FGDFieldResolution:
+    """One real resolution supplies both qualification and adopted value."""
+    context: Mapping[str, Any]
+    factor: Any = None
+    resolution: Any = None
+
+
+def resolve_fgd_field(field_id, *, resolver, origin, carbonate_type=None,
+                      accounting_period=None, component_count=1, selected_factor_id=None):
+    from packages.core.models import ParameterType
+    from packages.core.parameter_resolution import ParameterResolutionContext
+    from .carbon_material_input_policy import carbonate_c2_identity
+    origin_value = getattr(origin, "value", origin) or "LEGACY_UNSPECIFIED"
+    if origin_value not in {"CATALOG", "CUSTOM", "LEGACY_UNSPECIFIED"}:
+        raise ValueError("未知碳酸盐身份。")
+    current = {"binding_status": "PENDING"}
+    if field_id == "fgd.ratio":
+        if isinstance(component_count, bool) or not isinstance(component_count, int) or component_count < 1:
+            raise ValueError("脱硫有效组分数无效。")
+        current["carbonate_component_count"] = component_count
+        if component_count > 1:
+            return FGDFieldResolution({**current, "binding_status": "ABSENT"})
+    if field_id == "fgd.factor":
+        identity = carbonate_c2_identity(carbonate_type) if origin_value == "CATALOG" else None
+        if origin_value == "CUSTOM":
+            return FGDFieldResolution({"binding_status": "ABSENT"})
+        current["origin"] = origin_value
+        if identity is None:
+            return FGDFieldResolution(current)
+        parameter_id, subject_id, kind = identity.parameter_id, identity.subject_id, ParameterType.PROCESS_CO2_FACTOR
+    elif field_id in {"fgd.ratio", "fgd.conversion"}:
+        parameter_id = "car-par-p04b-i" if field_id == "fgd.ratio" else "car-par-p04b-tr"
+        subject_id, kind = "fgd", ParameterType.PROCESS_DEFAULT_PARAMETER
+    else:
+        raise ValueError("未知脱硫字段。")
+    if resolver is None:
+        return FGDFieldResolution(current)
+    resolution = resolver.resolve(ParameterResolutionContext(
+        parameter_id=parameter_id, standard_id="gbt_32151_34_2024", subject_id=subject_id,
+        parameter_type=kind, accounting_period=accounting_period,
+        confirmed_factor_id=selected_factor_id,
+        confirmation_reason="保留当前明确选择的脱硫参数" if selected_factor_id else None,
+    ))
+    association = resolver.reference_binding_for(resolution)
+    binding = association.binding
+    if binding is None:
+        return FGDFieldResolution({**current, "binding_status": "ABSENT" if association.status == "ABSENT" else "PENDING"}, resolution=resolution)
+    if not any(tags["binding_id"] == binding.binding_id and tags["parameter_id"] == binding.parameter_id
+               for tags in fgd_binding_conditions(field_id)):
+        return FGDFieldResolution(current, resolution=resolution)
+    return FGDFieldResolution({**current, "binding_status": "VERIFIED", "binding_id": binding.binding_id,
+                               "parameter_id": binding.parameter_id}, resolution.recommended.factor, resolution)
