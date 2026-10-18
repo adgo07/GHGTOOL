@@ -90,7 +90,7 @@ class MainIntegrationExcelTests(unittest.TestCase):
         self.assertEqual(sum((row.mass_t for row in feed), Decimal("0")), Decimal("120"))
         self.assertEqual(len(value.bakings), 1)
         self.assertEqual(len(value.graphitizations), 1)
-        self.assertEqual(len(value.fume_incinerations), 1)
+        self.assertEqual(len(value.fume_segments), 1)
         self.assertEqual(len(value.fgd_units), 1)
         self.assertEqual(len(value.electricity_details), 1)
         self.assertEqual(len(value.exported_electricity), 1)

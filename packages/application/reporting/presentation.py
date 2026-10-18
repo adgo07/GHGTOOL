@@ -21,7 +21,7 @@ def report_text(model):
             output.append(" | ".join(next((row.cells[i].value for row in reversed(headers) if row.cells[i].value),table.columns[i]) for i in range(len(table.columns))))
             covered={(r,c) for top,left,bottom,right in table.body_merges for r in range(top,bottom+1) for c in range(left,right+1) if (r,c)!=(top,left)}
             for r,row in enumerate(table.rows):output.append(" | ".join("" if (r,c) in covered else cell_text(cell) for c,cell in enumerate(row.cells)))
-            output.extend(table.footnotes)
+            output.extend((*table.footnotes, *(row.note for row in table.rows if row.note)))
         output.extend(section.notes)
         output.append("")
     return "\n".join(output)
@@ -55,7 +55,7 @@ def report_html(model):
             if table.context_label:output.append('<p><b>'+escape(table.context_label)+'</b></p>')
             output.append('<p><b>'+escape(table.title)+'</b></p>')
             output.append(_table_html(table))
-            for note in table.footnotes:output.append('<p style="font-size:11px;color:#526579;">'+escape(note).replace(chr(10),'<br>')+'</p>')
+            for note in (*table.footnotes, *(row.note for row in table.rows if row.note)):output.append('<p style="font-size:11px;color:#526579;">'+escape(note).replace(chr(10),'<br>')+'</p>')
         for note in section.notes:output.append('<p>'+escape(note)+'</p>')
     if model.notices:
         output.append('<h3>核算提醒</h3>')

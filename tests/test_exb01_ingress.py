@@ -133,16 +133,18 @@ class AppendixBIngressIntegrationTests(unittest.TestCase):
             sheet.merge_cells(start_row=top + 1, start_column=left, end_row=bottom + 1, end_column=right)
         for column, value in zip("ABCDEF", (200, 10, 30, 0.02, 98, 365)):
             sheet[f"{column}4"] = value
+        for column,value in zip("HIJKLM",("fixture-source-B","fixture-stack","fixture-segment-B","2025-01-01 00:00:00","2026-01-01 00:00:00","d")):
+            sheet[f"{column}4"]=value
         workbook.save(path)
         workbook.close()
         preview = self.importer.import_preview(path, context=self._context(fuel_path=FuelPath.VOLUME))
         unit = preview.units[0]
         self.assertTrue(unit.can_calculate, unit.errors)
-        self.assertEqual([item.q.value for item in unit.input_value.fume_incinerations], [Decimal("100"), Decimal("200")])
+        self.assertEqual([item.measurements.q.value for item in unit.input_value.fume_segments], [Decimal("100"), Decimal("200")])
         amounts = [line.amount for line in unit.result.lines if line.emission_source_id == SOURCE_FUME]
         self.assertEqual(sum(amounts), Decimal("0.05665968"))
         self.assertIsNone(unit.calculation.record)
-        self.assertIn("B.6!A4", {item.q.source_reference for item in unit.input_value.fume_incinerations})
+        self.assertIn("B.6!A4", {item.measurements.q.source_reference for item in unit.input_value.fume_segments})
 
     def test_b6_invalid_second_row_blocks_at_its_actual_cell(self) -> None:
         path = self._workbook("invalid-second-fume.xlsx", all_sources=True)

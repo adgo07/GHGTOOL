@@ -30,13 +30,16 @@ V6_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b
 V6_TEMPLATE_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
 V7_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx")
 V7_TEMPLATE_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx")
-APPROVED_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
+V8_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx")
+V8_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx")
+APPROVED_TEMPLATE_SHA256 = "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
 PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
 PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
 COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 TEMPLATE_SHA256_BY_PATH = {
+    V8_TEMPLATE_PATH: V8_TEMPLATE_SHA256,
     V6_TEMPLATE_PATH: V6_TEMPLATE_SHA256,
     V7_TEMPLATE_PATH: V7_TEMPLATE_SHA256,
     V5_TEMPLATE_PATH: V5_TEMPLATE_SHA256,
@@ -53,7 +56,7 @@ REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json
 ALLOWED_RESOURCE_FILES = frozenset({
     BUSINESS_RULES_PATH.as_posix(),
     (Path("resources") / MATERIAL_RUNTIME_RESOURCE).as_posix(),
-    V6_TEMPLATE_PATH.as_posix(), V7_TEMPLATE_PATH.as_posix(),
+    V6_TEMPLATE_PATH.as_posix(), V7_TEMPLATE_PATH.as_posix(), V8_TEMPLATE_PATH.as_posix(),
     (Path("resources") / FGD_RUNTIME_RESOURCE).as_posix(),
     V5_TEMPLATE_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
@@ -180,6 +183,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     catalog_database_version = _check_catalog(artifact / ALLOWED_SQLITE, issues)
     if not (artifact / APPROVED_TEMPLATE_PATH).is_file():
         issues.append(f"missing approved Excel template: {APPROVED_TEMPLATE_PATH.as_posix()}")
+    if not (artifact / V8_TEMPLATE_PATH).is_file():
+        issues.append(f"missing compatibility v8 Excel template: {V8_TEMPLATE_PATH.as_posix()}")
     if not (artifact / V6_TEMPLATE_PATH).is_file():
         issues.append(f"missing prior v6 Excel template: {V6_TEMPLATE_PATH.as_posix()}")
     if not (artifact / V5_TEMPLATE_PATH).is_file():

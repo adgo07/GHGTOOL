@@ -15,6 +15,8 @@ from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment, parse_fume_timestamp
+from packages.core.errors import DomainValidationError
 from packages.application.project_workspaces import AccountingUnitType
 from packages.application.uat03_parameter_queries import UAT03ParameterQueries
 from packages.core.decimal_policy import DecimalPolicy
@@ -284,6 +286,8 @@ class AppendixBWorkbookImporter:
         processes: tuple[list, list, list] = ([], [], [])
         fumes: list[FumeIncinerationInput] = []
         fgd: list[FGDInput] = []
+        fume_segments = []
+        fume_ingress_valid = True
         purchased_power: list[ElectricityConsumptionDetail] = []
         exported_power: list[ElectricityOutputLine] = []
         purchased_heat: list[HeatInput] = []
@@ -299,7 +303,7 @@ class AppendixBWorkbookImporter:
             self._check_trailing_activity(workbook, reader, errors, warnings)
             self._parse_fuels(workbook, context, reader, errors, warnings, fuels, involved, unit_id, template_version=template_version)
             self._parse_processes(workbook, context, reader, errors, warnings, processes, involved, unit_id, template_version=template_version)
-            self._parse_fumes(workbook, context, reader, errors, warnings, fumes, involved, unit_id)
+            fume_ingress_valid = self._parse_fumes(workbook, context, reader, errors, warnings, fumes, involved, unit_id, segments=fume_segments, template_version=template_version)
             self._parse_fgd(workbook, context, reader, errors, warnings, fgd, involved, unit_id, template_version=template_version)
             self._parse_power(workbook, context, reader, errors, warnings, purchased_power,
                               exported_power, involved, unit_id, enterprise_id)
@@ -323,12 +327,18 @@ class AppendixBWorkbookImporter:
                 bakings=tuple(processes[1]),
                 graphitizations=tuple(processes[2]),
                 fume_incinerations=tuple(fumes),
+                fume_segments=tuple(fume_segments),
+                fume_execution_version="FUME_V2" if template_version == "2.7.0" else "FUME_V1",
                 fgd_units=tuple(fgd),
                 electricity_details=tuple(purchased_power),
                 exported_electricity=tuple(exported_power),
                 purchased_heat=tuple(purchased_heat),
                 exported_heat=tuple(exported_heat),
             )
+            if not fume_ingress_valid or any((message.location or "").startswith("B.6!") for message in errors):
+                # An invalid interval cannot be represented as a valid typed segment.
+                # Do not expose a partial Canonical that could be submitted directly.
+                canonical = None
             imported_at = datetime.now(timezone.utc)
             calculation = (
                 self.preview_use_case.calculate(canonical, calculated_at=imported_at)
@@ -415,7 +425,7 @@ class AppendixBWorkbookImporter:
             "B.2":("BDFHIL" if workbook["B.2"]["M2"].value == "名称类型" else "BCEGH"), "B.3":("DE" if workbook["B.3"]["C3"].value == "实际名称" else "CD"),
             "B.4":("DE" if workbook["B.4"]["C3"].value == "实际名称" else "CD"),
             "B.5":("DE" if workbook["B.5"]["C3"].value == "实际名称" else "CD"),
-            "B.6":"ABCDEF", "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
+            "B.6":("ABCDEFHIJKLM" if workbook["B.6"]["H2"].value == "排放源编号" else "ABCDEF"), "B.7":"BDEFH", "B.8":"CD", "B.9":"CDEFG",
         }
         for name in ("B.3", "B.4", "B.5"):
             if workbook[name]["I3"].value == "质量基准":
@@ -434,7 +444,7 @@ class AppendixBWorkbookImporter:
                     value=cell.value
                     if value is None or value=="":
                         continue
-                    numeric = cell.data_type in {"n","f"}
+                    numeric = cell.data_type in {"n","f"} or (name=="B.6" and column in "HIJKLM")
                     if isinstance(value,str):
                         try:
                             Decimal(value.strip())
@@ -501,9 +511,9 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
         from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"}
-        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
         def column(legacy_column):
             return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
 
@@ -541,7 +551,7 @@ class AppendixBWorkbookImporter:
             if path is None:
                 continue
             route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
-            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0"} else {"计算值", "实测值"}):
+            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"} else {"计算值", "实测值"}):
                 if route is not None:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
@@ -639,7 +649,7 @@ class AppendixBWorkbookImporter:
                     reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="其他来源FCh填写值",reason="直接含碳量路径不采用FCh。")
                 if explicit_source_schema:
                     reader.observe_unused(workbook,"B.2",f"N{row}",warnings,field_label="单位热值含碳量来源",reason="直接含碳量路径不采用FCh来源选择。")
-                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0"} and route == "直接计算值":
+                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"} and route == "直接计算值":
                     for coordinate, name in ((f"{column('E')}{row}", "低位发热量"), (f"{column('G')}{row}", "FCh目录值"), (f"{column('K')}{row}", "FCh填写值")):
                         if _has_value(sheet[coordinate]):
                             errors.append(ImportMessage("EXB01_DIRECT_PATH_VALUE_CONFLICT", "直接计算含碳量路径不采用热值或FCh，请清空冲突数值。", f"B.2!{coordinate}", name))
@@ -1207,7 +1217,7 @@ class AppendixBWorkbookImporter:
                 involved.add(SOURCE_EXPORTED_HEAT)
 
     def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
-        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"}:
+        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}:
             from .appendix_b_processes import parse_process_sheets
             return parse_process_sheets(
                 self, workbook, context, reader, errors, warnings, outputs,
@@ -1340,17 +1350,20 @@ class AppendixBWorkbookImporter:
             return group_slots[0]
         return group_slots[position - 1] if 1 <= position <= len(group_slots) else None
 
-    def _parse_fumes(self, workbook, context, reader, errors, warnings, output, involved, unit_id):
+    def _parse_fumes(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, segments, template_version):
+        error_count = len(errors)
+        segmented = template_version == "2.7.0"
         ws = workbook["B.6"]
         stop = next(
             (row for row in range(3, ws.max_row + 1) if _is_appendix_footer_row(ws, row)),
             ws.max_row + 1,
         )
-        labels = ("烟气流量", "焦油含量", "低位发热量", "单位热值含碳量", "碳氧化率", "报告期时长")
+        labels = ("烟气流量", "焦油含量", "低位发热量", "单位热值含碳量", "碳氧化率", "监测段时长")
         fch_default = self._default_factor("CAR-PAR-P04A-FCH", context.period)
         for row in range(3, stop):
-            if not any(_has_value(ws[f"{col}{row}"]) for col in "ABCDEF"):
+            if not any(_has_value(ws[f"{col}{row}"]) for col in ("ABCDEFHIJKLM" if segmented else "ABCDEF")):
                 continue
+            involved.add(SOURCE_FUME)
             values = [
                 reader.number(workbook, "B.6", f"{col}{row}", errors, required=True, field_label=label)
                 for col, label in zip("ABCDEF", labels)
@@ -1363,15 +1376,33 @@ class AppendixBWorkbookImporter:
                 f"B.6!D{row}", warnings, "单位热值含碳量",
             )
             fox = self.policy.divide(fox_pct, Decimal("100"))
-            output.append(FumeIncinerationInput(
-                q=InputValue(q, "Nm3/h", source_reference=f"B.6!A{row}"),
-                qvar=InputValue(qvar, "mg/Nm3", source_reference=f"B.6!B{row}"),
-                hm=InputValue(hm, "GJ/t", source_reference=f"B.6!C{row}"),
-                fch=fch, fox=fox,
-                duration=InputValue(duration, "d", source_reference=f"B.6!F{row}"),
-                instance_id=f"fume-{row - 2}",
-            ))
-            involved.add(SOURCE_FUME)
+            identity = {}
+            if segmented:
+                for col,key,label in (("H","source","排放源编号"),("I","boundary","计量边界编号"),("J","segment","监测段编号"),("K","start","监测开始"),("L","end","监测结束"),("M","unit","时长单位")):
+                    identity[key] = reader.text(workbook,"B.6",f"{col}{row}",errors,required=True,field_label=label)
+                if not all(identity.values()):
+                    continue
+                if identity["unit"] not in {"d","h"}:
+                    errors.append(ImportMessage("EXB01_FUME_UNIT","监测段时长单位只能为d或h。",f"B.6!M{row}","时长单位"))
+                    continue
+            source_id = _stable_id("fume-source", unit_id, identity["source"]) if segmented else f"fume-{row-2}"
+            measurement = FumeIncinerationInput(
+                q=InputValue(q,"Nm3/h",source_reference=f"B.6!A{row}"),
+                qvar=InputValue(qvar,"mg/Nm3",source_reference=f"B.6!B{row}"),
+                hm=InputValue(hm,"GJ/t",source_reference=f"B.6!C{row}"),fch=fch,fox=fox,
+                duration=InputValue(duration,identity["unit"] if segmented else "d",source_reference=f"B.6!F{row}"),
+                instance_id=source_id,source_name=identity.get("source"),boundary_name=identity.get("boundary"))
+            if segmented:
+                try:
+                    segments.append(FumeMonitoringSegment(source_id,
+                        _stable_id("fume-boundary",unit_id,identity["source"],identity["boundary"]),
+                        _stable_id("fume-segment",unit_id,identity["source"],identity["boundary"],identity["segment"]),
+                        parse_fume_timestamp(identity["start"]),parse_fume_timestamp(identity["end"]),measurement))
+                except (ValueError,DomainValidationError) as exc:
+                    errors.append(ImportMessage("EXB01_FUME_INTERVAL",str(exc),f"B.6!K{row}:L{row}","监测区间"))
+            else:
+                output.append(measurement)
+        return len(errors) == error_count
 
     def _carbonate_option(self, label, period):
         if self.queries is None:
@@ -1385,7 +1416,7 @@ class AppendixBWorkbookImporter:
 
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}
@@ -1468,14 +1499,14 @@ class AppendixBWorkbookImporter:
         for row in range(3, stop):
             if row in grouped_rows:
                 continue
-            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version == "2.6.0" else "DEFHJ" if current else "DEF")):
+            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version in {"2.6.0", "2.7.0"} else "DEFHJ" if current else "DEF")):
                 errors.append(ImportMessage(
                     "EXB01_FGD_BATCH_BOUNDARY_REQUIRED",
                     "该碳酸盐组分数据没有落在明确的 A/B 批次合并组或新批次边界内。",
                     f"B.7!C{row}", "碳酸盐组分",
                 ))
 
-        explicit_ratios = template_version == "2.6.0"
+        explicit_ratios = template_version in {"2.6.0", "2.7.0"}
         explicit_factor_source = template_version not in {"1.0.0", "2.0.0"}
         facilities = {}
         for ordinal, (start, end, _merged) in enumerate(groups, 1):

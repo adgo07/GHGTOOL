@@ -1,0 +1,895 @@
+{
+  "schema_version": 1,
+  "scope": "PR51-F01小时精度退修：固定新源码CI273及精确包PASS，交源最终验收并由源合并",
+  "base_sha": "8d054d2480d744882f4f11f56b59e68df91dc50f",
+  "fixed_tested_commit": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+  "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+  "segment_calculator_version": "CAR-FUME-SEGMENTS-020.2",
+  "locked_central_sha": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "local_validation": {
+    "hour_targeted": {
+      "command": "python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v",
+      "tests": 66,
+      "passed": 66,
+      "seconds": "64.768",
+      "log": "tmp/b-fume/hour-targeted-first.log",
+      "boundary": "CI271验证器修复前执行；业务/模板此后未改，验证工具新38项单独记录"
+    },
+    "related_final": {
+      "command": "python -B -m unittest tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_qzc_n01_c_numeric_unit_pilot tests.test_main_integration_excel tests.test_exb01_ingress tests.test_standard_dispatch tests.test_g08_delivery.G08DeliveryTests.test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource -v",
+      "tests": 135,
+      "passed": 135,
+      "seconds": "62.699",
+      "log": "tmp/b-fume/hour-related-final.log",
+      "boundary": "CI271验证器修复前执行；业务/模板此后未改，验证工具新38项单独记录"
+    },
+    "compile": "PASS",
+    "pip_check": "PASS",
+    "canonical": {
+      "standards": 9,
+      "sources": 12,
+      "parameters": 102,
+      "factors": 138
+    },
+    "v9_mechanical_projection": "PASS",
+    "verifier_fix_final": {
+      "command": "python -B -m unittest tests.test_g08_delivery tests.test_qzc_n01_c_numeric_unit_pilot -v",
+      "tests": 38,
+      "passed": 38,
+      "seconds": "18.961",
+      "log": "tmp/b-fume/verifier-fix-final.log",
+      "boundary": "验证器/测试改动；同时注入非规范临时路径和sitecustomize预导入源码resources，真实wheel/sdist/安装字节及Numeric原守卫通过"
+    },
+    "text_loss_fix": {
+      "command": "python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v",
+      "tests": 68,
+      "passed": 68,
+      "seconds": "70.196",
+      "log": "tmp/b-fume/text-loss-targeted.log",
+      "scope": "包括小时/分钟/秒后点逗号超精度拒绝、真实GUI/Excel零Record、全零尾数对照、旧细值保留与实际装配"
+    }
+  },
+  "original_failures": {
+    "first_chain_import": {
+      "tests": 1,
+      "errors": 1,
+      "reason": "测试误用renderer导入路径"
+    },
+    "second_chain": {
+      "tests": 9,
+      "failures": 1,
+      "errors": 3,
+      "seconds": "30.965",
+      "reason": "测试快照/表格页接线与有限位数值参考精确断言"
+    },
+    "first_joint": {
+      "tests": 97,
+      "failures": 1,
+      "seconds": "224.466",
+      "reason": "旧布局版本断言3.0.3未同步3.0.4"
+    },
+    "first_targeted": {
+      "tests": 82,
+      "failures": 1,
+      "seconds": "70.891",
+      "reason": "旧单实例结果ID断言未升级复合身份"
+    },
+    "correction": {
+      "tests": 18,
+      "errors": 1,
+      "seconds": "18.598",
+      "reason": "测试trace属性误拼，实际为traces"
+    },
+    "corrected_gui": {
+      "tests": 1,
+      "passed": 1,
+      "seconds": "9.725"
+    },
+    "record_projection_first": {
+      "tests": 40,
+      "failures": 1,
+      "seconds": "58.526",
+      "reason": "v9输入段时长与历史Word表头差异未在保护测试明确区分"
+    },
+    "shared_rename_before": {
+      "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+      "tests": 1,
+      "failures": 1,
+      "seconds": "5.129",
+      "log": "tmp/b-fume/shared-rename-before.log",
+      "reason": "shared stable source/boundary old label could overwrite rename"
+    },
+    "package_proof_first": {
+      "exit_code": 1,
+      "log": "tmp/b-fume/package-proof-ci268.log",
+      "reason": "证明脚本以中文描述充当稳定source_reference，正式来源标识校验正确拒绝；仅修合成数据"
+    },
+    "package_proof_second": {
+      "exit_code": 1,
+      "log": "tmp/b-fume/package-proof-ci268-r2.log",
+      "reason": "证明脚本payload遗漏INVOLVED状态，却对无源输入断言致命；补明确源状态后用全新目录通过，不改生产代码/制品"
+    },
+    "hour_related_first": {
+      "tests": 134,
+      "passed": 133,
+      "failures": 1,
+      "seconds": "50.025",
+      "log": "tmp/b-fume/hour-related.log",
+      "reason": "手动装配验证源码/安装副本位于ignored tmp，被原Numeric全仓扫描识别为额外代码；副本保留移至仓外，验证器改临时生命周期，未削弱Numeric守卫"
+    },
+    "hour_related_second": {
+      "tests": 135,
+      "passed": 134,
+      "errors": 1,
+      "seconds": "49.652",
+      "log": "tmp/b-fume/hour-related-pass.log",
+      "reason": "验证脚本替换import sys误改探针字符串导致语法错；修正脚本并编译后最终135通过，不改业务算法"
+    },
+    "hour_commit_diffcheck": {
+      "reason": "首次暂存diffcheck提示两个新脚本EOF多余空行；提交命令未据此提前退出，随后独立提交规范化并重新通过，业务字节语义不变",
+      "production_head_before_whitespace": "2b5da78218649ac61bfb63f068a3e90a03e06ab5"
+    },
+    "ci271_installed_probe": {
+      "reason": "installed-resources探针AssertionError；原CI没有路径诊断，具体8.3/editable成因未获CI实证。已本地用有效非规范临时目录复现子路径resolve/父路径未resolve导致误判；统一resolve、-I/-S隔离并保留真实来源/全部字节断言",
+      "reproduction": "tmp/b-fume/ci271-path-reproduction.log",
+      "reproduction_exit": 1
+    },
+    "verifier_fix_first": {
+      "tests": 38,
+      "passed": 37,
+      "errors": 1,
+      "seconds": "32.766",
+      "log": "tmp/b-fume/verifier-fix-targeted.log",
+      "reason": "污染回归覆盖原PYTHONPATH，丢失本机构建依赖setuptools；改为保留既有构建路径并额外注入，安装探针仍完全忽略环境/site"
+    },
+    "ci273_download_first": {
+      "exit_code": 1,
+      "reason": "首次Invoke-WebRequest TLS EOF，未生成ZIP；后续审计因无文件退出，未获任何通过结论。系统curl HTTP1.1重试同一产物成功，GitHub digest与全部manifest/PE/来源吻合。网络工具失败，不是测试失败。"
+    }
+  },
+  "source_text_lf_sha256": {
+    "packages/standards/carbon_material.py": "e92297e61866bfd160aad287fe5a9b9961da0ad4e2c6bda1b52213e8cab50d6f",
+    "packages/standards/carbon_material_fume_segments.py": "92761ed4549c9c605e7763b34867ff51c2db4684d66ff2b3360658a3930cf52e",
+    "packages/application/carbon_material_input_codec.py": "114417608395514a90428c10f02d171110cdeebf914cd5a9fea11683d93a631b",
+    "packages/ui/carbon_material_page.py": "c1c3222106d348fe095c64a01e56c7eba631e2074ce01a7219337d32aa85cd8f",
+    "packages/excel/appendix_b.py": "22b30beadef03ed9a001aff1bdfbf6cc6d07fb39ca1aaa0993ca9675671b3565",
+    "tests/test_b_fume_chain.py": "5a58ea5f113f699de07d008210a9c9c7a8458958160428619b8fc06adf55e44c",
+    "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
+    "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560",
+    "scripts/verify_distribution_templates.py": "3321f369fe87d3fbb7aa25630899d831a1f111f8bfa18f824e780dd45d0bc39e",
+    "scripts/verify_frozen_record_word.py": "bd395251a35cd298aafc59f86adf2fc685f049a2fc308e76ca9653e94a09433e"
+  },
+  "template": {
+    "version": "2.7.0",
+    "resource": "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx",
+    "sha256": "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9",
+    "changed_zip_parts": [
+      "xl/worksheets/sheet6.xml"
+    ],
+    "prior_v2_to_v8_bytes_unchanged": true
+  },
+  "actual_old_b4_fume_history": {
+    "source_commit": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+    "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+    "record_id": "record.actual-b4-old-fume.c5cbd895d1ff4288a2099bb1c49c5c77",
+    "total": "0.0005174400000000000000000000000000000000000",
+    "document_xml_sha256": "76f5ab7632c89c62fac648b1c54a6cdb57121f4b61c307d87b56e1eb9a9301d6",
+    "model_sha256": "d414d55be95c2162d54baa36748a9552b186dab8242162a044ec52b917abc995",
+    "raw_sha256": "c664e0eed4c2f6401c55e130120bff3f890f10cf52917c453fd200435fb9b2aa",
+    "records": 1,
+    "new_code_old_record_word_unchanged": true
+  },
+  "ci": {
+    "run_id": 39116916157,
+    "run_number": 273,
+    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39116916157",
+    "status": "completed",
+    "conclusion": "success",
+    "pr_head_sha": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "tested_merge_sha": "c5f71d437a30f4b98803349054d4fbd27a6b754b",
+    "merge_job": {
+      "id": 117644463932,
+      "command": "python -m unittest discover -s tests -t . -v",
+      "tests": 944,
+      "passed": 944,
+      "seconds": "1573.998",
+      "log": "tmp/b-fume/ci273-merge-raw.log",
+      "log_sha256": "e065343fb595fd27caef69a44541ffbe493094619aee7f6eee32dcaa7ff9409b"
+    },
+    "standalone_job": {
+      "id": 117649889623,
+      "command": "python -m unittest tests.test_g08_delivery -v",
+      "tests": 18,
+      "passed": 18,
+      "seconds": "9.817",
+      "isolated_native_starts": 2,
+      "canonical_compile_dependencies_databases_gui_scale": "PASS",
+      "build_manifest_provenance_archive_audit": "PASS",
+      "log": "tmp/b-fume/ci273-standalone-raw.log",
+      "log_sha256": "235a68e4ba797c02757b5c55427656be631c084077ca1a5ee4d1634c425195ba"
+    },
+    "execution_source": "GitHub Actions，非本地全量"
+  },
+  "artifact": {
+    "zip_sha256": "40cfd4632226474853e5ab320323edb2c734b9b974460002b9dd7b59133b6005",
+    "zip_size": 59904229,
+    "manifest_sha256": "0561ed757065469edcbea9ab40328fe9a04dfce01a3c3a4214c22b6bb2864330",
+    "exe_sha256": "e3dce0a1041f86ae1bde798ec23d6de00529cd6ce2d440a611a50cb505c79dea",
+    "source_commit": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "pr_head_sha": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "tested_merge_sha": "c5f71d437a30f4b98803349054d4fbd27a6b754b",
+    "manifest_entries": 278,
+    "visible_files": 279,
+    "all_sizes_and_hashes_match": true,
+    "pe_files": 129,
+    "normal_and_delay_import_names": 114,
+    "virtualkeyboard_paths_or_imports": 0,
+    "iapws_paths": 0,
+    "qt_dlls": [
+      {
+        "path": "PySide6/Qt6Core.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Gui.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Network.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6OpenGL.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Pdf.dll",
+        "versions": [
+          "6.140.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Qml.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlMeta.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlModels.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6QmlWorkerScript.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Quick.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Svg.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      },
+      {
+        "path": "PySide6/Qt6Widgets.dll",
+        "versions": [
+          "6.12.0.0"
+        ]
+      }
+    ],
+    "qt_plugin_dlls": [
+      "PySide6/plugins/generic/qtuiotouchplugin.dll",
+      "PySide6/plugins/iconengines/qsvgicon.dll",
+      "PySide6/plugins/imageformats/qgif.dll",
+      "PySide6/plugins/imageformats/qicns.dll",
+      "PySide6/plugins/imageformats/qico.dll",
+      "PySide6/plugins/imageformats/qjpeg.dll",
+      "PySide6/plugins/imageformats/qpdf.dll",
+      "PySide6/plugins/imageformats/qsvg.dll",
+      "PySide6/plugins/imageformats/qtga.dll",
+      "PySide6/plugins/imageformats/qtiff.dll",
+      "PySide6/plugins/imageformats/qwbmp.dll",
+      "PySide6/plugins/imageformats/qwebp.dll",
+      "PySide6/plugins/networkinformation/qnetworklistmanager.dll",
+      "PySide6/plugins/platforms/qdirect2d.dll",
+      "PySide6/plugins/platforms/qminimal.dll",
+      "PySide6/plugins/platforms/qoffscreen.dll",
+      "PySide6/plugins/platforms/qwindows.dll",
+      "PySide6/plugins/styles/qmodernwindowsstyle.dll",
+      "PySide6/plugins/tls/qcertonlybackend.dll",
+      "PySide6/plugins/tls/qopensslbackend.dll",
+      "PySide6/plugins/tls/qschannelbackend.dll"
+    ],
+    "artifact_id": 12133602018,
+    "name": "QingzhouCarbonAccounting-bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "github_digest": "sha256:40cfd4632226474853e5ab320323edb2c734b9b974460002b9dd7b59133b6005",
+    "post_business_proof_release_audit": "PASS",
+    "actual_v9_sha256": "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9",
+    "actual_v2_to_v8_bytes_match_controlled_sources": true,
+    "post_proof_audit_log": "tmp/b-fume/post-proof-ci273-audit.log",
+    "post_proof_audit_log_sha256": "dc52a852f447df889221b0dae1a4c2bd2d021a03860c0074728328dd658c5ba5"
+  },
+  "not_run": [
+    "原生Office保存回导",
+    "真实鼠标/中文IME/人工DPI",
+    "企业样例",
+    "干净目标机",
+    "商业履约"
+  ],
+  "merge_status": "NOT_MERGED_C_ACCEPTANCE_THEN_SOURCE_MERGE",
+  "independent_interim": [
+    {
+      "head": "3ee42a0375c7b049c49e3c3868015d0a55db800e",
+      "tests": 66,
+      "passed": 66,
+      "seconds": "97.937",
+      "source": "源会话实际独立执行",
+      "scope": "小时三个模块，词法补漏前"
+    },
+    {
+      "head": "c8dacd84ad6475dfcec531407028971ed37d08f0",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "15.882",
+      "source": "源会话实际独立执行",
+      "scope": "验证器真实装配回归，验证器此后未改"
+    },
+    {
+      "head": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+      "tests": 2,
+      "passed": 2,
+      "seconds": "8.858",
+      "source": "源会话实际独立执行",
+      "scope": "新增纯词法与真实GUI/B.6入口，不冒称源重跑作者包内探针"
+    }
+  ],
+  "superseded_ci": [
+    {
+      "run_id": 39105323380,
+      "number": 266,
+      "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+      "boundary": "not final code/artifact"
+    },
+    {
+      "run_id": 39105684533,
+      "number": 267,
+      "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+      "boundary": "not final code/artifact"
+    }
+  ],
+  "actual_old_b4_fgd_history": [
+    {
+      "record_id": "record.appendix-b-input-a2ae218dfa0b52653e48.6a1aab56d21a46d5ba41d32e911abe4a",
+      "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+      "template_version": "2.5.0",
+      "word_document_xml_sha256": "3dd5df347029c65b4dc1b0afeaeb6067e164ac889df7f38c49d13d9e6cb8581e",
+      "unchanged": true
+    },
+    {
+      "record_id": "record.mixed.57dcf28d23774d6ca4b2298a11bc193f",
+      "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+      "template_version": "",
+      "word_document_xml_sha256": "240e33911b9bcc1df0263f3fee16c907ed487a64a85966d9ac53f9fc4159c152",
+      "unchanged": true
+    }
+  ],
+  "evidence_commit_boundary": "后续文档提交仅本摘要/TASK_STATE/IMPLEMENTATION_REPORT；CI273与实际制品严格固定上述源码，文档head不冒充制品head",
+  "pre_hour_stage": {
+    "fixed_tested_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+    "ci": {
+      "run_id": 39106389790,
+      "run_number": 268,
+      "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39106389790",
+      "status": "completed",
+      "conclusion": "success",
+      "pr_head_sha": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+      "merge_job": {
+        "id": 117613028826,
+        "command": "python -m unittest discover -s tests -t . -v",
+        "tests": 935,
+        "passed": 935,
+        "seconds": "1597.245",
+        "log": "tmp/b-fume/ci268-merge-raw.log",
+        "log_sha256": "95e922d477ed3166f3a479e4f8408c1e6a82d9df9d3828d3a637538260925ecd"
+      },
+      "standalone_job": {
+        "id": 117618533685,
+        "command": "python -m unittest tests.test_g08_delivery -v",
+        "tests": 17,
+        "passed": 17,
+        "seconds": "6.902",
+        "isolated_native_starts": 2,
+        "canonical_compile_dependencies_databases_gui_scale": "PASS",
+        "build_manifest_provenance_archive_audit": "PASS",
+        "log": "tmp/b-fume/ci268-standalone-raw.log",
+        "log_sha256": "8c3248005356a22c04bb33db08aa5b17ffc853a529bf96a6396814d8b5f89119"
+      },
+      "execution_source": "GitHub Actions，非本地全量"
+    },
+    "artifact": {
+      "zip_sha256": "e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c",
+      "zip_size": 59903387,
+      "manifest_sha256": "c6017e1c07081460c6b0dc1762e62d72193b27946a8230b4aec5c4623783f190",
+      "exe_sha256": "3edb91a6e7a94da6ea08956560bc62a8c0079c34e4d5e4fdf4d5b5e6f2472d12",
+      "source_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "pr_head_sha": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+      "manifest_entries": 278,
+      "visible_files": 279,
+      "all_sizes_and_hashes_match": true,
+      "pe_files": 129,
+      "normal_and_delay_import_names": 114,
+      "virtualkeyboard_paths_or_imports": 0,
+      "iapws_paths": 0,
+      "qt_dlls": [
+        {
+          "path": "PySide6/Qt6Core.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Gui.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Network.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6OpenGL.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Pdf.dll",
+          "versions": [
+            "6.140.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Qml.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlMeta.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlModels.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6QmlWorkerScript.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Quick.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Svg.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        },
+        {
+          "path": "PySide6/Qt6Widgets.dll",
+          "versions": [
+            "6.12.0.0"
+          ]
+        }
+      ],
+      "qt_plugin_dlls": [
+        "PySide6/plugins/generic/qtuiotouchplugin.dll",
+        "PySide6/plugins/iconengines/qsvgicon.dll",
+        "PySide6/plugins/imageformats/qgif.dll",
+        "PySide6/plugins/imageformats/qicns.dll",
+        "PySide6/plugins/imageformats/qico.dll",
+        "PySide6/plugins/imageformats/qjpeg.dll",
+        "PySide6/plugins/imageformats/qpdf.dll",
+        "PySide6/plugins/imageformats/qsvg.dll",
+        "PySide6/plugins/imageformats/qtga.dll",
+        "PySide6/plugins/imageformats/qtiff.dll",
+        "PySide6/plugins/imageformats/qwbmp.dll",
+        "PySide6/plugins/imageformats/qwebp.dll",
+        "PySide6/plugins/networkinformation/qnetworklistmanager.dll",
+        "PySide6/plugins/platforms/qdirect2d.dll",
+        "PySide6/plugins/platforms/qminimal.dll",
+        "PySide6/plugins/platforms/qoffscreen.dll",
+        "PySide6/plugins/platforms/qwindows.dll",
+        "PySide6/plugins/styles/qmodernwindowsstyle.dll",
+        "PySide6/plugins/tls/qcertonlybackend.dll",
+        "PySide6/plugins/tls/qopensslbackend.dll",
+        "PySide6/plugins/tls/qschannelbackend.dll"
+      ],
+      "artifact_id": 12129870161,
+      "name": "QingzhouCarbonAccounting-b0e42f069ee479840b2508bfa7080724d1336fef",
+      "github_digest": "sha256:e01ca2272650e2d751f6bf79575d185037066ae67882b3a324fe3bef2b7dff4c",
+      "post_business_proof_release_audit": "PASS (278 files)"
+    },
+    "actual_package_business_proof": {
+      "source_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "tested_merge_sha": "2d91747cef7cca85204e714918f98c4cea5cbac3",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
+      "execution": "EXE_PYZ_BUSINESS_CODE_WITH_PACKAGED_RESOURCES_AND_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_INTERACTION",
+      "no_business_source_fallback": true,
+      "partial_total": "0.2112000000000000000000000000000000000000",
+      "full_total": "25.696",
+      "gap_total": "25.344",
+      "domain_records": 3,
+      "legacy_codec_versions_read_without_intervals": [
+        1,
+        2,
+        3
+      ],
+      "invalid_segments_no_added_record": true,
+      "frozen_word_bytes": 42166,
+      "frozen_word_sha256": "97529fe5099d023ad9a253a029cd133f0042b36a1fc24a7f5978d6b2fe2cb4fd",
+      "actual_old_b4_fume_record_model_word_unchanged": true,
+      "qt_runtime_from_package": true,
+      "qt_incomplete_added_records": 0,
+      "qt_partial_total": ".2112",
+      "qt_records": 1,
+      "actual_new_window_and_service": true,
+      "stable_ids_and_hour_unit_recovered": true,
+      "shared_source_and_boundary_rename_recovered": true,
+      "distinct_same_name_ids_not_merged": true,
+      "unsaved_rename_discarded": true,
+      "old_upgrade_cancel_unchanged": true,
+      "old_upgrade_no_fabricated_intervals": true,
+      "legacy_v2_to_v8": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "record_card_intervals_and_gap_visible": true,
+      "excel_invalid_rows_not_filtered": true,
+      "actual_old_b4_fgd_record_word_unchanged": [
+        {
+          "record_id": "record.appendix-b-input-a2ae218dfa0b52653e48.6a1aab56d21a46d5ba41d32e911abe4a",
+          "template_version": "2.5.0",
+          "document_xml_sha256": "3dd5df347029c65b4dc1b0afeaeb6067e164ac889df7f38c49d13d9e6cb8581e"
+        },
+        {
+          "record_id": "record.mixed.57dcf28d23774d6ca4b2298a11bc193f",
+          "template_version": "",
+          "document_xml_sha256": "240e33911b9bcc1df0263f3fee16c907ed487a64a85966d9ac53f9fc4159c152"
+        }
+      ],
+      "command": "python -B tmp/b-fume/package-proof.py tmp/b-fume/ci268-package tmp/b-fume/package-proof-ci268-r3 b0e42f069ee479840b2508bfa7080724d1336fef tmp/b-fume/actual-old-b4-fume tmp/b-fume/actual-old-b4-fgd",
+      "log": "tmp/b-fume/package-proof-ci268-r3.log",
+      "log_sha256": "22bf625b6cce4733f056373bc4b8bc978b9f7600094e8fe5fcb679576addaa44",
+      "script_sha256": "30db13b41c896077681ae77d74c0e009ca47940d7263a25dc45076223b4c3411",
+      "boundary": "业务代码仅EXE/PYZ、资源与Qt来自实际制品；宿主Python/验证工具/工作簿写入器，不冒称原生人工交互"
+    },
+    "independent_interim": [
+      {
+        "head": "e1715fc5fb61db71cb499ee94bf1793cb2827bd0",
+        "tests": 41,
+        "passed": 41,
+        "seconds": "69.341",
+        "source": "源会话实际独立运行",
+        "scope": "before record projection fix; not final PASS"
+      },
+      {
+        "head": "63182c5918965a8df1975eaf5f91381eec4e5a2f",
+        "tests": 18,
+        "passed": 18,
+        "seconds": "9.907",
+        "source": "源会话实际独立运行",
+        "scope": "before shared rename fix; not final PASS"
+      },
+      {
+        "head": "b0e42f069ee479840b2508bfa7080724d1336fef",
+        "tests": 1,
+        "passed": 1,
+        "seconds": "14.525",
+        "source": "源会话实际独立运行",
+        "scope": "共享源/边界稳定ID名称、同名不同ID、切换、未保存No、新窗口服务SQLite；非最终CI/包验收"
+      }
+    ]
+  },
+  "local_validation_before_hour": {
+    "final_targeted": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_g06_page.G06PageTests.test_ui_builds_multiple_instances_for_every_process_source tests.test_qzc_n01_c_numeric_unit_pilot tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_canonical_project_inputs -v",
+      "tests": 82,
+      "passed": 82,
+      "seconds": "69.983",
+      "log": "tmp/b-fume/final-targeted-pass.log"
+    },
+    "excel_and_delivery": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_exb01_ingress tests.test_main_integration_excel tests.test_g08_delivery -v",
+      "tests": 76,
+      "passed": 76,
+      "seconds": "121.482",
+      "log": "tmp/b-fume/affected-second.log",
+      "execution_boundary": "当时14项烟气整链；后加显式Profile传播项由最终82项覆盖，不冒称本次为15项"
+    },
+    "pure_domain_mapping_numeric": {
+      "tests": 41,
+      "passed": 41,
+      "seconds": "0.043"
+    },
+    "compile": "PASS after same-worktree permission retry",
+    "pip_check": "PASS",
+    "canonical": {
+      "standards": 9,
+      "sources": 12,
+      "parameters": 102,
+      "factors": 138
+    },
+    "record_projection": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v",
+      "tests": 40,
+      "passed": 40,
+      "seconds": "58.024",
+      "log": "tmp/b-fume/final-record-projection-pass.log",
+      "boundary": "new Qt record-card/text/HTML consume frozen segment row notes; Word/calculation/template unchanged"
+    },
+    "shared_rename_joint": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_p3_c_records_ui tests.test_rpt02_appendix_b -v",
+      "tests": 41,
+      "passed": 41,
+      "seconds": "70.491",
+      "log": "tmp/b-fume/shared-rename-final.log",
+      "boundary": "16 fume chain methods; later strengthened one method with no further production changes"
+    },
+    "shared_rename_strong_boundary": {
+      "command": "python -B -m unittest tests.test_b_fume_chain.FumeQtExcelTests.test_shared_source_and_boundary_rename_survive_real_new_window -v",
+      "tests": 1,
+      "passed": 1,
+      "seconds": "12.783",
+      "log": "tmp/b-fume/shared-rename-owner-boundaries.log",
+      "scope": [
+        "same stable IDs synchronize names",
+        "different same-name IDs stay distinct",
+        "source and boundary switching roundtrip",
+        "unsaved No discarded",
+        "real new window/service SQLite recovery"
+      ]
+    },
+    "domain_dispatch_report": {
+      "command": "python -B -m unittest tests.test_g06_carbon_material tests.test_standard_dispatch tests.test_exb01_rpt02_integration -v",
+      "tests": 37,
+      "passed": 37,
+      "seconds": "9.437",
+      "log": "tmp/b-fume/additional-domain-dispatch-report.log"
+    }
+  },
+  "hour_precision_decision": {
+    "issue_id": "GHG-STD-32151-34-020",
+    "finding": "PR51-F01",
+    "owner_date": "2026-10-18",
+    "time_precision": "HOUR",
+    "policy": "整小时端点；h原值等于整数小时；d原值等于declared Profile下hours/24规范化值；两路统一采用该日值；无epsilon/截断/显示回流",
+    "historical": "旧细时间codec/项目可读保存原值，新正式计算明确拒绝；旧Record/Word不重算",
+    "authority": "Owner软件产品精度决定，不称标准原文限制",
+    "independent_report": "PR51_独立验收报告_cdbec958.md",
+    "lexical_guard": "GUI/B.6同源parse_fume_timestamp在datetime解析前检查所有点/逗号小数，超六位含非零尾数拒绝；尾部全零才允许同物理时刻；已可表达旧细时间保留，正式小时门禁不变"
+  },
+  "actual_wheel_sdist": {
+    "templates": {
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx": "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx": "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx": "e9b83462eabd97d5c7bd9aae1b4fa97a27d80006a205907c6671e626e8e57f6f",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v5.xlsx": "7438082b59e6ba294bb953ccc44db0c7a3a16eacbf4f8ddd83f063ce492bb890",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v6.xlsx": "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx": "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx": "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4",
+      "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx": "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
+    },
+    "wheel_sha256": "e97a6554fca12893745aac737a502bc1e095aff3ea59400018ad70f9916d743d",
+    "sdist_sha256": "25a4642d573b2458d90351b60cf623e1a18dd6724e7b3187adf8457aea5a02f5",
+    "wheel_sdist_and_installed_resources_match": true,
+    "no_user_databases_or_reference_directory": true,
+    "source_commit": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "execution_source": "作者本地真实wheel/sdist构建/安装；CI273 G08另有独立执行证据",
+    "command": "python -B -m scripts.verify_distribution_templates --output-dir tmp/b-fume/final-distribution-ci273",
+    "proof": "tmp/b-fume/final-distribution-ci273/proof.json",
+    "installed_probe_log_sha256": "a190a92d077af3266167ffefcba64ba76268dd4787d9f4b70c9018148f170146"
+  },
+  "actual_old_ci268_minute_history": {
+    "created": {
+      "record_id": "record.actual-pre-hour-minute.9478844e5316404cac4afdc95cf91aed",
+      "source_commit": "b0e42f069ee479840b2508bfa7080724d1336fef",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
+      "actual_old_exe_pyz": true,
+      "original_duration_hours": ".05",
+      "original_start": "2025-01-01T00:00:00",
+      "original_end": "2025-01-01T00:03:00",
+      "model_sha256": "01d740a44a7765c7543c936cb64e53ea2e325b43312a454fe12707811fe48b77",
+      "document_xml_sha256": "520b5173479093e0e1e1d577b191b64eb7bca2a976f18bf42be919e5112da13f",
+      "records": 1
+    },
+    "new_code_read": {
+      "record_id": "record.actual-pre-hour-minute.9478844e5316404cac4afdc95cf91aed",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
+      "records": 1,
+      "original_database_unchanged": true,
+      "model_sha256": "01d740a44a7765c7543c936cb64e53ea2e325b43312a454fe12707811fe48b77",
+      "document_xml_sha256": "520b5173479093e0e1e1d577b191b64eb7bca2a976f18bf42be919e5112da13f",
+      "word_body_bytes_unchanged": true
+    },
+    "reproducible_reader": "python -B -m scripts.verify_frozen_record_word --records <历史副本.sqlite> --record-id <ID> --expected-docx <既有导出.docx>",
+    "boundary": "作者实际旧CI268 EXE/PYZ生成3分钟Record；仓内脚本复制SQLite后比较冻结Word，不内置或伪造历史真值"
+  },
+  "ci252_location": {
+    "git_ls_files": [
+      "docs/ci/CI252_SUMMARY.json"
+    ],
+    "result": "PR50已迁移，无旧A目录副本，不重复移动或修改旧字节"
+  },
+  "superseded_hour_ci": [
+    {
+      "run_id": 39113048982,
+      "number": 271,
+      "head": "3ee42a0375c7b049c49e3c3868015d0a55db800e",
+      "merge": "a819f8c0756e303a7a3da65be341fdfa8ee65ce5",
+      "merge_job_id": 117633044964,
+      "status": "completed",
+      "conclusion": "failure",
+      "tests": 942,
+      "passed": 941,
+      "errors": 1,
+      "seconds": "1532.572",
+      "standalone_job_id": 117638479622,
+      "standalone_conclusion": "skipped",
+      "error_excerpt": "tmp/b-fume/ci271-failure-excerpt.log",
+      "boundary": "唯一installed resources来源断言错误；无本次制品，不能背书新head",
+      "raw_log": "tmp/b-fume/ci271-failed-raw.log",
+      "raw_log_sha256": "ae5058cbceec721428a9eb4bd9e7d38c5663f8cf15675a2ce67c49828a81e19a"
+    },
+    {
+      "run_id": 39115319393,
+      "number": 272,
+      "head": "c8dacd84ad6475dfcec531407028971ed37d08f0",
+      "merge": "d04fd1355617102248de9e976ee3ab6e13071cbb",
+      "boundary": "词法补漏前工具修复阶段，不背书最终bbb制品",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "lexical_before_evidence": {
+    "head": "c8dacd84ad6475dfcec531407028971ed37d08f0",
+    "raw_end": "2025-01-02 00:00:00.0000001",
+    "gui_accepted": true,
+    "gui_records": 1,
+    "excel_preview_accepted": true,
+    "excel_formal_accepted": true,
+    "total_records": 2,
+    "canonical_end": "2025-01-02T00:00:00",
+    "log": "tmp/b-fume/submicrosecond-before.log",
+    "log_sha256": "233245847299eb78ed5ef118f027fcafa04f7c88f02ba41e6fddadbe008a642d",
+    "boundary": "作者真实GUI/B.6/Application/隔离SQLite探针；不是原生人工操作"
+  },
+  "actual_package_business_proof": {
+    "source_commit": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+    "tested_merge_sha": "c5f71d437a30f4b98803349054d4fbd27a6b754b",
+    "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+    "execution": "EXE_PYZ_BUSINESS_CODE_WITH_PACKAGED_RESOURCES_AND_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_INTERACTION",
+    "no_business_source_fallback": true,
+    "partial_total": "0.2112000000000000000000000000000000000000",
+    "full_total": "25.696",
+    "gap_total": "25.344",
+    "domain_records": 3,
+    "legacy_codec_versions_read_without_intervals": [
+      1,
+      2,
+      3
+    ],
+    "invalid_segments_no_added_record": true,
+    "frozen_word_bytes": 42166,
+    "frozen_word_sha256": "58ba5956f3b8737b69f6be75a42aefa678706d965bf6bdccd4bd5fc54c6e6dc6",
+    "actual_old_b4_fume_record_model_word_unchanged": true,
+    "qt_runtime_from_package": true,
+    "qt_incomplete_added_records": 0,
+    "qt_partial_total": ".2112",
+    "qt_records": 1,
+    "actual_new_window_and_service": true,
+    "stable_ids_and_hour_unit_recovered": true,
+    "shared_source_and_boundary_rename_recovered": true,
+    "distinct_same_name_ids_not_merged": true,
+    "unsaved_rename_discarded": true,
+    "old_upgrade_cancel_unchanged": true,
+    "old_upgrade_no_fabricated_intervals": true,
+    "legacy_v2_to_v8": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "record_card_intervals_and_gap_visible": true,
+    "excel_invalid_rows_not_filtered": true,
+    "actual_old_b4_fgd_record_word_unchanged": [
+      {
+        "record_id": "record.appendix-b-input-a2ae218dfa0b52653e48.6a1aab56d21a46d5ba41d32e911abe4a",
+        "template_version": "2.5.0",
+        "document_xml_sha256": "3dd5df347029c65b4dc1b0afeaeb6067e164ac889df7f38c49d13d9e6cb8581e"
+      },
+      {
+        "record_id": "record.mixed.57dcf28d23774d6ca4b2298a11bc193f",
+        "template_version": "",
+        "document_xml_sha256": "240e33911b9bcc1df0263f3fee16c907ed487a64a85966d9ac53f9fc4159c152"
+      }
+    ],
+    "hour_precision_cases": [
+      1,
+      5,
+      10,
+      24,
+      48
+    ],
+    "hour_day_exact_normalized_equivalence": true,
+    "hour_domain_records": 10,
+    "declared_profile_hour_day_ambient_combinations": true,
+    "minute_second_microsecond_rejected_without_rewrite": true,
+    "true_duration_mismatch_rejected": true,
+    "hour_gui_and_excel_consistent": true,
+    "hour_gui_records": 1,
+    "old_finer_gui_saved_and_new_window_recovered": true,
+    "actual_old_ci268_minute_record_model_word_unchanged": true,
+    "actual_old_ci268_minute_document_xml_sha256": "520b5173479093e0e1e1d577b191b64eb7bca2a976f18bf42be919e5112da13f",
+    "lexical_loss_rejected_gui_and_excel": [
+      "2025-01-02 00:00:00.0000001",
+      "2025-01-02 00:00:00,0000001",
+      "2025-01-02 00:00.0000001",
+      "2025-01-02 00:00,0000001",
+      "2025-01-02 00.0000001",
+      "2025-01-02 00,0000001"
+    ],
+    "lexical_nonzero_precision_loss_added_records": 0,
+    "lexical_zero_tail_formal_records": 2,
+    "lexical_raw_invalid_time_not_rewritten": true,
+    "command": "python -B tmp/b-fume/package-proof-lexical.py tmp/b-fume/ci273-package tmp/b-fume/package-proof-ci273 bbb1d5bd953d463013f135c1047de33fc37fcc59 tmp/b-fume/actual-old-b4-fume tmp/b-fume/actual-old-b4-fgd tmp/b-fume/actual-old-ci268-minute",
+    "log": "tmp/b-fume/package-proof-ci273.log",
+    "log_sha256": "723502e12da2671137db74df1a3976b3e371407b4e2392e75bae73e36c386c18",
+    "script_sha256": "44be5248005a08249ccaf6993978bae9324b82a6330556e042f58fb718bbe9ff",
+    "boundary": "实际EXE/PYZ业务代码、包内资源及Qt，禁止业务源码回退；宿主Python/验证工具用于程序化离屏，不冒称原生人工交互"
+  }
+}

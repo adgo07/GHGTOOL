@@ -785,13 +785,17 @@ class G06PageTests(unittest.TestCase):
             second = self.page._add_process_row(prefix)
             for key, value in {"q": "2000", "qvar": "8", "hm": "25", "fch": "0.03", "fox": "0.95", "duration": "2"}.items():
                 second["fields"][key].setText(value)
+            from datetime import timedelta
+            for row,days in ((first,1),(second,2)):
+                row["segment_start"].setText(self.page._period().start.isoformat())
+                row["segment_end"].setText((self.page._period().start+timedelta(days=days)).isoformat())
 
         domain_input = self.page._input()
         process_tuples = {
             "calcination": domain_input.calcinations,
             "baking": domain_input.bakings,
             "graphitization": domain_input.graphitizations,
-            "fume": domain_input.fume_incinerations,
+            "fume": tuple(segment.measurements for segment in domain_input.fume_segments),
             "fgd": domain_input.fgd_units,
         }
         self.assertTrue(all(len(items) == 2 for items in process_tuples.values()))
@@ -804,8 +808,8 @@ class G06PageTests(unittest.TestCase):
             self.assertFalse(normalized.problems, normalized.problems)
             self.assertEqual(getattr(items[0], field).value, normalized.value(field))
             self.assertTrue(items[0].material_rows)
-        self.assertEqual(str(domain_input.fume_incinerations[0].q.value), "1000")
-        self.assertEqual(str(domain_input.fume_incinerations[1].q.value), "2000")
+        self.assertEqual(str(domain_input.fume_segments[0].measurements.q.value), "1000")
+        self.assertEqual(str(domain_input.fume_segments[1].measurements.q.value), "2000")
         self.assertEqual(
             [component.emission_factor.source_id for component in domain_input.fgd_units[0].components],
             ["SRC-32151-34-2024", "SRC-32151-34-2024"],
@@ -826,7 +830,13 @@ class G06PageTests(unittest.TestCase):
         for name, items in process_tuples.items():
             rows = [line for line in outcome.result.lines if line.emission_source_id == expected_sources[name]]
             self.assertEqual(len(rows), 2, name)
-            self.assertEqual({line.line_id.rsplit(".", 1)[-1] for line in rows}, {item.instance_id for item in items})
+            if name == "fume":
+                traces = [trace for trace in outcome.traces if trace.source_id == expected_sources[name]]
+                self.assertEqual(len({line.line_id for line in rows}),2)
+                self.assertEqual({dict(trace.provenance)["fume.source_instance_id"] for trace in traces},{item.instance_id for item in items})
+                self.assertEqual({dict(trace.provenance)["fume.segment_id"] for trace in traces},{segment.segment_id for segment in domain_input.fume_segments})
+            else:
+                self.assertEqual({line.line_id.rsplit(".", 1)[-1] for line in rows}, {item.instance_id for item in items})
     def test_heat_and_exported_power_rows_keep_factors_and_sources_independently(self) -> None:
         self.page.enterprise_name.setText("多能源来源UI企业")
         self.page.boundary_confirmed.setChecked(True)

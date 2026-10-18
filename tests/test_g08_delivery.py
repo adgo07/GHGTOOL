@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 import os
+from fnmatch import fnmatchcase
 import json
 from hashlib import sha256
 import sqlite3
@@ -37,6 +38,7 @@ from scripts.inspect_release import (
     V5_TEMPLATE_PATH,
     V6_TEMPLATE_PATH, V7_TEMPLATE_PATH, FGD_RUNTIME_RESOURCE,
     MATERIAL_RUNTIME_RESOURCE,
+    V8_TEMPLATE_PATH,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
@@ -62,7 +64,7 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     material_rules.write_bytes((PROJECT_ROOT / "resources" / MATERIAL_RUNTIME_RESOURCE).read_bytes())
     fgd_rules = root / "resources" / FGD_RUNTIME_RESOURCE
     fgd_rules.write_bytes((PROJECT_ROOT / "resources" / FGD_RUNTIME_RESOURCE).read_bytes())
-    for relative in (APPROVED_TEMPLATE_PATH, V7_TEMPLATE_PATH, V6_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+    for relative in (APPROVED_TEMPLATE_PATH, V8_TEMPLATE_PATH, V7_TEMPLATE_PATH, V6_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((PROJECT_ROOT / relative).read_bytes())
@@ -318,14 +320,16 @@ class G08DeliveryTests(unittest.TestCase):
             with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
                 package_data = tomllib.load(stream)["tool"]["setuptools"]["package-data"]
             self.assertIn("*.json", package_data["packages.application.reporting"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx", package_data["resources"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx", package_data["resources"])
-            self.assertIn("excel_templates/gb_t_32151_34_2024_appendix_b_v4.xlsx", package_data["resources"])
+            actual_templates = tuple((PROJECT_ROOT / "resources/excel_templates").glob("*.xlsx"))
+            self.assertTrue(actual_templates)
+            for actual in actual_templates:
+                resource = actual.relative_to(PROJECT_ROOT / "resources").as_posix()
+                self.assertTrue(any(fnmatchcase(resource, pattern) for pattern in package_data["resources"]), resource)
 
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
-            self.assertEqual(layout["version"], "3.0.3")
+            self.assertEqual(layout["version"], "3.0.4")
             from packages.excel.templates import ExcelTemplateService
             self.assertEqual(layout["input_template_version"], ExcelTemplateService.default().get().template_version)
             self.assertEqual(layout["input_template_sha256"], APPROVED_TEMPLATE_SHA256)
@@ -534,6 +538,28 @@ class G08DeliveryTests(unittest.TestCase):
         self.assertIn("include-hidden-files: false", workflow)
         self.assertTrue((PROJECT_ROOT / "docs" / "DELIVERY.md").is_file())
         self.assertIn("DELIVERY.md", (PROJECT_ROOT / "README.md").read_text(encoding="utf-8"))
+
+    def test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource(self):
+        import scripts.verify_distribution_templates as verifier
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            ambient=root/"ambient";ambient.mkdir()
+            # 模拟editable/site启动已导入源码resources；安装探针必须独立加载wheel。
+            (ambient/"sitecustomize.py").write_text("import resources\n",encoding="utf-8")
+            original_temp=verifier.tempfile.TemporaryDirectory
+            @contextmanager
+            def aliased_temp(*args,**kwargs):
+                with original_temp(*args,**kwargs) as value:
+                    runtime=Path(value)
+                    # 有效但非规范路径，模拟Windows短路径/别名的词法差异。
+                    yield str(runtime/".."/runtime.name)
+            polluted_path=os.pathsep.join(filter(None,(str(ambient),str(PROJECT_ROOT),os.environ.get("PYTHONPATH",""))))
+            with patch.dict(os.environ,{"PYTHONPATH":polluted_path}), \
+                 patch.object(verifier.tempfile,"TemporaryDirectory",aliased_temp):
+                result=verifier.verify_distribution_templates(PROJECT_ROOT,root/"distribution")
+            actual={(path.relative_to(PROJECT_ROOT)).as_posix() for path in (PROJECT_ROOT/"resources/excel_templates").glob("*.xlsx")}
+            self.assertEqual(set(result["templates"]),actual)
+            self.assertTrue(result["wheel_sdist_and_installed_resources_match"])
 
 
 if __name__ == "__main__":

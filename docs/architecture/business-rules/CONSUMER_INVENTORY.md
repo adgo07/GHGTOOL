@@ -43,3 +43,11 @@ Report Schema的结构、类型、版本、必填性及渠道投影仍有必要�
 FGD资格/默认/锁定由fgd.json三字段机械投影及evaluate_fgd_field唯一提供。resolve_fgd_field返回同次真实Resolver的context/factor/resolution；生产装配只核验对应13项真实来源绑定，保留其他unverified门禁。parameter_source_policy为薄适配，不再持有FGD手写资格；旧Calculator私有绑定筛选和旧Excel空值默认实现退出。
 
 Domain按批整剂分母校验，FGD_V2尾字段表达设施/批次/组分；GUI和v8 B.7进入同一Canonical/Application。codec3兼容1/2，旧输入不补键，显式升级保留原输入；projects.sqlite与不可变records.sqlite继续分开。新Word读取冻结输入/参数/来源，不查询当前Catalog。原燃料/电力和材料采用身份原样保留，烟气等未接管。完成状态及真实测试以TASK_STATE/当前PR为准。
+
+## B-FUME 当前消费者增量
+
+Issue020由版本化Domain专属evaluate_fume_segments接管，正式Calculator局部调用同一实现；GUI、B.6、项目与Application全部传递同一Canonical监测段，不保留分段版的旧按报告期时长逐行计算入口。旧FUME_V1只按明确旧组合兼容且提示无覆盖证据，不作为分段失败回退。覆盖按真实源/计量边界分别判定，不跨实例补缺口。
+
+本包不增加P04A焦油参数字段政策，不套fuel.*来源，不新增默认绑定。FCh沿用既有公共ParameterValue单位/数值/来源元数据门禁，同次采用值与参数快照传给专属算法；专属纯数值模块不是来源放行入口。原fuel_power/material/fgd机械运行资源及采用身份不变。本包采用对象是Issue020操作与版本化Calculator，不伪称新增11字段采用范围；新Trace分别冻结R11候选映射中Owner已批准020软件决定与方法身份，原R6 Frozen骨架元数据不重新赋义。
+
+codec4兼容1/2/3，v9仅改B.6 XML；新Record冻结逐段输入/采用/结果/完整性/缺口，Word只读冻结表。原材料包/FGD包正文中的“烟气未接管”是各包当时范围，当前状态以本增量及TASK_STATE/IMPLEMENTATION_REPORT为准。
