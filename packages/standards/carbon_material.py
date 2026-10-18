@@ -8,7 +8,7 @@ calculation evidence. Record persistence and adapters live outside this module.
 from __future__ import annotations
 
 from packages.standards.carbon_material_business_policy import (
-    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity, material_policy_identity,
+    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity, material_policy_identity, fgd_policy_identity, resolve_fgd_field,
 )
 
 from packages.standards.carbon_material_input_policy import (
@@ -67,7 +67,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-17-MATERIAL.1"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-18-FGD.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -675,8 +675,11 @@ class CarbonateComponent:
     conversion_rate: object = 1
     carbonate_type: str | None = None
     origin: InputOrigin | None = None
+    component_id: str | None = None
 
     def __post_init__(self) -> None:
+        if self.component_id is not None:
+            _validate_instance_id(self.component_id)
         object.__setattr__(self, "amount", _coerce_input(self.amount, "t"))
         if not isinstance(self.carbonate_fraction, ParameterValue):
             object.__setattr__(self, "carbonate_fraction", _coerce_input(self.carbonate_fraction, "ratio"))
@@ -699,9 +702,16 @@ class FGDInput:
     carbonate_type: str | None = None
     instance_id: str = "fgd-1"
     reagent_name: str | None = None
+    facility_id: str | None = None
+    facility_name: str | None = None
+    batch_id: str | None = None
+    execution_version: str = "FGD_V1"
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
+        for identifier in (self.facility_id, self.batch_id):
+            if identifier is not None:
+                _validate_instance_id(identifier)
         components = tuple(self.components)
         if any(not isinstance(item, CarbonateComponent) for item in components):
             raise DomainValidationError("components must contain CarbonateComponent values")
@@ -1480,6 +1490,7 @@ class CarbonMaterialCalculator:
             "calculator": {"algorithm_version": ALGORITHM_VERSION},
             "adopted_business_policy": fuel_power_policy_identity(),
             "adopted_material_policy": material_policy_identity(),
+            "adopted_fgd_policy": fgd_policy_identity(),
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -1773,73 +1784,6 @@ class CarbonMaterialCalculator:
             problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, f"排放源 {source_id} 已标记涉及但缺少输入。", source_id))
         return status
 
-    def _resolved_source_factor(
-        self,
-        parameter_id: str,
-        subject_id: str,
-        parameter_type: ParameterType,
-        accounting_period: AccountingPeriod,
-    ):
-        if self.parameter_resolver is None or not subject_id:
-            return None
-        context = ParameterResolutionContext(
-            parameter_id=parameter_id,
-            standard_id=STANDARD_ID,
-            accounting_period=accounting_period,
-            subject_id=subject_id,
-            parameter_type=parameter_type,
-        )
-        resolution = self.parameter_resolver.resolve(context)
-        self._effective_rule_ids.update(resolution.effective_rules.rule_ids)
-        if resolution.blocked or resolution.recommended is None:
-            return None
-        return resolution.recommended.factor
-
-    def _standard_parameter_binding(
-        self,
-        value: object,
-        expected_parameter_id: str,
-        accounting_period: AccountingPeriod,
-    ):
-        if not isinstance(value, ParameterValue) or value.parameter_id.casefold() != expected_parameter_id.casefold():
-            return None
-        if self.parameter_resolver is None:
-            return None
-        repository = self.parameter_resolver.repository
-        parameter_id = expected_parameter_id.casefold()
-        parameter = repository.get_parameter(parameter_id)
-        if (
-            parameter is None
-            or parameter.parameter_id.casefold() != expected_parameter_id.casefold()
-            or parameter.subject_id != "fgd"
-            or parameter.parameter_type is not ParameterType.PROCESS_DEFAULT_PARAMETER
-        ):
-            return None
-        candidate = self._resolved_source_factor(
-            parameter.parameter_id,
-            parameter.subject_id,
-            parameter.parameter_type,
-            accounting_period,
-        )
-        if (
-            candidate is None
-            or candidate.value_type is not ValueType.STANDARD_DEFAULT
-            or candidate.source_id != "SRC-32151-34-2024"
-            or candidate.source_location is None
-            or "第5.2.5.2条" not in candidate.source_location
-            or STANDARD_ID not in candidate.applicable_standard_ids
-        ):
-            return None
-        if value.factor_id:
-            registered = repository.get_factor(value.factor_id)
-            if (
-                registered is None
-                or registered.factor_id != candidate.factor_id
-                or registered.parameter_id.casefold() != expected_parameter_id.casefold()
-            ):
-                return None
-        return candidate
-
     def _electricity_source_policy_invalid(self, resolution, *, direction, attribute,
                                           problems, field_id, other=False) -> bool:
         if other:
@@ -1931,46 +1875,6 @@ class CarbonMaterialCalculator:
         if isinstance(value, ParameterValue):
             return value.source_kind.value
         return "UNSPECIFIED"
-
-    def _carbonate_default_binding(self, component: CarbonateComponent, accounting_period: AccountingPeriod):
-        """Resolve a C.2 candidate only for an explicit catalog identity."""
-        if component.origin is not InputOrigin.CATALOG or self.parameter_resolver is None:
-            return None
-        identity = carbonate_c2_identity(component.carbonate_type)
-        if identity is None:
-            return None
-        repository = self.parameter_resolver.repository
-        parameter = repository.get_parameter(identity.parameter_id)
-        if (
-            parameter is None
-            or parameter.parameter_id != identity.parameter_id
-            or parameter.subject_id != identity.subject_id
-            or parameter.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
-        ):
-            return None
-        candidates = []
-        for factor in repository.list_factors(identity.parameter_id):
-            if (
-                factor.parameter_id != identity.parameter_id
-                or factor.subject_id != identity.subject_id
-                or factor.parameter_type is not ParameterType.PROCESS_CO2_FACTOR
-                or factor.value_type is not ValueType.STANDARD_SPECIFIED
-                or factor.review_status.value != "VERIFIED"
-                or factor.source_id != "SRC-32151-34-2024"
-                or factor.source_location is None
-                or "附录C表C.2" not in factor.source_location
-                or STANDARD_ID not in factor.applicable_standard_ids
-            ):
-                continue
-            candidate = self._resolved_source_factor(
-                factor.parameter_id,
-                factor.subject_id,
-                factor.parameter_type,
-                accounting_period,
-            )
-            if candidate is not None and candidate.factor_id == factor.factor_id:
-                candidates.append(candidate)
-        return candidates[0] if len(candidates) == 1 else None
 
     def _append_source_policy_problem(
         self,
@@ -2486,23 +2390,42 @@ class CarbonMaterialCalculator:
 
         fgd_status = self._source_check(input_value, SOURCE_FGD, bool(input_value.fgd_units), problems)
         fgd_total = Decimal("0")
+        batch_keys = [(unit.facility_id, unit.batch_id) for unit in input_value.fgd_units if unit.execution_version == "FGD_V2"]
+        if len(set(batch_keys)) != len(batch_keys):
+            problems.append(_problem("CAR-VAL-FGD-BATCH-DUPLICATE", IssueLevel.ERROR, "同一设施的脱硫批次身份重复，不能重复计入。", SOURCE_FGD))
         if fgd_status is EmissionSourceStatus.INVOLVED:
             for unit in input_value.fgd_units:
                 if not unit.components:
                     problems.append(_problem("GEN-VAL-REQUIRED-MISSING", IssueLevel.ERROR, "脱硫净化缺少至少一条碳酸盐组分。", f"{SOURCE_FGD}.{unit.instance_id}"))
                     continue
                 problem_count = len(problems)
+                if unit.execution_version not in {"FGD_V1", "FGD_V2"}:
+                    problems.append(_problem("CAR-VAL-FGD-VERSION", IssueLevel.ERROR, "脱硫输入版本尚未确认。", unit.instance_id))
+                if unit.execution_version == "FGD_V2":
+                    ids = [component.component_id for component in unit.components]
+                    if not unit.batch_id or not unit.facility_id or any(not item for item in ids) or len(set(ids)) != len(ids):
+                        problems.append(_problem("CAR-VAL-FGD-IDENTITY", IssueLevel.ERROR, "脱硫设施、批次或组分身份不完整或重复，请确认后核算。", unit.instance_id))
+                    amounts = [self._quantity(component.amount, "t", f"{unit.instance_id}-CAL", problems) for component in unit.components]
+                    if len(set(amounts)) != 1:
+                        problems.append(_problem("CAR-VAL-FGD-BATCH-AMOUNT", IssueLevel.ERROR, "同一批次的全部组分须共用同一整剂净耗量。", unit.instance_id))
                 fractions = Decimal("0")
                 validated: list[CarbonateComponent] = []
                 for index, component in enumerate(unit.components):
-                    component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{index}"
-                    fraction_binding = self._standard_parameter_binding(
-                        component.carbonate_fraction, "CAR-PAR-P04B-I", input_value.period,
-                    ) if isinstance(component.carbonate_fraction, ParameterValue) and (component.carbonate_fraction.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.carbonate_fraction.factor_id is not None) and len(unit.components) == 1 else None
-                    factor_binding = self._carbonate_default_binding(component, input_value.period)
-                    conversion_binding = self._standard_parameter_binding(
-                        component.conversion_rate, "CAR-PAR-P04B-TR", input_value.period,
-                    ) if isinstance(component.conversion_rate, ParameterValue) and (component.conversion_rate.source_kind in STANDARD_PARAMETER_SOURCE_KINDS or component.conversion_rate.factor_id is not None) else None
+                    component_prefix = f"CAR-FLD-P04B-{unit.instance_id}-{component.component_id if unit.execution_version == 'FGD_V2' else index}"
+                    resolved_fields = {
+                        field: resolve_fgd_field(field, resolver=self.parameter_resolver,
+                            origin=component.origin, carbonate_type=component.carbonate_type,
+                            accounting_period=input_value.period, component_count=len(unit.components),
+                            selected_factor_id=value.factor_id if isinstance(value, ParameterValue) and value.source_kind in STANDARD_PARAMETER_SOURCE_KINDS else None)
+                        for field, value in (("fgd.ratio", component.carbonate_fraction),
+                            ("fgd.factor", component.emission_factor), ("fgd.conversion", component.conversion_rate))
+                    }
+                    fraction_binding = resolved_fields["fgd.ratio"].factor
+                    factor_binding = resolved_fields["fgd.factor"].factor
+                    conversion_binding = resolved_fields["fgd.conversion"].factor
+                    for resolved in resolved_fields.values():
+                        if resolved.resolution is not None:
+                            self._effective_rule_ids.update(resolved.resolution.effective_rules.rule_ids)
                     for policy_field, value, bound, suffix in (
                         ("fgd.ratio", component.carbonate_fraction, fraction_binding is not None, "I"),
                         ("fgd.factor", component.emission_factor, factor_binding is not None, "EF1"),
@@ -2514,6 +2437,7 @@ class CarbonMaterialCalculator:
                             origin=component.origin,
                             has_resolver_binding=bound,
                             carbonate_component_count=len(unit.components),
+                            resolved_context=resolved_fields[policy_field].context,
                             problem_field_id=row_field_id,
                         )
                         if not policy_invalid and isinstance(value, ParameterValue):
@@ -2533,6 +2457,7 @@ class CarbonMaterialCalculator:
                                     policy_field, origin=component.origin,
                                     has_resolver_binding=bound,
                                     carbonate_component_count=len(unit.components),
+                                    resolved_context=resolved_fields[policy_field].context,
                                 ).short_label
                                 problems.append(_problem(
                                     "CAR-VAL-PARAMETER-BINDING-MISMATCH", IssueLevel.ERROR,
@@ -2559,7 +2484,7 @@ class CarbonMaterialCalculator:
                         validated.append(CarbonateComponent(amount, fraction, factor, conversion, component.carbonate_type))
                         fractions += fraction
                 if fractions > Decimal("1"):
-                    problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "同一脱硫设施的多种碳酸盐组分含量合计不得超过100%。", f"{SOURCE_FGD}.{unit.instance_id}"))
+                    problems.append(_problem("CAR-VAL-CARBONATE-SUM", IssueLevel.ERROR, "同一批次脱硫剂的碳酸盐组分含量合计不得超过100%。", f"{SOURCE_FGD}.{unit.instance_id}"))
                 if any(problem.level is IssueLevel.ERROR for problem in problems[problem_count:]):
                     continue
                 amount = fgd_emission(validated)
@@ -2574,7 +2499,7 @@ class CarbonMaterialCalculator:
                     )
                     if (item_value := _trace_variable(name, value)) is not None
                 )
-                traces.append(CalculationTrace(line_id, "CAR-FML-FGD-001", SOURCE_FGD, component_variables, f"ED = sum(CAL×I×EF1×TR)；设施 {unit.instance_id} 内独立汇总", amount, instance_id=unit.instance_id))
+                traces.append(CalculationTrace(line_id, "CAR-FML-FGD-001", SOURCE_FGD, component_variables, "ED = sum(CAL×I×EF1×TR)；同批整剂净耗量与各组分含量分别采用，批次独立汇总", amount, instance_id=unit.instance_id))
                 fgd_total += amount
 
         gas_total = fume_total + fgd_total

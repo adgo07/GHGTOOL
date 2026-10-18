@@ -23,3 +23,9 @@ origin已实际核实adgo07/GHGTOOL，fetch后从最新origin/main建立干净�
 ## 授权与验收边界
 
 Owner已授权下一包及既有M/F/源协调、私有push/PR/CI。完成单一脱硫PR与最终head CI/实际包后送源独立验收，停止；不合并、不CU、不删除旧工作树、不公开上传、不商业发布。必要模板演进机械生成并保留旧字节，能复用v7则复用。原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约仍OPEN。本包尚未运行测试，不宣称PASS或SUPPORTED。
+
+## 当前实施断点
+
+Owner在本会话明确批准脱硫稳定身份尾字段、codec3兼容1/2及Calculator同次Resolver接管/按批校验；原公式/Numeric/历史Record不变，无数据库迁移。e09cf83状态同步、f2e2f5b解析API、37807b1专属测试已提交。M只写专属测试，真实13绑定及错asset/unit/year/period反例15/15（作者1.206s）。C首次联合22项4失败记录、GUI第二轮7项3ERROR（夹具变量初始化）及48项1FAIL/1ERROR（来源状态改为隔离后旧夹具）均保留失败历史。修后四模块联合65/65，61.022s；当时测试源码版本与后续小修须按最终head另验，不能当最终整链通过。
+
+v7无法表达I/TR已选实测空白，必要v8/2.6.0仅机械改B.7增加K/L来源与M企业设施编号，旧v2—v7原字节保留。v8 SHA a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4。新输入FGD_V2和codec3；旧FGD_V1读取不补键，确认升级另存副本/留原输入，组分旧用量不同不猜统一。模型/GUI/导入/Word及包体保护仍在联合闭环，不称本包已完成。C新整链首轮3项2通过1ERROR（夹具WorkbookProvenance属性名错误），正修复，未生成发布/正式验收结论。

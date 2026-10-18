@@ -166,40 +166,36 @@ def parameter_source_policy(
             effective["locking"].get("value", {}).get("state") == "LOCKED",
             effective["locking"].get("source", {}).get("state") == "LOCKED", effective["status"],
         )
-    elif field_id == "fgd.ratio":
-        single_component = carbonate_component_count == 1
-        allowed = ((STANDARD_DEFAULT, MEASURED) if single_component and bound else (MEASURED,))
-        default = STANDARD_DEFAULT if single_component and bound else MEASURED
-        locked = default == STANDARD_DEFAULT
-        binding = single_component
-        context = "SINGLE_COMPONENT" if single_component else "MULTI_COMPONENT"
-        basis, label = None, "碳酸盐含量 I"
-    elif field_id == "fgd.factor":
-        allowed = (STANDARD_DEFAULT,) if bound else (MEASURED,)
-        default = STANDARD_DEFAULT if bound else None
-        locked = bound
-        binding = bound
-        context = "EXACT_C2_MATCH" if bound else "NO_EXACT_C2_BINDING"
-        basis, label = None, "碳酸盐排放因子 EF1"
-    else:  # fgd.conversion: a general default, independent of C.2 species.
-        allowed = (STANDARD_DEFAULT, MEASURED) if bound else (MEASURED,)
-        default = STANDARD_DEFAULT if bound else MEASURED
-        locked = bound
-        binding = True
-        context = "GENERAL_STANDARD_PARAMETER"
-        basis, label = None, "脱硫转化率 TR"
+    else:
+        from .carbon_material_business_policy import evaluate_fgd_field
+        if resolved_context is None:
+            if bound:
+                raise ValueError("脱硫缺省资格需要真实Resolver上下文，不能只传布尔标记。")
+            current = {"binding_status": "PENDING"}
+            if field_id == "fgd.ratio":
+                current["carbonate_component_count"] = carbonate_component_count
+            if field_id == "fgd.factor" and origin_value == "CUSTOM":
+                current["binding_status"] = "ABSENT"
+        else:
+            current = dict(resolved_context)
+        initial = evaluate_fgd_field(field_id, current)
+        qualification = initial["source_qualification"].get("value") or {}
+        allowed = tuple(qualification.get("values", ())) if qualification.get("state") == "FIXED" else ()
+        initial_source = initial["default_source"].get("value") or {}
+        default = initial_source.get("source") if initial_source.get("state") == "FIXED" else None
+        selected = business_source if business_source is not None else default
+        if selected is not None:
+            current["business_source"] = STANDARD_DEFAULT if selected == "STANDARD_SPECIFIED" else selected
+        effective = evaluate_fgd_field(field_id, current)
+        return ParameterSourcePolicy(
+            field_id, allowed, default, default == STANDARD_DEFAULT,
+            True, "FGD", None,
+            {"fgd.ratio": "碳酸盐含量 I", "fgd.factor": "碳酸盐排放因子 EF1", "fgd.conversion": "脱硫转化率 TR"}[field_id],
+            current.get("binding_status") == "VERIFIED",
+            effective["locking"].get("value", {}).get("state") == "LOCKED",
+            effective["locking"].get("source", {}).get("state") == "LOCKED", effective["status"],
+        )
 
-    return ParameterSourcePolicy(
-        field_id=field_id,
-        allowed_sources=tuple(allowed),
-        default_source=default,
-        default_locked=locked,
-        binding_required=binding,
-        context=context,
-        basis=basis,
-        short_label=label,
-        resolver_bound=bound,
-    )
 
 
 def validate_parameter_source_policy(

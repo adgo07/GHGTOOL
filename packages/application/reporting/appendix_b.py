@@ -431,8 +431,8 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
         start = len(rows)
         components = _entries(unit,'components')
         for index, comp in enumerate(components):
-            prefix = f'CAR-FLD-P04B-{iid}-{index}'
-            rows.append((unit.get('reagent_name') or '历史未记录', _value(comp.get('amount'),unit='t'), comp.get('carbonate_type') or '历史未记录', _parameter(comp.get('carbonate_fraction'),snapshots,prefix+'-I',percent=True), _parameter(comp.get('emission_factor'),snapshots,prefix+'-EF1'), _parameter(comp.get('conversion_rate'),snapshots,prefix+'-TR',percent=True), _signed(_frozen_step(record,trace,SOURCE_FGD,iid,single_instance=len(_entries(raw,'fgd_units','fgd'))==1)) if index==0 else ''))
+            prefix = f'CAR-FLD-P04B-{iid}-{comp.get("component_id") if unit.get("execution_version") == "FGD_V2" else index}'
+            rows.append(((unit.get('facility_name') + ' / ' if unit.get('facility_name') else '') + (unit.get('reagent_name') or '历史未记录'), _value(comp.get('amount'),unit='t'), comp.get('carbonate_type') or '历史未记录', _parameter(comp.get('carbonate_fraction'),snapshots,prefix+'-I',percent=True), _parameter(comp.get('emission_factor'),snapshots,prefix+'-EF1'), _parameter(comp.get('conversion_rate'),snapshots,prefix+'-TR',percent=True), _signed(_frozen_step(record,trace,SOURCE_FGD,iid,single_instance=len(_entries(raw,'fgd_units','fgd'))==1)) if index==0 else ''))
         end = len(rows)-1
         if end > start:
             merges.extend(((start,0,end,0),(start,6,end,6)))

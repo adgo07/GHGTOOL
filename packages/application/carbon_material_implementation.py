@@ -35,6 +35,7 @@ class CarbonMaterialExcel:
     @staticmethod
     def can_upgrade_workspace(workspace):
         return any(getattr(unit.canonical_input, "material_execution_version", None) == "MATERIAL_V1"
+                   or any(batch.execution_version != "FGD_V2" for batch in getattr(unit.canonical_input, "fgd_units", ()))
                    for unit in workspace.units)
 
     @staticmethod
@@ -49,9 +50,20 @@ class CarbonMaterialExcel:
             if value is not None:
                 if not isinstance(value, CarbonMaterialInput) or value.material_execution_version not in {"MATERIAL_V1", "MATERIAL_V2"}:
                     raise ValueError("此项目材料执行组合不支持自动升级；原项目未修改。")
-                value = replace(value, material_execution_version="MATERIAL_V2")
+                upgraded_batches = []
+                for batch in value.fgd_units:
+                    if batch.execution_version not in {"FGD_V1", "FGD_V2"}:
+                        raise ValueError("脱硫执行版本未知，原项目未修改。")
+                    if batch.execution_version == "FGD_V1":
+                        amounts = [component.amount for component in batch.components]
+                        if amounts and any(amount != amounts[0] for amount in amounts):
+                            raise ValueError("旧组分用量不同，请先确认本批整剂净耗量，原项目未修改。")
+                        batch = replace(batch, facility_id=uuid4().hex, batch_id=uuid4().hex,
+                            components=tuple(replace(component, component_id=uuid4().hex) for component in batch.components), execution_version="FGD_V2")
+                    upgraded_batches.append(batch)
+                value = replace(value, material_execution_version="MATERIAL_V2", fgd_units=tuple(upgraded_batches), fgd=upgraded_batches[0] if len(upgraded_batches)==1 else None)
             units.append(replace(unit, unit_id=unit_ids[unit.unit_id], canonical_input=value, result_snapshot=None, input_fingerprint=None))
-        return replace(workspace, project_id=f"project.{uuid4().hex}", name=workspace.name + "（材料规则升级副本）", active_unit_id=unit_ids[workspace.active_unit_id], units=tuple(units))
+        return replace(workspace, project_id=f"project.{uuid4().hex}", name=workspace.name + "（输入规则升级副本）", active_unit_id=unit_ids[workspace.active_unit_id], units=tuple(units))
 
     def regions(self, period):
         from .uat03_parameter_queries import UAT03ParameterQueries
