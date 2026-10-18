@@ -1,6 +1,6 @@
 {
   "stage": "B-HEAT",
-  "status": "CANONICAL_LF_REPAIR_PASS_NEW_HEAD_CI_REQUIRED",
+  "status": "ALL_KNOWN_CI276_DEFECTS_REPAIRED_NEW_HEAD_CI_REQUIRED",
   "base": "a1aeebc1b6809397e61a2ffa7a2333a3b440c756",
   "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
   "algorithm": "CAR-SM01-2026-10-18-HEAT.1",
@@ -64,6 +64,29 @@
       "seconds": 16.363,
       "failures": 0,
       "errors": 0
+    },
+    "review_assets": {
+      "command": "python -B -m unittest tests.test_business_rules_candidate_assets tests.test_b_material_source_review -v (stage environment)",
+      "tests": 23,
+      "seconds": 18.334,
+      "failures": 0,
+      "errors": 0,
+      "artifact_tool_roundtrip_scenarios": 25
+    },
+    "bounded_combination": {
+      "modules": [
+        "tests.test_uir01_field_semantics",
+        "tests.test_uir02_source_cards",
+        "tests.test_accounting_projects_ui",
+        "tests.test_canonical_project_inputs",
+        "tests.test_main_integration_ui.MainIntegrationUiTests.test_both_word_entrypoints_export_identical_business_content_for_same_record"
+      ],
+      "tests": 49,
+      "seconds": 187.332,
+      "failures": 0,
+      "errors": 0,
+      "per_test_stack_timeout_seconds": 45,
+      "original_stall_not_reproduced": true
     }
   },
   "counts_not_summed": "Selected suites overlap; no local full-suite claim.",
@@ -97,20 +120,27 @@
     "Earlier 55-case chain had one IF97 Word method omission; new-only B9 note fixed; old Word unchanged.",
     "First local actual-package verifier preloaded host openpyxl, then loaded packaged lxml and failed with duplicate native context types. Verifier now imports openpyxl from bundle after the import hook; separate output r2 passed. Product unchanged.",
     "Read-only scan found one additional UIR04 heat fixture omitted from selected suites: reproduced 1 FAIL in 3.921s due to unknown boundary/old generic wording; fixture now explicitly external, asserts actual absolute-pressure message and retains clickable own-card/no-internal-ID checks; repaired 1/1 in 4.202s. CI276 on f85 may still be running and is superseded by the test/receipt revision, not claimed passed.",
-    "Actual e931c21 Git blob isolated reproduction: C3 Canonical file was LF in Git but CRLF locally; projected source metadata had CRLF SHA f816d704... instead of Git LF 1dd97fd8.... Fixed working source LF, regenerated resource mechanically (37844a5b...), and projector now rejects CRLF source rather than normalizing hash. Structure comparison proves only appended source SHA differs; all fields/policies and other sources unchanged. Old local f85 package remains historical, not new-head proof. Runtime/G08 30/30 passed in16.363s. CI276/277 superseded; actual CI counts not yet known."
+    "Actual e931c21 Git blob isolated reproduction: C3 Canonical file was LF in Git but CRLF locally; projected source metadata had CRLF SHA f816d704... instead of Git LF 1dd97fd8.... Fixed working source LF, regenerated resource mechanically (37844a5b...), and projector now rejects CRLF source rather than normalizing hash. Structure comparison proves only appended source SHA differs; all fields/policies and other sources unchanged. Old local f85 package remains historical, not new-head proof. Runtime/G08 30/30 passed in16.363s. CI276/277 superseded; actual CI counts not yet known.",
+    "Actual CI276 full log:1006 tests/2027.458s,1FAIL+2ERROR (UIR04, heat raw-byte projection, stale Mapping definition-asset hash). Standalone skipped. Third issue repaired via existing same-version review generator, previous tracked workbook retained0 opinions, all cell values/Table names/refs unchanged; four artifacts mechanically regenerated with23 Python tests and25 actual ArtifactTool feedback scenarios. Original3 Canonical files unchanged.450 visible scopes already existed (442+existing Issue010 eight), not newly expanded."
   ],
   "ci": {
     "run_id": 39128755391,
     "run_number": 276,
-    "status": "SUPERSEDED_BY_UIR04_AND_CANONICAL_LF_REPAIR",
-    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39128755391",
+    "head": "f85e0583b1ae01578cc0c0fc3135e875b44b8dc8",
+    "tested_merge_sha": "a4de96d507c4a9bdcd121a5835a58f4022ce705a",
+    "status": "COMPLETED_FAILURE_SUPERSEDED",
+    "tests": 1006,
+    "seconds": 2027.458,
+    "failures": 1,
+    "errors": 2,
+    "standalone": "SKIPPED",
     "not_a_pass": true
   },
   "actual_new_bundle": null,
   "commercial_release": false,
   "next": "New mechanical source-identity head requires full CI and exact-head actual package; source acceptance, no merge.",
   "pull_request": "https://github.com/adgo07/GHGTOOL/pull/52",
-  "code_head": "f85e0583b1ae01578cc0c0fc3135e875b44b8dc8",
+  "code_head": "a7d5d468abf3495ce7daca9b4e62798123bb66fd",
   "local_bundle": {
     "source_commit": "f85e0583b1ae01578cc0c0fc3135e875b44b8dc8",
     "artifact_source": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
@@ -133,5 +163,13 @@
     "run_number": 277,
     "status": "SUPERSEDED_BY_CANONICAL_LF_REPAIR",
     "not_a_pass": true
-  }
+  },
+  "ci_retry_a7d": {
+    "run_id": 39130931396,
+    "run_number": 278,
+    "status": "SUPERSEDED_BY_REVIEW_DEFINITION_ASSET_RECEIPT",
+    "not_a_pass": true
+  },
+  "review_asset_proof": "B_HEAT_REVIEW_ASSET_PROOF.json",
+  "canonical_byte_proof": "B_HEAT_CANONICAL_BYTE_PROOF.json"
 }

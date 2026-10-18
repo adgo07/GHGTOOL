@@ -1,0 +1,15 @@
+{
+  "head": "a7d5d468abf3495ce7daca9b4e62798123bb66fd",
+  "previous_head": "e931c21ba7a21e17f979cbced124e476e3fd6535",
+  "canonical_path": "data-source/carbon_accounting/business-rules/heat_c3_adoption.json",
+  "working_and_git_blob_exact_bytes": true,
+  "canonical_sha256": "1dd97fd8c8eeac5f22dbe17779904d6bf20179f9eab3d3e0a19d22022aa8fd9c",
+  "heat_resource_sha256": "37844a5b09fce7350ebc172457b768b86b665a4be8398408c4e2727be1216ca3",
+  "fields_and_all_policies_identical": true,
+  "first_three_sources_identical": true,
+  "only_last_source_sha256_changed": true,
+  "actual_head_clean_byte_projection": "PASS",
+  "crlf_negative": "REJECTED",
+  "negative_message": "热力Canonical采用文件须为LF原字节；请修正源文件，不归一化来源哈希。",
+  "runtime_hash_normalization": false
+}
