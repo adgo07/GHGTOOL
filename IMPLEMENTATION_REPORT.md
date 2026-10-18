@@ -1,6 +1,6 @@
 # B-FGD 实施报告
 
-日期：2026-10-18。状态：生产实现收口，进入最终统一head验证与源独立验收；不自行合并。PR49材料已合并，基线main为1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e。最后生产提交为bc55cdcb8c2c2b09ffcf83d86dd64fa998cd95d3；最终head另含治理/测试补充，以当前PR与本地摘要冻结。本报告替换当前工作包报告，PR49原报告和失败历史仍可从Git及PR49收口恢复，不复制成第二路线。
+日期：2026-10-18。状态：源独立验收发现旧B.7兼容回归，本次已定向修复，送源复验；尚未取得最终验收结论。基线main为1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e。本次最后生产提交为c52a3be86090069b1507c1e727ce4cc97196046c；后续仅同步状态/报告，最终PR head及对应CI、实际包身份在PR50与本地摘要按head冻结。旧7b43c23及CI260为历史送验证据，不能替代本次修复验证。不合并、不进入其他包。
 
 ## 平台 / Contract 预检查
 
@@ -11,7 +11,7 @@
 ## 最终实现
 
 - 独立fgd.json机械投影fgd.ratio/factor/conversion，采用GHGTOOL_FGD_R11_V1，SHA 560c7151e797c47aeb0da698440ed773d1335d8498fbda35aac9e2781fa7bce7。原fuel_power.json/material.json及采用身份不改。
-- 原Resolver只装配燃料/电力真实关联，13项脱硫登记均PENDING；本包精确补11C.2与通用I/TR真实关联，核实际parameter/factor/asset/table/source、单位/年度/适用期间；保留其他unverified与错资产门禁。resolve_fgd_field同次返回资格上下文、实际factor和resolution；旧FGD手写来源定义/Calculator筛选helper/Excel空值默认退出。
+- 原Resolver只装配燃料/电力真实关联，13项脱硫登记均PENDING；本包精确补11C.2与通用I/TR真实关联，核实际parameter/factor/asset/table/source、单位/年度/适用期间；保留其他unverified与错资产门禁。resolve_fgd_field同次返回资格上下文、实际factor和resolution；旧FGD手写来源定义/Calculator筛选helper退出；v8按显式来源处理空白，旧schema既有空白约定通过同一Resolver恢复并明确告警。
 - I单批单有效组分且通用绑定适用才初始化90%；TR通用100%独立物种；EF精确C.2缺省锁定，否则批准实测。实测空白不回默认。可见空行不计业务组分，明确选来源但未完成的行不隐去；单多单保留原草稿，不把旧缺省90%重标实测。
 - FGD_V2以facility_id/batch_id/component_id定位，不以显示名替代。按同批整剂分母校验I合计，批次独立，CAL只参与原逐组分公式一次，不归一份额，不跨批加I。新算法CAR-SM01-2026-10-18-FGD.1，原式及Decimal Profile不变。
 - codec3实际支持1/2/3，旧输入缺身份保持FGD_V1，不回填。GUI显式升级保留原输入，取消无改动；Canonical升级另存project/unit及新身份，旧SQLite项目不回写。相同净耗量按显式单位归一比较，不以来源引用元数据判成不同量；旧实际用量不同/缺失不猜统一。projects.sqlite与不可变records.sqlite分开，无DB迁移。
@@ -20,7 +20,40 @@
 - GUI/B.7进入同一Canonical/Application，预览零Record；成功正式计算追加不可变Record，非法整体零Record。Word只读该Record冻结输入/参数/来源/Trace；新FGD显示实际实测/缺省来源与设施/批次，原始来源分类/定位保留审计，旧V1显示不重解释，不回查当前Catalog。
 - 打包纳入fgd.json/v8并保留v7及旧模板；沿用VirtualKeyboard/iapws拒绝、路径/外链边界与实际包审计。没有引入烟气模块、热力/物性依赖、外部CO₂、商业发布或中央变更。
 
-## 分工与阶段验证
+## 当前旧B.7模板兼容修复
+
+预检查业务仓SHA为本次生产提交`c52a3be86090069b1507c1e727ce4cc97196046c`；中央锁/Contract、来源集合、公式、Numeric、模板字节和历史Record均未改变。本任务是既有兼容保护的本地实现缺陷修复，不是标准解释变更，无需修改中央Contract。未唤醒M/F，未扩大其他工作组。
+
+源独立验收发现：新适配器对全部版本要求J来源，并将旧无I/TR来源列schema的空白统一当必填实测。实际main1ed基线源码与当前版分别导入真实v2—v7母版12个合法文件，main12/12可算、原实现7回归；另用受控v1历史结构fixture（不是原始母版）2场景补充，总14场景main14/14、原实现9回归。母版/fixture SHA及原始失败探针保留于`tmp/fgd-final-evidence/legacy-template-{main,current}-all/probe.json`。没有Owner授权收紧这些旧路径的依据。
+
+修复仅在Adapter按版本表达来源：1.0/2.0无J列，精确C.2目录身份走既有缺省路径；2.1及以上仍要求原J来源。旧无I/TR来源列版的真正空白按既有约定选择缺省，经同次`resolve_fgd_field`和共享来源求值器验证，冻结真实factor并显式`EXB01_STANDARD_DEFAULT_APPLIED`告警。已填值仍为实测，0不换缺省；非法非空不补值；多组分I空白、错/缺真实绑定、v8显式实测空白/未选来源继续拒绝。未声明的旧自定义EF不被重标实测，不恢复库外计算来源。
+
+新增`tests/test_b_fgd_legacy_templates.py`共10方法、104子场景（22合法/82拒绝）：
+
+| 测试方法 | 覆盖 |
+|---|---|
+| test_old_real_masters_and_v1_fixture_keep_filled_ratios | 7版本填I/TR合法；真实v2—v7六例+v1 fixture一例 |
+| test_old_real_masters_and_v1_fixture_keep_blank_qualified_defaults | 7版本真正空白适用缺省、真实来源与2条告警 |
+| test_old_present_invalid_ratios_never_become_defaults | 7版本×I/TR×文本/空格/布尔，共42拒绝 |
+| test_old_zero_is_measured_and_not_default | 7版本零值仍实测，结果0 |
+| test_old_multi_component_blank_i_is_rejected | 7版本多组分空白I拒绝 |
+| test_old_blank_requires_real_generic_binding | 7版本×缺/错实际I/TR绑定，共14拒绝；SQL断言确实改坏绑定 |
+| test_current_explicit_measured_blank_still_rejects_and_zero_stays_measured | v8显式实测I/TR空白2例、未选来源2例拒绝，零值1例合法 |
+| test_old_catalog_factor_mismatch_is_not_relabelled | 7版本C.2值不匹配拒绝 |
+| test_existing_factor_source_selectors_remain_required | v3—v8六版已有J来源仍必选 |
+| test_undeclared_legacy_custom_factor_does_not_become_measured | v1/v2未声明自定义EF来源2例拒绝，不猜实测 |
+
+提交前受影响联合（与上述生产提交代码一致）91/91、87.795s，0FAIL/0ERROR；日志`tmp/fgd-final-evidence/legacy-template-affected.log`：
+
+```text
+python -B -m unittest tests.test_b_fgd_legacy_templates tests.test_exb01_ingress tests.test_main_integration_excel tests.test_pr46_parameter_source_policy tests.test_exb01_template_acceptance tests.test_g08_delivery tests.test_exb01_rpt02_integration tests.test_b_fgd_chain.FGDChainTests.test_excel_gui_parity_project_reopen_formal_record_and_frozen_word -v
+```
+
+未重复源已完成的未变M/GUI/Numeric组作为旧路径证明。新head针对性、CI及实际下载包结果只按实际完成后记录于PR50和本地摘要，不外推原873绿色。
+
+失败证据：临时探针首次context位置参数错误，改关键字后得到真实对照；新增8方法首轮70ERROR为测试对空预览对象直接访问，修正夹具后2正例方法实际9FAIL（4.354s），证明回归。生产修复后8方法7通过/1ERROR（24.333s）为负例SQL误用不存在的binding.parameter_id，改为实际factor_id关联并断言rowcount后针对性1/1、4.406s；最终扩为10方法并纳入91项联合通过。原日志均保留，未放宽拒绝断言。
+
+## 历史分工与阶段验证（原送验断点）
 
 C单写公共消费者/模板/资源/构建/治理及整链；M只提交test_b_fgd_specialist.py，5ea3e9/4859d85单次引入为37807b1/73a7bc5；F烟气557f2c6只准备，最新main静态接口核对后停止，未进入本PR。
 
@@ -38,7 +71,7 @@ C单写公共消费者/模板/资源/构建/治理及整链；M只提交test_b_f
 
 补充阶段联合30模块352/352，361.249s（tmp/fgd-5af702d-joint.log，生产断点5af702d及当时治理工作区，不能背书随后bc55兼容补强）；源要求的真实重复导入/两独立SQLite项目隔离反例1/1，6.690s（test_b_fgd_chain.py:test_reimport_keeps_ingress_identity_but_saved_projects_have_independent_unit_ids）。同填表入站键可相同，保存后project_id/unit_id各自不同；来源importer_unit_id只作定位，两个项目重开成功且零Record。不改现有项目存储实现。
 
-ArtifactTool实际导入并渲染旧v7/newv8 B.7，新增栏可读、源模板其余部件一致；不是原生Office人工验收。最终同head联合组、GitHub Actions全量/exact-head构建与下载实包证据必须实际完成后分别登记于当前PR和本地摘要；旧PR49 CI256仅背书材料受验head，不当本包结果。
+ArtifactTool实际导入并渲染旧v7/newv8 B.7，新增栏可读、源模板其余部件一致；不是原生Office人工验收。各head的本地联合、GitHub Actions及下载实包证据分别登记于PR50和本地摘要。7b43c23本地357/357、430.886s，CI260全量873/873、1370.590s与G08 17/17、6.741s以及实包核验均已完成，现仅作原送验历史；本次兼容修复以新head证据为准。旧PR49 CI256不当本包结果。
 
 ## 失败历史与修复
 
@@ -57,7 +90,7 @@ ArtifactTool实际导入并渲染旧v7/newv8 B.7，新增栏可读、源模板�
 
 7146115撤回最终候选身份：其同head本地30模块356/356、552.628s只保留原断点；CI258也仅背书该旧断点。补充实际探针发现旧FGD_V1同组CAL=10t/20t仍成功新增Record（4.8920），属于本包批准校验遗漏。依据Mapping §9.1/§9.3，同组组分共享整剂分母；旧FGDInput group同样是这一组，不能因缺新身份跳过。现将归一实际CAL的精确一致性校验移至V1/V2共同入口；不同旧group独立，不猜合并/拆批。读取codec1/2仍成功、不补身份；旧Record不重写，原排放公式与Numeric不变。这是落实已批准业务约束，不是新标准解释或公式变更。
 
-C新增真实codec1/2→Application反例，首次1项2FAIL/1ERROR：两个不等量正式入口确实漏拒绝，ERROR为测试误用record.result属性；修后1项2ERROR为测试反馈字段误用rule_id，均修正夹具而不放宽断言。最终该项1/1、11.194s（tmp/fgd-v1-fixed.log）：不等量零Record，同量10t/10000kg且来源不同可算3.326；原合法V1仍可算；两个独立旧group各10t/20t算4.892；SQLite既存V1 Record和冻结Word在Calculator/Resolver禁用下照原读取、记录数不增加。新最终生产提交及head以本次修复commit/当前PR和本地摘要为准，受影响联合与新CI仍须实际完成。
+C新增真实codec1/2→Application反例，首次1项2FAIL/1ERROR：两个不等量正式入口确实漏拒绝，ERROR为测试误用record.result属性；修后1项2ERROR为测试反馈字段误用rule_id，均修正夹具而不放宽断言。最终该项1/1、11.194s（tmp/fgd-v1-fixed.log）：不等量零Record，同量10t/10000kg且来源不同可算3.326；原合法V1仍可算；两个独立旧group各10t/20t算4.892；SQLite既存V1 Record和冻结Word在Calculator/Resolver禁用下照原读取、记录数不增加。此处为V1校验补漏历史，随后7b43c23联合与CI260已完成；本次旧B.7适配器修复另按新head验证。
 
 
-6e417b4同head30模块实际357项、487.480s，356通过/1FAIL（tmp/fgd-final-6e417b4-joint.log）：既有G06多实例合法汇总夹具把同一fgd-a组的整剂CAL写成10t/2t，被新共同校验正确拒绝。该测试目的是实例独立计算后汇总，不是批准同组不同分母；现保留两组和混合组分，把fgd-a两组分统一10t，新增独立预期fgd-a=4.329、fgd-b=1.8675。V1不等量零Record反例不删除/不放宽。两项针对性2/2、7.347s（tmp/fgd-v1-fixture-fixed.log）。本次仅测试/治理同步，最后生产提交仍6e417b4f83e4a7d4d55193076063cb10816bbea2；最终head须重新联合/CI，CI259仅该失败断点，不冒称最终PASS。
+6e417b4同head30模块实际357项、487.480s，356通过/1FAIL（tmp/fgd-final-6e417b4-joint.log）：既有G06多实例合法汇总夹具把同一fgd-a组的整剂CAL写成10t/2t，被新共同校验正确拒绝。该测试目的是实例独立计算后汇总，不是批准同组不同分母；现保留两组和混合组分，把fgd-a两组分统一10t，新增独立预期fgd-a=4.329、fgd-b=1.8675。V1不等量零Record反例不删除/不放宽。两项针对性2/2、7.347s（tmp/fgd-v1-fixture-fixed.log）。7b43c23当时仅测试/治理同步，生产断点为6e417b4；CI259实际873项1FAIL、1398.171s且构建SKIPPED，7b随后联合与CI260通过。该段为历史断点，当前最后生产提交见报告开头。
