@@ -48,6 +48,18 @@ class HeatRuntimeTests(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
+    def test_projection_rejects_crlf_source_instead_of_normalizing_hash(self):
+        from scripts.project_heat_rules import ADOPTION_PATH, ROOT, projected_heat_bytes
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / ADOPTION_PATH
+            target.parent.mkdir(parents=True)
+            source = (ROOT / ADOPTION_PATH).read_bytes()
+            self.assertNotIn(b"\r", source)
+            target.write_bytes(source.replace(b"\n", b"\r\n"))
+            with self.assertRaisesRegex(ValueError, "LF"):
+                projected_heat_bytes(root)
+
     def test_same_resolver_selection_qualification_value_and_snapshot(self):
         verify_heat_projection()
         original = self.resolver.resolve

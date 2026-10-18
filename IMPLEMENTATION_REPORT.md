@@ -14,7 +14,7 @@
 - 自动焓固定CoolProp8.0.0/NumPy2.3.3、revision ae81610e7d23efc57f9d051c8e70a4d66e87537f，显式IF97Backend。方法CAR-HEAT-IF97-017.1、物性子Profile GHGTOOL_COOLPROP_IF97_PROPERTY_V1为binary64，非p40物性精度；原输入/规范值/实际工作Pa-K/Q/库Jkg词法/采用焓/真实phase/库身份冻结，失败不回旧表或HEOS。
 - heat.factor只用同一次真实Resolver选择核资格、采用值和快照。R11基础加Canonical小增量准确补齐C3绑定，仍保留来源/期间条件，不能靠0.11相同冒认来源。实测空/非法不回默认，合法零保留。
 - GUI有中文边界/燃料声明、已知/自动方式、草稿恢复和对应提示；Excel B.9 v10/2.8同链，预览零Record，明确保存Canonical项目后正式成功每次追加记录；Word只消费冻结证据，新自动B.9注明方法，不改旧Word正文。
-- v10 SHA `705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729`，仅sheet9改变，旧v2-v9原字节不变；报告布局元数据3.0.5。热力独立资源SHA `2f472b6a4774076472e0fae19e552986d67f4ed3ca29f63cd496d31002f215de`，原材料/燃料/FGD/烟气资源不改。
+- v10 SHA `705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729`，仅sheet9改变，旧v2-v9原字节不变；报告布局元数据3.0.5。热力独立资源SHA `37844a5b09fce7350ebc172457b768b86b665a4be8398408c4e2727be1216ca3`，原材料/燃料/FGD/烟气资源不改。
 - 构建固定物性运行身份探针、CoolProp delvewheel hook、14份原始通知/来源及哈希包审计。当前工程候选不等于商业许可履约完成；详见DELIVERY和docs/ci两份原始候选证据。
 
 ## 实际验证与失败对账
@@ -47,3 +47,7 @@ C独占共享消费者、资源、GUI、构建和治理；F仅交热力helper/te
 ## 送验前补充对账
 
 只读扫查发现UIR04另有一个未被选定套件覆盖的旧热力夹具：未知边界先被阻断，仍期待旧泛化状态文案。单项真实重现1FAIL/3.921s，修为明确边界外并断言实际绝压消息，保留点击展开本源卡及不泄露内部ID，修后1/1、4.202s。生产代码与f85e058不变；本次仅测试/文档/可复现实包证据回执。CI276仍是旧受验head，不据其进行中状态宣称全量通过，需新head全量CI和精确head制品。新增原始授权回复再次明确B-HEAT接线及HEAT.1/v10兼容同步；不回旧阶段、不扩大范围。
+
+## Canonical干净检出字节修复
+
+实际e931c21 Git blob隔离复现：新增C3采用JSON本地CRLF而Git LF，原机械投影最后来源SHA为CRLF f816d704…、Git实际为LF 1dd97fd8…。按既有仓库LF规则保存源、机械重生heat.json为37844a5b09fce7350ebc172457b768b86b665a4be8398408c4e2727be1216ca3，生成器明确拒绝CRLF，不在读取时归一化哈希。结构全值比较仅末项source.sha256改变；fields/policies/前三来源完全相同，算法/公式/参数/解释不变。`python -B -m unittest tests.test_b_heat_runtime tests.test_g08_delivery -v`：30/30，16.363s，0失败/错误/跳过。原f85本地包证据只背书旧head；CI276/277均已被此修复取代，不称通过或引用其未知测试总数。新head须全量CI和精确head实包，再最终重写报告并送源验收。

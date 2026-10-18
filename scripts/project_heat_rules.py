@@ -12,6 +12,8 @@ ADOPTION_PATH = Path("data-source/carbon_accounting/business-rules/heat_c3_adopt
 
 def projected_heat_bytes(root=ROOT):
     content = (root / ADOPTION_PATH).read_bytes()
+    if b"\r" in content:
+        raise ValueError("热力Canonical采用文件须为LF原字节；请修正源文件，不归一化来源哈希。")
     adoption = json.loads(content)
     if (set(adoption) != {"format_version", "adoption_id", "rule_set_id", "revision", "field_id", "base_binding_id", "additional_binding_id", "parameter_id", "authority", "owner_message_id"}
             or adoption["format_version"] != 1 or adoption["adoption_id"] != HEAT_ADOPTION_ID
