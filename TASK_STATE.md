@@ -1,6 +1,6 @@
 # 当前任务状态 — B-HEAT
 
-更新：2026-10-18。状态：ACTIVE / RELATED_REGRESSION。原审批待决已解除，尚未正式送验。
+更新：2026-10-18。状态：ACTIVE / RELATED_REGRESSION。原审批待决已解除，PR52 CI进行中，尚未最终送验。
 
 ## 平台 / Contract 预检查
 
@@ -32,10 +32,14 @@
 
 不相加重叠测试数量。广Qt/项目/报告组合首轮出现5个旧热力/负值断言失败后，停在Word入口，人工终止无最终统计；保留`tmp/b-heat/heat-legacy-gui-report.log`。四热力失败独立重现4/4失败，修后见上；其他门禁保留。此前领域夹具日期/字段/全值、目录单位别名、旧B9种子识别及自动Word方法缺失均已修；新增WARNING测试初写severity错误产生两subtest ERROR，改真实level字段后通过。F低压PT初报成功已撤回，实际后端报超域，不设置绕行。
 
-最终本地联合`tests.test_b_heat_if97 tests.test_b_heat_specialist tests.test_b_heat_runtime tests.test_b_heat_chain.HeatQtTests tests.test_b_heat_chain.HeatExcelTests tests.test_numeric_contract_v1_adoption tests.test_g08_delivery`：**85/85，65.099s，0失败/错误/跳过**。独立用户数据目录`tests.test_main_integration_ui tests.test_rpt01_report_excel tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_rs03_excel_entrypoints`：**46/46，135.016s，0失败/错误/跳过**。Canonical校验9标准/12来源/102参数/138因子、热力投影、v10机械生成均通过；当前reader再次核实际CI273两条旧记录模型/XML不变。实际生产热力行按控制器刷新后离屏组件截图可读；不是原生鼠标/IME验收。新私有PR、全量Windows CI、精确head构建及实际新包尚未执行，不宣称本地全仓通过。
+最终本地联合`tests.test_b_heat_if97 tests.test_b_heat_specialist tests.test_b_heat_runtime tests.test_b_heat_chain.HeatQtTests tests.test_b_heat_chain.HeatExcelTests tests.test_numeric_contract_v1_adoption tests.test_g08_delivery`：**85/85，65.099s，0失败/错误/跳过**。独立用户数据目录`tests.test_main_integration_ui tests.test_rpt01_report_excel tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_rs03_excel_entrypoints`：**46/46，135.016s，0失败/错误/跳过**。Canonical校验9标准/12来源/102参数/138因子、热力投影、v10机械生成均通过；当前reader再次核实际CI273两条旧记录模型/XML不变。实际生产热力行按控制器刷新后离屏组件截图可读；不是原生鼠标/IME验收。新私有[PR52](https://github.com/adgo07/GHGTOOL/pull/52)已创建并attach，代码head `f85e0583b1ae01578cc0c0fc3135e875b44b8dc8`。CI276/run39128755391已通过安装/Canonical/编译/pip check/数据库/GUI/缩放，仍在全量测试；尚非CI PASS。本地同代码head实际Windows构建、包审计及ZIP清单通过（manifest列312文件、193930493字节），隔离EXE启动2/2；实际EXE/PYZ+包内CoolProp/NumPy原生扩展/Qt离屏全链通过，见docs/ci/B_HEAT_LOCAL_PACKAGE_PROOF.json，验证器B_HEAT_PACKAGE_VERIFIER.py。首次验证器宿主openpyxl与包内lxml冲突已改为全包内加载，r2通过、原失败保留；未改产品。许可证原文自带空白按原SHA保留，不声称其格式检查通过。CI实际包尚待产出，不把本地包当CI包或全仓PASS。
 
 ## 执行边界与下一步
 
 C独占共享消费者、资源、GUI、构建和治理；F仅交热力helper/tests，M外部CO₂准备分支不纳入本包，N不启动。原用户脏树、旧工作树和计算表不改。源会话原始用户消息01a14ee7-32ba-7283-ab49-ad6b89b633aa“全部同意”及紧前解释已实际读取，原版本/C3/017授权待决已解除；本会话补充的源交接、PR49、M/F及脱硫授权已收悉，PR49/50/51均已合并，不回到旧阶段或改旧PR。
 
-下一步：相关回归及失败对账→稳定提交→新私有热力PR并attach→merge-ref全量CI和精确head实包→源独立验收后停止。不得自行合并/启动下一包。原生Office、鼠标/中文IME/人工DPI、企业样例、干净目标机和商业许可履约保持OPEN；不CU、不商业发布、不宣布SUPPORTED，不改Frozen基线或另建路线。
+下一步：完成PR52的merge-ref全量CI和精确head CI实包→补齐最终报告/PR身份与证据→源独立验收后停止。不得自行合并/启动下一包。原生Office、鼠标/中文IME/人工DPI、企业样例、干净目标机和商业许可履约保持OPEN；不CU、不商业发布、不宣布SUPPORTED，不改Frozen基线或另建路线。
+
+## 送验前补充对账
+
+只读扫查发现UIR04另有一个未被选定套件覆盖的旧热力夹具：未知边界先被阻断，仍期待旧泛化状态文案。单项真实重现1FAIL/3.921s，修为明确边界外并断言实际绝压消息，保留点击展开本源卡及不泄露内部ID，修后1/1、4.202s。生产代码与f85e058不变；本次仅测试/文档/可复现实包证据回执。CI276仍是旧受验head，不据其进行中状态宣称全量通过，需新head全量CI和精确head制品。新增原始授权回复再次明确B-HEAT接线及HEAT.1/v10兼容同步；不回旧阶段、不扩大范围。
