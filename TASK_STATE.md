@@ -24,8 +24,14 @@
 
 Owner于2026-10-18决定烟气时间精确到小时；此为产品输入精度决定，不称标准要求。共享正式校验拒绝分钟/秒/微秒非零端点，不截断、不改写旧值；原输入与采用日值分别冻结。算法CAR-SM01-2026-10-18-FUME.2，方法CAR-FUME-SEGMENTS-020.2。GUI/B.6推荐小时；v9仍2.7.0，仅sheet6小时提示机械变化，hash 0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9。旧v2-v8不变。
 
-本地小时/正式链/G08 66/66、64.768s；后续相关联合135/135、62.699s，包含最终实际wheel/sdist验证器。8份模板在真实wheel/sdist与安装后逐字节一致，未包含用户数据库/计算表。两次验证接线失败及修复原因保留于摘要，不改Numeric守卫。编译/依赖/Canonical/投影PASS。
+本地小时/正式链/G08 66/66、64.768s；后续相关联合135/135、62.699s，包含当时实际wheel/sdist验证器。8份模板在真实wheel/sdist与安装后逐字节一致，未包含用户数据库/计算表。两次验证接线失败及修复原因保留于摘要，不改Numeric守卫。编译/依赖/Canonical/投影PASS。
 
 实际旧CI268包生成当时合法3分钟Record，由当前代码读取模型/Word XML保持；原细时间Canonical/SQLite可开存，新正式核算明确拒绝且零Record。实际旧b4烟气与两份脱硫Word也由仓内可复现只读脚本验证不变。CI252仅docs/ci一处，PR50已迁移，无需重复处理。
 
 当前新源码CI与精确head实际包尚待完成；CI268/b0只为前轮历史证据，不能背书本修复。完整命令/失败/来源/hash见docs/ci/B_FUME_SUMMARY.json。保留原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约OPEN。完成送源验收，合并由源会话执行；C不合并、不CU、不扩下一包、不动根用户修改或旧树。
+
+## CI271 验证器定向修复
+
+CI271/run39113048982实际全量942项，941通过/1ERROR、1532.572s；唯一为新G08 installed-resources来源路径断言，standalone跳过，无新制品。原CI未打印路径，不能声称已实证8.3或editable具体成因。本地有效非规范临时目录别名复现同一断言：实际从wheel安装目录导入，但子路径resolve/父路径未resolve误判。验证器现统一resolve，并用-I/-S隔离安装探针，打印实际资源与安装根诊断；严格来源及8份模板字节断言保持。回归同时注入路径别名与sitecustomize预导入源码resources。
+
+python -B -m unittest tests.test_g08_delivery tests.test_qzc_n01_c_numeric_unit_pilot -v：首次38项37通过/1ERROR、32.766s为回归覆盖既有PYTHONPATH致本机构建缺setuptools；保留原构建路径并额外注入后38/38、18.961s。实际wheel/sdist/安装资源证明再次PASS。原小时业务/模板未改；此前66/135属验证器修复前范围。原始失败/复现/最终日志保留，新head继续全量CI与精确包后送源，不借CI271失败或CI268旧证据放行。

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "PR51-F01小时精度退修；本地验证PASS，等待新源码CI/精确包及源最终验收",
+  "scope": "PR51-F01小时修复；CI271装配验证器错误已定向修复，本地38通过，等待新源码CI/精确包",
   "base_sha": "8d054d2480d744882f4f11f56b59e68df91dc50f",
   "fixed_tested_commit": null,
   "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
@@ -13,14 +13,15 @@
       "passed": 66,
       "seconds": "64.768",
       "log": "tmp/b-fume/hour-targeted-first.log",
-      "boundary": "之后仅验证脚本临时副本生命周期修复，最终相关135覆盖"
+      "boundary": "CI271验证器修复前执行；业务/模板此后未改，验证工具新38项单独记录"
     },
     "related_final": {
       "command": "python -B -m unittest tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_qzc_n01_c_numeric_unit_pilot tests.test_main_integration_excel tests.test_exb01_ingress tests.test_standard_dispatch tests.test_g08_delivery.G08DeliveryTests.test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource -v",
       "tests": 135,
       "passed": 135,
       "seconds": "62.699",
-      "log": "tmp/b-fume/hour-related-final.log"
+      "log": "tmp/b-fume/hour-related-final.log",
+      "boundary": "CI271验证器修复前执行；业务/模板此后未改，验证工具新38项单独记录"
     },
     "compile": "PASS",
     "pip_check": "PASS",
@@ -30,7 +31,15 @@
       "parameters": 102,
       "factors": 138
     },
-    "v9_mechanical_projection": "PASS"
+    "v9_mechanical_projection": "PASS",
+    "verifier_fix_final": {
+      "command": "python -B -m unittest tests.test_g08_delivery tests.test_qzc_n01_c_numeric_unit_pilot -v",
+      "tests": 38,
+      "passed": 38,
+      "seconds": "18.961",
+      "log": "tmp/b-fume/verifier-fix-final.log",
+      "boundary": "验证器/测试改动；同时注入非规范临时路径和sitecustomize预导入源码resources，真实wheel/sdist/安装字节及Numeric原守卫通过"
+    }
   },
   "original_failures": {
     "first_chain_import": {
@@ -111,6 +120,19 @@
     "hour_commit_diffcheck": {
       "reason": "首次暂存diffcheck提示两个新脚本EOF多余空行；提交命令未据此提前退出，随后独立提交规范化并重新通过，业务字节语义不变",
       "production_head_before_whitespace": "2b5da78218649ac61bfb63f068a3e90a03e06ab5"
+    },
+    "ci271_installed_probe": {
+      "reason": "installed-resources探针AssertionError；原CI没有路径诊断，具体8.3/editable成因未获CI实证。已本地用有效非规范临时目录复现子路径resolve/父路径未resolve导致误判；统一resolve、-I/-S隔离并保留真实来源/全部字节断言",
+      "reproduction": "tmp/b-fume/ci271-path-reproduction.log",
+      "reproduction_exit": 1
+    },
+    "verifier_fix_first": {
+      "tests": 38,
+      "passed": 37,
+      "errors": 1,
+      "seconds": "32.766",
+      "log": "tmp/b-fume/verifier-fix-targeted.log",
+      "reason": "污染回归覆盖原PYTHONPATH，丢失本机构建依赖setuptools；改为保留既有构建路径并额外注入，安装探针仍完全忽略环境/site"
     }
   },
   "source_text_lf_sha256": {
@@ -122,7 +144,7 @@
     "tests/test_b_fume_chain.py": "e8f07fbca6d63ab652301ea4f5e58b8bdfb00457f766d63153cd753f3d1152e1",
     "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
     "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560",
-    "scripts/verify_distribution_templates.py": "c1c703f69e402135fd6a4ed2095cd4fc922db7a7d574dc3968b50df00f9519d7",
+    "scripts/verify_distribution_templates.py": "3321f369fe87d3fbb7aa25630899d831a1f111f8bfa18f824e780dd45d0bc39e",
     "scripts/verify_frozen_record_word.py": "bd395251a35cd298aafc59f86adf2fc685f049a2fc308e76ca9653e94a09433e"
   },
   "template": {
@@ -511,12 +533,13 @@
       "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx": "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4",
       "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx": "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
     },
-    "wheel_sha256": "cbb7a780eea609574dd791255907a9992772a263ec156c0922334aa6a253c209",
-    "sdist_sha256": "bb3a99dcce06aa7c9bfac6acb1439c435aeaba3297e0ae5c9359acecfe982d4a",
+    "wheel_sha256": "409c79425795b618ed007e23ecb260dccc1ceefcb1939ab0273f5e040cda8ecd",
+    "sdist_sha256": "adc26f4439b026f4775288cdf9702578dfdcc3a6415fc50da937911884a92d9f",
     "wheel_sdist_and_installed_resources_match": true,
     "no_user_databases_or_reference_directory": true,
-    "command": "python -B -m scripts.verify_distribution_templates --output-dir tmp/b-fume/hour-distribution-final",
-    "proof": "tmp/b-fume/hour-distribution-final/proof.json"
+    "command": "python -B -m scripts.verify_distribution_templates --output-dir tmp/b-fume/verifier-final-distribution",
+    "proof": "tmp/b-fume/verifier-final-distribution/proof.json",
+    "installed_probe_log_sha256": "24e66a1703391a5d144404c8bbe40661b72c397e25f6d36d7e5dc102a510bb21"
   },
   "actual_old_ci268_minute_history": {
     "created": {
@@ -548,5 +571,24 @@
       "docs/ci/CI252_SUMMARY.json"
     ],
     "result": "PR50已迁移，无旧A目录副本，不重复移动或修改旧字节"
-  }
+  },
+  "superseded_hour_ci": [
+    {
+      "run_id": 39113048982,
+      "number": 271,
+      "head": "3ee42a0375c7b049c49e3c3868015d0a55db800e",
+      "merge": "a819f8c0756e303a7a3da65be341fdfa8ee65ce5",
+      "merge_job_id": 117633044964,
+      "status": "completed",
+      "conclusion": "failure",
+      "tests": 942,
+      "passed": 941,
+      "errors": 1,
+      "seconds": "1532.572",
+      "standalone_job_id": 117638479622,
+      "standalone_conclusion": "skipped",
+      "error_excerpt": "tmp/b-fume/ci271-failure-excerpt.log",
+      "boundary": "唯一installed resources来源断言错误；无本次制品，不能背书新head"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 import os
 from fnmatch import fnmatchcase
 import json
@@ -540,9 +540,23 @@ class G08DeliveryTests(unittest.TestCase):
         self.assertIn("DELIVERY.md", (PROJECT_ROOT / "README.md").read_text(encoding="utf-8"))
 
     def test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource(self):
-        from scripts.verify_distribution_templates import verify_distribution_templates
+        import scripts.verify_distribution_templates as verifier
         with tempfile.TemporaryDirectory() as directory:
-            result=verify_distribution_templates(PROJECT_ROOT,Path(directory)/"distribution")
+            root=Path(directory)
+            ambient=root/"ambient";ambient.mkdir()
+            # 模拟editable/site启动已导入源码resources；安装探针必须独立加载wheel。
+            (ambient/"sitecustomize.py").write_text("import resources\n",encoding="utf-8")
+            original_temp=verifier.tempfile.TemporaryDirectory
+            @contextmanager
+            def aliased_temp(*args,**kwargs):
+                with original_temp(*args,**kwargs) as value:
+                    runtime=Path(value)
+                    # 有效但非规范路径，模拟Windows短路径/别名的词法差异。
+                    yield str(runtime/".."/runtime.name)
+            polluted_path=os.pathsep.join(filter(None,(str(ambient),str(PROJECT_ROOT),os.environ.get("PYTHONPATH",""))))
+            with patch.dict(os.environ,{"PYTHONPATH":polluted_path}), \
+                 patch.object(verifier.tempfile,"TemporaryDirectory",aliased_temp):
+                result=verifier.verify_distribution_templates(PROJECT_ROOT,root/"distribution")
             actual={(path.relative_to(PROJECT_ROOT)).as_posix() for path in (PROJECT_ROOT/"resources/excel_templates").glob("*.xlsx")}
             self.assertEqual(set(result["templates"]),actual)
             self.assertTrue(result["wheel_sdist_and_installed_resources_match"])

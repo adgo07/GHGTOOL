@@ -15,6 +15,7 @@ from zipfile import ZipFile
 
 def _verify_distribution_templates(project_root: Path, output_root: Path, runtime_root: Path) -> dict:
     project_root, output_root = project_root.resolve(), output_root.resolve()
+    runtime_root = runtime_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     source = runtime_root / "source"
     source.mkdir()
@@ -60,13 +61,16 @@ def _verify_distribution_templates(project_root: Path, output_root: Path, runtim
     probe = (
         "import sys,json,hashlib;from pathlib import Path;"
         f"sys.path.insert(0,{str(installed)!r});import resources;"
-        f"assert Path(resources.__file__).resolve().is_relative_to(Path({str(installed)!r}));"
+        f"installed=Path({str(installed)!r}).resolve();actual_module=Path(resources.__file__).resolve();"
+        "print(json.dumps({'resource_file':str(actual_module),'installed_root':str(installed)}));"
+        "assert actual_module.is_relative_to(installed), (str(actual_module),str(installed));"
+        "assert sys.flags.isolated and sys.flags.no_site, 'installed probe must ignore site and environment';"
         "from importlib.resources import files;"
         f"expected=json.loads({json.dumps(expected_hashes)!r});"
         "actual={name:hashlib.sha256(files('resources').joinpath(name.removeprefix('resources/')).read_bytes()).hexdigest() for name in expected};"
-        "assert actual==expected;print(json.dumps(actual))"
+        "assert actual==expected, (actual,expected);print(json.dumps(actual))"
     )
-    run([sys.executable, "-B", "-c", probe], output_root, "installed-resources.log")
+    run([sys.executable, "-I", "-S", "-B", "-c", probe], output_root, "installed-resources.log")
     result = {"templates": expected_hashes, "wheel_sha256": sha256(wheel.read_bytes()).hexdigest(),
               "sdist_sha256": sha256(sdist.read_bytes()).hexdigest(),
               "wheel_sdist_and_installed_resources_match": True,

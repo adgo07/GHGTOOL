@@ -29,7 +29,7 @@ Python3.12.14，离屏Qt、隔离SQLite/临时目录；未做原生CU或Office�
 | 命令 | 结果 |
 |---|---|
 | python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v | 66/66，64.768s；小时与d路径1/5/10/24/48、Profile/ambient、分钟/秒/微秒拒绝、真不一致、相邻覆盖、旧codec/SQLite、GUI/Excel正式冻结与零新增 |
-| python -B -m unittest tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_qzc_n01_c_numeric_unit_pilot tests.test_main_integration_excel tests.test_exb01_ingress tests.test_standard_dispatch tests.test_g08_delivery.G08DeliveryTests.test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource -v | 最终135/135，62.699s；包含最终验证脚本 |
+| python -B -m unittest tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_rpt02_appendix_b tests.test_p3_c_records_ui tests.test_qzc_n01_c_numeric_unit_pilot tests.test_main_integration_excel tests.test_exb01_ingress tests.test_standard_dispatch tests.test_g08_delivery.G08DeliveryTests.test_actual_wheel_sdist_and_installed_templates_keep_every_current_resource -v | 最终135/135，62.699s；包含CI271修复前验证脚本 |
 | python -B -m scripts.verify_distribution_templates --output-dir tmp/b-fume/hour-distribution-final | PASS：真实wheel/sdist及安装资源8份模板字节一致，无用户库/参考目录 |
 | python -B -m scripts.verify_frozen_record_word --records <隔离历史SQLite> --record-id <ID> --expected-docx <既有Word> | 4个实际历史对象PASS；不作为4项unittest累加 |
 | python -B -m compileall -q apps packages scripts tests；python -B -m pip check；python -B -m scripts.validate_canonical；python -B scripts/project_appendix_b_v9.py | PASS；Canonical9标准/12来源/102参数/138因子 |
@@ -39,3 +39,9 @@ Python3.12.14，离屏Qt、隔离SQLite/临时目录；未做原生CU或Office�
 ## CI / 实包 / 停止边界
 
 新CI与精确head实际包待执行，固定证据将在docs/ci/B_FUME_SUMMARY.json补齐；CI268及旧P→D关系保留pre_hour_stage，不能背书小时修复。原生Office回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机、商业履约继续OPEN/NOT_RUN。完成新CI/实包交源独立验收，合并由源执行；C不合并、不CU、不扩热力蒸汽/其他包、不清理旧树和根用户文件。
+
+## CI271 验证器定向修复
+
+CI271/run39113048982实际全量942项，941通过/1ERROR、1532.572s；唯一为新G08 installed-resources来源路径断言，standalone跳过，无新制品。原CI未打印路径，不能声称已实证8.3或editable具体成因。本地有效非规范临时目录别名复现同一断言：实际从wheel安装目录导入，但子路径resolve/父路径未resolve误判。验证器现统一resolve，并用-I/-S隔离安装探针，打印实际资源与安装根诊断；严格来源及8份模板字节断言保持。回归同时注入路径别名与sitecustomize预导入源码resources。
+
+python -B -m unittest tests.test_g08_delivery tests.test_qzc_n01_c_numeric_unit_pilot -v：首次38项37通过/1ERROR、32.766s为回归覆盖既有PYTHONPATH致本机构建缺setuptools；保留原构建路径并额外注入后38/38、18.961s。实际wheel/sdist/安装资源证明再次PASS。原小时业务/模板未改；此前66/135属验证器修复前范围。原始失败/复现/最终日志保留，新head继续全量CI与精确包后送源，不借CI271失败或CI268旧证据放行。
