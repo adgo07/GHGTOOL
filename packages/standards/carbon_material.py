@@ -8,7 +8,7 @@ calculation evidence. Record persistence and adapters live outside this module.
 from __future__ import annotations
 
 from packages.standards.carbon_material_business_policy import (
-    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity, material_policy_identity, fgd_policy_identity, resolve_fgd_field,
+    fuel_source_context, electricity_source_context, evaluate_fuel_power_field, fuel_power_policy_identity, material_policy_identity, fgd_policy_identity, resolve_fgd_field, heat_policy_identity, evaluate_heat_factor, heat_source_context,
 )
 
 from packages.standards.carbon_material_input_policy import (
@@ -773,6 +773,8 @@ class HeatInput:
     factor_mode: HeatFactorMode | None = None
     factor_source_note: str | None = None
     steam_amount_t: object | None = None
+    source_boundary: str = "UNCONFIRMED"
+    fuel_emissions_accounted: bool | None = None
 
     def __post_init__(self) -> None:
         if not self.line_id.strip():
@@ -790,6 +792,10 @@ class HeatInput:
             raise DomainValidationError("factor_source_note must be text")
         if self.factor_source_note is not None and not self.factor_source_note.strip():
             object.__setattr__(self, "factor_source_note", None)
+        if self.source_boundary not in {"OUTSIDE_ENTERPRISE", "INSIDE_ENTERPRISE", "UNCONFIRMED"}:
+            raise DomainValidationError("热源边界必须明确或保留待核实")
+        if self.fuel_emissions_accounted is not None and type(self.fuel_emissions_accounted) is not bool:
+            raise DomainValidationError("供热燃料是否已计必须为布尔值或待核实")
         object.__setattr__(self, "manual_enthalpy", manual)
         object.__setattr__(self, "amount", _coerce_input(self.amount, self.unit))
         object.__setattr__(self, "enthalpy", _coerce_input(self.enthalpy, "kJ/kg"))
@@ -1511,6 +1517,7 @@ class CarbonMaterialCalculator:
             "adopted_business_policy": fuel_power_policy_identity(),
             "adopted_material_policy": material_policy_identity(),
             "adopted_fgd_policy": fgd_policy_identity(),
+            "adopted_heat_policy": heat_policy_identity(),
             "effective_rule_set": rule_snapshot,
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
@@ -2020,55 +2027,51 @@ class CarbonMaterialCalculator:
 
     def _heat_factor(self, line: HeatInput, snapshots: list[ParameterSnapshot], problems: list[ValidationProblem], snapshot_at: datetime, *, energy_direction: str, accounting_period: AccountingPeriod) -> Decimal | None:
         explicit = line.factor
-        if explicit is not None:
-            factor = self._parameter(explicit, "tCO2/GJ", f"CAR-FLD-HEAT-{line.line_id}-EF3", snapshots, problems, snapshot_at)
-            # A source-bearing factor can still lack the per-line measurement
-            # note. Do not duplicate the missing-source warning from _parameter.
-            if (
-                (line.factor_mode is HeatFactorMode.MEASURED or explicit.source_kind is ParameterSourceKind.MEASURED)
-                and line.factor_source_note is None
-                and explicit.source_location is not None
-            ):
-                problems.append(_problem(
-                    "CAR-VAL-FACTOR-SOURCE", IssueLevel.WARNING,
-                    "实测热力因子未填写来源说明；本次仍按您提供的数值计算。",
-                    f"CAR-FLD-HEAT-{line.line_id}-EF3",
-                ))
+        measured = line.factor_mode is HeatFactorMode.MEASURED or (
+            line.factor_mode is None and explicit is not None and explicit.source_kind is ParameterSourceKind.MEASURED)
+        field_id = f"CAR-FLD-HEAT-{line.line_id}-EF3"
+        if measured:
+            if explicit is None:
+                problems.append(_problem("CAR-VAL-HEAT-FACTOR-MISSING", IssueLevel.ERROR,
+                    "您选择了使用实测热力因子，请填写因子数值。", field_id))
+                return None
+            if explicit.source_kind is not ParameterSourceKind.MEASURED:
+                problems.append(_problem("CAR-VAL-HEAT-SOURCE-POLICY", IssueLevel.ERROR,
+                    "已选择实测热力因子，但数值来源身份不一致。", field_id))
+                return None
+            if evaluate_heat_factor({"origin": "CUSTOM", "binding_status": "ABSENT", "business_source": "MEASURED"})["status"] != "READY":
+                raise DomainValidationError("实测热力规则资源不允许当前选择")
+            factor = self._parameter(explicit, "tCO2/GJ", field_id, snapshots, problems, snapshot_at)
+            if line.factor_source_note is None and explicit.source_location is not None:
+                problems.append(_problem("CAR-VAL-FACTOR-SOURCE", IssueLevel.WARNING,
+                    "实测热力因子未填写来源说明；本次仍按您提供的数值计算。", field_id))
             return factor
-        if line.factor_mode is HeatFactorMode.MEASURED:
-            problems.append(_problem(
-                "CAR-VAL-HEAT-FACTOR-MISSING",
-                IssueLevel.ERROR,
-                "您选择了使用实测热力因子，请填写因子数值。",
-                f"CAR-FLD-HEAT-{line.line_id}-EF3",
-            ))
+        if explicit is not None and (explicit.source_kind is not ParameterSourceKind.STANDARD_DEFAULT or not explicit.factor_id):
+            problems.append(_problem("CAR-VAL-HEAT-SOURCE-POLICY", IssueLevel.ERROR,
+                "热力缺省数值缺少可核验的目录身份，或与所选来源不一致；请重新明确选择，不按数值猜测来源。", field_id))
             return None
         if self.parameter_resolver is None:
-            problems.append(_problem(
-                "CAR-VAL-HEAT-FACTOR-DEFAULT",
-                IssueLevel.ERROR,
-                "当前无法从标准参数目录读取热力排放因子；请检查参数目录，或提供有依据的实测因子。",
-                f"CAR-FLD-HEAT-{line.line_id}-EF3",
-            ))
+            problems.append(_problem("CAR-VAL-HEAT-FACTOR-DEFAULT", IssueLevel.ERROR,
+                "当前无法从标准参数目录读取热力排放因子；请检查目录，或明确提供有依据的实测因子。", field_id))
             return None
-        resolved = self._resolve_parameter(
-            ParameterResolutionContext(
-                parameter_id="heat_emission_factor_default",
-                standard_id=STANDARD_ID,
-                parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
-                subject_id="purchased_heat",
-                accounting_period=accounting_period,
-                emission_source_type=energy_direction,
-                extra_context=(("energy_direction", energy_direction),),
-            ),
-            snapshots,
-            problems,
-            snapshot_at,
-            detail_id=line.line_id,
+        context = ParameterResolutionContext(
+            parameter_id="heat_emission_factor_default", standard_id=STANDARD_ID,
+            parameter_type=ParameterType.HEAT_EMISSION_FACTOR, subject_id="purchased_heat",
+            accounting_period=accounting_period, emission_source_type=energy_direction,
+            extra_context=(("energy_direction", energy_direction),),
+            confirmed_factor_id=explicit.factor_id if explicit is not None else None,
+            confirmation_reason="保留明确选择的热力目录因子" if explicit is not None else None,
         )
-        if resolved is not None:
-            return resolved
-        return None
+        actual_resolution = self.parameter_resolver.resolve(context)
+        source_context = heat_source_context(self.parameter_resolver, actual_resolution, business_source="STANDARD_DEFAULT")
+        if evaluate_heat_factor(source_context)["status"] != "READY":
+            self._effective_rule_ids.update(actual_resolution.effective_rules.rule_ids)
+            problems.extend(actual_resolution.warnings)
+            problems.append(_problem("CAR-VAL-HEAT-SOURCE-POLICY", IssueLevel.ERROR,
+                "热力缺省因子的实际来源或适用绑定尚未核实；请检查目录或明确选择实测值，不自动回退。", field_id))
+            return None
+        return self._resolve_parameter(context, snapshots, problems, snapshot_at,
+                                       detail_id=field_id, resolved=actual_resolution)
 
     def _steam_reference(self, line: HeatInput) -> SteamEnthalpyEvaluation | None:
         if line.pressure_mpa is None:
@@ -2100,80 +2103,32 @@ class CarbonMaterialCalculator:
             raise
 
     def _enthalpy(self, line: HeatInput, problems: list[ValidationProblem]) -> SteamEnthalpyEvaluation | None:
+        from .carbon_material_heat import evaluate_known_enthalpy
         field_id = f"CAR-FLD-HEAT-{line.line_id}-HM"
-        if line.manual_enthalpy:
-            if line.enthalpy is None:
-                problems.append(_problem("CAR-VAL-STEAM-ENTHALPY-MISSING", IssueLevel.ERROR, "请填写手动蒸汽焓值，或切换为自动计算。", field_id))
-                return None
-            enthalpy = self._quantity(line.enthalpy, "kJ/kg", field_id, problems, nonnegative=False)
-            if enthalpy is None:
-                return None
-            if enthalpy <= 0:
-                problems.append(_problem("CAR-VAL-STEAM-MANUAL-RANGE", IssueLevel.WARNING, "手动蒸汽焓值不大于0，请确认；本次仍按您填写的数值计算。", field_id))
-            reference: SteamEnthalpyEvaluation | None = None
-            if line.pressure_mpa is not None and (line.steam_kind is SteamKind.SATURATED or line.temperature_c is not None):
-                try:
-                    reference = self._steam_reference(line)
-                except ValueError:
-                    table_name = "附录 C.4" if line.steam_kind is SteamKind.SATURATED else "附录 C.5"
-                    problems.append(_problem("CAR-VAL-STEAM-REFERENCE", IssueLevel.WARNING, f"当前蒸汽状态超出{table_name}范围，无法确定自动参考焓值；本次仍采用您填写的焓值。", field_id))
-            if reference is not None:
-                threshold = self.policy.multiply(reference.value, Decimal("0.01"))
-                difference = self.policy.subtract(enthalpy, reference.value).copy_abs()
-                if difference > threshold:
-                    table_name = "附录 C.4" if line.steam_kind is SteamKind.SATURATED else "附录 C.5"
-                    problems.append(_problem(
-                        "CAR-VAL-STEAM-MANUAL-DEVIATION",
-                        IssueLevel.WARNING,
-                        f"您填写的蒸汽焓值为 {enthalpy} kJ/kg，按 GB/T 32151.34—2024 {table_name} 计算的参考值为 {reference.value} kJ/kg，请确认。若继续计算，本次采用您填写的 {enthalpy} kJ/kg。",
-                        field_id,
-                    ))
-            return SteamEnthalpyEvaluation(
-                value=enthalpy,
-                reference_value=reference.value if reference else None,
-                source="USER_MANUAL",
-                table_id=reference.table_id if reference else ("C.4" if line.steam_kind is SteamKind.SATURATED else "C.5"),
-                interpolated=reference.interpolated if reference else False,
-                pressure_bounds=reference.pressure_bounds if reference else None,
-                temperature_bounds=reference.temperature_bounds if reference else None,
-            )
-
-        if line.pressure_mpa is None:
-            problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR, "自动计算蒸汽焓值需要填写蒸汽压力（绝压）。", f"CAR-FLD-HEAT-{line.line_id}-PRESSURE"))
-            return None
-        if line.steam_kind is SteamKind.SUPERHEATED and line.temperature_c is None:
-            problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR, "自动计算过热蒸汽焓值需要填写蒸汽温度。", f"CAR-FLD-HEAT-{line.line_id}-TEMPERATURE"))
+        if not line.manual_enthalpy:
+            problems.append(_problem("CAR-VAL-STEAM-AUTO-UNAVAILABLE", IssueLevel.ERROR,
+                "自动蒸汽物性计算的受控实现尚未启用，请明确提供有依据的已知焓值；不回退旧表。", field_id))
             return None
         try:
-            reference = self._steam_reference(line)
-        except ValueError:
-            message = (
-                "蒸汽压力超出附录 C.4 范围，请调整压力或改为手动填写焓值。"
-                if line.steam_kind is SteamKind.SATURATED
-                else "蒸汽压力或温度超出附录 C.5 范围，请调整蒸汽状态或改为手动填写焓值。"
-            )
-            problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR, message, f"CAR-FLD-HEAT-{line.line_id}-PRESSURE"))
+            evaluation = evaluate_known_enthalpy(line, policy=self.policy, numeric_profile_id=self.numeric_profile_id)
+        except DomainValidationError as exc:
+            problems.append(_problem("CAR-VAL-STEAM-ENTHALPY-MISSING" if line.enthalpy is None else "CAR-VAL-STEAM-ENTHALPY-INVALID",
+                                     IssueLevel.ERROR, str(exc), field_id))
             return None
-        if reference is None:
-            problems.append(_problem("CAR-VAL-STEAM-STATE", IssueLevel.ERROR, "当前压力和温度无法确定蒸汽焓值。", line.line_id))
-            return None
-        if reference.interpolated:
-            details = [
-                ("low_pressure_mpa", str(reference.pressure_bounds[0])),
-                ("high_pressure_mpa", str(reference.pressure_bounds[1])),
-                ("algorithm_version", ALGORITHM_VERSION),
-            ] if reference.pressure_bounds else [("algorithm_version", ALGORITHM_VERSION)]
-            if reference.temperature_bounds:
-                details.extend((
-                    ("low_temperature_c", str(reference.temperature_bounds[0])),
-                    ("high_temperature_c", str(reference.temperature_bounds[1])),
-                ))
-            problems.append(_problem("CAR-VAL-STEAM-INTERPOLATION", IssueLevel.INFO, f"蒸汽明细 {line.line_id} 使用 {reference.table_id} 邻近状态线性内插。", line.line_id, tuple(details)))
-        return reference
+        if evaluation.value <= 0:
+            problems.append(_problem("CAR-VAL-STEAM-MANUAL-RANGE", IssueLevel.WARNING,
+                "已知蒸汽焓值不大于0，请确认；本次仍按您填写的数值计算。", field_id))
+        if line.enthalpy.source_level is ActivitySourceLevel.PROXY:
+            problems.append(_problem("GEN-VAL-PROXY-DATA", IssueLevel.WARNING, "蒸汽焓值使用替代数据，请确认。", field_id))
+        return evaluation
 
-    @staticmethod
-    def _steam_trace_provenance(line: HeatInput, evaluation: SteamEnthalpyEvaluation) -> tuple[tuple[str, str], ...]:
+    def _steam_trace_provenance(self, line: HeatInput, evaluation: SteamEnthalpyEvaluation) -> tuple[tuple[str, str], ...]:
+        from .carbon_material_heat import KNOWN_ENTHALPY_METHOD_VERSION
         entries: list[tuple[str, str]] = [
+            ("enthalpy_method_version", KNOWN_ENTHALPY_METHOD_VERSION),
+            ("numeric_profile_id", self.numeric_profile_id),
+            ("source_boundary", line.source_boundary),
+            ("fuel_emissions_accounted", str(line.fuel_emissions_accounted)),
             ("enthalpy_source", "用户手动填写" if evaluation.source == "USER_MANUAL" else "标准表自动确定"),
             ("standard", "GB/T 32151.34—2024"),
             ("table", evaluation.table_id or ""),
@@ -2765,6 +2720,17 @@ class CarbonMaterialCalculator:
         purchased_heat_total = Decimal("0")
         if heat_status is EmissionSourceStatus.INVOLVED:
             for line in input_value.purchased_heat:
+                from .carbon_material_heat import classify_heat_boundary
+                try:
+                    boundary_route = classify_heat_boundary(energy_direction="purchased_heat",
+                        source_boundary=line.source_boundary, fuel_emissions_accounted=line.fuel_emissions_accounted)
+                except DomainValidationError as exc:
+                    problems.append(_problem("CAR-VAL-HEAT-BOUNDARY", IssueLevel.ERROR, str(exc), line.line_id))
+                    continue
+                if boundary_route == "INTERNAL_ALREADY_ACCOUNTED":
+                    problems.append(_problem("CAR-VAL-HEAT-INTERNAL-ACCOUNTED", IssueLevel.INFO,
+                        "同一企业边界内供热燃料已计入燃料排放，本条不重复计购入热力；原燃料排放保持。", line.line_id))
+                    continue
                 quantity = self._quantity(line.amount, "kg", line.line_id, problems)
                 enthalpy = self._enthalpy(line, problems)
                 factor = self._heat_factor(line, snapshots, problems, snapshot_at, energy_direction="purchased_heat", accounting_period=input_value.period)

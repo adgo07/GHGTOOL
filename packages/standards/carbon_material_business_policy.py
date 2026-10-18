@@ -318,3 +318,61 @@ def resolve_fgd_field(field_id, *, resolver, origin, carbonate_type=None,
         return FGDFieldResolution(current, resolution=resolution)
     return FGDFieldResolution({**current, "binding_status": "VERIFIED", "binding_id": binding.binding_id,
                                "parameter_id": binding.parameter_id}, resolution.recommended.factor, resolution)
+
+
+HEAT_RUNTIME_RESOURCE = "business_rules/heat.json"
+HEAT_ADOPTION_ID = "GHGTOOL_HEAT_R11_V1"
+HEAT_RUNTIME_SHA256 = "90f69e6511eab23b54a325d1027b78b948d8ab4f72460f641511a3f8863a810e"
+
+
+@lru_cache(maxsize=1)
+def _heat_document():
+    try:
+        content = files("resources").joinpath(HEAT_RUNTIME_RESOURCE).read_bytes()
+        if sha256(content).hexdigest() != HEAT_RUNTIME_SHA256:
+            raise BusinessPolicyConfigurationError("热力业务规则资源校验失败，请重新安装完整软件。")
+        document = json.loads(content)
+        if document["format_version"] != 1 or document["adoption_id"] != HEAT_ADOPTION_ID:
+            raise BusinessPolicyConfigurationError("热力业务规则版本不兼容。")
+        return document
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        raise BusinessPolicyConfigurationError("热力业务规则资源缺失或损坏。") from exc
+
+
+def heat_policy_identity():
+    document = _heat_document()
+    return {"adoption_id": HEAT_ADOPTION_ID, "resource_sha256": HEAT_RUNTIME_SHA256,
+            "adopted_fields": sorted(document["fields"]),
+            "sources": [{key: source[key] for key in ("rule_set_id", "revision", "sha256")}
+                        for source in document["sources"]]}
+
+
+def evaluate_heat_factor(context):
+    return _evaluate_entry(_heat_document()["fields"]["heat.factor"], context)
+
+
+def heat_source_context(resolver, resolution, *, business_source):
+    """仅核验同次实际选择的目录绑定，不另行解析或以数值猜测身份。"""
+    current = {"origin": "CATALOG", "binding_status": "ABSENT", "business_source": business_source}
+    if resolver is None or resolution is None:
+        return current
+    association = resolver.reference_binding_for(resolution)
+    binding = association.binding
+    entry = _heat_document()["fields"]["heat.factor"]
+    source = entry["field"]["source_qualification"]
+    conditions = [branch["when"]["tags"]
+                  for branch in entry["policies"][source["policy_id"]]["branches"]
+                  if branch["when"]["tags"].get("binding_status") == "VERIFIED"]
+    if binding is not None and any(tags["binding_id"] == binding.binding_id
+                                   and tags["parameter_id"] == binding.parameter_id for tags in conditions):
+        return {**current, "binding_status": "VERIFIED", "binding_id": binding.binding_id,
+                "parameter_id": binding.parameter_id}
+    return current
+
+
+def heat_binding_conditions():
+    entry = _heat_document()["fields"]["heat.factor"]
+    source = entry["field"]["source_qualification"]
+    return tuple(dict(branch["when"]["tags"])
+                 for branch in entry["policies"][source["policy_id"]]["branches"]
+                 if branch["when"]["tags"].get("binding_status") == "VERIFIED")
