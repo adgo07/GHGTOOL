@@ -4,3 +4,4 @@
 resources/licenses/steam_if97/* -text
 docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json -text
 docs/ci/B_HEAT_IF97_CANDIDATE_REV2_RAW.json -text
+docs/ci/B_HEAT_*PROOF.json -text
