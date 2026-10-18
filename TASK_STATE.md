@@ -1,6 +1,6 @@
 # 当前任务状态 — B-FUME
 
-更新：2026-10-18。状态：PR51_F01_HOUR_FIX / LOCAL_PASS / WAIT_NEW_CI_PACKAGE。PR50已合并（8d054d2480d744882f4f11f56b59e68df91dc50f），F01—F03源独立技术复验PASS；固定b4/CI263证据按docs/ci/PR50_FGD_RETAKE_SUMMARY.json追溯，文档head不冒充制品head。本包唯一正式出口为P04A烟气监测分段完整链，完成送源独立验收后停止。
+更新：2026-10-18。状态：PR51_F01_HOUR_FIX / CI_PACKAGE_PASS / WAIT_SOURCE_ACCEPTANCE_AND_MERGE。PR50已合并（8d054d2480d744882f4f11f56b59e68df91dc50f），F01—F03源独立技术复验PASS；固定b4/CI263证据按docs/ci/PR50_FGD_RETAKE_SUMMARY.json追溯，文档head不冒充制品head。本包唯一正式出口为P04A烟气监测分段完整链，完成送源独立验收后停止。
 
 ## 执行与接口
 
@@ -28,7 +28,7 @@ Owner于2026-10-18决定烟气时间精确到小时；此为产品输入精度�
 
 实际旧CI268包生成当时合法3分钟Record，由当前代码读取模型/Word XML保持；原细时间Canonical/SQLite可开存，新正式核算明确拒绝且零Record。实际旧b4烟气与两份脱硫Word也由仓内可复现只读脚本验证不变。CI252仅docs/ci一处，PR50已迁移，无需重复处理。
 
-当前新源码CI与精确head实际包尚待完成；CI268/b0只为前轮历史证据，不能背书本修复。完整命令/失败/来源/hash见docs/ci/B_FUME_SUMMARY.json。保留原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约OPEN。完成送源验收，合并由源会话执行；C不合并、不CU、不扩下一包、不动根用户修改或旧树。
+固定bbb1d5b的新CI273与精确head实际包已完成；CI268/b0只为前轮历史证据，不能背书本修复。完整命令/失败/来源/hash见docs/ci/B_FUME_SUMMARY.json。保留原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机/商业履约OPEN。完成送源验收，合并由源会话执行；C不合并、不CU、不扩下一包、不动根用户修改或旧树。
 
 ## CI271 验证器定向修复
 
@@ -43,3 +43,7 @@ c8实际入口补核发现datetime.fromisoformat将第7位非零小数秒静默�
 GUI/B.6共用parse_fume_timestamp，在datetime解析前检查所有点/逗号小数（含Python实际接受的小时/分钟后小数形态）；六位之后任何非零数字明确拒绝，超位全零才与可表达时间同一物理时刻。原可表达分钟/秒/微秒仍能构造/保存，正式整小时门禁不变；不改公式/Profile/算法版本/codec/模板。python -B -m unittest tests.test_b_fume_segments tests.test_b_fume_chain tests.test_g08_delivery -v：68/68、70.196s，包含真实渠道零Record与全零对照、旧细时间保留。diffcheck发现docstring空行空白已在提交前规范化；无功能改动。
 
 CI272对应补漏前c8；即使其后通过，也不能背书本补丁。当前继续新head CI及精确包，完成送源验收合并，不启动下一包。
+
+## 当前固定验收与合并交接
+
+源码 bbb1d5bd953d463013f135c1047de33fc37fcc59；CI273/run39116916157 SUCCESS，merge c5f71d437a30f4b98803349054d4fbd27a6b754b：全量944/944、1573.998s；精确head G08 18/18、9.817s，2次隔离EXE启动PASS。artifact12133602018，ZIP 40cfd4632226474853e5ab320323edb2c734b9b974460002b9dd7b59133b6005；全部manifest/hash/PE审计与实际包小时/词法非零精度拒绝与全零对照/旧细时间恢复/历史分钟Word证明PASS，后置制品复审PASS。源3ee阶段小时66/66、97.937s；c8阶段装配1/1、15.882s；当前bbb词法2/2、8.858s通过，最终对应身份/包验收及合并由源执行。当前文档仅三证据文件补证，不自指制品head；合并确认前不启动下一包编码，已按授权只读准备现有热力/外部CO₂重叠所有者清单。
