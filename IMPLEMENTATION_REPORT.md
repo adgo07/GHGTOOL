@@ -51,3 +51,10 @@ ArtifactTool实际导入并渲染旧v7/newv8 B.7，新增栏可读、源模板�
 ## 未执行与停止边界
 
 本地完整整仓套件不冒称执行；最终GitHub Actions全量结果与本地联合明确区分。原生Excel/WPS v7/v8保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机与商业许可履约仍OPEN/NOT_RUN，按现有授权本包不CU。不合并、不删除旧分支/工作树、不接烟气/热力/N/外部CO₂、不宣布SUPPORTED或商业发行就绪。完成最终同head证据后交源独立验收并停止。
+
+
+## V1正式入口校验补漏
+
+7146115撤回最终候选身份：其同head本地30模块356/356、552.628s只保留原断点；CI258也仅背书该旧断点。补充实际探针发现旧FGD_V1同组CAL=10t/20t仍成功新增Record（4.8920），属于本包批准校验遗漏。依据Mapping §9.1/§9.3，同组组分共享整剂分母；旧FGDInput group同样是这一组，不能因缺新身份跳过。现将归一实际CAL的精确一致性校验移至V1/V2共同入口；不同旧group独立，不猜合并/拆批。读取codec1/2仍成功、不补身份；旧Record不重写，原排放公式与Numeric不变。这是落实已批准业务约束，不是新标准解释或公式变更。
+
+C新增真实codec1/2→Application反例，首次1项2FAIL/1ERROR：两个不等量正式入口确实漏拒绝，ERROR为测试误用record.result属性；修后1项2ERROR为测试反馈字段误用rule_id，均修正夹具而不放宽断言。最终该项1/1、11.194s（tmp/fgd-v1-fixed.log）：不等量零Record，同量10t/10000kg且来源不同可算3.326；原合法V1仍可算；两个独立旧group各10t/20t算4.892；SQLite既存V1 Record和冻结Word在Calculator/Resolver禁用下照原读取、记录数不增加。新最终生产提交及head以本次修复commit/当前PR和本地摘要为准，受影响联合与新CI仍须实际完成。

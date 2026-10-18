@@ -2408,9 +2408,11 @@ class CarbonMaterialCalculator:
                     ids = [component.component_id for component in unit.components]
                     if not unit.batch_id or not unit.facility_id or any(not item for item in ids) or len(set(ids)) != len(ids):
                         problems.append(_problem("CAR-VAL-FGD-IDENTITY", IssueLevel.ERROR, "脱硫设施、批次或组分身份不完整或重复，请确认后核算。", unit.instance_id))
-                    amounts = [self._quantity(component.amount, "t", f"{unit.instance_id}-CAL", problems) for component in unit.components]
-                    if len(set(amounts)) != 1:
-                        problems.append(_problem("CAR-VAL-FGD-BATCH-AMOUNT", IssueLevel.ERROR, "同一批次的全部组分须共用同一整剂净耗量。", unit.instance_id))
+                # A legacy FGD_V1 group has the same whole-reagent denominator;
+                # compatibility reading must not bypass this business constraint.
+                amounts = [self._quantity(component.amount, "t", f"{unit.instance_id}-CAL", problems) for component in unit.components]
+                if len(set(amounts)) != 1:
+                    problems.append(_problem("CAR-VAL-FGD-BATCH-AMOUNT", IssueLevel.ERROR, "同一批次的全部组分须共用同一整剂净耗量。", unit.instance_id))
                 fractions = Decimal("0")
                 validated: list[CarbonateComponent] = []
                 for index, component in enumerate(unit.components):

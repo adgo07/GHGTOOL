@@ -356,3 +356,79 @@ class FGDChainTests(unittest.TestCase):
             for workspace in saved:
                 self.assertEqual(reopened.get(workspace.project_id).units[0].canonical_input,parsed[0].input_value)
             self.assertEqual(len(records.list_all()),0)
+
+    def test_legacy_codec_groups_enforce_amount_without_rewriting_frozen_record(self):
+        import json
+        from packages.application.carbon_material_input_codec import encode_canonical_input, decode_canonical_input
+        from packages.application.carbon_accounting import CarbonAccountingUseCase
+        from packages.application.reporting.model import build_report_model
+        from packages.infrastructure.reporting import render_report_docx
+        from packages.standards.carbon_material import InputValue
+        from docx import Document
+        with self.page() as (gui,projects,root,shell,records):
+            self.prepare(gui)
+            batch=gui._process_rows["fgd"][0]
+            batch["reagent_name"].setText("旧分组");batch["group_amount"].setText("10")
+            first=batch["components"][0]
+            self.select(gui,first,"CaCO3");self.measured(first,"i","40")
+            second=gui._add_fgd_component(batch)
+            self.select(gui,second,"MgCO3");self.measured(second,"i","30")
+            current=gui._input(increment=False)
+            def legacy(value,version):
+                document=json.loads(encode_canonical_input(value));document["version"]=version
+                def strip(node):
+                    if isinstance(node,dict):
+                        if node.get("type")=="fgd_input":
+                            for key in ("facility_id","facility_name","batch_id","execution_version"):
+                                node["fields"].pop(key,None)
+                        if node.get("type")=="carbonate_component":node["fields"].pop("component_id",None)
+                        for child in node.values():strip(child)
+                    elif isinstance(node,list):
+                        for child in node:strip(child)
+                strip(document)
+                return decode_canonical_input(json.dumps(document,ensure_ascii=False))
+            usecase=CarbonAccountingUseCase(gui.calculator,records)
+            for version in (1,2):
+                with self.subTest(codec=version):
+                    restored=legacy(current,version)
+                    self.assertEqual(restored.fgd_units[0].execution_version,"FGD_V1")
+                    self.assertIsNone(restored.fgd_units[0].batch_id)
+                    components=restored.fgd_units[0].components
+                    bad_batch=replace(restored.fgd_units[0],components=(components[0],replace(components[1],amount=InputValue("20","t"))))
+                    bad=replace(restored,fgd=bad_batch,fgd_units=(bad_batch,))
+                    rejected=usecase.calculate(bad)
+                    self.assertFalse(rejected.successful)
+                    self.assertTrue(any(p.code=="CAR-VAL-FGD-BATCH-AMOUNT" for p in rejected.problems))
+                    self.assertEqual(len(records.list_all()),0)
+            restored=legacy(current,2)
+            components=restored.fgd_units[0].components
+            # Different sources and units represent the same whole-reagent amount.
+            equal_batch=replace(restored.fgd_units[0],components=(components[0],replace(components[1],amount=InputValue("10000","kg",source_reference="另一资料"))))
+            equal=replace(restored,fgd=equal_batch,fgd_units=(equal_batch,))
+            outcome=usecase.calculate(equal)
+            self.assertTrue(outcome.successful,outcome.problems)
+            self.assertEqual(outcome.result.total_amount,Decimal("3.326"))
+            stored=SQLiteRecordRepository(root/"records.sqlite")
+            record_id=outcome.record.record_id
+            before=stored.get_raw_input_snapshot(record_id)
+            def model():
+                return build_report_model(stored.get(record_id),raw_input_snapshot=stored.get_raw_input_snapshot(record_id),
+                    trace_snapshot=stored.get_trace_snapshot(record_id),reporting_snapshot=stored.get_reporting_snapshot(record_id),
+                    provenance_snapshot=stored.get_provenance_snapshot(record_id),report_qualification=stored.get_report_qualification(record_id))
+            frozen=model()
+            self.assertTrue(gui.calculator.calculate(restored).successful)
+            # Distinct old groups retain independent quantities; no guessed merge.
+            split=(replace(restored.fgd_units[0],instance_id="old-a",components=(components[0],)),
+                replace(restored.fgd_units[0],instance_id="old-b",components=(replace(components[1],amount=InputValue("20","t")),)))
+            split_outcome=gui.calculator.calculate(replace(restored,fgd=split[0],fgd_units=split))
+            self.assertTrue(split_outcome.successful,split_outcome.problems)
+            self.assertEqual(split_outcome.result.total_amount,Decimal("4.892"))
+            self.assertFalse(usecase.calculate(bad).successful)
+            self.assertEqual(len(records.list_all()),1)
+            with patch.object(type(gui.calculator),"calculate",side_effect=AssertionError("旧记录不得重算")), patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("旧记录不得回查")):
+                self.assertEqual(stored.get_raw_input_snapshot(record_id),before)
+                self.assertEqual(model(),frozen)
+                document=Document(BytesIO(render_report_docx(model())))
+                text=" ".join(cell.text for table in document.tables for row in table.rows for cell in row.cells)
+                self.assertIn("旧分组",text)
+                self.assertIn("3.33",text)
