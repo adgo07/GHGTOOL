@@ -48,7 +48,7 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
             for row, (mass, percent) in assignments.items():
                 ws[f"D{row}"], ws[f"E{row}"] = mass, percent
         fume = workbook["B.6"]
-        for cell, value in {"A3":100,"B3":10,"C3":30,"D3":0.02,"E3":98,"F3":365}.items():
+        for cell, value in {"A3":100,"B3":10,"C3":30,"D3":0.02,"E3":98,"F3":365,"H3":"fixture-source-A","I3":"fixture-stack","J3":"fixture-segment-A","K3":"2025-01-01 00:00:00","L3":"2026-01-01 00:00:00","M3":"d"}.items():
             fume[cell] = value
         fgd = workbook["B.7"]
         fgd["A3"], fgd["B3"], fgd["D3"], fgd["F3"], fgd["J3"] = "脱硫批次A", 2, 90, 95, "缺省值"

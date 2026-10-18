@@ -1,46 +1,54 @@
-# PR50 B-FGD定向退修实施报告
+# B-FUME 实施报告
 
-更新：2026-10-18。F01—F03退修本地实现与验证完成，送固定提交CI/实包及源独立复验；尚未签发本轮最终验收结论，不合并。原a683技术PASS仅限原已检覆盖；旧B.7版本修复及其CI262/实包事实保留，不为旧7b重建。完整历史实现/失败过程可由Git与PR50恢复。
+日期：2026-10-18。状态：生产接管与本地定向验证已实施，最终CI、精确head实包与源独立验收待完成。本包不自行合并或扩下一包。
+
+## 问题与最终行为
+
+按Issue020已批准的软件决定将P04A从无区间逐行输入接到真实源/计量边界的监测分段完整链。逐段配对Q/QVar/时长/参数，复用原式(9)与声明Decimal Profile后求和，不分别平均相乘，不重复小时/天系数。覆盖完整才能表达该实例/边界完整期间；合法缺口保存已覆盖合计与WARNING并明确总量不代表完整期间；同源同边界重叠、倒置、坏段、INVOLVED无段整体致命拒绝，不过滤坏段后成功。跨真实实例/边界同期独立，报告期与段时间不回填。
+
+Canonical尾字段fume_segments与FUME_V1/V2；codec4兼容1/2/3，无数据库迁移。GUI维护稳定源/边界/段身份及显示名，支持新增段、共享源/边界、删除前段、新窗口/新服务SQLite恢复。旧GUI显式升级保留原输入副本，取消不写回；旧Canonical升级另存项目/单元副本、保留无区间原值，不伪造段，缺区间仍正式拒绝，需要当前模板补齐后预览另存。读取、保存和正式计算资格分开。旧组合兼容核算明确无覆盖证据，历史Record永不重算。
+
+模板v9/2.7.0 SHA256 0adf62e4c0d60685b68de78111ed4cd6b5241b96d4f08035230d8506501460fb，仅机械改v8 B.6 XML。旧v2～v8原字节保留。H/I/J企业编号映射稳定namespace身份，K/L真实文字区间，M d/h。非法行不暴露过滤后可正式提交的部分Canonical；原燃料/材料/FGD来源栏继承同一版本规则。预览不写Record，项目保存后共享Application每次成功新增不可变Record。
+
+新Record冻结输入、同次FCh采用快照、逐段结果、独立窗口、完整性/缺口、方法与算法版本。布局3.0.4沿用七列表，逐源/边界表、行区间说明、段时长、冻结小计和缺口；Record/Word不重算、不回查实时目录。旧历史表头/模型/正文不改。FUME_V1新核算的无区间限制与旧历史冻结对象区分，不给旧Record补判断。
 
 ## 平台 / Contract 预检查
 
-实际工作树origin为adgo07/GHGTOOL，fetch后main仍1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e，本轮开工head为a6830e98f3e41f8748dfd86bfcefa58603fab150。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；沿用已读Architecture V2.1、Numeric v1/Profiles v1及当前ACTIVE UI v0.2。MUST：分层/共享内核、declared-profile consistency、ambient independence、full-value exact、历史不漂移。MUST NOT：业务epsilon、显示回流、复制算法、自动升级Frozen、Qt状态充当公共Workspace。p40/HALF_UP为ALLOWED PROJECT DIFFERENCE。
+业务base/main 8d054d2480d744882f4f11f56b59e68df91dc50f（PR50已合并），实际origin/fetch/分支/干净独立工作树已核。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；中央origin已实际验证，按locked读取Architecture2.1/Numericv1/Profilesv1，ACTIVE UIv0.2按已合并入口读。MUST：分层/共享内核、声明Profile传播、ambient independence、full-value exact、历史不漂移。MUST NOT：隐式float、业务epsilon、display回流、44/12当普通单位转换、复制算法、Qt状态成为公共Workspace、自动Frozen升级。Carbon默认p40/HALF_UP属ALLOWED PROJECT DIFFERENCE，不是平台默认；显式测试Profile配置传播且快照身份与实际精度/rounding一致。无中央冲突/缺口，不改中央Contract/锁。
 
-本轮仅修UI/Excel消费者的输入保留与Presentation恢复，无中央Contract冲突/变更，不改公式/来源集合/Calculator/codec/DB/模板/规则资源，不新增设施数据库。相关Standard Issue016；未产生新的标准歧义或软件解释。根用户文件、M/F工作树未改，未CU/不扩其他包。
+相关Standard Issue：是，020；Mapping§7.2/§8/§12、TV017/018。不改变既有标准解释或原式(9)。新Trace明确采用R11-CANDIDATE中的Owner批准020软件决定，不把候选Mapping升Frozen；原R6骨架身份保持原义。不扩P04A焦油参数来源政策/默认绑定、不套燃料来源；FCh复用原公共ParameterValue门禁。三个字段运行资源和燃料/材料/FGD采用身份均原样保留。
 
-## 真实复现与修复
+## 实施与文件分工
 
-已完整读取外部`PR50_独立验收报告_7b43c23.md`，在a683真实offscreen Qt、ExcelAdapter、Application及SQLite重新验证，不把其原隔离探针冒充整链。仓内原始结果见[PR50_FGD_A683_REPRO.json](docs/ci/PR50_FGD_A683_REPRO.json)。
+C独占共享实现、资源/版本、模板登记、冻结输出、构建、治理与整链。F专属ca8aa1fda54504eb09b208e79055c6795368cfa4基于最新main，两文件单次restore取用，未cherry-pick旧链/造影子接口；F报告本地33+8通过只作专属准备。C重新执行41项纯Domain/映射/Numeric，41/41、0.043s。本包算法CAR-SM01-2026-10-18-FUME.1，专属方法CAR-FUME-SEGMENTS-020.1；所有共享消费者复用该专属实现。
 
-| 问题 | a683实际结果 | 定向修复 |
-|---|---|---|
-| F01 | 界面2批→Canonical1批，实际正式1Record，GUI显示完成 | 完全未触占位可忽略；批次名称/用量或组分已有业务输入必须保留，空组分批次交Domain致命校验，零Record；名称/数量原输入保留 |
-| F02 | 真实v8改C4/I4但无参数仍预览可算，Canonical1组分，正式1Record | 与受控母版完整C/I静态单元格比较（含第二空组的默认类型），编辑身份计业务行；静态占位不计，0/只选来源/只填值仍计；共享Resolver/求值器重新判单/多组分资格 |
-| F03 | 真实保存→关闭窗口→新窗口/新服务打开，ID保留但findData=-1、显示空、Canonical名称None | 既有form_state补存设施显示名，先恢复全部稳定ID/名称、去重候选，再按ID选择；未知旧保存关系保留并提示，不选首项。升级/共享设施/删除前批/草稿/取消均保护 |
+## 本地验证与原始失败
 
-F01补齐第二批后11.88，未完输入SQLite保存/新窗口重开仍阻断；命名0但无组分仍阻断，补齐合法0批后总3.96。F02未完Canonical即使直接传Application也失败、零Record，GUI等价行同样阻断；补齐混合组分后2.8174，零组分份额与转化率保留实测、结果1.76；两独立批次同设施各自90%不跨批加百分比，总11.88。F03同设施两批真实新窗恢复后总9.9，来源切换草稿75保留；删除非首前批后其后批仍保留原设施关系。原Record始终不回填/重算。
+Python3.12.14，offscreen，独立tmp/app-data/SQLite；没有原生CU。命令均从本工作树执行，未借CI冒称本地全量。
 
-## 本地验证与失败边界
+| 命令/日志 | 实际结果与边界 |
+|---|---|
+| python -B -m unittest tests.test_b_fume_segments tests.test_pr48_mapping_arithmetic tests.test_numeric_contract_v1_adoption -q | 41/41，0.043s |
+| python -B -m unittest tests.test_b_fume_chain -v；third-chain.log | 当时9/9，35.630s；后扩展至15项，后续结果按最终日志 |
+| affected-first.log：烟气/FGD退修/链/材料GUI/来源/模板/G08联合 | 97项，96通过、1失败，224.466s；旧布局版本断言3.0.3未同步3.0.4，已修正。执行中有后续局部补齐，不外推为最终代码全绿 |
+| python -B -m unittest tests.test_b_fume_chain tests.test_exb01_ingress tests.test_main_integration_excel tests.test_g08_delivery -v；affected-second.log | 76/76，121.482s；包含当时14项烟气整链、全源B.6与G08 |
+| final-targeted.log：烟气15项、原多实例GUI、Numeric pilot、FGD专属、材料、codec | 82项，81通过、1失败，70.891s；旧单实例结果ID断言未升级为源/边界/段关系，已改为业务身份Trace核对 |
+| final-corrections.log：多实例GUI+G08 | 18项，17通过、1测试属性拼写错误，18.598s；outcome.trace已修正traces，不是生产失败 |
+| python -B -m unittest tests.test_g06_page.G06PageTests.test_ui_builds_multiple_instances_for_every_process_source -v；final-gui-correction.log | 1/1，9.725s |
+| python -B -m unittest tests.test_b_fume_chain tests.test_g06_page.G06PageTests.test_ui_builds_multiple_instances_for_every_process_source tests.test_qzc_n01_c_numeric_unit_pilot tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_canonical_project_inputs -v；final-targeted-pass.log | 最终82/82，69.983s；稳定业务代码实际重新执行 |
+| python -B -m compileall -q apps packages scripts tests；python -B -m pip check；python -B scripts/project_appendix_b_v9.py | PASS；编译首次因默认沙箱不能写本工作树__pycache__失败，提升同一隔离树权限后exit0；无依赖冲突，投影字节匹配 |
+| python -B -m scripts.validate_canonical | PASS：9标准、12来源、102参数、138因子 |
 
-新增10个`tests/test_b_fgd_acceptance_fixes.py`方法，覆盖F01三项、F02三项、F03四项；重点为正式零Record后补齐合法总量及真正关闭/新建窗口和服务，而非同页restore。
+首次整链导入用错既有Word renderer路径，1加载ERROR；接线纠正后9项1FAIL/3ERROR、30.965s（把dict再json.loads、把GUI当表格页、有限位独立算例用精确比较）。测试接线和仅测试数值参考断言纠正后9/9；正式full-value与运算顺序不改。所有原失败日志位于tmp/b-fume，未删改。
 
-- a683首次实际运行14项、87.790s、3FAIL：前三项真实缺陷；额外11项为误直接导入TestCase导致发现原整链类，已改模块别名，原3失败证据保留。
-- 首轮三反例修后3/3、21.717s；随后补受控母版第二空组静态类型保护。
-- 边界/旧B.7/原整链联合28/28、229.747s。
-- 受影响联合126/126、355.499s，0FAIL/0ERROR；日志`tmp/fgd-final-evidence/retake-affected-joint.log`：
+后续最终联合命令/结果、CI、包按固定受验对象的仓内摘要及PR说明补证，不令摘要提交自指制品head。
 
-```text
-python -B -m unittest tests.test_b_fgd_acceptance_fixes tests.test_b_fgd_legacy_templates tests.test_g06_fgd_ui tests.test_accounting_projects_ui tests.test_exb01_ingress tests.test_main_integration_excel tests.test_business_rules_candidate_assets tests.test_pr46_parameter_source_policy tests.test_exb01_rpt02_integration -v
-```
+## 兼容与视觉证据
 
-最后只增强F02测试，向Application实际提交保留的不完整Canonical，针对性1/1、8.586s：formal_success=False、零Record；补齐2.8174成功。生产代码与126组完全一致，不把重叠测试相加。固定受验CI/实际包身份与结果见[仓内摘要](docs/ci/PR50_FGD_RETAKE_SUMMARY.json)及[PR50](https://github.com/adgo07/GHGTOOL/pull/50)；摘要引用固定受验提交，不引用其自身head来制造循环。
+实际复用已验收b4/CI263包的EXE/PYZ生成隔离旧烟气Record/Word（不是旧源码假扮旧包）。新代码读取时mock Calculator禁止重算，输入hash、ReportModel、Word document.xml hash一致，记录数保持1；证据tmp/b-fume/actual-old-b4-fume/created-proof.json与read-proof.json。原PR49/FGD历史保护继续按固定证据和受影响测试验证，新精确head包还须重复核。
 
-## 文档与历史证据
+Artifact Tool CLI只读渲染B.6新旧母版，新增表头/单位/提示可读，未重导出模板；实际OOXML仅sheet6变更。node_repl内部依赖node:process不可用，改用已提供CLI运行时，不绕过模板校验。GUI离屏预览先发现offscreen无中文字体，再仅在预览进程显式加载Windows字体复核，布局正常、0Record；未改生产字体、不冒称原生IME/DPI通过。
 
-CI252无运行时消费者、旧路径引用或目录扫描依赖，已100%原字节迁至[docs/ci/CI252_SUMMARY.json](docs/ci/CI252_SUMMARY.json)，SHA256保持92d63cff11f5ecbf9ec002f0a5fad7646197c9d72b7fe267794a338630858f17；只背书原PR49阶段d5205f5，不改历史身份/数字，不作为本轮PR50结果。HANDOFF/DELIVERY引用均已更新，仓内保留a683/CI262固定原覆盖摘要。
+## 保留的OPEN与停止边界
 
-HANDOFF/DELIVERY明确：旧FGD_V1仍可打开/保存未完成项目，同组归一CAL不同现正式拒绝（10t/20t零新增Record）；10t/10000kg与资料引用差异不误判，同组/独立分组分开，软件不猜统一/拆批；历史Record/Word只读冻结信息，不回填、不重算。原公式/Numeric/来源集合不变。
-
-## 停止边界
-
-固定提交的新CI/下载实包及源复验完成后停止；不合并、不CU、不扩下一包、不删除旧工作树或商业发布。原生Office、真实鼠标/中文IME/人工DPI、企业样例、干净目标机与商业履约持续OPEN/NOT_RUN。本地offscreen与宿主包内代码核验不冒充原生人工验收。
+PR50 F01—F03技术独立PASS与CI263固定证据保留，旧工作树不清理。根用户工作簿/参考文件未动。原生Office保存回导、真实鼠标/中文IME/人工DPI、企业样例、干净目标机和商业履约仍OPEN/NOT_RUN。未新增热力/外部CO₂/N/第二标准、无主要依赖/DB迁移/标准全文打包，不自动合并或商业发布；完成本包CI/实包送源后停止。

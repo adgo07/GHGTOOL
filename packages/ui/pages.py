@@ -3077,6 +3077,7 @@ class ExcelImportPage(BasePage):
             return
         answer = QMessageBox.question(self, "确认输入规则升级",
             "将保留原项目并另存输入规则升级副本：材料按角色计碳及显式换算，脱硫明确设施、批次与组分身份；字段、单位及来源保留，不补默认。"
+            "烟气旧输入保留但不补造区间：需在当前模板填写真实监测段，再预览并另存项目，未补齐不能正式核算。"
             "尚未试算，不声明数值差异。升级不产生核算记录；取消不写回。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if answer != QMessageBox.StandardButton.Yes:
@@ -3090,7 +3091,7 @@ class ExcelImportPage(BasePage):
             return
         self._refresh_saved_projects()
         self.open_project(upgraded.project_id)
-        self.status_label.setText("已保存材料规则升级副本；必要数据仍需校验，尚未生成核算记录。")
+        self.status_label.setText("已保存输入规则升级副本；必要数据仍需校验。旧烟气需用当前模板补齐真实监测区间再预览另存，尚未生成核算记录。")
 
     def _calculate_selected_unit(self) -> None:
         unit = self._selected_unit()

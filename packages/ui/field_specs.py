@@ -375,7 +375,7 @@ _register_process_fields(
         ("hm", "沥青烟焦油低位发热量", "quantity", "GJ/t", "HM"),
         ("fch", "沥青烟焦油单位热值碳含量", "quantity", "tC/GJ", "FCh"),
         ("fox", "碳氧化率", "percentage", "%", "FOx"),
-        ("duration", "报告期时长", "quantity", "d", "T"),
+        ("duration", "监测段时长", "quantity", "d", "T"),
     ),
 )
 _register_process_fields(

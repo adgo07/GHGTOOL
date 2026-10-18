@@ -22,7 +22,7 @@ class MaterialChainTests(unittest.TestCase):
         calculator=CarbonMaterialCalculator()
         value=calculator.calculate(self.payload())
         self.assertTrue(value.successful, value.problems)
-        self.assertEqual(ALGORITHM_VERSION,"CAR-SM01-2026-10-18-FGD.1")
+        self.assertEqual(ALGORITHM_VERSION,"CAR-SM01-2026-10-18-FUME.1")
         self.assertEqual(value.algorithm_version,ALGORITHM_VERSION)
         self.assertEqual(value.result.algorithm_version,ALGORITHM_VERSION)
         self.assertEqual(value.result.total_amount, Decimal("226.8291666666666666666666666666666666667"))

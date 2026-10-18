@@ -25,8 +25,10 @@ APPROVED_TEMPLATE_V6_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v
 APPROVED_TEMPLATE_V6_SHA256 = "ca61cf3133c2663c78ca7409d23f7dd20726e43a8c79adca2aa78faecb3c031a"
 APPROVED_TEMPLATE_V7_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v7.xlsx"
 APPROVED_TEMPLATE_V7_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx"
-APPROVED_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
+APPROVED_TEMPLATE_V8_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx"
+APPROVED_TEMPLATE_V8_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx"
+APPROVED_TEMPLATE_SHA256 = "0adf62e4c0d60685b68de78111ed4cd6b5241b96d4f08035230d8506501460fb"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
 
 
@@ -46,7 +48,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.6.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.7.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -144,9 +146,19 @@ class ExcelTemplateService:
         partial_v26_headers = any(workbook["B.7"][cell].value is not None for cell in ("K2", "L2", "M2"))
         if v26 != has_v26_note or (partial_v26_headers and not v26) or (v26 and not all(v25_markers)):
             raise ValueError("脱硫来源栏与模板说明版本冲突。")
-        if v26:
-            template_version = "2.6.0"
+        v27 = workbook["B.6"]["H2"].value == "排放源编号"
+        has_v27_note = any(isinstance(row[0].value,str) and row[0].value.startswith("数据提示：烟气分段输入规则 V9（2.7.0）") for row in workbook["B.6"].iter_rows(min_col=1,max_col=1))
+        partial_v27 = any(workbook["B.6"][f"{col}2"].value is not None for col in "HIJKLM")
+        if v27 != has_v27_note or (partial_v27 and not v27) or (v27 and not v26):
+            raise ValueError("烟气分段表头与模板说明版本冲突。")
+        if v27:
+            template_version = "2.7.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif v26:
+            template_version = "2.6.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V8_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V8_SHA256:
+                raise ValueError("旧版2.6模板校验失败。")
         elif all(v25_markers):
             template_version = "2.5.0"
             reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V7_RESOURCE).read_bytes()

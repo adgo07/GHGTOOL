@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "scope": "B-FUME Issue020生产接管，等待新head CI/实际包/源独立验收",
+  "base_sha": "8d054d2480d744882f4f11f56b59e68df91dc50f",
+  "fixed_tested_commit": null,
+  "algorithm_version": "CAR-SM01-2026-10-18-FUME.1",
+  "segment_calculator_version": "CAR-FUME-SEGMENTS-020.1",
+  "locked_central_sha": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "local_validation": {
+    "final_targeted": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_g06_page.G06PageTests.test_ui_builds_multiple_instances_for_every_process_source tests.test_qzc_n01_c_numeric_unit_pilot tests.test_b_fgd_specialist tests.test_b_material_chain tests.test_canonical_project_inputs -v",
+      "tests": 82,
+      "passed": 82,
+      "seconds": "69.983",
+      "log": "tmp/b-fume/final-targeted-pass.log"
+    },
+    "excel_and_delivery": {
+      "command": "python -B -m unittest tests.test_b_fume_chain tests.test_exb01_ingress tests.test_main_integration_excel tests.test_g08_delivery -v",
+      "tests": 76,
+      "passed": 76,
+      "seconds": "121.482",
+      "log": "tmp/b-fume/affected-second.log",
+      "execution_boundary": "当时14项烟气整链；后加显式Profile传播项由最终82项覆盖，不冒称本次为15项"
+    },
+    "pure_domain_mapping_numeric": {
+      "tests": 41,
+      "passed": 41,
+      "seconds": "0.043"
+    },
+    "compile": "PASS after same-worktree permission retry",
+    "pip_check": "PASS",
+    "canonical": {
+      "standards": 9,
+      "sources": 12,
+      "parameters": 102,
+      "factors": 138
+    }
+  },
+  "original_failures": {
+    "first_chain_import": {
+      "tests": 1,
+      "errors": 1,
+      "reason": "测试误用renderer导入路径"
+    },
+    "second_chain": {
+      "tests": 9,
+      "failures": 1,
+      "errors": 3,
+      "seconds": "30.965",
+      "reason": "测试快照/表格页接线与有限位数值参考精确断言"
+    },
+    "first_joint": {
+      "tests": 97,
+      "failures": 1,
+      "seconds": "224.466",
+      "reason": "旧布局版本断言3.0.3未同步3.0.4"
+    },
+    "first_targeted": {
+      "tests": 82,
+      "failures": 1,
+      "seconds": "70.891",
+      "reason": "旧单实例结果ID断言未升级复合身份"
+    },
+    "correction": {
+      "tests": 18,
+      "errors": 1,
+      "seconds": "18.598",
+      "reason": "测试trace属性误拼，实际为traces"
+    },
+    "corrected_gui": {
+      "tests": 1,
+      "passed": 1,
+      "seconds": "9.725"
+    }
+  },
+  "source_text_lf_sha256": {
+    "packages/standards/carbon_material.py": "159c2bf7fde0ebfb1fea59be046f03f9bdfedb11ab593e21fac11e1c4d47868e",
+    "packages/standards/carbon_material_fume_segments.py": "b839b1179b14f8e76b7efd7e916b9b24c9899d4ba962dfd99c224aa43b71cbe9",
+    "packages/application/carbon_material_input_codec.py": "114417608395514a90428c10f02d171110cdeebf914cd5a9fea11683d93a631b",
+    "packages/ui/carbon_material_page.py": "96431ada1220842e38a8ff784c61f26b399df73cb8dddb063e6e57ac2d7ae0fc",
+    "packages/excel/appendix_b.py": "2b783e22271fe37e1a9e2fb3ada0a72455a725be301324322854ba54dfff1ad7",
+    "tests/test_b_fume_chain.py": "e365abf9effc174f2c129890e1ab672eb11f08027c8f2970a41e43434a38e493"
+  },
+  "template": {
+    "version": "2.7.0",
+    "resource": "resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx",
+    "sha256": "0adf62e4c0d60685b68de78111ed4cd6b5241b96d4f08035230d8506501460fb",
+    "changed_zip_parts": [
+      "xl/worksheets/sheet6.xml"
+    ],
+    "prior_v2_to_v8_bytes_unchanged": true
+  },
+  "actual_old_b4_fume_history": {
+    "source_commit": "b4cd0f4482038afc113ae6d2ddd44a852bde513e",
+    "old_algorithm": "CAR-SM01-2026-10-18-FGD.1",
+    "record_id": "record.actual-b4-old-fume.c5cbd895d1ff4288a2099bb1c49c5c77",
+    "total": "0.0005174400000000000000000000000000000000000",
+    "document_xml_sha256": "76f5ab7632c89c62fac648b1c54a6cdb57121f4b61c307d87b56e1eb9a9301d6",
+    "model_sha256": "d414d55be95c2162d54baa36748a9552b186dab8242162a044ec52b917abc995",
+    "raw_sha256": "c664e0eed4c2f6401c55e130120bff3f890f10cf52917c453fd200435fb9b2aa",
+    "records": 1,
+    "new_code_old_record_word_unchanged": true
+  },
+  "ci": null,
+  "artifact": null,
+  "not_run": [
+    "原生Office保存回导",
+    "真实鼠标/中文IME/人工DPI",
+    "企业样例",
+    "干净目标机",
+    "商业履约"
+  ],
+  "merge_status": "NOT_MERGED"
+}

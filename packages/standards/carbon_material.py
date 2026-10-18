@@ -20,12 +20,15 @@ from packages.standards.carbon_material_input_policy import (
 )
 
 from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from enum import Enum
 import hashlib
 import json
-from typing import Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Callable, Mapping, Sequence
+
+if TYPE_CHECKING:
+    from .carbon_material_fume_segments import FumeMonitoringSegment
 
 from packages.core.decimal_policy import DecimalPolicy
 from packages.core.errors import DomainValidationError, IssueLevel, ValidationProblem, contains_errors
@@ -67,7 +70,7 @@ from packages.core.units import UnitError, UnitService
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-18-FGD.1"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-18-FUME.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -656,6 +659,8 @@ class FumeIncinerationInput:
     fox: object | None = None
     duration: object | None = None
     instance_id: str = "fume-1"
+    source_name: str | None = None
+    boundary_name: str | None = None
 
     def __post_init__(self) -> None:
         _validate_instance_id(self.instance_id)
@@ -821,6 +826,8 @@ class CarbonMaterialInput:
     fgd_units: tuple[FGDInput, ...] = ()
     reporting_data: CarbonReportingData = CarbonReportingData()
     material_execution_version: str = "MATERIAL_V2"
+    fume_segments: tuple[FumeMonitoringSegment, ...] = ()
+    fume_execution_version: str = "FUME_V1"
 
     def __post_init__(self) -> None:
         for field in ("input_id", "enterprise_id"):
@@ -875,12 +882,20 @@ class CarbonMaterialInput:
             raise DomainValidationError("electricity detail IDs must be unique")
         if len({item.line_id for item in (*self.exported_electricity, *self.purchased_heat, *self.exported_heat)}) != len((*self.exported_electricity, *self.purchased_heat, *self.exported_heat)):
             raise DomainValidationError("energy line IDs must be unique")
+        from .carbon_material_fume_segments import FumeMonitoringSegment
+        segments = tuple(self.fume_segments)
+        if any(not isinstance(item, FumeMonitoringSegment) for item in segments):
+            raise DomainValidationError("fume_segments must contain FumeMonitoringSegment")
+        object.__setattr__(self, "fume_segments", segments)
+        if self.fume_execution_version not in {"FUME_V1", "FUME_V2"}:
+            raise DomainValidationError("unsupported fume execution version")
         input_sources = {
             "fuel_inputs": SOURCE_FUEL,
             "calcinations": SOURCE_CALCINATION,
             "bakings": SOURCE_BAKING,
             "graphitizations": SOURCE_GRAPHITIZATION,
             "fume_incinerations": SOURCE_FUME,
+            "fume_segments": SOURCE_FUME,
             "fgd_units": SOURCE_FGD,
             "electricity_details": SOURCE_PURCHASED_ELECTRICITY,
             "exported_electricity": SOURCE_EXPORTED_ELECTRICITY,
@@ -1404,6 +1419,8 @@ class CarbonMaterialCalculator:
         reference_data_identity_provider: Callable[[], Mapping[str, object]] | None = None,
     ) -> None:
         self.policy = policy or DecimalPolicy()
+        self.numeric_profile_id = ("GHGTOOL_CARBON_DECIMAL40_CURRENT" if self.policy.precision == 40 and self.policy.rounding == "ROUND_HALF_UP"
+                                   else f"GHGTOOL_CARBON_EXPLICIT_P{self.policy.precision}_{self.policy.rounding}")
         self.units = unit_service or UnitService(self.policy)
         self.parameter_resolver = parameter_resolver
         self.standard_version = standard_version
@@ -1498,7 +1515,7 @@ class CarbonMaterialCalculator:
             "reference_data": self._reference_data_snapshot(parameter_snapshots),
             "numeric_provenance": {
                 "contract": "Qingzhou Numeric Contract v1 (project compatibility/adoption)",
-                "profile_id": "GHGTOOL_CARBON_DECIMAL40_CURRENT",
+                "profile_id": self.numeric_profile_id,
                 "precision": self.policy.precision,
                 "rounding": self.policy.rounding,
                 "display_places": self.policy.display_places,
@@ -2367,9 +2384,60 @@ class CarbonMaterialCalculator:
                 problems.append(_problem("CAR-VAL-GRAPHITIZATION-FURNACE-LOSS", IssueLevel.ERROR, "石墨化炉本身炭质材料氧化烧损不得计入石墨化排放。", f"{SOURCE_GRAPHITIZATION}.{item.instance_id}"))
         graph_total = process_values(SOURCE_GRAPHITIZATION, input_value.graphitizations, graphitization_emission, "CAR-FML-GRAPHITIZATION-001", "CAR-FLD-P03-RESULT")
 
-        fume_status = self._source_check(input_value, SOURCE_FUME, bool(input_value.fume_incinerations), problems)
+        fume_status = self._source_check(input_value, SOURCE_FUME, bool(input_value.fume_incinerations or input_value.fume_segments), problems)
         fume_total = Decimal("0")
-        if fume_status is EmissionSourceStatus.INVOLVED:
+        fume_coverage = None
+        if input_value.fume_segments and input_value.fume_execution_version != "FUME_V2":
+            problems.append(_problem("CAR-VAL-FUME-VERSION", IssueLevel.ERROR, "监测段须明确采用分段核算，不能由旧路径忽略。", SOURCE_FUME))
+        if fume_status is EmissionSourceStatus.INVOLVED and input_value.fume_execution_version == "FUME_V2":
+            from .carbon_material_fume_segments import FumeReportingWindow, evaluate_fume_segments
+            if not input_value.fume_segments or input_value.fume_incinerations:
+                problems.append(_problem("CAR-VAL-FUME-SEGMENTS", IssueLevel.ERROR, "烟气须填写有效监测段；旧输入请明确升级并补齐区间，不可与监测段混用。", SOURCE_FUME))
+            resolved_segments = []
+            segment_errors = len(problems)
+            for segment in input_value.fume_segments:
+                item = segment.measurements
+                iid = "fume-"+hashlib.sha256(json.dumps([segment.source_instance_id,segment.metering_boundary_id,segment.segment_id]).encode()).hexdigest()[:32]
+                detail = f"CAR-FLD-P04A-{iid}"
+                # The authoritative gate resolves qualification, adopted value and
+                # snapshot once. The segment helper consumes that same value.
+                fch = self._parameter(item.fch, "tC/GJ", detail+"-FCH", snapshots, problems, snapshot_at)
+                if fch is not None:
+                    resolved_segments.append(replace(segment, measurements=replace(item, fch=replace(item.fch, value=fch, unit="tC/GJ"))))
+            if not any(p.level is IssueLevel.ERROR for p in problems[segment_errors:]) and input_value.fume_segments and not input_value.fume_incinerations:
+                windows = tuple(FumeReportingWindow(source, boundary,
+                    datetime.combine(input_value.period.start, datetime.min.time()),
+                    datetime.combine(input_value.period.end+timedelta(days=1), datetime.min.time()))
+                    for source, boundary in dict.fromkeys((x.source_instance_id, x.metering_boundary_id) for x in input_value.fume_segments))
+                try:
+                    fume_coverage = evaluate_fume_segments(resolved_segments, windows,
+                        policy=self.policy, numeric_profile_id=self.numeric_profile_id)
+                except DomainValidationError as exc:
+                    problems.append(_problem("CAR-VAL-FUME-SEGMENT", IssueLevel.ERROR, str(exc), SOURCE_FUME))
+                else:
+                    fume_total = fume_coverage.covered_amount_tco2
+                    for coverage in fume_coverage.coverage:
+                        source = coverage.reporting_window.source_instance_id
+                        boundary = coverage.reporting_window.metering_boundary_id
+                        if not coverage.complete:
+                            gaps = "；".join(f"{a.isoformat(sep=' ')} 至 {b.isoformat(sep=' ')}" for a,b in coverage.uncovered_intervals)
+                            problems.append(_problem("CAR-WARN-FUME-COVERAGE", IssueLevel.WARNING,
+                                f"烟气监测覆盖不完整，仅为已覆盖段合计；未覆盖区间：{gaps}。不补零、不年化，总量不代表完整期间排放。", SOURCE_FUME))
+                        for result in coverage.segments:
+                            segment = result.segment
+                            iid = "fume-"+hashlib.sha256(json.dumps([source,boundary,segment.segment_id]).encode()).hexdigest()[:32]
+                            lid = "CAR-FLD-P04A-RESULT."+iid
+                            lines.append(CalculationLine(lid, SOURCE_FUME, CO2_ID, result.amount_tco2, "tCO2"))
+                            variables = (("Q",result.q,"Nm3/h"),("QVar",result.qvar,"mg/Nm3"),("HM",result.hm,"GJ/t"),("FCh",result.fch,"tC/GJ"),("FOx",result.fox,"ratio"),("T",result.duration_days,"d"))
+                            provenance = (("fume.source_instance_id",source),("fume.metering_boundary_id",boundary),
+                                ("fume.segment_id",segment.segment_id),("fume.start",segment.start.isoformat()),("fume.end",segment.end.isoformat()),
+                                ("fume.complete",str(coverage.complete)),("fume.calculator_version",fume_coverage.calculator_version),
+                                ("fume.standard_issue_id",fume_coverage.standard_issue_id))
+                            traces.append(CalculationTrace(lid,"CAR-FML-FUME-INCINERATION-001",SOURCE_FUME,variables,
+                                "本监测段 ER = Q×QVar×HM×FCh×FOx×T×24×44/12×10⁻⁹",result.amount_tco2,instance_id=iid,provenance=provenance,mapping_location="SM01-2026-10-17-R11-CANDIDATE §7.2、§8、§12；Issue020 Owner软件决定"))
+        elif fume_status is EmissionSourceStatus.INVOLVED:
+            problems.append(_problem("CAR-WARN-FUME-LEGACY-COVERAGE", IssueLevel.WARNING,
+                "旧烟气输入未保存监测区间，仅按原组合计算；不能证明完整期间覆盖。可保存原项目，确认升级后自行补齐真实监测区间。", SOURCE_FUME))
             for item in input_value.fume_incinerations:
                 prefix = f"CAR-FLD-P04A-{item.instance_id}"
                 problem_count = len(problems)
@@ -2792,6 +2860,12 @@ class CarbonMaterialCalculator:
             }
             trace_snapshot = self._trace_snapshot(calculation_result, traces, snapshots, source_subtotals)
             provenance_snapshot = self._provenance_snapshot(rule_snapshot, snapshots)
+            if fume_coverage is not None:
+                trace_snapshot["fume_monitoring"] = _snapshot_value(fume_coverage)
+                trace_snapshot["fume_monitoring"]["complete"] = fume_coverage.complete
+                for frozen, coverage in zip(trace_snapshot["fume_monitoring"]["coverage"], fume_coverage.coverage):
+                    frozen["complete"] = coverage.complete
+                provenance_snapshot["adopted_fume_method"] = {"version": fume_coverage.calculator_version, "issue_id": fume_coverage.standard_issue_id, "execution_version": input_value.fume_execution_version, "mapping_version": "SM01-2026-10-17-R11-CANDIDATE", "decision_status": "OWNER_APPROVED_SOFTWARE_DECISION_NOT_FROZEN"}
 
             def freeze_snapshot(value: object) -> str:
                 return json.dumps(_snapshot_value(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))

@@ -37,6 +37,7 @@ from scripts.inspect_release import (
     V5_TEMPLATE_PATH,
     V6_TEMPLATE_PATH, V7_TEMPLATE_PATH, FGD_RUNTIME_RESOURCE,
     MATERIAL_RUNTIME_RESOURCE,
+    V8_TEMPLATE_PATH,
     APPROVED_TEMPLATE_PATH,
     APPROVED_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH,
@@ -62,7 +63,7 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     material_rules.write_bytes((PROJECT_ROOT / "resources" / MATERIAL_RUNTIME_RESOURCE).read_bytes())
     fgd_rules = root / "resources" / FGD_RUNTIME_RESOURCE
     fgd_rules.write_bytes((PROJECT_ROOT / "resources" / FGD_RUNTIME_RESOURCE).read_bytes())
-    for relative in (APPROVED_TEMPLATE_PATH, V7_TEMPLATE_PATH, V6_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
+    for relative in (APPROVED_TEMPLATE_PATH, V8_TEMPLATE_PATH, V7_TEMPLATE_PATH, V6_TEMPLATE_PATH, V5_TEMPLATE_PATH, PRIOR_TEMPLATE_PATH, PREVIOUS_TEMPLATE_PATH, COMPATIBILITY_TEMPLATE_PATH):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((PROJECT_ROOT / relative).read_bytes())
@@ -325,7 +326,7 @@ class G08DeliveryTests(unittest.TestCase):
             layout = json.loads(layout_path.read_text(encoding="utf-8"))
             source_layout = json.loads(source_layout_path.read_text(encoding="utf-8"))
             self.assertEqual(layout, source_layout)
-            self.assertEqual(layout["version"], "3.0.3")
+            self.assertEqual(layout["version"], "3.0.4")
             from packages.excel.templates import ExcelTemplateService
             self.assertEqual(layout["input_template_version"], ExcelTemplateService.default().get().template_version)
             self.assertEqual(layout["input_template_sha256"], APPROVED_TEMPLATE_SHA256)

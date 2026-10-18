@@ -36,6 +36,7 @@ class CarbonMaterialExcel:
     def can_upgrade_workspace(workspace):
         return any(getattr(unit.canonical_input, "material_execution_version", None) == "MATERIAL_V1"
                    or any(batch.execution_version != "FGD_V2" for batch in getattr(unit.canonical_input, "fgd_units", ()))
+                   or (getattr(unit.canonical_input,"fume_incinerations",()) and getattr(unit.canonical_input,"fume_execution_version","FUME_V1") != "FUME_V2")
                    for unit in workspace.units)
 
     @staticmethod
@@ -65,7 +66,7 @@ class CarbonMaterialExcel:
                         batch = replace(batch, facility_id=uuid4().hex, batch_id=uuid4().hex,
                             components=tuple(replace(component, component_id=uuid4().hex) for component in batch.components), execution_version="FGD_V2")
                     upgraded_batches.append(batch)
-                value = replace(value, material_execution_version="MATERIAL_V2", fgd_units=tuple(upgraded_batches), fgd=upgraded_batches[0] if len(upgraded_batches)==1 else None)
+                value = replace(value, material_execution_version="MATERIAL_V2", fume_execution_version="FUME_V2", fgd_units=tuple(upgraded_batches), fgd=upgraded_batches[0] if len(upgraded_batches)==1 else None)
             units.append(replace(unit, unit_id=unit_ids[unit.unit_id], canonical_input=value, result_snapshot=None, input_fingerprint=None))
         return replace(workspace, project_id=f"project.{uuid4().hex}", name=workspace.name + "（输入规则升级副本）", active_unit_id=unit_ids[workspace.active_unit_id], units=tuple(units))
 

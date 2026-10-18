@@ -423,7 +423,44 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
         rows.append((_value(item.get('q')), _value(item.get('qvar')), _value(item.get('hm')), _parameter(item.get('fch'),snapshots,f'CAR-FLD-P04A-{iid}-FCH'), _value(item.get('fox'),percent=True), _value(item.get('duration')), _signed(_frozen_step(record,trace,SOURCE_FUME,iid,single_instance=len(_entries(raw,'fume_incinerations','fume_incineration'))==1))))
     if not rows:
         rows = [(*('历史未记录',)*6, _display_amount(line.amount)) for line in record.calculation_result.lines if line.emission_source_id == SOURCE_FUME]
-    sections.append(ReportSection('b6','B.6 烟气焚烧治理',(_table('b6',rows,source=SOURCE_FUME,raw=raw),)))
+    monitoring = _mapping(trace.get("fume_monitoring"))
+    coverage_entries = _entries(monitoring, "coverage")
+    if coverage_entries:
+        tables = []
+        for index, coverage in enumerate(coverage_entries, 1):
+            window = _mapping(coverage.get("reporting_window"))
+            segment_rows = []
+            labels = []
+            for result in _entries(coverage,"segments"):
+                segment = _mapping(result.get("segment"))
+                measurement = _mapping(segment.get("measurements"))
+                step = next((step for step in _trace_steps(trace) if
+                    _mapping(step.get("calculation_provenance")).get("fume.source_instance_id") == window.get("source_instance_id") and
+                    _mapping(step.get("calculation_provenance")).get("fume.metering_boundary_id") == window.get("metering_boundary_id") and
+                    _mapping(step.get("calculation_provenance")).get("fume.segment_id") == segment.get("segment_id")), {})
+                iid = step.get("process_instance_id", "")
+                labels = [measurement.get("source_name") or f"排放源 {index}", measurement.get("boundary_name") or "已保存计量边界"]
+                cells = (_display_cell(result.get("q")), _display_cell(result.get("qvar")), _display_cell(result.get("hm")),
+                    _parameter(measurement.get("fch"),snapshots,f"CAR-FLD-P04A-{iid}-FCH"),
+                    _value({"value":result.get("fox"),"unit":"ratio"},percent=True),
+                    _display_cell(result.get("duration_days")), _display_cell(result.get("amount_tco2")))
+                segment_rows.append(ReportRow(cells,note=f"监测段：{segment.get('start')} 至 {segment.get('end')}（不含终点）"))
+            gaps = coverage.get("uncovered_intervals") or ()
+            notes = [f"报告窗口：{window.get('start')} 至 {window.get('end')}（不含终点）；已覆盖段合计：{coverage.get('covered_amount_tco2')} tCO₂。"]
+            if gaps:
+                notes.append("覆盖不完整；未覆盖区间："+"；".join(f"{a} 至 {b}" for a,b in gaps)+"。仅为已覆盖部分，不补零、不年化，总量不代表完整期间排放。")
+            else:
+                notes.append("有效监测段完整覆盖报告窗口，可表达本实例本计量边界完整期间合计。")
+            table = _table('b6',[],source=SOURCE_FUME,raw=raw,suffix=f'-{index}')
+            columns = list(table.columns)
+            columns[5] = "监测段时长\nd"
+            headers = tuple(replace(header,cells=tuple(replace(cell,value=columns[column]) if column==5 else cell for column,cell in enumerate(header.cells))) for header in table.header_rows)
+            table = replace(table,columns=tuple(columns),header_rows=headers,rows=tuple(segment_rows),body_merges=(),context_label=' / '.join(labels),footnotes=tuple(notes))
+            tables.append(table)
+        sections.append(ReportSection('b6','B.6 烟气焚烧治理',tuple(tables)))
+    else:
+        legacy_notes = ("旧记录未保存监测区间，不能证明完整期间覆盖；报告只使用本记录冻结值。",) if raw.get("fume_execution_version") == "FUME_V1" and _entries(raw,'fume_incinerations','fume_incineration') else ()
+        sections.append(ReportSection('b6','B.6 烟气焚烧治理',(_table('b6',rows,source=SOURCE_FUME,raw=raw),),legacy_notes))
 
     rows, merges = [], []
     for i, unit in enumerate(_entries(raw,'fgd_units','fgd'),1):

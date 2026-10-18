@@ -6,6 +6,7 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment
 from packages.standards.carbon_material_business_policy import resolve_fgd_field
 
 from packages.standards.carbon_material_business_policy import fuel_source_context
@@ -1837,6 +1838,12 @@ class CarbonMaterialAccountingPage(BasePage):
             "facility_name": unit["facility_selector"].currentText() or unit.get("facility_name"),
             "batch_id": unit.get("batch_id"), "execution_version": unit.get("execution_version", "FGD_V1")}
             for unit in self._process_rows.get("fgd", ())}
+        values["fume_execution_version"] = getattr(self, "_fume_execution_version", "FUME_V2")
+        values["fume_upgrade_original_state"] = getattr(self, "_fume_upgrade_original_state", None)
+        values["fume_identities"] = {str(row["instance_id"]): {
+            "source_id": row["source_selector"].currentData(), "source_name": row["source_selector"].currentText(),
+            "boundary_id": row["boundary_selector"].currentData(), "boundary_name": row["boundary_selector"].currentText(),
+            "segment_id": row["segment_id"], "business_touched": bool(row.get("business_touched"))} for row in self._process_rows.get("fume", ())}
         return values
 
     @staticmethod
@@ -2381,6 +2388,23 @@ class CarbonMaterialAccountingPage(BasePage):
                         factor_widget.setReadOnly(mode != "MEASURED")
                     self._refresh_fgd_factor_reference(component)
         self._restore_fgd_form_modes(state)
+        self._fume_execution_version = state.get("fume_execution_version", "FUME_V1")
+        self._fume_upgrade_original_state = state.get("fume_upgrade_original_state")
+        saved_fumes = state.get("fume_identities", {})
+        for row in self._process_rows.get("fume", ()):
+            identity = saved_fumes.get(str(row["instance_id"]), {})
+            if identity:
+                row["segment_id"] = identity["segment_id"]
+                row["business_touched"] = bool(identity.get("business_touched"))
+                for key in ("source", "boundary"):
+                    combo = row[key+"_selector"]
+                    with QSignalBlocker(combo):
+                        combo.clear()
+                        combo.addItem(identity[key+"_name"], identity[key+"_id"])
+            row["upgrade_button"].setVisible(self._fume_execution_version != "FUME_V2")
+            row["segment_controls"].setVisible(self._fume_execution_version == "FUME_V2")
+            row["legacy_notice"].setVisible(self._fume_execution_version != "FUME_V2")
+        self._rebuild_fume_choices()
         for unit in self._process_rows.get("fgd", ()):
             for component in unit.get("components", ()):
                 combo = component.get("ef1_source")
@@ -4192,15 +4216,15 @@ class CarbonMaterialAccountingPage(BasePage):
         self._process_rows_layout[prefix] = host_layout
         parent_layout.addWidget(host)
         buttons = QHBoxLayout()
-        add_button = QPushButton("新增脱硫批次" if prefix == "fgd" else f"新增{title.split('（')[0]}", host)
+        add_button = QPushButton("新增脱硫批次" if prefix == "fgd" else "新增烟气监测段" if prefix == "fume" else f"新增{title.split('（')[0]}", host)
         add_button.setObjectName(f"add_{prefix}_instance")
         add_button.clicked.connect(
             lambda _checked=False, _prefix=prefix: self._add_process_row(
                 _prefix, default_material_categories=True
             )
         )
-        add_button.setVisible(prefix == "fgd" or self.manage_process_button.isChecked())
-        if prefix != "fgd":
+        add_button.setVisible(prefix in {"fgd","fume"} or self.manage_process_button.isChecked())
+        if prefix not in {"fgd","fume"}:
             self._advanced_process_buttons.append(add_button)
         buttons.addWidget(add_button)
         buttons.addStretch(1)
@@ -4247,7 +4271,7 @@ class CarbonMaterialAccountingPage(BasePage):
         host_layout = QVBoxLayout(host)
         host_layout.setContentsMargins(0, 8, 0, 8)
         title, _ = self._process_sections[prefix]
-        display_title = title.split("（")[0]
+        display_title = "烟气监测段" if prefix == "fume" else title.split("（")[0]
         toolbar = QHBoxLayout()
         title_label = QLabel(f"{display_title} {len(rows) + 1}", host)
         toolbar.addWidget(title_label)
@@ -4369,9 +4393,10 @@ class CarbonMaterialAccountingPage(BasePage):
                     spec = get_field_spec(f"{prefix}.{field}")
                     edit = self._build_business_field(responsive_fields, prefix, field, instance_id, first=first)
                     widgets[field] = edit
-                    responsive_fields.add_field(spec.label, edit)
+                    responsive_fields.add_field("监测段时长（单位见下方）" if field == "duration" else spec.label, edit)
                 host_layout.addWidget(responsive_fields)
                 row["responsive_fields"] = responsive_fields
+                self._build_fume_segment_controls(row, host_layout, host)
             else:
                 for group_name, group_fields in field_groups:
                     group = QWidget(host)
@@ -4467,6 +4492,8 @@ class CarbonMaterialAccountingPage(BasePage):
             row["flags"] = flags
         self._process_rows_layout[prefix].addWidget(host)
         rows.append(row)
+        if prefix == "fume":
+            self._rebuild_fume_choices()
         if prefix == "fgd":
             self._rebuild_fgd_facility_choices()
         remove_button.setVisible(len(rows) > 1)
@@ -4859,6 +4886,116 @@ class CarbonMaterialAccountingPage(BasePage):
             return next(i for i, item in enumerate(siblings) if item is component)
         except StopIteration:
             return -1
+
+    def _build_fume_segment_controls(self, row, layout, host):
+        row["segment_id"] = uuid4().hex
+        row["business_touched"] = False
+        controls = QWidget(host)
+        form = QFormLayout(controls)
+        row["segment_controls"] = controls
+        for key, label in (("source", "排放源实例"), ("boundary", "计量边界")):
+            combo = QComboBox(controls)
+            combo.setEditable(True)
+            combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+            combo.setObjectName(f"fume_{row['instance_id']}_{key}")
+            combo.addItem(f"{label} {len(self._process_rows['fume'])+1}", uuid4().hex)
+            combo.currentIndexChanged.connect(self._mark_input_dirty)
+            combo.editTextChanged.connect(self._mark_input_dirty)
+            combo.currentIndexChanged.connect(lambda _index, _row=row: _row.update(business_touched=True))
+            combo.editTextChanged.connect(lambda _text, _row=row: _row.update(business_touched=True))
+            row[key+"_selector"] = combo
+            form.addRow(label+"（同一实例请选择已有项）", combo)
+        for key, label in (("segment_start", "监测开始"), ("segment_end", "监测结束（不含终点）")):
+            edit = QLineEdit(controls)
+            edit.setObjectName(f"fume_{row['instance_id']}_{key}")
+            edit.setPlaceholderText("2026-01-01 00:00:00")
+            edit.setAccessibleName(label)
+            self._wire_dirty_tracking(edit)
+            row[key] = edit
+            form.addRow(label, edit)
+        unit = QComboBox(controls)
+        unit.setObjectName(f"fume_{row['instance_id']}_durationUnit")
+        unit.addItem("天", "d")
+        unit.addItem("小时", "h")
+        unit.currentIndexChanged.connect(self._mark_input_dirty)
+        row["duration_unit"] = unit
+        form.addRow("监测段时长单位", unit)
+        note = QLabel("每条为一个监测段；流量、浓度及参数对应同一段。报告期独立保存，不回填段时长。有缺口只计算已覆盖部分。", controls)
+        note.setWordWrap(True)
+        form.addRow(note)
+        layout.addWidget(controls)
+        button = QPushButton("确认采用监测分段输入", host)
+        button.setObjectName(f"fume_{row['instance_id']}_upgrade")
+        button.clicked.connect(self._upgrade_fume_rules)
+        button.setVisible(getattr(self, "_fume_execution_version", "FUME_V2") != "FUME_V2")
+        row["upgrade_button"] = button
+        layout.addWidget(button)
+        legacy_notice = QLabel("旧烟气输入的时长按天保留，未保存监测区间，不能证明完整覆盖；确认升级后自行补齐真实区间。",host)
+        legacy_notice.setWordWrap(True)
+        legacy_notice.setVisible(getattr(self,"_fume_execution_version","FUME_V2") != "FUME_V2")
+        row["legacy_notice"] = legacy_notice
+        layout.addWidget(legacy_notice)
+        controls.setVisible(getattr(self, "_fume_execution_version", "FUME_V2") == "FUME_V2")
+        # New row is not yet in _process_rows. Collect earlier choices explicitly.
+        for key in ("source", "boundary"):
+            combo = row[key+"_selector"]
+            for other in self._process_rows.get("fume", ()):
+                previous = other[key+"_selector"]
+                if combo.findData(previous.currentData()) < 0:
+                    combo.addItem(previous.currentText(), previous.currentData())
+
+    def _rebuild_fume_choices(self):
+        for key in ("source", "boundary"):
+            rows = self._process_rows.get("fume", ())
+            names = {row[key+"_selector"].currentData(): row[key+"_selector"].currentText() for row in rows}
+            for row in rows:
+                combo = row[key+"_selector"]
+                identity, name = combo.currentData(), combo.currentText()
+                with QSignalBlocker(combo):
+                    combo.clear()
+                    for value, label in names.items():
+                        combo.addItem(label, value)
+                    combo.setCurrentIndex(combo.findData(identity))
+                    combo.setEditText(name)
+
+    def _upgrade_fume_rules(self):
+        answer = QMessageBox.question(self, "确认烟气输入升级",
+            "将保留原项目输入副本并采用监测分段。请自行填写真实起止区间、源实例和计量边界；不会把报告期补作监测证据，不改历史记录。取消保持原输入。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        original = self._capture_form_state()
+        original.pop("fume_upgrade_original_state", None)
+        self._fume_upgrade_original_state = original
+        self._fume_execution_version = "FUME_V2"
+        for row in self._process_rows.get("fume", ()):
+            row["upgrade_button"].hide()
+            row["segment_controls"].show()
+            row["legacy_notice"].hide()
+        self._mark_input_dirty()
+
+    def _fume_segment_inputs(self):
+        result = []
+        for row in self._process_rows.get("fume", ()):
+            # Preserve every business row; no filtering of invalid second segments.
+            if not row.get("business_touched") and not any(edit.text().strip() for edit in row["fields"].values()) and not row["segment_start"].text().strip() and not row["segment_end"].text().strip():
+                continue
+            try:
+                start = datetime.fromisoformat(row["segment_start"].text().strip())
+                end = datetime.fromisoformat(row["segment_end"].text().strip())
+            except ValueError as exc:
+                raise DomainValidationError("请填写本监测段真实开始和结束时间（年-月-日 时:分:秒），不能使用报告期代填。") from exc
+            source = row["source_selector"].currentData()
+            boundary = row["boundary_selector"].currentData()
+            if not source or not boundary or not row["source_selector"].currentText().strip() or not row["boundary_selector"].currentText().strip():
+                raise DomainValidationError("请选择本监测段的真实排放源实例和计量边界。")
+            measurement = self._process("fume", FumeIncinerationInput, row)
+            duration = measurement.duration
+            if duration is not None:
+                duration = replace(duration, unit=row["duration_unit"].currentData())
+            result.append(FumeMonitoringSegment(source,boundary,row["segment_id"],start,end,
+                replace(measurement, instance_id=source,duration=duration, source_name=row["source_selector"].currentText(), boundary_name=row["boundary_selector"].currentText())))
+        return tuple(result)
 
     def _upgrade_fgd_rules(self):
         answer = QMessageBox.question(self, "确认脱硫输入升级",
@@ -5397,6 +5534,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     widget.setParent(None)
                     widget.deleteLater()
                 rows.remove(row)
+        if prefix == "fume":
+            self._rebuild_fume_choices()
         if prefix == "fgd":
             self._rebuild_fgd_facility_choices()
         for index, row in enumerate(rows, start=1):
@@ -7686,7 +7825,9 @@ class CarbonMaterialAccountingPage(BasePage):
             calcinations=self._process_instances("calcination", CalcinationInput) if self._source_is_enabled("CAR-SRC-CALCINATION-001") else (),
             bakings=self._process_instances("baking", BakingInput) if self._source_is_enabled("CAR-SRC-BAKING-001") else (),
             graphitizations=self._process_instances("graphitization", GraphitizationInput) if self._source_is_enabled("CAR-SRC-GRAPHITIZATION-001") else (),
-            fume_incinerations=self._process_instances("fume", FumeIncinerationInput) if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") else (),
+            fume_incinerations=self._process_instances("fume", FumeIncinerationInput) if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") and getattr(self, "_fume_execution_version", "FUME_V2") == "FUME_V1" else (),
+            fume_segments=self._fume_segment_inputs() if self._source_is_enabled("CAR-SRC-FUME-INCINERATION-001") and getattr(self, "_fume_execution_version", "FUME_V2") == "FUME_V2" else (),
+            fume_execution_version=getattr(self, "_fume_execution_version", "FUME_V2"),
             fgd_units=self._process_instances("fgd", FGDInput) if self._source_is_enabled("CAR-SRC-FGD-001") else (),
             electricity_details=self._electricity(enterprise_id, period, render=render_electricity) if self._source_is_enabled("CAR-SRC-PURCHASED-ELECTRICITY-001") else (),
             exported_electricity=self._exported_electricity() if self._source_is_enabled("CAR-SRC-EXPORTED-ELECTRICITY-001") else (),
@@ -7790,6 +7931,8 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _reset_for_new_accounting(self) -> None:
         self._material_execution_version = "MATERIAL_V2"
+        self._fume_execution_version = "FUME_V2"
+        self._fume_upgrade_original_state = None
         """Restore every G06 control to the initial new-accounting state."""
 
         self._calculation_index = 0

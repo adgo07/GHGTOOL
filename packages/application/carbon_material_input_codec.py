@@ -59,15 +59,18 @@ from packages.standards.carbon_material_normalization import (
 )
 
 
-CANONICAL_INPUT_CODEC_VERSION = 3
-SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3)
+CANONICAL_INPUT_CODEC_VERSION = 4
+SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3, 4)
 _CODEC_ID = "ghgtool.carbon_material_input"
 
 
 from .canonical_input_errors import CanonicalInputCodecError
 
 
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment
+
 _DATACLASSES: dict[str, type[Any]] = {
+    "fume_monitoring_segment": FumeMonitoringSegment,
     "accounting_period": AccountingPeriod,
     "activity_data_evidence": ActivityDataEvidence,
     "baking_input": BakingInput,
@@ -227,20 +230,21 @@ def _decode_value(value: object) -> object:
         compatible_optional_fields = {
             "electricity_consumption_detail": {"region", "selected_factor_id", "factor_selection_reason", "factor_override"},
             "electricity_output_line": {"region"},
+            "fume_incineration_input": {"source_name", "boundary_name"},
             "fgd_input": {"reagent_name", "facility_id", "facility_name", "batch_id", "execution_version"},
             "calcination_input": {"instance_name"},
             "baking_input": {"instance_name"},
             "graphitization_input": {"instance_name"},
             "fuel_input": {"origin", "catalog_subject_id"},
             "carbonate_component": {"origin", "component_id"},
-            "carbon_material_input": {"material_execution_version"},
+            "carbon_material_input": {"material_execution_version", "fume_segments", "fume_execution_version"},
             "material_input_line": {"mass_basis", "composition_basis", "moisture_received_percent",
                                     "conversion_method", "fixed_carbon_unit", "volatile_matter_unit"},
         }.get(node["type"], set())
         missing_fields = declared_fields.difference(encoded_fields)
         if set(encoded_fields).difference(declared_fields) or not missing_fields.issubset(compatible_optional_fields):
             raise CanonicalInputCodecError(f"fields do not match {node['type']} schema")
-        defaults = {"execution_version": "FGD_V1", "material_execution_version": "MATERIAL_V1", "mass_basis": "RECEIVED",
+        defaults = {"execution_version": "FGD_V1", "fume_execution_version": "FUME_V1", "fume_segments": {"$kind": "tuple", "items": []}, "material_execution_version": "MATERIAL_V1", "mass_basis": "RECEIVED",
                     "composition_basis": "RECEIVED", "fixed_carbon_unit": "%", "volatile_matter_unit": "%"}
         for name in missing_fields:
             encoded_fields[name] = defaults.get(name)

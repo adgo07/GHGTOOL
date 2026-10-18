@@ -1,20 +1,12 @@
-# HANDOFF — B-FGD完整链
+# HANDOFF — B-FUME 当前实施交接
 
-更新：2026-10-18。PR50按F01—F03验收反馈定向退修，原a683/CI262事实保留但不替代本轮反例。PR49已合并，受验材料及CI256证据见PR49收口；新包从最新main 1ed2e4a3225d0ee322dd0fbe82cacdd6f8a5542e独立启动，旧材料分支停止开发。当前分工、预检查、授权和实际测试状态见TASK_STATE.md；唯一产品路线仍为REFERENCE_STANDARD_ROADMAP.md。
+PR50已合并，F01—F03源独立技术范围PASS。固定b4/CI263证据保留于docs/ci/PR50_FGD_RETAKE_SUMMARY.json，不将摘要head冒充包head。当前按Issue020、Mapping§7.2/§8/§12与用户批准V2§9实施P04A监测分段；唯一产品路线仍REFERENCE_STANDARD_ROADMAP.md。
 
-本包按Mapping §9.1/9.3、Issue016及批准V2第8节落实脱硫三字段同源与批次完整链。C独占公共消费者和治理；M只写新test_b_fgd_specialist.py，F原烟气准备不集成。已发布共用接口并完成原覆盖验证；本轮只收口未完成输入保留与设施新窗口恢复。历史Record、材料F01/F02/F03、v7/2.5.0、旧模板原字节和燃料电力采用身份保持可追溯。
+C负责共享Canonical/codec、正式Calculator/Application、GUI/B.6、SQLite项目恢复、冻结Record/Word与交付。F两专属文件ca8aa1f单次取用，接口固定FumeMonitoringSegment/FumeReportingWindow/evaluate_fume_segments，Calculator局部导入避循环。具体数据身份、版本与门禁见TASK_STATE唯一接口表。无新公共框架或数据库迁移，标准公式/决定/中央锁不变。
 
-沿用已明确私有push/PR/CI授权；交付一个脱硫PR、最终head真实CI和下载实包证据后交源独立验收并停止，不自行合并/进入烟气/热力/商业发布，不CU或删除工作树。原生与商业缺项仍OPEN，不宣称正式支持。
+新分段输入保留真实源/计量边界/段稳定身份及真实区间，逐段Q/QVar/时长/参数配对。有效缺口保留部分合计并明确未覆盖，不补零、不年化；同源同边界非法段整体拒绝。报告期不回填段时间。旧项目可开存，显式升级保留原副本并自行补真实区间；旧Record/Word永不回填或重算。
 
-## 脱硫最小兼容输入方案（实施设计）
-
-沿用现有FGDInput作为批次容器；instance_id继续唯一标识该输入批次及已有结果/Trace行，新增可选facility_id表达真实设施归属，batch_id明确批次身份，CarbonateComponent尾部新增component_id。新GUI/Excel产生稳定键，不以显示名或行号代替；同设施允许多个独立批次，I合计按每个批次校验。旧输入无新键时只读恢复原组合，不凭名称合并设施或虚构批次；确认升级另存副本时生成新键，旧Record永不回填/重算。项目仍使用现有projects.sqlite和codec，版本演进不改数据库公共Schema。来源草稿按设施/批次/组分/字段/来源隔离；冻结输入、参数快照及Word按相同身份对应。
-
-先发布resolve_fgd_field最小API：返回context、实际factor和同次resolution；真实关联核验只补三字段采用范围，不取消其他unverified门禁。I/TR通用身份与C.2的11个物种身份分开。实施早期的小探针只证明CaCO3/I/TR三项真实SQLite解析READY；它是历史断点，当前受验对象及整链/CI/实包证据分别按TASK_STATE和对应固定提交追溯。
-
-
-Excel初次入站以整工作簿内容身份作为命名空间，为原始分组/组分生成不透明稳定键；原单元格仅作为入站定位，不是跨项目业务身份。保存后直接恢复Canonical键，不随显示名称/行号重新生成；变更工作簿视为新的导入。企业设施编号只用于显式归属和业务展示，内部facility_id/batch_id/component_id仍独立冻结。审阅范围/规则版本不扩张，四件套仅同步采用状态并机械重生。
-
+保留PR50 FGD未完成输入/设施新窗口恢复退修测试、材料/燃料/电力基线、旧模板原字节和冻结历史。沿用私有push/PR/CI授权，交付一个B-FUME私有PR及精确head CI/实际包，完成送源独立验收后停止；不CU、不自行合并、不扩热力/外部CO₂/N、不动根用户资料或删旧树。原生Office/鼠标/IME/人工DPI、企业样例、干净目标机及商业履约继续OPEN。
 
 ## 旧FGD_V1正式校验与历史边界
 

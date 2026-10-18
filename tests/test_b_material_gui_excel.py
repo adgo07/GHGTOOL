@@ -121,7 +121,7 @@ class MaterialGuiExcelTests(unittest.TestCase):
                 frozen_model=build_report_model(imported_record,records.get_raw_input_snapshot(imported_record.record_id),
                     records.get_trace_snapshot(imported_record.record_id),records.get_provenance_snapshot(imported_record.record_id),
                     records.get_reporting_snapshot(imported_record.record_id),records.get_report_qualification(imported_record.record_id))
-                self.assertEqual(frozen_model.input_template_version,'2.6.0')
+                self.assertEqual(frozen_model.input_template_version,'2.7.0')
                 self.assertEqual(frozen_model.input_template_sha256,ingress['template_master_sha256'])
                 material_table=next(section for section in frozen_model.sections if section.section_id=='b3').tables[0]
                 self.assertEqual(material_table.rows[0].cells[5].value,'计算值')

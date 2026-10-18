@@ -22,7 +22,7 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
         stop=next((r for r in range(4,sheet.max_row+1) if _is_appendix_footer_row(sheet,r)),sheet.max_row+1)
         materials={}
         for row in range(4,stop):
-            if not any(_has_value(sheet[f"{column}{row}"]) for column in ("DEIJKLM" if template_version in {"2.4.0", "2.5.0", "2.6.0"} else "DE")):
+            if not any(_has_value(sheet[f"{column}{row}"]) for column in ("DEIJKLM" if template_version in {"2.4.0", "2.5.0", "2.6.0", "2.7.0"} else "DE")):
                 continue
             category=reader.text(workbook,sheet_name,f"B{row}",errors,required=True,field_label="物料类别")
             name=reader.text(workbook,sheet_name,f"C{row}",errors,required=True,field_label="实际物料名称")
@@ -43,7 +43,7 @@ def parse_process_sheets(importer,workbook,context,reader,errors,warnings,output
             source_kind = {None:MaterialDataSource.MEASURED, "实测值":MaterialDataSource.MEASURED}.get(source)
             extra = {}
             unit = "%"
-            if template_version in {"2.4.0", "2.5.0", "2.6.0"}:
+            if template_version in {"2.4.0", "2.5.0", "2.6.0", "2.7.0"}:
                 source_kind = {None:MaterialDataSource.MEASURED, "实测值":MaterialDataSource.MEASURED,
                                "计算值":MaterialDataSource.CHEMICAL_CALCULATION}.get(source)
                 if template_version == "2.4.0" and source == "收到基换算":

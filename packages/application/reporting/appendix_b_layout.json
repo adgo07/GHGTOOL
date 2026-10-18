@@ -1,6 +1,6 @@
 {
   "layout_id": "gbt-32151-34-2024-appendix-b",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "approved_template": "GB_T32151_34_2024_附录B填报模板_脚注与边框修订版.xlsx",
   "approved_sha256": "c805e446994e0863221063109f2b425a545d0c7db88544ba5583102219c1d9e4",
   "formula_free_sha256": "78042e02b57701cfcb3b4a3fb86dbb6ec8e4fa66ec74cfed768433153d5fdc7e",
@@ -404,6 +404,6 @@
       ]
     }
   },
-  "input_template_version": "2.6.0",
-  "input_template_sha256": "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
+  "input_template_version": "2.7.0",
+  "input_template_sha256": "0adf62e4c0d60685b68de78111ed4cd6b5241b96d4f08035230d8506501460fb"
 }
