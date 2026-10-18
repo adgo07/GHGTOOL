@@ -1831,7 +1831,7 @@ class CarbonMaterialAccountingPage(BasePage):
         values["fgd_upgrade_original_state"] = getattr(self, "_fgd_upgrade_original_state", None)
         values["fgd_source_drafts"] = {str(unit["instance_id"]): {
             str(component["component_id"]): {"source_drafts": component.get("source_drafts", {}),
-                "identity_drafts": component.get("identity_drafts", {})}
+                "identity_drafts": component.get("identity_drafts", {}), "business_touched": bool(component.get("business_touched"))}
             for component in unit.get("components", ())} for unit in self._process_rows.get("fgd", ())}
         values["fgd_identities"] = {str(unit["instance_id"]): {"facility_id": unit.get("facility_id"),
             "batch_id": unit.get("batch_id"), "execution_version": unit.get("execution_version", "FGD_V1")}
@@ -1851,11 +1851,16 @@ class CarbonMaterialAccountingPage(BasePage):
         if count == 1:
             return saved.get(old, default)
         if old in saved:
-            self._fgd_legacy_unresolved = saved
+            unresolved = dict(getattr(self, "_fgd_legacy_unresolved", {}) or {})
+            projections = list(unresolved.get("projections", ()))
+            if saved not in projections:
+                projections.append(dict(saved))
+            unresolved["projections"] = projections
+            self._fgd_legacy_unresolved = unresolved
+            component["_widget"].setToolTip("历史脱硫来源与多个批次组分存在重复对应，原信息已保留待核实，未自动采用。")
         return default
 
     def _restore_fgd_form_modes(self, state: dict[str, object]) -> None:
-        self._fgd_legacy_unresolved = state.get("fgd_legacy_unresolved", {})
         self._fgd_upgrade_original_state = state.get("fgd_upgrade_original_state")
         saved_modes = state.get("fgd_ratio_modes")
         if not isinstance(saved_modes, dict):
@@ -1919,6 +1924,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 stored_drafts = state.get("fgd_source_drafts", {}).get(instance_id, {}).get(component_id, {})
                 component["source_drafts"] = stored_drafts.get("source_drafts", {})
                 component["identity_drafts"] = stored_drafts.get("identity_drafts", {})
+                component["business_touched"] = stored_drafts.get("business_touched") is True
                 saved = self._fgd_saved_entry(saved_modes, unit, component)
                 for field in ("i", "tr"):
                     mode_combo = component.get(f"{field}_source")
@@ -1937,6 +1943,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     self._refresh_fgd_factor_reference(component)
 
     def _restore_form_state(self, state: dict[str, object]) -> None:
+        self._fgd_legacy_unresolved = state.get("fgd_legacy_unresolved", {})
         self._material_execution_version = state.get("material_execution_version", "MATERIAL_V1")
         self._material_upgrade_original_state = state.get("material_upgrade_original_state")
         self._restoring_workspace = True
@@ -4828,15 +4835,22 @@ class CarbonMaterialAccountingPage(BasePage):
         for unit in self._process_rows.get("fgd", ()):
             if unit.get("execution_version") != "FGD_V2":
                 unit.update(facility_id=uuid4().hex, batch_id=uuid4().hex, execution_version="FGD_V2")
+                selector = unit["facility_selector"]
+                selector.addItem(f"脱硫设施 {len(self._process_rows.get('fgd', ()))+1}", unit["facility_id"])
+                selector.setCurrentIndex(selector.count()-1)
                 unit["upgrade_button"].hide()
         self._mark_input_dirty()
 
     @staticmethod
     def _fgd_component_active(component):
+        if component.get("business_touched"):
+            return True
         name = component.get("carbonate_type")
         if isinstance(name, NameSelector) and name.currentText().strip() not in {"", "未选择碳酸盐种类"}:
             return True
         for field in ("i", "ef1", "tr", "cal", "factor_source_reference"):
+            if field == "cal" and not component.get("unit", {}).get("legacy_component_amounts"):
+                continue
             edit = component.get(field)
             mode = component.get(f"{field}_source")
             if isinstance(edit, QLineEdit) and edit.text().strip() and (
@@ -4955,6 +4969,7 @@ class CarbonMaterialAccountingPage(BasePage):
         combo, edit = component[f"{field}_source"], component[field]
         mode = combo.currentData()
         if not self._restoring_workspace:
+            component["business_touched"] = True
             previous = component.get(f"{field}_source_mode")
             drafts = component.setdefault("source_drafts", {}).setdefault(field, {})
             if previous is not None:

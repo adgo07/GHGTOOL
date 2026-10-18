@@ -239,3 +239,84 @@ class FGDChainTests(unittest.TestCase):
             workbook["B.7"]["L2"]=None
             with self.assertRaisesRegex(ValueError,"版本冲突"):ExcelTemplateService.default().validate_structure(workbook)
         finally:workbook.close()
+
+    def test_explicit_source_on_unfinished_row_is_not_hidden(self):
+        with self.page() as (gui,projects,root,shell,records):
+            self.prepare(gui)
+            batch=gui._process_rows["fgd"][0]
+            batch["reagent_name"].setText("批次")
+            batch["group_amount"].setText("10")
+            self.select(gui,batch["components"][0],"CaCO3")
+            unfinished=gui._add_fgd_component(batch)
+            self.assertFalse(gui._fgd_component_active(unfinished))
+            self.measured(unfinished,"tr","")
+            self.assertTrue(gui._fgd_component_active(unfinished))
+            self.assertFalse(gui._fgd_ratio_default_allowed(batch["components"][0]))
+            from packages.application.carbon_accounting import CarbonAccountingUseCase
+            result=CarbonAccountingUseCase(gui.calculator,records).calculate(gui._input(increment=False))
+            self.assertFalse(result.successful)
+            self.assertEqual(len(records.list_all()),0)
+
+    def test_ambiguous_legacy_projections_are_all_retained_without_cross_batch_paste(self):
+        with self.page() as (gui,projects,root,shell,records):
+            self.prepare(gui)
+            first=gui._process_rows["fgd"][0]
+            first["reagent_name"].setText("第一批")
+            first["group_amount"].setText("10")
+            a=first["components"][0]
+            self.select(gui,a,"CaCO3");self.measured(a,"i","40")
+            second=gui._add_process_row("fgd",component_ids=(a["component_id"],))
+            second["reagent_name"].setText("第二批");second["group_amount"].setText("20")
+            b=second["components"][0]
+            self.select(gui,b,"MgCO3");self.measured(b,"i","80")
+            state=gui._capture_form_state();key=a["component_id"]
+            old={
+                "fgd_carbonate_texts":{key:"旧碳酸盐"},
+                "fgd_carbonate_confirmations":{key:{"confirmed_name":"旧碳酸盐","legacy_custom_identity":True}},
+                "fgd_factor_provenance":{key:{"mode":"MEASURED","factor_id":None}},
+                "fgd_ratio_modes":{key:{"i":"MEASURED","tr":"MEASURED"}},
+            }
+            state.update(old);state.pop("fgd_source_drafts")
+            gui._restore_form_state(state)
+            restored=gui._capture_form_state()
+            retained=restored["fgd_legacy_unresolved"]["projections"]
+            for projection in old.values():self.assertIn(projection,retained)
+            self.assertEqual([row["components"][0]["i"].text() for row in gui._process_rows["fgd"]],["40","80"])
+            for row in gui._process_rows["fgd"]:
+                self.assertIn("未自动采用",row["components"][0]["_widget"].toolTip())
+            workspace=projects.new_workspace("旧歧义")
+            projects.save(replace(workspace,units=(replace(workspace.units[0],form_state=restored),)))
+            reopened=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite")).get(workspace.project_id)
+            self.assertEqual(reopened.units[0].form_state["fgd_legacy_unresolved"],restored["fgd_legacy_unresolved"])
+            self.assertEqual(len(records.list_all()),0)
+
+    def test_old_canonical_project_upgrade_copies_sqlite_without_rewriting_original(self):
+        with self.page() as (gui,projects,root,shell,records):
+            self.prepare(gui)
+            batch=gui._process_rows["fgd"][0]
+            batch["reagent_name"].setText("旧批次");batch["group_amount"].setText("10")
+            first=batch["components"][0]
+            self.select(gui,first,"CaCO3");self.measured(first,"i","90");self.measured(first,"tr","75")
+            second=gui._add_fgd_component(batch)
+            self.select(gui,second,"MgCO3");self.measured(second,"i","10")
+            current=gui._input(increment=False)
+            from packages.standards.carbon_material import InputValue
+            old_batch=replace(current.fgd_units[0],facility_id=None,facility_name=None,batch_id=None,execution_version="FGD_V1",
+                components=tuple(replace(component,component_id=None,amount=InputValue("10","t",source_reference=f"旧组分资料{i}")) for i,component in enumerate(current.fgd_units[0].components)))
+            old=replace(current,fgd=old_batch,fgd_units=(old_batch,))
+            workspace=projects.new_workspace("旧Canonical脱硫")
+            workspace=replace(workspace,units=(replace(workspace.units[0],canonical_input=old),))
+            projects.save(workspace)
+            from packages.application.carbon_material_implementation import CarbonMaterialExcel
+            self.assertTrue(CarbonMaterialExcel.can_upgrade_workspace(workspace))
+            upgraded=CarbonMaterialExcel.upgrade_workspace(workspace)
+            projects.save(upgraded)
+            reopened=ProjectWorkspaceService(SQLiteProjectWorkspaceRepository(root/"projects.sqlite"))
+            self.assertEqual(reopened.get(workspace.project_id).units[0].canonical_input,old)
+            new=reopened.get(upgraded.project_id).units[0].canonical_input
+            self.assertNotEqual(upgraded.project_id,workspace.project_id)
+            self.assertNotEqual(upgraded.units[0].unit_id,workspace.units[0].unit_id)
+            self.assertEqual(new.fgd_units[0].execution_version,"FGD_V2")
+            self.assertTrue(all(component.component_id for component in new.fgd_units[0].components))
+            self.assertEqual(gui.calculator.calculate(new).result.total_amount,Decimal("3.492"))
+            self.assertEqual(len(records.list_all()),0)

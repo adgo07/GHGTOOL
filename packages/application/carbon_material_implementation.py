@@ -55,8 +55,12 @@ class CarbonMaterialExcel:
                     if batch.execution_version not in {"FGD_V1", "FGD_V2"}:
                         raise ValueError("脱硫执行版本未知，原项目未修改。")
                     if batch.execution_version == "FGD_V1":
-                        amounts = [component.amount for component in batch.components]
-                        if amounts and any(amount != amounts[0] for amount in amounts):
+                        from packages.core.decimal_policy import DecimalPolicy
+                        from packages.core.units import UnitService
+                        units_service = UnitService(DecimalPolicy())
+                        amounts = [units_service.convert(component.amount.value, component.amount.unit, "t")
+                                   if component.amount is not None else None for component in batch.components]
+                        if amounts and (any(amount is None for amount in amounts) or any(amount != amounts[0] for amount in amounts)):
                             raise ValueError("旧组分用量不同，请先确认本批整剂净耗量，原项目未修改。")
                         batch = replace(batch, facility_id=uuid4().hex, batch_id=uuid4().hex,
                             components=tuple(replace(component, component_id=uuid4().hex) for component in batch.components), execution_version="FGD_V2")
