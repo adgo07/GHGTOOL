@@ -1,0 +1,16 @@
+{
+  "artifact_id": 12138439576,
+  "zip_sha256": "dc6f0161c79a7a920ce855df1e719d86032a576f085532ab58e0d75c487c7fb2",
+  "source_commit": "24901e12e9bc406a7da4a1616bd85818afb8c8b1",
+  "tested_merge_sha": "fc0cee485bab1e3148ac00c4f20036d7cd1a9979",
+  "execution": "ACTUAL_CI279_EXE_PYZ_AND_PACKAGED_NATIVE_LIBRARIES_NO_BUSINESS_SOURCE_FALLBACK",
+  "raw_pressure_mpa": "22.06399999999999999999999999999999999999",
+  "working_pressure_pa": "22064000.0",
+  "actual_phase": "IF97Backend:phases.iphase_twophase",
+  "library_j_per_kg": "2096274.5647053563",
+  "formal_total": "0.230590202117589193000",
+  "incorrectly_created_records": 1,
+  "result": "KNOWN_DEFECT_REPRODUCED_NOT_DELIVERY",
+  "native_coolprop": "CoolProp\\CoolProp.pyd",
+  "native_numpy": "numpy\\_core\\_multiarray_umath.cp312-win_amd64.pyd"
+}

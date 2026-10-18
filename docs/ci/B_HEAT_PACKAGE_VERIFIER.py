@@ -110,6 +110,7 @@ for bad in (line(source_boundary='UNCONFIRMED'),line(source_boundary='INSIDE_ENT
  outcome=formal.calculate(value(bad));assert not outcome.successful and len(records.list_all())==before
 sat_state=cp.AbstractState('IF97','Water');sat_state.update(cp.PQ_INPUTS,100000.,1.)
 tsat=Decimal(repr(float(sat_state.T())))
+del sat_state  # verifier-only probe; release before module shutdown
 folded_c=calc.policy.add(calc.policy.subtract(tsat,Decimal('273.15')),Decimal('1e-30'))
 folded=formal.calculate(value(replace(auto_line,pressure_mpa='.1',temperature_c=folded_c)))
 assert not folded.successful and len(records.list_all())==before
