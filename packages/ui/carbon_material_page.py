@@ -528,6 +528,18 @@ class _UnifiedEnergyRow(QWidget):
         heat.setContentsMargins(0, 0, 0, 0)
         heat.setHorizontalSpacing(10)
         heat.setVerticalSpacing(8)
+        self.heat_boundary = QComboBox(self.heat_details)
+        self.heat_boundary.setObjectName(f"energyHeatBoundary{index}")
+        self.heat_boundary.addItem("待核实", "UNCONFIRMED")
+        self.heat_boundary.addItem("本企业核算边界外", "OUTSIDE_ENTERPRISE")
+        self.heat_boundary.addItem("本企业核算边界内", "INSIDE_ENTERPRISE")
+        self.heat_boundary_field = labeled_field("热源所在边界", self.heat_boundary)
+        self.heat_fuel_accounted = QComboBox(self.heat_details)
+        self.heat_fuel_accounted.setObjectName(f"energyHeatFuelAccounted{index}")
+        self.heat_fuel_accounted.addItem("待核实", None)
+        self.heat_fuel_accounted.addItem("已计入本企业燃料排放", True)
+        self.heat_fuel_accounted.addItem("未计入本企业燃料排放", False)
+        self.heat_fuel_accounted_field = labeled_field("供热燃料排放", self.heat_fuel_accounted)
         self.heat_kind = QComboBox(self.heat_details)
         self.heat_kind.setObjectName(f"energyHeatKind{index}")
         for label, kind in STEAM_KIND_LABELS.items():
@@ -552,12 +564,12 @@ class _UnifiedEnergyRow(QWidget):
         self.temperature_field = labeled_field("蒸汽温度", self.temperature, "℃（过热蒸汽）")
         self.enthalpy_mode = QComboBox(self.heat_details)
         self.enthalpy_mode.setObjectName(f"energyHeatEnthalpyMode{index}")
-        self.enthalpy_mode.addItem("标准表自动取焓", "AUTO")
-        self.enthalpy_mode.addItem("手动填写", "MANUAL")
+        self.enthalpy_mode.addItem("自动物性（暂不可用）", "AUTO")
+        self.enthalpy_mode.addItem("独立已知焓", "MANUAL")
         self.enthalpy_mode_choices = SegmentedChoiceControl(self.enthalpy_mode, values={"AUTO", "MANUAL"})
         self.enthalpy_mode_field = labeled_field("焓值获取方式", self.enthalpy_mode_choices)
         self.enthalpy = create_typed_input(self.heat_details, get_field_spec("heat_enthalpy"), f"energyHeatEnthalpy{index}", "kJ/kg")
-        self.enthalpy_field = labeled_field("手动焓值", self.enthalpy, "kJ/kg")
+        self.enthalpy_field = labeled_field("已知焓值", self.enthalpy, "kJ/kg")
         self.heat_factor_mode = QComboBox(self.heat_details)
         self.heat_factor_mode.setObjectName(f"energyHeatFactorMode{index}")
         self.heat_factor_mode.addItem("缺省值", HeatFactorMode.STANDARD_DEFAULT)
@@ -582,6 +594,8 @@ class _UnifiedEnergyRow(QWidget):
         heat.addWidget(self.heat_factor_mode_field, 2, 0, 1, 2)
         heat.addWidget(self.measured_heat_factor_field, 2, 2)
         heat.addWidget(self.heat_source_field, 2, 3)
+        heat.addWidget(self.heat_boundary_field, 3, 0, 1, 2)
+        heat.addWidget(self.heat_fuel_accounted_field, 3, 2, 1, 2)
         for column in range(4):
             heat.setColumnStretch(column, 1)
         outer.addWidget(self.heat_details)
@@ -1451,6 +1465,8 @@ class CarbonMaterialAccountingPage(BasePage):
             "heat_factor_mode": self._energy_combo_value(row.heat_factor_mode),
             "measured_heat_factor": row.measured_heat_factor.text(),
             "heat_source": row.heat_source.text(),
+            "heat_boundary": row.heat_boundary.currentData(),
+            "heat_fuel_accounted": row.heat_fuel_accounted.currentData(),
         }
 
     def _restore_unified_energy_rows(self, saved_rows: object) -> None:
@@ -1578,6 +1594,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 pass
             row.measured_heat_factor.setText(str(saved.get("measured_heat_factor", "")))
             row.heat_source.setText(str(saved.get("heat_source", "")))
+            row.heat_boundary.setCurrentIndex(max(0, row.heat_boundary.findData(saved.get("heat_boundary", "UNCONFIRMED"))))
+            row.heat_fuel_accounted.setCurrentIndex(max(0, row.heat_fuel_accounted.findData(saved.get("heat_fuel_accounted"))))
             # Restore programmatic edits first, then reinstate the migration marker.
             # User edits after restoration clear it through the connected signals.
             row.legacy_measured_factor = legacy_measured_factor
@@ -3213,6 +3231,7 @@ class CarbonMaterialAccountingPage(BasePage):
             row.kind, row.amount, row.attribute, row.geographic_level, row.region, row.factor_mode, row.factor_selector,
             row.manual_factor, row.electricity_source, row.heat_kind, row.pressure, row.temperature,
             row.enthalpy_mode, row.enthalpy, row.heat_factor_mode, row.measured_heat_factor, row.heat_source,
+            row.heat_boundary, row.heat_fuel_accounted,
         ):
             self._wire_dirty_tracking(widget)
         row._electricity_direction_drafts = {}
@@ -3230,6 +3249,9 @@ class CarbonMaterialAccountingPage(BasePage):
         row.heat_kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.enthalpy_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.heat_factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+        for combo in (row.heat_boundary, row.heat_fuel_accounted):
+            combo.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
+            combo.currentIndexChanged.connect(self._refresh_source_cards)
         row.amount.textChanged.connect(lambda *_args: self._refresh_source_cards())
         row.amount.textChanged.connect(lambda *_args: self._refresh_electricity_rows())
         row.factor_selector.currentIndexChanged.connect(lambda *_args, _row=row: self._on_energy_factor_choice_changed(_row))
@@ -3471,6 +3493,12 @@ class CarbonMaterialAccountingPage(BasePage):
         row.manual_factor_field.setVisible(show_factor_controls and manual)
         row.electricity_source_field.setVisible(show_factor_controls and manual)
 
+        purchased_heat = heat and row.kind.currentData() == "purchased_heat"
+        row.heat_boundary_field.setVisible(purchased_heat)
+        row.heat_fuel_accounted_field.setVisible(purchased_heat)
+        internal_accounted = (purchased_heat and row.heat_boundary.currentData() == "INSIDE_ENTERPRISE"
+                              and row.heat_fuel_accounted.currentData() is True)
+        heat = heat and not internal_accounted
         row.heat_kind_field.setVisible(heat)
         try:
             steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
@@ -3509,26 +3537,16 @@ class CarbonMaterialAccountingPage(BasePage):
     def _refresh_unified_energy_row_preview(self, row: _UnifiedEnergyRow) -> None:
         if row.family != "heat":
             return
-        try:
-            heat_kind = _enum(row.heat_kind.currentData(), SteamKind)
-            if row.enthalpy_mode.currentData() == "MANUAL":
-                enthalpy_text = row.enthalpy.text().strip()
-                status = "焓值：手动值待填写" if not enthalpy_text else "焓值：使用手动填写值"
-            else:
-                pressure_text = row.pressure.text().strip()
-                temperature_text = row.temperature.text().strip()
-                if not pressure_text or (heat_kind is SteamKind.SUPERHEATED and not temperature_text):
-                    missing = "蒸汽压力（绝压）" if not pressure_text else "过热蒸汽温度"
-                    status = f"焓值计算：请填写{missing}"
-                else:
-                    pressure = self.calculator.policy.parse(pressure_text)
-                    if heat_kind is SteamKind.SUPERHEATED:
-                        reference = superheated_steam_enthalpy(pressure, self.calculator.policy.parse(temperature_text), policy=self.calculator.policy)[0]
-                    else:
-                        reference = saturated_steam_enthalpy(pressure, policy=self.calculator.policy)[0]
-                    status = f"焓值：按标准表自动取值 {self.calculator.policy.format_for_display(reference, 1)} kJ/kg"
-        except (ValueError, InvalidOperation, DomainValidationError):
-            status = "焓值计算：压力或温度格式无效或超出标准表范围"
+        purchased = row.kind.currentData() == "purchased_heat"
+        if purchased and row.heat_boundary.currentData() == "INSIDE_ENTERPRISE" and row.heat_fuel_accounted.currentData() is True:
+            status = "边界内供热燃料已计：保留燃料排放，本条不重复计购热。"
+        elif purchased and (row.heat_boundary.currentData() == "UNCONFIRMED" or
+                row.heat_boundary.currentData() == "INSIDE_ENTERPRISE" or row.heat_fuel_accounted.currentData() is True):
+            status = "请核实热源边界和供热燃料是否已计入本企业，未明确前不能核算本条购热。"
+        elif row.enthalpy_mode.currentData() == "MANUAL":
+            status = "已知焓：待填写有依据的数值。" if not row.enthalpy.text().strip() else "采用独立已知焓，不查询自动物性或旧表。"
+        else:
+            status = "自动物性的受控实现暂未启用；请提供独立已知焓，不回退旧表。"
         row.status.setText(status)
 
     def _energy_source_is_enabled(self, source_id: str) -> bool:
@@ -6667,6 +6685,8 @@ class CarbonMaterialAccountingPage(BasePage):
                         or factor_mode is HeatFactorMode.MEASURED
                         or bool(row.measured_heat_factor.text().strip())
                         or bool(row.heat_source.text().strip())
+                        or row.heat_boundary.currentData() != "UNCONFIRMED"
+                        or row.heat_fuel_accounted.currentData() is not None
                     )
                 if has_partial_input:
                     active_directions.add((family, kind))
@@ -6978,12 +6998,14 @@ class CarbonMaterialAccountingPage(BasePage):
                     or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED
                     or bool(row.measured_heat_factor.text().strip())
                     or bool(row.heat_source.text().strip())
+                    or row.heat_boundary.currentData() != "UNCONFIRMED"
+                    or row.heat_fuel_accounted.currentData() is not None
                 )
             ]
             present = bool(active_rows)
             complete = present and all(
-                bool(row.amount.text().strip())
-                and row.amount.hasAcceptableInput()
+                ((row.heat_boundary.currentData() == "INSIDE_ENTERPRISE" and row.heat_fuel_accounted.currentData() is True)
+                 or bool(row.amount.text().strip()) and row.amount.hasAcceptableInput())
                 and self._unified_heat_row_profile_complete(row)
                 for row in active_rows
             )
@@ -7028,6 +7050,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED
                     or bool(row.measured_heat_factor.text().strip())
                     or bool(row.heat_source.text().strip())
+                    or row.heat_boundary.currentData() != "UNCONFIRMED"
+                    or row.heat_fuel_accounted.currentData() is not None
                 )
             ]
             present = bool(active_rows)
@@ -7057,22 +7081,18 @@ class CarbonMaterialAccountingPage(BasePage):
 
     @staticmethod
     def _unified_heat_row_profile_complete(row: _UnifiedEnergyRow) -> bool:
-        manual_enthalpy = row.enthalpy_mode.currentData() == "MANUAL"
-        try:
-            steam_kind = _enum(row.heat_kind.currentData(), SteamKind)
-            factor_mode = _enum(row.heat_factor_mode.currentData(), HeatFactorMode)
-        except (TypeError, ValueError):
+        if row.kind.currentData() == "purchased_heat":
+            boundary = row.heat_boundary.currentData()
+            accounted = row.heat_fuel_accounted.currentData()
+            if boundary == "INSIDE_ENTERPRISE" and accounted is True:
+                return True
+            if boundary != "OUTSIDE_ENTERPRISE" or accounted is True:
+                return False
+        if row.enthalpy_mode.currentData() != "MANUAL":
             return False
-        if manual_enthalpy:
-            enthalpy_ready = bool(row.enthalpy.text().strip()) and row.enthalpy.hasAcceptableInput()
-        else:
-            enthalpy_ready = bool(row.pressure.text().strip()) and row.pressure.hasAcceptableInput()
-            if steam_kind is SteamKind.SUPERHEATED:
-                enthalpy_ready = enthalpy_ready and bool(row.temperature.text().strip()) and row.temperature.hasAcceptableInput()
-        if factor_mode is HeatFactorMode.MEASURED:
-            factor_ready = bool(row.measured_heat_factor.text().strip()) and row.measured_heat_factor.hasAcceptableInput()
-        else:
-            factor_ready = True
+        enthalpy_ready = bool(row.enthalpy.text().strip()) and row.enthalpy.hasAcceptableInput()
+        factor_ready = (_enum(row.heat_factor_mode.currentData(), HeatFactorMode) is not HeatFactorMode.MEASURED
+                        or bool(row.measured_heat_factor.text().strip()) and row.measured_heat_factor.hasAcceptableInput())
         return enthalpy_ready and factor_ready
 
     @staticmethod
@@ -7738,7 +7758,20 @@ class CarbonMaterialAccountingPage(BasePage):
             if row.kind.currentData() != expected_kind:
                 continue
             amount = _value(row.amount)
+            internal_accounted = (expected_kind == "purchased_heat" and row.heat_boundary.currentData() == "INSIDE_ENTERPRISE"
+                                  and row.heat_fuel_accounted.currentData() is True)
+            if internal_accounted:
+                result.append(HeatInput(line_id=row.line_id.text().strip(), amount=amount, unit="t",
+                    source_boundary="INSIDE_ENTERPRISE", fuel_emissions_accounted=True))
+                continue
             if amount is None:
+                touched = (any(edit.text().strip() for edit in (row.enthalpy, row.pressure, row.temperature,
+                           row.measured_heat_factor, row.heat_source)) or row.heat_boundary.currentData() != "UNCONFIRMED"
+                           or row.heat_fuel_accounted.currentData() is not None
+                           or row.enthalpy_mode.currentData() == "MANUAL"
+                           or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED)
+                if touched:
+                    raise DomainValidationError("热力明细尚未填写蒸汽量，请补全该条输入后再核算。")
                 continue
             factor_mode = _enum(row.heat_factor_mode.currentData(), HeatFactorMode)
             source_note = row.heat_source.text().strip() or None
@@ -7772,6 +7805,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 factor_mode=factor_mode,
                 factor_source_note=source_note,
                 steam_amount_t=InputValue(amount, "t"),
+                source_boundary=str(row.heat_boundary.currentData()),
+                fuel_emissions_accounted=row.heat_fuel_accounted.currentData(),
             ))
         return tuple(result)
 

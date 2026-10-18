@@ -1,11 +1,9 @@
-# HANDOFF — B-HEAT 当前实施交接
+# B-HEAT 交接（继续前先处理待决项）
 
-PR51已合并并由源确认；最新main独立基线a1aeebc1b6809397e61a2ffa7a2333a3b440c756。原bbb/CI273与实际包固定证据见docs/ci/B_FUME_SUMMARY.json，不改旧证据；唯一产品路线REFERENCE_STANDARD_ROADMAP.md。
+PR51已合并，当前隔离分支codex/b-heat-integration，base a1aeebc1b6809397e61a2ffa7a2333a3b440c756；实际origin/fetch/工作区已核。用户原始下一步授权已核，C负责所有共享文件；F helper/tests已取，M外部CO₂准备不取，N不启动。中央锁定ee5feb0不改。
 
-当前按V2§10、Issue015/017/019推进热源边界、heat.factor与合法已知焓GUI/Excel/Canonical/项目/Record/Word/包完整链。C共享独占，F已知焓/015两个专属文件、M外部CO₂两个专属文件只准备，确切路径/接口见TASK_STATE唯一协作表。两线依赖当前main既有类型，不造影子输入/API，C独占公共尾字段与版本。
+当前本地热力领域与GUI/B.9/项目/Record/Word链候选：领域断点5870ecf，新增跨渠道6/6、最后源卡修正与领域/专属/Numeric37/37；真实CI273旧热力两Record/Word模型和正文不漂移。此非整仓/CI/新包PASS。既有G06/蒸汽32项22FAIL含subtests仍未修完，具体原因和待决证据见TASK_STATE及IMPLEMENTATION_REPORT。
 
-同边界已计燃料的内部蒸汽不再计购热，燃料仍保留；界外按购入热力，不凭“自备”名判断。默认必须真实适用目录/Resolver，实测空或非法不回默认，证明缺失不作门槛。有限非正已知焓保持既有WARNING口径，不擅自提高严重级别；不依赖辅助自动参考或旧表比较。
+继续前：等待共享HEAT.1版本/当前母版元数据/包核验/仅当前版本断言同步的直接用户窄授权；C.3独立来源资格遗漏已由源核台账005/006及Mapping§9.4并向用户提补齐确认，不能按0.11相同伪装common来源或仅改失败期望。自动017具体实现另待Owner，不加入产品依赖，不回旧表。不得绕过自动审批拒绝。
 
-017自动物性具体实现/分发仍待Owner窄选择；只隔离调查，不新增产品依赖/销售包，不静默替换或旧表回退。已知焓/边界/factor继续推进。外部016仅专属准备，不夹带HEAT生产；同边界同期前述未计非负tCO2独立补充，ES/EI/ET和覆盖资格不改。
-
-原树/根用户资料保留；无破坏性迁移/中央Frozen升级/第二路线/CU/N/商业发布。完成本包新CI、精确包与仓内证据送源验收后停止，C不合并新PR。原生Office、鼠标/IME/人工DPI、企业样例、干净目标机与商业履约仍OPEN。
+决策后按最小职责补丁完成真实C.3同次Resolver、期间回归、既有测试兼容、共享算法身份和构建资源，保护材料/燃料/电力/FGD/烟气与旧模板/Record/Word；新私有PR须attach，精确head CI/实包验证后送源独立验收。C不合并、不CU、不商业发布、不扩标准或开始下一包。一个阶段现有路线/状态/报告，不另建平行路线。

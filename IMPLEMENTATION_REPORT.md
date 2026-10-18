@@ -1,36 +1,42 @@
-# B-HEAT 实施报告（进行中）
+# B-HEAT 实施报告（本地阶段候选）
 
-日期：2026-10-18。状态：预检查完成、F/M最小接口已发布；当前尚未实施生产接管或执行本包测试，不宣布完成。
-
-## 范围与基线
-
-已实际核origin/fetch/main/干净新树，codex/b-heat-integration从PR51合并a1aeebc1b6809397e61a2ffa7a2333a3b440c756起步。旧FUME证据和用户根工作树不改。唯一正式出口V2§10：015真实热源边界防重复、heat.factor同源资格/Resolver、合法已知焓与GUI/B.9/Canonical/SQLite项目/冻结Record/Word/包；外部016只M专属准备，不入本段消费者/送验。
-
-C公共独占，F/M路径/接口已按TASK_STATE固定并下发，可依赖当前main既有HeatInput/SteamEnthalpyEvaluation等类型，避免等待整套尾字段。已知HM<=0按旧实现WARNING仍采用，不新增范围解释或误改ERROR。Core默认UnitService未注册kJ/kg，实际只读探针返回UnknownUnitError；F将在专属helper显式注册三种线性比焓单位，这不是已通过的功能测试或公共Unit规则冻结。
+更新：2026-10-18。当前结论PARTIAL，兼容决策待确认；无新PR/CI/实际新包，不作完整支持声明。
 
 ## 平台 / Contract 预检查
 
-业务base上述merge，locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20保持。中央origin已核/fetch，Frozen Architecture2.1/Numericv1/Profilesv1按lock读取；当前ACTIVE UIv0.2路由从已合并main读取。MUST：平台无关Domain/分层/共享内核、声明Profile一致、ambient独立、full-value exact、输入/规范化/显示分开、历史不可漂移。MUST NOT：隐式float/业务epsilon/display回流/Qt状态当公共Workspace/自动Frozen升级。Carbon p40/HALF_UP为允许项目差异，无中央缺口/修改。
+业务base为PR51 merge a1aeebc1b6809397e61a2ffa7a2333a3b440c756，origin adgo07/GHGTOOL、fetch、main和起步干净已实际核。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。Architecture V2.1、Numeric v1、Profiles v1按锁定读取；UI当前正式合并指南按中央origin/main读取。MUST：分层、共享内核、声明Profile一致、ambient独立、full-value exact、原/规范/显示值隔离、历史Record/Word冻结；MUST NOT：隐式float、业务epsilon、显示值回流、Qt状态当公共Workspace、自动Frozen升级。Carbon p40/HALF_UP为ALLOWED PROJECT DIFFERENCE；本轮不改中央Contract。相关Standard Issue005/006/015/017/019；无新专业解释，C3候选漏项需按既有005/006补齐的确认尚待答复。
 
-相关Issue015/017/019，016仅准备；依据原Owner决定，不重新裁定。017自动物性暂未获相容具体分发方案，F仅原始许可/官方参考和接口核查，无生产依赖/包/自实现替代/旧表回退。源已向Owner提出具体实现窄选择；该项不阻塞known、边界与factor。
+## 实现与可审查结果
 
-## 当前执行证据与OPEN
+具体实现、接口、当前版本和非目标范围见TASK_STATE。正式领域断点5870ecf已提交；本地候选补齐实际统一热力GUI、受控B.9 v10明确方式/来源/边界、codec/SQLite项目恢复、购入输出独立抵扣与冻结Word。没有第二套算法、数据库迁移或自动物性产品依赖。原燃料及历史记录不删除重算。
 
-实际生产测试：NOT_RUN，原因：本包接口刚固定，实施尚未完成。F/M独立准备、PR51 CI273/旧实包均不能冒称本包验证。后续按稳定断点补真实命令、通过/失败数、原始失败原因、CI与实际包身份。
+## 验证
 
-保护燃料/电力/材料/FGD/烟气、旧模板、旧Record/Word及独立projects/records存储。原生Office、鼠标/中文IME/人工DPI、企业样例、干净目标机、商业履约继续OPEN。无CU/N/商业发布。新私有PR创建后attach，新源码CI和精确包送源验收，C不自行合并。
+| 来源 | 命令/证据 | 结果 |
+|---|---|---|
+| C本地Python3.12.14 | `python -B -m unittest tests.test_b_heat_chain.HeatQtTests tests.test_b_heat_chain.HeatExcelTests -v` | 6/6，0失败/错误/跳过，41.731s；Qt/Excel/SQLite/Canonical/正式购入输出/冻结Word |
+| C本地最后UI修正后 | `python -B -m unittest tests.test_b_heat_chain.HeatQtTests.test_internal_no_unrelated_values_and_boundary_conflict tests.test_b_heat_runtime tests.test_b_heat_specialist tests.test_numeric_contract_v1_adoption -v` | 37/37，0失败/错误/跳过，7.412s |
+| C本地既有回归 | `python -B -m unittest tests.test_g06_carbon_material tests.test_uat01b_material_steam -v` | 32项、22FAIL含subtests、0ERROR，2.502s；未收口，不能称通过 |
+| C本地实际历史包 | CI273源码bbb1d5b的EXE/PYZ生成两条旧热力Record/Word，再用当前代码调用`verify_frozen_record_word.verify` | 两条ReportModel哈希及Word document.xml字节一致，禁Calculator/Resolver；复制DB、原DB不改 |
+| C本地受控母版 | `python -B -m scripts.project_appendix_b_v10 --write`及专属ZIP部件比较 | v10 SHA5dd12be5e78f13e1408e96f4698e725a4c5bf45071923b6c90d75a080437b5e9；仅sheet9变化，v9真实识别 |
+| C本地渲染 | Artifact Tool只读导入/render B.9前后PNG并查看 | 新表头/提示可见；不是原生Excel/WPS回导 |
 
+日志/历史生成器/真实包比对证据均在本树tmp/b-heat；未将tmp作为运行时真值源。上述本地结果不是GitHub Actions。本包尚未执行全量、构建、CI或新实际包验证。
 
-## 2026-10-18 专属整合稳定断点
+## 历史热力证据
 
-F交付4bdef411c503e726c74b1bfadd61e9e82e7f27e6，C只取packages/standards/carbon_material_heat.py与tests/test_b_heat_specialist.py两文件，未取M外部准备。C本地Python3.12.14执行`python -B -m unittest tests.test_b_heat_specialist tests.test_numeric_contract_v1_adoption -v`：29/29通过、0失败/错误/跳过，0.053s。此证据仅为helper及Numeric保护，不是GUI/Excel/正式Record/Word/包完整链。
+从已核CI273实际EXE/PYZ业务代码及其包资源生成旧known-with-old-reference/old-auto-table合成记录，不冒称真实企业数据或原生EXE交互。旧known ReportModel SHA29a564bbbdc221c5a34c223c39e8001352d853f3f60d2a1d8fa65c675d7ddc2c、XML SHAe93c2ef859cc44a547a16b9a3e02a756426e1d09089126f13caf194bbb5955fe；旧auto model0578d13aead197d0b8f14f6c9a344be3946236e76fd4729b40a4d6d6802d6bb1、XML51735e78cf9571f0d074010ba26e4be6ee504b96ab0a1ab230de097e980d4df5。当前阅读器禁计算/Resolver后两者逐字节一致，原数据库SHA未变。最终受验head/实际包仍须重核。
 
-heat.factor已机械生成待审资源候选，尚无生产消费者。自动审批拒绝一次组合编辑：包含路线、HeatInput和Calculator/Resolver行为变化，理由是缺少用户本人对具体热力接线的可核实授权且脚本替换范围过大。拒绝脚本没有执行。C已向用户提出具体边界、已知焓、同次Resolver、自动路径不回旧表及适配器接线授权，等待答复；正式接线暂停，文档与现有专属验证继续，不绕过拒绝。自动物性具体实现选择仍独立等待Owner。尚未执行本包全量、构建、GitHub Actions或实际包验证。
+## BLOCKED：共享版本和C.3资格兼容
 
-## 原始授权核实与领域链断点
+问题：共享Calculator版本/打包/报告元数据同步待用户具体授权；候选heat.factor漏列原有C.3独立来源，旧正式兼容未收口。
+证据：自动审批拒绝组合脚本后，又拒绝仅改ALGORITHM_VERSION一行，理由为会影响材料/脱硫/烟气的新Record版本及断言；两个脚本都未执行。现有Canonical资格只列binding-heat_default_2025；Catalog和既有Resolver另有binding-heat_default_gbt32151_34_c3、同资产但不同来源/适用条件，Mapping§9.4/Issue005/006保留C.3。源会话已核该事实并向用户提确认。
+为什么不能按原方案继续：不能把C.3伪装成通则来源、按0.11数值相同放行，不能静默把原合法默认改成不可用，也不能用旧FUME.2标记作为新热力交付身份或只改测试掩盖失败。
+可选方案A：用户授权共享HEAT.1/当前母版v10元数据/包核验与仅当前版本断言同步；授权补齐准确C.3资格，保留Resolver原来源选择/适用条件，完成早于/跨越/晚于实施日回归。
+可选方案B：保留本地候选与证据，暂停正式版本送验，待决策后继续。
+建议：A；不改原排放公式、Numeric、历史Record或数据库结构。
+需要决策的具体问题：本会话已发版本兼容窄确认；C.3补齐确认由源提出。017自动物性更换实现仍独立待Owner，未加产品依赖、不换库或回旧表。不得重试被拒脚本或另设版本绕过。
 
-已从源会话工具直接读取用户原始消息（turn01a14e3a，userMessage01a14e3a-3a98）：“PR51自检通过并合并后，启动下一步工作”；上一turn01a14e32明确热力/蒸汽完整链计划。携此证据按单职责最小补丁重新走正常审批已获接受，不重复执行被拒的大脚本；先前接线待授权状态已解除。017更换具体实现仍待Owner，不在该阶段授权中。
+## 未执行项
 
-已接HeatInput边界尾字段、codec5（旧1—4读为UNCONFIRMED、保留原值）、独立已知焓及方法/Profile trace、015先分派再求值、heat.factor机械资源/真实Catalog资格提供者与同次Resolver采用。无公式/Numeric/数据库迁移或旧Record更新。C本地`python -B -m unittest tests.test_b_heat_runtime -v`：7/7、0失败/错误/跳过，1.000s。正式热力独立期望0.308；燃料保护比较原正式p40全值，未用显示8.624代替全值。
-
-失败如实记录：首轮7项3FAIL（夹具使用2025目录适用期和理想燃料小数未考虑既有p40操作次序），第二轮7项10ERROR（测试误用AccountingPeriod字段名），修正后7项1FAIL暴露热力资格尚未加入正式提供者；接入后仍1FAIL，核查真实Catalog单位为tCO₂/GJ并兼容既有别名后上述7项通过。一次诊断脚本漏PYTHONPATH导致docx导入ERROR，不计作业务测试。尚未执行GUI/B9/Word/全量/包/本包CI。
+全量/构建/新CI/实际新包：待兼容决策并修完受影响回归。自动IF97正式接入：待Owner具体实现及分发选择。原生Office/实际鼠标/IME/DPI/企业样例/目标机/商业履约：仍OPEN，不以offscreen或包内PYZ证明替代。旧材料/脱硫/烟气包证据保持原身份，本包最终需保护回归。既有失败与已修夹具详见TASK_STATE，未删除失败统计。

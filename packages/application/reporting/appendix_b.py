@@ -529,6 +529,15 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
     for collection,direction,source in (('purchased_heat','购入',SOURCE_PURCHASED_HEAT),('exported_heat','输出',SOURCE_EXPORTED_HEAT)):
         for item in _entries(raw,collection):
             iid = _text(item.get('line_id'))
+            if (collection == 'purchased_heat' and item.get('source_boundary') == 'INSIDE_ENTERPRISE'
+                    and item.get('fuel_emissions_accounted') is True
+                    and any(problem.code == 'CAR-VAL-HEAT-INTERNAL-ACCOUNTED' and problem.field_id == iid
+                            for problem in record.calculation_result.problems)):
+                note = '本企业边界内供热燃料已计入燃料排放，本表不重复列为购入热力；燃料排放保持。'
+                if note not in notes:
+                    notes.append(note)
+                rows.append(('内部流转（不重复计购热）', *('不适用',)*6))
+                continue
             step = _frozen_step(record,trace,source,iid)
             provenance = _mapping(_mapping(step).get('calculation_provenance'))
             variables = _variables(step)
