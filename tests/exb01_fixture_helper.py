@@ -61,6 +61,11 @@ def write_valid_appendix_b_workbook(path: str | Path, *, all_sources: bool = Fal
         heat = workbook["B.9"]
         heat["B3"], heat["C3"], heat["D3"] = "饱和蒸汽", 1000, 1
         heat["B4"], heat["C4"], heat["D4"], heat["G4"] = "饱和蒸汽", 100, 1, 0.12
+        # Mixed-source arithmetic fixture uses explicitly supplied known h, not a new physical Golden.
+        for row in (3,4):
+            heat[f"F{row}"],heat[f"H{row}"] = 2777,"已知焓"
+            heat[f"I{row}"] = "缺省值" if row==3 else "实测值"
+        heat["J3"] = "边界外"
     workbook.save(target)
     workbook.close()
     return target

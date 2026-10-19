@@ -4,7 +4,7 @@
 
 ## 当前候选审阅复现
 
-当前燃料/电力逐段采用修订为`adoption-2026-10-17-fuel-power1`，通则固定依赖为`pr46-integration-2026-10-17-g05`。按既有Issue010精确追加表5普通购入条件，旧稳定分支保留；原接燃料B1/电力B，现B-MATERIAL另采用材料固定碳/挥发分子集GHGTOOL_MATERIAL_R11_V1；B-FGD另采用脱硫三字段GHGTOOL_FGD_R11_V1；外部CO₂/烟气/蒸汽等其余R11尚未接管。PR47原`19a9c2b`四件套仍以固定历史提交/原工作树保留，新生成表不能冒称原件。
+当前燃料/电力逐段采用修订为`adoption-2026-10-17-fuel-power1`，通则固定依赖为`pr46-integration-2026-10-17-g05`。按既有Issue010精确追加表5普通购入条件，旧稳定分支保留；原接燃料B1/电力B，现B-MATERIAL另采用材料固定碳/挥发分子集GHGTOOL_MATERIAL_R11_V1；B-FGD另采用脱硫三字段GHGTOOL_FGD_R11_V1；烟气Issue020已由PR51接管，B-HEAT候选另采用热力属性及独立C.3增量，当前送验/采用状态以TASK_STATE和IMPLEMENTATION_REPORT为准，外部CO₂仍未接管。本审阅四件套仍投影下述原三份R11来源，不冒充各生产子集/增量的完整镜像。PR47原`19a9c2b`四件套仍以固定历史提交/原工作树保留，新生成表不能冒称原件。
 
 从 GHGTOOL 仓库根目录打开 Windows PowerShell。候选验证器生成紧凑审阅投影、同源技术详情和只读目录快照；工作簿 builder 消费这些输入并生成审阅表、同源 HTML 详情与 `review-view-manifest.json`；往返夹具按正式投影生成反馈场景；仓内 Python checks 工具核对工作簿结构、意见保留、候选来源及生成器绑定，并检查 HTML 内嵌的投影 SHA、technical semantic SHA 和工作簿 scope 指纹是否与本轮输入一致。
 
@@ -98,3 +98,7 @@ try {
 仓库现有`.gitattributes`为`* text=auto eol=lf`，继续复用，不全仓renormalize。生成器/夹具的SHA是raw字节身份，区别于四定义资产的CRLF→LF规范化策略；作者工具写入这两个mjs时须显式保存UTF-8/LF，不能依赖Windows文本API默认换行。两脚本发现CRLF会在生成前拒绝，不生成错误raw身份，也不改为归一化hash掩盖问题。
 
 可只把`.gitattributes`、两个mjs通过`git -c core.autocrlf=true -c core.eol=crlf checkout-index --prefix=<隔离目录>/ -- <三文件>`检出，再核工作文件/index blob/隔离检出字节一致；人为CRLF副本须在Node执行时拒绝。四件套必须在约束满足后按前述流程机械重生。
+
+## 产品全量测试的固定物性依赖
+
+审阅作者工具的Node依赖与产品运行环境分开。运行全量Python测试/Windows构建前，按README在Python3.12 x64环境安装requirements-build.txt，并检查CoolProp.__version__==8.0.0、numpy.__version__==2.3.3及pip check。缺CoolProp时标准unittest discover明确产生_FailedTest/ImportError/FAILED及非零退出码；22个真实用例折成1个加载错误可使数量少21，不是静默成功。验收同时核命令、失败/错误数量和退出码，不另造测试发现框架。

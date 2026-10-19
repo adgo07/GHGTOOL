@@ -32,14 +32,17 @@ V7_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b
 V7_TEMPLATE_SHA256 = "e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a"
 V8_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v8.xlsx")
 V8_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx")
-APPROVED_TEMPLATE_SHA256 = "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
+V9_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx")
+V9_TEMPLATE_SHA256 = "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v10.xlsx")
+APPROVED_TEMPLATE_SHA256 = "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729"
 PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
 PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
 COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 TEMPLATE_SHA256_BY_PATH = {
     V8_TEMPLATE_PATH: V8_TEMPLATE_SHA256,
+    V9_TEMPLATE_PATH: V9_TEMPLATE_SHA256,
     V6_TEMPLATE_PATH: V6_TEMPLATE_SHA256,
     V7_TEMPLATE_PATH: V7_TEMPLATE_SHA256,
     V5_TEMPLATE_PATH: V5_TEMPLATE_SHA256,
@@ -48,16 +51,21 @@ TEMPLATE_SHA256_BY_PATH = {
     PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
     COMPATIBILITY_TEMPLATE_PATH: COMPATIBILITY_TEMPLATE_SHA256,
 }
-from packages.standards.carbon_material_business_policy import RUNTIME_RESOURCE, RUNTIME_SHA256, MATERIAL_RUNTIME_RESOURCE, MATERIAL_RUNTIME_SHA256, FGD_RUNTIME_RESOURCE, FGD_RUNTIME_SHA256
+from packages.standards.carbon_material_business_policy import RUNTIME_RESOURCE, RUNTIME_SHA256, MATERIAL_RUNTIME_RESOURCE, MATERIAL_RUNTIME_SHA256, FGD_RUNTIME_RESOURCE, FGD_RUNTIME_SHA256, HEAT_RUNTIME_RESOURCE, HEAT_RUNTIME_SHA256
 
 BUSINESS_RULES_PATH = Path("resources") / RUNTIME_RESOURCE
 
 REPORT_LAYOUT_PATH = Path("packages/application/reporting/appendix_b_layout.json")
+STEAM_LICENSE_HASHES = {'resources/licenses/steam_if97/CoolProp-8.0.0-LICENSE.txt': '33cfa17c9d0abe742bcbe532c52e79bc08704a0c30dbcc61dd76011b1ebe127e', 'resources/licenses/steam_if97/NumPy-2.3.3-LICENSE.txt': '596b953e1dcbe829b32ae444387efa15003fc6abdeca8a2179f364a6364c286e', 'resources/licenses/steam_if97/CoolProp_boost-headers_LICENSE.txt': '5aa9d6274dc04b8ef541d29ff973362936798a2316048ff9089f289243abc456', 'resources/licenses/steam_if97/CoolProp_IF97_LICENSE.txt': 'dc5c04001614c958cb46c383e7e88e3e50a98f4dd2f77e76d69c30be63a4f512', 'resources/licenses/steam_if97/CoolProp_REFPROP-headers_LICENSE.txt': '12190c4091c7cf90a71ef87a02f2677ec0bfbc0469c70a489201ea6b57db9044', 'resources/licenses/steam_if97/Eigen5.0.1_COPYING.MPL2.txt': '88c0394098e40fb1ca64bdc2048b20dc1d010b1745b48e41cbe76dae36eb1bf5', 'resources/licenses/steam_if97/fmtlib_fmt_LICENSE.txt': 'a9afff5540d894a9c7ba0e1b427cf61b77e06f1f72c25b025618169bdde52253', 'resources/licenses/steam_if97/msgpack_msgpack-c_COPYING.txt': 'a566eeb22107c7af7c091d47dd912f4249a3ebf3d07ca0d7ccb785becfe7d8ab', 'resources/licenses/steam_if97/nlohmann_json_LICENSE.MIT.txt': '3d20faab6958545bf6df39e42d046265786494f5c9e23b198f8aaa0a10e368bf', 'resources/licenses/steam_if97/tristanpenman_valijson_LICENSE.txt': '0eb47a50b864385008e182cff467a9970fc3db57801a08468075436016b60abc', 'resources/licenses/steam_if97/wjakob_nanobind_LICENSE.txt': '16faaa143ebee12b09cec5bb2aaa51ac99c9522a0b054aed4cf8bf54b07771c3', 'resources/licenses/steam_if97/miniz-3.1.1-LICENSE.txt': '6f20fa7672b00e2e975c291df737cf227addf3ad32e36fef3fe0f416e4664d3d', 'resources/licenses/steam_if97/incbin-UNLICENSE.txt': '7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c', 'resources/licenses/steam_if97/SOURCES_AND_NOTICES.json': '2f825d09038c4a927adeb253baf5af836ac75e41cbaaaf0aa74d72c57ce411f2'}
+
 ALLOWED_RESOURCE_FILES = frozenset({
+    *STEAM_LICENSE_HASHES,
     BUSINESS_RULES_PATH.as_posix(),
     (Path("resources") / MATERIAL_RUNTIME_RESOURCE).as_posix(),
     V6_TEMPLATE_PATH.as_posix(), V7_TEMPLATE_PATH.as_posix(), V8_TEMPLATE_PATH.as_posix(),
     (Path("resources") / FGD_RUNTIME_RESOURCE).as_posix(),
+    (Path("resources") / HEAT_RUNTIME_RESOURCE).as_posix(),
+    V9_TEMPLATE_PATH.as_posix(),
     V5_TEMPLATE_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
     PRIOR_TEMPLATE_PATH.as_posix(),
@@ -204,9 +212,15 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     fgd_path = Path("resources") / FGD_RUNTIME_RESOURCE
     if not (artifact / fgd_path).is_file() or _sha256(artifact / fgd_path) != FGD_RUNTIME_SHA256:
         issues.append("missing or inconsistent adopted FGD rules")
+    heat_path = Path("resources") / HEAT_RUNTIME_RESOURCE
+    if not (artifact / heat_path).is_file() or _sha256(artifact / heat_path) != HEAT_RUNTIME_SHA256:
+        issues.append("missing or inconsistent adopted heat rules")
     material_path = Path("resources") / MATERIAL_RUNTIME_RESOURCE
     if not (artifact / material_path).is_file() or _sha256(artifact / material_path) != MATERIAL_RUNTIME_SHA256:
         issues.append("missing or damaged material runtime rules")
+    for notice, expected in STEAM_LICENSE_HASHES.items():
+        if not (artifact / notice).is_file() or _sha256(artifact / notice) != expected:
+            issues.append("missing or inconsistent steam licensing notice: " + notice)
     for path in _relative_files(artifact):
         relative = Path(path)
         normalized = relative.as_posix()

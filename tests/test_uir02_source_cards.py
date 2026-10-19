@@ -341,6 +341,7 @@ class UIR02SourceCardTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self.page.period_year.setValue(2026)
         row = self.page._energy_family_rows["heat"][0]
+        row.heat_boundary.setCurrentIndex(row.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         row.amount.setText("1")
         row.pressure.clear()
         toggle.click()
@@ -350,7 +351,7 @@ class UIR02SourceCardTests(unittest.TestCase):
 
         card = self._card("CAR-SRC-PURCHASED-HEAT-001")
         validation_text = "\n".join(tree_texts(self.page.validation_list))
-        self.assertIn("蒸汽状态资料不完整", validation_text)
+        self.assertIn("绝压", validation_text)
         self.assertNotIn("CAR-VAL-", validation_text)
         self.assertIs(card.presentation_state, SourceCardPresentationState.NEEDS_ATTENTION)
         self.assertIn("需要处理", card.summary_label.text())

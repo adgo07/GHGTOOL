@@ -41,7 +41,11 @@ python -m venv .venv
 
 ## 测试与校验
 
+全量热力测试及构建须在同一Python 3.12 x64环境安装固定CoolProp 8.0.0、NumPy 2.3.3（约束见requirements-build.txt）。普通源码安装也声明这两项；复建环境先执行下列安装/检查，不依赖其他电脑的既有venv。缺库时标准unittest discover会产生_FailedTest/ImportError并以FAILED和非零退出码结束；22个真实用例可能折为1个加载错误而少计21，不能只看测试数量或称为静默跳过。
+
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -c "import CoolProp, numpy; assert CoolProp.__version__ == '8.0.0'; assert numpy.__version__ == '2.3.3'"
 $env:QT_QPA_PLATFORM = "offscreen"
 .\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 .\.venv\Scripts\python.exe -m compileall apps packages scripts tests

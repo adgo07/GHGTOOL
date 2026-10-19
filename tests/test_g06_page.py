@@ -844,6 +844,7 @@ class G06PageTests(unittest.TestCase):
         self._set_source_involved("CAR-SRC-EXPORTED-HEAT-001")
         self._set_source_involved("CAR-SRC-EXPORTED-ELECTRICITY-001")
         first_heat = self.page._energy_family_rows["heat"][0]
+        first_heat.heat_boundary.setCurrentIndex(first_heat.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         first_heat.amount.setText("100")
         first_heat.enthalpy.setText("2800")
         first_heat.enthalpy_mode.setCurrentIndex(first_heat.enthalpy_mode.findData("MANUAL"))
@@ -858,6 +859,7 @@ class G06PageTests(unittest.TestCase):
         first_exported_heat.measured_heat_factor.setText("0.12")
         first_exported_heat.heat_source.setText("售热报告-A")
         second_heat = self.page._add_unified_energy_row(kind="purchased_heat", line_id="purchased-heat-b")
+        second_heat.heat_boundary.setCurrentIndex(second_heat.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         second_heat.amount.setText("200")
         second_heat.enthalpy.setText("3000")
         second_heat.enthalpy_mode.setCurrentIndex(second_heat.enthalpy_mode.findData("MANUAL"))
@@ -1077,6 +1079,7 @@ class G06PageTests(unittest.TestCase):
 
         self._set_source_involved("CAR-SRC-PURCHASED-HEAT-001")
         self._set_source_involved("CAR-SRC-EXPORTED-HEAT-001")
+        row.heat_boundary.setCurrentIndex(row.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         row.amount.setText("1")
         row.pressure.setText("0.1")
         output_row = self.page._add_unified_energy_row(kind="exported_heat", line_id="exported-heat-default")
@@ -1093,8 +1096,9 @@ class G06PageTests(unittest.TestCase):
         self.assertTrue(outcome.successful, outcome.problems)
         trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-PURCHASED-HEAT-001")
         provenance = dict(trace.provenance)
-        self.assertEqual(provenance["enthalpy_source"], "标准表自动确定")
-        self.assertEqual(provenance["table"], "C.4")
+        self.assertEqual(provenance["enthalpy_source"], "IAPWS-IF97自动物性")
+        self.assertEqual(provenance["table"], "")
+        self.assertEqual(provenance["enthalpy_method_version"], "CAR-HEAT-IF97-017.1")
         self.assertEqual(provenance["heat_factor_source"], "标准缺省值")
         factor_snapshot = next(
             item for item in outcome.parameter_snapshots
@@ -1107,7 +1111,7 @@ class G06PageTests(unittest.TestCase):
         self.assertEqual(output_heat.factor_mode, HeatFactorMode.STANDARD_DEFAULT)
         output_trace = next(item for item in outcome.traces if item.formula_id == "CAR-FML-EXPORTED-HEAT-001")
         self.assertEqual(dict(output_trace.provenance)["heat_factor_source"], "标准缺省值")
-        self.assertEqual(dict(output_trace.provenance)["enthalpy_source"], "标准表自动确定")
+        self.assertEqual(dict(output_trace.provenance)["enthalpy_source"], "IAPWS-IF97自动物性")
     def test_process_material_rows_flow_through_shared_normalization(self) -> None:
         from packages.standards.carbon_material_normalization import normalize_material_inputs
 
@@ -1155,6 +1159,7 @@ class G06PageTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self._set_source_involved("CAR-SRC-PURCHASED-HEAT-001")
         row = self.page._energy_family_rows["heat"][0]
+        row.heat_boundary.setCurrentIndex(row.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         row.amount.setText("1")
         row.enthalpy.setText("2810")
         row.enthalpy_mode.setCurrentIndex(row.enthalpy_mode.findData("MANUAL"))

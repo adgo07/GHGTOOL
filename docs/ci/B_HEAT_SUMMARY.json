@@ -1,0 +1,360 @@
+{
+  "stage": "B-HEAT",
+  "status": "F01_READY_FOR_INDEPENDENT_ACCEPTANCE_NOT_MERGED",
+  "base": "a1aeebc1b6809397e61a2ffa7a2333a3b440c756",
+  "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "algorithm": "CAR-SM01-2026-10-18-HEAT.1",
+  "template_sha256": "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729",
+  "local_execution": {
+    "python": "3.12.14 Windows x64",
+    "heat_final": {
+      "modules": [
+        "tests.test_b_heat_if97",
+        "tests.test_b_heat_specialist",
+        "tests.test_b_heat_runtime",
+        "tests.test_b_heat_chain.HeatQtTests",
+        "tests.test_b_heat_chain.HeatExcelTests",
+        "tests.test_numeric_contract_v1_adoption",
+        "tests.test_g08_delivery"
+      ],
+      "command": "python -B -m unittest <modules> -v",
+      "tests": 85,
+      "seconds": 65.099,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "report_final": {
+      "modules": [
+        "tests.test_main_integration_ui",
+        "tests.test_rpt01_report_excel",
+        "tests.test_rpt02_appendix_b",
+        "tests.test_p3_c_records_ui",
+        "tests.test_rs03_excel_entrypoints"
+      ],
+      "command": "python -B -m unittest <modules> -v",
+      "tests": 46,
+      "seconds": 135.016,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "gui_failure_repair": {
+      "tests": 5,
+      "seconds": 22.471,
+      "failures": 0,
+      "errors": 0
+    },
+    "numeric_excel_word_previous": {
+      "tests": 66,
+      "seconds": 76.226,
+      "failures": 0,
+      "errors": 0
+    },
+    "uir04_error_target_repair": {
+      "command": "python -B -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.test_business_error_is_clickable_and_expands_own_source_card -v",
+      "tests": 1,
+      "seconds": 4.202,
+      "failures": 0,
+      "errors": 0
+    },
+    "canonical_lf_repair": {
+      "command": "python -B -m unittest tests.test_b_heat_runtime tests.test_g08_delivery -v",
+      "tests": 30,
+      "seconds": 16.363,
+      "failures": 0,
+      "errors": 0
+    },
+    "review_assets": {
+      "command": "python -B -m unittest tests.test_business_rules_candidate_assets tests.test_b_material_source_review -v (stage environment)",
+      "tests": 23,
+      "seconds": 18.334,
+      "failures": 0,
+      "errors": 0,
+      "artifact_tool_roundtrip_scenarios": 25
+    },
+    "bounded_combination": {
+      "modules": [
+        "tests.test_uir01_field_semantics",
+        "tests.test_uir02_source_cards",
+        "tests.test_accounting_projects_ui",
+        "tests.test_canonical_project_inputs",
+        "tests.test_main_integration_ui.MainIntegrationUiTests.test_both_word_entrypoints_export_identical_business_content_for_same_record"
+      ],
+      "tests": 49,
+      "seconds": 187.332,
+      "failures": 0,
+      "errors": 0,
+      "per_test_stack_timeout_seconds": 45,
+      "original_stall_not_reproduced": true
+    },
+    "working_state_joint": {
+      "modules": [
+        "tests.test_b_heat_if97",
+        "tests.test_b_heat_specialist",
+        "tests.test_b_heat_runtime",
+        "tests.test_b_heat_chain.HeatQtTests",
+        "tests.test_b_heat_chain.HeatExcelTests",
+        "tests.test_numeric_contract_v1_adoption",
+        "tests.test_g08_delivery"
+      ],
+      "tests": 89,
+      "seconds": 96.081,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "counts_not_summed": "Selected suites overlap; no local full-suite claim.",
+  "old_actual_bundle_frozen_records": [
+    {
+      "record_id": "record.input.actual-old-known-with-old-reference.7155ec958c1040af92c4a9b7b307a1e4",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "29a564bbbdc221c5a34c223c39e8001352d853f3f60d2a1d8fa65c675d7ddc2c",
+      "document_xml_sha256": "e93c2ef859cc44a547a16b9a3e02a756426e1d09089126f13caf194bbb5955fe",
+      "word_body_bytes_unchanged": true
+    },
+    {
+      "record_id": "record.input.actual-old-old-auto-table.a88d8b2107964fd9b25abf54179a1c81",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "0578d13aead197d0b8f14f6c9a344be3946236e76fd4729b40a4d6d6802d6bb1",
+      "document_xml_sha256": "51735e78cf9571f0d074010ba26e4be6ee504b96ab0a1ab230de097e980d4df5",
+      "word_body_bytes_unchanged": true
+    }
+  ],
+  "failure_ledger": [
+    "Legacy GUI broad run stopped at Word entrypoint without final statistics; 5 old assertions failed before interruption.",
+    "Four heat GUI failures reproduced independently: missing explicit boundary and old-table provenance; repaired and checked.",
+    "All-negative field assertion narrowed only for the two known-enthalpy fields; other negative gates retained.",
+    "Standalone Word entrypoint passed 1/1 in 9.057s; full five-module report group then passed 46/46.",
+    "New nonpositive test initially used nonexistent severity property (2 subtest errors); corrected to level, strict original/adopted freeze asserts pass.",
+    "Low-pressure 0.0001MPa/300K initial specialist success claim withdrawn; actual backend PT fails and is rejected.",
+    "Earlier 55-case chain had one IF97 Word method omission; new-only B9 note fixed; old Word unchanged.",
+    "First local actual-package verifier preloaded host openpyxl, then loaded packaged lxml and failed with duplicate native context types. Verifier now imports openpyxl from bundle after the import hook; separate output r2 passed. Product unchanged.",
+    "Read-only scan found one additional UIR04 heat fixture omitted from selected suites: reproduced 1 FAIL in 3.921s due to unknown boundary/old generic wording; fixture now explicitly external, asserts actual absolute-pressure message and retains clickable own-card/no-internal-ID checks; repaired 1/1 in 4.202s. CI276 failed; exact statistics are in the final report.",
+    "Actual e931c21 Git blob isolated reproduction: C3 Canonical file was LF in Git but CRLF locally; projected source metadata had CRLF SHA f816d704... instead of Git LF 1dd97fd8.... Fixed working source LF, regenerated resource mechanically (37844a5b...), and projector now rejects CRLF source rather than normalizing hash. Structure comparison proves only appended source SHA differs; all fields/policies and other sources unchanged. Old local f85 package remains historical, not new-head proof. Runtime/G08 30/30 passed in16.363s. CI276/277 failed; exact statistics are in the final report.",
+    "Actual CI276 full log:1006 tests/2027.458s,1FAIL+2ERROR (UIR04, heat raw-byte projection, stale Mapping definition-asset hash). Standalone skipped. Third issue repaired via existing same-version review generator, previous tracked workbook retained0 opinions, all cell values/Table names/refs unchanged; four artifacts mechanically regenerated with23 Python tests and25 actual ArtifactTool feedback scenarios. Original3 Canonical files unchanged.450 visible scopes already existed (442+existing Issue010 eight), not newly expanded.",
+    "Before fix:2 tests/3 FAIL incl2 pressure acceptances and temperature explicit-reason assertion; temperature was already rejected by coarse phase.",
+    "First89-case joint:1 ERROR because test assumed Tsat firstULP was gas; real backend says liquid. Corrected legitimate positive examples, no production gate relaxed.",
+    "Targeted3/3 .229s; final joint89/89 96.081s.",
+    "Real critical bridge defect: raw22.063999...MPa converts to22064000.0Pa, backend falsely permits dryQ1/overheated classification at excluded critical pressure. Fixed actual workingPa and workingK gates under existing017; 249 full1007 pass is historical only."
+  ],
+  "ci": {
+    "head": "1843157a8bc9d78fa442c93b4094a076f562d788",
+    "merge": "f083dd6caeed54bb5e7c2ee0a4b92cc8565bb298",
+    "run_id": 39264926043,
+    "run_number": 283,
+    "status": "COMPLETED_SUCCESS",
+    "full": {
+      "tests": 1014,
+      "seconds": 1695.552,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "job_id": 118101913478
+    },
+    "standalone": {
+      "job_id": 118117880702,
+      "tests": 18,
+      "seconds": 12.315,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "artifact": {
+      "id": 12195361432,
+      "sha256": "b1febe11d53271ea798a027a89ea5b27c853f3cb9a0772d064c7b9d2842549f7",
+      "size_bytes": 75710032,
+      "manifest_files": 321,
+      "manifest_bytes": 181419277,
+      "zip_files": 322
+    },
+    "receipt_proof": "B_HEAT_F01_CI_RECEIPT_PROOF.json"
+  },
+  "actual_new_bundle": {
+    "source_commit": "1843157a8bc9d78fa442c93b4094a076f562d788",
+    "artifact_source": "GITHUB_ACTIONS_ACTUAL_CI283_PACKAGE_VERIFIED_LOCALLY",
+    "proof": "B_HEAT_F01_CI_PACKAGE_PROOF.json",
+    "artifact": {
+      "id": 12195361432,
+      "sha256": "b1febe11d53271ea798a027a89ea5b27c853f3cb9a0772d064c7b9d2842549f7",
+      "size_bytes": 75710032,
+      "manifest_files": 321,
+      "manifest_bytes": 181419277,
+      "zip_files": 322
+    }
+  },
+  "commercial_release": false,
+  "next": "Source final independent acceptance; no merge or next package.",
+  "pull_request": "https://github.com/adgo07/GHGTOOL/pull/52",
+  "code_head": "1843157a8bc9d78fa442c93b4094a076f562d788",
+  "preserved_license_whitespace": "Original-source whitespace intentionally retained; notices are -text and index blobs match declared source SHA, no formatting-pass claim.",
+  "heat_runtime_sha256": "37844a5b09fce7350ebc172457b768b86b665a4be8398408c4e2727be1216ca3",
+  "ci_retry_e931": {
+    "run_id": 39129892649,
+    "run_number": 277,
+    "status": "SUPERSEDED_BY_CANONICAL_LF_REPAIR",
+    "not_a_pass": true,
+    "tests": 1006,
+    "seconds": 1925.62,
+    "failures": 0,
+    "errors": 2,
+    "standalone": "SKIPPED",
+    "head": "e931c21ba7a21e17f979cbced124e476e3fd6535",
+    "tested_merge_sha": "903a8d9fa8f936b87734f3fe79458ddb35621e9f"
+  },
+  "ci_retry_a7d": {
+    "run_id": 39130931396,
+    "run_number": 278,
+    "status": "SUPERSEDED_BY_REVIEW_DEFINITION_ASSET_RECEIPT",
+    "not_a_pass": true,
+    "tests": 1007,
+    "seconds": 1900.408,
+    "failures": 0,
+    "errors": 1,
+    "standalone": "SKIPPED",
+    "head": "a7d5d468abf3495ce7daca9b4e62798123bb66fd",
+    "tested_merge_sha": "78c547019f1c243058297577d5a2c1bc8b391eb5"
+  },
+  "review_asset_proof": "B_HEAT_REVIEW_ASSET_PROOF.json",
+  "canonical_byte_proof": "B_HEAT_CANONICAL_BYTE_PROOF.json",
+  "ci_249_full_pass_not_final": {
+    "run": 279,
+    "run_id": 39132032103,
+    "head": "24901e12e9bc406a7da4a1616bd85818afb8c8b1",
+    "tested_merge_sha": "fc0cee485bab1e3148ac00c4f20036d7cd1a9979",
+    "tests": 1007,
+    "seconds": 1860.444,
+    "failures": 0,
+    "errors": 0,
+    "conclusion": "PASS_BUT_SUPERSEDED_BY_WORKING_BOUNDARY_DEFECT",
+    "standalone": "PASS:18 tests/11.038s;321 manifest files;322 ZIP files;2 isolated starts; superseded",
+    "not_final_acceptance": true
+  },
+  "working_state_proof": "B_HEAT_WORKING_BOUNDARY_PROOF.json",
+  "code_and_artifact_head": "1843157a8bc9d78fa442c93b4094a076f562d788",
+  "document_receipt_head": "THIS_RECEIPT_COMMIT; see latest PR52 head, not artifact source_commit",
+  "historical_ci276": {
+    "run_id": 39128755391,
+    "run_number": 276,
+    "head": "f85e0583b1ae01578cc0c0fc3135e875b44b8dc8",
+    "tested_merge_sha": "a4de96d507c4a9bdcd121a5835a58f4022ce705a",
+    "status": "COMPLETED_FAILURE_SUPERSEDED",
+    "tests": 1006,
+    "seconds": 2027.458,
+    "failures": 1,
+    "errors": 2,
+    "standalone": "SKIPPED",
+    "not_a_pass": true
+  },
+  "historical_local_f85_bundle": {
+    "source_commit": "f85e0583b1ae01578cc0c0fc3135e875b44b8dc8",
+    "artifact_source": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
+    "manifest_listed_files": 312,
+    "manifest_listed_bytes": 193930493,
+    "smoke_isolated_starts": 2,
+    "actual_exe_pyz_native_proof": "B_HEAT_LOCAL_PACKAGE_PROOF.json",
+    "proof_sha256": "1e1ae452097e57b62d99804c0395969414aafabcb77740f925aeeab90caa6b49",
+    "source_fallback": false,
+    "additional_native_probes": [
+      "saturated Q=1",
+      "measured zero no default / negative blocked",
+      "internal original fuel exact value preserved"
+    ]
+  },
+  "local_fca_bundle": {
+    "source_commit": "fca06e14a8526a968c27e3859888205079729864",
+    "artifact_source": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
+    "proof": "B_HEAT_LOCAL_FCA_PACKAGE_PROOF.json",
+    "exit_diagnostic_proof": "B_HEAT_EXIT_DIAGNOSTIC_PROOF.json"
+  },
+  "actual_ci_package_proof": "B_HEAT_CI280_PACKAGE_PROOF.json",
+  "actual_old_critical_negative_proof": "B_HEAT_CI279_NEGATIVE_PROOF.json",
+  "ci280_historical_only_after_f01": true,
+  "independent_pass_796_withdrawn": true,
+  "f01": {
+    "base": "79695cc665e8d03a45ef20bf3bb88e5c4ccccdd4",
+    "local_regression": {
+      "tests": 59,
+      "seconds": 59.668,
+      "failures": 0,
+      "errors": 0
+    },
+    "before": {
+      "tests": 1,
+      "seconds": 4.41,
+      "subtest_failures": 4
+    },
+    "review_proof": "B_HEAT_F01_REVIEW_PROOF.json",
+    "new_ci": {
+      "run_id": 39264926043,
+      "run_number": 283,
+      "head": "1843157a8bc9d78fa442c93b4094a076f562d788",
+      "proof": "B_HEAT_F01_CI_RECEIPT_PROOF.json"
+    },
+    "new_actual_bundle": "B_HEAT_F01_CI_PACKAGE_PROOF.json",
+    "source_acceptance": "PENDING_FINAL; source independently ran four targeted tests4/4 in7.962s",
+    "local_package": {
+      "source_commit": "1843157a8bc9d78fa442c93b4094a076f562d788",
+      "artifact_source": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
+      "proof": "B_HEAT_F01_LOCAL_PACKAGE_PROOF.json",
+      "exit_code": 0
+    },
+    "superseded_ci282": {
+      "run_id": 39264860027,
+      "run_number": 282,
+      "head": "dea45cd8c198d74d22d10a371696c62c01312856",
+      "merge": "814ecc94f5e7cce1bb14e53b3ec256abb1ca78cc",
+      "job_id": 118101682330,
+      "tests": 1014,
+      "seconds": 1850.207,
+      "failures": 0,
+      "errors": 1,
+      "standalone": "SKIPPED",
+      "reason": "Mapping omitted from first commit; registered definition asset SHA mismatch; completed by1843157.",
+      "conclusion": "FAILURE_SUPERSEDED",
+      "excerpts": [
+        "2026-10-19T13:59:17.9311806Z HEAD is now at 814ecc9 Merge dea45cd8c198d74d22d10a371696c62c01312856 into a1aeebc1b6809397e61a2ffa7a2333a3b440c756\r",
+        "2026-10-19T13:59:18.0544651Z 814ecc94f5e7cce1bb14e53b3ec256abb1ca78cc\r",
+        "2026-10-19T14:32:20.7379267Z ERROR: test_registered_definition_asset_hashes_match_checked_in_manifest (tests.test_business_rules_candidate_assets.CandidateAssetCoverageTests.test_registered_definition_asset_hashes_match_checked_in_manifest)\r",
+        "2026-10-19T14:32:20.7440467Z Ran 1014 tests in 1850.207s\r",
+        "2026-10-19T14:32:20.7440858Z FAILED (errors=1)\r"
+      ]
+    }
+  },
+  "historical_ci280": {
+    "head": "fca06e14a8526a968c27e3859888205079729864",
+    "merge": "d21e84149b2110051e3d6e2da46e52e7a2ac8a99",
+    "run_id": 39135340727,
+    "run_number": 280,
+    "status": "COMPLETED_SUCCESS",
+    "full": {
+      "tests": 1010,
+      "seconds": 1912.733,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "standalone": {
+      "job_id": 117706232197,
+      "tests": 18,
+      "seconds": 11.422,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "artifact": {
+      "id": 12140751279,
+      "sha256": "98b9a87204b667431a4b32ce31553a43dbaa05cc346725ab811e6549ceddb3c0",
+      "size_bytes": 75707621,
+      "manifest_files": 321,
+      "zip_files": 322,
+      "manifest_bytes": 181417790
+    },
+    "proof": "B_HEAT_CI280_RECEIPT_PROOF.json",
+    "not_final_after_f01": true
+  }
+}

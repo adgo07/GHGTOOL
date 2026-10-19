@@ -1,0 +1,36 @@
+{
+  "base": "79695cc665e8d03a45ef20bf3bb88e5c4ccccdd4",
+  "execution": "LOCAL_ARTIFACT_TOOL_MECHANICAL_SAME_R11_NOT_CI_OR_NATIVE_OFFICE",
+  "three_canonical_raw_bytes_unchanged": true,
+  "all_sheet_cell_values_styles_table_names_refs_rows_columns_unchanged": true,
+  "scope_count": 450,
+  "scope_count_unchanged": true,
+  "sheets": {
+    "业务规则": 29,
+    "操作与影响": 21,
+    "本次变化": 11
+  },
+  "feedback_retention": {
+    "manifest_retained_feedback": 0,
+    "workbook_feedback_rows": 0,
+    "previous_workbook_feedback_rows": 0,
+    "status": "VERIFIED"
+  },
+  "maximum_row_height_points": 344.0,
+  "hidden_technical_columns_per_sheet": 8,
+  "actual_fixture_scenarios": 25,
+  "python_tests": 23,
+  "python_seconds": 17.154,
+  "definition_assets_sha256": {
+    "data-source/carbon_accounting/business-rules/common/gbt_32150_2025.json": "7d21b91d0746609c77571ff916cf479817fbf7fe0d601292ccfcb591c5f3001c",
+    "data-source/carbon_accounting/business-rules/standards/gbt_32151_34_2024.json": "bfd443404a86a4f469b901e92236ec9a11ad4863975eff7cd3bae6498a5f31d7",
+    "data-source/carbon_accounting/business-rules/software_policy.json": "26007853c2dc53a0f1398564e61ee0245bdfe314619af9ccef0f21fa19adca4d",
+    "specs/carbon_accounting/GB_T_32151_34_2024_MAPPING.md": "d09642161f26a9bac67adb997ff119f854453ba94e02de4d9f81ed5765c361b1"
+  },
+  "four_artifacts_sha256": {
+    "业务规则审阅表.xlsx": "02369d831ea4a870c0550cd57b309f806bc5ecc562138f6314250daa0927c7a2",
+    "业务规则审阅详情.html": "21e6cb72edc307dc9172b31fe429109c4f9e6bd0fdd1a7f087ded7e0e500f649",
+    "review-artifact-checks.json": "e2116584522a5d858e6e87a0a6b4279718a8ee59174ab1ff209cb9fa73a13895",
+    "review-feedback-fixture.json": "beda91f68014c6097ddc750a0c2ffd0b9e2d5c9788ab1b92a5d9caeacab3e2f4"
+  }
+}

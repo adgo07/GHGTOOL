@@ -69,6 +69,11 @@ def _input(**kwargs: object) -> CarbonMaterialInput:
     )
 
 
+def _external_heat(*args, **kwargs):
+    kwargs.setdefault("source_boundary", "OUTSIDE_ENTERPRISE")
+    return HeatInput(*args, **kwargs)
+
+
 def _factor(value: str = "0.11") -> ParameterValue:
     return ParameterValue(
         "heat_emission_factor_measured",
@@ -222,7 +227,7 @@ class UAT01BMaterialNormalizationTests(unittest.TestCase):
 
 
 class UAT01BSteamTests(unittest.TestCase):
-    def test_c4_and_c5_automatic_values_use_nodes_and_linear_interpolation(self) -> None:
+    def test_historical_table_nodes_retained_but_formal_auto_uses_if97(self) -> None:
         self.assertEqual(saturated_steam_enthalpy("1.70")[0], Decimal("2793.8"))
         self.assertEqual(saturated_steam_enthalpy("1.80")[0], Decimal("2795.1"))
         c4_middle, c4_interpolated, _ = saturated_steam_enthalpy("1.75")
@@ -247,7 +252,7 @@ class UAT01BSteamTests(unittest.TestCase):
             (SteamKind.SUPERHEATED, "2", "325", c5_double),
         ):
             with self.subTest(kind=kind):
-                heat = HeatInput(
+                heat = _external_heat(
                     f"auto-{kind.value}",
                     InputValue("1.25", "t"),
                     factor=_factor(),
@@ -264,28 +269,24 @@ class UAT01BSteamTests(unittest.TestCase):
                 )
                 self.assertTrue(outcome.successful, outcome.problems)
                 heat_line = next(line for line in outcome.result.lines if line.line_id.endswith(heat.line_id))
-                with localcontext() as context:
-                    context.prec = 28
-                    expected = Decimal("1250") * reference * Decimal("0.11") / Decimal("1000000")
-                self.assertEqual(heat_line.amount, expected)
                 trace = next(trace for trace in outcome.traces if trace.trace_id == heat.line_id)
                 provenance = dict(trace.provenance)
-                self.assertEqual(provenance["enthalpy_source"], "标准表自动确定")
-                self.assertEqual(provenance["automatic_reference_enthalpy_kj_per_kg"], str(reference))
+                adopted = dict((name,value) for name,value,_ in trace.variables)["HM"]
+                with localcontext() as context:
+                    context.prec = 40
+                    expected = Decimal("1250") * adopted * Decimal("0.11") / Decimal("1000000")
+                self.assertEqual(heat_line.amount, expected)
+                self.assertEqual(provenance["enthalpy_source"], "IAPWS-IF97自动物性")
+                self.assertEqual(provenance["property_implementation_version"], "8.0.0")
+                self.assertEqual(provenance["property_numeric_profile_id"], "GHGTOOL_COOLPROP_IF97_PROPERTY_V1")
                 self.assertEqual(provenance["input_steam_amount_t"], "1.25")
-                if kind is SteamKind.SATURATED:
-                    self.assertEqual(provenance["pressure_lower_node_mpa"], "1.70")
-                    self.assertEqual(provenance["pressure_upper_node_mpa"], "1.80")
-                else:
-                    self.assertEqual(provenance["pressure_lower_node_mpa"], "1")
-                    self.assertEqual(provenance["pressure_upper_node_mpa"], "3")
-                    self.assertEqual(provenance["temperature_lower_node_c"], "300")
-                    self.assertEqual(provenance["temperature_upper_node_c"], "350")
-                self.assertIn(ALGORITHM_VERSION, provenance["interpolation"])
+                self.assertNotIn("interpolation",provenance)
+                self.assertNotIn("pressure_lower_node_mpa",provenance)
+                self.assertNotIn("automatic_reference_enthalpy_kj_per_kg",provenance)
 
-    def test_manual_enthalpy_is_used_and_difference_is_warning_with_record_trace(self) -> None:
+    def test_known_enthalpy_is_adopted_without_automatic_reference_and_record_drift(self) -> None:
         repository = InMemoryRecordRepository()
-        heat = HeatInput(
+        heat = _external_heat(
             "manual-steam",
             InputValue("1", "t"),
             "2810",
@@ -306,9 +307,8 @@ class UAT01BSteamTests(unittest.TestCase):
         self.assertTrue(outcome.successful, outcome.problems)
         self.assertIsNotNone(outcome.record)
         deviations = [problem for problem in outcome.problems if problem.code == "CAR-VAL-STEAM-MANUAL-DEVIATION"]
-        self.assertEqual(len(deviations), 1)
-        self.assertEqual(deviations[0].level.value, "WARNING")
-        self.assertIn("本次采用您填写的 2810", deviations[0].message)
+        self.assertEqual(len(deviations), 0)
+        self.assertFalse(any(p.code == "CAR-VAL-STEAM-REFERENCE" for p in outcome.problems))
         heat_line = next(line for line in outcome.result.lines if line.line_id.endswith("manual-steam"))
         with localcontext() as context:
             context.prec = 28
@@ -318,7 +318,7 @@ class UAT01BSteamTests(unittest.TestCase):
         provenance = dict(trace.provenance)
         self.assertEqual(provenance["enthalpy_source"], "用户手动填写")
         self.assertEqual(provenance["enthalpy_used_kj_per_kg"], "2810")
-        self.assertEqual(provenance["automatic_reference_enthalpy_kj_per_kg"], "2777.3")
+        self.assertNotIn("automatic_reference_enthalpy_kj_per_kg", provenance)
         self.assertEqual(provenance["heat_factor_source_note"], "检测报告第3页")
         assert outcome.record is not None
         trace_snapshot = repository.get_trace_snapshot(outcome.record.record_id)
@@ -343,8 +343,8 @@ class UAT01BSteamTests(unittest.TestCase):
         same_trace = next(trace for trace in same_outcome.traces if trace.trace_id == same_reference.line_id)
         self.assertEqual(dict(same_trace.provenance)["enthalpy_used_kj_per_kg"], "2777.3")
 
-    def test_manual_outside_reference_range_warns_but_auto_range_blocks(self) -> None:
-        manual = HeatInput(
+    def test_known_ignores_auxiliary_reference_domain_but_auto_outside_domain_blocks(self) -> None:
+        manual = _external_heat(
             "manual-outside",
             InputValue("1", "t"),
             "2810",
@@ -360,13 +360,13 @@ class UAT01BSteamTests(unittest.TestCase):
             _input(purchased_heat=(manual,)), calculated_at=CALCULATED_AT,
         )
         self.assertTrue(manual_outcome.successful, manual_outcome.problems)
-        self.assertTrue(any(problem.code == "CAR-VAL-STEAM-REFERENCE" for problem in manual_outcome.problems))
+        self.assertFalse(any(problem.code == "CAR-VAL-STEAM-REFERENCE" for problem in manual_outcome.problems))
         self.assertTrue(any(
             problem.level.value == "WARNING" and "未填写来源说明" in problem.message
             for problem in manual_outcome.problems
         ))
 
-        automatic = HeatInput(
+        automatic = _external_heat(
             "auto-outside",
             InputValue("1", "t"),
             factor=_factor(),

@@ -1,0 +1,84 @@
+{
+  "baseline_head": "24901e12e9bc406a7da4a1616bd85818afb8c8b1",
+  "before": {
+    "head": "24901e12e9bc406a7da4a1616bd85818afb8c8b1",
+    "raw_pressure_mpa": "22.06399999999999999999999999999999999999",
+    "working_pressure_pa": "22064000.0",
+    "phase": "IF97Backend:phases.iphase_twophase",
+    "enthalpy": "2096.2745647053563",
+    "result": "INCORRECTLY_ACCEPTED_CRITICAL_WORKING_STATE"
+  },
+  "fixed_provider_source_sha256": "96e996c7a2d30e71ce76ffbdd03c71a7550d01ddeafff2c27617bc75e988e5db",
+  "profile_unchanged": true,
+  "formula_unchanged": true,
+  "no_epsilon_clamping_or_temperature_lift": true,
+  "raw_pressure_mpa": "22.06399999999999999999999999999999999999",
+  "rejections": [
+    {
+      "ambient": 6,
+      "state": "SATURATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    },
+    {
+      "ambient": 6,
+      "state": "SUPERHEATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    },
+    {
+      "ambient": 17,
+      "state": "SATURATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    },
+    {
+      "ambient": 17,
+      "state": "SUPERHEATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    },
+    {
+      "ambient": 60,
+      "state": "SATURATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    },
+    {
+      "ambient": 60,
+      "state": "SUPERHEATED",
+      "message": "自动蒸汽工作绝压达到临界点（22064000.0 Pa），当前物性精度不能安全求值。"
+    }
+  ],
+  "positive_states": [
+    {
+      "state": "SATURATED",
+      "working_pa": "22063999.999999996",
+      "quality": "1",
+      "phase": "IF97Backend:phases.iphase_twophase"
+    },
+    {
+      "state": "SUPERHEATED",
+      "working_k": "372.7659186113377",
+      "phase": "IF97Backend:phases.iphase_gas"
+    },
+    {
+      "state": "SUPERHEATED",
+      "working_k": "372.7659186113378",
+      "phase": "IF97Backend:phases.iphase_gas"
+    }
+  ],
+  "folded_temperature": {
+    "raw_c": "99.605918611337730000000000000001",
+    "working_k": "372.75591861133773",
+    "tsat_k": "372.75591861133773",
+    "message": "工作温度372.75591861133773 K未高于同压饱和温度372.75591861133773 K，当前物性精度不能确认过热蒸汽。"
+  },
+  "joint_local_tests": {
+    "tests": 89,
+    "seconds": 96.081,
+    "failures": 0,
+    "errors": 0
+  },
+  "formal_zero_record_and_known_independent": "tests.test_b_heat_runtime.HeatRuntimeTests.test_working_boundary_collapse_creates_no_record_and_known_is_independent",
+  "failure_history": [
+    "Before fix:2 tests/3 FAIL incl2 pressure acceptances and temperature explicit-reason assertion; temperature was already rejected by coarse phase.",
+    "First89-case joint:1 ERROR because test assumed Tsat firstULP was gas; real backend says liquid. Corrected legitimate positive examples, no production gate relaxed.",
+    "Targeted3/3 .229s; final joint89/89 96.081s."
+  ]
+}

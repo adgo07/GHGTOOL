@@ -150,6 +150,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.page.boundary_confirmed.setChecked(True)
         self.page.period_year.setValue(2026)
         heat_row = self.page._energy_family_rows["heat"][0]
+        heat_row.heat_boundary.setCurrentIndex(heat_row.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
         heat_row.amount.setText("1")
         heat_row.pressure.clear()
         self.page._run_calculation()
@@ -163,7 +164,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         )
         self.assertIsNotNone(target)
         assert target is not None
-        self.assertIn("蒸汽状态资料不完整", target.text(0))
+        self.assertIn("绝压", target.text(0))
         self.assertNotIn("CAR-VAL-", target.text(0))
         self.page._source_cards[I02].set_expanded(False)
         self.page.validation_list.setCurrentItem(target)

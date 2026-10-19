@@ -120,11 +120,13 @@ def _full_profile_input() -> CarbonMaterialInput:
             HeatInput(
                 line_id="heat.profile",
                 amount="1000",
+                source_boundary="OUTSIDE_ENTERPRISE",
                 factor=ParameterValue(
                     "heat.profile.factor",
                     "0.11",
                     "tCO2/GJ",
                     source_location="N01-C-R1 profile fixture",
+                    source_kind=ParameterSourceKind.MEASURED,
                 ),
                 steam_kind=SteamKind.SUPERHEATED,
                 pressure_mpa="1.5",
@@ -278,7 +280,7 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
             "baking_emission",
             "graphitization_emission",
             "fume_incineration_emission",
-            "superheated_steam_enthalpy",
+            "evaluate_if97_steam",
             "purchased_heat_emission",
             "direct_emission",
             "indirect_emission",
@@ -287,13 +289,17 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
         audit: dict[int, list[tuple[str, int | None, str | None, int, str]]] = {}
         for precision in (28, 34, 40, 50):
             seen: list[tuple[str, int | None, str | None, int, str]] = []
-            originals = {name: getattr(carbon_material, name) for name in target_names}
+            import packages.standards.carbon_material_steam_if97 as physics
+            originals = {name: getattr(physics if name=="evaluate_if97_steam" else carbon_material, name) for name in target_names}
 
             def make_probe(name: str):
                 original = originals[name]
 
                 def probe(*args, **kwargs):
                     active = current_declared_numeric_profile()
+                    if name == "evaluate_if97_steam":
+                        self.assertEqual(kwargs["policy"].precision, active.precision)
+                        self.assertEqual(kwargs["policy"].rounding, active.rounding)
                     seen.append(
                         (
                             name,
@@ -309,7 +315,7 @@ class N01CNumericPolicyCoverageTests(unittest.TestCase):
 
             with ExitStack() as stack:
                 for name in target_names:
-                    stack.enter_context(patch.object(carbon_material, name, side_effect=make_probe(name)))
+                    stack.enter_context(patch.object(physics if name=="evaluate_if97_steam" else carbon_material, name, side_effect=make_probe(name)))
                 outcome = CarbonMaterialCalculator(
                     policy=DecimalPolicy(precision=precision, rounding=ROUND_HALF_UP)
                 ).calculate(_full_profile_input(), calculated_at=SNAPSHOT_AT)

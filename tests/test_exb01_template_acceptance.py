@@ -46,9 +46,10 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
 
             self.assertIn("A3:A5", {str(area) for area in workbook["B.7"].merged_cells.ranges})
             self.assertIn("B3:B5", {str(area) for area in workbook["B.7"].merged_cells.ranges})
-            self.assertEqual(workbook["B.9"]["G3"].value, 0.11)
-            self.assertEqual(workbook["B.9"]["G4"].value, 0.11)
-            self.assertIn("焓值可留空由软件解析", workbook["B.9"]["A6"].value)
+            self.assertIn(workbook["B.9"]["G3"].value, (None, ""))
+            self.assertIn(workbook["B.9"]["G4"].value, (None, ""))
+            self.assertIn("H明确选已知焓", workbook["B.9"]["A6"].value)
+            self.assertIn("选实测值须填G", workbook["B.9"]["A6"].value)
 
             validations = {
                 sheet.title: {
@@ -94,7 +95,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             for sheet in ("B.3", "B.4", "B.5"):
                 for col in "IJKLM":
                     self.assertFalse(workbook[sheet][f"{col}4"].protection.locked, (sheet,col))
-            self.assertEqual(self.service.validate_structure(workbook),"2.7.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.8.0")
         finally:
             workbook.close()
 

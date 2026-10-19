@@ -1,0 +1,45 @@
+{
+  "format_version": 1,
+  "implementation": "Python CoolProp IF97 backend",
+  "license_files": {
+    "resources/licenses/steam_if97/CoolProp-8.0.0-LICENSE.txt": "33cfa17c9d0abe742bcbe532c52e79bc08704a0c30dbcc61dd76011b1ebe127e",
+    "resources/licenses/steam_if97/CoolProp_IF97_LICENSE.txt": "dc5c04001614c958cb46c383e7e88e3e50a98f4dd2f77e76d69c30be63a4f512",
+    "resources/licenses/steam_if97/CoolProp_REFPROP-headers_LICENSE.txt": "12190c4091c7cf90a71ef87a02f2677ec0bfbc0469c70a489201ea6b57db9044",
+    "resources/licenses/steam_if97/CoolProp_boost-headers_LICENSE.txt": "5aa9d6274dc04b8ef541d29ff973362936798a2316048ff9089f289243abc456",
+    "resources/licenses/steam_if97/Eigen5.0.1_COPYING.MPL2.txt": "88c0394098e40fb1ca64bdc2048b20dc1d010b1745b48e41cbe76dae36eb1bf5",
+    "resources/licenses/steam_if97/NumPy-2.3.3-LICENSE.txt": "596b953e1dcbe829b32ae444387efa15003fc6abdeca8a2179f364a6364c286e",
+    "resources/licenses/steam_if97/fmtlib_fmt_LICENSE.txt": "a9afff5540d894a9c7ba0e1b427cf61b77e06f1f72c25b025618169bdde52253",
+    "resources/licenses/steam_if97/incbin-UNLICENSE.txt": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+    "resources/licenses/steam_if97/miniz-3.1.1-LICENSE.txt": "6f20fa7672b00e2e975c291df737cf227addf3ad32e36fef3fe0f416e4664d3d",
+    "resources/licenses/steam_if97/msgpack_msgpack-c_COPYING.txt": "a566eeb22107c7af7c091d47dd912f4249a3ebf3d07ca0d7ccb785becfe7d8ab",
+    "resources/licenses/steam_if97/nlohmann_json_LICENSE.MIT.txt": "3d20faab6958545bf6df39e42d046265786494f5c9e23b198f8aaa0a10e368bf",
+    "resources/licenses/steam_if97/tristanpenman_valijson_LICENSE.txt": "0eb47a50b864385008e182cff467a9970fc3db57801a08468075436016b60abc",
+    "resources/licenses/steam_if97/wjakob_nanobind_LICENSE.txt": "16faaa143ebee12b09cec5bb2aaa51ac99c9522a0b054aed4cf8bf54b07771c3"
+  },
+  "multicomplex": "TEST_ONLY_NOT_SELECTED_RUNTIME; fixed-source guards/target and artifact inspection, see B_HEAT_IF97_CANDIDATE_REV2_RAW",
+  "numpy": "2.3.3",
+  "release_status": "ENGINEERING_VALIDATION_ONLY; commercial release not approved; VC and whole-product obligations remain OPEN",
+  "revision": "ae81610e7d23efc57f9d051c8e70a4d66e87537f",
+  "source_archives": [
+    {
+      "filename": "coolprop-8.0.0-cp312-abi3-win_amd64.whl",
+      "sha256": "f1f78a2ee9ce703c496a42a68cde9bd6f22b2b964375c2abba39d6dc879918d3"
+    },
+    {
+      "filename": "coolprop-8.0.0.tar.gz",
+      "sha256": "fb77fff0acf1623a25eb84963020b4f9d0b36d9431a8d8ae4221271effc30457"
+    },
+    {
+      "filename": "numpy-2.3.3-cp312-cp312-win_amd64.whl",
+      "sha256": "497d7cad08e7092dba36e3d296fe4c97708c93daf26643a1ae4b03f6294d30eb"
+    }
+  ],
+  "sources": {
+    "coolprop_source": "https://github.com/CoolProp/CoolProp/blob/ae81610e7d23efc57f9d051c8e70a4d66e87537f/cmake/dependencies.cmake",
+    "if97_license": "https://github.com/CoolProp/IF97/blob/7aaced024a702f0985474bf293cdaae9c8d06521/LICENSE",
+    "if97_source": "https://github.com/CoolProp/IF97/tree/7aaced024a702f0985474bf293cdaae9c8d06521",
+    "official_if97": "https://iapws.org/technical-guidance/release/IF97-Rev.download",
+    "pypi": "https://pypi.org/project/CoolProp/8.0.0/"
+  },
+  "version": "8.0.0"
+}

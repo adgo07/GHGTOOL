@@ -27,7 +27,7 @@ from scripts.inspect_release import (
     COMPATIBILITY_TEMPLATE_PATH,
     COMPATIBILITY_TEMPLATE_SHA256,
     V5_TEMPLATE_PATH, V5_TEMPLATE_SHA256,
-    V6_TEMPLATE_PATH, V6_TEMPLATE_SHA256, V7_TEMPLATE_PATH, V7_TEMPLATE_SHA256, V8_TEMPLATE_PATH, V8_TEMPLATE_SHA256,
+    V6_TEMPLATE_PATH, V6_TEMPLATE_SHA256, V7_TEMPLATE_PATH, V7_TEMPLATE_SHA256, V8_TEMPLATE_PATH, V8_TEMPLATE_SHA256, V9_TEMPLATE_PATH, V9_TEMPLATE_SHA256,
     PRIOR_TEMPLATE_PATH,
     PRIOR_TEMPLATE_SHA256,
     PREVIOUS_TEMPLATE_PATH,
@@ -38,6 +38,7 @@ from scripts.inspect_release import (
 from scripts.verify_release_archive import verify_release_archive
 from scripts.project_fuel_power_rules import verify_projection
 from scripts.project_material_rules import verify_material_projection
+from scripts.project_heat_rules import verify_heat_projection
 
 
 APP_NAME = "QingzhouCarbonAccounting"
@@ -122,6 +123,12 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
             "projects": "003",
         },
         **_release_provenance(),
+        "steam_property_profile": {
+            "profile_id": "GHGTOOL_COOLPROP_IF97_PROPERTY_V1", "representation": "IEEE-754 binary64",
+            "implementation": "Python CoolProp IF97 backend", "version": "8.0.0", "numpy": "2.3.3",
+            "revision": "ae81610e7d23efc57f9d051c8e70a4d66e87537f",
+            "method_version": "CAR-HEAT-IF97-017.1",
+        },
         "files": entries,
     }
     (artifact / "build-manifest.json").write_text(
@@ -190,6 +197,7 @@ def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> Non
         V6_TEMPLATE_PATH: V6_TEMPLATE_SHA256,
         V7_TEMPLATE_PATH: V7_TEMPLATE_SHA256,
         V8_TEMPLATE_PATH: V8_TEMPLATE_SHA256,
+        V9_TEMPLATE_PATH: V9_TEMPLATE_SHA256,
         V5_TEMPLATE_PATH: V5_TEMPLATE_SHA256,
         PRIOR_TEMPLATE_PATH: PRIOR_TEMPLATE_SHA256,
         PREVIOUS_TEMPLATE_PATH: PREVIOUS_TEMPLATE_SHA256,
@@ -228,6 +236,14 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
     _validate_approved_template_inputs()
     verify_projection()
     verify_material_projection()
+    verify_heat_projection()
+    # Fail before creating/replacing an artifact when the declared physical runtime differs.
+    from decimal import Decimal
+    from packages.core.decimal_policy import DecimalPolicy
+    from packages.standards.carbon_material import SteamKind
+    from packages.standards.carbon_material_steam_if97 import evaluate_if97_steam
+    evaluate_if97_steam(steam_kind=SteamKind.SUPERHEATED,pressure_mpa=Decimal(".0035"),temperature_c=Decimal("26.85"),
+        policy=DecimalPolicy(),numeric_profile_id="GHGTOOL_CARBON_DECIMAL40_CURRENT")
     output_directory = Path(output_root)
     artifact = output_directory / APP_NAME
     if artifact.exists():
@@ -266,6 +282,8 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             str(temp_root / "pyinstaller-spec"),
             "--paths",
             str(PROJECT_ROOT),
+            "--additional-hooks-dir",
+            str(PROJECT_ROOT / "scripts" / "pyinstaller_hooks"),
             *(argument for relative in sorted(ALLOWED_RESOURCE_FILES)
               for argument in ("--add-data", f"{PROJECT_ROOT / relative}{os.pathsep}{Path(relative).parent}")),
             "--collect-data",
@@ -274,6 +292,10 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             f"{PROJECT_ROOT / 'migrations'}{os.pathsep}migrations",
             "--add-data",
             f"{catalog_path}{os.pathsep}databases",
+            "--hidden-import",
+            "CoolProp.CoolProp",
+            "--hidden-import",
+            "numpy",
             "--hidden-import",
             "PySide6.QtSvg",
             "--hidden-import",

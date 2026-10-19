@@ -213,10 +213,17 @@ def _input(**kwargs: object) -> CarbonMaterialInput:
     )
 
 
+def _external_heat(*args, **kwargs):
+    """These regression fixtures explicitly model heat from outside the boundary."""
+    kwargs.setdefault("source_boundary", "OUTSIDE_ENTERPRISE")
+    return HeatInput(*args, **kwargs)
+
+
 def _explicit_factor(parameter_id: str, value: str, unit: str) -> ParameterValue:
     # Explicit non-catalog electricity fixtures use the approved OTHER channel.
-    # Heat fixtures retain their existing source semantics and numeric vectors.
-    source = ParameterSourceKind.USER_DEFINED if unit == "tCO2/MWh" else ParameterSourceKind.STANDARD_DEFAULT
+    # Heat numeric vectors are explicit measured fixtures, never copied catalog defaults.
+    source = (ParameterSourceKind.USER_DEFINED if unit == "tCO2/MWh" else
+              ParameterSourceKind.MEASURED if unit == "tCO2/GJ" else ParameterSourceKind.STANDARD_DEFAULT)
     return ParameterValue(parameter_id, value, unit, source_kind=source, source_location="G06 regression fixture")
 
 
@@ -294,7 +301,7 @@ def _full_input() -> CarbonMaterialInput:
             ),
         ),
         purchased_heat=(
-            HeatInput(
+            _external_heat(
                 "purchased.heat",
                 "1000",
                 "2800",
@@ -302,7 +309,7 @@ def _full_input() -> CarbonMaterialInput:
             ),
         ),
         exported_heat=(
-            HeatInput(
+            _external_heat(
                 "exported.heat",
                 "100",
                 "2800",
@@ -436,12 +443,12 @@ class G06CalculatorTests(unittest.TestCase):
             ElectricityOutputLine("power-out-b", "4", _explicit_factor("electricity_emission_factor_national", "0.25", "tCO2/MWh")),
         )
         purchased_heat = (
-            HeatInput("heat-in-a", "1000", "2800", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
-            HeatInput("heat-in-b", "500", "3000", _explicit_factor("heat_emission_factor_default", "0.20", "tCO2/GJ")),
+            _external_heat("heat-in-a", "1000", "2800", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
+            _external_heat("heat-in-b", "500", "3000", _explicit_factor("heat_emission_factor_default", "0.20", "tCO2/GJ")),
         )
         exported_heat = (
-            HeatInput("heat-out-a", "250", "2700", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
-            HeatInput("heat-out-b", "750", "2900", _explicit_factor("heat_emission_factor_default", "0.16", "tCO2/GJ")),
+            _external_heat("heat-out-a", "250", "2700", _explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ")),
+            _external_heat("heat-out-b", "750", "2900", _explicit_factor("heat_emission_factor_default", "0.16", "tCO2/GJ")),
         )
         outcome = CarbonMaterialCalculator(parameter_resolver=_resolver()).calculate(
             _input(
@@ -603,7 +610,7 @@ class G06CalculatorTests(unittest.TestCase):
             (
                 SOURCE_PURCHASED_HEAT,
                 _input(purchased_heat=(
-                    HeatInput("zero.heat", "0", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                    _external_heat("zero.heat", "0", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
                 )),
             ),
             (
@@ -615,7 +622,7 @@ class G06CalculatorTests(unittest.TestCase):
             (
                 SOURCE_EXPORTED_HEAT,
                 _input(exported_heat=(
-                    HeatInput("zero.export.heat", "0", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                    _external_heat("zero.export.heat", "0", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
                 )),
             ),
         )
@@ -674,13 +681,13 @@ class G06CalculatorTests(unittest.TestCase):
                 _detail("ni.power", "1", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
             )}),
             (SOURCE_PURCHASED_HEAT, {"purchased_heat": (
-                HeatInput("ni.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                _external_heat("ni.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
             )}),
             (SOURCE_EXPORTED_ELECTRICITY, {"exported_electricity": (
                 ElectricityOutputLine("ni.export.power", "1", _explicit_factor("power", "0.5", "tCO2/MWh")),
             )}),
             (SOURCE_EXPORTED_HEAT, {"exported_heat": (
-                HeatInput("ni.export.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                _external_heat("ni.export.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
             )}),
         )
         for source_id, payload in not_involved_payloads:
@@ -761,13 +768,13 @@ class G06CalculatorTests(unittest.TestCase):
                 _detail("unit.power", "1", ElectricityAcquisitionMode.PURCHASED, ElectricityAttribute.ORDINARY),
             ))),
             (SOURCE_PURCHASED_HEAT, _input(purchased_heat=(
-                HeatInput("unit.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ"), unit="MWh"),
+                _external_heat("unit.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ"), unit="MWh"),
             ))),
             (SOURCE_EXPORTED_ELECTRICITY, _input(exported_electricity=(
                 ElectricityOutputLine("unit.export.power", "1", _explicit_factor("power", "0.5", "tCO2/MWh"), unit="kg"),
             ))),
             (SOURCE_EXPORTED_HEAT, _input(exported_heat=(
-                HeatInput("unit.export.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ"), unit="MWh"),
+                _external_heat("unit.export.heat", "1", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ"), unit="MWh"),
             ))),
         )
         unit_cases = list(unit_cases)
@@ -824,7 +831,7 @@ class G06CalculatorTests(unittest.TestCase):
 
         default_heat_store = InMemoryRecordRepository()
         default_heat = CarbonAccountingUseCase(CarbonMaterialCalculator(), default_heat_store).calculate(
-            _input(purchased_heat=(HeatInput("default.heat", "1000", "2800"),)),
+            _input(purchased_heat=(_external_heat("default.heat", "1000", "2800"),)),
             calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(default_heat.blocked)
@@ -848,7 +855,7 @@ class G06CalculatorTests(unittest.TestCase):
                 outcome = CarbonAccountingUseCase(
                     CarbonMaterialCalculator(), record_store
                 ).calculate(
-                    _input(purchased_heat=(HeatInput("negative-factor", "1", "2800", negative_factor),)),
+                    _input(purchased_heat=(_external_heat("negative-factor", "1", "2800", negative_factor),)),
                     calculated_at=SNAPSHOT_AT,
                 )
                 self.assertTrue(outcome.blocked)
@@ -860,7 +867,7 @@ class G06CalculatorTests(unittest.TestCase):
         negative_heat = CarbonAccountingUseCase(
             CarbonMaterialCalculator(), record_store
         ).calculate(
-            _input(purchased_heat=(HeatInput(
+            _input(purchased_heat=(_external_heat(
                 "negative-heat", "1", "2800",
                 ParameterValue("measured_heat_factor", "-0.11", "tCO2/GJ", ParameterSourceKind.MEASURED,
                                "test-report", "2026", "report page 2", "measured fixture"),
@@ -898,51 +905,19 @@ class G06CalculatorTests(unittest.TestCase):
         self.assertTrue(zero.successful, zero.problems)
         self.assertEqual(zero.result.total_amount, Decimal("0"))
 
-    def test_canonical_heat_default_resolves_for_purchased_and_exported_heat(self) -> None:
-        heat_parameter = Parameter(
-            "heat_emission_factor_default",
-            "purchased_heat",
-            ParameterType.HEAT_EMISSION_FACTOR,
-            "热力缺省排放因子",
-            "tCO₂/GJ",
-            "2025",
-        )
-        heat_factor = Factor(
-            factor_id="heat_default_2025",
-            parameter_id="heat_emission_factor_default",
-            subject_id="purchased_heat",
-            parameter_type=ParameterType.HEAT_EMISSION_FACTOR,
-            value="0.11",
-            unit="tCO₂/GJ",
-            version="2025",
-            value_type=ValueType.STANDARD_DEFAULT,
-            review_status=ReviewStatus.VERIFIED,
-            source_id="SRC-32150-2025",
-            source_location="GB/T 32150—2025 第7.5.6～7.5.7条",
-            applicable_standard_ids=("gbt_32150_2025", STANDARD_ID),
-            factor_year=2025,
-            valid_from=date(2025, 1, 1),
-        )
-        resolver = ParameterResolver.with_default_g05_rules(
-            MemoryParameterRepository((*_parameters(), heat_parameter), (*_factors(), heat_factor))
-        )
-        outcome = CarbonMaterialCalculator(parameter_resolver=resolver).calculate(
-            _input(
-                purchased_heat=(HeatInput("purchased-1", "1", unit="t", manual_enthalpy=False, pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT),),
-                exported_heat=(HeatInput("exported-1", "0.5", unit="t", manual_enthalpy=False, pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT),),
-            ),
-            calculated_at=SNAPSHOT_AT,
-        )
-        self.assertTrue(outcome.successful, outcome.problems)
-        self.assertEqual(
-            {snapshot.detail_id for snapshot in outcome.parameter_snapshots if snapshot.parameter_id == "heat_emission_factor_default"},
-            {"purchased-1", "exported-1"},
-        )
-        for formula_id in ("CAR-FML-PURCHASED-HEAT-001", "CAR-FML-EXPORTED-HEAT-001"):
-            trace = next(item for item in outcome.traces if item.formula_id == formula_id)
-            self.assertEqual(dict(trace.provenance)["heat_factor_source"], "标准缺省值")
-            variables = {name: value for name, value, _unit in trace.variables}
-            self.assertEqual(variables["EF3"], Decimal("0.11"))
+    def test_unverified_heat_default_cannot_grant_catalog_qualification(self) -> None:
+        heat_parameter = Parameter("heat_emission_factor_default", "purchased_heat", ParameterType.HEAT_EMISSION_FACTOR,
+                                   "热力缺省排放因子", "tCO₂/GJ", "2025")
+        heat_factor = Factor(factor_id="heat_default_2025",parameter_id="heat_emission_factor_default",subject_id="purchased_heat",
+            parameter_type=ParameterType.HEAT_EMISSION_FACTOR,value="0.11",unit="tCO₂/GJ",version="2025",value_type=ValueType.STANDARD_DEFAULT,
+            review_status=ReviewStatus.VERIFIED,source_id="SRC-32150-2025",source_location="未证明真实目录关联",applicable_standard_ids=(STANDARD_ID,))
+        resolver = ParameterResolver.with_default_g05_rules(MemoryParameterRepository((*_parameters(),heat_parameter),(*_factors(),heat_factor)))
+        records = InMemoryRecordRepository()
+        outcome = CarbonAccountingUseCase(CarbonMaterialCalculator(parameter_resolver=resolver),records).calculate(
+            _input(purchased_heat=(_external_heat("unverified", "1000", "2800",factor_mode=HeatFactorMode.STANDARD_DEFAULT),)))
+        self.assertFalse(outcome.successful)
+        self.assertTrue(any(p.code == "CAR-VAL-HEAT-SOURCE-POLICY" for p in outcome.problems))
+        self.assertEqual(len(records.list_all()),0)
 
     def test_c3_heat_default_resolves_for_standard_effective_dates_and_custom_periods(self) -> None:
         from packages.application.catalog_queries import CatalogQueryService
@@ -992,12 +967,12 @@ class G06CalculatorTests(unittest.TestCase):
                     outcome = use_case.calculate(
                         _input(
                             period=period,
-                            purchased_heat=(HeatInput(
-                                "purchased-heat", "1", unit="t", manual_enthalpy=False,
+                            purchased_heat=(_external_heat(
+                                "purchased-heat", "1", unit="t", manual_enthalpy=True, enthalpy="2800",
                                 pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT,
                             ),),
-                            exported_heat=(HeatInput(
-                                "exported-heat", "0.5", unit="t", manual_enthalpy=False,
+                            exported_heat=(_external_heat(
+                                "exported-heat", "0.5", unit="t", manual_enthalpy=True, enthalpy="2800",
                                 pressure_mpa="0.1", factor_mode=HeatFactorMode.STANDARD_DEFAULT,
                             ),),
                         ),
@@ -1011,7 +986,7 @@ class G06CalculatorTests(unittest.TestCase):
                     }
                     self.assertEqual(
                         heat_snapshots,
-                        {"purchased-heat": expected_factor_id, "exported-heat": expected_factor_id},
+                        {"CAR-FLD-HEAT-purchased-heat-EF3": expected_factor_id, "CAR-FLD-HEAT-exported-heat-EF3": expected_factor_id},
                     )
                     warnings = [
                         problem
@@ -1137,24 +1112,31 @@ class G06CalculatorTests(unittest.TestCase):
     def test_superheated_without_enthalpy_does_not_use_saturated_table(self) -> None:
         outcome = CarbonMaterialCalculator().calculate(
             _input(purchased_heat=(
-                HeatInput(
+                _external_heat(
                     "superheated.heat",
                     "1000",
                     factor=_explicit_factor("heat_emission_factor_default", "0.11", "tCO2/GJ"),
                     steam_kind=SteamKind.SUPERHEATED,
-                    pressure_mpa="1.0",
-                    temperature_c="300",
+                    pressure_mpa="0.0035",
+                    temperature_c="26.85",
                 ),
             )),
             calculated_at=SNAPSHOT_AT,
         )
         self.assertTrue(outcome.successful, outcome.problems)
         heat_line = next(line for line in outcome.result.lines if line.line_id.endswith("superheated.heat"))
-        self.assertEqual(heat_line.amount, Decimal("0.335643"))
+        trace = next(t for t in outcome.traces if t.trace_id == "superheated.heat")
+        adopted = dict((name,value) for name,value,_ in trace.variables)["HM"]
+        # Official IF97 Table15 printed precision; only physical conformance has a tolerance.
+        self.assertLessEqual(abs(adopted-Decimal("2549.91145")),Decimal("0.000005"))
+        with localcontext() as context:
+            context.prec=40
+            self.assertEqual(heat_line.amount,Decimal("1000")*adopted*Decimal("0.11")/Decimal("1000000"))
+        self.assertEqual(dict(trace.provenance)["enthalpy_method_version"],"CAR-HEAT-IF97-017.1")
 
         missing_temperature = CarbonMaterialCalculator().calculate(
             _input(purchased_heat=(
-                HeatInput(
+                _external_heat(
                     "superheated.missing-temperature",
                     "1000",
                     steam_kind=SteamKind.SUPERHEATED,
@@ -1176,10 +1158,10 @@ class G06CalculatorTests(unittest.TestCase):
                     ElectricityOutputLine("power.out", "2", _explicit_factor("power", "0.5", "tCO2/MWh")),
                 ),
                 purchased_heat=(
-                    HeatInput("heat.in", "1000", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                    _external_heat("heat.in", "1000", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
                 ),
                 exported_heat=(
-                    HeatInput("heat.out", "100", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
+                    _external_heat("heat.out", "100", "2800", _explicit_factor("heat", "0.11", "tCO2/GJ")),
                 ),
             ),
             calculated_at=SNAPSHOT_AT,

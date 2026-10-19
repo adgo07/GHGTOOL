@@ -212,7 +212,7 @@ def _catalog_parameter_rules(repository: CatalogRepository) -> tuple[RuleDefinit
     return tuple(rules)
 
 
-def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd: bool = False) -> tuple[ReferenceBindingEvidence, ...]:
+def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd: bool = False, include_heat: bool = False) -> tuple[ReferenceBindingEvidence, ...]:
     """Prove associations from actual catalog rows, not text or non-empty IDs."""
     from packages.standards.carbon_material import STANDARD_ID
     from packages.standards.carbon_material_business_policy import adopted_binding_conditions
@@ -231,6 +231,10 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
                      "fgd.conversion": ParameterType.PROCESS_DEFAULT_PARAMETER}
         conditions.extend((field, tags) for field in fgd_types for tags in fgd_binding_conditions(field))
         field_types.update(fgd_types)
+    if include_heat:
+        from packages.standards.carbon_material_business_policy import heat_binding_conditions
+        field_types["heat.factor"] = ParameterType.HEAT_EMISSION_FACTOR
+        conditions.extend(("heat.factor", tags) for tags in heat_binding_conditions())
     parameters = {item.parameter_id: item for item in repository.list_parameters()}
     factors = {item.factor_id: item for item in repository.list_factors()}
     assets = {item.asset_id: item for item in repository.list_reference_data_assets()}
@@ -245,6 +249,12 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
         table = tables.get(binding.source_table_id)
         parameter = parameters.get(factor.parameter_id) if factor else None
         source = sources.get(factor.source_id) if factor else None
+        # C.3 and the common rule share one value asset but retain independent sources.
+        heat_c3_source = (standard is not None and factor is not None and parameter is not None and table is not None
+                         and parameter.parameter_id == "heat_emission_factor_default"
+                         and binding.binding_id == "binding-heat_default_gbt32151_34_c3"
+                         and table.source_table_id == "tab-32151-34-c3"
+                         and factor.source_id == standard.official_source_id)
         if (
             standard is None or factor is None or asset is None or table is None or parameter is None or source is None
             or binding.binding_type != "FACTOR_SOURCE"
@@ -252,7 +262,7 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
             or parameter.review_status not in reviews or source.review_status not in reviews
             or parameter.parameter_id != asset.parameter_id or parameter.parameter_id != factor.parameter_id
             or parameter.subject_id != asset.subject_id or parameter.subject_id != factor.subject_id
-            or parameter.source_id != factor.source_id or table.source_id != factor.source_id
+            or (parameter.source_id != factor.source_id and not heat_c3_source) or table.source_id != factor.source_id
             or asset.value_type != factor.value_type
             or asset.normalized_value != factor.normalized_value or asset.normalized_unit != factor.normalized_unit
             or binding.factor_year != factor.factor_year
@@ -265,7 +275,18 @@ def _verified_fuel_power_bindings(repository: CatalogRepository, *, include_fgd:
                 continue
             if parameter.parameter_type is not field_types[field]:
                 continue
-            if field.startswith("fgd."):
+            if field == "heat.factor":
+                common_standard = next((item for item in repository.list_standards() if item.standard_id == "gbt_32150_2025"), None)
+                common_source = (common_standard is not None and table.source_id == common_standard.official_source_id
+                                 and table.source_table_id == "tab-32150-756-757"
+                                 and binding.binding_id == "binding-heat_default_2025")
+                valid = ((common_source or heat_c3_source)
+                         and binding.asset_id == "asset-heat_default_2025"
+                         and factor.value_type is ValueType.STANDARD_DEFAULT
+                         and factor.normalized_unit in {"tCO2/GJ", "tCO₂/GJ"} and asset.normalized_unit == factor.normalized_unit
+                         and binding.valid_from == factor.valid_from and binding.valid_to == factor.valid_to
+                         and binding.region is None)
+            elif field.startswith("fgd."):
                 expected_table = "tab-32151-34-c2" if field == "fgd.factor" else "tab-32151-34-5252"
                 expected_type = ValueType.STANDARD_SPECIFIED if field == "fgd.factor" else ValueType.STANDARD_DEFAULT
                 expected_unit = "tCO2/t" if field == "fgd.factor" else "ratio"
@@ -307,7 +328,7 @@ def create_g06_parameter_resolver(repository: CatalogRepository) -> ParameterRes
     from packages.standards.carbon_material import STANDARD_ID
 
     common, industry = default_g05_rules()
-    verified_bindings = _verified_fuel_power_bindings(repository, include_fgd=True)
+    verified_bindings = _verified_fuel_power_bindings(repository, include_fgd=True, include_heat=True)
     verified_factor_ids = {item.factor_id for item in verified_bindings}
     unverified_binding_factor_ids = {
         item.factor_id for item in repository.list_reference_data_bindings()

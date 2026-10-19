@@ -308,7 +308,7 @@ class AppendixBWorkbookImporter:
             self._parse_power(workbook, context, reader, errors, warnings, purchased_power,
                               exported_power, involved, unit_id, enterprise_id)
             self._parse_heat(workbook, context, reader, errors, warnings, purchased_heat,
-                             exported_heat, involved, unit_id)
+                             exported_heat, involved, unit_id, template_version=template_version)
 
             states = tuple(EmissionSourceState(
                 source_id,
@@ -328,7 +328,7 @@ class AppendixBWorkbookImporter:
                 graphitizations=tuple(processes[2]),
                 fume_incinerations=tuple(fumes),
                 fume_segments=tuple(fume_segments),
-                fume_execution_version="FUME_V2" if template_version == "2.7.0" else "FUME_V1",
+                fume_execution_version="FUME_V2" if template_version in {"2.7.0", "2.8.0"} else "FUME_V1",
                 fgd_units=tuple(fgd),
                 electricity_details=tuple(purchased_power),
                 exported_electricity=tuple(exported_power),
@@ -511,9 +511,9 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
         from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
-        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
         def column(legacy_column):
             return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
 
@@ -551,7 +551,7 @@ class AppendixBWorkbookImporter:
             if path is None:
                 continue
             route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
-            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"} else {"计算值", "实测值"}):
+            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"} else {"计算值", "实测值"}):
                 if route is not None:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
@@ -649,7 +649,7 @@ class AppendixBWorkbookImporter:
                     reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="其他来源FCh填写值",reason="直接含碳量路径不采用FCh。")
                 if explicit_source_schema:
                     reader.observe_unused(workbook,"B.2",f"N{row}",warnings,field_label="单位热值含碳量来源",reason="直接含碳量路径不采用FCh来源选择。")
-                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"} and route == "直接计算值":
+                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"} and route == "直接计算值":
                     for coordinate, name in ((f"{column('E')}{row}", "低位发热量"), (f"{column('G')}{row}", "FCh目录值"), (f"{column('K')}{row}", "FCh填写值")):
                         if _has_value(sheet[coordinate]):
                             errors.append(ImportMessage("EXB01_DIRECT_PATH_VALUE_CONFLICT", "直接计算含碳量路径不采用热值或FCh，请清空冲突数值。", f"B.2!{coordinate}", name))
@@ -1141,14 +1141,25 @@ class AppendixBWorkbookImporter:
         actual = reader.numeric_lexemes.get((sheet, cell_ref))
         return expected is not None and actual == expected
 
-    def _parse_heat(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id):
+    def _parse_heat(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id, *, template_version="1.0.0"):
+        if template_version == "2.8.0":
+            return self._parse_heat_v28(workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id)
+        # v2-v9 share the original B.9 seeds; v10 deliberately has no numerical seed.
+        # Compare the protected historical master's lexical cell, never a live factor's value.
+        from importlib.resources import files
+        from .templates import APPROVED_TEMPLATE_V9_RESOURCE, APPROVED_TEMPLATE_V9_SHA256
+        historical_master = files("resources").joinpath(APPROVED_TEMPLATE_V9_RESOURCE).read_bytes()
+        if sha256(historical_master).hexdigest() != APPROVED_TEMPLATE_V9_SHA256:
+            raise WorkbookFatalError("历史热力母版校验失败，不能安全识别预置展示值。")
+        historical_seeds = read_worksheet_numeric_lexemes(historical_master)
         ws = workbook["B.9"]
         stop = next((r for r in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, r)), ws.max_row + 1)
         for row in range(3, stop):
             if _has_value(ws[f"F{row}"]):
                 reader.observe_unused(workbook, "B.9", f"F{row}", warnings, field_label="蒸汽焓值", reason="焓值为模板只读/自动路径；工作簿内容不作为正式焓值。")
-            factor_is_template_seed = self._is_template_numeric_seed(reader, "B.9", f"G{row}")
+            factor_is_template_seed = (historical_seeds.get(("B.9", f"G{row}")) is not None
+                                       and reader.numeric_lexemes.get(("B.9", f"G{row}")) == historical_seeds[("B.9", f"G{row}")])
             active = any(_has_value(ws[f"{col}{row}"]) for col in "BCDE") or (
                 _has_value(ws[f"G{row}"]) and not factor_is_template_seed
             )
@@ -1216,8 +1227,75 @@ class AppendixBWorkbookImporter:
                 exported.append(heat)
                 involved.add(SOURCE_EXPORTED_HEAT)
 
+    def _parse_heat_v28(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id):
+        ws = workbook["B.9"]
+        stop = next((r for r in range(3, ws.max_row+1) if _is_appendix_footer_row(ws,r)), ws.max_row+1)
+        for row in range(3,stop):
+            if not any(_has_value(ws[f"{col}{row}"]) for col in "BCDEFGHIJKL"):
+                continue
+            def text(col,label,required=False):
+                return reader.text(workbook,"B.9",f"{col}{row}",errors,required=required,field_label=label)
+            def number(col,label,required=False):
+                return reader.number(workbook,"B.9",f"{col}{row}",errors,required=required,field_label=label)
+            direction = text("A","热力方向",True)
+            boundary_label = text("J","热源所在边界",direction == "购入")
+            accounted_label = text("K","供热燃料是否已计入本企业")
+            boundary = {"边界外":"OUTSIDE_ENTERPRISE", "边界内":"INSIDE_ENTERPRISE", "待核实":"UNCONFIRMED", None:"UNCONFIRMED"}.get(boundary_label)
+            accounted = {"已计入":True,"未计入":False,"待核实":None,None:None}.get(accounted_label)
+            if direction not in {"购入","输出"} or boundary is None or accounted_label not in {"已计入","未计入","待核实",None}:
+                errors.append(ImportMessage("EXB01_HEAT_CONTEXT_INVALID","热力方向或边界/燃料声明无效，请使用明确选项。",f"B.9!A{row}","热力资格"))
+                continue
+            internal = direction == "购入" and boundary == "INSIDE_ENTERPRISE" and accounted is True
+            amount = number("C","蒸汽量",not internal)
+            if internal:
+                for col in "BDEFGHIL":
+                    reader.observe_unused(workbook,"B.9",f"{col}{row}",warnings,field_label="内部供热辅助草稿",reason="供热燃料已计，不重复计购入热力，辅助输入不参与。")
+                line = HeatInput(_stable_id("heat",unit_id,row), InputValue(amount,"t",source_reference=f"B.9!C{row}") if amount is not None else None,
+                                 unit="t",source_boundary=boundary,fuel_emissions_accounted=accounted)
+            else:
+                kind = text("B","蒸汽类别",True)
+                method = text("H","焓值方式",True)
+                factor_source = text("I","因子来源",True)
+                if kind not in STEAM_KIND_LABELS:
+                    errors.append(ImportMessage("EXB01_HEAT_KIND_UNSUPPORTED","当前正式模型只支持饱和蒸汽或过热蒸汽。",f"B.9!B{row}","热力类别"))
+                    continue
+                if method not in {"已知焓","自动物性"} or factor_source not in {"缺省值","实测值"}:
+                    errors.append(ImportMessage("EXB01_HEAT_SELECTION_INVALID","请明确选择蒸汽类别、焓值方式及因子来源。",f"B.9!H{row}","热力输入方式"))
+                    continue
+                known = method == "已知焓"
+                if known:
+                    enthalpy = number("F","已知焓值",True)
+                    pressure = temperature = None
+                    for col in "DE":reader.observe_unused(workbook,"B.9",f"{col}{row}",warnings,field_label="辅助蒸汽状态",reason="已知焓独立，不消费自动状态或旧表。")
+                else:
+                    pressure = number("D","蒸汽压力（绝压）",True)
+                    temperature = number("E","过热蒸汽温度",True) if kind == "过热蒸汽" else None
+                    if kind == "饱和蒸汽":
+                        reader.observe_unused(workbook,"B.9",f"E{row}",warnings,field_label="未采用的辅助温度",reason="干饱和自动焓按绝压与Q=1，不消费额外温度定义。")
+                    enthalpy = None
+                    reader.observe_unused(workbook,"B.9",f"F{row}",warnings,field_label="未选已知焓",reason="自动路径不借用手填焓值回退。")
+                source_note = text("L","来源说明")
+                if factor_source == "实测值":
+                    factor_value = number("G","实测热力因子",True)
+                    factor = _user_parameter(factor_value,"heat_emission_factor_measured","tCO2/GJ",source_note or f"B.9!G{row}",
+                        ParameterSourceKind.MEASURED) if factor_value is not None else None
+                    mode = HeatFactorMode.MEASURED
+                    if factor is not None and not source_note:self._warn_missing_source(warnings,f"B.9!G{row}","热力排放因子")
+                else:
+                    reader.observe_unused(workbook,"B.9",f"G{row}",warnings,field_label="未采用的因子草稿",reason="明确选择缺省值，只由同次Resolver核验真实来源并取值，不按G列数值猜来源。")
+                    factor, mode = None, HeatFactorMode.STANDARD_DEFAULT
+                line = HeatInput(_stable_id("heat",unit_id,row),InputValue(amount,"t",source_reference=f"B.9!C{row}") if amount is not None else None,
+                    enthalpy=InputValue(enthalpy,"kJ/kg",source_reference=f"B.9!F{row}") if enthalpy is not None else None,
+                    factor=factor,unit="t",steam_kind=SteamKind(STEAM_KIND_LABELS[kind]),
+                    pressure_mpa=pressure,temperature_c=temperature,manual_enthalpy=known,
+                    factor_mode=mode,factor_source_note=source_note,source_boundary=boundary,fuel_emissions_accounted=accounted)
+            if direction == "购入":
+                purchased.append(line);involved.add(SOURCE_PURCHASED_HEAT)
+            else:
+                exported.append(line);involved.add(SOURCE_EXPORTED_HEAT)
+
     def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
-        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}:
+        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}:
             from .appendix_b_processes import parse_process_sheets
             return parse_process_sheets(
                 self, workbook, context, reader, errors, warnings, outputs,
@@ -1352,7 +1430,7 @@ class AppendixBWorkbookImporter:
 
     def _parse_fumes(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, segments, template_version):
         error_count = len(errors)
-        segmented = template_version == "2.7.0"
+        segmented = template_version in {"2.7.0", "2.8.0"}
         ws = workbook["B.6"]
         stop = next(
             (row for row in range(3, ws.max_row + 1) if _is_appendix_footer_row(ws, row)),
@@ -1416,7 +1494,7 @@ class AppendixBWorkbookImporter:
 
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}
@@ -1499,14 +1577,14 @@ class AppendixBWorkbookImporter:
         for row in range(3, stop):
             if row in grouped_rows:
                 continue
-            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version in {"2.6.0", "2.7.0"} else "DEFHJ" if current else "DEF")):
+            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version in {"2.6.0", "2.7.0", "2.8.0"} else "DEFHJ" if current else "DEF")):
                 errors.append(ImportMessage(
                     "EXB01_FGD_BATCH_BOUNDARY_REQUIRED",
                     "该碳酸盐组分数据没有落在明确的 A/B 批次合并组或新批次边界内。",
                     f"B.7!C{row}", "碳酸盐组分",
                 ))
 
-        explicit_ratios = template_version in {"2.6.0", "2.7.0"}
+        explicit_ratios = template_version in {"2.6.0", "2.7.0", "2.8.0"}
         explicit_factor_source = template_version not in {"1.0.0", "2.0.0"}
         facilities = {}
         for ordinal, (start, end, _merged) in enumerate(groups, 1):
