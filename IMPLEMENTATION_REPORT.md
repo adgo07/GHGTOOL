@@ -1,6 +1,6 @@
 # B-HEAT / PR52-F01 实施报告
 
-更新：2026-10-19。状态：FIX_IN_PROGRESS / 新CI与精确head实包待验。源复验发现Pa/K正式输入在冻结B.9被错标为MPa/℃，此前796技术PASS已撤回；用户源会话直接消息01a1546a-24ef-7f21-a60d-f7d6d54cc394授权继续原PR52定向修复，已实际读取。独立报告已完整读取，不新建PR、不自行合并。
+更新：2026-10-19。状态：READY_FOR_INDEPENDENT_ACCEPTANCE；新CI/精确包验证已完成，待源最终独立验收。源复验发现Pa/K正式输入在冻结B.9被错标为MPa/℃，此前796技术PASS已撤回；用户源会话直接消息01a1546a-24ef-7f21-a60d-f7d6d54cc394授权继续原PR52定向修复，已实际读取。独立报告已完整读取，不新建PR、不自行合并。
 
 ## 平台 / Contract 预检查
 
@@ -32,8 +32,20 @@ Mapping更新后按既有PREFLIGHT机械重生同R11四件套，三Canonical原�
 
 失败真实保留：旧CI273首轮直接使用当天编制日期，Word字节比较失败；逐字节核实唯一区别为2026-10-18→2026-10-19的导出补充日期。固定同一导出日期后模型/正文全值一致，未修改产品日期行为或Record。首轮只读资产比对脚本宿主未设openpyxl搜索路径，ModuleNotFoundError；加既有site路径后全保留性检查通过，不改产品依赖。初始历史回放失败、修前F01失败及所有本地日志在tmp/b-heat，证明不隐去失败。
 
-## 代码 / 文档 / 制品与下一步
+## 新CI与实际包证据
 
-开工head79695cc665e8d03a45ef20bf3bb88e5c4ccccdd4，原分支codex/b-heat-integration；本轮新产品补丁以本提交/原PR52最新head为准，尚未产出新制品。旧CI280的fca代码/321文件实包及1010/18通过只作历史，不能背书F01新补丁；旧证据保留于B_HEAT_CI280_*、此前原始失败对账仍在B_HEAT_SUMMARY和各原始proof。当前验收工具新增6组合双方向真实Record→B.9→Word反例，并在旧CI273历史比较显式固定同次导出日期。
+产品补丁提交dea45cd8c198d74d22d10a371696c62c01312856，完整受验代码/制品head `1843157a8bc9d78fa442c93b4094a076f562d788`（184补齐Mapping定义绑定）；CI283实际merge `f083dd6caeed54bb5e7c2ee0a4b92cc8565bb298`。最终文档回执head为本提交（以PR52最新head为准），增量只含文档/原始证明，不能把184制品改标为回执head。
 
-下一步：push原PR52→新merge-ref全量CI/精确head实际包→更新最终回执，双列代码/文档/制品head→源独立验收后停止。原生Office/鼠标IME/人工DPI/企业样例/干净目标机/原生EXE人工正常关闭/商业履约OPEN。不CU、不商业发布、不宣布SUPPORTED、不纳入外部CO2/N、不改用户原脏树与计算表。
+[CI283/run39264926043](https://github.com/adgo07/GHGTOOL/actions/runs/39264926043)整体SUCCESS；merge-ref job118101913478全量 `python -m unittest discover -s tests -t . -v`：**1014/1014，1695.552s，零失败/错误，skipped=0**。exact-head job118117880702执行 `python -m unittest tests.test_g08_delivery -v`：**18/18，12.315s**；Canonical/编译/pip check/数据库/UIR04/缩放/构建/审计/ZIP/provenance/2隔离启动通过。这是GitHub Actions实际证据，不是本地执行。
+
+实际artifact **12195361432**，ZIP SHA256 **b1febe11d53271ea798a027a89ea5b27c853f3cb9a0772d064c7b9d2842549f7**，75710032bytes；manifest321文件、ZIP322文件。下载后逐文件size/SHA、许可原文/来源清单与PE x64核验通过；source_commit/pr_head均184、tested_merge为上述merge。C本地对这个实际CI包审计/ZIP回读/2启动及 `python -B docs/ci/B_HEAT_PACKAGE_VERIFIER.py <实际CI包> <全新输出> 1843157a8bc9d78fa442c93b4094a076f562d788 <实际CI273旧数据>` 通过，exit0，无nanobind/Traceback；从实际EXE/PYZ及包内CP/NP/Qt读取，禁止业务源码回退。6组单位/相态双方向正式Record→B.9→Word、冻结禁Calculator/Resolver/物性、原证据不变及既有完整热力链均通过。完整证明B_HEAT_F01_CI_PACKAGE_PROOF.json、B_HEAT_F01_CI_RECEIPT_PROOF.json。
+
+同一增强验证器对真实旧CI280包exit1，准确抓Pa/K报告3500.00/300.00错误，负例完整日志入B_HEAT_F01_CI280_NEGATIVE_PROOF.json；本地184新包也exit0、无诊断，但仅是LOCAL_BUILD，单独保留B_HEAT_F01_LOCAL_PACKAGE_PROOF.json，不冒称CI。实际CI273旧模型/Word比较显式固定同次导出编制日期2026-10-18，业务证据和旧正文不漂移，原DB不变；编制日期是导出补充信息，不回写Record。
+
+源已独立运行本轮4项正式链测试4/4、7.962s，定向F01通过，不替代最终新包独立验收。新旧重叠套件不相加。旧CI280整体1010/18通过及原B-HEAT证据只作历史，796技术PASS已撤回，不能背书本补丁。
+
+## 失败对账及停止边界
+
+首个dea45产品提交漏stage Mapping，检查后立即184补齐，首个不完整CI282被取代；实际结果以B_HEAT_F01_CI_RECEIPT_PROOF.json的superseded_ci282记录为准，不把未知统计或旧CI当通过。全部实际失败（修前4subtest、历史导出日期跨日、宿主openpyxl设置）保留，未用全局放宽校验/改公式掩盖。
+
+PR52已push并更新说明，送源独立验收后停止，不自行合并或启动外部CO2/N。原生Office/鼠标IME/人工DPI/企业样例/干净目标机/原生EXE人工正常关闭/商业履约OPEN。不CU、不商业发布、不宣布SUPPORTED。中央锁、专业决定、用户原脏树、计算表不变。

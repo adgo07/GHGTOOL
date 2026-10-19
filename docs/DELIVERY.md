@@ -103,7 +103,7 @@ Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研�
 
 官方原始依据：[Qt for Python商业使用](https://doc.qt.io/qtforpython-6/commercial/index.html)、[Qt许可与GPL-only模块](https://doc.qt.io/qt-6/licensing.html)、[Qt LGPL义务](https://www.qt.io/development/open-source-lgpl-obligations)、[PyInstaller 6.22.3例外正文](https://pyinstaller.org/en/v6.22.3/license.html)、[iapws发布许可](https://pypi.org/project/iapws/)。仅记录工程预检查；不将动态链接或可收费销售单独作为合规结论。面向客户的第三方通知/必要许可文本尚未完成，不宣称闭源销售资格已确认。
 
-当前版本组合见requirements-build.txt，固定安装组合供复建，不改变pyproject支持范围；构建仍记录实际版本与来源身份。新v6材料模板保留v2—v5原件，B.3—B.5各新增I—M共5辅助列和1说明行，母版下载仍验证后原字节复制。
+当前版本组合见requirements-build.txt，固定安装组合供复建，不改变pyproject支持范围；构建仍记录实际版本与来源身份。历史v6材料模板（当时）保留v2—v5原件，B.3—B.5各新增I—M共5辅助列和1说明行，母版下载仍验证后原字节复制。
 
 
 历史包体实证（当时本地2368380构建，非当前交付包）：共267文件（manifest列266，manifest自身另计），自动收集13个Qt6 DLL和22个插件；其中`Qt6VirtualKeyboard.dll`及`PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll`被发现。原始PE import检查：只有该插件引用VirtualKeyboard DLL；应用源码没有VirtualKeyboard/QML消费者。依据[Qt 6.11原许可页](https://doc.qt.io/qt-6.11/licensing.html)的GPL模块列表，构建精确排除这两个未使用组件，包审计拒绝它们及未经放行的iapws，未替换GUI/物性实现，不影响原生Windows输入法代码路径；真实中文输入仍待人工验证。此原始预检查包不作为销售候选，原日志与清单仅保留本地。

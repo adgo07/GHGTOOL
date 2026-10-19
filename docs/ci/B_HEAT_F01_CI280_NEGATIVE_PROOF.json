@@ -1,0 +1,9 @@
+{
+  "artifact_source": "ACTUAL_DOWNLOADED_CI280_OLD_FCA_PACKAGE",
+  "head": "fca06e14a8526a968c27e3859888205079729864",
+  "artifact_id": 12140751279,
+  "expected_exit_code": 1,
+  "actual_exit_code": 1,
+  "full_log": "Traceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\b-heat-integration\\GHGTOOL\\docs\\ci\\B_HEAT_PACKAGE_VERIFIER.py\", line 168, in <module>\n    assert (unit_row.cells[3].value,unit_row.cells[4].value)==expected,(pu,tu,direction,unit_row)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('Pa', 'K', '购入', ReportRow(cells=(ReportCell(value='购入', unit=None, source=None, source_detail=None), ReportCell(value='过热蒸汽', unit=None, source=None, source_detail=None), ReportCell(value='1.00', unit=None, source=None, source_detail='手工录入'), ReportCell(value='3500.00', unit=None, source=None, source_detail='手工录入'), ReportCell(value='300.00', unit=None, source=None, source_detail='手工录入'), ReportCell(value='2549.91', unit=None, source='物性计算', source_detail='IAPWS-IF97；Python CoolProp IF97 backend 8.0.0；展示前完整值：2549.91145084002 kJ/kg'), ReportCell(value='0.11', unit=None, source='GB/T32150—2025 第7.5.6～7.5.7条', source_detail='选择方式：软件按标准推荐；来源类型：标准缺省值；来源定位：GB/T 32150—2025第7.5.6～7.5.7条（PDF第16页）：无实测时按0.11tCO₂/GJ；来源版本：2025；因子年度：2025')), note=None))\n",
+  "result": "F01_PA_K_REPORT_MISMATCH_REPRODUCED_NOT_DELIVERY"
+}
