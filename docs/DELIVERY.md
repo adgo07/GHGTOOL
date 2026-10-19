@@ -98,7 +98,7 @@ Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研�
 | python-docx / lxml / typing_extensions | 1.2.0 MIT / 6.1.3 BSD-3-Clause / 4.16.0 PSF-2.0 | Word渲染/解析；lxml内嵌libxml2/libxslt等依其LICENSES继续核对 |
 | PyInstaller / hooks-contrib | 6.22.3（GPL带打包例外）/2026.8 | 构建工具和运行bootloader边界分开；打包例外不覆盖第三方依赖许可，hooks许可文本单独留存核对 |
 | packaging / altgraph / pefile / pywin32-ctypes / setuptools | 26.3 /0.17.5 /2024.8.26 /0.2.3 /84.0.0 | 构建环境组件，不把所有已安装工具都宣称在包内。具体许可见各版本dist-info原文 |
-| iapws | 本环境未安装，产品依赖未声明 | 原017选择保持，不引入GPL依赖、不自动替换实现；自动焓分发方案后续单独核对 |
+| iapws（历史选择） | 2026-10-16原017指定，未接入产品 | 已由2026-10-18批准的固定CoolProp/IF97实现取代；当前依赖、许可证据及开放项见下文B-HEAT章节 |
 | LOGO / SVG / 模板 / 因子数据 | 本仓既有资源 | 本次不新增第三方字体/图标；现有权利链、标准表式及数据再分发权限仍需Owner按真实来源核对，公开下载不代表无限授权 |
 
 官方原始依据：[Qt for Python商业使用](https://doc.qt.io/qtforpython-6/commercial/index.html)、[Qt许可与GPL-only模块](https://doc.qt.io/qt-6/licensing.html)、[Qt LGPL义务](https://www.qt.io/development/open-source-lgpl-obligations)、[PyInstaller 6.22.3例外正文](https://pyinstaller.org/en/v6.22.3/license.html)、[iapws发布许可](https://pypi.org/project/iapws/)。仅记录工程预检查；不将动态链接或可收费销售单独作为合规结论。面向客户的第三方通知/必要许可文本尚未完成，不宣称闭源销售资格已确认。
@@ -106,7 +106,7 @@ Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研�
 当前版本组合见requirements-build.txt，固定安装组合供复建，不改变pyproject支持范围；构建仍记录实际版本与来源身份。新v6材料模板保留v2—v5原件，B.3—B.5各新增I—M共5辅助列和1说明行，母版下载仍验证后原字节复制。
 
 
-包体实证（本地2368380构建）：共267文件（manifest列266，manifest自身另计），自动收集13个Qt6 DLL和22个插件；其中`Qt6VirtualKeyboard.dll`及`PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll`被发现。原始PE import检查：只有该插件引用VirtualKeyboard DLL；应用源码没有VirtualKeyboard/QML消费者。依据[Qt 6.11原许可页](https://doc.qt.io/qt-6.11/licensing.html)的GPL模块列表，构建精确排除这两个未使用组件，包审计拒绝它们及未经放行的iapws，未替换GUI/物性实现，不影响原生Windows输入法代码路径；真实中文输入仍待人工验证。此原始预检查包不作为销售候选，原日志与清单仅保留本地。
+历史包体实证（当时本地2368380构建，非当前交付包）：共267文件（manifest列266，manifest自身另计），自动收集13个Qt6 DLL和22个插件；其中`Qt6VirtualKeyboard.dll`及`PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll`被发现。原始PE import检查：只有该插件引用VirtualKeyboard DLL；应用源码没有VirtualKeyboard/QML消费者。依据[Qt 6.11原许可页](https://doc.qt.io/qt-6.11/licensing.html)的GPL模块列表，构建精确排除这两个未使用组件，包审计拒绝它们及未经放行的iapws，未替换GUI/物性实现，不影响原生Windows输入法代码路径；真实中文输入仍待人工验证。此原始预检查包不作为销售候选，原日志与清单仅保留本地。
 
 原始包未发现LICENSE/COPYING/NOTICE文件；打包排除两文件只解决已发现的未使用GPL模块混入，仍不表示全部许可义务完成。最终实际包组件/哈希、公开来源和未完成文本/源码提供/替换条件由本包报告逐项记录，发布前继续补齐第三方交付材料。
 
@@ -115,7 +115,7 @@ CI251补充：实装Qt6.12将同一未使用VirtualKeyboard DLL收集到`PySide6
 F02历史受控来源修订（PR49已合并）：当时下载v7/2.5.0，SHA e4203f0d5bf9133df5b6abde3bfede8b82905d11d795cd29ba590ea60f7ebb5a。运行python -B -m scripts.project_appendix_b_v7 --write机械生成，省略--write核原字节一致；以固定旧v6为输入，仅变三个材料表XML的下拉/说明，旧v2—v6保持。来源统一计算值/实测值，方法独立；2.4旧方法来源文字仅输入兼容，新2.5拒绝该文字。当前候选需新head CI实包审计；[CI252固定历史摘要](ci/CI252_SUMMARY.json)只背书PR49阶段的d5205f5，不是PR50或后续新版包证据，原生v6/v7 Office/IME仍OPEN，许可履约/商业发布未放行。
 
 
-当前B-FGD候选下载v8/2.6.0，SHA a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4；`python -B -m scripts.project_appendix_b_v8 --write`以固定v7为输入，仅机械修改B.7 XML，新增I/TR来源及可选企业设施编号，旧v2—v7原字节保留。I/TR实测空白不补缺省，标准缺省必须明确选择且同次Resolver真实适用。独立fgd.json投影由`python -B -m scripts.project_fgd_rules`核验。产品仍不含标准全文/iapws/VirtualKeyboard；本包最终head CI实包、原生Office和商业履约状态分别记录，不借旧制品放行。
+历史B-FGD候选（当时）下载v8/2.6.0，SHA a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4；`python -B -m scripts.project_appendix_b_v8 --write`以固定v7为输入，仅机械修改B.7 XML，新增I/TR来源及可选企业设施编号，旧v2—v7原字节保留。I/TR实测空白不补缺省，标准缺省必须明确选择且同次Resolver真实适用。独立fgd.json投影由`python -B -m scripts.project_fgd_rules`核验。产品仍不含标准全文/iapws/VirtualKeyboard；本包最终head CI实包、原生Office和商业履约状态分别记录，不借旧制品放行。
 
 
 PR50旧脱硫输入兼容边界：旧FGD_V1项目仍可打开、保存未完成输入；读取本身不新增设施/批次身份、不回填或重算历史Record。正式计算时，同一旧分组各组分须共用同一整剂净耗量，按显式单位归一后精确比较；例如同组10t与20t现明确拒绝并零新增Record，需先核实真实批次和整剂用量，不静默统一或自动拆批。10t与10000kg代表同量，资料引用不同不当作数量不同；不同已明确分组分别核算。此为已批准同组分母校验补漏，原排放公式、来源集合与Numeric不变。历史Record/Word继续只读冻结快照，不因新校验或Catalog升级漂移。旧无I/TR来源列的B.7 schema保留已批准的适用空白约定并明确告警，v8显式实测空白不回落。
@@ -138,3 +138,7 @@ F原始调查及REV2分别持久保存在docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json�
 本阶段仅私有CI/工程候选验证；不CU、不商业发布，不以作者专属/本地/包内程序化验证替代正式客户履约或原生Office/IME/DPI/干净机验收。最终实际包身份和测试统计以本轮实施报告/仓内CI摘要为准。
 
 工作状态门禁同时约束原输入和实际binary64 Pa/K：实际Pa须严格低于临界Pa，过热实际K须严格高于同压库Tsat并通过气相校验；极微小原差在工作值折叠时拒绝，不夹值/加epsilon/抬温。此为既有017原则落实，Profile、公式和known路径不变；24901e1的旧CI即使通过也不背书该修复，最终新head须重新CI/精确包。
+
+## PR52-F01 报告单位退修与当前证据身份
+
+当前输入模板为v10/2.8.0（此前烟气v9/2.7.0、脱硫v8/2.6.0均为历史阶段）。CI280实际包为321份manifest文件、ZIP322份文件，仅背书fca产品代码。796文档回执的技术PASS因共享B.9 Pa/K投影错误被撤回，当前定向修复及后续CI/精确head实包以TASK_STATE和IMPLEMENTATION_REPORT为准，旧267文件包和CI280不得背书新补丁。压力/温度只由同Record冻结规范值或明确单位的原值显示转换到MPa/℃；K→℃减273.15，不重算物性，不回写Record，旧方法记录报告兼容保留。

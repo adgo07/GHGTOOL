@@ -69,9 +69,9 @@ def value(line,*,export=(),report_period=period):
  source_states=(EmissionSourceState(SOURCE_PURCHASED_HEAT,EmissionSourceStatus.INVOLVED),EmissionSourceState(SOURCE_EXPORTED_HEAT,EmissionSourceStatus.INVOLVED if export else EmissionSourceStatus.NOT_INVOLVED)))
 def line(**kw):
  fields=dict(line_id='actual-heat',amount=InputValue('1','t'),enthalpy='2800',manual_enthalpy=True,source_boundary='OUTSIDE_ENTERPRISE');fields.update(kw);return HeatInput(**fields)
-def frozen_word(store,rid,save=None):
+def frozen_word(store,rid,save=None,*,today=None):
  with patch.object(CarbonMaterialCalculator,'calculate',side_effect=AssertionError('frozen')),patch.object(resolver,'resolve',side_effect=AssertionError('frozen')),patch.object(physics,'_runtime',side_effect=AssertionError('frozen')):
-  model=build_report_model(store.get(rid),raw_input_snapshot=store.get_raw_input_snapshot(rid),trace_snapshot=store.get_trace_snapshot(rid),provenance_snapshot=store.get_provenance_snapshot(rid),reporting_snapshot=store.get_reporting_snapshot(rid),report_qualification=store.get_report_qualification(rid))
+  model=build_report_model(store.get(rid),raw_input_snapshot=store.get_raw_input_snapshot(rid),trace_snapshot=store.get_trace_snapshot(rid),provenance_snapshot=store.get_provenance_snapshot(rid),reporting_snapshot=store.get_reporting_snapshot(rid),report_qualification=store.get_report_qualification(rid),today=today)
   word=render_report_docx(model)
   with ZipFile(BytesIO(word)) as z:xml=z.read('word/document.xml')
  if save:save.write_bytes(word)
@@ -145,6 +145,30 @@ assert not any(item.emission_source_id==SOURCE_PURCHASED_HEAT for item in inside
 
 purchased=line();exported=replace(line(),line_id='exported',amount=InputValue('.5','t'))
 mixed=formal.calculate(value(purchased,export=(exported,)));assert mixed.successful and mixed.result.total_amount==Decimal('.154')
+# PR52-F01: actual formal Record -> shared B.9 -> frozen Word, both directions.
+report_unit_checks=[]
+for p,pu,t,tu in (('.0035','MPa','26.85','C'),('3500','Pa','300','K'),('3500','Pa','26.85','C'),('.0035','MPa','300','K'),('.1','MPa',None,None),('100000','Pa',None,None)):
+ state_line=line(enthalpy=None,manual_enthalpy=False,steam_kind=SteamKind.SUPERHEATED if t else SteamKind.SATURATED,
+     pressure_mpa=InputValue(p,pu),temperature_c=InputValue(t,tu) if t else None)
+ state_export=replace(state_line,line_id='unit-export',amount=InputValue('.5','t'))
+ unit_result=formal.calculate(value(state_line,export=(state_export,)));assert unit_result.successful,unit_result.problems
+ unit_id=unit_result.record.record_id
+ unit_raw=records.get_raw_input_snapshot(unit_id);unit_trace=records.get_trace_snapshot(unit_id)
+ unit_model,unit_xml=frozen_word(records,unit_id)
+ unit_table=next(section for section in unit_model.sections if section.section_id=='b9').tables[0]
+ unit_headers=''.join(cell.value for header in unit_table.header_rows for cell in header.cells)
+ assert 'MPa' in unit_headers and '℃' in unit_headers
+ expected=('3.50E-3','26.85') if t else ('0.10','不适用')
+ from xml.etree import ElementTree as ET
+ ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+ word_b9=next(table for table in ET.fromstring(unit_xml).findall('.//w:tbl',ns) if '蒸汽压力' in ''.join(table.itertext()))
+ word_b9_rows=[[''.join(cell.itertext()) for cell in row.findall('w:tc',ns)] for row in word_b9.findall('w:tr',ns)]
+ for direction,unit_row in zip(('购入','输出'),unit_table.rows):
+  assert unit_row.cells[0].value==direction
+  assert (unit_row.cells[3].value,unit_row.cells[4].value)==expected,(pu,tu,direction,unit_row)
+  assert tuple(next(row for row in word_b9_rows if row[0]==direction)[3:5])==expected
+ assert records.get_raw_input_snapshot(unit_id)==unit_raw and records.get_trace_snapshot(unit_id)==unit_trace
+ report_unit_checks.append({'pressure_unit':pu,'temperature_unit':tu,'display_pressure_mpa':expected[0],'display_temperature_c':expected[1],'directions':['购入','输出'],'frozen_only_and_original_evidence_unchanged':True})
 periods=[]
 for a,b,expected in ((date(2024,1,1),date(2024,12,31),'heat_default_gbt32151_34_c3'),(date(2025,1,1),date(2025,12,31),'heat_default_gbt32151_34_c3'),(date(2026,1,1),date(2026,12,31),'heat_default_2025')):
  outcome=formal.calculate(value(line(),report_period=AccountingPeriod(PeriodType.ANNUAL,a,b)));assert outcome.successful,outcome.problems
@@ -155,7 +179,7 @@ legacy=Path(sys.argv[4]);old=json.loads((legacy/'created-proof.json').read_text(
 with tempfile.TemporaryDirectory() as folder:
  db=Path(folder)/'records.sqlite';shutil.copy2(legacy/'records.sqlite',db);store=SQLiteRecordRepository(db)
  for item in old['records']:
-  model,xml=frozen_word(store,item['record_id'])
+  model,xml=frozen_word(store,item['record_id'],today=date(2026,10,18))
   assert sha256(repr(model).encode()).hexdigest()==item['model_sha256']
   assert sha256(xml).hexdigest()==item['document_xml_sha256'];history.append(item)
 # Actual packaged Qt/Application/Excel/Canonical/SQLite/Word, programmatically offscreen.
@@ -203,5 +227,5 @@ with fresh_qt() as (gui,projects,store,shell):
  outcome=CarbonAccountingUseCase(gui.calculator,store).calculate(recovered.units[0].canonical_input);assert outcome.successful and outcome.result.total_amount==expected.result.total_amount
  rid=outcome.record.record_id;model,xml=frozen_word(store,rid,output/'qt-auto-frozen.docx');assert b'IF97' in xml and b'8.0.0' in xml
  row.pressure.setText('.1');row.temperature.setText('90');bad=CarbonAccountingUseCase(gui.calculator,store).calculate(gui._input(increment=False));assert not bad.successful and len(store.list_all())==1
-proof={'source_commit':manifest['source_commit'],'tested_merge_sha':manifest['tested_merge_sha'],'algorithm':ALGORITHM_VERSION,'execution':'ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI','source_fallback':False,'native_coolprop':str(Path(cp.__file__).relative_to(root)),'native_numpy':str(Path(np_native.__file__).relative_to(root)),'if97':{'enthalpy':str(result.enthalpy_kj_per_kg),'emission':str(auto.result.total_amount),'phase':result.actual_phase,'working_pa':result.working_pressure_pa_lexeme,'working_k':result.working_temperature_k_lexeme,'library_jkg':result.library_output_j_per_kg_lexeme},'ambient_independence':[6,17,60],'working_boundary_checks':{'critical_pressure_collapse_rejected_both_paths':True,'temperature_fold_to_saturation_rejected':True,'adjacent_valid_pressure_pa':repr(adjacent_pa),'adjacent_valid_gas_temperatures_k':legal_temperatures,'no_epsilon_or_clamping':True},'invalid_cases_zero_added_records':True,'known_runtime_independent':True,'nonpositive_known_warning_frozen':True,'internal_no_unrelated_values':True,'internal_original_fuel_preserved':str(inside_fuel.result.total_amount),'saturated_quality_one_enthalpy':str(sat_h.enthalpy_kj_per_kg),'measured_zero_no_default_and_negative_blocked':True,'purchase_export_once_total':str(mixed.result.total_amount),'real_c3_periods':periods,'actual_old_ci273_frozen_records':history,'qt_project_reopen_excel_formal_frozen_word':True,'qt_invalid_state_zero_added_records':True,'qt_records':len(store.list_all()),'commercial_release':False}
+proof={'source_commit':manifest['source_commit'],'tested_merge_sha':manifest['tested_merge_sha'],'algorithm':ALGORITHM_VERSION,'execution':'ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI','source_fallback':False,'native_coolprop':str(Path(cp.__file__).relative_to(root)),'native_numpy':str(Path(np_native.__file__).relative_to(root)),'if97':{'enthalpy':str(result.enthalpy_kj_per_kg),'emission':str(auto.result.total_amount),'phase':result.actual_phase,'working_pa':result.working_pressure_pa_lexeme,'working_k':result.working_temperature_k_lexeme,'library_jkg':result.library_output_j_per_kg_lexeme},'ambient_independence':[6,17,60],'report_unit_checks':report_unit_checks,'working_boundary_checks':{'critical_pressure_collapse_rejected_both_paths':True,'temperature_fold_to_saturation_rejected':True,'adjacent_valid_pressure_pa':repr(adjacent_pa),'adjacent_valid_gas_temperatures_k':legal_temperatures,'no_epsilon_or_clamping':True},'invalid_cases_zero_added_records':True,'known_runtime_independent':True,'nonpositive_known_warning_frozen':True,'internal_no_unrelated_values':True,'internal_original_fuel_preserved':str(inside_fuel.result.total_amount),'saturated_quality_one_enthalpy':str(sat_h.enthalpy_kj_per_kg),'measured_zero_no_default_and_negative_blocked':True,'purchase_export_once_total':str(mixed.result.total_amount),'real_c3_periods':periods,'actual_old_ci273_frozen_records':history,'qt_project_reopen_excel_formal_frozen_word':True,'qt_invalid_state_zero_added_records':True,'qt_records':len(store.list_all()),'commercial_release':False}
 (output/'proof.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(proof,ensure_ascii=False))

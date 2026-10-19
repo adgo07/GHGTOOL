@@ -82,6 +82,49 @@ def _value(value, *, unit=None, percent=False):
     return _display_cell(text,source=source,detail=detail,unit=unit)
 
 
+def _heat_state_cell(record, item, provenance, field):
+    """Display only frozen HEAT state in B.9 units; never evaluate properties.
+
+    Pre-HEAT reports retain their historical projection. HEAT records prefer
+    method-tagged normalized lexemes, then explicitly unit-tagged raw evidence.
+    Temperature offsets are affine, not ordinary UnitService multipliers.
+    """
+    value = item.get(field)
+    if (not record.algorithm_version.rsplit('-', 1)[-1].startswith('HEAT.')
+            and provenance.get('enthalpy_method_version') != 'CAR-HEAT-IF97-017.1'):
+        return _value(value)
+    raw = _mapping(value)
+    target = 'MPa' if field == 'pressure_mpa' else 'C'
+    normalized_key = 'normalized_pressure_mpa_lexeme' if target == 'MPa' else 'normalized_temperature_c_lexeme'
+    normalized = None
+    if provenance.get('enthalpy_method_version') == 'CAR-HEAT-IF97-017.1':
+        normalized = provenance.get(normalized_key)
+    text = _text(normalized) if normalized is not None else _text(value)
+    if not text:
+        return ReportCell('未填写')
+    try:
+        number = Decimal(text)
+        if not number.is_finite():
+            return ReportCell('历史未记录')
+        if normalized is None:
+            source = _text(raw.get('unit'))
+            if not source:
+                return ReportCell('单位未记录')
+            policy = DecimalPolicy(precision=max(50, len(number.as_tuple().digits) + max(0, -number.as_tuple().exponent) + 16), rounding=ROUND_HALF_UP)
+            if target == 'MPa':
+                multiplier = {'MPa': '1', 'kPa': '.001', 'Pa': '.000001', 'bar': '.1'}.get(source)
+                if multiplier is None:
+                    return ReportCell('单位不明')
+                number = policy.multiply(number, Decimal(multiplier))
+            elif source == 'K':
+                number = policy.subtract(number, Decimal('273.15'))
+            elif source not in {'C', '°C', '℃', 'degC'}:
+                return ReportCell('单位不明')
+    except (ValueError, ArithmeticError):
+        return ReportCell('历史未记录')
+    return _value(dict(raw, value=str(number), unit=target), unit=target)
+
+
 _SHORT_SOURCE_NAMES = {
     "STANDARD_DEFAULT":"缺省值","STANDARD_SPECIFIED":"标准规定值","STANDARD_REQUIRED":"标准规定值",
     "MEASURED":"实测值","ENTERPRISE_MEASURED":"实测值","USER_DEFINED":"填写值","USER_PROVIDED":"填写值","MANUAL_OVERRIDE":"填写值",
@@ -565,7 +608,7 @@ def build_appendix_b_sections(record, raw, trace, snapshots, *, enterprise_name=
                     f'冻结自动参考焓值：{_text(reference)} kJ/kg；仅供对照，未替换采用值。',
                 ) if part)
             factor = _energy_parameter(record,item,iid,f'CAR-FLD-HEAT-{iid}-EF3','tCO2/GJ','EF3',step,source_types=_mapping(trace.get('parameter_source_types')))
-            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _value(item.get('pressure_mpa')), _value(item.get('temperature_c')) if item.get('steam_kind')!='SATURATED' else '不适用', _display_cell(value,source={'USER_MANUAL':'填写值','用户手动填写':'填写值','标准表自动确定':'标准查表','IAPWS-IF97自动物性':'物性计算','SATURATED_TABLE':'标准查表','SUPERHEATED_TABLE':'标准查表'}.get(provenance.get('enthalpy_source'),'历史来源未记录'),detail=enthalpy_detail,unit='kJ/kg') if value is not None else ReportCell('历史未记录'), factor))
+            rows.append((direction, _enum(item.get('steam_kind'),{'SATURATED':'饱和蒸汽','SUPERHEATED':'过热蒸汽'}) or '历史未记录', quantity, _heat_state_cell(record,item,provenance,'pressure_mpa'), _heat_state_cell(record,item,provenance,'temperature_c') if item.get('steam_kind')!='SATURATED' else '不适用', _display_cell(value,source={'USER_MANUAL':'填写值','用户手动填写':'填写值','标准表自动确定':'标准查表','IAPWS-IF97自动物性':'物性计算','SATURATED_TABLE':'标准查表','SUPERHEATED_TABLE':'标准查表'}.get(provenance.get('enthalpy_source'),'历史来源未记录'),detail=enthalpy_detail,unit='kJ/kg') if value is not None else ReportCell('历史未记录'), factor))
     for collection,direction,source in (('purchased_heat','购入',SOURCE_PURCHASED_HEAT),('exported_heat','输出',SOURCE_EXPORTED_HEAT)):
         if not _entries(raw,collection):
             for line in (line for line in record.calculation_result.lines if line.emission_source_id == source):

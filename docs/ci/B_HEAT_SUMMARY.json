@@ -1,6 +1,6 @@
 {
   "stage": "B-HEAT",
-  "status": "READY_FOR_INDEPENDENT_ACCEPTANCE_NOT_MERGED",
+  "status": "REQUIRES_FIX_F01_REPAIRED_LOCALLY_NEW_CI_REQUIRED",
   "base": "a1aeebc1b6809397e61a2ffa7a2333a3b440c756",
   "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
   "algorithm": "CAR-SM01-2026-10-18-HEAT.1",
@@ -515,5 +515,25 @@
     "exit_diagnostic_proof": "B_HEAT_EXIT_DIAGNOSTIC_PROOF.json"
   },
   "actual_ci_package_proof": "B_HEAT_CI280_PACKAGE_PROOF.json",
-  "actual_old_critical_negative_proof": "B_HEAT_CI279_NEGATIVE_PROOF.json"
+  "actual_old_critical_negative_proof": "B_HEAT_CI279_NEGATIVE_PROOF.json",
+  "ci280_historical_only_after_f01": true,
+  "independent_pass_796_withdrawn": true,
+  "f01": {
+    "base": "79695cc665e8d03a45ef20bf3bb88e5c4ccccdd4",
+    "local_regression": {
+      "tests": 59,
+      "seconds": 59.668,
+      "failures": 0,
+      "errors": 0
+    },
+    "before": {
+      "tests": 1,
+      "seconds": 4.41,
+      "subtest_failures": 4
+    },
+    "review_proof": "B_HEAT_F01_REVIEW_PROOF.json",
+    "new_ci": null,
+    "new_actual_bundle": null,
+    "source_acceptance": "PENDING"
+  }
 }
