@@ -14,6 +14,16 @@ from zipfile import ZipFile
 
 
 def _verify_distribution_templates(project_root: Path, output_root: Path, runtime_root: Path) -> dict:
+    prerequisite = subprocess.run(
+        [sys.executable, "-B", "-m", "pip", "--version"],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    if prerequisite.returncode:
+        raise RuntimeError(
+            "交付验证环境前置条件不满足：当前Python无法运行pip；"
+            "请先安装可用pip及requirements-build.txt依赖后重试。"
+            "wheel/sdist与安装资源验证为必需检查，不得跳过。"
+        )
     project_root, output_root = project_root.resolve(), output_root.resolve()
     runtime_root = runtime_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)

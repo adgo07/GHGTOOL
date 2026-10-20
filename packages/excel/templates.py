@@ -38,6 +38,42 @@ CURRENT_TEMPLATE_SHEETS = (*APPENDIX_B_SHEETS, "软件补充")
 
 
 @dataclass(frozen=True, slots=True)
+class TemplateCapabilities:
+    structured_processes: bool = False
+    explicit_fuel_sources: bool = False
+    fuel_source_policy: bool = False
+    direct_calculated_fuel: bool = False
+    material_basis: bool = False
+    explicit_fgd_ratios: bool = False
+    segmented_fume: bool = False
+    heat_sources: bool = False
+    external_supplement: bool = False
+
+
+# Only registered historical formats are readable. Future versions require review.
+_TEMPLATE_CAPABILITIES = {
+    "1.0.0": TemplateCapabilities(),
+    "2.0.0": TemplateCapabilities(True),
+    "2.1.0": TemplateCapabilities(True, True),
+    "2.2.0": TemplateCapabilities(True, True, True),
+    "2.3.0": TemplateCapabilities(True, True, True, True),
+    "2.4.0": TemplateCapabilities(True, True, True, True, True),
+    "2.5.0": TemplateCapabilities(True, True, True, True, True),
+    "2.6.0": TemplateCapabilities(True, True, True, True, True, True),
+    "2.7.0": TemplateCapabilities(True, True, True, True, True, True, True),
+    "2.8.0": TemplateCapabilities(True, True, True, True, True, True, True, True),
+    "2.9.0": TemplateCapabilities(True, True, True, True, True, True, True, True, True),
+}
+
+
+def template_capabilities(version: str) -> TemplateCapabilities:
+    try:
+        return _TEMPLATE_CAPABILITIES[version]
+    except KeyError:
+        raise ValueError(f"未登记的Excel模板版本：{version}") from None
+
+
+@dataclass(frozen=True, slots=True)
 class ExcelTemplate:
     standard_id: str
     standard_version: str

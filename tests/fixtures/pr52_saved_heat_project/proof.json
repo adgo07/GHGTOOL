@@ -1,0 +1,17 @@
+{
+  "source_commit": "0f50642544b110ee461f1b32ef8a01091d0f44d0",
+  "generator": "actual PR52 GUI _run_calculation/_save_project, no external field deletion or hash reconstruction",
+  "source_page_sha256": "bcc08bb28d397e90ec26a62203720b419308f5b7e313288ca24b41e9710df569",
+  "project_id": "project.33ffd828086a4161b87de6541ae1b9ca",
+  "unit_id": "unit.5312d0f72c2343aba632e503abbd561b",
+  "record_id": "record.input.1.162cbd5730a54acb86eeaec915419540",
+  "input_fingerprint": "ccada8e8429aa8e91d22b1b741ac1d95bc03380953e32461915c203c8c52c936",
+  "calculation_fingerprint": "a283337c88c506af90bf6c346710889924a3782ce6529b4ca69087d3f05f0844",
+  "reporting_fingerprint": "fd55650a356b4b5c0662e5ddf70c910ca80982c6183a13ad61045ff5cfb82ecb",
+  "word_document_xml_sha256": "5518fca3f1e716d2ac8701951fbc7bb3cf64d43e55448e3f2e413f4d277c5251",
+  "report_model_sha256": "08f053bedd734061ee8889fe9cad8a8d8b1b3df51158f42808f8d3f326a936b0",
+  "database_sha256": {
+    "projects.sqlite": "11701edfaa2e1947fb4be458d8bb2d51231fdb1008ef748f4a75abfbacb7aeb0",
+    "records.sqlite": "8672aa2174be675a9b64fa1d7a2ae616ba73684d8a66b5843a0c9d6821ac45ac"
+  }
+}

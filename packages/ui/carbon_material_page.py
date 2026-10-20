@@ -2776,6 +2776,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 wrapper_fields = {item.name for item in dataclass_fields(value)}
                 is_value_wrapper = "value" in wrapper_fields and bool(wrapper_fields & {"unit", "source_kind"})
                 for data_field in dataclass_fields(value):
+                    if root and data_field.name == "external_co2" and getattr(value, data_field.name) is None:
+                        # PR52 projects have no supplement field; absence remains absence.
+                        continue
                     if root and data_field.name == "input_id":
                         continue
                     if root and data_field.name in legacy_process_aliases:
@@ -2799,6 +2802,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 is_value_wrapper = "value" in value and bool({"unit", "source_kind"} & set(value))
                 for key, item in value.items():
                     key_text = str(key)
+                    if root and key_text == "external_co2" and item is None:
+                        continue
                     if root and key_text == "input_id":
                         continue
                     if root and key_text in legacy_process_aliases:
@@ -8236,7 +8241,7 @@ class CarbonMaterialAccountingPage(BasePage):
             "CAR-VAL-MATERIAL-BASIS-CONSISTENCY": "质量数据和成分含量的数据口径不一致，当前不能直接计算。请统一两项口径并提供换算依据。",
             "CAR-VAL-MATERIAL-COMPONENT-KIND": "固定碳或挥发分字段性质与标准要求不一致，请检查对应字段。",
             "CAR-VAL-BOUNDARY-UNCONFIRMED": "核算边界尚未确认，请确认本次核算边界。",
-            "CAR-VAL-OTHER-STANDARD": "发现当前标准未覆盖的其他活动或上下游运输，请改用适用标准核算。",
+            "CAR-VAL-OTHER-STANDARD": "本次炭素核算可继续；其他行业活动或运输应按相应标准另行核算，符合条件的外部CO₂可单独补充。",
             "CAR-VAL-STEAM-STATE": "购入热力的蒸汽状态资料不完整，请补充焓值或压力等必要数据。",
             "CAR-VAL-PARAMETER-RESOLVER-MISSING": "暂时无法取得适用的标准参数，请检查参数数据后重试。",
             "GEN-PAR-STANDARD-DEFAULT-MISSING": "当前无法取得适用的标准缺省参数，请检查标准参数目录后重试。",
