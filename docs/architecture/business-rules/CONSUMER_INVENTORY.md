@@ -21,7 +21,7 @@ GUI `CarbonMaterialAccountingPage._input/_run_calculation` 与附录B `AppendixB
 | 脱硫 | `evaluate_fgd_field` 三字段；`resolve_fgd_field` 同次 context/factor/resolution | GUI `_fgd_source_policy`；B.7 `_parse_fgd`，整剂批次同分母 | 设施/批次/组分稳定身份，旧版本读取与显式升级分开 | 共享Calculator按批校验整剂用量/分数并冻结；B.7消费原记录 | 旧私有绑定筛选/Excel空值猜默认退出，13项绑定资格局部接管；未知绑定仍阻断；`test_b_fgd_chain/legacy_templates/acceptance_fixes` |
 | 烟气焚烧 | 专属 `evaluate_fume_segments` / Issue020，非套用fuel.*字段策略 | GUI监测段与B.6 `_parse_fumes` → 同一FUME_V2 | 同源/计量边界内整小时段，旧细时间可读保存、非法新算拒绝 | 逐段式(9)、源/边界覆盖与缺口冻结；B.6不年化或再聚合 | 当前V2退出旧报告期时长放大路径；FUME_V1仅明确旧组合且不补造覆盖；未新增焦油参数策略。`test_b_fume_segments/chain` |
 | 热力/蒸汽 | `evaluate_heat_factor/heat_source_context`；边界 `classify_heat_boundary`；已知焓与固定CoolProp8/IF97独立方法 | GUI购/出热行；B.9 `_parse_heat_v28`，同Canonical | 热源边界/燃料已计/因子模式与草稿保留，实测空不回退 | 真实同次Resolver资格和值；内部已计燃料不重复购热；原/工作/采用物性及因子冻结，Word单位从冻结值投影 | 新自动焓不调用旧C.4/C.5查表/内插或失败回退；旧表仅历史/查询、已知焓独立。`test_b_heat_runtime/if97/chain/report_units` |
-| 外部CO₂ | `evaluate_external_co2_supplement`，Issue016软件补充 | GUI三项/B.1后独立软件补充页（非B.10）；声明仅提醒 | 禁用草稿、待补、0、正值及历史None分别恢复；PR52缺省指纹兼容 | 原ET不变，只由producer求和一次冻结；结果/Record/Word消费同节点 | 原声明即ERROR/确认清除声明退出；旧Record不补节点/0，合法外部量不能填平烟气缺口；`test_b_external_runtime/chain/excel/review/status_copy` |
+| 外部CO₂ | `evaluate_external_co2_supplement`，Issue016软件补充 | GUI三项/原九张B.1—B.9之后追加独立软件补充页（非B.10）；声明仅提醒 | 禁用草稿、待补、0、正值及历史None分别恢复；PR52缺省指纹兼容 | 原ET不变，只由producer求和一次冻结；结果/Record/Word消费同节点 | 原声明即ERROR/确认清除声明退出；旧Record不补节点/0，合法外部量不能填平烟气缺口；`test_b_external_runtime/chain/excel/review/status_copy` |
 
 ## 接管范围及仍开放项
 
