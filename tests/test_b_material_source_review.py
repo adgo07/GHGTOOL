@@ -47,10 +47,10 @@ class MaterialSourceReviewTests(unittest.TestCase):
    self.assertEqual(combo.itemText(combo.findData(Source.CHEMICAL_CALCULATION)),'计算值')
    gui.period_year.setValue(2025);page=shell.pages[AppRoute.EXCEL_IMPORT]
    context=page.excel_adapter.context(period=gui._period(),boundary_confirmed=True,enterprise_name='材料来源验证')
-   cases=[('new',ExcelTemplateService.default().read_bytes(),'计算值',None,True,'2.8.0'),
-          ('missing-method',ExcelTemplateService.default().read_bytes(),'计算值','L',False,'2.8.0'),
-          ('missing-water',ExcelTemplateService.default().read_bytes(),'计算值','K',False,'2.8.0'),
-          ('new-reject-old-word',ExcelTemplateService.default().read_bytes(),'收到基换算',None,False,'2.8.0'),
+   cases=[('new',ExcelTemplateService.default().read_bytes(),'计算值',None,True,'2.9.0'),
+          ('missing-method',ExcelTemplateService.default().read_bytes(),'计算值','L',False,'2.9.0'),
+          ('missing-water',ExcelTemplateService.default().read_bytes(),'计算值','K',False,'2.9.0'),
+          ('new-reject-old-word',ExcelTemplateService.default().read_bytes(),'收到基换算',None,False,'2.9.0'),
           ('old-alias',files('resources').joinpath(APPROVED_TEMPLATE_V6_RESOURCE).read_bytes(),'收到基换算',None,True,'2.4.0')]
    for name,content,label,missing,valid,version in cases:
     with self.subTest(name=name):

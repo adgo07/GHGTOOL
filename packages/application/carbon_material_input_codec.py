@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from packages.standards.carbon_material_input_policy import InputOrigin
+from packages.standards.carbon_material_external_co2 import ExternalCO2Input
 
 from packages.core.models import (
     AccountingPeriod,
@@ -59,8 +60,8 @@ from packages.standards.carbon_material_normalization import (
 )
 
 
-CANONICAL_INPUT_CODEC_VERSION = 5
-SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3, 4, 5)
+CANONICAL_INPUT_CODEC_VERSION = 6
+SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3, 4, 5, 6)
 _CODEC_ID = "ghgtool.carbon_material_input"
 
 
@@ -72,6 +73,7 @@ from packages.standards.carbon_material_fume_segments import FumeMonitoringSegme
 _DATACLASSES: dict[str, type[Any]] = {
     "fume_monitoring_segment": FumeMonitoringSegment,
     "accounting_period": AccountingPeriod,
+    "external_co2_input": ExternalCO2Input,
     "activity_data_evidence": ActivityDataEvidence,
     "baking_input": BakingInput,
     "carbon_material_input": CarbonMaterialInput,
@@ -238,7 +240,7 @@ def _decode_value(value: object) -> object:
             "graphitization_input": {"instance_name"},
             "fuel_input": {"origin", "catalog_subject_id"},
             "carbonate_component": {"origin", "component_id"},
-            "carbon_material_input": {"material_execution_version", "fume_segments", "fume_execution_version"},
+            "carbon_material_input": {"material_execution_version", "fume_segments", "fume_execution_version", "external_co2"},
             "material_input_line": {"mass_basis", "composition_basis", "moisture_received_percent",
                                     "conversion_method", "fixed_carbon_unit", "volatile_matter_unit"},
         }.get(node["type"], set())
@@ -308,6 +310,11 @@ def decode_canonical_input(payload: str) -> CarbonMaterialInput:
         raise CanonicalInputCodecError("unrecognized canonical input codec")
     if type(document["version"]) is not int or document["version"] not in SUPPORTED_INPUT_CODEC_VERSIONS:
         raise CanonicalInputCodecError("unsupported canonical input codec version")
+    root_fields = document.get('value', {}).get('fields', {}) if isinstance(document.get('value'),dict) else {}
+    if document['version'] == 6 and 'external_co2' not in root_fields:
+        raise CanonicalInputCodecError('v6 requires explicit external supplement state')
+    if document['version'] < 6 and 'external_co2' in root_fields:
+        raise CanonicalInputCodecError('historical payload cannot declare a v6 supplement')
     try:
         input_value = _decode_value(document["value"])
     except (RecursionError, KeyError, TypeError) as exc:

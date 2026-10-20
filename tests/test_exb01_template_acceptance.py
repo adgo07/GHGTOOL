@@ -10,7 +10,7 @@ import unittest
 from openpyxl import load_workbook
 
 from packages.excel.templates import (
-    APPENDIX_B_SHEETS,
+    APPENDIX_B_SHEETS, CURRENT_TEMPLATE_SHEETS,
     APPROVED_TEMPLATE_SHA256,
     APPROVED_TEMPLATE_V2_RESOURCE,
     APPROVED_TEMPLATE_V3_RESOURCE,
@@ -29,7 +29,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
         self.assertEqual(sha256(content).hexdigest(), APPROVED_TEMPLATE_SHA256)
         workbook = load_workbook(BytesIO(content), data_only=False, read_only=False)
         try:
-            self.assertEqual(tuple(workbook.sheetnames), APPENDIX_B_SHEETS)
+            self.assertEqual(tuple(workbook.sheetnames), CURRENT_TEMPLATE_SHEETS)
             self.assertTrue(all(workbook[name].sheet_state == "visible" for name in APPENDIX_B_SHEETS))
             self.assertEqual(workbook["B.2"]["N2"].value, "FCh来源")
             self.assertEqual(workbook["B.7"]["J2"].value, "因子来源")
@@ -95,7 +95,7 @@ class AppendixBTemplateAcceptanceTests(unittest.TestCase):
             for sheet in ("B.3", "B.4", "B.5"):
                 for col in "IJKLM":
                     self.assertFalse(workbook[sheet][f"{col}4"].protection.locked, (sheet,col))
-            self.assertEqual(self.service.validate_structure(workbook),"2.8.0")
+            self.assertEqual(self.service.validate_structure(workbook),"2.9.0")
         finally:
             workbook.close()
 

@@ -51,6 +51,7 @@ from packages.excel.ingress import (
     read_worksheet_numeric_lexemes,
 )
 from packages.excel.templates import ExcelTemplateService
+from packages.standards.carbon_material_external_co2 import ExternalCO2Input
 from packages.standards.carbon_material_input_policy import (
     InputOrigin, fuel_input_policy, catalog_defaults_allowed, STEAM_KIND_LABELS,
     STANDARD_DEFAULT, CALCULATED, MEASURED, parameter_source_policy,
@@ -310,6 +311,7 @@ class AppendixBWorkbookImporter:
             self._parse_heat(workbook, context, reader, errors, warnings, purchased_heat,
                              exported_heat, involved, unit_id, template_version=template_version)
 
+            external, other_activity, transport = self._parse_external(workbook, reader, errors, warnings, template_version)
             states = tuple(EmissionSourceState(
                 source_id,
                 EmissionSourceStatus.INVOLVED if source_id in involved else EmissionSourceStatus.NOT_INVOLVED,
@@ -328,12 +330,15 @@ class AppendixBWorkbookImporter:
                 graphitizations=tuple(processes[2]),
                 fume_incinerations=tuple(fumes),
                 fume_segments=tuple(fume_segments),
-                fume_execution_version="FUME_V2" if template_version in {"2.7.0", "2.8.0"} else "FUME_V1",
+                fume_execution_version="FUME_V2" if template_version in {"2.7.0", "2.8.0", "2.9.0"} else "FUME_V1",
                 fgd_units=tuple(fgd),
                 electricity_details=tuple(purchased_power),
                 exported_electricity=tuple(exported_power),
                 purchased_heat=tuple(purchased_heat),
                 exported_heat=tuple(exported_heat),
+                external_co2=external,
+                other_activity_present=other_activity,
+                transport_present=transport,
             )
             if not fume_ingress_valid or any((message.location or "").startswith("B.6!") for message in errors):
                 # An invalid interval cannot be represented as a valid typed segment.
@@ -511,9 +516,9 @@ class AppendixBWorkbookImporter:
     def _parse_fuels(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         sheet = workbook["B.2"]
         from packages.standards.carbon_material_input_policy import FUEL_QUANTITIES
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
-        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
-        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"}
+        explicit_source_schema = template_version in {"2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"}
+        policy_source_schema = template_version in {"2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"}
         def column(legacy_column):
             return chr(ord(legacy_column)+1) if current and legacy_column >= "C" else legacy_column
 
@@ -551,7 +556,7 @@ class AppendixBWorkbookImporter:
             if path is None:
                 continue
             route = reader.text(workbook, "B.2", f"{column('D')}{row}", errors, required=True, field_label=f"燃料“{label}”碳含量路径")
-            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"} else {"计算值", "实测值"}):
+            if route not in ({"计算值", "实测值", "直接计算值"} if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"} else {"计算值", "实测值"}):
                 if route is not None:
                     errors.append(ImportMessage("EXB01_FUEL_CARBON_ROUTE_INVALID", "碳含量路径只能是“计算值”或“实测值”。", f"B.2!{column('D')}{row}", "碳含量路径"))
                 route = None
@@ -649,7 +654,7 @@ class AppendixBWorkbookImporter:
                     reader.observe_unused(workbook,"B.2",f"{column('K')}{row}",warnings,field_label="其他来源FCh填写值",reason="直接含碳量路径不采用FCh。")
                 if explicit_source_schema:
                     reader.observe_unused(workbook,"B.2",f"N{row}",warnings,field_label="单位热值含碳量来源",reason="直接含碳量路径不采用FCh来源选择。")
-                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"} and route == "直接计算值":
+                if template_version in {"2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"} and route == "直接计算值":
                     for coordinate, name in ((f"{column('E')}{row}", "低位发热量"), (f"{column('G')}{row}", "FCh目录值"), (f"{column('K')}{row}", "FCh填写值")):
                         if _has_value(sheet[coordinate]):
                             errors.append(ImportMessage("EXB01_DIRECT_PATH_VALUE_CONFLICT", "直接计算含碳量路径不采用热值或FCh，请清空冲突数值。", f"B.2!{coordinate}", name))
@@ -1136,13 +1141,49 @@ class AppendixBWorkbookImporter:
         parameter = self.parameters.get(parameter_id.lower())
         return str(getattr(parameter, "canonical_unit", getattr(parameter, "default_unit", fallback))) if parameter else fallback
 
+    @staticmethod
+    def _parse_external(workbook, reader, errors, warnings, template_version):
+        if template_version != "2.9.0":
+            return None, False, False
+        sheet = workbook["软件补充"]
+        for coordinate in ("B4", "B5", "B6", "B10", "B11"):
+            if sheet[coordinate].data_type == "f":
+                errors.append(ImportMessage("EXB01_FORMULA_REJECTED", "软件补充输入不接受Excel公式，请填写固定内容。", f"软件补充!{coordinate}", "软件补充"))
+        include = sheet["B4"].value
+        if include not in {"纳入", "不纳入"}:
+            errors.append(ImportMessage("EXB01_EXTERNAL_CHOICE", "请选择纳入或不纳入。", "软件补充!B4", "是否纳入"))
+        declarations = []
+        for coordinate in ("B10", "B11"):
+            value = sheet[coordinate].value
+            if value not in {None, "", "未声明", "有"}:
+                errors.append(ImportMessage("EXB01_EXTERNAL_DECLARATION", "活动声明请选择未声明或有。", f"软件补充!{coordinate}", "活动声明"))
+            declarations.append(value == "有")
+        raw = sheet["B5"].value
+        if include == "纳入":
+            # Retain the established adapter Numeric policy (numeric cell, <=15 digits)
+            # and lexical evidence; Domain remains the sole business validation.
+            reader.number(workbook, "软件补充", "B5", errors, required=False, field_label="外部CO₂排放量")
+        elif raw is not None:
+            reader.observe_unused(workbook, "软件补充", "B5", warnings, field_label="外部CO₂草稿")
+        # Numerical cells use the OOXML lexical value, avoiding float round-trips.
+        # Inactive text is an editable draft and is not numerically validated.
+        amount = reader.numeric_lexemes.get(("软件补充", "B5")) if sheet["B5"].data_type == "n" and raw is not None else raw
+        if amount is not None and not isinstance(amount, str):
+            errors.append(ImportMessage("EXB01_EXTERNAL_AMOUNT", "补充量必须为十进制数或文本草稿。", "软件补充!B5", "外部CO₂排放量"))
+            amount = str(amount)
+        label = sheet["B6"].value
+        if label is not None and not isinstance(label, str):
+            errors.append(ImportMessage("EXB01_EXTERNAL_LABEL", "简称须为文本。", "软件补充!B6", "简称"))
+            label = str(label)
+        return ExternalCO2Input(included=include == "纳入", amount_lexeme=amount, label=label), *declarations
+
     def _is_template_numeric_seed(self, reader, sheet: str, cell_ref: str) -> bool:
         expected = self._template_numeric_lexemes.get((sheet, cell_ref))
         actual = reader.numeric_lexemes.get((sheet, cell_ref))
         return expected is not None and actual == expected
 
     def _parse_heat(self, workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id, *, template_version="1.0.0"):
-        if template_version == "2.8.0":
+        if template_version in {"2.8.0", "2.9.0"}:
             return self._parse_heat_v28(workbook, context, reader, errors, warnings, purchased, exported, involved, unit_id)
         # v2-v9 share the original B.9 seeds; v10 deliberately has no numerical seed.
         # Compare the protected historical master's lexical cell, never a live factor's value.
@@ -1295,7 +1336,7 @@ class AppendixBWorkbookImporter:
                 exported.append(line);involved.add(SOURCE_EXPORTED_HEAT)
 
     def _parse_processes(self, workbook, context, reader, errors, warnings, outputs, involved, unit_id, *, template_version="1.0.0"):
-        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}:
+        if template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"}:
             from .appendix_b_processes import parse_process_sheets
             return parse_process_sheets(
                 self, workbook, context, reader, errors, warnings, outputs,
@@ -1430,7 +1471,7 @@ class AppendixBWorkbookImporter:
 
     def _parse_fumes(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, segments, template_version):
         error_count = len(errors)
-        segmented = template_version in {"2.7.0", "2.8.0"}
+        segmented = template_version in {"2.7.0", "2.8.0", "2.9.0"}
         ws = workbook["B.6"]
         stop = next(
             (row for row in range(3, ws.max_row + 1) if _is_appendix_footer_row(ws, row)),
@@ -1494,7 +1535,7 @@ class AppendixBWorkbookImporter:
 
     def _parse_fgd(self, workbook, context, reader, errors, warnings, output, involved, unit_id, *, template_version="1.0.0"):
         ws = workbook["B.7"]
-        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"}
+        current = template_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"}
         stop = next((row for row in range(3, ws.max_row + 1)
                      if _is_appendix_footer_row(ws, row)), ws.max_row + 1)
         merge_rows: dict[int, list[object]] = {1: [], 2: []}
@@ -1577,14 +1618,14 @@ class AppendixBWorkbookImporter:
         for row in range(3, stop):
             if row in grouped_rows:
                 continue
-            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version in {"2.6.0", "2.7.0", "2.8.0"} else "DEFHJ" if current else "DEF")):
+            if identity_entered(row) or any(_has_value(ws[f"{col}{row}"]) for col in ("DEFHJKL" if template_version in {"2.6.0", "2.7.0", "2.8.0", "2.9.0"} else "DEFHJ" if current else "DEF")):
                 errors.append(ImportMessage(
                     "EXB01_FGD_BATCH_BOUNDARY_REQUIRED",
                     "该碳酸盐组分数据没有落在明确的 A/B 批次合并组或新批次边界内。",
                     f"B.7!C{row}", "碳酸盐组分",
                 ))
 
-        explicit_ratios = template_version in {"2.6.0", "2.7.0", "2.8.0"}
+        explicit_ratios = template_version in {"2.6.0", "2.7.0", "2.8.0", "2.9.0"}
         explicit_factor_source = template_version not in {"1.0.0", "2.0.0"}
         facilities = {}
         for ordinal, (start, end, _merged) in enumerate(groups, 1):

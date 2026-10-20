@@ -6,6 +6,9 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.standards.carbon_material_external_co2 import ExternalCO2Input
+from packages.application.reporting.software_supplement import software_supplement_summary
+
 from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment, parse_fume_timestamp
 from packages.standards.carbon_material_business_policy import resolve_fgd_field
 
@@ -946,15 +949,15 @@ class CarbonMaterialAccountingPage(BasePage):
         scope_layout = QHBoxLayout(self.scope_exclusion_notice)
         scope_layout.setContentsMargins(0, 0, 0, 0)
         self.scope_exclusion_label = QLabel(
-            "已保存的项目标记了本标准未覆盖的行业活动或上下游运输。请单独核算后，再确认本次边界不含这些活动。",
+            "其他行业或运输声明仅作提醒，不阻断炭素核算，也不自动产生外部排放量；范围外运输不能混入补充。",
             self.scope_exclusion_notice,
         )
         self.scope_exclusion_label.setWordWrap(True)
         scope_layout.addWidget(self.scope_exclusion_label, 1)
-        self.scope_exclusion_acknowledge = QPushButton("确认本次边界不含上述活动", self.scope_exclusion_notice)
+        self.scope_exclusion_acknowledge = QPushButton("查看范围说明", self.scope_exclusion_notice)
         self.scope_exclusion_acknowledge.setObjectName("confirmExcludedActivitiesButton")
         self.scope_exclusion_acknowledge.clicked.connect(self._acknowledge_out_of_scope_activities)
-        scope_layout.addWidget(self.scope_exclusion_acknowledge)
+        self.scope_exclusion_acknowledge.hide()
         self.scope_exclusion_notice.setVisible(False)
         identity_layout.addWidget(self.scope_exclusion_notice)
 
@@ -1063,6 +1066,36 @@ class CarbonMaterialAccountingPage(BasePage):
         self.source_navigation.currentIndexChanged.connect(self._jump_to_source)
         self.body_layout.addWidget(source_activity)
 
+        external_card, external_layout = _card('外部CO₂软件补充（非标准排放源）', self)
+        self._external_state_recorded = True
+        self._external_known_facts = {}
+        self.external_included = QCheckBox('纳入补充（声明同边界、同期且原结果未计入）', external_card)
+        self.external_included.setObjectName('externalIncluded')
+        external_layout.addWidget(self.external_included)
+        external_form = QFormLayout()
+        self.external_amount = QLineEdit(external_card)
+        self.external_amount.setObjectName('externalAmount')
+        self.external_amount.setPlaceholderText('空白表示待补；0表示已核算的真实0')
+        self.external_label = QLineEdit(external_card)
+        self.external_label.setObjectName('externalLabel')
+        external_form.addRow('外部已核算CO₂（tCO₂）', self.external_amount)
+        external_form.addRow('短名称（可选）', self.external_label)
+        external_layout.addLayout(external_form)
+        self.external_state_hint = QLabel('未纳入；草稿保留但不参加合计。外部计算真实性由企业确认。', external_card)
+        self.external_state_hint.setWordWrap(True)
+        external_layout.addWidget(self.external_state_hint)
+        self.other_activity_present.setText('另有其他行业活动（仅作声明）')
+        self.transport_present.setText('另有运输活动（按适用标准另算）')
+        external_layout.addWidget(self.other_activity_present)
+        external_layout.addWidget(self.transport_present)
+        self.other_activity_present.show()
+        self.transport_present.show()
+        self.external_included.toggled.connect(self._on_external_include_changed)
+        self.external_amount.textChanged.connect(self._on_external_draft_changed)
+        self.external_label.textChanged.connect(self._on_external_draft_changed)
+        self._refresh_external_controls()
+        self.body_layout.addWidget(external_card)
+
         process_card, process_layout = _card("计算依据", self)
         self.process_card = process_card
         self.trace_output = QLabel("点击“计算排放量”后显示分项计算结果。", process_card)
@@ -1099,6 +1132,11 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_breakdown.setObjectName("calculationBreakdown")
         self.result_breakdown.setWordWrap(True)
         result_layout.addWidget(self.result_breakdown)
+        self.external_result_summary = QLabel('', result_card)
+        self.external_result_summary.setObjectName('externalSupplementResult')
+        self.external_result_summary.setWordWrap(True)
+        self.external_result_summary.hide()
+        result_layout.addWidget(self.external_result_summary)
         self.result_line_details = QLabel("", result_card)
         self.result_line_details.setObjectName("calculationLineDetails")
         self.result_line_details.setWordWrap(True)
@@ -1669,7 +1707,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._restore_unified_energy_rows(migrated)
 
     def _capture_form_state(self) -> dict[str, object]:
-        values: dict[str, object] = {}
+        values: dict[str, object] = {"external_state_recorded": self._external_state_recorded, "external_known_facts": dict(self._external_known_facts)}
         excluded = {
             "accountingProjectName", "savedAccountingProjects", "accountingUnitSelector",
             "showProfessionalDetailsCheckBox", "accountingPeriodMonth",
@@ -2009,6 +2047,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._material_execution_version = state.get("material_execution_version", "MATERIAL_V1")
         self._material_upgrade_original_state = state.get("material_upgrade_original_state")
         self._restoring_workspace = True
+        self._external_state_recorded = bool(state.get("external_state_recorded", not bool(state)))
+        self._external_known_facts = dict(state.get("external_known_facts", {}))
         active_before_restore = self._unit() if self._workspace.units else None
         legacy_fingerprint_matches = bool(
             active_before_restore is not None
@@ -2450,6 +2490,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self._restore_unified_energy_rows(default_state.get("energy_rows"))
         else:
             self._migrate_legacy_energy_rows()
+        self._refresh_external_controls()
         self.boundary_confirmed.setChecked(True)
         self.scope_exclusion_notice.setVisible(
             self.other_activity_present.isChecked() or self.transport_present.isChecked()
@@ -2881,6 +2922,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_line_details.setVisible(bool(result.get("show_breakdown", False)))
         self._calculation_has_result = True
         self._latest_record_id = result.get("record_id") or (unit.record_ids[-1] if unit.record_ids else None)
+        self._set_external_result(self._latest_record_id)
         self._latest_record = self._record_for_report()
         self._latest_record_fingerprint = self._saved_business_fingerprint(unit)
         self.view_record_button.setEnabled(bool(self._latest_record_id))
@@ -3016,10 +3058,42 @@ class CarbonMaterialAccountingPage(BasePage):
         self._scroll_to_widget(self.quality_card)
 
     def _acknowledge_out_of_scope_activities(self) -> None:
-        self.other_activity_present.setChecked(False)
-        self.transport_present.setChecked(False)
+        # Historical callback: disclosure only, never clears enterprise declarations.
         self.scope_exclusion_notice.setVisible(False)
-        self._mark_input_dirty()
+
+    def _refresh_external_controls(self):
+        enabled = self.external_included.isChecked()
+        self.external_amount.setEnabled(enabled)
+        self.external_label.setEnabled(enabled)
+        text = '勾选即声明同边界、同期且未重复计入；软件不审核外部计算。' if enabled else '未纳入；草稿保留但不参加合计。'
+        if not self._external_state_recorded:
+            text = '该历史项目未记录外部补充状态；不补造0或纳入决定。'
+        self.external_state_hint.setText(text)
+
+    def _on_external_include_changed(self, _checked):
+        if not getattr(self, '_restoring_workspace', False):
+            self._external_state_recorded = True
+            self._mark_input_dirty()
+        self._refresh_external_controls()
+
+    def _on_external_draft_changed(self, _text):
+        if not getattr(self, '_restoring_workspace', False):
+            self._external_state_recorded = True
+            self._mark_input_dirty()
+
+    def _external_input(self):
+        if not self._external_state_recorded:
+            return None
+        return ExternalCO2Input(self.external_included.isChecked(), self.external_amount.text(),
+            self.external_label.text() or None, **self._external_known_facts)
+
+    def _set_external_result(self, record_id):
+        getter = getattr(self.record_repository, 'get_trace_snapshot', None)
+        text = ''
+        if record_id and callable(getter):
+            text = software_supplement_summary(getter(record_id))
+        self.external_result_summary.setText(text)
+        self.external_result_summary.setVisible(bool(text))
 
     def _build_source_cards(self, parent_layout: QVBoxLayout) -> None:
         """Build the eight standard-specific source selectors in the V4 grid."""
@@ -7877,6 +7951,7 @@ class CarbonMaterialAccountingPage(BasePage):
             boundary_component_ids=("main-production-system",),
             other_activity_present=self.other_activity_present.isChecked(),
             transport_present=self.transport_present.isChecked(),
+            external_co2=self._external_input(),
             source_states=self._source_states(),
             fuel_inputs=self._fuel() if self._source_is_enabled("CAR-SRC-FUEL-001") else (),
             calcinations=self._process_instances("calcination", CalcinationInput) if self._source_is_enabled("CAR-SRC-CALCINATION-001") else (),
@@ -7987,6 +8062,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_live_feedback()
 
     def _reset_for_new_accounting(self) -> None:
+        self._external_state_recorded = True
+        self._external_known_facts = {}
+        self.external_included.setChecked(False)
+        self.external_amount.clear()
+        self.external_label.clear()
+        self._refresh_external_controls()
         self._material_execution_version = "MATERIAL_V2"
         self._fume_execution_version = "FUME_V2"
         self._fume_upgrade_original_state = None
@@ -8505,6 +8586,7 @@ class CarbonMaterialAccountingPage(BasePage):
             return
         self._calculation_has_result = True
         self.result_card.setVisible(True)
+        self._set_external_result(outcome.record.record_id)
         self.result_total.setText(
             f"温室气体排放总量：{_display_amount(outcome.result.total_amount, outcome.result.total_unit)}"
         )

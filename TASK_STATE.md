@@ -1,9 +1,12 @@
 # 当前任务状态 — B-EXTERNAL
 
-2026-10-20：ACTIVE / S0完成，继续S1—S4。PR52已合并到main，当前独立分支codex/b-external-integration，base0f50642544b110ee461f1b32ef8a01091d0f44d0；本树创建时干净。原根用户脏工作簿、已合并热力树两份未提交文档均未修改。CI节约规则安全带入本树，仅按最新Owner授权修订公开可见性，不把账户预算写成新设置。
+2026-10-20：ACTIVE / S1—S3接线已实现，S4回归中。PR52已合并到main，当前独立分支codex/b-external-integration，base0f50642544b110ee461f1b32ef8a01091d0f44d0；本树创建时干净。原根用户脏工作簿、已合并热力树两份未提交文档均未修改。CI节约规则安全带入本树，仅按最新Owner授权修订公开可见性，不把账户预算写成新设置。
 
 ## 平台 / Contract 预检查
 
 开工实际origin为adgo07/GHGTOOL，已fetch，默认main；本包从最新origin/main@0f50642544b110ee461f1b32ef8a01091d0f44d0独立分支codex/b-external-integration开始。PR52已合并，旧热力报告/原始证明保留，不在其分支继续产品。中央锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，相关Frozen为Architecture V2.1、Numeric v1及Profiles v1；正式当前ACTIVE UI v0.2指南及GUIDE_INDEX已读取。MUST：分层、同一Canonical/Application、声明Profile一致和ambient独立、full-value exact、ET语义/Record不可变、消费者只读冻结补充。MUST NOT：显示值回流、业务epsilon、把软件补充混入ES/EI/ET或伪造标准CalculationLine、消费者重算/回查目录/旧Record回填、升Frozen基线。Carbon Decimal40/HALF_UP为ALLOWED PROJECT DIFFERENCE，非平台默认。已批准Issue016及Mapping11.1为本包依据；声明即ERROR残留为LOCAL DEFECT，不新增专业解释或中央Contract，Unit/Record/Workspace等DRAFT不冒称Frozen。
 
-执行范围/方案修订/共享所有权/S0—S4/独立预期详见HANDOFF。当前未实施/测试生产补充，未push/建新PR/触发新CI；后续完成稳定批次后一次送验。旧PR52及CI283证据仅作已合并基线历史，不背书本包。
+执行范围/方案修订/共享所有权/S0—S4/独立预期详见HANDOFF。当前生产已接Domain冻结节点、GUI/Canonical/SQLite/Word及v11软件补充页；原ET与标准九表XML不改，payload6/封套2，算法EXTERNAL.1。命令 python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel -v：12/12通过，22.723s，日志tmp/b-external/s2-excel-first.log。首轮7项曾1FAIL（测试以8.624忽略原p40尾数），独立公式修正预期后7/7；生产ET未修约。尚未push/建新PR/触发新CI；当前版本断言同步后执行完整回归和历史保护。旧PR52及CI283证据仅作已合并基线历史，不背书本包。
+
+
+S3稳定断点：最新命令python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为32/32通过，37.909s（14项补充链+18项G08），含真实GUI重复点击、partial烟气、表格词法/15位/公式和原九表保护。历史实际CI273合成SQLite+ReportModel+Word2/2保持不变，原导出日期2026-10-18固定。审阅资产20/20 Python测试10.378s、25场景往返、61行/450scope、每表8隐藏列及原3份Canonical字节不变。Canonical验证、pip check、compileall、受控资源/v11投影通过。完整本地回归仍在执行；独立Windows CI及exact-head实包尚未执行，无通过声明。

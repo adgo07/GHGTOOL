@@ -19,7 +19,8 @@ from packages.standards.carbon_material_input_policy import (
     validate_parameter_source_policy,
 )
 
-from dataclasses import dataclass, fields as dataclass_fields, is_dataclass, replace
+from dataclasses import dataclass, field, fields as dataclass_fields, is_dataclass, replace
+from .carbon_material_external_co2 import ExternalCO2Input, evaluate_external_co2_supplement
 from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -70,7 +71,7 @@ from packages.core.units import UnitError, UnitService, UnitDefinition
 
 STANDARD_ID = "gbt_32151_34_2024"
 STANDARD_VERSION = "2024"
-ALGORITHM_VERSION = "CAR-SM01-2026-10-18-HEAT.1"
+ALGORITHM_VERSION = "CAR-SM01-2026-10-20-EXTERNAL.1"
 CO2_ID = "GEN-GAS-CO2"
 SOURCE_FUEL = "CAR-SRC-FUEL-001"
 SOURCE_CALCINATION = "CAR-SRC-CALCINATION-001"
@@ -834,6 +835,7 @@ class CarbonMaterialInput:
     material_execution_version: str = "MATERIAL_V2"
     fume_segments: tuple[FumeMonitoringSegment, ...] = ()
     fume_execution_version: str = "FUME_V1"
+    external_co2: ExternalCO2Input | None = field(default_factory=ExternalCO2Input)
 
     def __post_init__(self) -> None:
         for field in ("input_id", "enterprise_id"):
@@ -848,6 +850,8 @@ class CarbonMaterialInput:
             raise DomainValidationError("period must be an AccountingPeriod")
         if not isinstance(self.reporting_data, CarbonReportingData):
             raise DomainValidationError("reporting_data must be CarbonReportingData")
+        if self.external_co2 is not None and not isinstance(self.external_co2, ExternalCO2Input):
+            raise DomainValidationError("external_co2 must be registered input or historical None")
         if not isinstance(self.boundary_confirmed, bool):
             raise DomainValidationError("boundary_confirmed must be bool")
         object.__setattr__(self, "boundary_component_ids", tuple(self.boundary_component_ids))
@@ -2232,7 +2236,7 @@ class CarbonMaterialCalculator:
         if not input_value.boundary_confirmed:
             problems.append(_problem("CAR-VAL-BOUNDARY-UNCONFIRMED", IssueLevel.ERROR, "必须确认本次核算边界。", "CAR-RULE-BOUNDARY-001"))
         if input_value.other_activity_present or input_value.transport_present:
-            problems.append(_problem("CAR-VAL-OTHER-STANDARD", IssueLevel.ERROR, "存在本标准未覆盖的其他活动或上下游运输，需要其他标准核算；本次不并入炭素标准结果。", "CAR-RULE-OTHER-ACTIVITY-001"))
+            problems.append(_problem("CAR-VAL-OTHER-STANDARD", IssueLevel.WARNING, "其他行业活动或运输应按适用标准另行核算；声明不阻断炭素部分，范围外运输不混入，软件不自动求外部量。", "CAR-RULE-OTHER-ACTIVITY-001"))
 
         fuel_status = self._source_check(input_value, SOURCE_FUEL, bool(input_value.fuel_inputs), problems)
         fuel_total = Decimal("0")
@@ -2840,6 +2844,16 @@ class CarbonMaterialCalculator:
             direct_total = direct_emission(fuel_total, calc_total, bake_total, graph_total, gas_total)
             indirect_total = indirect_emission(purchased_power_total, purchased_heat_total, exported_power_total, exported_heat_total)
             grand_total = total_emission(direct_total, indirect_total)
+            try:
+                software_supplement = evaluate_external_co2_supplement(input_value.external_co2,
+                    carbon_total_tco2=grand_total, carbon_complete=(fume_coverage is None or fume_coverage.complete) and not (input_value.fume_incinerations and input_value.fume_execution_version == "FUME_V1"),
+                    policy=self.policy, numeric_profile_id=self.numeric_profile_id)
+            except DomainValidationError as exc:
+                problems.append(_problem('CAR-VAL-EXTERNAL-CO2-INPUT', IssueLevel.ERROR, str(exc), 'external_co2'))
+                return CarbonMaterialCalculationOutcome(input_value, None, tuple(problems), tuple(snapshots), tuple(traces))
+            if software_supplement['status']=='PENDING':
+                problems.append(_problem('CAR-VAL-EXTERNAL-CO2-PENDING', IssueLevel.WARNING,
+                    '外部补充值待填，原标准结果仍有效；软件补充合计未形成，不把空白当作0。', 'external_co2'))
             lines.extend((
                 CalculationLine("CAR-FLD-DIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, direct_total, "tCO2"),
                 CalculationLine("CAR-FLD-INDIRECT-RESULT", "CAR-RULE-TOTAL-001", CO2_ID, indirect_total, "tCO2"),
@@ -2883,6 +2897,8 @@ class CarbonMaterialCalculator:
             }
             trace_snapshot = self._trace_snapshot(calculation_result, traces, snapshots, source_subtotals)
             provenance_snapshot = self._provenance_snapshot(rule_snapshot, snapshots)
+            trace_snapshot["software_supplement"] = software_supplement
+            provenance_snapshot["software_supplement_method"] = {"business_id":"CAR-SUP-OTHER-ACTIVITY-CO2", "method_version":software_supplement["method_version"], "issue_id":"GHG-STD-32151-34-016", "standard_formula":False}
             if fume_coverage is not None:
                 trace_snapshot["fume_monitoring"] = _snapshot_value(fume_coverage)
                 trace_snapshot["fume_monitoring"]["complete"] = fume_coverage.complete
@@ -2908,5 +2924,5 @@ class CarbonMaterialCalculator:
 
 
 __all__ = [
-    "ALGORITHM_VERSION", "MAPPING_VERSION", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationEvidence", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
+    "ExternalCO2Input", "ALGORITHM_VERSION", "MAPPING_VERSION", "STANDARD_ID", "STANDARD_VERSION", "ActivityDataEvidence", "CarbonReportingData", "MeasuredFactorEvidence", "ReportQualification", "verify_record_aggregation", "CarbonMaterialCalculationEvidence", "CarbonMaterialCalculationOutcome", "CarbonMaterialCalculator", "CarbonMaterialInput", "CarbonateComponent", "CalcinationInput", "BakingInput", "GraphitizationInput", "FumeIncinerationInput", "FGDInput", "FuelInput", "FuelPath", "FuelType", "HeatFactorMode", "HeatInput", "ElectricityOutputLine", "EmissionSourceState", "EmissionSourceStatus", "InputValue", "MaterialBasis", "MaterialComponentKind", "ParameterSourceKind", "ParameterValue", "SteamEnthalpyEvaluation", "SteamKind", "baking_emission", "calcination_emission", "direct_emission", "fgd_emission", "fuel_energy_from_mass", "fuel_energy_from_volume", "fuel_heat_emission", "fuel_mass_emission", "fuel_volume_emission", "fume_incineration_emission", "graphitization_emission", "indirect_emission", "purchased_electricity_emission", "purchased_heat_emission", "saturated_steam_enthalpy", "steam_reference_table_rows", "superheated_steam_enthalpy", "total_emission",
 ]

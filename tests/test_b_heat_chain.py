@@ -226,7 +226,7 @@ class HeatExcelTests(HeatQtTests):
             with patch.object(type(gui.calculator),"calculate",side_effect=AssertionError("frozen")),patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("frozen")):
                 model=build_report_model(saved.get(rid),raw_input_snapshot=saved.get_raw_input_snapshot(rid),trace_snapshot=saved.get_trace_snapshot(rid),
                     provenance_snapshot=saved.get_provenance_snapshot(rid),reporting_snapshot=saved.get_reporting_snapshot(rid),report_qualification=saved.get_report_qualification(rid))
-                self.assertEqual(model.input_template_version,"2.8.0")
+                self.assertEqual(model.input_template_version,"2.9.0")
                 b9=next(table for section in model.sections for table in section.tables if table.table_id=="b9")
                 self.assertEqual(len(b9.rows),2)
                 word=render_report_docx(model)
@@ -273,7 +273,7 @@ class HeatExcelTests(HeatQtTests):
             result=CarbonAccountingUseCase(gui.calculator,records).calculate(reopened.units[0].canonical_input)
             self.assertTrue(result.successful,result.problems)
             self.assertEqual(result.result.total_amount,expected.result.total_amount)
-            self.assertEqual(result.record.algorithm_version,"CAR-SM01-2026-10-18-HEAT.1")
+            self.assertEqual(result.record.algorithm_version,"CAR-SM01-2026-10-20-EXTERNAL.1")
             rid=result.record.record_id
             trace=json.dumps(records.get_trace_snapshot(rid),ensure_ascii=False)
             for key in ("property_library_output_j_per_kg_lexeme","property_working_pressure_pa_lexeme","property_working_temperature_k_lexeme","actual_phase","GHGTOOL_COOLPROP_IF97_PROPERTY_V1"):

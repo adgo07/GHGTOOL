@@ -1,0 +1,23 @@
+import fs from 'node:fs/promises';
+import {Workbook,SpreadsheetFile} from '@oai/artifact-tool';
+const wb=Workbook.create(), s=wb.worksheets.add('软件补充');
+s.showGridLines=false;
+s.getRange('A1:C13').format.font={name:'Microsoft YaHei',size:11};
+s.getRange('A1:C13').format.rowHeight=27;
+s.getRange('A1:A13').format.columnWidth=38;
+s.getRange('B1:B13').format.columnWidth=34;
+s.getRange('C1:C13').format.columnWidth=60;
+s.getRange('A1').values=[['外部CO₂软件补充（非标准附录表）']];
+s.getRange('A1').format.font={bold:true,size:14};
+s.getRange('A3:C6').values=[['填写项','输入（浅色单元格）','说明'],['是否纳入','不纳入','纳入即声明：同边界、同期，且原结果未计入。'],['外部CO₂排放量（tCO₂）',null,'纳入后必须为非负有限数；空白表示待补充，0表示真实零。'],['简称（选填）',null,'仅用于说明外部核算结果的名称。']];
+s.getRange('A3:C3').format.fill='#D9E8F5';s.getRange('A3:C3').format.font={bold:true};
+s.getRange('B4:B6').format.fill='#EDF4FD';
+s.getRange('B4').dataValidation={rule:{type:'list',values:['不纳入','纳入']}};
+s.getRange('A8').values=[['其他活动声明（选填）']];s.getRange('A8').format.font={bold:true};
+s.getRange('A10:C11').values=[['另有其他行业活动','未声明','仍需依相应标准另行核算；软件不自动推算补充量。'],['另有上下游运输活动','未声明','声明保留，不因确认提示而清除。']];
+for(const row of [10,11]){s.getRange(`B${row}`).format.fill='#EDF4FD';s.getRange(`B${row}`).dataValidation={rule:{type:'list',values:['未声明','有']}};}
+s.getRange('A13').values=[['不纳入时保留输入草稿；补充不改变标准ES/EI/ET，也不代表已验证完整企业排放。']];
+s.getRange('C4:C6').format.wrapText=true;s.getRange('C5').format.rowHeight=42;
+wb.recalculate();console.log((await wb.inspect({kind:'region',sheetId:'软件补充',range:'A1:C13',maxChars:1600})).ndjson);
+await (await SpreadsheetFile.exportXlsx(wb)).save('tmp/b-external/template/authored.xlsx');
+await fs.writeFile('tmp/b-external/template/authored.png',new Uint8Array(await (await wb.render({sheetName:'软件补充',range:'A1:C13',scale:1,format:'png'})).arrayBuffer()));

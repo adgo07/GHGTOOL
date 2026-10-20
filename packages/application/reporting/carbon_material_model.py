@@ -291,6 +291,13 @@ def _build_carbon_material_report_model(
         *build_appendix_b_sections(record, raw, trace, parameter_snapshots, enterprise_name=enterprise_name),
     ]
 
+    from .software_supplement import software_supplement_display, frozen_software_supplement
+    supplement_display = software_supplement_display(trace)
+    if supplement_display is not None:
+        supplement_rows, supplement_notes = supplement_display
+        sections.insert(2, ReportSection('software-supplement', '外部CO₂软件补充（非标准表）',
+            (_table('software-supplement', '外部量与软件补充合计', ('项目','冻结值／状态'), supplement_rows),), supplement_notes))
+
     evidence_rows: list[Sequence[ReportCell | str]] = []
     for evidence_type, collection in (("活动数据", "activity_evidence"), ("实测因子", "measured_factor_evidence")):
         for item in _entries(reporting, collection):
@@ -342,7 +349,7 @@ def _build_carbon_material_report_model(
     input_template_version = str(workbook_evidence.get("template_version") or "") if excel_ingress else ""
     input_template_sha256 = str(workbook_evidence.get("template_master_sha256") or "") if excel_ingress else ""
     return ReportModel(
-        schema_version=REPORT_SCHEMA_VERSION,
+        schema_version=REPORT_SCHEMA_VERSION if frozen_software_supplement(trace) is not None else "3.0.0",
         record_id=record.record_id,
         standard_name="GB/T 32151.34—2024 炭素材料生产企业温室气体排放核算报告",
         standard_version=record.standard_version or "未记录",

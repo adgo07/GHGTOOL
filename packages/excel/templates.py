@@ -29,9 +29,12 @@ APPROVED_TEMPLATE_V8_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v
 APPROVED_TEMPLATE_V8_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
 APPROVED_TEMPLATE_V9_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx"
 APPROVED_TEMPLATE_V9_SHA256 = "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
-APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v10.xlsx"
-APPROVED_TEMPLATE_SHA256 = "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729"
+APPROVED_TEMPLATE_V10_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v10.xlsx"
+APPROVED_TEMPLATE_V10_SHA256 = "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729"
+APPROVED_TEMPLATE_RESOURCE = "excel_templates/gb_t_32151_34_2024_appendix_b_v11.xlsx"
+APPROVED_TEMPLATE_SHA256 = "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4"
 APPENDIX_B_SHEETS = tuple(f"B.{number}" for number in range(1, 10))
+CURRENT_TEMPLATE_SHEETS = (*APPENDIX_B_SHEETS, "软件补充")
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +53,7 @@ class ExcelTemplate:
 
 APPENDIX_B_TEMPLATE = ExcelTemplate(
     STANDARD_ID, STANDARD_VERSION,
-    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.8.0",
+    "GHGTOOL_GBT_32151_34_2024_APPENDIX_B", "2.9.0",
     APPROVED_TEMPLATE_RESOURCE, APPROVED_TEMPLATE_SHA256,
 )
 
@@ -100,8 +103,9 @@ class ExcelTemplateService:
         """
         if standard_id != STANDARD_ID:
             raise ValueError("此标准尚未实现正式 Excel 输入映射。")
-        if tuple(workbook.sheetnames) != APPENDIX_B_SHEETS:
-            raise ValueError("工作簿必须按原顺序保留 B.1 至 B.9 九张工作表。")
+        if tuple(workbook.sheetnames) not in (APPENDIX_B_SHEETS, CURRENT_TEMPLATE_SHEETS):
+            raise ValueError("工作簿必须保留原顺序的 B.1 至 B.9；新版另有软件补充页。")
+        has_supplement = tuple(workbook.sheetnames) == CURRENT_TEMPLATE_SHEETS
         is_v21 = (
             workbook["B.2"]["M2"].value == "名称类型"
             and workbook["B.2"]["N2"].value == "FCh来源"
@@ -159,9 +163,16 @@ class ExcelTemplateService:
         partial_v28 = any(workbook["B.9"][f"{col}2"].value is not None for col in "HIJKL")
         if v28 != has_v28_note or (partial_v28 and not v28) or (v28 and not v27):
             raise ValueError("热力来源/边界表头与模板说明版本冲突。")
-        if v28:
-            template_version = "2.8.0"
+        if has_supplement and not v28:
+            raise ValueError("软件补充页必须与完整新版标准九表配套。")
+        if has_supplement:
+            template_version = "2.9.0"
             reference_bytes = self.read_bytes(standard_id)
+        elif v28:
+            template_version = "2.8.0"
+            reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V10_RESOURCE).read_bytes()
+            if sha256(reference_bytes).hexdigest() != APPROVED_TEMPLATE_V10_SHA256:
+                raise ValueError("旧版2.8模板校验失败。")
         elif v27:
             template_version = "2.7.0"
             reference_bytes = files("resources").joinpath(APPROVED_TEMPLATE_V9_RESOURCE).read_bytes()
@@ -226,6 +237,19 @@ class ExcelTemplateService:
                 }
                 if actual_merges != expected_merges:
                     raise ValueError(f"{name} 表头合并区域与正式模板不一致。")
+            if has_supplement:
+                sheet, approved = workbook["软件补充"], reference["软件补充"]
+                editable = {"B4", "B5", "B6", "B10", "B11"}
+                if sheet.sheet_state != "visible":
+                    raise ValueError("软件补充页必须保持可见。")
+                for row in approved.iter_rows():
+                    for expected in row:
+                        if expected.coordinate not in editable and sheet[expected.coordinate].value != expected.value:
+                            raise ValueError(f"软件补充!{expected.coordinate} 固定说明与正式模板不一致。")
+                if set(map(str,sheet.merged_cells.ranges)) != set(map(str,approved.merged_cells.ranges)):
+                    raise ValueError("软件补充页合并区域与正式模板不一致。")
+                if sheet.max_row > approved.max_row or sheet.max_column > approved.max_column:
+                    raise ValueError("软件补充页存在未登记的表外单元格。")
         finally:
             reference.close()
         return template_version

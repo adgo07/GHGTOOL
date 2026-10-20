@@ -316,7 +316,7 @@ class FGDDomainSpecialistTests(unittest.TestCase):
                     outcome = usecase.calculate(self.payload(self.batch((self.component(label),))))
                     self.assertTrue(outcome.successful, outcome.problems)
                     self.assertEqual(outcome.result.total_amount, Decimal(expected))
-                    self.assertEqual(outcome.record.algorithm_version, "CAR-SM01-2026-10-18-HEAT.1")
+                    self.assertEqual(outcome.record.algorithm_version, "CAR-SM01-2026-10-20-EXTERNAL.1")
                     self.assertEqual(len(SQLiteRecordRepository(path).list_all()), index)
 
     def mixed_components(self):
@@ -485,6 +485,7 @@ class FGDDomainSpecialistTests(unittest.TestCase):
             with self.subTest(version=version):
                 document = json.loads(codec.encode_canonical_input(original))
                 document["version"] = version
+                document["value"]["fields"].pop("external_co2", None)
                 strip_new_fields(document)
                 payload = json.dumps(document, ensure_ascii=False)
                 restored = codec.decode_canonical_input(payload)
