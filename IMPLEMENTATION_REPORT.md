@@ -43,3 +43,6 @@ Mapping仅同步实际接管状态，R11候选与3份Canonical原字节不改；
 Windows Actions尚未触发，待本地证据稳定提交后执行既有必跑全量及PR-head独立包流程，核对最新PRhead/merge-ref/manifest/制品哈希，再实际下载核验。作者执行不冒作源独立验收；不自动合并，不启动新N抽查/RS04/RS05，不声明SUPPORTED或商业交付。原生Excel/WPS/桌面CU与企业真实样例仍NOT_RUN/DEFERRED；既有全量中的历史N01测试不等于启动新N抽查。
 
 仓库public为Owner直接授权，$0预算不变，未采用付费绕过或弱化required checks。原用户文件和标准全文未带入本包。最终CI回执会单列产品、文档、实际制品head，避免旧CI为新代码背书。
+
+
+源独立接验增量：源已独立运行补充runtime/chain/excel共15项，35.383s，OK（源自行提供，非作者执行）。源指出所有状态的声明纳入提示不准确，本地仅按冻结status修正notes及PENDING状态标签：COMPLETED_*才称已纳入，PENDING为声明已选择/数值待补，NOT_INCLUDED与历史不声称声明或纳入；未核验外部计算/完整性及partial覆盖提示保留。python -B -m unittest tests.test_b_external_status_copy -v：2/2通过；实际旧CI273 DB/模型/Word2/2保护仍通过。求值、冻结数值、无节点行为、算法/Schema身份均不变。按源协调要求本地保留补丁、暂不推送，CI286继续取得现远端a242962证据，不取消或重复触发昂贵CI；最终head待统一收口。

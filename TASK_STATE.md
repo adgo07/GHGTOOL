@@ -14,3 +14,6 @@
 - 同R11审阅资产20项Python/25场景往返通过，61行/450scope/每表8隐藏列/最高344pt和3份Canonical原字节不变；原九张表XML与旧v2—v10不改。
 
 软件补充CAR-EXTERNAL-CO2-016.1、Calculator EXTERNAL.1、payload6/封套2、输入v11/2.9.0、新Schema3.1.0/历史3.0.0已接线。当前尚未触发本包CI，待稳定证据提交后仅推送一次。源为独立验收方，作者测试不等于独立PASS；不自动合并、不启动N抽查/RS04/RS05、不商业交付，零付费边界保持。
+
+
+源独立接验增量：源已独立运行补充runtime/chain/excel共15项，35.383s，OK（源自行提供，非作者执行）。源指出所有状态的声明纳入提示不准确，本地仅按冻结status修正notes及PENDING状态标签：COMPLETED_*才称已纳入，PENDING为声明已选择/数值待补，NOT_INCLUDED与历史不声称声明或纳入；未核验外部计算/完整性及partial覆盖提示保留。python -B -m unittest tests.test_b_external_status_copy -v：2/2通过；实际旧CI273 DB/模型/Word2/2保护仍通过。求值、冻结数值、无节点行为、算法/Schema身份均不变。按源协调要求本地保留补丁、暂不推送，CI286继续取得现远端a242962证据，不取消或重复触发昂贵CI；最终head待统一收口。
