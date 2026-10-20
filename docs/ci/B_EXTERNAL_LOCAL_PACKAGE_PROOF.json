@@ -1,0 +1,198 @@
+{
+  "source_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+  "tested_merge_sha": "85569337d181595ad3cce7a77859003b59958bcf",
+  "algorithm": "CAR-SM01-2026-10-20-EXTERNAL.1",
+  "execution": "ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI",
+  "source_fallback": false,
+  "native_coolprop": "CoolProp\\CoolProp.pyd",
+  "native_numpy": "numpy\\_core\\_multiarray_umath.cp312-win_amd64.pyd",
+  "if97": {
+    "enthalpy": "2549.91145084002",
+    "emission": "0.2804902595924022000",
+    "phase": "IF97Backend:phases.iphase_gas",
+    "working_pa": "3500.0",
+    "working_k": "300.0",
+    "library_jkg": "2549911.45084002"
+  },
+  "ambient_independence": [
+    6,
+    17,
+    60
+  ],
+  "report_unit_checks": [
+    {
+      "pressure_unit": "MPa",
+      "temperature_unit": "C",
+      "display_pressure_mpa": "3.50E-3",
+      "display_temperature_c": "26.85",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    },
+    {
+      "pressure_unit": "Pa",
+      "temperature_unit": "K",
+      "display_pressure_mpa": "3.50E-3",
+      "display_temperature_c": "26.85",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    },
+    {
+      "pressure_unit": "Pa",
+      "temperature_unit": "C",
+      "display_pressure_mpa": "3.50E-3",
+      "display_temperature_c": "26.85",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    },
+    {
+      "pressure_unit": "MPa",
+      "temperature_unit": "K",
+      "display_pressure_mpa": "3.50E-3",
+      "display_temperature_c": "26.85",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    },
+    {
+      "pressure_unit": "MPa",
+      "temperature_unit": null,
+      "display_pressure_mpa": "0.10",
+      "display_temperature_c": "不适用",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    },
+    {
+      "pressure_unit": "Pa",
+      "temperature_unit": null,
+      "display_pressure_mpa": "0.10",
+      "display_temperature_c": "不适用",
+      "directions": [
+        "购入",
+        "输出"
+      ],
+      "frozen_only_and_original_evidence_unchanged": true
+    }
+  ],
+  "working_boundary_checks": {
+    "critical_pressure_collapse_rejected_both_paths": true,
+    "temperature_fold_to_saturation_rejected": true,
+    "adjacent_valid_pressure_pa": "22063999.999999996",
+    "adjacent_valid_gas_temperatures_k": [
+      "372.7659186113377",
+      "372.7659186113378"
+    ],
+    "no_epsilon_or_clamping": true
+  },
+  "invalid_cases_zero_added_records": true,
+  "known_runtime_independent": true,
+  "nonpositive_known_warning_frozen": true,
+  "internal_no_unrelated_values": true,
+  "internal_original_fuel_preserved": "8.624000000000000000000000000000000000001",
+  "saturated_quality_one_enthalpy": "2674.9496408321457",
+  "measured_zero_no_default_and_negative_blocked": true,
+  "purchase_export_once_total": "0.154000000",
+  "real_c3_periods": [
+    {
+      "period": "2024",
+      "factor": "heat_default_gbt32151_34_c3",
+      "source": "SRC-32151-34-2024"
+    },
+    {
+      "period": "2025",
+      "factor": "heat_default_gbt32151_34_c3",
+      "source": "SRC-32151-34-2024"
+    },
+    {
+      "period": "2026",
+      "factor": "heat_default_2025",
+      "source": "SRC-32150-2025"
+    }
+  ],
+  "actual_old_ci273_frozen_records": [
+    {
+      "label": "known-with-old-reference",
+      "record_id": "record.input.actual-old-known-with-old-reference.7155ec958c1040af92c4a9b7b307a1e4",
+      "model_sha256": "29a564bbbdc221c5a34c223c39e8001352d853f3f60d2a1d8fa65c675d7ddc2c",
+      "document_xml_sha256": "e93c2ef859cc44a547a16b9a3e02a756426e1d09089126f13caf194bbb5955fe",
+      "total": "0.30800000"
+    },
+    {
+      "label": "old-auto-table",
+      "record_id": "record.input.actual-old-old-auto-table.a88d8b2107964fd9b25abf54179a1c81",
+      "model_sha256": "0578d13aead197d0b8f14f6c9a344be3946236e76fd4729b40a4d6d6802d6bb1",
+      "document_xml_sha256": "51735e78cf9571f0d074010ba26e4be6ee504b96ab0a1ab230de097e980d4df5",
+      "total": "0.305470000"
+    }
+  ],
+  "qt_project_reopen_excel_formal_frozen_word": true,
+  "qt_invalid_state_zero_added_records": true,
+  "qt_records": 1,
+  "commercial_release": false,
+  "stage": "B-EXTERNAL",
+  "v11_material_conversion_preserved": true,
+  "external_actual_partial_fume": true,
+  "external_unit_matrix": [
+    "tCO2",
+    "tCO₂",
+    "tC",
+    "tCO₂e",
+    "kgCO2"
+  ],
+  "external_states": [
+    {
+      "status": "HISTORICAL_NOT_RECORDED",
+      "et": "0.30800000",
+      "supplementary_total": null
+    },
+    {
+      "status": "NOT_INCLUDED",
+      "et": "0.30800000",
+      "supplementary_total": null
+    },
+    {
+      "status": "PENDING",
+      "et": "0.30800000",
+      "supplementary_total": null
+    },
+    {
+      "status": "COMPLETED_ZERO",
+      "et": "0.30800000",
+      "supplementary_total": "0.30800000"
+    },
+    {
+      "status": "COMPLETED_POSITIVE",
+      "et": "0.30800000",
+      "supplementary_total": "20.30800000"
+    }
+  ],
+  "external_invalid_zero_added_records": true,
+  "external_full_precision_ambient_independence": true,
+  "external_gui_repeat_append": true,
+  "external_excel_preview_zero_records": true,
+  "external_sqlite_project_draft_and_canonical_reopen": true,
+  "external_frozen_consumers_no_recompute": true,
+  "template_version": "2.9.0",
+  "template_sha256": "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4",
+  "execution_origin": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
+  "manifest_sha256": "45c31666c45f9190d824186f4f16338de1b1bc48136ed1dc5854642a832ee787",
+  "manifest_file_count": 313,
+  "standalone_smoke": "PASS_2_ISOLATED_STARTS",
+  "audit_and_archive_manifest": "PASS_DURING_BUILD",
+  "current_project_code_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+  "corrupt_payload_fields_rejected": true,
+  "extreme_frozen_values_visible": true
+}

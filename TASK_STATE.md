@@ -1,26 +1,33 @@
-# 当前任务状态 — B-HEAT / PR52-F01
+# 当前任务状态 — B-EXTERNAL
 
-更新：2026-10-19。状态：READY_FOR_INDEPENDENT_ACCEPTANCE；修复、新CI/实际包已完成，待源最终独立验收。
-
-产品补丁提交dea45cd8c198d74d22d10a371696c62c01312856，完整受验代码/制品head `1843157a8bc9d78fa442c93b4094a076f562d788`（184补齐Mapping定义绑定）；CI283实际merge `f083dd6caeed54bb5e7c2ee0a4b92cc8565bb298`。最终文档回执head为本提交（以PR52最新head为准），增量只含文档/原始证明，不能把184制品改标为回执head。
+2026-10-20：ACTIVE / PR53复核退修中。此前最终head 73c47a9已有CI287和实际制品证据，本轮兼容修复另行验证；从main@0f50642544b110ee461f1b32ef8a01091d0f44d0独立分支codex/b-external-integration开始，PR52已合并。原根用户修改和旧热力树两份未提交文档均未动。
 
 ## 平台 / Contract 预检查
 
-业务base `a1aeebc1b6809397e61a2ffa7a2333a3b440c756`，工作树origin实际核实为adgo07/GHGTOOL且已fetch；当前任务分支codex/b-heat-integration。中央锁 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，相关Frozen为Architecture V2.1、Numeric Contract v1、Numeric Profiles v1；ACTIVE UI指南按中央正式main适用版读取。MUST：分层、共享Application、declared-profile consistency、ambient independence、full-value exact、原输入/规范/物性工作/显示值分开、Record/Word冻结。MUST NOT：业务epsilon、显示修约回流、隐式物性回退、Qt状态充当公共Workspace、自动升级Frozen。Carbon Decimal40/ROUND_HALF_UP是ALLOWED PROJECT DIFFERENCE；binary64物性子Profile单独声明，不冒称p40物性精度。C3资格漏项、工作Pa/K门禁不足均LOCAL DEFECT，不需改中央Contract。相关Standard Issue005/006/015/017/019；本包执行已经批准的软件决定，没有新增标准解释、标准范围或Frozen变更。
+实际origin已核adgo07/GHGTOOL，已fetch/default main。中央锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，Architecture V2.1/Numeric v1/Profiles v1 Frozen；必须分层、同Canonical/Application、声明Profile一致/ambient独立/full-value exact、不可变Record与消费者只读冻结值。禁止显示修约回流、epsilon、改ES/EI/ET、伪造标准行、旧Record回填/重算或自动升级中央Frozen。Carbon Decimal40/HALF_UP为ALLOWED PROJECT DIFFERENCE，非平台默认；Issue016/Mapping11.1已有批准，旧声明即ERROR为LOCAL DEFECT。本包不改变标准解释或中央Contract，不需数据库迁移；Unit/Workspace等DRAFT不冒称Frozen。已读当前ACTIVE UI v0.2。
 
-F01是共享冻结显示投影LOCAL DEFECT，不改中央Contract、公式、物性Profile、DB或专业解释，非新增Standard Issue；关联017既有方法/Record约束。读已锁Architecture/Numeric，显示换算不得回流正式值。
+## 当前证据
+
+- 干净8556933：python -B -m unittest discover -s tests -t . -v，1029/1029通过、1313.979s、0FAIL/0ERROR/0SKIP；tmp/b-external/frozen-head-full.log。
+- 首轮全量1028项曾4FAIL/1ERROR，材料v11版本、通用codec假设及旧断言已修；64项复验通过后，上述冻结head全量通过。详见实施报告，不掩盖负向记录。
+- 同head本地实际EXE/PYZ/包内原生依赖全链通过，无源码回退，含v11材料换算、软件补充/partial烟气/单位矩阵、GUI/Excel/SQLite/冻结Word、旧CI273实际合成记录2/2保护、2次隔离启动；313个manifest列项+manifest自身314可见文件ZIP往返通过。此为本地证据，非Actions。
+- 同R11审阅资产20项Python/25场景往返通过，61行/450scope/每表8隐藏列/最高344pt和3份Canonical原字节不变；原九张表XML与旧v2—v10不改。
+
+软件补充CAR-EXTERNAL-CO2-016.1、Calculator EXTERNAL.1、payload6/封套2、输入v11/2.9.0、新Schema3.1.0/历史3.0.0已接线。当前尚未触发本包CI，待稳定证据提交后仅推送一次。源为独立验收方，作者测试不等于独立PASS；不自动合并、不启动N抽查/RS04/RS05、不商业交付，零付费边界保持。
 
 
-## 新CI与实际包证据
+源独立接验增量：源已独立运行补充runtime/chain/excel共15项，35.383s，OK（源自行提供，非作者执行）。源指出所有状态的声明纳入提示不准确，本地仅按冻结status修正notes及PENDING状态标签：COMPLETED_*才称已纳入，PENDING为声明已选择/数值待补，NOT_INCLUDED与历史不声称声明或纳入；未核验外部计算/完整性及partial覆盖提示保留。python -B -m unittest tests.test_b_external_status_copy -v：2/2通过；实际旧CI273 DB/模型/Word2/2保护仍通过。求值、冻结数值、无节点行为、算法/Schema身份均不变。按源协调要求本地保留补丁、暂不推送，CI286继续取得现远端a242962证据，不取消或重复触发昂贵CI；最终head待统一收口。
 
-产品补丁提交dea45cd8c198d74d22d10a371696c62c01312856，完整受验代码/制品head `1843157a8bc9d78fa442c93b4094a076f562d788`（184补齐Mapping定义绑定）；CI283实际merge `f083dd6caeed54bb5e7c2ee0a4b92cc8565bb298`。最终文档回执head为本提交（以PR52最新head为准），增量只含文档/原始证明，不能把184制品改标为回执head。
 
-[CI283/run39264926043](https://github.com/adgo07/GHGTOOL/actions/runs/39264926043)整体SUCCESS；merge-ref job118101913478全量 `python -m unittest discover -s tests -t . -v`：**1014/1014，1695.552s，零失败/错误，skipped=0**。exact-head job118117880702执行 `python -m unittest tests.test_g08_delivery -v`：**18/18，12.315s**；Canonical/编译/pip check/数据库/UIR04/缩放/构建/审计/ZIP/provenance/2隔离启动通过。这是GitHub Actions实际证据，不是本地执行。
+CI286收口：首轮远端a242962两个作业success（merge4513b083：1029/1568.889s；head G08：18/12.375s），下载artifact12259330066 ZIP哈希8d7bc3f0378aeb5dee15f351aea995de1533f9d0d39bb3243daab37045b0f83c，322+manifest=323可见文件、真实包内链路、旧历史保护及2启动通过。该制品不含本地d645文案修复。源已独立15+2范围复验、文案关闭且无新增退修；当前按源安排将补丁/2测试/最终包内文案与母版复制断言/本回执集中推送一次，再取得最终head新显示代码证据。最终回执记录在PR53说明与本地tmp，不因纯文档反复触发CI；不合并/不CU。
 
-实际artifact **12195361432**，ZIP SHA256 **b1febe11d53271ea798a027a89ea5b27c853f3cb9a0772d064c7b9d2842549f7**，75710032bytes；manifest321文件、ZIP322文件。下载后逐文件size/SHA、许可原文/来源清单与PE x64核验通过；source_commit/pr_head均184、tested_merge为上述merge。C本地对这个实际CI包审计/ZIP回读/2启动及 `python -B docs/ci/B_HEAT_PACKAGE_VERIFIER.py <实际CI包> <全新输出> 1843157a8bc9d78fa442c93b4094a076f562d788 <实际CI273旧数据>` 通过，exit0，无nanobind/Traceback；从实际EXE/PYZ及包内CP/NP/Qt读取，禁止业务源码回退。6组单位/相态双方向正式Record→B.9→Word、冻结禁Calculator/Resolver/物性、原证据不变及既有完整热力链均通过。完整证明B_HEAT_F01_CI_PACKAGE_PROOF.json、B_HEAT_F01_CI_RECEIPT_PROOF.json。
 
-同一增强验证器对真实旧CI280包exit1，准确抓Pa/K报告3500.00/300.00错误，负例完整日志入B_HEAT_F01_CI280_NEGATIVE_PROOF.json；本地184新包也exit0、无诊断，但仅是LOCAL_BUILD，单独保留B_HEAT_F01_LOCAL_PACKAGE_PROOF.json，不冒称CI。实际CI273旧模型/Word比较显式固定同次导出编制日期2026-10-18，业务证据和旧正文不漂移，原DB不变；编制日期是导出补充信息，不回写Record。
+## PR53 复核退修（2026-10-20）
 
-源已独立运行本轮4项正式链测试4/4、7.962s，定向F01通过，不替代最终新包独立验收。新旧重叠套件不相加。旧CI280整体1010/18通过及原B-HEAT证据只作历史，796技术PASS已撤回，不能背书本补丁。
+平台 / Contract 预检查：继续原 PR53 分支，开工核对 origin 为 adgo07/GHGTOOL、fetch 后 head 73c47a98044c00591d6717d1d47d3a05f5aecffe、工作区干净。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20 不变；Architecture V2.1 / Numeric v1 / Profiles v1 的分层、Profile 一致、ambient 独立及不可变 Record MUST 不变。不得更改公式、Numeric、旧 Record 或把 Presentation State 定义为公共 Workspace Contract；属于本地兼容缺陷与提示修复，无中央 Contract 修改。相关 Standard Issue 为016；本轮不改变既有软件解释。
 
-完整实现、必要本地回归、机械审阅四件套保留性及所有失败对账见IMPLEMENTATION_REPORT和B_HEAT_F01_*PROOF.json。旧796技术PASS撤回，旧CI280/fca只历史。当前独立最终验收待完成，不合并、不开始下一包；原生/企业/目标机/商业履约OPEN。
+此前最终显示补丁已有 [CI287](https://github.com/adgo07/GHGTOOL/actions/runs/39410582292) 与实际下载制品证据：head 73c47a9，merge ff2a373，GitHub 全量1031/1698.091s、G08 18/8.369s，0失败/错误/跳过。artifact12260549104，75,747,968字节，ZIP SHA256 df8e32283b05265c15ddab918816a21e2571a5c3fa0452df41784190837b37c9，manifest SHA256 2ac64788c0f1689679921ae8c99c64ab70de4ed430345ca1421c96dcedd87f4b，322列项+manifest自身323文件；实际EXE/PYZ、包内原生依赖、状态文案、母版复制、旧CI273记录保护及2启动通过。源另独立核验API与322文件哈希（源提供证据，非作者执行）。CI286继续保留为不含显示补丁的历史证据；CI287不能证明本轮新指纹修复。
+
+F01修复前：实际PR52 merge 0f506425旧代码运行GUI计算/保存生成SQLite项目，当前代码动态关闭重开两次均误报stale并隐藏结果；历史calculation fingerprint a283337c88c506af90bf6c346710889924a3782ce6529b4ca69087d3f05f0844，新增空字段后变为2cc2d1c35c137ae97277503a9d543b1b5d2d41fa508a2e1ef262af68b399464f。仅根external_co2=None按缺省缺失处理，显式纳入/不纳入保留差异；合成旧SQLite/Word/生成脚本与proof纳入回归，非删除新字段手造旧指纹。F02只改GUI业务提醒。模板能力归并为有界已知版本表，未知未来版本拒绝，2.4专有别名和旧热力种子规则保留，母版/XML字节不动。投影片段README说明其构建用途。交付验证缺pip明确前置失败，不skip，原强制CI不变。
+
+本地首轮新回归5项中3通过、2ERROR（测试引用错误的热力行键及Importer类名，业务恢复/Word断言已通过）；已修正测试接口。稳定产品断点1fb4cd50ca77b3c31bc3e63c44abe94cc0eaad49；`python -B -m unittest tests.test_b_external_review tests.test_b_external_excel tests.test_b_fgd_legacy_templates tests.test_b_material_source_review tests.test_fuel_power_template_v5 tests.test_b_heat_chain tests.test_g08_delivery -v`：本地56/56通过，218.023s，0失败/错误/跳过；日志SHA256 6774aad6a74e3d4b35a9973aea5a3523be09eb882d8fbbca8e41a95ada815b73。`python -B scripts/validate_canonical.py`：9 standards/12 sources/102 parameters/138 factors有效；`python -B -m compileall -q apps packages resources scripts tests docs/ci/B_EXTERNAL_PACKAGE_VERIFIER.py`通过。真实wheel/sdist安装资源验证已执行，缺pip测试验证明确失败且不构建。未追加本地全量，跨模块全量由必需Windows merge-ref CI执行，避免重复昂贵检查；原生CU与N抽查未执行，按任务边界延期。下一步一次稳定推送，取得新head CI/实际制品及源独立验收；最终回执落PR53当前checks/说明与本地proof，不为纯文档再触发CI，不合并。

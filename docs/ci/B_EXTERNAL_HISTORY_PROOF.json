@@ -1,0 +1,25 @@
+{
+  "execution": "LOCAL_SOURCE_READER_OF_ACTUAL_CI273_SYNTHETIC_RECORDS",
+  "historical_source_commit": "bbb1d5bd953d463013f135c1047de33fc37fcc59",
+  "export_date_fixed_to_original": "2026-10-18",
+  "results": [
+    {
+      "record_id": "record.input.actual-old-known-with-old-reference.7155ec958c1040af92c4a9b7b307a1e4",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "29a564bbbdc221c5a34c223c39e8001352d853f3f60d2a1d8fa65c675d7ddc2c",
+      "document_xml_sha256": "e93c2ef859cc44a547a16b9a3e02a756426e1d09089126f13caf194bbb5955fe",
+      "word_body_bytes_unchanged": true
+    },
+    {
+      "record_id": "record.input.actual-old-old-auto-table.a88d8b2107964fd9b25abf54179a1c81",
+      "algorithm_version": "CAR-SM01-2026-10-18-FUME.2",
+      "records": 2,
+      "original_database_unchanged": true,
+      "model_sha256": "0578d13aead197d0b8f14f6c9a344be3946236e76fd4729b40a4d6d6802d6bb1",
+      "document_xml_sha256": "51735e78cf9571f0d074010ba26e4be6ee504b96ab0a1ab230de097e980d4df5",
+      "word_body_bytes_unchanged": true
+    }
+  ]
+}

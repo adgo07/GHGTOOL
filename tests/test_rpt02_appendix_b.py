@@ -55,7 +55,7 @@ class RPT02AppendixBTests(unittest.TestCase):
         from packages.excel.templates import ExcelTemplateService
         workbook = load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()), data_only=False)
         try:
-            self.assertEqual(workbook.sheetnames, [f"B.{number}" for number in range(1, 10)])
+            self.assertEqual(workbook.sheetnames, [*[f"B.{number}" for number in range(1, 10)], "软件补充"])
             for key, table in layout["tables"].items():
                 sheet = workbook[f"B.{key[1:]}"]
                 headers = table["headers"]

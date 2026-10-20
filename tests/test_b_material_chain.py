@@ -22,7 +22,7 @@ class MaterialChainTests(unittest.TestCase):
         calculator=CarbonMaterialCalculator()
         value=calculator.calculate(self.payload())
         self.assertTrue(value.successful, value.problems)
-        self.assertEqual(ALGORITHM_VERSION,"CAR-SM01-2026-10-18-HEAT.1")
+        self.assertEqual(ALGORITHM_VERSION,"CAR-SM01-2026-10-20-EXTERNAL.1")
         self.assertEqual(value.algorithm_version,ALGORITHM_VERSION)
         self.assertEqual(value.result.algorithm_version,ALGORITHM_VERSION)
         self.assertEqual(value.result.total_amount, Decimal("226.8291666666666666666666666666666666667"))
@@ -105,6 +105,7 @@ class MaterialChainTests(unittest.TestCase):
         from packages.application import carbon_material_input_codec as codec
         document=json.loads(codec.encode_canonical_input(current))
         document['version']=1
+        document['value']['fields'].pop('external_co2',None)
         document['value']['fields'].pop('material_execution_version')
         def legacy(node):
             if isinstance(node,dict):

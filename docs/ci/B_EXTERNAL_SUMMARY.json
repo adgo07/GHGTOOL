@@ -1,0 +1,157 @@
+{
+  "stage": "B-EXTERNAL",
+  "status": "PR53_REVIEW_FOLLOWUP_LOCAL_PASS_NEW_HEAD_CI_PENDING",
+  "base": "0f50642544b110ee461f1b32ef8a01091d0f44d0",
+  "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "product_code_commit": "1fb4cd50ca77b3c31bc3e63c44abe94cc0eaad49",
+  "algorithm": "CAR-SM01-2026-10-20-EXTERNAL.1",
+  "template_version": "2.9.0",
+  "template_sha256": "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4",
+  "industry_payload_version": 6,
+  "envelope_version": 2,
+  "new_report_schema": "3.1.0",
+  "legacy_report_schema": "3.0.0",
+  "local_full": {
+    "command": "python -B -m unittest discover -s tests -t . -v",
+    "tests": 1029,
+    "seconds": 1313.979,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log_sha256": "064219dc785f03a79161647c9ab53b38631923874da7fb1221fc45f7c4dedebf"
+  },
+  "regression_fix": {
+    "tests": 64,
+    "seconds": 54.88,
+    "failures": 0,
+    "errors": 0
+  },
+  "first_full_negative": {
+    "tests": 1028,
+    "seconds": 1323.438,
+    "failures": 4,
+    "errors": 1,
+    "causes": [
+      "v11 missing material-parser version (2 failures)",
+      "generic envelope assumed all codecs use payload.version (1 error)",
+      "old declaration-block assertion",
+      "old nine-sheet assertion"
+    ]
+  },
+  "review_assets": {
+    "python_tests": 20,
+    "seconds": 10.378,
+    "fixture_scenarios": 25,
+    "rows": 61,
+    "condition_scopes": 450,
+    "hidden_columns_per_sheet": 8,
+    "maximum_row_height_points": 344,
+    "canonical_three_raw_bytes_unchanged": true
+  },
+  "local_package": {
+    "source_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+    "source_fallback": false,
+    "manifest_entries": 313,
+    "visible_files": 314,
+    "smoke_starts": 2,
+    "actual_partial_fume": true,
+    "v11_material_conversion": true,
+    "legacy_actual_ci273_records": 2
+  },
+  "ci": {
+    "run_id": 39405735408,
+    "run_number": 286,
+    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39405735408",
+    "pr": 53,
+    "pr_head": "a2429621e204dc22cb1cd157bedff9c2f794a982",
+    "tested_merge_sha": "4513b08315c3ad6003ea17078b3c7e180f6a079e",
+    "status": "PASS_BASELINE_WITH_KNOWN_DISPLAY_COPY_FOLLOWUP",
+    "merge_full": {
+      "job_id": 118571085128,
+      "tests": 1029,
+      "seconds": 1568.889,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "exact_head_g08": {
+      "job_id": 118582324071,
+      "tests": 18,
+      "seconds": 12.375,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "decoded_utf8_log_sha256": {
+      "ci286-merge-full.log": "fe81e16d9bf9676a16851f13a1c18c44bf122c465c64591041aaecf05e323cc2",
+      "ci286-head-standalone.log": "c19c5406f8b18458c1e80cd020bb64a849879ecb2c9d58a614ed94ca0aef87bf"
+    },
+    "artifact": {
+      "id": 12259330066,
+      "name": "QingzhouCarbonAccounting-a2429621e204dc22cb1cd157bedff9c2f794a982",
+      "bytes": 75749566,
+      "zip_sha256": "8d7bc3f0378aeb5dee15f351aea995de1533f9d0d39bb3243daab37045b0f83c",
+      "manifest_sha256": "d6ae480aba4accf1541c0e3dd97fdba42d915e87dede06225fbfbadd269f4436",
+      "manifest_entries": 322,
+      "visible_files": 323
+    },
+    "provenance_archive_audit_gui_scale_build_upload_smoke": "PASS",
+    "actual_exe_pyz_business_code_source_fallback": false,
+    "actual_packaged_native_dependencies": true,
+    "actual_old_ci273_records_unchanged": 2,
+    "local_display_copy_patch": "d645c8b36f107d95313b173fb4e331bbf285b327",
+    "display_copy_fix_included_in_this_artifact": false,
+    "final_head_new_display_code_artifact_required": true,
+    "commercial_release": false
+  },
+  "native_office_or_desktop_cu": "NOT_RUN_DEFERRED",
+  "commercial_release": false,
+  "independent_acceptance": "PENDING_SOURCE",
+  "source_independent_reported": {
+    "base_external_tests": 15,
+    "base_seconds": 35.383,
+    "status_copy_tests": 2,
+    "status_copy_issue": "CLOSED_BY_SOURCE",
+    "whole_stage_acceptance": "PENDING_FINAL_HEAD_EVIDENCE"
+  },
+  "final_head_evidence_location": "PR53 current checks and description plus final local receipt; new review fixes require new artifact, no docs-only rebuild",
+  "previous_final_head": "73c47a98044c00591d6717d1d47d3a05f5aecffe",
+  "ci287": {
+    "run_url": "https://github.com/adgo07/GHGTOOL/actions/runs/39410582292",
+    "head": "73c47a98044c00591d6717d1d47d3a05f5aecffe",
+    "tested_merge": "ff2a373f2cad742f70ed949cc60d72d6b738f51c",
+    "merge_tests": 1031,
+    "merge_seconds": 1698.091,
+    "head_g08_tests": 18,
+    "head_g08_seconds": 8.369,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "artifact_id": 12260549104,
+    "zip_bytes": 75747968,
+    "zip_sha256": "df8e32283b05265c15ddab918816a21e2571a5c3fa0452df41784190837b37c9",
+    "manifest_sha256": "2ac64788c0f1689679921ae8c99c64ab70de4ed430345ca1421c96dcedd87f4b",
+    "manifest_entries": 322,
+    "visible_files": 323,
+    "actual_package_pass": true,
+    "includes_display_patch": true,
+    "certifies_new_review_fixes": false
+  },
+  "review_followup_local": {
+    "command": "python -B -m unittest tests.test_b_external_review tests.test_b_external_excel tests.test_b_fgd_legacy_templates tests.test_b_material_source_review tests.test_fuel_power_template_v5 tests.test_b_heat_chain tests.test_g08_delivery -v",
+    "tests": 56,
+    "seconds": 218.023,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "execution_origin": "LOCAL_WINDOWS_OFFSCREEN_NOT_NATIVE_CU",
+    "log_sha256": "6774aad6a74e3d4b35a9973aea5a3523be09eb882d8fbbca8e41a95ada815b73"
+  },
+  "review_followup_initial": {
+    "tests": 5,
+    "passed": 3,
+    "errors": 2,
+    "cause": "test fixture used wrong heat-row key and importer class; corrected; real PR52 fingerprint/Record/Word assertions already passed"
+  },
+  "previous_final_head_evidence_location": "ci287; CI286 retained only as historical head"
+}

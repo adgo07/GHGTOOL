@@ -34,13 +34,16 @@ V8_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b
 V8_TEMPLATE_SHA256 = "a8ee7272ee4ac3665997f7ce93f78e8fd78c58cb4215ee477c01b76b6f87dff4"
 V9_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v9.xlsx")
 V9_TEMPLATE_SHA256 = "0fa20cbc126fadd2807fe02bea9b26b4a8855285e6b90fc171985557a895fae9"
-APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v10.xlsx")
-APPROVED_TEMPLATE_SHA256 = "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729"
+V10_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v10.xlsx")
+V10_TEMPLATE_SHA256 = "705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729"
+APPROVED_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v11.xlsx")
+APPROVED_TEMPLATE_SHA256 = "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4"
 PREVIOUS_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v3.xlsx")
 PREVIOUS_TEMPLATE_SHA256 = "f303ad02ca03e0464f736dafc39967abd06366a902f1b502dd17470656eb1718"
 COMPATIBILITY_TEMPLATE_PATH = Path("resources/excel_templates/gb_t_32151_34_2024_appendix_b_v2.xlsx")
 COMPATIBILITY_TEMPLATE_SHA256 = "58b38c15d487bdc173f573a50e5b8f3446b5bb4df4693dd696a83742da5235b4"
 TEMPLATE_SHA256_BY_PATH = {
+    V10_TEMPLATE_PATH: V10_TEMPLATE_SHA256,
     V8_TEMPLATE_PATH: V8_TEMPLATE_SHA256,
     V9_TEMPLATE_PATH: V9_TEMPLATE_SHA256,
     V6_TEMPLATE_PATH: V6_TEMPLATE_SHA256,
@@ -65,7 +68,7 @@ ALLOWED_RESOURCE_FILES = frozenset({
     V6_TEMPLATE_PATH.as_posix(), V7_TEMPLATE_PATH.as_posix(), V8_TEMPLATE_PATH.as_posix(),
     (Path("resources") / FGD_RUNTIME_RESOURCE).as_posix(),
     (Path("resources") / HEAT_RUNTIME_RESOURCE).as_posix(),
-    V9_TEMPLATE_PATH.as_posix(),
+    V9_TEMPLATE_PATH.as_posix(), V10_TEMPLATE_PATH.as_posix(),
     V5_TEMPLATE_PATH.as_posix(),
     APPROVED_TEMPLATE_PATH.as_posix(),
     PRIOR_TEMPLATE_PATH.as_posix(),

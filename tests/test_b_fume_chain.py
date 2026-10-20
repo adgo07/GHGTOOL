@@ -101,6 +101,7 @@ class FumeFormalTests(unittest.TestCase):
         for item in legacy["value"]["fields"]["fume_incinerations"]["items"]:
             item["fields"].pop("source_name");item["fields"].pop("boundary_name")
         encoded["input_version"]=3
+        legacy["value"]["fields"].pop("external_co2",None)
         restored=decode_canonical_input(json.dumps(encoded))
         self.assertEqual(restored.fume_segments,())
         outcome=CarbonMaterialCalculator().calculate(restored)
@@ -298,7 +299,7 @@ class FumeQtExcelTests(unittest.TestCase):
             result=usecase.calculate(reopened.units[0].canonical_input,ingress_provenance=reopened.units[0].ingress_provenance)
             self.assertTrue(result.successful,result.problems);self.assertEqual(len(records.list_all()),1)
             with patch.object(gui.calculator,"calculate",side_effect=AssertionError("不得重算")),patch.object(gui._parameter_resolver,"resolve",side_effect=AssertionError("不得回查")):
-                model=report(records,result.record.record_id);self.assertEqual(model.input_template_version,"2.8.0")
+                model=report(records,result.record.record_id);self.assertEqual(model.input_template_version,"2.9.0")
                 self.assertIn("不补零",str(model));self.assertGreater(len(render_docx(model)),30000)
                 from packages.ui.record_tables import ReportTableCard
                 from PySide6.QtWidgets import QLabel

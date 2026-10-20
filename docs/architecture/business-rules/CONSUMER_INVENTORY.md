@@ -51,3 +51,12 @@ Issue020由版本化Domain专属evaluate_fume_segments接管，正式Calculator�
 本包不增加P04A焦油参数字段政策，不套fuel.*来源，不新增默认绑定。FCh沿用既有公共ParameterValue单位/数值/来源元数据门禁，同次采用值与参数快照传给专属算法；专属纯数值模块不是来源放行入口。原fuel_power/material/fgd机械运行资源及采用身份不变。本包采用对象是Issue020操作与版本化Calculator，不伪称新增11字段采用范围；新Trace分别冻结R11候选映射中Owner已批准020软件决定与方法身份，原R6 Frozen骨架元数据不重新赋义。
 
 codec4兼容1/2/3，v9仅改B.6 XML；新Record冻结逐段输入/采用/结果/完整性/缺口，Word只读冻结表。原材料包/FGD包正文中的“烟气未接管”是各包当时范围，当前状态以本增量及TASK_STATE/IMPLEMENTATION_REPORT为准。
+
+
+## B-EXTERNAL 当前消费者与B收口候选
+
+当前唯一提供者为版本化Domain `evaluate_external_co2_supplement`（CAR-EXTERNAL-CO2-016.1），共享Calculator EXTERNAL.1在得到原ET后按同一声明Profile只求和一次。GUI三项输入、v11软件补充页、Canonical项目统一进入Application；其他行业/运输声明不再ERROR、确认提示不清空声明。无其他行业算法、无标准伪造行。
+
+新Record冻结独立software_supplement；结果卡、记录详情及Word只读同节点。禁用非法草稿可恢复，纳入空白为PENDING，真实0与正值分别冻结；旧payload1—5缺失为None，新payload6显式保留。旧Record/Word无节点保持原样。监测缺口与外部待补独立；不承诺验证完整企业结果。
+
+前述材料/脱硫/烟气各包的“后续未接管”是历史范围说明。当前燃料电力GHGTOOL_FUEL_POWER_R11_V1、材料GHGTOOL_MATERIAL_R11_V1、脱硫GHGTOOL_FGD_R11_V1、烟气Issue020、热力GHGTOOL_HEAT_R11_C3_V2及软件补充Issue016已在共享链接线；本轮仅清理与本包直接冲突的旧阻断分支，不做全仓抽查或顺手重构。B收口为送验候选，实际测试/制品/独立验收以当前TASK_STATE和IMPLEMENTATION_REPORT为准；后续N抽查与RS04/RS05不得在本包启动。

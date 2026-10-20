@@ -90,7 +90,7 @@ def _heat_state_cell(record, item, provenance, field):
     Temperature offsets are affine, not ordinary UnitService multipliers.
     """
     value = item.get(field)
-    if (not record.algorithm_version.rsplit('-', 1)[-1].startswith('HEAT.')
+    if (not record.algorithm_version.rsplit('-', 1)[-1].startswith(('HEAT.','EXTERNAL.'))
             and provenance.get('enthalpy_method_version') != 'CAR-HEAT-IF97-017.1'):
         return _value(value)
     raw = _mapping(value)

@@ -1,7 +1,7 @@
 """Presentation-independent business report data shared by all renderers."""
 from dataclasses import dataclass
 
-REPORT_SCHEMA_VERSION = "3.0.0"
+REPORT_SCHEMA_VERSION = "3.1.0"
 
 
 @dataclass(frozen=True, slots=True)

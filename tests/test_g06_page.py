@@ -987,8 +987,8 @@ class G06PageTests(unittest.TestCase):
             self.assertNotIn("审核状态", row.status.text())
         self.assertIn("不计入", rows[2].status.text())
         self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
-    def test_page_declares_other_activity_and_transport_and_blocks(self) -> None:
-        self.page.enterprise_name.setText("范围阻断企业")
+    def test_page_preserves_other_activity_and_transport_as_warnings(self) -> None:
+        self.page.enterprise_name.setText("其他活动声明企业")
         self.page.boundary_confirmed.setChecked(True)
         self.page.other_activity_present.setChecked(True)
         self.page.transport_present.setChecked(True)
@@ -996,7 +996,8 @@ class G06PageTests(unittest.TestCase):
         self.assertTrue(value.other_activity_present)
         self.assertTrue(value.transport_present)
         outcome = self.page.calculator.calculate(value)
-        self.assertTrue(outcome.blocked)
+        self.assertTrue(outcome.successful, outcome.problems)
+        self.assertTrue(all(problem.level.value != "ERROR" for problem in outcome.problems if problem.code == "CAR-VAL-OTHER-STANDARD"))
         self.assertTrue(any(problem.code == "CAR-VAL-OTHER-STANDARD" for problem in outcome.problems))
 
     def test_component_selectors_are_hidden_and_material_kinds_are_automatic(self) -> None:

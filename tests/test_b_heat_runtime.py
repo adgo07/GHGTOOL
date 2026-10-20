@@ -170,6 +170,7 @@ class HeatRuntimeTests(unittest.TestCase):
         strip(document)
         for version in (1,2,3,4):
             document["version"] = version
+            document["value"]["fields"].pop("external_co2", None)
             old = decode_canonical_input(json.dumps(document))
             self.assertEqual(old.purchased_heat[0].source_boundary, "UNCONFIRMED")
             self.assertEqual(old.purchased_heat[0].enthalpy.value, Decimal("2800"))
