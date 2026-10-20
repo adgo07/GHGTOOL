@@ -99,6 +99,7 @@ git status --short                 # 工作区状态
 - 小工作包、小测试、小提交；不覆盖用户已有修改，不使用破坏性 Git 操作；每个稳定断点更新 `TASK_STATE.md`，每阶段完成后重写 `IMPLEMENTATION_REPORT.md`，然后停止等待独立验收。
 - 以磁盘、Git 和测试结果为准，不得以上一次对话的文字推断完成状态；不得仅写“测试通过”，必须记录命令、通过/失败数量、未执行项和原因。
 - 必须如实区分**本地执行**与**GitHub Actions 执行**的证据来源，不得把 CI 结果写成“本地已执行”。
+- GitHub Actions费用与CI纪律：可见性遵循Owner最新明确授权（当前已公开），不得擅自切换；未经Owner授权不得提高Actions付费预算或升级套餐；按[DELIVERY的CI节约规则](docs/DELIVERY.md#github-actions-费用边界与-ci-节约)先完成本地必要验证、稳定批次再push、复用已有同head运行。额度不足不得付费绕过，不得冒用旧CI、绕过required checks或擅删验收证据。
 
 ## 3. 青舟中央治理入口
 
