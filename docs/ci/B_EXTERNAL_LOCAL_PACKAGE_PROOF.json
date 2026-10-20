@@ -1,6 +1,6 @@
 {
-  "source_commit": "045eea0d164f0c4a00b2f89c386c77fdcb066a35",
-  "tested_merge_sha": "045eea0d164f0c4a00b2f89c386c77fdcb066a35",
+  "source_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+  "tested_merge_sha": "85569337d181595ad3cce7a77859003b59958bcf",
   "algorithm": "CAR-SM01-2026-10-20-EXTERNAL.1",
   "execution": "ACTUAL_EXE_PYZ_AND_PACKAGED_NATIVE_COOLPROP_NUMPY_QT_PROGRAMMATIC_OFFSCREEN_NOT_NATIVE_UI",
   "source_fallback": false,
@@ -143,6 +143,7 @@
   "qt_records": 1,
   "commercial_release": false,
   "stage": "B-EXTERNAL",
+  "v11_material_conversion_preserved": true,
   "external_actual_partial_fume": true,
   "external_unit_matrix": [
     "tCO2",
@@ -187,11 +188,11 @@
   "template_version": "2.9.0",
   "template_sha256": "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4",
   "execution_origin": "LOCAL_BUILD_NOT_GITHUB_ACTIONS",
-  "manifest_sha256": "55e1173957b76c29558ce5b245ad5629c91d0c7b30f7650cc4391f28a51ebcd1",
+  "manifest_sha256": "45c31666c45f9190d824186f4f16338de1b1bc48136ed1dc5854642a832ee787",
   "manifest_file_count": 313,
   "standalone_smoke": "PASS_2_ISOLATED_STARTS",
   "audit_and_archive_manifest": "PASS_DURING_BUILD",
-  "current_project_code_commit": "045eea0d164f0c4a00b2f89c386c77fdcb066a35",
+  "current_project_code_commit": "85569337d181595ad3cce7a77859003b59958bcf",
   "corrupt_payload_fields_rejected": true,
   "extreme_frozen_values_visible": true
 }

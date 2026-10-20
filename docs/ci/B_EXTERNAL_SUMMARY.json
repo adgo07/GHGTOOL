@@ -1,0 +1,67 @@
+{
+  "stage": "B-EXTERNAL",
+  "status": "LOCAL_COMPLETE_PENDING_WINDOWS_CI",
+  "base": "0f50642544b110ee461f1b32ef8a01091d0f44d0",
+  "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "product_code_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+  "algorithm": "CAR-SM01-2026-10-20-EXTERNAL.1",
+  "template_version": "2.9.0",
+  "template_sha256": "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4",
+  "industry_payload_version": 6,
+  "envelope_version": 2,
+  "new_report_schema": "3.1.0",
+  "legacy_report_schema": "3.0.0",
+  "local_full": {
+    "command": "python -B -m unittest discover -s tests -t . -v",
+    "tests": 1029,
+    "seconds": 1313.979,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log_sha256": "064219dc785f03a79161647c9ab53b38631923874da7fb1221fc45f7c4dedebf"
+  },
+  "regression_fix": {
+    "tests": 64,
+    "seconds": 54.88,
+    "failures": 0,
+    "errors": 0
+  },
+  "first_full_negative": {
+    "tests": 1028,
+    "seconds": 1323.438,
+    "failures": 4,
+    "errors": 1,
+    "causes": [
+      "v11 missing material-parser version (2 failures)",
+      "generic envelope assumed all codecs use payload.version (1 error)",
+      "old declaration-block assertion",
+      "old nine-sheet assertion"
+    ]
+  },
+  "review_assets": {
+    "python_tests": 20,
+    "seconds": 10.378,
+    "fixture_scenarios": 25,
+    "rows": 61,
+    "condition_scopes": 450,
+    "hidden_columns_per_sheet": 8,
+    "maximum_row_height_points": 344,
+    "canonical_three_raw_bytes_unchanged": true
+  },
+  "local_package": {
+    "source_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+    "source_fallback": false,
+    "manifest_entries": 313,
+    "visible_files": 314,
+    "smoke_starts": 2,
+    "actual_partial_fume": true,
+    "v11_material_conversion": true,
+    "legacy_actual_ci273_records": 2
+  },
+  "ci": {
+    "status": "NOT_TRIGGERED"
+  },
+  "native_office_or_desktop_cu": "NOT_RUN_DEFERRED",
+  "commercial_release": false,
+  "independent_acceptance": "PENDING_SOURCE"
+}

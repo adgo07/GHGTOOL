@@ -1,10 +1,10 @@
-# B-EXTERNAL 实施报告（作者执行，S4进行中）
+# B-EXTERNAL 实施报告（作者执行）
 
-本包按Owner授权审查并细化既有任务书后实施，唯一共享执行者C，独立树codex/b-external-integration从main@0f50642544b110ee461f1b32ef8a01091d0f44d0开始；原根用户修改与旧热力树未提交文档未动。PR52已合并，旧CI仅为历史保护输入，不背书本包。
+状态：本地实施及验证完成，Windows CI与exact-head制品待核验，之后停止等待源独立验收。唯一共享所有者C；原用户下载任务书不改，细化决定写入HANDOFF，不建立第二路线。当前产品提交85569337d181595ad3cce7a77859003b59958bcf，基线main@0f50642544b110ee461f1b32ef8a01091d0f44d0（PR52已合并）；原根用户修改及旧热力树文档保持。
 
 ## 平台 / Contract 预检查
 
-业务仓origin已核为adgo07/GHGTOOL，已fetch/default main。锁定中央ee5feb0cc34dbd99790500fadd0c4c932e202a20，Architecture V2.1/Numeric v1/Profiles v1为Frozen；声明Profile一致、ambient独立、full-value exact、分层及不可变Record为MUST。禁止显示修约回流、业务epsilon、消费者重算/查目录、旧Record回填或自动升级Frozen。Carbon p40/HALF_UP是ALLOWED PROJECT DIFFERENCE，非平台默认。Issue016与Mapping11.1已有批准，本包不新增专业解释；旧声明即ERROR为LOCAL DEFECT，不需改中央Contract或数据库迁移。读取当前ACTIVE UI v0.2，不冒称Frozen。
+业务仓origin实际核为adgo07/GHGTOOL，已fetch/default main。锁定中央ee5feb0cc34dbd99790500fadd0c4c932e202a20，Architecture V2.1/Numeric v1/Profiles v1 Frozen。MUST：分层、同Canonical/Application、声明Profile一致、ambient独立、full-value exact、Record不可变、消费者只读冻结值。MUST NOT：显示值回流、业务epsilon、改ES/EI/ET或造标准行、回填/重算旧Record或自动升级Frozen。Carbon p40/HALF_UP为ALLOWED PROJECT DIFFERENCE，非平台默认；旧声明阻断为LOCAL DEFECT，不需改中央Contract。相关Standard Issue是016，Mapping11.1已批准，本包不改变既有专业解释；不做数据库迁移。当前ACTIVE UI v0.2不是Frozen，Unit/Workspace等DRAFT不冒称Frozen。
 
 ## 最终实施范围
 
@@ -18,23 +18,28 @@ Mapping仅同步实际接管状态，R11候选与3份Canonical原字节不改；
 
 ## 本地执行证据
 
-- python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v：32通过/0失败/0错误，37.909s；日志tmp/b-external/adapter-final.log。含真实GUI两次成功新增两条、失败零新增；Excel预览零Record、Canonical/SQLite恢复、禁用NaN草稿、空/0/正值、词法/精度/公式、冻结Word及旧九表保护。
-- python -B -m unittest tests.test_business_rules_candidate_assets -v：20通过/0失败/0错误，10.378s；25场景JavaScript往返为本地ArtifactTool执行，非Actions。证据docs/ci/B_EXTERNAL_REVIEW_ASSET_PROOF.json。
-- 实际旧CI273合成记录2/2的数据库、ReportModel和Word正文不变；固定原导出日期避免当天日期造成非业务差异。证据docs/ci/B_EXTERNAL_HISTORY_PROOF.json。
-- validate_canonical：9标准/12来源/102参数/138因子；pip check无依赖冲突；compileall、v11机械投影与构建资源预检查通过。新增卡片及最终模板完成程序化离屏/ArtifactTool视觉核验，不是原生CU。
+|命令/检查|真实结果|
+|---|---|
+|python -B -m unittest discover -s tests -t . -v（干净8556933）|1029通过/0失败/0错误/0跳过，1313.979s；tmp/b-external/frozen-head-full.log|
+|修正后相关9组模块/指定方法复验（完整命令见日志/状态历史）|64通过，54.880s；tmp/b-external/regression-fix.log|
+|python -B -m unittest tests.test_business_rules_candidate_assets -v|20通过，10.378s；本地JS意见往返25场景通过，非Actions|
+|validate_canonical / pip check / compileall / 受控资源与v11投影|9标准/12来源/102参数/138因子；无依赖冲突；其余通过|
+|UIR04脚本 / scale 1.25与1.5|5场景及两缩放探针通过；程序化离屏，非原生CU|
+|build_standalone / B_EXTERNAL_PACKAGE_VERIFIER / smoke_standalone|8556933真实EXE/PYZ与包内原生CoolProp/NumPy/Qt，无业务源码回退；v11材料换算、外部状态/单位、partial烟气、GUI/Excel/SQLite/冻结Word及历史保护通过；2次隔离启动通过|
+|verify_release_archive|313个manifest列项+manifest自身314可见文件，使用后ZIP往返通过|
 
-完整本地unittest仍在执行，Windows Actions与exact-head新制品待S4完成；未执行项不写PASS。
+实际旧CI273的2条合成记录，只复制DB验证，不重建历史算法；原DB、ReportModel及Word正文保持，固定原导出日期2026-10-18。docs/ci/B_EXTERNAL_HISTORY_PROOF.json及B_EXTERNAL_LOCAL_PACKAGE_PROOF.json分别记录历史与本地新包证据。旧CI273不是本包CI。审阅资产见B_EXTERNAL_REVIEW_ASSET_PROOF.json，源代码与资源自8556933无后续变动。
 
-## 失败与修正记录
+## 负向记录与修正
 
-首批7项曾1FAIL：测试忽略原燃料p40尾数，改用独立公式预期，未修约产品。新增37项批次曾1FAIL/1ERROR：烟气p40尾数预期及测试控件名错误；85项批次剩1FAIL为既有GUI显示0.308的测试假设，均已修正并由最新32项复验。最初v11虽可被openpyxl读取但ArtifactTool最终读取拒绝OPC前缀序列化，修正为保留原内容类型/关系命名并成功重读渲染。首轮完整探测为修模板主动中止，无完整通过计数。审阅builder首调previous路径缺evidence导致ENOENT，未覆盖旧资产；改实际路径后完整生成/核验通过。
+- 首轮完整回归1028项/1323.438s为4FAIL/1ERROR，不能写PASS：v11未进入独立材料parser版本集合（2失败），通用封套误假设所有注册codec payload都有version（1错误），两旧断言仍要求声明阻断/仅九表。修正后64项复验与冻结head1029项全量通过。通用封套现在按codec显式声明内部版本字段，保持非炭素分派，不新增标准。
+- 早期7项批次曾1FAIL，燃料p40尾数测试预期不完整；37项批次曾1FAIL/1ERROR，为烟气p40预期及测试控件名；85项批次剩1FAIL为既有GUI小值显示0.308的预期。均修正独立预期/测试引用，不修约产品结果。
+- 初版v11 OPC前缀虽被openpyxl接受但最终ArtifactTool读取拒绝；已保留原内容类型/关系命名序列化，重新读取/渲染通过。最初完整探测因此主动中止，无通过计数。
+- 复核重现损坏payload fields=None抛TypeError、合法1e100被显示成历史缺失，已修为受控codec错误和科学计数显示，含极小非零保护，不改计算结果。
+- 审阅builder首调previous路径缺evidence报ENOENT，未覆盖旧资产；实际包验收器扩展时漏导SOURCE_FUME报NameError，修正后在新临时DB完整复验。均保留日志，不把脚本失败写成产品通过。
 
-## 交付边界
+## 后续S4门禁与交付边界
 
-代码待稳定测试后送独立PR，后续报告将区分产品head、文档head、CI merge-ref及实际制品head。无自动合并、无商业交付、无标准SUPPORTED声明；原生Excel/WPS/桌面CU及企业真实样例仍按后续正式验收安排。仓库public经Owner授权，$0预算不变，未公开用户文件或标准全文。完成S4后停止等待源独立验收。
+Windows Actions尚未触发，待本地证据稳定提交后执行既有必跑全量及PR-head独立包流程，核对最新PRhead/merge-ref/manifest/制品哈希，再实际下载核验。作者执行不冒作源独立验收；不自动合并，不启动新N抽查/RS04/RS05，不声明SUPPORTED或商业交付。原生Excel/WPS/桌面CU与企业真实样例仍NOT_RUN/DEFERRED；既有全量中的历史N01测试不等于启动新N抽查。
 
-
-S4复核增量：代码审查重现损坏payload fields=None抛TypeError、合法1e100冻结值显示历史未记录，已修为统一codec错误及科学计数展示；不改计算结果。最新python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为33/33通过（15补充+18G08），37.984s，tmp/b-external/edge-final.log。新增极小非零显示亦保持非零。UIR04五场景及125%/150%离屏探针通过，非原生CU。首个本地独立包695af96已构建成功；最终修正后的包继续验证，均非Actions证据。
-
-
-S4首轮完整回归：python -B -m unittest discover -s tests -t . -v实际1028项、1323.438s、4FAIL/1ERROR（1023通过），不能写全量PASS。发现v11材料独立parser遗漏2.9、通用封套误假设所有行业payload都有version字段；已补v11版本并由codec显式声明其内部版本字段，保留非炭素分派，不新增标准算法。两项旧断言分别仍要求声明阻断、当前模板仅九表，按批准行为同步。命令python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery tests.test_standard_dispatch tests.test_b_material_gui_excel tests.test_b_material_source_review tests.test_g06_page.G06PageTests.test_page_preserves_other_activity_and_transport_as_warnings tests.test_rpt02_appendix_b -v：64/64通过、54.880s（tmp/b-external/regression-fix.log）。将再次执行冻结head本地全量；尚未push/触发本包CI。实际包验收器增加v11材料换算路径；其扩展时一次SOURCE_FUME漏导入属开发验证脚本失败，已修正并保留失败日志，不算产品通过。
+仓库public为Owner直接授权，$0预算不变，未采用付费绕过或弱化required checks。原用户文件和标准全文未带入本包。最终CI回执会单列产品、文档、实际制品head，避免旧CI为新代码背书。
