@@ -63,6 +63,8 @@ assert Path(domain.__file__).resolve().is_relative_to(root)
 resolver=create_g06_parameter_resolver(SQLiteCatalogRepository(root/'databases/catalog.sqlite'))
 calc=CarbonMaterialCalculator(parameter_resolver=resolver)
 records=SQLiteRecordRepository(output/'records.sqlite');formal=CarbonAccountingUseCase(calc,records)
+downloaded_template=ExcelTemplateService.default().copy_to(output/'actual-template-download.xlsx')
+assert sha256(downloaded_template.read_bytes()).hexdigest()==ExcelTemplateService.default().get().sha256
 period=AccountingPeriod(PeriodType.ANNUAL,date(2026,1,1),date(2026,12,31))
 def value(line,*,export=(),report_period=period):
  return CarbonMaterialInput('actual-heat','synthetic','实际新包热力合成',report_period,boundary_confirmed=True,purchased_heat=(line,),exported_heat=export,
@@ -260,6 +262,16 @@ for ext,status,total in [(None,'HISTORICAL_NOT_RECORDED',None),(ExternalCO2Input
  assert model.schema_version=='3.1.0' and external_store.get_raw_input_snapshot(rid)==raw and external_store.get_trace_snapshot(rid)==trace
  assert any(section.section_id=='software-supplement' for section in model.sections)
  assert not any(item.emission_source_id=='CAR-SUP-OTHER-ACTIVITY-CO2' for item in outcome.result.lines)
+ rows,notes=software_supplement_display(trace)
+ expected_note={
+  'COMPLETED_ZERO':'外部值已按用户同边界、同期且原结果未计入的声明纳入。',
+  'COMPLETED_POSITIVE':'外部值已按用户同边界、同期且原结果未计入的声明纳入。',
+  'PENDING':'已选择同边界、同期且原结果未计入的声明；外部数值待补，补充合计尚未形成。',
+  'NOT_INCLUDED':'本次未纳入外部补充，草稿不参与合计。',
+  'HISTORICAL_NOT_RECORDED':'该历史输入未记录外部补充状态；不补造声明或纳入决定。',
+ }[status]
+ assert notes[0]==expected_note and '软件未核验外部计算及完整企业排放。' in notes
+ if not status.startswith('COMPLETED_'):assert '已纳入' not in str(rows)
  external_states.append({'status':status,'et':str(outcome.result.total_amount),'supplementary_total':node['supplementary_total_tco2']})
 for ext in [ExternalCO2Input(True,'-1'),ExternalCO2Input(True,'NaN'),ExternalCO2Input(True,'20',unit='tCO2e'),ExternalCO2Input(True,None,known_previously_counted=True)]:
  before=len(external_store.list_all());outcome=external_service.calculate(replace(value(line()),external_co2=ext))
@@ -341,5 +353,5 @@ for unit in ('tCO2','tCO₂','tC','tCO₂e','kgCO2'):
  before=len(external_store.list_all());outcome=external_service.calculate(replace(value(line()),external_co2=ExternalCO2Input(True,'20',unit=unit)))
  assert outcome.successful==(unit in {'tCO2','tCO₂'})
  assert len(external_store.list_all())==before+(1 if outcome.successful else 0)
-proof.update(stage='B-EXTERNAL',v11_material_conversion_preserved=True,external_actual_partial_fume=True,external_unit_matrix=['tCO2','tCO₂','tC','tCO₂e','kgCO2'],external_states=external_states,external_invalid_zero_added_records=True,external_full_precision_ambient_independence=True,external_gui_repeat_append=True,external_excel_preview_zero_records=True,external_sqlite_project_draft_and_canonical_reopen=True,external_frozen_consumers_no_recompute=True,template_version=ExcelTemplateService.default().get().template_version,template_sha256=ExcelTemplateService.default().get().sha256)
+proof.update(stage='B-EXTERNAL',template_download_byte_identical=True,status_copy_notes_by_frozen_state=True,pending_not_included_history_no_false_adoption=True,v11_material_conversion_preserved=True,external_actual_partial_fume=True,external_unit_matrix=['tCO2','tCO₂','tC','tCO₂e','kgCO2'],external_states=external_states,external_invalid_zero_added_records=True,external_full_precision_ambient_independence=True,external_gui_repeat_append=True,external_excel_preview_zero_records=True,external_sqlite_project_draft_and_canonical_reopen=True,external_frozen_consumers_no_recompute=True,template_version=ExcelTemplateService.default().get().template_version,template_sha256=ExcelTemplateService.default().get().sha256)
 (output/'proof.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(proof,ensure_ascii=False))

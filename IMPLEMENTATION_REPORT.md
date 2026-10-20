@@ -1,6 +1,8 @@
 # B-EXTERNAL 实施报告（作者执行）
 
-状态：本地实施及验证完成，Windows CI与exact-head制品待核验，之后停止等待源独立验收。唯一共享所有者C；原用户下载任务书不改，细化决定写入HANDOFF，不建立第二路线。当前产品提交85569337d181595ad3cce7a77859003b59958bcf，基线main@0f50642544b110ee461f1b32ef8a01091d0f44d0（PR52已合并）；原根用户修改及旧热力树文档保持。
+状态：首轮CI286及实际制品已验证；源独立接验发现的状态文案补丁d645c8b已由源2项复验关闭，当前无新增退修项。按源安排将补丁、包内新文案/母版复制断言及CI286回执集中推送一次，最终head的新显示代码CI/制品证据后置记录在PR53说明及当前checks，不为了纯文档再反复触发CI。未合并，整阶段独立验收待最终head证据。
+
+唯一共享所有者C；基线main@0f50642544b110ee461f1b32ef8a01091d0f44d0（PR52已合并）。原用户任务书、根工作区修改及旧热力树文档保持。核心本地全量/包对象为85569337d181595ad3cce7a77859003b59958bcf；首轮PR/制品对象为a2429621e204dc22cb1cd157bedff9c2f794a982；d645为状态文字修正，不改变求值、冻结数值、无节点行为或算法/Schema身份。
 
 ## 平台 / Contract 预检查
 
@@ -38,11 +40,16 @@ Mapping仅同步实际接管状态，R11候选与3份Canonical原字节不改；
 - 复核重现损坏payload fields=None抛TypeError、合法1e100被显示成历史缺失，已修为受控codec错误和科学计数显示，含极小非零保护，不改计算结果。
 - 审阅builder首调previous路径缺evidence报ENOENT，未覆盖旧资产；实际包验收器扩展时漏导SOURCE_FUME报NameError，修正后在新临时DB完整复验。均保留日志，不把脚本失败写成产品通过。
 
-## 后续S4门禁与交付边界
+## Windows CI286与真实制品证据
 
-Windows Actions尚未触发，待本地证据稳定提交后执行既有必跑全量及PR-head独立包流程，核对最新PRhead/merge-ref/manifest/制品哈希，再实际下载核验。作者执行不冒作源独立验收；不自动合并，不启动新N抽查/RS04/RS05，不声明SUPPORTED或商业交付。原生Excel/WPS/桌面CU与企业真实样例仍NOT_RUN/DEFERRED；既有全量中的历史N01测试不等于启动新N抽查。
+[CI286](https://github.com/adgo07/GHGTOOL/actions/runs/39405735408)两个作业success：merge-ref 4513b08315c3ad6003ea17078b3c7e180f6a079e全量1029/1029，1568.889s；PR-head a242962 G08 18/18，12.375s。Canonical/编译/pip check/隔离DB/两作业GUI及缩放/构建/审计/manifest ZIP往返/provenance/2次启动/上传均通过，GitHub执行不写成本地执行。
 
-仓库public为Owner直接授权，$0预算不变，未采用付费绕过或弱化required checks。原用户文件和标准全文未带入本包。最终CI回执会单列产品、文档、实际制品head，避免旧CI为新代码背书。
+实际下载artifact12259330066，75,749,566字节，ZIP SHA256 8d7bc3f0378aeb5dee15f351aea995de1533f9d0d39bb3243daab37045b0f83c；322个manifest列项+manifest自身323可见文件。manifest source_commit/pr_head均a242962，tested_merge为上述4513；严格审计、旧head验收器实际EXE/PYZ/包内原生依赖整链、旧CI273保护及再次2隔离启动均通过，无业务源码回退。回执见B_EXTERNAL_CI286_RECEIPT_PROOF.json与B_EXTERNAL_CI286_PACKAGE_PROOF.json；完整解码日志仅保留tmp并以SHA256定位。
 
+CI286制品明确不含d645状态文案修复，不能为新显示代码背书。最终一次集中推送后必须取得含新显示代码的制品，包内将断言5种冻结status的notes/PENDING标签与母版copy_to原字节一致性；最终head/SHA/制品哈希及复验结果以[PR53](https://github.com/adgo07/GHGTOOL/pull/53)说明、当前checks和最终本地制品回执为准，不再为补写纯文档启动第三轮CI。
 
-源独立接验增量：源已独立运行补充runtime/chain/excel共15项，35.383s，OK（源自行提供，非作者执行）。源指出所有状态的声明纳入提示不准确，本地仅按冻结status修正notes及PENDING状态标签：COMPLETED_*才称已纳入，PENDING为声明已选择/数值待补，NOT_INCLUDED与历史不声称声明或纳入；未核验外部计算/完整性及partial覆盖提示保留。python -B -m unittest tests.test_b_external_status_copy -v：2/2通过；实际旧CI273 DB/模型/Word2/2保护仍通过。求值、冻结数值、无节点行为、算法/Schema身份均不变。按源协调要求本地保留补丁、暂不推送，CI286继续取得现远端a242962证据，不取消或重复触发昂贵CI；最终head待统一收口。
+## 源独立接验与交付边界
+
+源回报已独立执行runtime/chain/excel 15项/35.383s/OK；源核对d645完整生产diff并独立执行状态文案2/2，已关闭此问题，当前无新增退修项。这些是源自行执行并回报的范围，不冒称作者执行或整阶段独立PASS。作者局部2/2及旧CI273 DB/模型/Word2/2保护亦通过。
+
+不自动合并，不启动新N抽查/RS04/RS05，不声明SUPPORTED或商业交付。原生Excel/WPS/桌面CU及企业真实样例仍NOT_RUN/DEFERRED；既有全量中的历史N01测试不等于新N抽查。仓库public由Owner直接授权，$0预算不变，未付费绕过或弱化required checks；用户文件和标准全文未带入本包。

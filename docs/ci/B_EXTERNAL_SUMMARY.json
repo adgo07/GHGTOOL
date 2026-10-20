@@ -1,6 +1,6 @@
 {
   "stage": "B-EXTERNAL",
-  "status": "LOCAL_COMPLETE_PENDING_WINDOWS_CI",
+  "status": "FINAL_HEAD_CI_PENDING_AFTER_CONSOLIDATED_DISPLAY_FIX",
   "base": "0f50642544b110ee461f1b32ef8a01091d0f44d0",
   "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
   "product_code_commit": "85569337d181595ad3cce7a77859003b59958bcf",
@@ -59,9 +59,60 @@
     "legacy_actual_ci273_records": 2
   },
   "ci": {
-    "status": "NOT_TRIGGERED"
+    "run_id": 39405735408,
+    "run_number": 286,
+    "url": "https://github.com/adgo07/GHGTOOL/actions/runs/39405735408",
+    "pr": 53,
+    "pr_head": "a2429621e204dc22cb1cd157bedff9c2f794a982",
+    "tested_merge_sha": "4513b08315c3ad6003ea17078b3c7e180f6a079e",
+    "status": "PASS_BASELINE_WITH_KNOWN_DISPLAY_COPY_FOLLOWUP",
+    "merge_full": {
+      "job_id": 118571085128,
+      "tests": 1029,
+      "seconds": 1568.889,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "exact_head_g08": {
+      "job_id": 118582324071,
+      "tests": 18,
+      "seconds": 12.375,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "decoded_utf8_log_sha256": {
+      "ci286-merge-full.log": "fe81e16d9bf9676a16851f13a1c18c44bf122c465c64591041aaecf05e323cc2",
+      "ci286-head-standalone.log": "c19c5406f8b18458c1e80cd020bb64a849879ecb2c9d58a614ed94ca0aef87bf"
+    },
+    "artifact": {
+      "id": 12259330066,
+      "name": "QingzhouCarbonAccounting-a2429621e204dc22cb1cd157bedff9c2f794a982",
+      "bytes": 75749566,
+      "zip_sha256": "8d7bc3f0378aeb5dee15f351aea995de1533f9d0d39bb3243daab37045b0f83c",
+      "manifest_sha256": "d6ae480aba4accf1541c0e3dd97fdba42d915e87dede06225fbfbadd269f4436",
+      "manifest_entries": 322,
+      "visible_files": 323
+    },
+    "provenance_archive_audit_gui_scale_build_upload_smoke": "PASS",
+    "actual_exe_pyz_business_code_source_fallback": false,
+    "actual_packaged_native_dependencies": true,
+    "actual_old_ci273_records_unchanged": 2,
+    "local_display_copy_patch": "d645c8b36f107d95313b173fb4e331bbf285b327",
+    "display_copy_fix_included_in_this_artifact": false,
+    "final_head_new_display_code_artifact_required": true,
+    "commercial_release": false
   },
   "native_office_or_desktop_cu": "NOT_RUN_DEFERRED",
   "commercial_release": false,
-  "independent_acceptance": "PENDING_SOURCE"
+  "independent_acceptance": "PENDING_SOURCE",
+  "source_independent_reported": {
+    "base_external_tests": 15,
+    "base_seconds": 35.383,
+    "status_copy_tests": 2,
+    "status_copy_issue": "CLOSED_BY_SOURCE",
+    "whole_stage_acceptance": "PENDING_FINAL_HEAD_EVIDENCE"
+  },
+  "final_head_evidence_location": "PR53 description and current checks; no extra documentation-only CI cycle"
 }
