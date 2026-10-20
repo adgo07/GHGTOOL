@@ -69,8 +69,10 @@ def decode_canonical_input(payload, *, standard_registry=None):
         raise CanonicalInputCodecError("保存项目的标准或版本尚未开放。") from exc
     if type(document["input_version"]) is not int or document["input_version"] not in getattr(codec,"SUPPORTED_INPUT_CODEC_VERSIONS",(codec.CANONICAL_INPUT_CODEC_VERSION,)):
         raise CanonicalInputCodecError("unsupported standard input version")
-    if not isinstance(document['payload'],dict) or type(document['payload'].get('version')) is not int or document['payload']['version']!=document['input_version']:
-        raise CanonicalInputCodecError('封套input_version与行业payload版本不一致。')
+    payload_version_field=getattr(codec,'PAYLOAD_VERSION_FIELD',None)
+    if payload_version_field is not None:
+        if not isinstance(document['payload'],dict) or type(document['payload'].get(payload_version_field)) is not int or document['payload'][payload_version_field]!=document['input_version']:
+            raise CanonicalInputCodecError('封套input_version与行业payload版本不一致。')
     value=codec.decode_canonical_input(json.dumps(document["payload"],ensure_ascii=False,allow_nan=False))
     if not implementation.accepts_input(value):
         raise CanonicalInputCodecError("项目载荷与登记标准身份不一致。")

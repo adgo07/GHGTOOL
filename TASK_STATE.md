@@ -13,3 +13,6 @@ S3稳定断点：最新命令python -B -m unittest tests.test_b_external_runtime
 
 
 S4复核增量：代码审查重现损坏payload fields=None抛TypeError、合法1e100冻结值显示历史未记录，已修为统一codec错误及科学计数展示；不改计算结果。最新python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为33/33通过（15补充+18G08），37.984s，tmp/b-external/edge-final.log。新增极小非零显示亦保持非零。UIR04五场景及125%/150%离屏探针通过，非原生CU。首个本地独立包695af96已构建成功；最终修正后的包继续验证，均非Actions证据。
+
+
+S4首轮完整回归：python -B -m unittest discover -s tests -t . -v实际1028项、1323.438s、4FAIL/1ERROR（1023通过），不能写全量PASS。发现v11材料独立parser遗漏2.9、通用封套误假设所有行业payload都有version字段；已补v11版本并由codec显式声明其内部版本字段，保留非炭素分派，不新增标准算法。两项旧断言分别仍要求声明阻断、当前模板仅九表，按批准行为同步。命令python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery tests.test_standard_dispatch tests.test_b_material_gui_excel tests.test_b_material_source_review tests.test_g06_page.G06PageTests.test_page_preserves_other_activity_and_transport_as_warnings tests.test_rpt02_appendix_b -v：64/64通过、54.880s（tmp/b-external/regression-fix.log）。将再次执行冻结head本地全量；尚未push/触发本包CI。实际包验收器增加v11材料换算路径；其扩展时一次SOURCE_FUME漏导入属开发验证脚本失败，已修正并保留失败日志，不算产品通过。

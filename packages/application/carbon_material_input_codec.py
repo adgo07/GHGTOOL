@@ -61,6 +61,7 @@ from packages.standards.carbon_material_normalization import (
 
 
 CANONICAL_INPUT_CODEC_VERSION = 6
+PAYLOAD_VERSION_FIELD = "version"
 SUPPORTED_INPUT_CODEC_VERSIONS = (1, 2, 3, 4, 5, 6)
 _CODEC_ID = "ghgtool.carbon_material_input"
 

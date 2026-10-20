@@ -45,7 +45,7 @@ import shutil,tempfile,math
 from packages.core.models import AccountingPeriod,PeriodType
 from packages.core.decimal_policy import DecimalPolicy
 from packages.standards.carbon_material import *
-from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT,SOURCE_EXPORTED_HEAT,SOURCE_FUEL
+from packages.standards.carbon_material import SOURCE_PURCHASED_HEAT,SOURCE_EXPORTED_HEAT,SOURCE_FUEL,SOURCE_FUME
 from packages.standards.carbon_material_input_policy import InputOrigin
 from packages.application.carbon_accounting import CarbonAccountingUseCase,create_g06_parameter_resolver
 from packages.persistence import SQLiteRecordRepository,SQLiteCatalogRepository,SQLiteProjectWorkspaceRepository
@@ -308,5 +308,38 @@ with fresh_qt() as (gui,projects,store,shell):
   outcome=CarbonAccountingUseCase(gui.calculator,store).calculate(reopened.units[0].canonical_input);assert outcome.successful,outcome.problems
   assert store.get_trace_snapshot(outcome.record.record_id)['software_supplement']['status']==expected_state
   frozen_word(store,outcome.record.record_id)
-proof.update(stage='B-EXTERNAL',external_states=external_states,external_invalid_zero_added_records=True,external_full_precision_ambient_independence=True,external_gui_repeat_append=True,external_excel_preview_zero_records=True,external_sqlite_project_draft_and_canonical_reopen=True,external_frozen_consumers_no_recompute=True,template_version=ExcelTemplateService.default().get().template_version,template_sha256=ExcelTemplateService.default().get().sha256)
+ # v11 must retain the v7+ material conversion path in the separate parser.
+ wb=load_workbook(BytesIO(ExcelTemplateService.default().read_bytes()));sheet=wb['B.3']
+ for r,mass,percentage in [(4,'80','90'),(5,'80','10'),(6,'20','80'),(7,'30','40'),(8,'10','25'),(9,'20','5')]:
+  sheet[f'C{r}']='合成材料';sheet[f'D{r}']=Decimal(mass);sheet[f'E{r}']=Decimal(percentage);sheet[f'F{r}']='计算值' if r in (4,5) else '实测值'
+  if r in (4,5):
+   for col,v in {'I':'干基','J':'干基','K':20,'L':'按收到基水分归一'}.items():sheet[f'{col}{r}']=v
+ path=output/'v11-material.xlsx';wb.save(path);wb.close();before=len(store.list_all())
+ preview=page.excel_adapter.import_preview(path,context);assert preview.units[0].can_calculate,preview.units[0].errors
+ assert len(store.list_all())==before
+ canonical=preview.units[0].input_value;assert canonical.calcinations[0].material_rows[0].mass_basis=='DRY'
+ outcome=CarbonAccountingUseCase(gui.calculator,store).calculate(canonical);assert outcome.successful,outcome.problems
+ frozen_word(store,outcome.record.record_id)
+# Real packaged partial monitoring and missing supplement stay separate.
+from datetime import datetime,timedelta
+from packages.standards.carbon_material_fume_segments import FumeMonitoringSegment
+with localcontext() as reference:
+ reference.prec=40
+ expected_partial=Decimal(1000)*1000*40*Decimal('.02')*1*1*24*(Decimal(44)/12)*Decimal('1e-9')
+ expected_partial_sum=expected_partial+Decimal(20)
+for raw,state,total in [('20','COMPLETED_POSITIVE',expected_partial_sum),(None,'PENDING',None)]:
+ start=datetime(2025,1,1)
+ segment=FumeMonitoringSegment('source-A','stack-A','segment-A',start,start+timedelta(days=1),FumeIncinerationInput(q='1000',qvar='1000',hm='40',fch='.02',fox='1',duration='1',instance_id='source-A'))
+ partial=CarbonMaterialInput('actual-partial','synthetic','实际包部分覆盖合成',AccountingPeriod(PeriodType.ANNUAL,date(2025,1,1),date(2025,12,31)),boundary_confirmed=True,source_states=(EmissionSourceState(SOURCE_FUME,EmissionSourceStatus.INVOLVED),),fume_segments=(segment,),fume_execution_version='FUME_V2',external_co2=ExternalCO2Input(True,raw))
+ outcome=external_service.calculate(partial);assert outcome.successful,outcome.problems
+ assert outcome.result.total_amount==expected_partial
+ trace=external_store.get_trace_snapshot(outcome.record.record_id);node=trace['software_supplement']
+ assert not trace['fume_monitoring']['complete'] and not node['core_coverage_complete'] and node['status']==state
+ assert (None if node['supplementary_total_tco2'] is None else Decimal(node['supplementary_total_tco2']))==total
+ assert not node['enterprise_completeness_verified'];frozen_word(external_store,outcome.record.record_id)
+for unit in ('tCO2','tCO₂','tC','tCO₂e','kgCO2'):
+ before=len(external_store.list_all());outcome=external_service.calculate(replace(value(line()),external_co2=ExternalCO2Input(True,'20',unit=unit)))
+ assert outcome.successful==(unit in {'tCO2','tCO₂'})
+ assert len(external_store.list_all())==before+(1 if outcome.successful else 0)
+proof.update(stage='B-EXTERNAL',v11_material_conversion_preserved=True,external_actual_partial_fume=True,external_unit_matrix=['tCO2','tCO₂','tC','tCO₂e','kgCO2'],external_states=external_states,external_invalid_zero_added_records=True,external_full_precision_ambient_independence=True,external_gui_repeat_append=True,external_excel_preview_zero_records=True,external_sqlite_project_draft_and_canonical_reopen=True,external_frozen_consumers_no_recompute=True,template_version=ExcelTemplateService.default().get().template_version,template_sha256=ExcelTemplateService.default().get().sha256)
 (output/'proof.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(proof,ensure_ascii=False))
