@@ -1,3 +1,40 @@
+# 业务规则消费者盘点
+
+2026-10-20：B 总体收口只读盘点；生产基线 `348077cd972a27b6eeb80b77b712e7cb35375988`（PR53 已合并）。此表列本次核对范围及代码/既有测试证据，不替代 Mapping、Standard Completeness Matrix、Golden 或正式支持验收。源独立验收本包之前只称盘点完成候选，不宣布整个标准 SUPPORTED。
+
+## 当前共同链
+
+GUI `CarbonMaterialAccountingPage._input/_run_calculation` 与附录B `AppendixBWorkbookImporter.import_preview` 装配同一 `CarbonMaterialInput`。Excel 预览使用无 Record Repository 的 `CarbonAccountingPreviewUseCase`；`ExcelImportPage._save_preview_as_project/_calculate_selected_unit` 明确保存 Canonical 项目后调用同一 `CarbonAccountingUseCase`，成功才 `create_with_details` 新增不可变 Record。GUI form_state 与 Excel Canonical 项目各自恢复，不将 Canonical 项目静默转成空 GUI 表单。
+
+`carbon_material_input_codec.py` 行业 payload6 读1—6，通用封套2，并核对内外版本一致。`projects.sqlite` 与 `records.sqlite` 分离。`build_saved_record_report` → 注册标准 ReportModel → `word_renderer.py` 只读同 Record 冻结输入/参数/Trace/Provenance/Reporting；不调当前 Calculator/Resolver 补算。结果页和 Word 共用该模型；新软件补充 Schema3.1.0，缺节点旧记录保留3.0.0。当前输入 v11/2.9.0，旧 v2—v10 原字节保留，未知未来模板版本拒绝。
+
+## 逐项渠道对账
+
+下列“已核”指当前代码入口和对应既有回归的只读核对；本轮没有重跑全部业务测试。既有最终执行见 PR53 / CI288（1036 项），来源身份与本轮 N 实测另列，不能据测试数代替条款覆盖。
+
+| 业务组 | 唯一当前决定/求值入口 | GUI / Excel | Canonical / 项目恢复 | 正式核算 / Record / Word | 旧定义退出及保留边界；定位证据 |
+| --- | --- | --- | --- | --- | --- |
+| 燃料 | `evaluate_fuel_power_field` 的4字段；真实 `fuel_source_context` / Resolver 决定缺省资格和值 | GUI `carbon_material_fuel` / `_refresh_fuel_row`；B.2 `_parse_fuels`，都经薄来源适配 | 燃料身份、路径、显式来源及草稿恢复；旧未确认身份不借先前绑定重算 | `_fuel` 核来源/单位，快照采用值；B.2读冻结值 | 旧手写字段资格已由共享策略替代；历史来源可读≠当前允许选项；`test_b1_fuel_consumers/lifecycle` |
+| 购入/输出电力 | 同一资源 `electricity.factor`、`electricity_source_context`、`ParameterResolver.resolve_electricity_details` | GUI统一能源行；B.8 `_parse_power`，五表及其他来源同资格 | 方向独立、其他来源草稿/目录身份保留 | 统一Calculator；购入非化石与输出扣减分开，B.8只取冻结行 | 五表与“其他来源”遵守010/014已批准软件选择，不称与原文依据无差异；`test_b_electricity_channels/queries/table5_policy` |
+| 材料 | `evaluate_material_field` 两字段；`normalize_material_inputs` 按声明方法归一 | GUI `_material_inputs`；B.3—B.5 `appendix_b_processes` | 原检测基准/采用值及实例/行身份可恢复，显式升级留副本 | `MATERIAL_V2` 原行和收到基采用值冻结，报告不重归一 | 旧“仅实测”资格退出；合法旧 `MATERIAL_V1` 明确兼容，非V2失败回退；`test_b_material_chain/gui_excel/identity/draft_scope` |
+| 煅烧/焙烧/石墨化工艺 | 版本化 Domain Calculator；K1—K3及既有式保留，非另建JSON公式引擎 | 多实例工艺行与B.3—B.5装配相同物料角色 | 多实例删除/重开身份稳定，旧scalar/共同含量仅明确旧组合 | V2煅烧CC/UCC/DU各角色碳量直接求和；每实例/来源汇总冻结 | V2不经过旧跨角色wfc_c平均；旧字段存在用于读取/允许的历史组合，不等于未接管；`test_b_material_chain/policy`、`test_accounting_projects_ui` |
+| 脱硫 | `evaluate_fgd_field` 三字段；`resolve_fgd_field` 同次 context/factor/resolution | GUI `_fgd_source_policy`；B.7 `_parse_fgd`，整剂批次同分母 | 设施/批次/组分稳定身份，旧版本读取与显式升级分开 | 共享Calculator按批校验整剂用量/分数并冻结；B.7消费原记录 | 旧私有绑定筛选/Excel空值猜默认退出，13项绑定资格局部接管；未知绑定仍阻断；`test_b_fgd_chain/legacy_templates/acceptance_fixes` |
+| 烟气焚烧 | 专属 `evaluate_fume_segments` / Issue020，非套用fuel.*字段策略 | GUI监测段与B.6 `_parse_fumes` → 同一FUME_V2 | 同源/计量边界内整小时段，旧细时间可读保存、非法新算拒绝 | 逐段式(9)、源/边界覆盖与缺口冻结；B.6不年化或再聚合 | 当前V2退出旧报告期时长放大路径；FUME_V1仅明确旧组合且不补造覆盖；未新增焦油参数策略。`test_b_fume_segments/chain` |
+| 热力/蒸汽 | `evaluate_heat_factor/heat_source_context`；边界 `classify_heat_boundary`；已知焓与固定CoolProp8/IF97独立方法 | GUI购/出热行；B.9 `_parse_heat_v28`，同Canonical | 热源边界/燃料已计/因子模式与草稿保留，实测空不回退 | 真实同次Resolver资格和值；内部已计燃料不重复购热；原/工作/采用物性及因子冻结，Word单位从冻结值投影 | 新自动焓不调用旧C.4/C.5查表/内插或失败回退；旧表仅历史/查询、已知焓独立。`test_b_heat_runtime/if97/chain/report_units` |
+| 外部CO₂ | `evaluate_external_co2_supplement`，Issue016软件补充 | GUI三项/B.1后独立软件补充页（非B.10）；声明仅提醒 | 禁用草稿、待补、0、正值及历史None分别恢复；PR52缺省指纹兼容 | 原ET不变，只由producer求和一次冻结；结果/Record/Word消费同节点 | 原声明即ERROR/确认清除声明退出；旧Record不补节点/0，合法外部量不能填平烟气缺口；`test_b_external_runtime/chain/excel/review/status_copy` |
+
+## 接管范围及仍开放项
+
+- 受控运行投影 `fuel_power.json`（5字段）、`material.json`（2）、`fgd.json`（3）、`heat.json`（1）合计11字段，各有采用身份/资源哈希/来源绑定。Resolver仍是参数候选和值唯一入口，JSON不构成第二套Catalog。烟气Issue020、外部016及工艺公式通过版本化Domain接管，不把11字段采用夸成全业务JSON DSL。
+- 本次限定清单内未识别新增的活动渠道分叉或必须修业务Bug；这是只读结论，不是对全部条件组合无缺陷的证明。历史方法、旧模板结构/种子识别及旧来源身份是受控兼容，不做删旧分支式“收口”。原R6骨架身份和R11字段采用身份分别追踪，不能静默改标。
+- `CORE_CHECK` / `GAPS` 的原B2观察保持历史身份；GAP-009仍非阻塞附件provenance debt。当前整体标准仍 `PARTIAL / NOT SUPPORTED`；正式Golden/支持Gate及Windows Release分别在RS04/RS05，未授权进入。
+- 原生Office回导（按模板版本）、真实鼠标/中文IME/人工DPI、企业实样、干净目标机/原生正常退出及全产品第三方许可履约继续OPEN。CI离屏/缩放、历史模板v4的局部Office证据均不能代替当前v11的这些门禁。
+- N只在同一冻结生产基线测代表性性能，协议/原始样本/限制见 `docs/performance/n-baseline/`，不做优化，不替代本盘点或上述业务/交付Gate。
+
+## 历史观察（截至各旧工作包；不是当前待办）
+
+以下原文保留PR45/46与各分段当时观察及来源。历史“候选、待接管、N不启动”仅属于其当时时点；当前生产及本包授权以上述2026-10-20盘点与当前HANDOFF为准。
+
 > 2026-10-17当前入口：PR46已合并、PR45已关闭。原表与PR45/46只读取证是固定历史观察；当前生产接管范围以TASK_STATE/IMPLEMENTATION_REPORT为准，不再把后续消费者写入责任归已收口PR46。
 
 > 本轮以PR48已合并R8为业务基线；以下运行消费者是既有main/PR46的固定观察，不代表候选已接生产。015已批准不再待决；014按Owner最新电力“其他来源”软件决定RESOLVED，原标准专业依据差异保留，不伪称等价。来源细则唯一见Mapping §9.1/9.8；五表软件选择另按台账010的固定批准与取代关系，旧候选PENDING描述由本轮R8政策取代。25组盘点只在实施报告定位，不另立总账。
