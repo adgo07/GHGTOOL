@@ -5,3 +5,7 @@ resources/licenses/steam_if97/* -text
 docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json -text
 docs/ci/B_HEAT_IF97_CANDIDATE_REV2_RAW.json -text
 docs/ci/B_HEAT_*PROOF.json -text
+
+# N原始计时证据及当次执行脚本保留现场字节，避免SHA因Git换行转换漂移。
+docs/performance/n-baseline/raw.json -text whitespace=cr-at-eol
+scripts/measure_n_baseline.py -text whitespace=cr-at-eol
