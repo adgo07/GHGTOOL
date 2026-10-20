@@ -203,7 +203,7 @@ def fresh_qt():
  shell=window.centralWidget();shell.navigate(AppRoute.NEW_ACCOUNTING);app.processEvents()
  try:yield shell.pages[AppRoute.NEW_ACCOUNTING],projects,store,shell
  finally:
-  with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.No):window.close()
+  with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Discard):window.close()
   window.deleteLater();app.processEvents()
 with fresh_qt() as (gui,projects,store,shell):
  gui.enterprise_name.setText('新包热力整链');gui.period_year.setValue(2026);gui.boundary_confirmed.setChecked(True)
@@ -353,5 +353,52 @@ for unit in ('tCO2','tCO₂','tC','tCO₂e','kgCO2'):
  before=len(external_store.list_all());outcome=external_service.calculate(replace(value(line()),external_co2=ExternalCO2Input(True,'20',unit=unit)))
  assert outcome.successful==(unit in {'tCO2','tCO₂'})
  assert len(external_store.list_all())==before+(1 if outcome.successful else 0)
+# Mandatory real PR52 saved project, opened twice using only packaged code.
+legacy_project=Path(sys.argv[5]).resolve()
+project_proof=json.loads((legacy_project/'proof.json').read_text(encoding='utf-8'))
+qt_root=output/'pr52-project';qt_root.mkdir()
+for name in ('projects.sqlite','records.sqlite'):
+ assert sha256((legacy_project/name).read_bytes()).hexdigest()==project_proof['database_sha256'][name]
+ shutil.copy2(legacy_project/name,qt_root/name)
+old_record_bytes=(qt_root/'records.sqlite').read_bytes()
+for iteration in range(2):
+ with fresh_qt() as (gui,projects,store,shell):
+  with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Discard):
+   gui.saved_projects.setCurrentIndex(gui.saved_projects.findData(project_proof['project_id']));gui._open_selected_project()
+  app.processEvents()
+  assert gui._input(increment=False).external_co2 is None
+  assert gui._current_calculation_fingerprint()==project_proof['calculation_fingerprint']
+  assert gui._current_business_fingerprint()==project_proof['input_fingerprint']
+  assert not gui._calculation_result_is_stale(gui._unit()) and not gui.result_card.isHidden()
+  model,xml=frozen_word(store,project_proof['record_id'],today=date(2026,10,20))
+  assert sha256(repr(model).encode()).hexdigest()==project_proof['report_model_sha256']
+  assert sha256(xml).hexdigest()==project_proof['word_document_xml_sha256']
+  assert gui._save_project()
+with fresh_qt() as (gui,projects,store,shell):
+ with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Discard):
+  gui.saved_projects.setCurrentIndex(gui.saved_projects.findData(project_proof['project_id']));gui._open_selected_project()
+ original_value=gui._input(increment=False)
+ from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
+ hashes={gui._fingerprint_business_input(replace(original_value,external_co2=item),scope='calculation') for item in (None,ExternalCO2Input(False),ExternalCO2Input(True))}
+ assert len(hashes)==3
+ gui._energy_family_rows['heat'][0].amount.setText('2')
+ assert gui._calculation_result_is_stale(gui._unit())
+assert (qt_root/'records.sqlite').read_bytes()==old_record_bytes
+qt_root=output/'review-warning';qt_root.mkdir()
+with fresh_qt() as (gui,projects,store,shell):
+ gui.enterprise_name.setText('实际包提醒合成');gui.period_year.setValue(2026);gui.boundary_confirmed.setChecked(True)
+ for status in gui._source_statuses.values():status.setCurrentIndex(status.findData('NOT_INVOLVED'))
+ status=gui._source_statuses[SOURCE_PURCHASED_HEAT];status.setCurrentIndex(status.findData('INVOLVED'))
+ row=gui._energy_family_rows['heat'][0];row.heat_boundary.setCurrentIndex(row.heat_boundary.findData('OUTSIDE_ENTERPRISE'))
+ row.amount.setText('1');row.enthalpy_mode.setCurrentIndex(row.enthalpy_mode.findData('MANUAL'));row.enthalpy.setText('2800')
+ gui.other_activity_present.setChecked(True);gui.transport_present.setChecked(True);gui._run_calculation()
+ assert len(store.list_all())==1
+ texts=[]
+ def collect(parent):
+  for i in range(parent.childCount()):
+   item=parent.child(i);texts.append(item.text(0));collect(item)
+ for tree in gui.findChildren(widgets.QTreeWidget):collect(tree.invisibleRootItem())
+ assert any('本次炭素核算可继续；其他行业活动或运输应按相应标准另行核算，符合条件的外部CO₂可单独补充。' in text for text in texts)
+proof.update(pr52_actual_project_close_reopen_no_false_stale=True,pr52_record_model_word_unchanged=True,explicit_supplement_choices_and_real_changes_still_stale=True,other_standard_actual_gui_warning_allows_record=True)
 proof.update(stage='B-EXTERNAL',template_download_byte_identical=True,status_copy_notes_by_frozen_state=True,pending_not_included_history_no_false_adoption=True,v11_material_conversion_preserved=True,external_actual_partial_fume=True,external_unit_matrix=['tCO2','tCO₂','tC','tCO₂e','kgCO2'],external_states=external_states,external_invalid_zero_added_records=True,external_full_precision_ambient_independence=True,external_gui_repeat_append=True,external_excel_preview_zero_records=True,external_sqlite_project_draft_and_canonical_reopen=True,external_frozen_consumers_no_recompute=True,template_version=ExcelTemplateService.default().get().template_version,template_sha256=ExcelTemplateService.default().get().sha256)
 (output/'proof.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(proof,ensure_ascii=False))

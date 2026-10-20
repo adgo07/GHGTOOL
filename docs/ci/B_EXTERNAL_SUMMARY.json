@@ -1,9 +1,9 @@
 {
   "stage": "B-EXTERNAL",
-  "status": "FINAL_HEAD_CI_PENDING_AFTER_CONSOLIDATED_DISPLAY_FIX",
+  "status": "PR53_REVIEW_FOLLOWUP_LOCAL_PASS_NEW_HEAD_CI_PENDING",
   "base": "0f50642544b110ee461f1b32ef8a01091d0f44d0",
   "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
-  "product_code_commit": "85569337d181595ad3cce7a77859003b59958bcf",
+  "product_code_commit": "1fb4cd50ca77b3c31bc3e63c44abe94cc0eaad49",
   "algorithm": "CAR-SM01-2026-10-20-EXTERNAL.1",
   "template_version": "2.9.0",
   "template_sha256": "b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4",
@@ -114,5 +114,44 @@
     "status_copy_issue": "CLOSED_BY_SOURCE",
     "whole_stage_acceptance": "PENDING_FINAL_HEAD_EVIDENCE"
   },
-  "final_head_evidence_location": "PR53 description and current checks; no extra documentation-only CI cycle"
+  "final_head_evidence_location": "PR53 current checks and description plus final local receipt; new review fixes require new artifact, no docs-only rebuild",
+  "previous_final_head": "73c47a98044c00591d6717d1d47d3a05f5aecffe",
+  "ci287": {
+    "run_url": "https://github.com/adgo07/GHGTOOL/actions/runs/39410582292",
+    "head": "73c47a98044c00591d6717d1d47d3a05f5aecffe",
+    "tested_merge": "ff2a373f2cad742f70ed949cc60d72d6b738f51c",
+    "merge_tests": 1031,
+    "merge_seconds": 1698.091,
+    "head_g08_tests": 18,
+    "head_g08_seconds": 8.369,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "artifact_id": 12260549104,
+    "zip_bytes": 75747968,
+    "zip_sha256": "df8e32283b05265c15ddab918816a21e2571a5c3fa0452df41784190837b37c9",
+    "manifest_sha256": "2ac64788c0f1689679921ae8c99c64ab70de4ed430345ca1421c96dcedd87f4b",
+    "manifest_entries": 322,
+    "visible_files": 323,
+    "actual_package_pass": true,
+    "includes_display_patch": true,
+    "certifies_new_review_fixes": false
+  },
+  "review_followup_local": {
+    "command": "python -B -m unittest tests.test_b_external_review tests.test_b_external_excel tests.test_b_fgd_legacy_templates tests.test_b_material_source_review tests.test_fuel_power_template_v5 tests.test_b_heat_chain tests.test_g08_delivery -v",
+    "tests": 56,
+    "seconds": 218.023,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "execution_origin": "LOCAL_WINDOWS_OFFSCREEN_NOT_NATIVE_CU",
+    "log_sha256": "6774aad6a74e3d4b35a9973aea5a3523be09eb882d8fbbca8e41a95ada815b73"
+  },
+  "review_followup_initial": {
+    "tests": 5,
+    "passed": 3,
+    "errors": 2,
+    "cause": "test fixture used wrong heat-row key and importer class; corrected; real PR52 fingerprint/Record/Word assertions already passed"
+  },
+  "previous_final_head_evidence_location": "ci287; CI286 retained only as historical head"
 }

@@ -29,3 +29,14 @@ S0：核基线/消费者/版本并写独立预期；S1：正式软件补充校�
 原生Office回导、真实鼠标/IME/人工DPI、企业实样、干净目标机、原生正常退出及商业许可履约仍OPEN，不冒称本包已覆盖。新CI/制品按精确head记录；最终重写IMPLEMENTATION_REPORT并交源验收后停止，禁止自动合并或启动下一包。
 
 Excel软件补充纳入值继续遵守既有Adapter数值单元格/最多15位有效数字/OOXML原始词法证据策略，GUI/Canonical仍允许声明Profile的完整精度；禁用非法文本草稿保留但不参与数值校验，实际公式单元格拒绝。不新增中央Numeric交换规则。
+
+
+## PR53 复核退修（2026-10-20）
+
+平台 / Contract 预检查：继续原 PR53 分支，开工核对 origin 为 adgo07/GHGTOOL、fetch 后 head 73c47a98044c00591d6717d1d47d3a05f5aecffe、工作区干净。locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20 不变；Architecture V2.1 / Numeric v1 / Profiles v1 的分层、Profile 一致、ambient 独立及不可变 Record MUST 不变。不得更改公式、Numeric、旧 Record 或把 Presentation State 定义为公共 Workspace Contract；属于本地兼容缺陷与提示修复，无中央 Contract 修改。相关 Standard Issue 为016；本轮不改变既有软件解释。
+
+此前最终显示补丁已有 [CI287](https://github.com/adgo07/GHGTOOL/actions/runs/39410582292) 与实际下载制品证据：head 73c47a9，merge ff2a373，GitHub 全量1031/1698.091s、G08 18/8.369s，0失败/错误/跳过。artifact12260549104，75,747,968字节，ZIP SHA256 df8e32283b05265c15ddab918816a21e2571a5c3fa0452df41784190837b37c9，manifest SHA256 2ac64788c0f1689679921ae8c99c64ab70de4ed430345ca1421c96dcedd87f4b，322列项+manifest自身323文件；实际EXE/PYZ、包内原生依赖、状态文案、母版复制、旧CI273记录保护及2启动通过。源另独立核验API与322文件哈希（源提供证据，非作者执行）。CI286继续保留为不含显示补丁的历史证据；CI287不能证明本轮新指纹修复。
+
+F01修复前：实际PR52 merge 0f506425旧代码运行GUI计算/保存生成SQLite项目，当前代码动态关闭重开两次均误报stale并隐藏结果；历史calculation fingerprint a283337c88c506af90bf6c346710889924a3782ce6529b4ca69087d3f05f0844，新增空字段后变为2cc2d1c35c137ae97277503a9d543b1b5d2d41fa508a2e1ef262af68b399464f。仅根external_co2=None按缺省缺失处理，显式纳入/不纳入保留差异；合成旧SQLite/Word/生成脚本与proof纳入回归，非删除新字段手造旧指纹。F02只改GUI业务提醒。模板能力归并为有界已知版本表，未知未来版本拒绝，2.4专有别名和旧热力种子规则保留，母版/XML字节不动。投影片段README说明其构建用途。交付验证缺pip明确前置失败，不skip，原强制CI不变。
+
+本地首轮新回归5项中3通过、2ERROR（测试引用错误的热力行键及Importer类名，业务恢复/Word断言已通过）；已修正测试接口。稳定产品断点1fb4cd50ca77b3c31bc3e63c44abe94cc0eaad49；`python -B -m unittest tests.test_b_external_review tests.test_b_external_excel tests.test_b_fgd_legacy_templates tests.test_b_material_source_review tests.test_fuel_power_template_v5 tests.test_b_heat_chain tests.test_g08_delivery -v`：本地56/56通过，218.023s，0失败/错误/跳过；日志SHA256 6774aad6a74e3d4b35a9973aea5a3523be09eb882d8fbbca8e41a95ada815b73。`python -B scripts/validate_canonical.py`：9 standards/12 sources/102 parameters/138 factors有效；`python -B -m compileall -q apps packages resources scripts tests docs/ci/B_EXTERNAL_PACKAGE_VERIFIER.py`通过。真实wheel/sdist安装资源验证已执行，缺pip测试验证明确失败且不构建。未追加本地全量，跨模块全量由必需Windows merge-ref CI执行，避免重复昂贵检查；原生CU与N抽查未执行，按任务边界延期。下一步一次稳定推送，取得新head CI/实际制品及源独立验收；最终回执落PR53当前checks/说明与本地proof，不为纯文档再触发CI，不合并。
