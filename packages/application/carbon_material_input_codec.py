@@ -311,6 +311,8 @@ def decode_canonical_input(payload: str) -> CarbonMaterialInput:
     if type(document["version"]) is not int or document["version"] not in SUPPORTED_INPUT_CODEC_VERSIONS:
         raise CanonicalInputCodecError("unsupported canonical input codec version")
     root_fields = document.get('value', {}).get('fields', {}) if isinstance(document.get('value'),dict) else {}
+    if not isinstance(root_fields,dict):
+        raise CanonicalInputCodecError('invalid carbon input fields')
     if document['version'] == 6 and 'external_co2' not in root_fields:
         raise CanonicalInputCodecError('v6 requires explicit external supplement state')
     if document['version'] < 6 and 'external_co2' in root_fields:

@@ -234,6 +234,16 @@ proof={'source_commit':manifest['source_commit'],'tested_merge_sha':manifest['te
 from packages.standards.carbon_material_external_co2 import ExternalCO2Input,evaluate_external_co2_supplement
 import packages.standards.carbon_material_external_co2 as external_module
 assert Path(external_module.__file__).resolve().is_relative_to(root)
+from packages.application import carbon_material_input_codec as industry_codec
+for bad_fields in (None,False,[],"invalid"):
+ payload=json.loads(industry_codec.encode_canonical_input(value(line())));payload['value']['fields']=bad_fields
+ try:industry_codec.decode_canonical_input(json.dumps(payload))
+ except industry_codec.CanonicalInputCodecError:pass
+ else:raise AssertionError('corrupted payload fields accepted')
+from packages.application.reporting.software_supplement import software_supplement_display
+for raw,expected_display in [('1e100','1.00E+100'),('1e-100','1.00E-100')]:
+ node=evaluate_external_co2_supplement(ExternalCO2Input(True,raw),carbon_total_tco2=Decimal(100),carbon_complete=True,policy=calc.policy,numeric_profile_id=calc.numeric_profile_id)
+ assert dict(software_supplement_display({'software_supplement':node})[0])['外部 CO₂（tCO₂）']==expected_display
 external_store=SQLiteRecordRepository(output/'external-records.sqlite')
 external_service=CarbonAccountingUseCase(calc,external_store)
 external_states=[]

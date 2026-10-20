@@ -32,3 +32,6 @@ Mapping仅同步实际接管状态，R11候选与3份Canonical原字节不改；
 ## 交付边界
 
 代码待稳定测试后送独立PR，后续报告将区分产品head、文档head、CI merge-ref及实际制品head。无自动合并、无商业交付、无标准SUPPORTED声明；原生Excel/WPS/桌面CU及企业真实样例仍按后续正式验收安排。仓库public经Owner授权，$0预算不变，未公开用户文件或标准全文。完成S4后停止等待源独立验收。
+
+
+S4复核增量：代码审查重现损坏payload fields=None抛TypeError、合法1e100冻结值显示历史未记录，已修为统一codec错误及科学计数展示；不改计算结果。最新python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为33/33通过（15补充+18G08），37.984s，tmp/b-external/edge-final.log。新增极小非零显示亦保持非零。UIR04五场景及125%/150%离屏探针通过，非原生CU。首个本地独立包695af96已构建成功；最终修正后的包继续验证，均非Actions证据。

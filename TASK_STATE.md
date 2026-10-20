@@ -10,3 +10,6 @@
 
 
 S3稳定断点：最新命令python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为32/32通过，37.909s（14项补充链+18项G08），含真实GUI重复点击、partial烟气、表格词法/15位/公式和原九表保护。历史实际CI273合成SQLite+ReportModel+Word2/2保持不变，原导出日期2026-10-18固定。审阅资产20/20 Python测试10.378s、25场景往返、61行/450scope、每表8隐藏列及原3份Canonical字节不变。Canonical验证、pip check、compileall、受控资源/v11投影通过。完整本地回归仍在执行；独立Windows CI及exact-head实包尚未执行，无通过声明。
+
+
+S4复核增量：代码审查重现损坏payload fields=None抛TypeError、合法1e100冻结值显示历史未记录，已修为统一codec错误及科学计数展示；不改计算结果。最新python -B -m unittest tests.test_b_external_runtime tests.test_b_external_chain tests.test_b_external_excel tests.test_g08_delivery -v为33/33通过（15补充+18G08），37.984s，tmp/b-external/edge-final.log。新增极小非零显示亦保持非零。UIR04五场景及125%/150%离屏探针通过，非原生CU。首个本地独立包695af96已构建成功；最终修正后的包继续验证，均非Actions证据。

@@ -111,6 +111,20 @@ class ExternalRuntimeTests(unittest.TestCase):
             self.assertEqual(None if node['supplementary_total_tco2'] is None else Decimal(node['supplementary_total_tco2']),total)
             self.assertFalse(node['enterprise_completeness_verified'])
 
+    def test_corrupted_project_fields_are_codec_errors_and_extremes_remain_visible(self):
+        from packages.application.reporting.software_supplement import software_supplement_display
+        value=replace(fuel_input(),external_co2=ExternalCO2Input(True,'20'))
+        for invalid in (None,False,[],"invalid"):
+            payload=json.loads(industry.encode_canonical_input(value));payload['value']['fields']=invalid
+            with self.subTest(fields=invalid),self.assertRaises(industry.CanonicalInputCodecError):
+                industry.decode_canonical_input(json.dumps(payload))
+        for raw,display in [('1e100','1.00E+100'),('1e-100','1.00E-100')]:
+            node=evaluate(ExternalCO2Input(True,raw))
+            rows,notes=software_supplement_display({'software_supplement':node})
+            self.assertEqual(dict(rows)['外部 CO₂（tCO₂）'],display)
+            self.assertEqual(node['raw_amount_lexeme'],raw)
+            self.assertEqual(Decimal(node['amount_tco2']),Decimal(raw))
+
     def test_payload6_envelope2_legacy_missing_and_disabled_draft_roundtrip(self):
         value=replace(fuel_input(),external_co2=ExternalCO2Input(False,'NaN','草稿',unit='tC'))
         text=envelope.encode_canonical_input(value);document=json.loads(text)

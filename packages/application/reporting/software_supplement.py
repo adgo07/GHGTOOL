@@ -10,6 +10,8 @@ def _number(value):
         if not number.is_finite():return '历史未记录'
         with localcontext() as context:
             context.prec=max(50,len(number.as_tuple().digits)+16);context.rounding=ROUND_HALF_UP
+            if number.adjusted() >= 15:
+                return format(number,'.2E')
             display=format(number.quantize(Decimal('.01')),'f')
             return format(number,'.2E') if number and Decimal(display)==0 else display
     except (ValueError,ArithmeticError):return '历史未记录'
