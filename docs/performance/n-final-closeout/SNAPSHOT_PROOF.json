@@ -1,0 +1,268 @@
+{
+  "images_equal": 30,
+  "complete_states_equal": 2,
+  "files": {
+    "final-before-01": "46da9fdd46080babb3cf435e599f08455d73379703b450455ead9781ecbec239",
+    "final-after-01": "81bd4559d8d800186b7595955066e67743bced05433a7c7fc514508cf19a914c"
+  },
+  "states": {
+    "initial": {
+      "form_sha256": "c7ca5b199ad0715d8418d37bf6bcd298752409e1e27ec9aebf75025d19187f65",
+      "controls_sha256": "2f015c6be69c56a6cc7d83a52e9618621e0462aea057bf4fd0edff8f1f19da16",
+      "dirty": [
+        false,
+        false
+      ]
+    },
+    "all_sources_enabled": {
+      "form_sha256": "b7cc340c0a309865e05a17ec02ee0595c7a05db34dff286e661b3f5119f72d79",
+      "controls_sha256": "c5b7923035ccfff409126d877ed4a5b8ec5800b5d11fc98b6ece0db167091a61",
+      "dirty": [
+        true,
+        true
+      ]
+    }
+  },
+  "images": [
+    {
+      "name": "default-1180.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "39c2c491506bf1d034703938137d881c385213ec78bbb35dc2f0a70178202d24"
+    },
+    {
+      "name": "default-1280.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "57e77ff7cab53e26ac4cad6c16eb4da1b6ed45cd02e43aba362ba3586bf17969"
+    },
+    {
+      "name": "default-1600.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "be74b13e5440ae67b2df850a7e4daa69d5269c539c3acd0ac2a5d20a75a61cde"
+    },
+    {
+      "name": "enabled-1180-top.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "2560ab428c91aba1216bd243ecedc6e51b03b6e231f9e8dcb0616dfe181f60e3"
+    },
+    {
+      "name": "enabled-1180-fuel.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "c0ee3991bc33d4cc874521ecc09cfbfccb2716256028a012653da06d85bf91f5"
+    },
+    {
+      "name": "enabled-1180-calcination.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "14ab9b7796d5018353fb8a71fba526abe7aa3f99d804e78d3a9217953249287e"
+    },
+    {
+      "name": "enabled-1180-baking.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "0d57957f6bf2d71b8b545f4d61fb49a3936acc671c8b7504183355330a235781"
+    },
+    {
+      "name": "enabled-1180-graphitization.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "d50c9ef82f5b061f294ccea33892e73c3ecc043b5e11f1afb29eb2de74649b2b"
+    },
+    {
+      "name": "enabled-1180-fume.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "54e8d1ef60d7c1caf2c4008d1fd8a9222de83b980a9cc585c77f4a0f61864e9e"
+    },
+    {
+      "name": "enabled-1180-fgd.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "7b00df8cf67beda9c2a53985c5a7ccde336bf56dd5981daf3caf53f92f52ca1d"
+    },
+    {
+      "name": "enabled-1180-electricity.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "e9371d9eaf4cdf469381ba353af5b329a29e5ce077fa0ffa11d51d87db550540"
+    },
+    {
+      "name": "enabled-1180-heat.png",
+      "size": [
+        928,
+        720
+      ],
+      "sha256": "67148abc03895e31471cba4fdd9a0c087847f41a40d3f7dc061b6e7b7e37ae50"
+    },
+    {
+      "name": "enabled-1280-top.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "a0cbdff194f283ce9d91afe884e06201f9a21f50c3502ef7c8a20de6bb4deeb2"
+    },
+    {
+      "name": "enabled-1280-fuel.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "720fc9c54496f396ea9c6dab8ccab387a6cbee99fca1db510c088692ec8e5f93"
+    },
+    {
+      "name": "enabled-1280-calcination.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "ff359e877558512f4583a8bcd927f4fdf92d0165fec33fbe81b79278fe0410dd"
+    },
+    {
+      "name": "enabled-1280-baking.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "32011ce1c71c2f591db6f6a910dace18f80c2da7387f977613b4f27115bf3604"
+    },
+    {
+      "name": "enabled-1280-graphitization.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "69faedb17a904554f0b1afc77da3e7e856d1439c74b328276ddd46b9526d1ee5"
+    },
+    {
+      "name": "enabled-1280-fume.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "b19a847b8bbd5a542f9e94e8689f3c7f7884b099a99f35547f19eca6930c3ba5"
+    },
+    {
+      "name": "enabled-1280-fgd.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "e3b1051b02ac39155f2afa3b97d1fc5b15d3dac78931c4bc36d55a666db11aaa"
+    },
+    {
+      "name": "enabled-1280-electricity.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "9871cfc3e119d10ca97a1676c9a64e798e834bc00118bc14a6d1b05819efcc42"
+    },
+    {
+      "name": "enabled-1280-heat.png",
+      "size": [
+        1028,
+        800
+      ],
+      "sha256": "e1376b35ff24247cfd93faf5520776e7dcd411e898f84e8a55a80cff7a6b7929"
+    },
+    {
+      "name": "enabled-1600-top.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "37b617a03de8429563841a9244bc80d8d1f24060ed55caaa99d8c2b7ef8feaa0"
+    },
+    {
+      "name": "enabled-1600-fuel.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "a5af3a6ca620399d01223e3e869ebd5580c5e2f6921fedc4d33f7d94c96dac33"
+    },
+    {
+      "name": "enabled-1600-calcination.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "7aaa14855611538cf95ee4901dade41d6aabad2207d5f2b7ca9352c0dd0b2522"
+    },
+    {
+      "name": "enabled-1600-baking.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "34185cd1ce4dd376f11ad9ee9cb512f1c687ad425f71795811373d0066a12313"
+    },
+    {
+      "name": "enabled-1600-graphitization.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "6db8f250a132e00f94fca672f24fee3652b303de91f78a832bb61b8d1448ee14"
+    },
+    {
+      "name": "enabled-1600-fume.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "cc4bf96fdbe6b79d39bcce95c082d4ecb74d6876ae4b942045c328598c8dd178"
+    },
+    {
+      "name": "enabled-1600-fgd.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "5cc4280b4c9dcf15ca28b40312c7c29e92dfb97b7f852ae945994de734611a87"
+    },
+    {
+      "name": "enabled-1600-electricity.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "aebe0b45c63ac5ecbf5db5a85ec807f591e4bc6e70e336052b40afda8df8e3c6"
+    },
+    {
+      "name": "enabled-1600-heat.png",
+      "size": [
+        1348,
+        900
+      ],
+      "sha256": "fa063bdefc5c7b3ac27fe2942ffcd5653627938fc75e25a4407732989e656237"
+    }
+  ]
+}

@@ -1,21 +1,17 @@
-# 首次打开核算页性能与交付清单 — 实施交接
+# 有限收口与工程候选交付 — 实施交接
 
-2026-10-21；源已独立PASS并正常合并PR55（bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec）。本包从实际fetch的最新main隔离执行；旧N导航raw和CI292保留各自真实身份，不重复旧测量/CI。产品唯一阶段路线为REFERENCE_STANDARD_ROADMAP.md。
+2026-10-21；当前唯一阶段路线仍为REFERENCE_STANDARD_ROADMAP.md。PR56已源PASS并合并59cab091aab0df44b147f2bba3b960085dbae168，CI294两个job成功（历史1040/18），不重做该包或重标其制品。
 
-## 预检查与范围
+root负责四行最终容器候选、独立性能证据、必要回归、工程候选保全及TASK/HANDOFF/REPORT；并行sol/medium静态代理独占docs/DELIVERY.md，已完成，仅补可执行合成样例、独立预期来源和永久保全步骤。真实企业样例及原生操作继续OPEN。
 
-中央锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；Architecture2.1/Numeric1/Profiles1按锁，ACTIVE UI v0.2另读。保持分层/同业务真值、Profile及ambient独立、精确比较、不可变Record和冻结Word。计时只为遥测，不回流业务。无新标准解释/中央公共Contract变更，Issue016/017/018/020沿用。禁止公式/算法身份/模板/Record/数据库迁移/标准范围/Frozen升级，禁止原生桌面和企业数据。
+先候选诊断，再实际生产30像素与两完整状态对照，再独立20对正式ABBA序列。计时同worker/同三库字节/同机器依赖/相同操作、首开与缓存返回分列；运行时两组仅四处构造父容器不同，同样编译/包装机制。诊断与正式不混合、不覆盖旧证据。Qt offscreen不冒称原生首帧，新进程不冒称冷磁盘cache；不以小样p95宣称SLA。正式采样和回归/build严格串行。
 
-root唯一生产修改者与测量者，独占TASK/HANDOFF/REPORT和性能脚本/目录。并行文档代理仅写docs/DELIVERY.md，整理当前v11/包体真实身份、hash/provenance锁定及Office回导/IME鼠标DPI/企业样例/干净机步骤；全部本轮未执行保留OPEN，无测试/build/GUI/测量。必要文档更改先报root，不新增路线，不进RS04/05实施。
+四行候选不减控件、内容、输入/草稿、参数资格、刷新或验证，不改业务方法。若证据不足就保留PR56现状并停止性能优化。平台锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；Architecture2.1与ACTIVE UI v0.2边界分别保留，本任务无中央Contract变更、无标准解释变化。
 
-## 性能协议与交付
+稳定后必要回归、本地小提交，一个新PR正常CI。下载该精确head实际Actions ZIP保全到新目录，核API/upload摘要、真实manifest三项SHA、全文件集合/大小/hash、受控模板与许可材料；不覆盖用户文件。最终说明提供已验证/未验证/已知限制及本地包位置，源独立验收，不自动合并。原生Office、鼠标/IME/DPI、企业完整性、干净机与全产品许可履约仍OPEN，交工程候选不称商业Release/完整SUPPORTED，不进入RS04/05。
 
-先独立cProfile定位，再按docs/performance/n-first-open/PROTOCOL.md正式before/after各20独立新进程（2批×10），同机/同依赖/同3个数据库字节/同操作/固定窗口。首次首开与缓存返回分列，查询/准备/各区构建/布局/Paint分项记录；profiler与正式序列不混用，不覆盖任何旧raw。不改系统设置或清cache，不把新进程当冷磁盘cache，不把offscreen Paint当实际屏幕首帧，不以n小的p95宣布达标。
+## 稳定送验断点
 
-先证据再做最小优化，不丢草稿、不少显示必要内容、不跳刷新/校验/持久化、不用旧缓存换速度。回归/构建与性能采样串行，稳定断点更新状态与报告，小提交后集中一个PR正常CI，源独立验收，不自动合并。真实专业或重大架构选择只停相关项，其他工作继续。商业交付、原生Office/IME/DPI/企业样例/干净机和许可门禁继续OPEN。
+唯一候选四行已形成生产提交58e788be36dc0d3263c48e59e5d464c2549139b5；不再扩展性能工作。实际30像素/两完整状态相等，正式20对/40进程和114不同本地回归通过，实际命令/数量/耗时、4个不利配对与环境限制见IMPLEMENTATION_REPORT及n-final-closeout/VALIDATION、COMPARISON。正式paired median14.7399%不等于聚合median6.15%，仍有数秒构造与大波动，不声称SLA。
 
-## 本地送验稳定断点
-
-生产dacddd5仅shell一行最终父容器；提前样式因6像素差异拒绝，Page业务文件恢复零diff。80回归、三尺寸30像素/两完整控件与输入状态配对通过。顺序20+20仅5.3%median降幅且p95变差，独立ABBA20对配对中位降幅16.336%、19/20更快、插栈589.805→0.351ms；分序列公开，不合并成SLA。共80有效新进程、80首开/160缓存，query/Resolver调用次数与初始化形状一致。v1槽签名装置错误的批次完整保留无效，更正后重采，拒绝候选与负控制单列。
-
-交付清单由专属文档子代理静态整理，实际v11资源SHA已核，正式交付门禁OPEN，研发采样/回归/CI与Release验收分开。当前本地结果与命令见IMPLEMENTATION_REPORT和docs/performance/n-first-open；一个稳定PR正常CI交源，不自动合并，不重复旧CI/原始数据，不做原生桌面或扩大阶段。
+本包只运行一次正常PR CI；最终精确head、tested merge、实际ZIP/manifest/逐文件hash及本地保全路径在PR回执、最终交付目录CI_RECEIPT/DELIVERY_RECEIPT和交付说明中登记，不为事后状态再推纯文档/重跑CI。源负责独立验收，新PR不自动合并。正式交付门禁OPEN与工程候选已交付必须分列。

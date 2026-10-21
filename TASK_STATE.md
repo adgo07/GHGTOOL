@@ -1,17 +1,19 @@
-# 当前任务状态 — 首次打开核算页性能与交付清单
+# 最后一轮有限性能收口与工程候选交付
 
-2026-10-21：源已独立PASS并合并PR55，merge `bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec`。实际核origin/fetch/main/head/status后建立新隔离分支codex/n-accounting-first-open；根用户文件和旧两批N原始证据保护。
+2026-10-21：源已独立PASS并按用户授权合并PR56，实际fetch main为59cab091aab0df44b147f2bba3b960085dbae168。本轮新隔离分支codex/n-final-closeout，根用户脏文件和所有历史原始证据保留。root唯一生产作者/测量者；gpt-6.1-sol/medium静态代理仅写docs/DELIVERY.md，已完成，无测试/build/GUI/采样。
 
 ## 平台 / Contract 预检查
 
-中央锁仍 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；已核可信中央origin，Architecture2.1/Numeric1/Profiles1按锁，ACTIVE UI v0.2按正式已合并版本读取。MUST：分层、同Canonical/Application、Profile传播/ambient独立/精确比较、冻结Record/Word与草稿/资格/正式验证；MUST NOT：遥测回流、跳刷新/校验、陈旧缓存、历史重算或公式/标准范围/Frozen升级。Carbon p40/HALF_UP属允许项目差异。本任务不涉及中央公共Contract变更，无新增冲突/中央缺口。相关Issue016/017/018/020沿用，不改变标准解释。
+本轮读实际AGENTS/唯一路线/TASK/HANDOFF/台账与platform-lock；可信中央origin已核。中央Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，Architecture2.1按锁，ACTIVE UI v0.2按正式已合并版本读取。本任务不涉及中央公共Contract变更；保持分层、同Application/Calculator与Profile/ambient/exact比较、不可变Record/冻结Word，不改公式/资格/数据库/模板/算法身份/标准解释或SUPPORTED。遥测不回流业务，不跳刷新/校验、不减草稿、不加缓存/lazy。沿用Issue016/017/018/020，无新增解释或中央缺口；Carbon p40/HALF_UP仍为允许项目差异。
 
-## 分工与稳定断点
+## 有限收口断点
 
-root独占生产/测量和本状态、HANDOFF、REPORT；gpt-6.1-sol/medium文档代理仅静态改docs/DELIVERY.md，已完成且未测试/build/GUI/测量。当前生产提交dacddd56f546e564ca6263282f88231f8d274dd2，仅shell一行最终parent及行为回归；控件/内容/业务方法不减，无缓存/lazy，carbon_material_page零diff。
+生产提交58e788be36dc0d3263c48e59e5d464c2549139b5：仅四处parent参数（来源卡片、统一能源卡片/行、过程行）直接使用最终layout.parentWidget，避免填充后再换父；不移样式时点、不减控件、不缓存/lazy。实际前后离屏三尺寸30像素、两完整form/命名控件/dirty状态完全相同，0Qt回调错。
 
-有效顺序20+20进程首开median3574.161→3383.047ms仅降5.3%，p95升高；追加独立ABBA20对，配对median降幅16.336%、19/20更快，插栈589.805→0.351ms且换父/样式事件1→0。两序列独立保留，不宣称SLA或稳定尾延迟。相同worker/3库字节、查询/Resolver次数、3409控件等初始化形状；共80有效新进程、80首开/160缓存返回，0进程/Qt回调失败。协议/原始值/分项/配对/SHA及限制见新N目录。
+独立正式ABBA20对/40新进程（40首开/80缓存返回），0进程/Qt失败，所有跟踪方法调用次数含查询/Resolver/刷新逐对一致。首开median3139.477→2946.261ms（聚合约6.15%），配对中位降412.398ms/14.7399%、16/20更快；4对更慢（最不利+3759.257ms），p956145.271→4555.587ms，候选max6836.219ms，不能宣称SLA。诊断与正式独立，旧N raw不改；采样时HEAD仍基线、四行工作区diff和production SHA另存，未把基线冒称含改动提交。原始值/分项/反例/环境/字节身份见docs/performance/n-final-closeout。
 
-v1变参计时包装器导致Qt无参槽TypeError，原20进程及两候选保留无效，不以进程0退出当Qt成功；修复arity+sys.excepthook断言后重采。提前样式候选有6/30像素差异已撤回。最终30像素、两完整控件/规范化输入/dirty配对相同；37/55.340s+43/158.445s=80回归PASS，0失败/错误/跳过；旧parent负控制1预期断言由外层检查PASS，单列不计生产通过数。
+性能优化到此结束，不追加候选。采样结束后串行本地37/57.488s+43/187.071s+34/97.687s=114不同测试通过，0失败/错误/跳过，覆盖UI/草稿/项目、动态行、能源消费者和G08。规范数据9标准/12来源/102参数/138因子有效，修改脚本/生产文件编译与diff检查通过。未本地全量/build；新PR正常CI及实际候选保全结果以该head回执/交付凭据补充，不复用旧CI294。
 
-旧N raw/证据与业务路径零diff已核，v11模板SHA与实际资源同；本次清单整理子任务的正式交付门禁OPEN，研发回归/工程CI另列。未本地全量/build、未原生桌面/Office/IME/企业样例/干净机；不进RS04/05/商业交付。不再扩大候选，稳定后单次push/新PR正常CI源独立验收，不自动合并；最终head/检查按PR回执，旧CI292不背书本包。
+## 交付边界
+
+用户授权“收口并交付”本轮落实为可追溯工程候选：稳定后一个PR正常CI，源独立验收，不自动合并；下载实际精确代码head的ZIP至新建获准交付目录，保留ZIP/manifest/provenance/摘要/日志并核文件集合和逐文件hash。短期Actions链接不作为永久保全。无原生桌面/CU/Office/IME/人工DPI/干净机、无企业真实数据、无付费服务或商业Release，不进RS04/05/第二标准，不宣布完整SUPPORTED。上述正式产品门禁继续OPEN。
