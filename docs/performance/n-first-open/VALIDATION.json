@@ -113,5 +113,6 @@
     "errors": 0,
     "skips": 0,
     "reason": "Added module-local offscreen default so standalone execution cannot silently use native platform; included in 80 unique cases, not counted as case81."
-  }
+  },
+  "raw_whitespace_note": "Original cProfile text has final blank lines; preserved bytes. Path-only cr-at-eol/-blank-at-eof attributes apply to this raw diagnostic, not code. Initial staged diff-check flagged EOF; final base-to-head check repeated after scoped attribute fix."
 }
