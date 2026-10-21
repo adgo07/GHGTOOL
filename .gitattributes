@@ -5,3 +5,7 @@ resources/licenses/steam_if97/* -text
 docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json -text
 docs/ci/B_HEAT_IF97_CANDIDATE_REV2_RAW.json -text
 docs/ci/B_HEAT_*PROOF.json -text
+
+# N原始计时证据保留现场字节；执行副本与LF文本脚本身份见SCRIPT_NORMALIZATION.json。
+docs/performance/n-baseline/raw.json -text whitespace=cr-at-eol
+scripts/measure_n_baseline.py text eol=lf

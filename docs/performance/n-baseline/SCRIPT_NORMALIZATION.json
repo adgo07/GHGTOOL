@@ -1,0 +1,18 @@
+{
+  "kind": "SCRIPT_LINE_ENDING_NORMALIZATION_NOT_NEW_MEASUREMENT",
+  "date": "2026-10-21",
+  "accepted_head": "1724b55227574b84b5883c5c7414caa6bbcd9308",
+  "execution_copy_git_path": "1724b55:scripts/measure_n_baseline.py",
+  "execution_copy_sha256": "f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d",
+  "execution_copy_bytes": 12804,
+  "execution_copy_crlf_count": 1,
+  "normalized_lf_sha256": "0b63b81142fcdca549c3017af3a94d0cf494eebc7cf0223e55dedbd14b8a2b0f",
+  "normalized_lf_bytes": 12803,
+  "normalized_crlf_count": 0,
+  "byte_transform": "execution_copy.replace(CRLF, LF)",
+  "pure_line_endings_only": true,
+  "benchmark_rerun": false,
+  "raw_bytes_preserved": true,
+  "raw_sha256": "ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac",
+  "validation": "py_compile/help and byte proof; not a new performance sample"
+}

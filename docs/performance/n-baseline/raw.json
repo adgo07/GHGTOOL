@@ -1,0 +1,397 @@
+{
+  "production_head": "348077cd972a27b6eeb80b77b712e7cb35375988",
+  "started_utc": "2026-10-20T15:00:32.429415+00:00",
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "machine": "AMD64",
+    "python": "3.12.14",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "logical_cpu_count": 12,
+    "qt_platform": "offscreen",
+    "dependencies": {
+      "PySide6": "6.11.2",
+      "shiboken6": "6.11.2",
+      "openpyxl": "3.1.5",
+      "python-docx": "1.2.0",
+      "lxml": "6.1.3",
+      "CoolProp": "8.0.0",
+      "numpy": "2.3.3"
+    },
+    "runtime_role": "CPython 3.12 Windows x64; existing dependencies; source checkout",
+    "qt_version": "6.11.2"
+  },
+  "data": {
+    "synthetic_navigation_records": 200,
+    "saved_projects": 20,
+    "business_units": 1,
+    "workbook_bytes": 28540,
+    "workbook_sha256": "1c2a1472bc439188bb07955c7789fb8f6281bd74d4ad3e1b5568ffea18e1e255",
+    "business_fixture": "v11/2.9.0; B.9 purchased saturated steam 1t, known enthalpy 2800kJ/kg; external CO2 20t; annual 2026"
+  },
+  "production_before": {
+    "tracked_files": 139,
+    "sha256_paths_and_contents": "fb3b28cbb8b4435d12d8707d0d03ffcca02cf56d26bc5f9bfdb71ce7ee3a48e5",
+    "diff_against_frozen_head": ""
+  },
+  "scenarios": {
+    "startup_fresh_process_total": {
+      "warmup_ns": [
+        17761717600
+      ],
+      "samples_ns": [
+        1033569700,
+        1028569400,
+        1066566300,
+        1148685800,
+        1647194200
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 1066566300,
+        "p95_nearest_rank_ns": 1647194200,
+        "min_ns": 1028569400,
+        "max_ns": 1647194200
+      },
+      "failure_count": 0,
+      "checks": {
+        "includes": "process launch through normal child termination"
+      }
+    },
+    "startup_create_main_window_return": {
+      "warmup_ns": [
+        15669979000
+      ],
+      "samples_ns": [
+        782414200,
+        792294700,
+        810382000,
+        837682100,
+        1246520900
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 810382000,
+        "p95_nearest_rank_ns": 1246520900,
+        "min_ns": 782414200,
+        "max_ns": 1246520900
+      },
+      "failure_count": 0,
+      "checks": {
+        "includes": "business imports, QApplication, SQLite repository initialization, create_main_window"
+      }
+    },
+    "startup_event_loop_ready": {
+      "warmup_ns": [
+        16236251700
+      ],
+      "samples_ns": [
+        791736900,
+        801493800,
+        819639900,
+        848436900,
+        1259834800
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 819639900,
+        "p95_nearest_rank_ns": 1259834800,
+        "min_ns": 791736900,
+        "max_ns": 1259834800
+      },
+      "failure_count": 0,
+      "checks": {
+        "includes": "same start as create_return, show and first queued Qt callback"
+      }
+    },
+    "navigation_home": {
+      "warmup_ns": [
+        60468500
+      ],
+      "samples_ns": [
+        58926400,
+        55608700,
+        57286400,
+        58546900,
+        60718200
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 58546900,
+        "p95_nearest_rank_ns": 60718200,
+        "min_ns": 55608700,
+        "max_ns": 60718200
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_standards": {
+      "warmup_ns": [
+        48754900
+      ],
+      "samples_ns": [
+        45911500,
+        50829300,
+        45241300,
+        48870800,
+        45924800
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 45924800,
+        "p95_nearest_rank_ns": 50829300,
+        "min_ns": 45241300,
+        "max_ns": 50829300
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_new_accounting": {
+      "warmup_ns": [
+        14543466100
+      ],
+      "samples_ns": [
+        949110800,
+        910311400,
+        929220600,
+        889884100,
+        875310400
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 910311400,
+        "p95_nearest_rank_ns": 949110800,
+        "min_ns": 875310400,
+        "max_ns": 949110800
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_excel_import": {
+      "warmup_ns": [
+        1770917800
+      ],
+      "samples_ns": [
+        869256800,
+        861687400,
+        866605900,
+        855329500,
+        871283400
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 866605900,
+        "p95_nearest_rank_ns": 871283400,
+        "min_ns": 855329500,
+        "max_ns": 871283400
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_records": {
+      "warmup_ns": [
+        2415227000
+      ],
+      "samples_ns": [
+        1072175000,
+        1087678700,
+        1069087100,
+        1044582300,
+        1059558600
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 1069087100,
+        "p95_nearest_rank_ns": 1087678700,
+        "min_ns": 1044582300,
+        "max_ns": 1087678700
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_factors": {
+      "warmup_ns": [
+        1691093300
+      ],
+      "samples_ns": [
+        1097749400,
+        1060544500,
+        1102732600,
+        1100255900,
+        1072399000
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 1097749400,
+        "p95_nearest_rank_ns": 1102732600,
+        "min_ns": 1060544500,
+        "max_ns": 1102732600
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "navigation_settings": {
+      "warmup_ns": [
+        1133738900
+      ],
+      "samples_ns": [
+        1065513000,
+        1097762200,
+        1230147500,
+        1126993100,
+        1060564700
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 1097762200,
+        "p95_nearest_rank_ns": 1230147500,
+        "min_ns": 1060564700,
+        "max_ns": 1230147500
+      },
+      "failure_count": 0,
+      "checks": {
+        "programmatic_route_and_event_pump": true
+      }
+    },
+    "excel_import_preview": {
+      "warmup_ns": [
+        540200000
+      ],
+      "samples_ns": [
+        482108300,
+        489979100,
+        502905800,
+        539979900,
+        520372000
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 502905800,
+        "p95_nearest_rank_ns": 539979900,
+        "min_ns": 482108300,
+        "max_ns": 539979900
+      },
+      "failure_count": 0,
+      "checks": {
+        "records_added": 0,
+        "valid_units": 1
+      }
+    },
+    "project_open_canonical": {
+      "warmup_ns": [
+        56515400
+      ],
+      "samples_ns": [
+        62018700,
+        53810100,
+        54642700,
+        54432400,
+        56788600
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 54642700,
+        "p95_nearest_rank_ns": 62018700,
+        "min_ns": 53810100,
+        "max_ns": 62018700
+      },
+      "failure_count": 0,
+      "checks": {
+        "saved_projects": 20,
+        "canonical_restored": true
+      }
+    },
+    "formal_application_calculation_append": {
+      "warmup_ns": [
+        64840500
+      ],
+      "samples_ns": [
+        65088800,
+        65425000,
+        65737000,
+        65610400,
+        68113700
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 65610400,
+        "p95_nearest_rank_ns": 68113700,
+        "min_ns": 65088800,
+        "max_ns": 68113700
+      },
+      "failure_count": 0,
+      "checks": {
+        "records_added_including_warmup": 6,
+        "distinct_record_ids": 6,
+        "total_tco2": "0.30800000"
+      }
+    },
+    "word_frozen_record_model_render_save": {
+      "warmup_ns": [
+        1112841400
+      ],
+      "samples_ns": [
+        725104200,
+        626622900,
+        647384400,
+        644118500,
+        632272100
+      ],
+      "statistics": {
+        "n": 5,
+        "median_ns": 644118500,
+        "p95_nearest_rank_ns": 725104200,
+        "min_ns": 626622900,
+        "max_ns": 725104200
+      },
+      "failure_count": 0,
+      "checks": {
+        "records_database_unchanged": true,
+        "document_bytes": [
+          42407,
+          42407,
+          42407,
+          42407,
+          42407,
+          42407
+        ],
+        "report_schema": "3.1.0"
+      }
+    }
+  },
+  "execution_order": [
+    "startup_fresh_process_total",
+    "startup_create_main_window_return",
+    "startup_event_loop_ready",
+    "navigation_home",
+    "navigation_standards",
+    "navigation_new_accounting",
+    "navigation_excel_import",
+    "navigation_records",
+    "navigation_factors",
+    "navigation_settings",
+    "excel_import_preview",
+    "project_open_canonical",
+    "formal_application_calculation_append",
+    "word_frozen_record_model_render_save"
+  ],
+  "failures": [],
+  "production_after": {
+    "tracked_files": 139,
+    "sha256_paths_and_contents": "fb3b28cbb8b4435d12d8707d0d03ffcca02cf56d26bc5f9bfdb71ce7ee3a48e5",
+    "diff_against_frozen_head": ""
+  },
+  "finished_utc": "2026-10-20T15:02:35.953643+00:00",
+  "failure_count": 0
+}

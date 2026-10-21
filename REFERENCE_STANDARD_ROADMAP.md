@@ -1,7 +1,7 @@
 # GHGTOOL 参考标准与产品成熟路线
 
 状态：**CURRENT ROADMAP — 本仓唯一当前产品级后续路线**
-最后更新：2026-10-18（PR51烟气已合并，B-HEAT实施）
+最后更新：2026-10-21（B/N基线1724源已验收；收尾PR后由源触发定位先行的N新包）
 Module ID：`qz.carbon_accounting`
 当前 Reference Standard：`GB/T 32151.34—2024`（本仓当前称“炭素材料生产企业核算模块”，准确标准元数据以正式标准目录为准）
 通用规则层：`GB/T 32150—2025`
@@ -183,7 +183,7 @@ RS02内部工作包（不是新产品阶段）：
 
 一句话目标：让 Excel 成为**同一个业务内核的输入 Adapter（含输入模板导出）**，而不是第二套算法。
 
-PR35正式闭环与PR37新建核算V2已合入main。当前用户授权GHG-EXB01：以批准的附录B九表母版替代R2正式输入模板，整本工作簿形成一次完整核算；保留OOXML词法、Decimal、Canonical项目恢复、共享Application正式核算与不可变Record，历史EXCEL_R2身份不改。移除R2下载和新解析路径，不改数据库结构、Calculator公式或Word版式。模板细节和验收证据见当前TASK_STATE/HANDOFF/IMPLEMENTATION_REPORT。公共Excel Decimal交换规则仍OPEN / PARTIAL，专项验收未完成不得宣布正式标准SUPPORTED；PR27继续CLOSED / UNMERGED，不移植旧V1实现。
+PR35正式闭环与PR37新建核算V2已合入main。GHG-EXB01已由PR40合并：按批准的附录B九表母版替代R2正式输入模板，整本工作簿形成一次完整核算；保留OOXML词法、Decimal、Canonical项目恢复、共享Application正式核算与不可变Record，历史EXCEL_R2身份不改。移除R2下载和新解析路径，不改数据库结构、Calculator公式或Word版式。模板细节见docs/exb01/APPENDIX_B_INPUT_DESIGN.md，阶段验收从PR40及Git历史读取；后续v11以当前状态和受控注册为准。公共Excel Decimal交换规则仍OPEN / PARTIAL，专项验收未完成不得宣布正式标准SUPPORTED；PR27继续CLOSED / UNMERGED，不移植旧V1实现。
 
 Excel 设计、实现、GUI↔Excel Conformance 属于**同一产品阶段内部工作包**，不拆成独立产品阶段。
 
@@ -337,7 +337,7 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | 活动数据 | `PARTIAL` | 多过程、多物料和购入/输出热力及电力来源逐行输入已实现；UAT02仅修录入交互与长表单可用性，完整标准支持仍待后续门禁 |
 | 参数和因子 | `DONE` | C.1/C.2/K1-K3/脱硫缺省值已进入Canonical；购入/输出热力支持逐来源实测因子并保留适用默认及来源 |
 | 校验 | `DONE` | Domain ParameterValue门禁及多实例错误定位/整体阻断均有回归；GAP-003/008已关闭 |
-| Calculator | `DONE` | 既有已审计单组公式/燃料换热保留；R8/017以IAPWS97替代新自动焓，C.4/C.5仅历史证据，接入及数值符合性待PR46。此DONE不背书未实施物性方法或标准完整支持 |
+| Calculator | `DONE` | 既有公式/燃料换热保留；PR52已采用固定CoolProp8.0.0显式IF97后端与独立物性子Profile，PR53外部补充独立于ET；C.4/C.5仅历史不回退。此DONE仅指已实现Calculator链，不等于标准完整支持 |
 | 分项排放 | `DONE` | 包含各排放源/分项结果与 trace |
 | 总排放 | `DONE` | 多实例直接排放与多来源间接排放按标准逐项汇总并写入不可编辑记录；Record详情展示直接、净间接及含间接排放总量 |
 | 结果解释 | `DONE` | Record详情以已保存快照呈现标准报告数据、逐项结果和来源依据；RPT01（PR #32）与RPT02（PR #39）已合入main，基于同一不可变Record快照导出批准附录B表式Word；不重算、不查询当前Catalog，不等同于标准SUPPORTED |
@@ -349,18 +349,16 @@ RS05 PASS 后才允许把 `GB/T 32151.34—2024` 标记为当前软件的正式�
 | Conformance | `DONE` | N01-C 最终 Independent Re-Acceptance PASS；R1 PROFILE propagation / ambient independence / Unit-Quantity-coefficient 向量与 Numeric v1 adoption 均有执行证据 |
 | 下一标准准备状态 | `NOT STARTED` | 其他计划标准保持 catalog-only；须在 RS01～RS05 之后进入 RS06+ |
 
-参考标准总体状态：**`PARTIAL`**。既有11条Gap中10条已关闭，GAP-009仍为非阻塞provenance debt。PR #33/#34已获用户批准合入main；当前执行用户授权的RS03 Excel正式闭环，候选验证见IMPLEMENTATION_REPORT与TASK_STATE，等待独立验收。RPT02批准Word表式、分页及长标题已有PR39验收证据；原生鼠标视觉、EXB01工作簿经原生Excel/WPS保存后回导仍有独立验收缺项。历史验收不替代PR40联合验证；Golden/正式标准支持及Release门禁留在RS04/RS05。PR #27保持CLOSED / UNMERGED。既有6条RESOLVED标准解释不变；GB/T 32151.34—2024仍为NOT SUPPORTED。
+参考标准总体状态：**`PARTIAL / NOT SUPPORTED`**。分段实现与PR53已合并，不等于整标准正式支持；原B2十项Gap关闭与GAP-009非阻塞provenance debt保留。当前基线348077c的B渠道对账见现有 `CONSUMER_INVENTORY.md`；旧表的“待PR46/B-HEAT”是历史执行时点。原生Office、鼠标/IME/人工DPI、企业样例和Release等缺项未被离屏测试或历史CI替代。
 
 ## 8. 当前阶段与下一步
 
-- PR49材料、PR50脱硫、PR51烟气已合并，既有输入模板、Numeric、历史Record/Word及实际包证据为保护基线。
-- V2作为既有路线内实施输入，当前B-HEAT拟落实Issue015真实热源边界防重复、heat.factor同次Resolver资格/值/快照、独立已知焓的GUI/B.9/Canonical/项目/Record/Word/实际包完整链；已工具核实源会话直接用户授权并按单职责最小补丁获审批，具体证据见TASK_STATE。
-- C独占共享消费者/资源/构建/治理，F交热力专属helper/tests；M的外部CO₂仅独立准备，本包不接入或夹带送验；N不启动。具体接口和基线见TASK_STATE。
-- 当前本地热力链为PARTIAL；共享算法/包与报告元数据同步、C.3独立来源资格补齐已获用户直接确认，正在执行，不据局部通过声明送验完成。
-- 自动IF97已获Owner允许验证CoolProp/IF97候选、通过后受控替换017具体实现；实际许可/子Profile/Windows/参考验证通过后才接产品依赖，不回旧表；已知焓、边界和因子工作继续。
-- 最新main独立工作树与codex分支；私有push/PR/CI授权沿用，最终head及实际包送源独立验收后停止，不自行合并或进入后续包。
-- 历史模板原字节与历史Record冻结；不改计算表，不CU、不商业发布。原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机与许可履约仍OPEN。
-- 唯一产品路线不变，RS04/RS05及SUPPORTED仍须各自授权与Gate；中央Frozen和platform-lock不升级。
+- 当前授权内部工作包为 **B总体收口盘点＋N性能基线测量**，仍属既有RS01/RS02/RS03路线，不创建平行路线或新产品阶段。B只读审计8个业务组的GUI/Excel/Canonical/恢复/正式核算/Record/Word，治理文档由集成负责人独占；N只写测量脚本与原始证据。
+- 从实际最新main `348077cd972a27b6eeb80b77b712e7cb35375988`（PR53 merge）隔离执行。原燃料/电力、PR49材料、PR50脱硫、PR51烟气、PR52热力和PR53外部CO₂均为已合并生产；各包历史回执按其真实head保留，不能重新标成新head证据。
+- B核对11字段共享策略、专属烟气/外部方法、版本兼容及交付缺项，发现新Bug单列，不重构、不改业务解释/计算。旧MATERIAL_V1/FUME_V1及旧模板仅按明确兼容边界保留，不等于当前分支未退出。
+- N只在冻结348077c代码测启动、页面切换、项目打开、Excel导入、正式计算和报告生成，单测量者串行、合成数据、完整原始时长及统计。离屏明确标注，不冒充真实鼠标/DPI、冷磁盘cache或当前merge的实际EXE。此轮不优化、不跑昂贵完整CI。
+- B/N基线1724已获源独立验收，记录在N目录ACCEPTANCE；当前按用户授权定向收尾并正常PR/检查，由源最终检查和合并，合并后再触发定位先行的N小范围优化包（边界见现有HANDOFF）。当前不抢先改生产，不进入RS04/RS05/第二标准，不升级SUPPORTED或商业交付。
+- 原生Office/鼠标/中文IME/人工DPI/企业样例/干净目标机与许可履约继续OPEN；中央Frozen/锁定基线不升级，$0与最少CI规则继续有效。
 
 ## 9. 相关治理登记项的归属
 
@@ -396,4 +394,4 @@ GHG-UAT03 V2已作为PR37合并基线 `708f78a455790946b4a728029bba768d8fb295fc`
 
 ### 当前授权内部工作包：标准业务规则统一
 
-Owner批准V1.2及后续V2作为既有RS01/RS02/RS03路线内实施输入。A已通过PR47合并，燃料B1/电力B及PR46退修已合并；PR49材料已收口，PR50脱硫与PR51烟气已合并，当前B-HEAT范围见第8节，见第8节和TASK_STATE。一个业务包送验后停止，不新增产品阶段、不启动第二真实行业、不升级SUPPORTED。
+Owner批准V1.2及后续V2作为既有RS01/RS02/RS03路线内实施输入。A/燃料/电力及材料、脱硫、烟气、热力、外部CO₂均已分段合并；当前B总体盘点与N基线测量范围见第8节和TASK_STATE。一个业务包送验后停止，不新增产品阶段、不启动第二真实行业、不升级SUPPORTED。

@@ -1,0 +1,65 @@
+{
+  "production_baseline": "348077cd972a27b6eeb80b77b712e7cb35375988",
+  "checks_passed": [
+    "canonical_origin",
+    "frozen_head_and_main",
+    "accepted_and_merged_tree_identity",
+    "production_canonical_and_reused_tests_unchanged",
+    "four_registered_assets_and_eleven_unique_fields",
+    "independent_recalculation_of_fourteen_series",
+    "actual_synthetic_workbook_206_records_and_six_valid_docx",
+    "public_raw_has_no_internal_identity_or_absolute_path"
+  ],
+  "check_count": 8,
+  "policy_assets": [
+    {
+      "resource": "business_rules/fuel_power.json",
+      "adoption_id": "GHGTOOL_FUEL_POWER_R11_V1",
+      "fields": [
+        "electricity.factor",
+        "fuel.direct_carbon",
+        "fuel.fch",
+        "fuel.lhv",
+        "fuel.oxidation"
+      ]
+    },
+    {
+      "resource": "business_rules/material.json",
+      "adoption_id": "GHGTOOL_MATERIAL_R11_V1",
+      "fields": [
+        "material.fixed_carbon",
+        "material.volatile_matter"
+      ]
+    },
+    {
+      "resource": "business_rules/fgd.json",
+      "adoption_id": "GHGTOOL_FGD_R11_V1",
+      "fields": [
+        "fgd.conversion",
+        "fgd.factor",
+        "fgd.ratio"
+      ]
+    },
+    {
+      "resource": "business_rules/heat.json",
+      "adoption_id": "GHGTOOL_HEAT_R11_C3_V2",
+      "fields": [
+        "heat.factor"
+      ]
+    }
+  ],
+  "unique_fields": 11,
+  "metric_series": 14,
+  "timed_values": 70,
+  "warmups": 14,
+  "record_count": 206,
+  "word_count": 6,
+  "script_sha256": "f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d",
+  "raw_sha256": "ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac",
+  "execution": "LOCAL_STATIC_EVIDENCE_REVIEW_NO_BENCHMARK_RERUN_NO_FULL_TESTS_NO_CI",
+  "measurement_byte_preservation": ".gitattributes: raw.json and executed script -text; no normalization or resampling",
+  "initial_integration_query_error": "temporary checker used records instead of actual accounting_records; corrected, no data/product change",
+  "checked_before_measurement_commit": true,
+  "measurement_commit": "ccf3f325fe121a228e37545395a7e9e795f0dbcc",
+  "staged_byte_identity_verified": true
+}
