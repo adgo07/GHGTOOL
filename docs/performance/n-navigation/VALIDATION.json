@@ -1,0 +1,94 @@
+{
+  "production_commit": "2a8d83bc9031837a3496b95f97653e30a4437596",
+  "previous_raw_sha256": "ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac",
+  "worker_script_sha256": "c161dbecf0d47a3eb1ef695ff3d71156bbd4619cc086df90066e9306ae462909",
+  "seed_byte_equality": {
+    "records.sqlite": {
+      "before": "f580e67f31934e9a77511ebe56515b6fd3741b650f18b4dbcd7f4e7dc1de2161",
+      "after": "f580e67f31934e9a77511ebe56515b6fd3741b650f18b4dbcd7f4e7dc1de2161"
+    },
+    "projects.sqlite": {
+      "before": "6137e8b22bd38f688f587764f6cb2f14ffb386af0b947c543df76a2d9e5ffe6a",
+      "after": "6137e8b22bd38f688f587764f6cb2f14ffb386af0b947c543df76a2d9e5ffe6a"
+    },
+    "catalog.sqlite": {
+      "before": "bdd2a4cc338ad05486c355b52d10fdd9f13a2e631c2b2047e5880492b851b65c",
+      "after": "bdd2a4cc338ad05486c355b52d10fdd9f13a2e631c2b2047e5880492b851b65c"
+    }
+  },
+  "unchanged_authoritative_paths": [
+    "data-source",
+    "platform-lock.json",
+    "packages/application",
+    "packages/core",
+    "packages/persistence",
+    "packages/standards",
+    "packages/infrastructure/reporting",
+    "packages/excel"
+  ],
+  "authoritative_diff_empty": true,
+  "production_pixel_parity_cases": 16,
+  "all_production_pixels_equal": true,
+  "local_commands": [
+    {
+      "command": "python -B -m unittest tests.test_g03_shell tests.test_uat02_geometry tests.test_uir02_source_cards tests.test_standard_dispatch tests.test_record_summaries tests.test_navigation_background -v",
+      "tests": 42,
+      "seconds": 46.97,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "command": "python -B -m unittest tests.test_accounting_projects_ui tests.test_uat02_usability tests.test_p3_ab_standards -v",
+      "tests": 37,
+      "seconds": 150.578,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "command": "QT_SCALE_FACTOR=1.25 python -B -m unittest tests.test_navigation_background -v",
+      "tests": 3,
+      "seconds": 1.144,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "command": "QT_SCALE_FACTOR=1.5 python -B -m unittest tests.test_navigation_background -v",
+      "tests": 3,
+      "seconds": 0.584,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  ],
+  "initial_failure": {
+    "tests": 3,
+    "failures": 7,
+    "reason": "Test fixture: QWidget subclass needed WA_StyledBackground to render legacy QSS; minimumHeight alone did not create long layout sizeHint. Corrected tests only, production unchanged after first implementation."
+  },
+  "local_log_sha256": {
+    "background-tests.log": "c7e164f3de33a8ee70189dabb4618fda792d89d643b9de8445f30142f238bae3",
+    "background-tests-02.log": "5ba64d76c81a112406baa21108768c195aa7785bbe2b36417b9d6b7922fc56eb",
+    "regression-01.log": "cd17073455b3d28730ca266e0fbbeebb6c54333509eba675ffa79f0c9f098f03",
+    "regression-02.log": "8c1edbc82beaae68218fc403cbb2120c8d91ad1071ce93de28ac4dd300abca76",
+    "scale-125.log": "cd98522e6c2085444894aff7e71ee851f9743524e258b5a46ffe6d6283fbd37a",
+    "scale-150.log": "82a47a19142f83c821bce0d6d746716fa1f364ac161e11d3685dcdbf94a15393"
+  },
+  "dependencies": {
+    "PySide6": "6.11.2",
+    "shiboken6": "6.11.2",
+    "openpyxl": "3.1.5",
+    "python-docx": "1.2.0",
+    "lxml": "6.1.3",
+    "CoolProp": "8.0.0",
+    "numpy": "2.3.3"
+  },
+  "limits": [
+    "No local full suite/build/native DPI/Office/IME/enterprise data/clean-machine acceptance.",
+    "Offscreen Paint is not a human-visible frame.",
+    "Background process CPU snapshots are cumulative totals, not instantaneous load; no system settings/cache changed."
+  ],
+  "ci": "Pending one stable PR; prior PR54 CI290 does not validate this production change."
+}

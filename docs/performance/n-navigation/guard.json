@@ -1,0 +1,447 @@
+{
+  "compose_ns": 188769600,
+  "qt": "6.11.2",
+  "samples": [
+    {
+      "route": "home",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 4100,
+        "ancestor_stylesheet": 19845900,
+        "geometry": 1310300,
+        "show_route": 23461800
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 29103400,
+      "created": false,
+      "navigate_ns": 23488900,
+      "event_pump_ns": 16680400,
+      "total_ns": 40169300,
+      "correct_page": true
+    },
+    {
+      "route": "standards",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 3500,
+        "ancestor_stylesheet": 20942700,
+        "geometry": 784300,
+        "show_route": 25336700
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 28703700,
+      "created": false,
+      "navigate_ns": 25365000,
+      "event_pump_ns": 6814100,
+      "total_ns": 32179100,
+      "correct_page": true
+    },
+    {
+      "route": "new_accounting",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "records_full_query": 120748300,
+        "projects_full_query": 7190300,
+        "project_revision_query": 509700,
+        "ensure_page": 2984130000,
+        "ancestor_stylesheet": 613317500,
+        "geometry": 6360200,
+        "show_route": 3818008300
+      },
+      "calls": {
+        "records_full_query": 1,
+        "projects_full_query": 2,
+        "project_revision_query": 1,
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 6,
+        "show_route": 1
+      },
+      "first_paint_ns": 4022579800,
+      "created": true,
+      "navigate_ns": 3818044100,
+      "event_pump_ns": 209728400,
+      "total_ns": 4027772500,
+      "correct_page": true
+    },
+    {
+      "route": "excel_import",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "projects_full_query": 3737800,
+        "ensure_page": 449699100,
+        "ancestor_stylesheet": 553352700,
+        "geometry": 4992900,
+        "show_route": 1020812300
+      },
+      "calls": {
+        "projects_full_query": 1,
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 5,
+        "show_route": 1
+      },
+      "first_paint_ns": 1047273200,
+      "created": true,
+      "navigate_ns": 1020845600,
+      "event_pump_ns": 29258300,
+      "total_ns": 1050103900,
+      "correct_page": true
+    },
+    {
+      "route": "records",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "records_summary_query": 4104700,
+        "projects_full_query": 3573400,
+        "ensure_page": 248328300,
+        "ancestor_stylesheet": 669799800,
+        "geometry": 916300,
+        "show_route": 942577600
+      },
+      "calls": {
+        "records_summary_query": 1,
+        "projects_full_query": 1,
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 980449800,
+      "created": true,
+      "navigate_ns": 942612600,
+      "event_pump_ns": 42585300,
+      "total_ns": 985197900,
+      "correct_page": true
+    },
+    {
+      "route": "factors",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 115997400,
+        "ancestor_stylesheet": 690224200,
+        "geometry": 1042400,
+        "show_route": 821158700
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 850346400,
+      "created": true,
+      "navigate_ns": 821195700,
+      "event_pump_ns": 33310700,
+      "total_ns": 854506400,
+      "correct_page": true
+    },
+    {
+      "route": "settings",
+      "kind": "first_use",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 2636300,
+        "ancestor_stylesheet": 693295500,
+        "geometry": 1094600,
+        "show_route": 709463800
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 736756400,
+      "created": true,
+      "navigate_ns": 709502500,
+      "event_pump_ns": 28372100,
+      "total_ns": 737874600,
+      "correct_page": true
+    },
+    {
+      "route": "home",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 3600,
+        "ancestor_stylesheet": 688409300,
+        "geometry": 1120600,
+        "show_route": 696276200
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 728508400,
+      "created": false,
+      "navigate_ns": 696302700,
+      "event_pump_ns": 45417600,
+      "total_ns": 741720300,
+      "correct_page": true
+    },
+    {
+      "route": "standards",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 3300,
+        "ancestor_stylesheet": 683029800,
+        "geometry": 899700,
+        "show_route": 694360100
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 720701300,
+      "created": false,
+      "navigate_ns": 694380300,
+      "event_pump_ns": 29583300,
+      "total_ns": 723963600,
+      "correct_page": true
+    },
+    {
+      "route": "new_accounting",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 10300,
+        "ancestor_stylesheet": 684183400,
+        "geometry": 7134100,
+        "show_route": 702953400
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 5,
+        "show_route": 1
+      },
+      "first_paint_ns": 751814100,
+      "created": false,
+      "navigate_ns": 702989900,
+      "event_pump_ns": 53203500,
+      "total_ns": 756193400,
+      "correct_page": true
+    },
+    {
+      "route": "excel_import",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 10000,
+        "ancestor_stylesheet": 714183700,
+        "geometry": 6880500,
+        "show_route": 732029400
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 5,
+        "show_route": 1
+      },
+      "first_paint_ns": 760172300,
+      "created": false,
+      "navigate_ns": 732065500,
+      "event_pump_ns": 30935200,
+      "total_ns": 763000700,
+      "correct_page": true
+    },
+    {
+      "route": "records",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 4600,
+        "ancestor_stylesheet": 723199000,
+        "geometry": 940400,
+        "projects_full_query": 3793700,
+        "show_route": 875640500
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "projects_full_query": 1,
+        "show_route": 1
+      },
+      "first_paint_ns": 907336500,
+      "created": false,
+      "navigate_ns": 875675100,
+      "event_pump_ns": 36381200,
+      "total_ns": 912056300,
+      "correct_page": true
+    },
+    {
+      "route": "factors",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 5400,
+        "ancestor_stylesheet": 795669400,
+        "geometry": 1443200,
+        "show_route": 814146100
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 842934400,
+      "created": false,
+      "navigate_ns": 814185800,
+      "event_pump_ns": 32900000,
+      "total_ns": 847085800,
+      "correct_page": true
+    },
+    {
+      "route": "settings",
+      "kind": "steady_home_reset",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 4000,
+        "ancestor_stylesheet": 811530800,
+        "geometry": 1189800,
+        "show_route": 823158800
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 4,
+        "show_route": 1
+      },
+      "first_paint_ns": 850102400,
+      "created": false,
+      "navigate_ns": 823193100,
+      "event_pump_ns": 28301500,
+      "total_ns": 851494600,
+      "correct_page": true
+    },
+    {
+      "route": "standards",
+      "kind": "steady_business_direct",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 4100,
+        "ancestor_stylesheet": 5500,
+        "geometry": 182700,
+        "show_route": 2988700
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 3,
+        "show_route": 1
+      },
+      "first_paint_ns": 7663900,
+      "created": false,
+      "navigate_ns": 3015700,
+      "event_pump_ns": 8606300,
+      "total_ns": 11622000,
+      "correct_page": true
+    },
+    {
+      "route": "records",
+      "kind": "steady_business_direct",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 4100,
+        "ancestor_stylesheet": 5400,
+        "geometry": 205900,
+        "show_route": 7480100
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 3,
+        "show_route": 1
+      },
+      "first_paint_ns": 14345600,
+      "created": false,
+      "navigate_ns": 7507300,
+      "event_pump_ns": 10862800,
+      "total_ns": 18370100,
+      "correct_page": true
+    },
+    {
+      "route": "factors",
+      "kind": "steady_business_direct",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 3800,
+        "ancestor_stylesheet": 5400,
+        "geometry": 319600,
+        "show_route": 7745500
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 3,
+        "show_route": 1
+      },
+      "first_paint_ns": 12521300,
+      "created": false,
+      "navigate_ns": 7775800,
+      "event_pump_ns": 8742800,
+      "total_ns": 16518600,
+      "correct_page": true
+    },
+    {
+      "route": "settings",
+      "kind": "steady_business_direct",
+      "iteration": 0,
+      "parts_ns": {
+        "ensure_page": 3800,
+        "ancestor_stylesheet": 5200,
+        "geometry": 246800,
+        "show_route": 2509600
+      },
+      "calls": {
+        "ensure_page": 1,
+        "ancestor_stylesheet": 1,
+        "geometry": 3,
+        "show_route": 1
+      },
+      "first_paint_ns": 6991400,
+      "created": false,
+      "navigate_ns": 2540900,
+      "event_pump_ns": 5400700,
+      "total_ns": 7941600,
+      "correct_page": true
+    }
+  ],
+  "environment_after": {
+    "utc": "2026-10-21T01:20:24.670655+00:00",
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.14",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "logical_cpus": 12,
+    "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":21646.875},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":11336.671875},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":10989.046875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":3188.5},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":2458.609375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":2457.328125},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":2342.5},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":1857.515625}]",
+    "background_probe_exit": 0
+  },
+  "kind": "diagnostic-runtime-same-stylesheet-guard",
+  "head": "e186b5116f16861bc65fbb939abec750a39d7f0e",
+  "probe_script_sha256": "85ad4a036e9579ab503ca324c757e44511ddb49d913597b19c2d289c1e142e88"
+}
