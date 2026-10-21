@@ -16,3 +16,13 @@ scripts/profile_n_navigation.py text eol=lf
 scripts/probe_n_same_style.py text eol=lf
 scripts/probe_n_background_parity.py text eol=lf
 scripts/repeat_n_from_seed.py text eol=lf
+
+# 首开性能原始与排除证据保持现场字节。
+docs/performance/n-first-open/*.json -text
+docs/performance/n-first-open/HARNESS_V1_INVALID.py.txt -text
+docs/performance/n-first-open/PROFILE_DIAGNOSTIC.txt -text whitespace=cr-at-eol
+scripts/profile_n_first_open.py text eol=lf
+scripts/profile_n_first_balanced.py text eol=lf
+scripts/probe_n_first_candidates.py text eol=lf
+scripts/snapshot_n_first_open.py text eol=lf
+scripts/summarize_n_first_open.py text eol=lf

@@ -1,0 +1,1235 @@
+{
+  "schema": 1,
+  "worker_script_sha256": "7ad87b464e8e27fa882cd3b8409222dafcb5fa36e1612c52468357579f684dd5",
+  "seed_sha256": {
+    "catalog.sqlite": "bdd2a4cc338ad05486c355b52d10fdd9f13a2e631c2b2047e5880492b851b65c",
+    "records.sqlite": "f580e67f31934e9a77511ebe56515b6fd3741b650f18b4dbcd7f4e7dc1de2161",
+    "projects.sqlite": "6137e8b22bd38f688f587764f6cb2f14ffb386af0b947c543df76a2d9e5ffe6a"
+  },
+  "sequential": {
+    "first_open": {
+      "before": {
+        "total": {
+          "n": 20,
+          "median_ns": 3574161200.0,
+          "p95_nearest_rank_ns": 3925199300,
+          "min_ns": 3332179200,
+          "max_ns": 4379286800
+        },
+        "paint": {
+          "n": 20,
+          "median_ns": 3566713700.0,
+          "p95_nearest_rank_ns": 3917718200,
+          "min_ns": 3324750700,
+          "max_ns": 4370053300
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "median_inclusive_ns": 78997150.0,
+            "median_self_ns": 78997150.0
+          },
+          "catalog_repository.list_parameters": {
+            "median_inclusive_ns": 11751550.0,
+            "median_self_ns": 11751550.0
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "median_inclusive_ns": 10890500.0,
+            "median_self_ns": 10890500.0
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "median_inclusive_ns": 15618200.0,
+            "median_self_ns": 15618200.0
+          },
+          "catalog_repository.list_source_tables": {
+            "median_inclusive_ns": 6119900.0,
+            "median_self_ns": 6119900.0
+          },
+          "catalog_repository.list_sources": {
+            "median_inclusive_ns": 5474900.0,
+            "median_self_ns": 5474900.0
+          },
+          "catalog_repository.list_standards": {
+            "median_inclusive_ns": 12081750.0,
+            "median_self_ns": 12081750.0
+          },
+          "catalog_repository.list_subjects": {
+            "median_inclusive_ns": 1415800.0,
+            "median_self_ns": 1415800.0
+          },
+          "catalog_service.list_parameter_factors": {
+            "median_inclusive_ns": 11247250.0,
+            "median_self_ns": 155450.0
+          },
+          "catalog_service.list_reference_data_assets": {
+            "median_inclusive_ns": 2513500.0,
+            "median_self_ns": 11450.0
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "median_inclusive_ns": 3151600.0,
+            "median_self_ns": 11000.0
+          },
+          "catalog_service.list_source_tables": {
+            "median_inclusive_ns": 1433300.0,
+            "median_self_ns": 9400.0
+          },
+          "catalog_service.list_sources": {
+            "median_inclusive_ns": 1300350.0,
+            "median_self_ns": 7700.0
+          },
+          "catalog_service.list_subjects": {
+            "median_inclusive_ns": 1423550.0,
+            "median_self_ns": 8200.0
+          },
+          "catalog_service.standard_implementation_date": {
+            "median_inclusive_ns": 2765450.0,
+            "median_self_ns": 36300.0
+          },
+          "catalog_service.standard_version": {
+            "median_inclusive_ns": 1532750.0,
+            "median_self_ns": 20850.0
+          },
+          "page.__init__": {
+            "median_inclusive_ns": 2371523950.0,
+            "median_self_ns": 5297950.0
+          },
+          "page._apply_accounting_style": {
+            "median_inclusive_ns": 583575200.0,
+            "median_self_ns": 583575200.0
+          },
+          "page._build_electricity_section": {
+            "median_inclusive_ns": 6887450.0,
+            "median_self_ns": 6887450.0
+          },
+          "page._build_fuel_section": {
+            "median_inclusive_ns": 105155200.0,
+            "median_self_ns": 105140600.0
+          },
+          "page._build_heat_section": {
+            "median_inclusive_ns": 36367350.0,
+            "median_self_ns": 16444800.0
+          },
+          "page._build_material_controls": {
+            "median_inclusive_ns": 45575850.0,
+            "median_self_ns": 22311250.0
+          },
+          "page._build_output_electricity_section": {
+            "median_inclusive_ns": 6481400.0,
+            "median_self_ns": 2294600.0
+          },
+          "page._build_output_heat_section": {
+            "median_inclusive_ns": 31636800.0,
+            "median_self_ns": 8948500.0
+          },
+          "page._build_page": {
+            "median_inclusive_ns": 2306384500.0,
+            "median_self_ns": 15546000.0
+          },
+          "page._build_process_section.baking": {
+            "median_inclusive_ns": 221943500.0,
+            "median_self_ns": 206597700.0
+          },
+          "page._build_process_section.calcination": {
+            "median_inclusive_ns": 153932600.0,
+            "median_self_ns": 138721400.0
+          },
+          "page._build_process_section.fgd": {
+            "median_inclusive_ns": 90924650.0,
+            "median_self_ns": 55423500.0
+          },
+          "page._build_process_section.fume": {
+            "median_inclusive_ns": 12511700.0,
+            "median_self_ns": 12495550.0
+          },
+          "page._build_process_section.graphitization": {
+            "median_inclusive_ns": 298863100.0,
+            "median_self_ns": 283372000.0
+          },
+          "page._build_project_unit_controls": {
+            "median_inclusive_ns": 6847850.0,
+            "median_self_ns": 2706250.0
+          },
+          "page._build_source_cards": {
+            "median_inclusive_ns": 1540788050.0,
+            "median_self_ns": 227248050.0
+          },
+          "page._build_unified_energy_section": {
+            "median_inclusive_ns": 340227350.0,
+            "median_self_ns": 181192750.0
+          },
+          "page._capture_form_state": {
+            "median_inclusive_ns": 15074350.0,
+            "median_self_ns": 15074350.0
+          },
+          "page._install_dirty_tracking": {
+            "median_inclusive_ns": 23042500.0,
+            "median_self_ns": 23042500.0
+          },
+          "page._refresh_content_geometry": {
+            "median_inclusive_ns": 1673350.0,
+            "median_self_ns": 823950.0
+          },
+          "page._refresh_energy_factor_options": {
+            "median_inclusive_ns": 12174950.0,
+            "median_self_ns": 4225450.0
+          },
+          "page._refresh_energy_region_options": {
+            "median_inclusive_ns": 150187000.0,
+            "median_self_ns": 47207050.0
+          },
+          "page._refresh_enterprise_candidates": {
+            "median_inclusive_ns": 151414150.0,
+            "median_self_ns": 731550.0
+          },
+          "page._refresh_heat_factor_details": {
+            "median_inclusive_ns": 24491200.0,
+            "median_self_ns": 1149750.0
+          },
+          "page._refresh_source_cards": {
+            "median_inclusive_ns": 4502500.0,
+            "median_self_ns": 4502500.0
+          },
+          "projects.list_all": {
+            "median_inclusive_ns": 8213200.0,
+            "median_self_ns": 8213200.0
+          },
+          "projects.revisions": {
+            "median_inclusive_ns": 634550.0,
+            "median_self_ns": 634550.0
+          },
+          "records.list_all": {
+            "median_inclusive_ns": 146269600.0,
+            "median_self_ns": 146269600.0
+          },
+          "resolver.resolve": {
+            "median_inclusive_ns": 153059950.0,
+            "median_self_ns": 153059950.0
+          },
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 6970300.0,
+            "median_self_ns": 6970300.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 3121725350.0,
+            "median_self_ns": 662910800.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 3371475400.0,
+            "median_self_ns": 238273500.0
+          }
+        }
+      },
+      "after": {
+        "total": {
+          "n": 20,
+          "median_ns": 3383047200.0,
+          "p95_nearest_rank_ns": 4398562900,
+          "min_ns": 2710384500,
+          "max_ns": 4631862500
+        },
+        "paint": {
+          "n": 20,
+          "median_ns": 3374893100.0,
+          "p95_nearest_rank_ns": 4389772800,
+          "min_ns": 2703317700,
+          "max_ns": 4614155500
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "median_inclusive_ns": 84050450.0,
+            "median_self_ns": 84050450.0
+          },
+          "catalog_repository.list_parameters": {
+            "median_inclusive_ns": 12577950.0,
+            "median_self_ns": 12577950.0
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "median_inclusive_ns": 10646200.0,
+            "median_self_ns": 10646200.0
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "median_inclusive_ns": 16772900.0,
+            "median_self_ns": 16772900.0
+          },
+          "catalog_repository.list_source_tables": {
+            "median_inclusive_ns": 6690950.0,
+            "median_self_ns": 6690950.0
+          },
+          "catalog_repository.list_sources": {
+            "median_inclusive_ns": 5753350.0,
+            "median_self_ns": 5753350.0
+          },
+          "catalog_repository.list_standards": {
+            "median_inclusive_ns": 12505150.0,
+            "median_self_ns": 12505150.0
+          },
+          "catalog_repository.list_subjects": {
+            "median_inclusive_ns": 1499950.0,
+            "median_self_ns": 1499950.0
+          },
+          "catalog_service.list_parameter_factors": {
+            "median_inclusive_ns": 12167900.0,
+            "median_self_ns": 159450.0
+          },
+          "catalog_service.list_reference_data_assets": {
+            "median_inclusive_ns": 2590950.0,
+            "median_self_ns": 12700.0
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "median_inclusive_ns": 3405500.0,
+            "median_self_ns": 11000.0
+          },
+          "catalog_service.list_source_tables": {
+            "median_inclusive_ns": 1495700.0,
+            "median_self_ns": 9800.0
+          },
+          "catalog_service.list_sources": {
+            "median_inclusive_ns": 1440450.0,
+            "median_self_ns": 10400.0
+          },
+          "catalog_service.list_subjects": {
+            "median_inclusive_ns": 1508500.0,
+            "median_self_ns": 9100.0
+          },
+          "catalog_service.standard_implementation_date": {
+            "median_inclusive_ns": 3104300.0,
+            "median_self_ns": 38900.0
+          },
+          "catalog_service.standard_version": {
+            "median_inclusive_ns": 1561600.0,
+            "median_self_ns": 21200.0
+          },
+          "page.__init__": {
+            "median_inclusive_ns": 2839832750.0,
+            "median_self_ns": 5721800.0
+          },
+          "page._apply_accounting_style": {
+            "median_inclusive_ns": 706791300.0,
+            "median_self_ns": 706791300.0
+          },
+          "page._build_electricity_section": {
+            "median_inclusive_ns": 7551600.0,
+            "median_self_ns": 7551600.0
+          },
+          "page._build_fuel_section": {
+            "median_inclusive_ns": 126837900.0,
+            "median_self_ns": 126820500.0
+          },
+          "page._build_heat_section": {
+            "median_inclusive_ns": 40388100.0,
+            "median_self_ns": 18706000.0
+          },
+          "page._build_material_controls": {
+            "median_inclusive_ns": 53366250.0,
+            "median_self_ns": 28046450.0
+          },
+          "page._build_output_electricity_section": {
+            "median_inclusive_ns": 7228050.0,
+            "median_self_ns": 2709700.0
+          },
+          "page._build_output_heat_section": {
+            "median_inclusive_ns": 34124550.0,
+            "median_self_ns": 10166100.0
+          },
+          "page._build_page": {
+            "median_inclusive_ns": 2771036150.0,
+            "median_self_ns": 20005700.0
+          },
+          "page._build_process_section.baking": {
+            "median_inclusive_ns": 264227050.0,
+            "median_self_ns": 245860400.0
+          },
+          "page._build_process_section.calcination": {
+            "median_inclusive_ns": 197553050.0,
+            "median_self_ns": 178751850.0
+          },
+          "page._build_process_section.fgd": {
+            "median_inclusive_ns": 101598900.0,
+            "median_self_ns": 64217250.0
+          },
+          "page._build_process_section.fume": {
+            "median_inclusive_ns": 14186900.0,
+            "median_self_ns": 14166650.0
+          },
+          "page._build_process_section.graphitization": {
+            "median_inclusive_ns": 369388650.0,
+            "median_self_ns": 352375300.0
+          },
+          "page._build_project_unit_controls": {
+            "median_inclusive_ns": 8070550.0,
+            "median_self_ns": 3375150.0
+          },
+          "page._build_source_cards": {
+            "median_inclusive_ns": 1842166500.0,
+            "median_self_ns": 275381100.0
+          },
+          "page._build_unified_energy_section": {
+            "median_inclusive_ns": 374118400.0,
+            "median_self_ns": 201806250.0
+          },
+          "page._capture_form_state": {
+            "median_inclusive_ns": 16759850.0,
+            "median_self_ns": 16759850.0
+          },
+          "page._install_dirty_tracking": {
+            "median_inclusive_ns": 25736800.0,
+            "median_self_ns": 25736800.0
+          },
+          "page._refresh_content_geometry": {
+            "median_inclusive_ns": 1582850.0,
+            "median_self_ns": 821450.0
+          },
+          "page._refresh_energy_factor_options": {
+            "median_inclusive_ns": 12379650.0,
+            "median_self_ns": 4216550.0
+          },
+          "page._refresh_energy_region_options": {
+            "median_inclusive_ns": 160925300.0,
+            "median_self_ns": 52170600.0
+          },
+          "page._refresh_enterprise_candidates": {
+            "median_inclusive_ns": 170815400.0,
+            "median_self_ns": 767750.0
+          },
+          "page._refresh_heat_factor_details": {
+            "median_inclusive_ns": 26138300.0,
+            "median_self_ns": 1318600.0
+          },
+          "page._refresh_source_cards": {
+            "median_inclusive_ns": 4812450.0,
+            "median_self_ns": 4812450.0
+          },
+          "projects.list_all": {
+            "median_inclusive_ns": 9035750.0,
+            "median_self_ns": 9035750.0
+          },
+          "projects.revisions": {
+            "median_inclusive_ns": 701000.0,
+            "median_self_ns": 701000.0
+          },
+          "records.list_all": {
+            "median_inclusive_ns": 164684200.0,
+            "median_self_ns": 164684200.0
+          },
+          "resolver.resolve": {
+            "median_inclusive_ns": 162582250.0,
+            "median_self_ns": 162582250.0
+          },
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 7805500.0,
+            "median_self_ns": 7805500.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 2934282500.0,
+            "median_self_ns": 22573200.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 3211051550.0,
+            "median_self_ns": 257947000.0
+          }
+        }
+      }
+    },
+    "cached_return": {
+      "before": {
+        "total": {
+          "n": 40,
+          "median_ns": 25994900.0,
+          "p95_nearest_rank_ns": 32751200,
+          "min_ns": 16513300,
+          "max_ns": 43740000
+        },
+        "paint": {
+          "n": 40,
+          "median_ns": 21454250.0,
+          "p95_nearest_rank_ns": 27325800,
+          "min_ns": 12410100,
+          "max_ns": 36850400
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 4497700.0,
+            "median_self_ns": 4497700.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 10750.0,
+            "median_self_ns": 10750.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 7708700.0,
+            "median_self_ns": 3964550.0
+          }
+        }
+      },
+      "after": {
+        "total": {
+          "n": 40,
+          "median_ns": 24673700.0,
+          "p95_nearest_rank_ns": 35340300,
+          "min_ns": 15794600,
+          "max_ns": 80796800
+        },
+        "paint": {
+          "n": 40,
+          "median_ns": 20787500.0,
+          "p95_nearest_rank_ns": 30116600,
+          "min_ns": 11945000,
+          "max_ns": 70550400
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 4578250.0,
+            "median_self_ns": 4578250.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 10450.0,
+            "median_self_ns": 10450.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 8290850.0,
+            "median_self_ns": 4364800.0
+          }
+        }
+      }
+    }
+  },
+  "balanced": {
+    "legacy_parent": {
+      "first_open": {
+        "total": {
+          "n": 20,
+          "median_ns": 3227404150.0,
+          "p95_nearest_rank_ns": 4121572500,
+          "min_ns": 3101288500,
+          "max_ns": 4152787000
+        },
+        "paint": {
+          "n": 20,
+          "median_ns": 3220542700.0,
+          "p95_nearest_rank_ns": 4111118300,
+          "min_ns": 3094544100,
+          "max_ns": 4144059700
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "median_inclusive_ns": 70370450.0,
+            "median_self_ns": 70370450.0
+          },
+          "catalog_repository.list_parameters": {
+            "median_inclusive_ns": 9987800.0,
+            "median_self_ns": 9987800.0
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "median_inclusive_ns": 8985000.0,
+            "median_self_ns": 8985000.0
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "median_inclusive_ns": 13398800.0,
+            "median_self_ns": 13398800.0
+          },
+          "catalog_repository.list_source_tables": {
+            "median_inclusive_ns": 5236950.0,
+            "median_self_ns": 5236950.0
+          },
+          "catalog_repository.list_sources": {
+            "median_inclusive_ns": 4559400.0,
+            "median_self_ns": 4559400.0
+          },
+          "catalog_repository.list_standards": {
+            "median_inclusive_ns": 10153000.0,
+            "median_self_ns": 10153000.0
+          },
+          "catalog_repository.list_subjects": {
+            "median_inclusive_ns": 1224900.0,
+            "median_self_ns": 1224900.0
+          },
+          "catalog_service.list_parameter_factors": {
+            "median_inclusive_ns": 10252800.0,
+            "median_self_ns": 121450.0
+          },
+          "catalog_service.list_reference_data_assets": {
+            "median_inclusive_ns": 2225250.0,
+            "median_self_ns": 7950.0
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "median_inclusive_ns": 2739700.0,
+            "median_self_ns": 7300.0
+          },
+          "catalog_service.list_source_tables": {
+            "median_inclusive_ns": 1309450.0,
+            "median_self_ns": 6800.0
+          },
+          "catalog_service.list_sources": {
+            "median_inclusive_ns": 1134750.0,
+            "median_self_ns": 5700.0
+          },
+          "catalog_service.list_subjects": {
+            "median_inclusive_ns": 1230450.0,
+            "median_self_ns": 5800.0
+          },
+          "catalog_service.standard_implementation_date": {
+            "median_inclusive_ns": 2509700.0,
+            "median_self_ns": 29550.0
+          },
+          "catalog_service.standard_version": {
+            "median_inclusive_ns": 1348750.0,
+            "median_self_ns": 15700.0
+          },
+          "page.__init__": {
+            "median_inclusive_ns": 2152310250.0,
+            "median_self_ns": 4849050.0
+          },
+          "page._apply_accounting_style": {
+            "median_inclusive_ns": 529761850.0,
+            "median_self_ns": 529761850.0
+          },
+          "page._build_electricity_section": {
+            "median_inclusive_ns": 6105900.0,
+            "median_self_ns": 6105900.0
+          },
+          "page._build_fuel_section": {
+            "median_inclusive_ns": 77764100.0,
+            "median_self_ns": 77750850.0
+          },
+          "page._build_heat_section": {
+            "median_inclusive_ns": 32356700.0,
+            "median_self_ns": 14142600.0
+          },
+          "page._build_material_controls": {
+            "median_inclusive_ns": 41365250.0,
+            "median_self_ns": 20214350.0
+          },
+          "page._build_output_electricity_section": {
+            "median_inclusive_ns": 5893100.0,
+            "median_self_ns": 2073750.0
+          },
+          "page._build_output_heat_section": {
+            "median_inclusive_ns": 27637450.0,
+            "median_self_ns": 7616700.0
+          },
+          "page._build_page": {
+            "median_inclusive_ns": 2080510800.0,
+            "median_self_ns": 14128300.0
+          },
+          "page._build_process_section.baking": {
+            "median_inclusive_ns": 200697800.0,
+            "median_self_ns": 186960000.0
+          },
+          "page._build_process_section.calcination": {
+            "median_inclusive_ns": 138390700.0,
+            "median_self_ns": 124524000.0
+          },
+          "page._build_process_section.fgd": {
+            "median_inclusive_ns": 81379800.0,
+            "median_self_ns": 48673050.0
+          },
+          "page._build_process_section.fume": {
+            "median_inclusive_ns": 11212800.0,
+            "median_self_ns": 11200000.0
+          },
+          "page._build_process_section.graphitization": {
+            "median_inclusive_ns": 268641900.0,
+            "median_self_ns": 254941050.0
+          },
+          "page._build_project_unit_controls": {
+            "median_inclusive_ns": 6488650.0,
+            "median_self_ns": 2552850.0
+          },
+          "page._build_source_cards": {
+            "median_inclusive_ns": 1366552800.0,
+            "median_self_ns": 203442250.0
+          },
+          "page._build_unified_energy_section": {
+            "median_inclusive_ns": 307882550.0,
+            "median_self_ns": 160004600.0
+          },
+          "page._capture_form_state": {
+            "median_inclusive_ns": 13268650.0,
+            "median_self_ns": 13268650.0
+          },
+          "page._install_dirty_tracking": {
+            "median_inclusive_ns": 21189700.0,
+            "median_self_ns": 21189700.0
+          },
+          "page._refresh_content_geometry": {
+            "median_inclusive_ns": 1525750.0,
+            "median_self_ns": 800150.0
+          },
+          "page._refresh_energy_factor_options": {
+            "median_inclusive_ns": 10774200.0,
+            "median_self_ns": 3325250.0
+          },
+          "page._refresh_energy_region_options": {
+            "median_inclusive_ns": 138226100.0,
+            "median_self_ns": 40739800.0
+          },
+          "page._refresh_enterprise_candidates": {
+            "median_inclusive_ns": 154035750.0,
+            "median_self_ns": 702750.0
+          },
+          "page._refresh_heat_factor_details": {
+            "median_inclusive_ns": 21641700.0,
+            "median_self_ns": 863500.0
+          },
+          "page._refresh_source_cards": {
+            "median_inclusive_ns": 3905850.0,
+            "median_self_ns": 3905850.0
+          },
+          "projects.list_all": {
+            "median_inclusive_ns": 7689650.0,
+            "median_self_ns": 7689650.0
+          },
+          "projects.revisions": {
+            "median_inclusive_ns": 575650.0,
+            "median_self_ns": 575650.0
+          },
+          "records.list_all": {
+            "median_inclusive_ns": 149064550.0,
+            "median_self_ns": 149064550.0
+          },
+          "resolver.resolve": {
+            "median_inclusive_ns": 142300300.0,
+            "median_self_ns": 142300300.0
+          },
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 6147050.0,
+            "median_self_ns": 6147050.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 2814541600.0,
+            "median_self_ns": 608670850.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 3041161950.0,
+            "median_self_ns": 214193200.0
+          }
+        }
+      },
+      "cached_return": {
+        "total": {
+          "n": 40,
+          "median_ns": 22830950.0,
+          "p95_nearest_rank_ns": 37315300,
+          "min_ns": 15996500,
+          "max_ns": 38719000
+        },
+        "paint": {
+          "n": 40,
+          "median_ns": 18363750.0,
+          "p95_nearest_rank_ns": 31296900,
+          "min_ns": 11946500,
+          "max_ns": 33211300
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 4107500.0,
+            "median_self_ns": 4107500.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 9800.0,
+            "median_self_ns": 9800.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 7000300.0,
+            "median_self_ns": 3536800.0
+          }
+        }
+      },
+      "add_widget": {
+        "n": 20,
+        "median_ns": 589805150.0,
+        "p95_nearest_rank_ns": 733658300,
+        "min_ns": 564888000,
+        "max_ns": 756799300
+      }
+    },
+    "final_parent": {
+      "first_open": {
+        "total": {
+          "n": 20,
+          "median_ns": 2701934150.0,
+          "p95_nearest_rank_ns": 3393952500,
+          "min_ns": 2613705300,
+          "max_ns": 3684435700
+        },
+        "paint": {
+          "n": 20,
+          "median_ns": 2694612550.0,
+          "p95_nearest_rank_ns": 3386703400,
+          "min_ns": 2606981900,
+          "max_ns": 3677017400
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "median_inclusive_ns": 69867400.0,
+            "median_self_ns": 69867400.0
+          },
+          "catalog_repository.list_parameters": {
+            "median_inclusive_ns": 10045150.0,
+            "median_self_ns": 10045150.0
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "median_inclusive_ns": 9050550.0,
+            "median_self_ns": 9050550.0
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "median_inclusive_ns": 13703750.0,
+            "median_self_ns": 13703750.0
+          },
+          "catalog_repository.list_source_tables": {
+            "median_inclusive_ns": 5278450.0,
+            "median_self_ns": 5278450.0
+          },
+          "catalog_repository.list_sources": {
+            "median_inclusive_ns": 4586950.0,
+            "median_self_ns": 4586950.0
+          },
+          "catalog_repository.list_standards": {
+            "median_inclusive_ns": 10273950.0,
+            "median_self_ns": 10273950.0
+          },
+          "catalog_repository.list_subjects": {
+            "median_inclusive_ns": 1227550.0,
+            "median_self_ns": 1227550.0
+          },
+          "catalog_service.list_parameter_factors": {
+            "median_inclusive_ns": 10215600.0,
+            "median_self_ns": 122850.0
+          },
+          "catalog_service.list_reference_data_assets": {
+            "median_inclusive_ns": 2221050.0,
+            "median_self_ns": 8250.0
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "median_inclusive_ns": 2824600.0,
+            "median_self_ns": 7250.0
+          },
+          "catalog_service.list_source_tables": {
+            "median_inclusive_ns": 1326650.0,
+            "median_self_ns": 7100.0
+          },
+          "catalog_service.list_sources": {
+            "median_inclusive_ns": 1123850.0,
+            "median_self_ns": 5650.0
+          },
+          "catalog_service.list_subjects": {
+            "median_inclusive_ns": 1233500.0,
+            "median_self_ns": 6250.0
+          },
+          "catalog_service.standard_implementation_date": {
+            "median_inclusive_ns": 2511200.0,
+            "median_self_ns": 29450.0
+          },
+          "catalog_service.standard_version": {
+            "median_inclusive_ns": 1345850.0,
+            "median_self_ns": 16350.0
+          },
+          "page.__init__": {
+            "median_inclusive_ns": 2267558800.0,
+            "median_self_ns": 4815600.0
+          },
+          "page._apply_accounting_style": {
+            "median_inclusive_ns": 572824250.0,
+            "median_self_ns": 572824250.0
+          },
+          "page._build_electricity_section": {
+            "median_inclusive_ns": 6467400.0,
+            "median_self_ns": 6467400.0
+          },
+          "page._build_fuel_section": {
+            "median_inclusive_ns": 83059250.0,
+            "median_self_ns": 83045550.0
+          },
+          "page._build_heat_section": {
+            "median_inclusive_ns": 33096200.0,
+            "median_self_ns": 14607950.0
+          },
+          "page._build_material_controls": {
+            "median_inclusive_ns": 42534500.0,
+            "median_self_ns": 21475900.0
+          },
+          "page._build_output_electricity_section": {
+            "median_inclusive_ns": 5775350.0,
+            "median_self_ns": 2121250.0
+          },
+          "page._build_output_heat_section": {
+            "median_inclusive_ns": 28518150.0,
+            "median_self_ns": 8300050.0
+          },
+          "page._build_page": {
+            "median_inclusive_ns": 2202759250.0,
+            "median_self_ns": 15121700.0
+          },
+          "page._build_process_section.baking": {
+            "median_inclusive_ns": 217935700.0,
+            "median_self_ns": 203777350.0
+          },
+          "page._build_process_section.calcination": {
+            "median_inclusive_ns": 148911100.0,
+            "median_self_ns": 134236650.0
+          },
+          "page._build_process_section.fgd": {
+            "median_inclusive_ns": 83456300.0,
+            "median_self_ns": 51134200.0
+          },
+          "page._build_process_section.fume": {
+            "median_inclusive_ns": 12100450.0,
+            "median_self_ns": 12087800.0
+          },
+          "page._build_process_section.graphitization": {
+            "median_inclusive_ns": 287334300.0,
+            "median_self_ns": 272278600.0
+          },
+          "page._build_project_unit_controls": {
+            "median_inclusive_ns": 6561350.0,
+            "median_self_ns": 2700550.0
+          },
+          "page._build_source_cards": {
+            "median_inclusive_ns": 1451917450.0,
+            "median_self_ns": 219950650.0
+          },
+          "page._build_unified_energy_section": {
+            "median_inclusive_ns": 313083150.0,
+            "median_self_ns": 165330000.0
+          },
+          "page._capture_form_state": {
+            "median_inclusive_ns": 13875550.0,
+            "median_self_ns": 13875550.0
+          },
+          "page._install_dirty_tracking": {
+            "median_inclusive_ns": 21561850.0,
+            "median_self_ns": 21561850.0
+          },
+          "page._refresh_content_geometry": {
+            "median_inclusive_ns": 1490900.0,
+            "median_self_ns": 777300.0
+          },
+          "page._refresh_energy_factor_options": {
+            "median_inclusive_ns": 10522650.0,
+            "median_self_ns": 3297100.0
+          },
+          "page._refresh_energy_region_options": {
+            "median_inclusive_ns": 136364200.0,
+            "median_self_ns": 40854150.0
+          },
+          "page._refresh_enterprise_candidates": {
+            "median_inclusive_ns": 152584250.0,
+            "median_self_ns": 726050.0
+          },
+          "page._refresh_heat_factor_details": {
+            "median_inclusive_ns": 21958900.0,
+            "median_self_ns": 907950.0
+          },
+          "page._refresh_source_cards": {
+            "median_inclusive_ns": 4038200.0,
+            "median_self_ns": 4038200.0
+          },
+          "projects.list_all": {
+            "median_inclusive_ns": 7645250.0,
+            "median_self_ns": 7645250.0
+          },
+          "projects.revisions": {
+            "median_inclusive_ns": 574100.0,
+            "median_self_ns": 574100.0
+          },
+          "records.list_all": {
+            "median_inclusive_ns": 147547100.0,
+            "median_self_ns": 147547100.0
+          },
+          "resolver.resolve": {
+            "median_inclusive_ns": 139321400.0,
+            "median_self_ns": 139321400.0
+          },
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 6221900.0,
+            "median_self_ns": 6221900.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 2339238800.0,
+            "median_self_ns": 19582650.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 2551534750.0,
+            "median_self_ns": 214082000.0
+          }
+        }
+      },
+      "cached_return": {
+        "total": {
+          "n": 40,
+          "median_ns": 21598500.0,
+          "p95_nearest_rank_ns": 27997200,
+          "min_ns": 15720500,
+          "max_ns": 30949100
+        },
+        "paint": {
+          "n": 40,
+          "median_ns": 17401800.0,
+          "p95_nearest_rank_ns": 23480400,
+          "min_ns": 11978900,
+          "max_ns": 26911100
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "median_inclusive_ns": 4017950.0,
+            "median_self_ns": 4017950.0
+          },
+          "shell._ensure_page": {
+            "median_inclusive_ns": 9600.0,
+            "median_self_ns": 9600.0
+          },
+          "shell._show_route": {
+            "median_inclusive_ns": 6912700.0,
+            "median_self_ns": 3571500.0
+          }
+        }
+      },
+      "add_widget": {
+        "n": 20,
+        "median_ns": 351400.0,
+        "p95_nearest_rank_ns": 516100,
+        "min_ns": 293200,
+        "max_ns": 568300
+      }
+    }
+  },
+  "pairs": [
+    {
+      "pair": 0,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3287324600,
+      "final_ns": 2679681900,
+      "delta_ns": 607642700,
+      "reduction_percent": 18.484414347156346
+    },
+    {
+      "pair": 1,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3224212900,
+      "final_ns": 2662542400,
+      "delta_ns": 561670500,
+      "reduction_percent": 17.42039119066858
+    },
+    {
+      "pair": 2,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3166689200,
+      "final_ns": 2685432500,
+      "delta_ns": 481256700,
+      "reduction_percent": 15.197471857989726
+    },
+    {
+      "pair": 3,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3622938100,
+      "final_ns": 2700318000,
+      "delta_ns": 922620100,
+      "reduction_percent": 25.466074068447373
+    },
+    {
+      "pair": 4,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3230595400,
+      "final_ns": 2685409600,
+      "delta_ns": 545185800,
+      "reduction_percent": 16.875706564802265
+    },
+    {
+      "pair": 5,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3117559700,
+      "final_ns": 2641374300,
+      "delta_ns": 476185400,
+      "reduction_percent": 15.274299318149385
+    },
+    {
+      "pair": 6,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3163017900,
+      "final_ns": 2833185700,
+      "delta_ns": 329832200,
+      "reduction_percent": 10.427768998714804
+    },
+    {
+      "pair": 7,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3137215200,
+      "final_ns": 2613705300,
+      "delta_ns": 523509900,
+      "reduction_percent": 16.687089237614302
+    },
+    {
+      "pair": 8,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3254242600,
+      "final_ns": 2860843900,
+      "delta_ns": 393398700,
+      "reduction_percent": 12.0887944863115
+    },
+    {
+      "pair": 9,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3401904100,
+      "final_ns": 2753533000,
+      "delta_ns": 648371100,
+      "reduction_percent": 19.0590645985582
+    },
+    {
+      "pair": 10,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3664623500,
+      "final_ns": 2634904400,
+      "delta_ns": 1029719100,
+      "reduction_percent": 28.098905658384826
+    },
+    {
+      "pair": 11,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3101288500,
+      "final_ns": 2663166700,
+      "delta_ns": 438121800,
+      "reduction_percent": 14.127089433956241
+    },
+    {
+      "pair": 12,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3160809300,
+      "final_ns": 2703550300,
+      "delta_ns": 457259000,
+      "reduction_percent": 14.466516534230648
+    },
+    {
+      "pair": 13,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3146701400,
+      "final_ns": 2625850900,
+      "delta_ns": 520850500,
+      "reduction_percent": 16.552269624311986
+    },
+    {
+      "pair": 14,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3306950800,
+      "final_ns": 2773848200,
+      "delta_ns": 533102600,
+      "reduction_percent": 16.120669227978837
+    },
+    {
+      "pair": 15,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3399444900,
+      "final_ns": 3684435700,
+      "delta_ns": -284990800,
+      "reduction_percent": -8.383451074615152
+    },
+    {
+      "pair": 16,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 4121572500,
+      "final_ns": 3393952500,
+      "delta_ns": 727620000,
+      "reduction_percent": 17.653941547795167
+    },
+    {
+      "pair": 17,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 3111331000,
+      "final_ns": 2868209800,
+      "delta_ns": 243121200,
+      "reduction_percent": 7.814057713563745
+    },
+    {
+      "pair": 18,
+      "order": [
+        "legacy_parent",
+        "final_parent"
+      ],
+      "legacy_ns": 3184438300,
+      "final_ns": 2732105800,
+      "delta_ns": 452332500,
+      "reduction_percent": 14.20446739382578
+    },
+    {
+      "pair": 19,
+      "order": [
+        "final_parent",
+        "legacy_parent"
+      ],
+      "legacy_ns": 4152787000,
+      "final_ns": 2929044500,
+      "delta_ns": 1223742500,
+      "reduction_percent": 29.46798138214168
+    }
+  ],
+  "query_and_initial_shape_equal": true,
+  "raw_sha256": {
+    "after.json": "93261c0ae03edc18a7bc2768b244a88fb857809a4c0c356bd8322b7e60c2d59b",
+    "balanced.json": "8795346b3519b14040b3784199c91c7af25f3d35f0727f9fe01b3360a561be05",
+    "before.json": "eba969ce490388cd6c8b54556bd13c178498b001bac7aa096c24621e8e10d710",
+    "DIAGNOSTICS.json": "7bb775863eca6c3549fc6f1d5f94f7dfb804bd58e61e006042d849032ca73a29",
+    "INVALID_HARNESS_BEFORE.json": "67f2e41b418c4d6907daa65502a89388787fb37ca81f2ba28d6e8da26b1c079e",
+    "SNAPSHOT_PROOF.json": "cd2c45b571b06724d1ceff66f24b2d0c1e9ba012429169a0a30b7f7c9eaa687e"
+  },
+  "paired_delta": {
+    "n": 20,
+    "median_ns": 522180200.0,
+    "p95_nearest_rank_ns": 1029719100,
+    "min_ns": -284990800,
+    "max_ns": 1223742500
+  },
+  "paired_median_reduction_percent": 16.336469426145413,
+  "pairs_with_lower_first_open": 19
+}

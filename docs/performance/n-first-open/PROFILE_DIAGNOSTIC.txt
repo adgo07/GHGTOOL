@@ -1,0 +1,83 @@
+         882594 function calls (879959 primitive calls) in 6.554 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1093 to 75 due to restriction <75>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    6.151    6.151 shell.py:285(navigate)
+        1    0.000    0.000    6.151    6.151 routing.py:28(navigate)
+     11/1    0.000    0.000    6.151    6.151 {method 'emit' of 'PySide6.QtCore.SignalInstance' objects}
+        1    0.000    0.000    6.151    6.151 shell.py:516(_show_route)
+        1    0.000    0.000    5.820    5.820 shell.py:200(_ensure_page)
+        1    0.000    0.000    4.942    4.942 pages.py:3183(create_page)
+        1    0.000    0.000    4.880    4.880 standard_editors.py:9(create_standard_editor)
+        1    0.000    0.000    4.880    4.880 standard_editors.py:2(_carbon_material_editor)
+        1    0.000    0.000    4.724    4.724 carbon_material_page.py:635(__init__)
+        1    0.131    0.131    4.536    4.536 carbon_material_page.py:835(_build_page)
+        1    0.004    0.004    3.103    3.103 carbon_material_page.py:3103(_build_source_cards)
+        5    0.001    0.000    1.364    0.273 carbon_material_page.py:4315(_build_process_section)
+        5    0.010    0.002    1.362    0.272 carbon_material_page.py:4346(_add_process_row)
+      861    1.098    0.001    1.180    0.001 {method 'addWidget' of 'PySide6.QtWidgets.QBoxLayout' objects}
+      101    1.043    0.010    1.078    0.011 {method 'setStyleSheet' of 'PySide6.QtWidgets.QWidget' objects}
+        1    0.000    0.000    0.940    0.940 carbon_material_page.py:1208(_apply_accounting_style)
+        1    0.852    0.852    0.877    0.877 {method 'addWidget' of 'PySide6.QtWidgets.QStackedWidget' objects}
+        1    0.002    0.002    0.830    0.830 carbon_material_page.py:3229(_build_unified_energy_section)
+        2    0.000    0.000    0.826    0.413 carbon_material_page.py:3278(_add_unified_energy_row)
+       18    0.050    0.003    0.782    0.043 carbon_material_page.py:4610(_add_material_line)
+        1    0.490    0.490    0.600    0.600 {built-in method processEvents}
+       78    0.004    0.000    0.483    0.006 uat03_parameter_queries.py:355(electricity_catalog_options)
+        2    0.000    0.000    0.480    0.240 carbon_material_page.py:3385(_refresh_energy_region_options)
+        2    0.000    0.000    0.450    0.225 uat03_parameter_queries.py:324(electricity_regions_by_level)
+      118    0.005    0.000    0.444    0.004 parameter_resolution.py:942(resolve)
+        1    0.000    0.000    0.436    0.436 carbon_material_page.py:3146(<lambda>)
+      118    0.001    0.000    0.418    0.004 parameter_resolution.py:717(_effective_rules)
+        4    0.000    0.000    0.416    0.104 uat03_parameter_queries.py:303(electricity_regions)
+      118    0.098    0.001    0.411    0.003 rules.py:445(resolve)
+       78    0.001    0.000    0.410    0.005 uat03_parameter_queries.py:319(<genexpr>)
+        1    0.000    0.000    0.370    0.370 carbon_material_page.py:3137(<lambda>)
+       59    0.038    0.001    0.366    0.006 compact_choices.py:12(__init__)
+      416    0.040    0.000    0.359    0.001 {method 'setVisible' of 'PySide6.QtWidgets.QWidget' objects}
+        2    0.000    0.000    0.320    0.160 shell.py:88(resizeEvent)
+        2    0.308    0.154    0.318    0.159 {function ContentScrollArea.resizeEvent at 0x00000195D30FF9C0}
+      651    0.184    0.000    0.313    0.000 {method 'addItem' of 'PySide6.QtWidgets.QComboBox' objects}
+        1    0.000    0.000    0.299    0.299 carbon_material_page.py:3128(<lambda>)
+       21    0.002    0.000    0.262    0.012 catalog_repository.py:289(list_factors)
+        1    0.000    0.000    0.259    0.259 carbon_material_page.py:3125(<lambda>)
+        1    0.002    0.002    0.259    0.259 carbon_material_page.py:3706(_build_fuel_section)
+        1    0.000    0.000    0.256    0.256 carbon_material_page.py:3739(_add_fuel_row)
+        2    0.009    0.005    0.226    0.113 carbon_material_page.py:418(__init__)
+       13    0.001    0.000    0.205    0.016 carbon_material_page.py:3997(_canonical_default_factor)
+        1    0.000    0.000    0.204    0.204 carbon_material_page.py:3164(<lambda>)
+        1    0.001    0.001    0.200    0.200 carbon_material_page.py:812(_refresh_enterprise_candidates)
+    13854    0.107    0.000    0.200    0.000 compact_choices.py:176(eventFilter)
+        1    0.001    0.001    0.198    0.198 enterprise_history.py:32(list_enterprise_name_candidates)
+        1    0.000    0.000    0.190    0.190 records_repository.py:443(list_all)
+      201    0.001    0.000    0.189    0.001 records_repository.py:452(<genexpr>)
+      200    0.003    0.000    0.188    0.001 records_repository.py:358(get)
+      256    0.177    0.001    0.184    0.001 {built-in method _sqlite3.connect}
+        1    0.003    0.003    0.183    0.183 carbon_material_fuel.py:87(__init__)
+        1    0.002    0.002    0.182    0.182 carbon_material_page.py:5449(_add_fgd_component)
+        2    0.000    0.000    0.176    0.088 carbon_material_page.py:6588(_populate_heat_factor_selector)
+        1    0.000    0.000    0.168    0.168 carbon_material_page.py:3172(<lambda>)
+        1    0.000    0.000    0.168    0.168 carbon_material_page.py:6214(_build_heat_section)
+      556    0.001    0.000    0.165    0.000 {built-in method builtins.next}
+      104    0.001    0.000    0.164    0.002 catalog_repository.py:69(_connection)
+       52    0.000    0.000    0.160    0.003 contextlib.py:132(__enter__)
+        1    0.000    0.000    0.155    0.155 standard_registry.py:71(services)
+        1    0.000    0.000    0.155    0.155 carbon_material_implementation.py:4(create_calculator)
+        5    0.000    0.000    0.152    0.030 carbon_material_page.py:6618(_refresh_heat_factor_details)
+      108    0.010    0.000    0.151    0.001 compact_choices.py:122(_sync)
+        1    0.001    0.001    0.151    0.151 carbon_accounting.py:321(create_g06_parameter_resolver)
+        3    0.000    0.000    0.140    0.047 carbon_material_page.py:6288(_populate_heat_combo)
+        5    0.000    0.000    0.140    0.028 carbon_material_page.py:6658(_refresh_heat_factor_default_labels)
+       66    0.024    0.000    0.137    0.002 compact_choices.py:83(_rebuild)
+      537    0.112    0.000    0.112    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+     2919    0.036    0.000    0.094    0.000 catalog_repository.py:299(<genexpr>)
+       90    0.001    0.000    0.090    0.001 uat03_parameter_queries.py:123(_electricity_table_bindings)
+     2074    0.016    0.000    0.089    0.000 uat03_parameter_queries.py:125(<genexpr>)
+        3    0.004    0.001    0.085    0.028 carbon_material_page.py:5740(_build_material_controls)
+       13    0.080    0.006    0.083    0.006 {method 'findChildren' of 'PySide6.QtCore.QObject' objects}
+        1    0.000    0.000    0.075    0.075 carbon_material_page.py:4940(_populate_carbonate_selector)
+        6    0.074    0.012    0.074    0.012 {method 'setEditable' of 'PySide6.QtWidgets.QComboBox' objects}
+
+
