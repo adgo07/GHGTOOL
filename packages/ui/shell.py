@@ -213,7 +213,7 @@ class AppShell(QWidget):
                 route,
                 self.view_model,
                 self.navigate,
-                self,
+                self.page_stack if route is AppRoute.NEW_ACCOUNTING else self,
                 catalog_service=self.catalog_service,
                 record_repository=self.record_repository,
                 project_service=self.project_service,

@@ -1,10 +1,14 @@
 """Local standard isolation, lazy services and immutable report dispatch."""
+import os
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from PySide6.QtWidgets import QApplication, QWidget
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import QEvent
+from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
 
 from packages.application.standard_registry import StandardImplementation, StandardRegistry, StandardRuntime, default_standard_registry
 from packages.application.catalog_queries import CatalogQueryService
@@ -63,6 +67,48 @@ class StandardDispatchTest(unittest.TestCase):
                 self.assertEqual(shell.current_route, AppRoute.NEW_ACCOUNTING)
                 editor.assert_called_once()
                 self.assertEqual(shell.selected_standard_id, fake.standard_id)
+            finally:
+                shell.deleteLater()
+                self.app.processEvents()
+
+    def test_editor_keeps_its_style_context_when_inserted_and_reused(self):
+        fake = self.fake()
+        runtime = StandardRuntime(CatalogQueryService.empty(), registry=StandardRegistry((fake,)))
+
+        class Editor(QWidget):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.field = QLineEdit("半填输入", self)
+                self.refreshes = 0
+                self.context_changes = []
+
+            def event(self, event):
+                if hasattr(self, "context_changes") and event.type() in (
+                    QEvent.Type.ParentChange, QEvent.Type.StyleChange,
+                ):
+                    self.context_changes.append(event.type())
+                return super().event(event)
+
+            def refresh_if_dirty(self):
+                self.refreshes += 1
+
+        def editor(*_args, **kwargs):
+            return Editor(kwargs["parent"])
+
+        with patch.dict(STANDARD_EDITORS, {fake.editor_key: editor}):
+            shell = AppShell(carbon_accounting_view_model(), Path("absent-logo"), Path("absent-icons"), standard_runtime=runtime)
+            shell.setStyleSheet("QLineEdit { color: #213A4F; }")
+            try:
+                shell._request_standard_accounting(fake.standard_id)
+                page = shell.pages[AppRoute.NEW_ACCOUNTING]
+                for _ in range(2):
+                    shell.navigate(AppRoute.HOME)
+                    shell.navigate(AppRoute.NEW_ACCOUNTING)
+                self.app.processEvents()
+                self.assertEqual(page.context_changes, [])
+                self.assertEqual(page.field.text(), "半填输入")
+                self.assertEqual(page.refreshes, 3)
+                self.assertIs(shell.page_stack.currentWidget(), page)
             finally:
                 shell.deleteLater()
                 self.app.processEvents()

@@ -1,0 +1,2022 @@
+{
+  "invalid_harness_cases": [
+    "parent-probe-01",
+    "style-probe-01"
+  ],
+  "valid_runtime_candidates": [
+    "parent-probe-02",
+    "style-probe-02",
+    "both-probe-02"
+  ],
+  "warning": "v1 before/process exits 0 do not prove Qt callbacks succeeded; excluded from primary. Early-style candidate rejected on pixels.",
+  "cases": {
+    "parent-probe-01": {
+      "samples": [
+        {
+          "kind": "first_open",
+          "parts": {
+            "catalog_repository.list_parameters": {
+              "calls": 5,
+              "inclusive_ns": 11632800,
+              "self_ns": 11632800
+            },
+            "catalog_repository.list_factors": {
+              "calls": 18,
+              "inclusive_ns": 73725000,
+              "self_ns": 73725000
+            },
+            "catalog_repository.list_reference_data_assets": {
+              "calls": 4,
+              "inclusive_ns": 17066500,
+              "self_ns": 17066500
+            },
+            "catalog_repository.list_source_tables": {
+              "calls": 4,
+              "inclusive_ns": 7018100,
+              "self_ns": 7018100
+            },
+            "catalog_repository.list_sources": {
+              "calls": 4,
+              "inclusive_ns": 5400800,
+              "self_ns": 5400800
+            },
+            "catalog_repository.list_standards": {
+              "calls": 8,
+              "inclusive_ns": 10511700,
+              "self_ns": 10511700
+            },
+            "catalog_repository.list_reference_data_bindings": {
+              "calls": 5,
+              "inclusive_ns": 13976200,
+              "self_ns": 13976200
+            },
+            "catalog_service.standard_version": {
+              "calls": 1,
+              "inclusive_ns": 1415400,
+              "self_ns": 16900
+            },
+            "catalog_service.standard_implementation_date": {
+              "calls": 2,
+              "inclusive_ns": 2428900,
+              "self_ns": 28200
+            },
+            "catalog_repository.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1427500,
+              "self_ns": 1427500
+            },
+            "catalog_service.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1434800,
+              "self_ns": 7300
+            },
+            "catalog_service.list_reference_data_assets": {
+              "calls": 1,
+              "inclusive_ns": 2464500,
+              "self_ns": 10300
+            },
+            "catalog_service.list_reference_data_bindings": {
+              "calls": 1,
+              "inclusive_ns": 2826600,
+              "self_ns": 7000
+            },
+            "catalog_service.list_source_tables": {
+              "calls": 1,
+              "inclusive_ns": 1453700,
+              "self_ns": 8200
+            },
+            "catalog_service.list_sources": {
+              "calls": 1,
+              "inclusive_ns": 1113200,
+              "self_ns": 5600
+            },
+            "records.list_all": {
+              "calls": 1,
+              "inclusive_ns": 144224700,
+              "self_ns": 144224700
+            },
+            "projects.list_all": {
+              "calls": 2,
+              "inclusive_ns": 9326200,
+              "self_ns": 9326200
+            },
+            "projects.revisions": {
+              "calls": 1,
+              "inclusive_ns": 625100,
+              "self_ns": 625100
+            },
+            "page._refresh_enterprise_candidates": {
+              "calls": 1,
+              "inclusive_ns": 150259000,
+              "self_ns": 760900
+            },
+            "page._build_project_unit_controls": {
+              "calls": 1,
+              "inclusive_ns": 7482500,
+              "self_ns": 2804600
+            },
+            "page._refresh_source_cards": {
+              "calls": 31,
+              "inclusive_ns": 5197700,
+              "self_ns": 5197700
+            },
+            "page._build_fuel_section": {
+              "calls": 1,
+              "inclusive_ns": 104931300,
+              "self_ns": 104904500
+            },
+            "page._build_material_controls": {
+              "calls": 3,
+              "inclusive_ns": 61914100,
+              "self_ns": 35182600
+            },
+            "page._build_process_section.calcination": {
+              "calls": 1,
+              "inclusive_ns": 175190200,
+              "self_ns": 159347000
+            },
+            "page._build_process_section.baking": {
+              "calls": 1,
+              "inclusive_ns": 242390100,
+              "self_ns": 224770600
+            },
+            "page._build_process_section.graphitization": {
+              "calls": 1,
+              "inclusive_ns": 458187100,
+              "self_ns": 429374700
+            },
+            "page._build_process_section.fume": {
+              "calls": 1,
+              "inclusive_ns": 16352100,
+              "self_ns": 16323900
+            },
+            "resolver.resolve": {
+              "calls": 116,
+              "inclusive_ns": 157964300,
+              "self_ns": 157964300
+            },
+            "page._build_process_section.fgd": {
+              "calls": 1,
+              "inclusive_ns": 104703500,
+              "self_ns": 65582100
+            },
+            "page._build_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 9242000,
+              "self_ns": 9242000
+            },
+            "catalog_service.list_parameter_factors": {
+              "calls": 3,
+              "inclusive_ns": 12538500,
+              "self_ns": 212800
+            },
+            "page._refresh_heat_factor_details": {
+              "calls": 5,
+              "inclusive_ns": 11660200,
+              "self_ns": 727000
+            },
+            "page._build_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 35593400,
+              "self_ns": 18995400
+            },
+            "page._build_output_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 7493100,
+              "self_ns": 3182900
+            },
+            "page._build_output_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 29180600,
+              "self_ns": 12918000
+            },
+            "page._refresh_energy_region_options": {
+              "calls": 2,
+              "inclusive_ns": 161493500,
+              "self_ns": 53759000
+            },
+            "page._refresh_energy_factor_options": {
+              "calls": 2,
+              "inclusive_ns": 12334600,
+              "self_ns": 4126500
+            },
+            "page._build_unified_energy_section": {
+              "calls": 1,
+              "inclusive_ns": 374556300,
+              "self_ns": 200728200
+            },
+            "page._build_source_cards": {
+              "calls": 1,
+              "inclusive_ns": 1854849900,
+              "self_ns": 296602700
+            },
+            "page._apply_accounting_style": {
+              "calls": 1,
+              "inclusive_ns": 829222700,
+              "self_ns": 829222700
+            },
+            "page._build_page": {
+              "calls": 1,
+              "inclusive_ns": 2859826400,
+              "self_ns": 17497500
+            },
+            "page._capture_form_state": {
+              "calls": 1,
+              "inclusive_ns": 17488400,
+              "self_ns": 17488400
+            },
+            "page._install_dirty_tracking": {
+              "calls": 1,
+              "inclusive_ns": 24027800,
+              "self_ns": 24027800
+            },
+            "page.__init__": {
+              "calls": 1,
+              "inclusive_ns": 2923825600,
+              "self_ns": 5339100
+            },
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 3012550000,
+              "self_ns": 21249000
+            },
+            "shell._apply_content_geometry": {
+              "calls": 6,
+              "inclusive_ns": 6521700,
+              "self_ns": 6521700
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 3265234300,
+              "self_ns": 247636400
+            },
+            "page._refresh_content_geometry": {
+              "calls": 1,
+              "inclusive_ns": 1479000,
+              "self_ns": 788700
+            }
+          },
+          "paint_ns": 3418931000,
+          "navigate_ns": 3265263800,
+          "event_pump_ns": 162032900,
+          "total_ns": 3427296700,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 11300,
+              "self_ns": 11300
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4228500,
+              "self_ns": 4228500
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7321900,
+              "self_ns": 3796300
+            }
+          },
+          "paint_ns": 21876400,
+          "navigate_ns": 7363600,
+          "event_pump_ns": 18627400,
+          "total_ns": 25991000,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 8400,
+              "self_ns": 8400
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4911600,
+              "self_ns": 4911600
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7912700,
+              "self_ns": 4103600
+            }
+          },
+          "paint_ns": 14742300,
+          "navigate_ns": 7955900,
+          "event_pump_ns": 11159900,
+          "total_ns": 19115800,
+          "correct_page": true
+        }
+      ],
+      "initial_state": {
+        "qwidgets": 3409,
+        "source_cards": 10,
+        "fields": 54,
+        "project_dirty": false,
+        "input_dirty": false,
+        "default_form_state_keys": 444
+      },
+      "environment_after": {
+        "utc": "2026-10-21T07:24:59.320745+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":36961.6875},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19454.703125},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14343.328125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4304.703125},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4107.421875},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3602.78125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.1875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2527.5}]",
+        "background_probe_exit": 0
+      },
+      "diagnostic_variant": "parent_stack",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "probe_sha256": "948965d4c0ddee0344408e1dd84f6b97c7bb18c4948d43c7a21373cd5d327005"
+    },
+    "style-probe-01": {
+      "samples": [
+        {
+          "kind": "first_open",
+          "parts": {
+            "catalog_repository.list_parameters": {
+              "calls": 5,
+              "inclusive_ns": 11596100,
+              "self_ns": 11596100
+            },
+            "catalog_repository.list_factors": {
+              "calls": 18,
+              "inclusive_ns": 63022800,
+              "self_ns": 63022800
+            },
+            "catalog_repository.list_reference_data_assets": {
+              "calls": 4,
+              "inclusive_ns": 9612300,
+              "self_ns": 9612300
+            },
+            "catalog_repository.list_source_tables": {
+              "calls": 4,
+              "inclusive_ns": 6621500,
+              "self_ns": 6621500
+            },
+            "catalog_repository.list_sources": {
+              "calls": 4,
+              "inclusive_ns": 5552800,
+              "self_ns": 5552800
+            },
+            "catalog_repository.list_standards": {
+              "calls": 8,
+              "inclusive_ns": 12204600,
+              "self_ns": 12204600
+            },
+            "catalog_repository.list_reference_data_bindings": {
+              "calls": 5,
+              "inclusive_ns": 15866500,
+              "self_ns": 15866500
+            },
+            "catalog_service.standard_version": {
+              "calls": 1,
+              "inclusive_ns": 1690300,
+              "self_ns": 25500
+            },
+            "catalog_service.standard_implementation_date": {
+              "calls": 2,
+              "inclusive_ns": 3765800,
+              "self_ns": 43300
+            },
+            "catalog_repository.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1390700,
+              "self_ns": 1390700
+            },
+            "catalog_service.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1398900,
+              "self_ns": 8200
+            },
+            "catalog_service.list_reference_data_assets": {
+              "calls": 1,
+              "inclusive_ns": 2578600,
+              "self_ns": 13200
+            },
+            "catalog_service.list_reference_data_bindings": {
+              "calls": 1,
+              "inclusive_ns": 4220200,
+              "self_ns": 10300
+            },
+            "catalog_service.list_source_tables": {
+              "calls": 1,
+              "inclusive_ns": 1671400,
+              "self_ns": 10800
+            },
+            "catalog_service.list_sources": {
+              "calls": 1,
+              "inclusive_ns": 1637300,
+              "self_ns": 10500
+            },
+            "records.list_all": {
+              "calls": 1,
+              "inclusive_ns": 144272600,
+              "self_ns": 144272600
+            },
+            "projects.list_all": {
+              "calls": 2,
+              "inclusive_ns": 11543600,
+              "self_ns": 11543600
+            },
+            "projects.revisions": {
+              "calls": 1,
+              "inclusive_ns": 894000,
+              "self_ns": 894000
+            },
+            "page._refresh_enterprise_candidates": {
+              "calls": 1,
+              "inclusive_ns": 153153800,
+              "self_ns": 1079300
+            },
+            "page._build_project_unit_controls": {
+              "calls": 1,
+              "inclusive_ns": 8405400,
+              "self_ns": 3769700
+            },
+            "page._refresh_source_cards": {
+              "calls": 31,
+              "inclusive_ns": 4574800,
+              "self_ns": 4574800
+            },
+            "page._build_fuel_section": {
+              "calls": 1,
+              "inclusive_ns": 92409100,
+              "self_ns": 92394000
+            },
+            "page._build_material_controls": {
+              "calls": 3,
+              "inclusive_ns": 44123500,
+              "self_ns": 22577800
+            },
+            "page._build_process_section.calcination": {
+              "calls": 1,
+              "inclusive_ns": 164423800,
+              "self_ns": 149272900
+            },
+            "page._build_process_section.baking": {
+              "calls": 1,
+              "inclusive_ns": 246573100,
+              "self_ns": 231629500
+            },
+            "page._build_process_section.graphitization": {
+              "calls": 1,
+              "inclusive_ns": 291653100,
+              "self_ns": 277331200
+            },
+            "page._build_process_section.fume": {
+              "calls": 1,
+              "inclusive_ns": 12193100,
+              "self_ns": 12174400
+            },
+            "resolver.resolve": {
+              "calls": 116,
+              "inclusive_ns": 152899700,
+              "self_ns": 152899700
+            },
+            "page._build_process_section.fgd": {
+              "calls": 1,
+              "inclusive_ns": 86021300,
+              "self_ns": 53101100
+            },
+            "page._build_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 6547500,
+              "self_ns": 6547500
+            },
+            "catalog_service.list_parameter_factors": {
+              "calls": 3,
+              "inclusive_ns": 10412000,
+              "self_ns": 129100
+            },
+            "page._refresh_heat_factor_details": {
+              "calls": 5,
+              "inclusive_ns": 10012300,
+              "self_ns": 607400
+            },
+            "page._build_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 30791100,
+              "self_ns": 16190200
+            },
+            "page._build_output_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 6057300,
+              "self_ns": 2303400
+            },
+            "page._build_output_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 21689600,
+              "self_ns": 9005000
+            },
+            "page._refresh_energy_region_options": {
+              "calls": 2,
+              "inclusive_ns": 161724400,
+              "self_ns": 52561900
+            },
+            "page._refresh_energy_factor_options": {
+              "calls": 2,
+              "inclusive_ns": 12185400,
+              "self_ns": 3890800
+            },
+            "page._build_unified_energy_section": {
+              "calls": 1,
+              "inclusive_ns": 367088500,
+              "self_ns": 193178700
+            },
+            "page._build_source_cards": {
+              "calls": 1,
+              "inclusive_ns": 1576517000,
+              "self_ns": 250657200
+            },
+            "page._apply_accounting_style": {
+              "calls": 1,
+              "inclusive_ns": 4800,
+              "self_ns": 4800
+            },
+            "page._build_page": {
+              "calls": 1,
+              "inclusive_ns": 1758804700,
+              "self_ns": 20183400
+            },
+            "page._capture_form_state": {
+              "calls": 1,
+              "inclusive_ns": 17986200,
+              "self_ns": 17986200
+            },
+            "page._install_dirty_tracking": {
+              "calls": 1,
+              "inclusive_ns": 29231400,
+              "self_ns": 29231400
+            },
+            "page.__init__": {
+              "calls": 1,
+              "inclusive_ns": 1834417300,
+              "self_ns": 7576100
+            },
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 2653985700,
+              "self_ns": 760428900
+            },
+            "shell._apply_content_geometry": {
+              "calls": 6,
+              "inclusive_ns": 7389000,
+              "self_ns": 7389000
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 2916298300,
+              "self_ns": 256465200
+            },
+            "page._refresh_content_geometry": {
+              "calls": 1,
+              "inclusive_ns": 1506400,
+              "self_ns": 813500
+            }
+          },
+          "paint_ns": 3067452500,
+          "navigate_ns": 2916328100,
+          "event_pump_ns": 158625100,
+          "total_ns": 3074953200,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 20700,
+              "self_ns": 20700
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4560500,
+              "self_ns": 4560500
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7635100,
+              "self_ns": 3814200
+            }
+          },
+          "paint_ns": 23033900,
+          "navigate_ns": 7687500,
+          "event_pump_ns": 19737300,
+          "total_ns": 27424800,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 8400,
+              "self_ns": 8400
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 5974700,
+              "self_ns": 5974700
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 8866600,
+              "self_ns": 3756300
+            }
+          },
+          "paint_ns": 16339700,
+          "navigate_ns": 8907200,
+          "event_pump_ns": 11787000,
+          "total_ns": 20694200,
+          "correct_page": true
+        }
+      ],
+      "initial_state": {
+        "qwidgets": 3409,
+        "source_cards": 10,
+        "fields": 54,
+        "project_dirty": false,
+        "input_dirty": false,
+        "default_form_state_keys": 444
+      },
+      "environment_after": {
+        "utc": "2026-10-21T07:25:08.063297+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":36964.203125},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19455.3125},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14347.359375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4304.703125},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4107.609375},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3602.953125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.1875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2527.53125}]",
+        "background_probe_exit": 0
+      },
+      "diagnostic_variant": "early_style",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "probe_sha256": "948965d4c0ddee0344408e1dd84f6b97c7bb18c4948d43c7a21373cd5d327005"
+    },
+    "harness-check-02": {
+      "schema": 1,
+      "base": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "worker_script_sha256": "7ad87b464e8e27fa882cd3b8409222dafcb5fa36e1612c52468357579f684dd5",
+      "production_sha256": "ad956f9b000daaa6ea4c8d187675a99505409a6ee735826f9ef87167162fff9d",
+      "production_diff": "",
+      "seed_sha256": {
+        "catalog.sqlite": "bdd2a4cc338ad05486c355b52d10fdd9f13a2e631c2b2047e5880492b851b65c",
+        "records.sqlite": "f580e67f31934e9a77511ebe56515b6fd3741b650f18b4dbcd7f4e7dc1de2161",
+        "projects.sqlite": "6137e8b22bd38f688f587764f6cb2f14ffb386af0b947c543df76a2d9e5ffe6a"
+      },
+      "data": {
+        "records": 200,
+        "projects": 20,
+        "requested_window": [
+          1280,
+          800
+        ],
+        "qt_platform": "offscreen"
+      },
+      "environment_before": {
+        "utc": "2026-10-21T07:26:44.589357+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":36996.15625},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19464.140625},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14376.609375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.25},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4110.46875},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3607.96875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.359375},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2532.703125}]",
+        "background_probe_exit": 0
+      },
+      "workers": [
+        {
+          "qt_callback_errors": [],
+          "samples": [
+            {
+              "kind": "first_open",
+              "parts": {
+                "catalog_repository.list_parameters": {
+                  "calls": 5,
+                  "inclusive_ns": 10495900,
+                  "self_ns": 10495900
+                },
+                "catalog_repository.list_factors": {
+                  "calls": 21,
+                  "inclusive_ns": 73415200,
+                  "self_ns": 73415200
+                },
+                "catalog_repository.list_reference_data_assets": {
+                  "calls": 4,
+                  "inclusive_ns": 8893900,
+                  "self_ns": 8893900
+                },
+                "catalog_repository.list_source_tables": {
+                  "calls": 4,
+                  "inclusive_ns": 5654200,
+                  "self_ns": 5654200
+                },
+                "catalog_repository.list_sources": {
+                  "calls": 4,
+                  "inclusive_ns": 5088100,
+                  "self_ns": 5088100
+                },
+                "catalog_repository.list_standards": {
+                  "calls": 8,
+                  "inclusive_ns": 10835600,
+                  "self_ns": 10835600
+                },
+                "catalog_repository.list_reference_data_bindings": {
+                  "calls": 5,
+                  "inclusive_ns": 15210000,
+                  "self_ns": 15210000
+                },
+                "catalog_service.standard_version": {
+                  "calls": 1,
+                  "inclusive_ns": 1564100,
+                  "self_ns": 26100
+                },
+                "catalog_service.standard_implementation_date": {
+                  "calls": 2,
+                  "inclusive_ns": 2831200,
+                  "self_ns": 33400
+                },
+                "catalog_repository.list_subjects": {
+                  "calls": 1,
+                  "inclusive_ns": 1226400,
+                  "self_ns": 1226400
+                },
+                "catalog_service.list_subjects": {
+                  "calls": 1,
+                  "inclusive_ns": 1233900,
+                  "self_ns": 7500
+                },
+                "catalog_service.list_reference_data_assets": {
+                  "calls": 1,
+                  "inclusive_ns": 2243100,
+                  "self_ns": 8600
+                },
+                "catalog_service.list_reference_data_bindings": {
+                  "calls": 1,
+                  "inclusive_ns": 3127100,
+                  "self_ns": 9300
+                },
+                "catalog_service.list_source_tables": {
+                  "calls": 1,
+                  "inclusive_ns": 1305800,
+                  "self_ns": 7100
+                },
+                "catalog_service.list_sources": {
+                  "calls": 1,
+                  "inclusive_ns": 1153700,
+                  "self_ns": 7500
+                },
+                "records.list_all": {
+                  "calls": 1,
+                  "inclusive_ns": 136865300,
+                  "self_ns": 136865300
+                },
+                "projects.list_all": {
+                  "calls": 2,
+                  "inclusive_ns": 7765500,
+                  "self_ns": 7765500
+                },
+                "projects.revisions": {
+                  "calls": 1,
+                  "inclusive_ns": 630800,
+                  "self_ns": 630800
+                },
+                "page._refresh_enterprise_candidates": {
+                  "calls": 1,
+                  "inclusive_ns": 141998300,
+                  "self_ns": 828000
+                },
+                "page._build_project_unit_controls": {
+                  "calls": 1,
+                  "inclusive_ns": 6712300,
+                  "self_ns": 2621000
+                },
+                "page._refresh_source_cards": {
+                  "calls": 31,
+                  "inclusive_ns": 4161700,
+                  "self_ns": 4161700
+                },
+                "page._build_fuel_section": {
+                  "calls": 1,
+                  "inclusive_ns": 95527700,
+                  "self_ns": 95511800
+                },
+                "page._build_material_controls": {
+                  "calls": 3,
+                  "inclusive_ns": 42055400,
+                  "self_ns": 20640600
+                },
+                "page._build_process_section.calcination": {
+                  "calls": 1,
+                  "inclusive_ns": 144246500,
+                  "self_ns": 130545700
+                },
+                "page._build_process_section.baking": {
+                  "calls": 1,
+                  "inclusive_ns": 215800400,
+                  "self_ns": 201572700
+                },
+                "page._build_process_section.graphitization": {
+                  "calls": 1,
+                  "inclusive_ns": 283360000,
+                  "self_ns": 268915400
+                },
+                "page._build_process_section.fume": {
+                  "calls": 1,
+                  "inclusive_ns": 12183600,
+                  "self_ns": 12169700
+                },
+                "resolver.resolve": {
+                  "calls": 118,
+                  "inclusive_ns": 152681100,
+                  "self_ns": 152681100
+                },
+                "page._build_process_section.fgd": {
+                  "calls": 1,
+                  "inclusive_ns": 88163700,
+                  "self_ns": 53634000
+                },
+                "page._build_electricity_section": {
+                  "calls": 1,
+                  "inclusive_ns": 6356200,
+                  "self_ns": 6356200
+                },
+                "catalog_service.list_parameter_factors": {
+                  "calls": 3,
+                  "inclusive_ns": 10440600,
+                  "self_ns": 137300
+                },
+                "page._refresh_heat_factor_details": {
+                  "calls": 5,
+                  "inclusive_ns": 24140700,
+                  "self_ns": 1104500
+                },
+                "page._build_heat_section": {
+                  "calls": 1,
+                  "inclusive_ns": 35192600,
+                  "self_ns": 15822900
+                },
+                "page._build_output_electricity_section": {
+                  "calls": 1,
+                  "inclusive_ns": 6008500,
+                  "self_ns": 2320000
+                },
+                "page._build_output_heat_section": {
+                  "calls": 1,
+                  "inclusive_ns": 30238500,
+                  "self_ns": 8237400
+                },
+                "page._refresh_energy_region_options": {
+                  "calls": 2,
+                  "inclusive_ns": 155859700,
+                  "self_ns": 50108000
+                },
+                "page._refresh_energy_factor_options": {
+                  "calls": 2,
+                  "inclusive_ns": 11498800,
+                  "self_ns": 4219200
+                },
+                "page._build_unified_energy_section": {
+                  "calls": 1,
+                  "inclusive_ns": 355520700,
+                  "self_ns": 188162200
+                },
+                "page._build_source_cards": {
+                  "calls": 1,
+                  "inclusive_ns": 1484642700,
+                  "self_ns": 211655500
+                },
+                "page._apply_accounting_style": {
+                  "calls": 1,
+                  "inclusive_ns": 584895900,
+                  "self_ns": 584895900
+                },
+                "page._build_page": {
+                  "calls": 1,
+                  "inclusive_ns": 2233959600,
+                  "self_ns": 15385600
+                },
+                "page._capture_form_state": {
+                  "calls": 1,
+                  "inclusive_ns": 13897400,
+                  "self_ns": 13897400
+                },
+                "page._install_dirty_tracking": {
+                  "calls": 1,
+                  "inclusive_ns": 21931700,
+                  "self_ns": 21931700
+                },
+                "page.__init__": {
+                  "calls": 1,
+                  "inclusive_ns": 2291868300,
+                  "self_ns": 4941800
+                },
+                "shell._ensure_page": {
+                  "calls": 1,
+                  "inclusive_ns": 2980481600,
+                  "self_ns": 631843900
+                },
+                "shell._apply_content_geometry": {
+                  "calls": 6,
+                  "inclusive_ns": 6463000,
+                  "self_ns": 6463000
+                },
+                "shell._show_route": {
+                  "calls": 1,
+                  "inclusive_ns": 3211996200,
+                  "self_ns": 226584300
+                },
+                "page._refresh_content_geometry": {
+                  "calls": 1,
+                  "inclusive_ns": 1506600,
+                  "self_ns": 777300
+                }
+              },
+              "paint_ns": 3399520400,
+              "navigate_ns": 3212022800,
+              "event_pump_ns": 195224500,
+              "total_ns": 3407247300,
+              "correct_page": true
+            },
+            {
+              "kind": "cached_return",
+              "parts": {
+                "shell._ensure_page": {
+                  "calls": 1,
+                  "inclusive_ns": 11500,
+                  "self_ns": 11500
+                },
+                "shell._apply_content_geometry": {
+                  "calls": 5,
+                  "inclusive_ns": 4144600,
+                  "self_ns": 4144600
+                },
+                "shell._show_route": {
+                  "calls": 1,
+                  "inclusive_ns": 7229200,
+                  "self_ns": 3751700
+                }
+              },
+              "paint_ns": 21029200,
+              "navigate_ns": 7269600,
+              "event_pump_ns": 17670800,
+              "total_ns": 24940400,
+              "correct_page": true
+            },
+            {
+              "kind": "cached_return",
+              "parts": {
+                "shell._ensure_page": {
+                  "calls": 1,
+                  "inclusive_ns": 8400,
+                  "self_ns": 8400
+                },
+                "shell._apply_content_geometry": {
+                  "calls": 5,
+                  "inclusive_ns": 3903100,
+                  "self_ns": 3903100
+                },
+                "shell._show_route": {
+                  "calls": 1,
+                  "inclusive_ns": 6955600,
+                  "self_ns": 3697200
+                }
+              },
+              "paint_ns": 12603400,
+              "navigate_ns": 6995100,
+              "event_pump_ns": 10667700,
+              "total_ns": 17662800,
+              "correct_page": true
+            }
+          ],
+          "initial_state": {
+            "qwidgets": 3409,
+            "source_cards": 10,
+            "fields": 54,
+            "project_dirty": false,
+            "input_dirty": false,
+            "default_form_state_keys": 444
+          },
+          "environment_after": {
+            "utc": "2026-10-21T07:26:53.276959+00:00",
+            "os": "Windows-10-10.0.19045-SP0",
+            "python": "3.12.14",
+            "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+            "logical_cpus": 12,
+            "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+            "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":36999.546875},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19465.1875},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14378.15625},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.25},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4110.828125},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3608.3125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.359375},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2533.15625}]",
+            "background_probe_exit": 0
+          },
+          "batch": 0,
+          "process_total_ns": 8822068600
+        }
+      ],
+      "failures": [],
+      "environment_after": {
+        "utc": "2026-10-21T07:26:56.871207+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":36999.84375},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19465.3125},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14378.671875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.25},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4110.859375},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3608.359375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.375},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2533.15625}]",
+        "background_probe_exit": 0
+      }
+    },
+    "parent-probe-02": {
+      "qt_callback_errors": [],
+      "samples": [
+        {
+          "kind": "first_open",
+          "parts": {
+            "catalog_repository.list_parameters": {
+              "calls": 5,
+              "inclusive_ns": 10831200,
+              "self_ns": 10831200
+            },
+            "catalog_repository.list_factors": {
+              "calls": 21,
+              "inclusive_ns": 71146400,
+              "self_ns": 71146400
+            },
+            "catalog_repository.list_reference_data_assets": {
+              "calls": 4,
+              "inclusive_ns": 10285100,
+              "self_ns": 10285100
+            },
+            "catalog_repository.list_source_tables": {
+              "calls": 4,
+              "inclusive_ns": 5841700,
+              "self_ns": 5841700
+            },
+            "catalog_repository.list_sources": {
+              "calls": 4,
+              "inclusive_ns": 4577900,
+              "self_ns": 4577900
+            },
+            "catalog_repository.list_standards": {
+              "calls": 8,
+              "inclusive_ns": 11261100,
+              "self_ns": 11261100
+            },
+            "catalog_repository.list_reference_data_bindings": {
+              "calls": 5,
+              "inclusive_ns": 14441900,
+              "self_ns": 14441900
+            },
+            "catalog_service.standard_version": {
+              "calls": 1,
+              "inclusive_ns": 1412100,
+              "self_ns": 16200
+            },
+            "catalog_service.standard_implementation_date": {
+              "calls": 2,
+              "inclusive_ns": 2632300,
+              "self_ns": 32100
+            },
+            "catalog_repository.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1351900,
+              "self_ns": 1351900
+            },
+            "catalog_service.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1359300,
+              "self_ns": 7400
+            },
+            "catalog_service.list_reference_data_assets": {
+              "calls": 1,
+              "inclusive_ns": 2324600,
+              "self_ns": 10600
+            },
+            "catalog_service.list_reference_data_bindings": {
+              "calls": 1,
+              "inclusive_ns": 3007400,
+              "self_ns": 9900
+            },
+            "catalog_service.list_source_tables": {
+              "calls": 1,
+              "inclusive_ns": 1347600,
+              "self_ns": 7500
+            },
+            "catalog_service.list_sources": {
+              "calls": 1,
+              "inclusive_ns": 1131300,
+              "self_ns": 5900
+            },
+            "records.list_all": {
+              "calls": 1,
+              "inclusive_ns": 136473400,
+              "self_ns": 136473400
+            },
+            "projects.list_all": {
+              "calls": 2,
+              "inclusive_ns": 8387900,
+              "self_ns": 8387900
+            },
+            "projects.revisions": {
+              "calls": 1,
+              "inclusive_ns": 652900,
+              "self_ns": 652900
+            },
+            "page._refresh_enterprise_candidates": {
+              "calls": 1,
+              "inclusive_ns": 142510200,
+              "self_ns": 831300
+            },
+            "page._build_project_unit_controls": {
+              "calls": 1,
+              "inclusive_ns": 6692400,
+              "self_ns": 2857100
+            },
+            "page._refresh_source_cards": {
+              "calls": 31,
+              "inclusive_ns": 4277100,
+              "self_ns": 4277100
+            },
+            "page._build_fuel_section": {
+              "calls": 1,
+              "inclusive_ns": 82965900,
+              "self_ns": 82952000
+            },
+            "page._build_material_controls": {
+              "calls": 3,
+              "inclusive_ns": 44018100,
+              "self_ns": 22651700
+            },
+            "page._build_process_section.calcination": {
+              "calls": 1,
+              "inclusive_ns": 161283700,
+              "self_ns": 146012000
+            },
+            "page._build_process_section.baking": {
+              "calls": 1,
+              "inclusive_ns": 219921300,
+              "self_ns": 205445500
+            },
+            "page._build_process_section.graphitization": {
+              "calls": 1,
+              "inclusive_ns": 295227800,
+              "self_ns": 280671900
+            },
+            "page._build_process_section.fume": {
+              "calls": 1,
+              "inclusive_ns": 12428300,
+              "self_ns": 12415000
+            },
+            "resolver.resolve": {
+              "calls": 118,
+              "inclusive_ns": 141271300,
+              "self_ns": 141271300
+            },
+            "page._build_process_section.fgd": {
+              "calls": 1,
+              "inclusive_ns": 85887200,
+              "self_ns": 53369500
+            },
+            "page._build_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 6331100,
+              "self_ns": 6331100
+            },
+            "catalog_service.list_parameter_factors": {
+              "calls": 3,
+              "inclusive_ns": 10381300,
+              "self_ns": 122200
+            },
+            "page._refresh_heat_factor_details": {
+              "calls": 5,
+              "inclusive_ns": 22128600,
+              "self_ns": 936800
+            },
+            "page._build_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 33356000,
+              "self_ns": 14855700
+            },
+            "page._build_output_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 5877300,
+              "self_ns": 2186800
+            },
+            "page._build_output_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 29156000,
+              "self_ns": 8811100
+            },
+            "page._refresh_energy_region_options": {
+              "calls": 2,
+              "inclusive_ns": 141636400,
+              "self_ns": 45285500
+            },
+            "page._refresh_energy_factor_options": {
+              "calls": 2,
+              "inclusive_ns": 10934800,
+              "self_ns": 3598800
+            },
+            "page._build_unified_energy_section": {
+              "calls": 1,
+              "inclusive_ns": 328867700,
+              "self_ns": 176296500
+            },
+            "page._build_source_cards": {
+              "calls": 1,
+              "inclusive_ns": 1501379000,
+              "self_ns": 239636000
+            },
+            "page._apply_accounting_style": {
+              "calls": 1,
+              "inclusive_ns": 622187600,
+              "self_ns": 622187600
+            },
+            "page._build_page": {
+              "calls": 1,
+              "inclusive_ns": 2290034700,
+              "self_ns": 16773300
+            },
+            "page._capture_form_state": {
+              "calls": 1,
+              "inclusive_ns": 15046200,
+              "self_ns": 15046200
+            },
+            "page._install_dirty_tracking": {
+              "calls": 1,
+              "inclusive_ns": 23680600,
+              "self_ns": 23680600
+            },
+            "page.__init__": {
+              "calls": 1,
+              "inclusive_ns": 2353062200,
+              "self_ns": 7002700
+            },
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 2432029400,
+              "self_ns": 21183100
+            },
+            "shell._apply_content_geometry": {
+              "calls": 6,
+              "inclusive_ns": 7286500,
+              "self_ns": 7286500
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 2679696900,
+              "self_ns": 242503500
+            },
+            "page._refresh_content_geometry": {
+              "calls": 1,
+              "inclusive_ns": 1471000,
+              "self_ns": 774300
+            }
+          },
+          "paint_ns": 2829471600,
+          "navigate_ns": 2679725200,
+          "event_pump_ns": 157014100,
+          "total_ns": 2836739300,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 11200,
+              "self_ns": 11200
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 3863400,
+              "self_ns": 3863400
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 6668100,
+              "self_ns": 3476600
+            }
+          },
+          "paint_ns": 20711200,
+          "navigate_ns": 6713800,
+          "event_pump_ns": 18638300,
+          "total_ns": 25352100,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 8100,
+              "self_ns": 8100
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 3852100,
+              "self_ns": 3852100
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 6845900,
+              "self_ns": 3661500
+            }
+          },
+          "paint_ns": 12532500,
+          "navigate_ns": 6887300,
+          "event_pump_ns": 9437000,
+          "total_ns": 16324300,
+          "correct_page": true
+        }
+      ],
+      "initial_state": {
+        "qwidgets": 3409,
+        "source_cards": 10,
+        "fields": 54,
+        "project_dirty": false,
+        "input_dirty": false,
+        "default_form_state_keys": 444
+      },
+      "environment_after": {
+        "utc": "2026-10-21T07:31:32.098095+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":37144.0625},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19521.3125},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14439.796875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.765625},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4128.765625},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3623.0625},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.546875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2565.390625}]",
+        "background_probe_exit": 0
+      },
+      "diagnostic_variant": "parent_stack",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "probe_sha256": "948965d4c0ddee0344408e1dd84f6b97c7bb18c4948d43c7a21373cd5d327005"
+    },
+    "style-probe-02": {
+      "qt_callback_errors": [],
+      "samples": [
+        {
+          "kind": "first_open",
+          "parts": {
+            "catalog_repository.list_parameters": {
+              "calls": 5,
+              "inclusive_ns": 10543400,
+              "self_ns": 10543400
+            },
+            "catalog_repository.list_factors": {
+              "calls": 21,
+              "inclusive_ns": 74951100,
+              "self_ns": 74951100
+            },
+            "catalog_repository.list_reference_data_assets": {
+              "calls": 4,
+              "inclusive_ns": 9151500,
+              "self_ns": 9151500
+            },
+            "catalog_repository.list_source_tables": {
+              "calls": 4,
+              "inclusive_ns": 5564800,
+              "self_ns": 5564800
+            },
+            "catalog_repository.list_sources": {
+              "calls": 4,
+              "inclusive_ns": 4671700,
+              "self_ns": 4671700
+            },
+            "catalog_repository.list_standards": {
+              "calls": 8,
+              "inclusive_ns": 10390800,
+              "self_ns": 10390800
+            },
+            "catalog_repository.list_reference_data_bindings": {
+              "calls": 5,
+              "inclusive_ns": 13519500,
+              "self_ns": 13519500
+            },
+            "catalog_service.standard_version": {
+              "calls": 1,
+              "inclusive_ns": 1283100,
+              "self_ns": 16500
+            },
+            "catalog_service.standard_implementation_date": {
+              "calls": 2,
+              "inclusive_ns": 2759900,
+              "self_ns": 36900
+            },
+            "catalog_repository.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1269400,
+              "self_ns": 1269400
+            },
+            "catalog_service.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1276300,
+              "self_ns": 6900
+            },
+            "catalog_service.list_reference_data_assets": {
+              "calls": 1,
+              "inclusive_ns": 2355700,
+              "self_ns": 10000
+            },
+            "catalog_service.list_reference_data_bindings": {
+              "calls": 1,
+              "inclusive_ns": 2788900,
+              "self_ns": 8700
+            },
+            "catalog_service.list_source_tables": {
+              "calls": 1,
+              "inclusive_ns": 1290800,
+              "self_ns": 7700
+            },
+            "catalog_service.list_sources": {
+              "calls": 1,
+              "inclusive_ns": 1197900,
+              "self_ns": 6100
+            },
+            "records.list_all": {
+              "calls": 1,
+              "inclusive_ns": 134595000,
+              "self_ns": 134595000
+            },
+            "projects.list_all": {
+              "calls": 2,
+              "inclusive_ns": 7792900,
+              "self_ns": 7792900
+            },
+            "projects.revisions": {
+              "calls": 1,
+              "inclusive_ns": 628800,
+              "self_ns": 628800
+            },
+            "page._refresh_enterprise_candidates": {
+              "calls": 1,
+              "inclusive_ns": 139833900,
+              "self_ns": 709800
+            },
+            "page._build_project_unit_controls": {
+              "calls": 1,
+              "inclusive_ns": 6712000,
+              "self_ns": 2819400
+            },
+            "page._refresh_source_cards": {
+              "calls": 31,
+              "inclusive_ns": 4708200,
+              "self_ns": 4708200
+            },
+            "page._build_fuel_section": {
+              "calls": 1,
+              "inclusive_ns": 83199700,
+              "self_ns": 83186200
+            },
+            "page._build_material_controls": {
+              "calls": 3,
+              "inclusive_ns": 48074200,
+              "self_ns": 24208400
+            },
+            "page._build_process_section.calcination": {
+              "calls": 1,
+              "inclusive_ns": 170458300,
+              "self_ns": 156147200
+            },
+            "page._build_process_section.baking": {
+              "calls": 1,
+              "inclusive_ns": 231132900,
+              "self_ns": 213170400
+            },
+            "page._build_process_section.graphitization": {
+              "calls": 1,
+              "inclusive_ns": 297725300,
+              "self_ns": 281611200
+            },
+            "page._build_process_section.fume": {
+              "calls": 1,
+              "inclusive_ns": 13207100,
+              "self_ns": 13193800
+            },
+            "resolver.resolve": {
+              "calls": 118,
+              "inclusive_ns": 146472300,
+              "self_ns": 146472300
+            },
+            "page._build_process_section.fgd": {
+              "calls": 1,
+              "inclusive_ns": 96593800,
+              "self_ns": 62785700
+            },
+            "page._build_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 7551200,
+              "self_ns": 7551200
+            },
+            "catalog_service.list_parameter_factors": {
+              "calls": 3,
+              "inclusive_ns": 11238600,
+              "self_ns": 131600
+            },
+            "page._refresh_heat_factor_details": {
+              "calls": 5,
+              "inclusive_ns": 22876800,
+              "self_ns": 976400
+            },
+            "page._build_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 36272200,
+              "self_ns": 16324400
+            },
+            "page._build_output_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 6726800,
+              "self_ns": 2493700
+            },
+            "page._build_output_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 31363800,
+              "self_ns": 10450300
+            },
+            "page._refresh_energy_region_options": {
+              "calls": 2,
+              "inclusive_ns": 145796900,
+              "self_ns": 45903400
+            },
+            "page._refresh_energy_factor_options": {
+              "calls": 2,
+              "inclusive_ns": 11823900,
+              "self_ns": 4098200
+            },
+            "page._build_unified_energy_section": {
+              "calls": 1,
+              "inclusive_ns": 331306600,
+              "self_ns": 173685800
+            },
+            "page._build_source_cards": {
+              "calls": 1,
+              "inclusive_ns": 1561439300,
+              "self_ns": 255417000
+            },
+            "page._apply_accounting_style": {
+              "calls": 1,
+              "inclusive_ns": 3200,
+              "self_ns": 3200
+            },
+            "page._build_page": {
+              "calls": 1,
+              "inclusive_ns": 1724462900,
+              "self_ns": 16132400
+            },
+            "page._capture_form_state": {
+              "calls": 1,
+              "inclusive_ns": 15022600,
+              "self_ns": 15022600
+            },
+            "page._install_dirty_tracking": {
+              "calls": 1,
+              "inclusive_ns": 23571800,
+              "self_ns": 23571800
+            },
+            "page.__init__": {
+              "calls": 1,
+              "inclusive_ns": 1785262500,
+              "self_ns": 5614200
+            },
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 2487765800,
+              "self_ns": 648205300
+            },
+            "shell._apply_content_geometry": {
+              "calls": 6,
+              "inclusive_ns": 6155000,
+              "self_ns": 6155000
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 2707078000,
+              "self_ns": 214617500
+            },
+            "page._refresh_content_geometry": {
+              "calls": 1,
+              "inclusive_ns": 1549400,
+              "self_ns": 849500
+            }
+          },
+          "paint_ns": 2851206400,
+          "navigate_ns": 2707106800,
+          "event_pump_ns": 150840500,
+          "total_ns": 2857947300,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 10600,
+              "self_ns": 10600
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4566600,
+              "self_ns": 4566600
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7392400,
+              "self_ns": 3516700
+            }
+          },
+          "paint_ns": 22217400,
+          "navigate_ns": 7434800,
+          "event_pump_ns": 18814800,
+          "total_ns": 26249600,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 7800,
+              "self_ns": 7800
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4269700,
+              "self_ns": 4269700
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7301900,
+              "self_ns": 3699100
+            }
+          },
+          "paint_ns": 13772200,
+          "navigate_ns": 7341400,
+          "event_pump_ns": 10986300,
+          "total_ns": 18327700,
+          "correct_page": true
+        }
+      ],
+      "initial_state": {
+        "qwidgets": 3409,
+        "source_cards": 10,
+        "fields": 54,
+        "project_dirty": false,
+        "input_dirty": false,
+        "default_form_state_keys": 444
+      },
+      "environment_after": {
+        "utc": "2026-10-21T07:31:40.236468+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":37147.921875},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19522.640625},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14440.9375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.765625},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4129.109375},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3623.546875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.546875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2565.546875}]",
+        "background_probe_exit": 0
+      },
+      "diagnostic_variant": "early_style",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "probe_sha256": "948965d4c0ddee0344408e1dd84f6b97c7bb18c4948d43c7a21373cd5d327005"
+    },
+    "both-probe-02": {
+      "qt_callback_errors": [],
+      "samples": [
+        {
+          "kind": "first_open",
+          "parts": {
+            "catalog_repository.list_parameters": {
+              "calls": 5,
+              "inclusive_ns": 10509400,
+              "self_ns": 10509400
+            },
+            "catalog_repository.list_factors": {
+              "calls": 21,
+              "inclusive_ns": 74519300,
+              "self_ns": 74519300
+            },
+            "catalog_repository.list_reference_data_assets": {
+              "calls": 4,
+              "inclusive_ns": 9351400,
+              "self_ns": 9351400
+            },
+            "catalog_repository.list_source_tables": {
+              "calls": 4,
+              "inclusive_ns": 5710700,
+              "self_ns": 5710700
+            },
+            "catalog_repository.list_sources": {
+              "calls": 4,
+              "inclusive_ns": 4785100,
+              "self_ns": 4785100
+            },
+            "catalog_repository.list_standards": {
+              "calls": 8,
+              "inclusive_ns": 10526200,
+              "self_ns": 10526200
+            },
+            "catalog_repository.list_reference_data_bindings": {
+              "calls": 5,
+              "inclusive_ns": 14537900,
+              "self_ns": 14537900
+            },
+            "catalog_service.standard_version": {
+              "calls": 1,
+              "inclusive_ns": 1442200,
+              "self_ns": 18800
+            },
+            "catalog_service.standard_implementation_date": {
+              "calls": 2,
+              "inclusive_ns": 2665800,
+              "self_ns": 36700
+            },
+            "catalog_repository.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1383200,
+              "self_ns": 1383200
+            },
+            "catalog_service.list_subjects": {
+              "calls": 1,
+              "inclusive_ns": 1390800,
+              "self_ns": 7600
+            },
+            "catalog_service.list_reference_data_assets": {
+              "calls": 1,
+              "inclusive_ns": 2428700,
+              "self_ns": 10700
+            },
+            "catalog_service.list_reference_data_bindings": {
+              "calls": 1,
+              "inclusive_ns": 2968700,
+              "self_ns": 9400
+            },
+            "catalog_service.list_source_tables": {
+              "calls": 1,
+              "inclusive_ns": 1636300,
+              "self_ns": 10900
+            },
+            "catalog_service.list_sources": {
+              "calls": 1,
+              "inclusive_ns": 1282400,
+              "self_ns": 8100
+            },
+            "records.list_all": {
+              "calls": 1,
+              "inclusive_ns": 145197700,
+              "self_ns": 145197700
+            },
+            "projects.list_all": {
+              "calls": 2,
+              "inclusive_ns": 8421700,
+              "self_ns": 8421700
+            },
+            "projects.revisions": {
+              "calls": 1,
+              "inclusive_ns": 623500,
+              "self_ns": 623500
+            },
+            "page._refresh_enterprise_candidates": {
+              "calls": 1,
+              "inclusive_ns": 150941500,
+              "self_ns": 756000
+            },
+            "page._build_project_unit_controls": {
+              "calls": 1,
+              "inclusive_ns": 7147200,
+              "self_ns": 3089800
+            },
+            "page._refresh_source_cards": {
+              "calls": 31,
+              "inclusive_ns": 4608100,
+              "self_ns": 4608100
+            },
+            "page._build_fuel_section": {
+              "calls": 1,
+              "inclusive_ns": 94902400,
+              "self_ns": 94887100
+            },
+            "page._build_material_controls": {
+              "calls": 3,
+              "inclusive_ns": 48032200,
+              "self_ns": 25541600
+            },
+            "page._build_process_section.calcination": {
+              "calls": 1,
+              "inclusive_ns": 175356700,
+              "self_ns": 160262400
+            },
+            "page._build_process_section.baking": {
+              "calls": 1,
+              "inclusive_ns": 262863100,
+              "self_ns": 245281200
+            },
+            "page._build_process_section.graphitization": {
+              "calls": 1,
+              "inclusive_ns": 316588000,
+              "self_ns": 300929300
+            },
+            "page._build_process_section.fume": {
+              "calls": 1,
+              "inclusive_ns": 13814800,
+              "self_ns": 13801500
+            },
+            "resolver.resolve": {
+              "calls": 118,
+              "inclusive_ns": 140481400,
+              "self_ns": 140481400
+            },
+            "page._build_process_section.fgd": {
+              "calls": 1,
+              "inclusive_ns": 91231400,
+              "self_ns": 58254600
+            },
+            "page._build_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 7796200,
+              "self_ns": 7796200
+            },
+            "catalog_service.list_parameter_factors": {
+              "calls": 3,
+              "inclusive_ns": 11849200,
+              "self_ns": 132200
+            },
+            "page._refresh_heat_factor_details": {
+              "calls": 5,
+              "inclusive_ns": 23096400,
+              "self_ns": 1047100
+            },
+            "page._build_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 36473200,
+              "self_ns": 16575200
+            },
+            "page._build_output_electricity_section": {
+              "calls": 1,
+              "inclusive_ns": 6538600,
+              "self_ns": 2678500
+            },
+            "page._build_output_heat_section": {
+              "calls": 1,
+              "inclusive_ns": 31229900,
+              "self_ns": 9309900
+            },
+            "page._refresh_energy_region_options": {
+              "calls": 2,
+              "inclusive_ns": 139452000,
+              "self_ns": 44177500
+            },
+            "page._refresh_energy_factor_options": {
+              "calls": 2,
+              "inclusive_ns": 10330500,
+              "self_ns": 3245700
+            },
+            "page._build_unified_energy_section": {
+              "calls": 1,
+              "inclusive_ns": 332993900,
+              "self_ns": 183211400
+            },
+            "page._build_source_cards": {
+              "calls": 1,
+              "inclusive_ns": 1634487100,
+              "self_ns": 264268500
+            },
+            "page._apply_accounting_style": {
+              "calls": 1,
+              "inclusive_ns": 2900,
+              "self_ns": 2900
+            },
+            "page._build_page": {
+              "calls": 1,
+              "inclusive_ns": 1811647500,
+              "self_ns": 18746700
+            },
+            "page._capture_form_state": {
+              "calls": 1,
+              "inclusive_ns": 13828900,
+              "self_ns": 13828900
+            },
+            "page._install_dirty_tracking": {
+              "calls": 1,
+              "inclusive_ns": 21845900,
+              "self_ns": 21845900
+            },
+            "page.__init__": {
+              "calls": 1,
+              "inclusive_ns": 1870638500,
+              "self_ns": 5632200
+            },
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 1945866100,
+              "self_ns": 19806000
+            },
+            "shell._apply_content_geometry": {
+              "calls": 6,
+              "inclusive_ns": 6548600,
+              "self_ns": 6548600
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 2154321400,
+              "self_ns": 203408700
+            },
+            "page._refresh_content_geometry": {
+              "calls": 1,
+              "inclusive_ns": 1454100,
+              "self_ns": 764800
+            }
+          },
+          "paint_ns": 2265485400,
+          "navigate_ns": 2154353400,
+          "event_pump_ns": 118485600,
+          "total_ns": 2272839000,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 11900,
+              "self_ns": 11900
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4226000,
+              "self_ns": 4226000
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 7509500,
+              "self_ns": 3945700
+            }
+          },
+          "paint_ns": 22062100,
+          "navigate_ns": 7554400,
+          "event_pump_ns": 18446300,
+          "total_ns": 26000700,
+          "correct_page": true
+        },
+        {
+          "kind": "cached_return",
+          "parts": {
+            "shell._ensure_page": {
+              "calls": 1,
+              "inclusive_ns": 8000,
+              "self_ns": 8000
+            },
+            "shell._apply_content_geometry": {
+              "calls": 5,
+              "inclusive_ns": 4218600,
+              "self_ns": 4218600
+            },
+            "shell._show_route": {
+              "calls": 1,
+              "inclusive_ns": 6999400,
+              "self_ns": 3518500
+            }
+          },
+          "paint_ns": 13395100,
+          "navigate_ns": 7041800,
+          "event_pump_ns": 10582100,
+          "total_ns": 17623900,
+          "correct_page": true
+        }
+      ],
+      "initial_state": {
+        "qwidgets": 3409,
+        "source_cards": 10,
+        "fields": 54,
+        "project_dirty": false,
+        "input_dirty": false,
+        "default_form_state_keys": 444
+      },
+      "environment_after": {
+        "utc": "2026-10-21T07:31:48.000206+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":37151.09375},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":19524.046875},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":14442.828125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":4305.765625},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":4129.375},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":3623.59375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":3204.546875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":2565.734375}]",
+        "background_probe_exit": 0
+      },
+      "diagnostic_variant": "both",
+      "head": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+      "probe_sha256": "948965d4c0ddee0344408e1dd84f6b97c7bb18c4948d43c7a21373cd5d327005"
+    }
+  },
+  "cprofile_times": {
+    "kind": "cProfile diagnostic, excluded from primary",
+    "navigate_ns": 6150770200,
+    "event_pump_ns": 600472800,
+    "total_ns": 6751243000
+  },
+  "invalid_callback_logs": {
+    "parent-probe-01": "Traceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nTraceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nTraceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nparent_stack first_open 3427.297\nparent_stack cached_return 25.991\nparent_stack cached_return 19.116\n",
+    "style-probe-01": "Traceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nTraceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nTraceback (most recent call last):\n  File \"C:\\Users\\WANGWEI\\.codex\\worktrees\\n-accounting-first-open\\GHGTOOL\\scripts\\profile_n_first_open.py\", line 39, in measured\n    try:return original(*args,**kwargs)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: CarbonMaterialAccountingPage._refresh_heat_factor_details() takes 1 positional argument but 2 were given\nearly_style first_open 3074.953\nearly_style cached_return 27.425\nearly_style cached_return 20.694\n"
+  }
+}

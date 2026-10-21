@@ -2,11 +2,11 @@
 
 本文档描述青舟温室气体排放核算软件 Windows V1.1.0 的 G08 交付候选包。它是便携式 `onedir` 目录，不是安装程序；G09 未实施。
 
-## 当前生产与证据时点（2026-10-20）
+## 当前生产与证据时点（2026-10-21 静态整理）
 
 PR53已合并至main基线348077c；当前行业算法EXTERNAL.1、输入母版v11/2.9.0、payload6/封套2、新报告Schema3.1.0（无补充节点历史记录3.0.0）。本文后续PR46/52及v4/v10等内容是对应阶段的交付记录，不覆盖当前版本。
 
-最后既有工程制品为[CI288](https://github.com/adgo07/GHGTOOL/actions/runs/39433861262)的head2dbb104（不是merge348或本轮文档head的精确新制品），全量1036/G08 18及包审计/2启动通过。当前B总体盘点＋N仅测冻结源码性能，不重建/重标旧制品。原生Office/鼠标/IME/人工DPI/企业样例/干净机/全产品许可履约与正式Release仍OPEN；工程制品不是商业交付许可。
+本节保留的PR53工程制品为[CI288](https://github.com/adgo07/GHGTOOL/actions/runs/39433861262)的head2dbb104（不是merge348或本轮文档head的精确新制品），全量1036/G08 18及包审计/2启动通过。此为PR53历史工程制品；后续N导航及首次新建优化的精确head、测量和CI以当前TASK_STATE、IMPLEMENTATION_REPORT与对应PR回执为准，本清单不重标旧制品。原生Office/鼠标/IME/人工DPI/企业样例/干净机/全产品许可履约与正式Release仍OPEN；工程制品不是商业交付许可。
 
 ## 版本与数据矩阵
 
@@ -72,9 +72,9 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 - 计算链只覆盖 GB/T 32150—2025 通用规则和 GB/T 32151.34—2024 炭素材料生产企业模块。
 - 其余计划标准只有目录与状态信息，不实现计算规则。
-- Excel正式资源仅允许 `resources/excel_templates/gb_t_32151_34_2024_appendix_b_v1.xlsx`，SHA256 `e6a070bf28adb47939e24713f676136b5a023017d6f695e0031c68d51c389c3d`；批准原母版及去公式差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。下载复制受控字节，不重存。整工作簿经共享业务内核预览、明确保存Canonical项目、正式核算后追加Record；历史R2项目和记录可读，新R2文件导入取消。核算结果Excel导出取消，Word报告保留RPT02/PR39批准表式与分页，PR40联合验证。企业档案、层级、审批、.qzproj与云端不属于本包。
-- 遇到其他行业活动或上下游运输时只提示需要其他标准，不猜算、不套算、不并入当前结果。
-- 本机已在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
+- 当前正式下载资源为 `resources/excel_templates/gb_t_32151_34_2024_appendix_b_v11.xlsx`（模板版本 `2.9.0`），SHA256 `b1e843a1eb8980c5a9bf4ee11d5b2369abcb89ebf4ca5b8659d8cccaefd166c4`；当前登记与锁定机制见下节，初始批准母版及去公式差异见 `docs/exb01/APPENDIX_B_INPUT_DESIGN.md`。下载复制受控字节，不重存。整工作簿经共享业务内核预览、明确保存Canonical项目、正式核算后追加Record；历史R2项目和记录可读，新R2文件导入取消。核算结果Excel导出取消，Word报告保留RPT02/PR39批准表式与分页，PR40联合验证。企业档案、层级、审批、.qzproj与云端不属于本包。
+- 其他行业活动与上下游运输不猜算、不套算，不并入本标准ES/EI/ET；Issue016/PR53允许边界内其他活动的外部CO₂结果以用户明确选择作为独立软件补充，不新增行业算法、不自动纳入、不重算历史Record。
+- 历史G08本地证据曾在 Windows 11 专业版 x64（版本 10.0.26200，Build 26200）完成 standalone 构建、审计和双启动验证；GitHub Actions 使用的 windows-latest 实际为 Windows Server 2025，仅作为 Windows/Python 3.12 CI，不宣称为 Windows 11 证据。Windows 10 22H2 未具备独立实机环境，未宣称已验证。
 
 ## 故障排查
 
@@ -94,7 +94,7 @@ dist\QingzhouCarbonAccounting\build-manifest.json
 
 ## 2026-10-17 商业依赖预检查（本地材料包，非销售放行）
 
-Owner已授权仓库转私有、push、私有PR及CI，取代此前仅本地研发/提交限制；不授权公开上传、商业发布或合并。本节来自真实Python3.12.14环境元数据；环境已安装不等于实际打包，最终实际包体清单须与该head构建manifest交叉核对。无购买许可、许可接受、正式专利/软著提交或对外分发。
+本节记录2026-10-17当时的私有工程候选授权与材料；后续可见性以文末CI规则及Owner最新授权为准，不能据此推断当前仍私有或获得商业发布授权。本节来自真实Python3.12.14环境元数据；环境已安装不等于实际打包，最终实际包体清单须与该head构建manifest交叉核对。无购买许可、许可接受、正式专利/软著提交或对外分发。
 
 | 组件 | 当前实际版本/元数据许可 | 使用方式与仍需交付核对 |
 |---|---|---|
@@ -135,20 +135,54 @@ Issue020监测分段完整链采用CAR-SM01-2026-10-18-FUME.1；输入codec4兼�
 
 Owner于2026-10-18原始消息01a14ee7-32ba批准验证后接入Python CoolProp8.0.0的明确IF97后端；固定NumPy2.3.3，revision ae81610e7d23efc57f9d051c8e70a4d66e87537f。原017指定iapws作为历史决定保留，当前具体实现受控替换；不安装/打包iapws、不回旧表，不更改IF97方法/相态范围或Carbon p40排放算术。
 
-当前母版v10/2.8.0仅演进B.9；旧v2-v9保留原字节。v10最终候选SHA705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729。14份受控通知/来源文件在resources/licenses/steam_if97，来源清单记录两固定wheel/sdist SHA与原始来源；构建/包审计核原文件字节，不把MIT标签等同全包许可。CoolProp顶层/IF97及内嵌header依其各自MIT/MPL2/BSL/BSD等文本；NumPy实际wheel另含OpenBLAS/LAPACK及GPL3 WITH GCC Runtime Exception3.1原文，不能概括为全部MIT/BSD。MSVCP140随两wheel实际出现，VC再分发依据及全产品第三方商业履约继续OPEN。
+B-HEAT当时母版v10/2.8.0仅演进B.9；旧v2-v9保留原字节。v10最终候选SHA705a9326f6910bceaad34ce955975a6150731fa8ed2b50ddfe8c2c5188deb729。14份受控通知/来源文件在resources/licenses/steam_if97，来源清单记录两固定wheel/sdist SHA与原始来源；构建/包审计核原文件字节，不把MIT标签等同全包许可。CoolProp顶层/IF97及内嵌header依其各自MIT/MPL2/BSL/BSD等文本；NumPy实际wheel另含OpenBLAS/LAPACK及GPL3 WITH GCC Runtime Exception3.1原文，不能概括为全部MIT/BSD。MSVCP140随两wheel实际出现，VC再分发依据及全产品第三方商业履约继续OPEN。
 
 F原始调查及REV2分别持久保存在docs/ci/B_HEAT_IF97_CANDIDATE_RAW.json和B_HEAT_IF97_CANDIDATE_REV2_RAW.json，原SHA保留。C独立核固定sdist的include/CoolProp/fluids/Helmholtz.h与Helmholtz.cpp的ENABLE_CATCH guard、root CMake CatchTestRunner的PRIVATE define/include、Python模块目标；结合实际wheel文件/符号检查，限定multicomplex为TEST_ONLY_NOT_SELECTED_RUNTIME。完整未公开编译命令/stripped符号限制保留，不能仅凭strings阴性作绝对证明；若分发其源码/测试或换配置，原NIST README指向的缺失LICENSE及foreign rights澄清仍OPEN，不能由CoolProp顶层MIT覆盖。
 
 物性子Profile GHGTOOL_COOLPROP_IF97_PROPERTY_V1采用binary64，非Decimal40物性精度。原规范MPa/℃、实际库工作Pa/K binary64词法、库原始J/kg输出词法、SAT Q=1、采用Decimal焓、实际phase、方法/版本/revision/依赖分开冻结。API不提供IF97区号，不伪造region。官方参考容差仅为conformance，30MPa700K仅库验证，不表示产品接受超临界流体。正式自动仅干饱和或低于临界压力的合法单相过热，实际API域错误不放行、不外推；known合法路径不依赖自动参考。
 
-本阶段仅私有CI/工程候选验证；不CU、不商业发布，不以作者专属/本地/包内程序化验证替代正式客户履约或原生Office/IME/DPI/干净机验收。最终实际包身份和测试统计以本轮实施报告/仓内CI摘要为准。
+本节历史阶段仅私有CI/工程候选验证；不CU、不商业发布，不以作者专属/本地/包内程序化验证替代正式客户履约或原生Office/IME/DPI/干净机验收。最终实际包身份和测试统计以本轮实施报告/仓内CI摘要为准。
 
 工作状态门禁同时约束原输入和实际binary64 Pa/K：实际Pa须严格低于临界Pa，过热实际K须严格高于同压库Tsat并通过气相校验；极微小原差在工作值折叠时拒绝，不夹值/加epsilon/抬温。此为既有017原则落实，Profile、公式和known路径不变；24901e1的旧CI即使通过也不背书该修复，最终新head须重新CI/精确包。
 
-## PR52-F01 报告单位退修与当前证据身份
+## PR52-F01 报告单位退修与历史证据身份
 
-当前输入模板为v10/2.8.0（此前烟气v9/2.7.0、脱硫v8/2.6.0均为历史阶段）。CI280实际包为321份manifest文件、ZIP322份文件，仅背书fca产品代码。796文档回执的技术PASS因共享B.9 Pa/K投影错误被撤回，当前定向修复及后续CI/精确head实包以TASK_STATE和IMPLEMENTATION_REPORT为准，旧267文件包和CI280不得背书新补丁。压力/温度只由同Record冻结规范值或明确单位的原值显示转换到MPa/℃；K→℃减273.15，不重算物性，不回写Record，旧方法记录报告兼容保留。
+PR52-F01当时输入模板为v10/2.8.0（烟气v9/2.7.0、脱硫v8/2.6.0为更早历史阶段）；当前模板见上文v11登记。CI280实际包为321份manifest文件、ZIP322份文件，仅背书fca产品代码。796文档回执的技术PASS因共享B.9 Pa/K投影错误被撤回，当前定向修复及后续CI/精确head实包以TASK_STATE和IMPLEMENTATION_REPORT为准，旧267文件包和CI280不得背书新补丁。压力/温度只由同Record冻结规范值或明确单位的原值显示转换到MPa/℃；K→℃减273.15，不重算物性，不回写Record，旧方法记录报告兼容保留。
 
+
+## 现有交付验证清单（本节正式交付门禁全部 OPEN）
+
+本节只整理现有交付门禁与证据出口，不启动RS04/RS05、不建立新路线、不新增标准解释或公共Contract。中央Frozen锁仍为 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`，适用UI指南为ACTIVE v0.2；本次文档整理不涉及中央公共Contract变更。相关既有Standard Issue016/017/018/020沿用，不改变软件解释。待验项由后续获授权的验收执行者逐项记录，未取得相应版本原始证据之前保留OPEN。
+
+### 模板与包体身份锁定
+
+- 运行时注册以 `packages/excel/templates.py` 的 `APPENDIX_B_TEMPLATE` 为准：模板ID `GHGTOOL_GBT_32151_34_2024_APPENDIX_B`、版本 `2.9.0`、资源v11及上文SHA256；当前工作簿包含B.1～B.9与“软件补充”。`ExcelTemplateService.read_bytes()`先核摘要，`copy_to()`直接写已核字节，不经openpyxl重存。填写并经Office保存后的工作簿有自己的哈希，导入按已登记版本的固定表头/合并区域/说明识别，不要求与空母版哈希相同。
+- 历史资源v2～v10继续按各自固定SHA受控保留；它们与v11的实际包内字节由 `scripts/inspect_release.py` 的 `TEMPLATE_SHA256_BY_PATH` 核对。历史格式可读不等于恢复R2新下载/新导入，也不等于每个历史版本已通过当前Office验收。wheel/sdist/隔离安装资源的字节核验入口为 `scripts/verify_distribution_templates.py --output-dir <证据目录>`，输出 `proof.json`、构建/安装/资源日志及wheel/sdist摘要；本次交付清单整理子任务未运行。
+- 应用 `1.1.0`、Catalog data/schema、四库迁移与固定依赖以实际候选 `build-manifest.json`、Canonical来源、`requirements-build.txt` 和实际环境记录交叉核对，不能单靠应用版本号区分包。构建记录 `source_commit`、`pr_head_sha`、`tested_merge_sha`；本地缺省三者均为checkout，CI的 `QZ_PR_HEAD_SHA` / `QZ_TESTED_MERGE_SHA` 应保留真实身份，不伪填为相同提交。
+- Manifest对所列文件记录SHA256/大小但不列自身；验收另记manifest文件及整个实际ZIP的SHA256、文件大小、artifact/run/job ID与下载来源，核对包内路径集合和每个文件摘要。文件数是实包结果，不把历史267/322等数量当固定验收值。包内模板、规则、报告布局、物性依赖与许可通知须按该候选审计；`inspect_release.py`检查通过不替代人工许可履约结论。
+
+### 待验场景与证据出口
+
+| 门禁 | 当前状态 | 执行范围与应保留证据 |
+|---|---|---|
+| 最终候选构建、审计、双启动 | OPEN | 待最终产品版本锁定后，以其代码head确认既有CI/本地证据是否适用；保留精确命令、环境、退出码、通过/失败/跳过数量、完整日志摘要、manifest与ZIP摘要及真实provenance。验证入口为上文build、inspect、smoke；当前研发精确head工程候选CI即使已执行，本节正式交付门禁仍须单独核定，不借旧制品或研发CI宣布Release放行。 |
+| 原生Excel保存回导 | OPEN | 在实际候选下载v11，核空母版字节；记录Excel完整版本/位数，填写B.1～B.9及可选独立补充，另存/关闭/重开后回导。覆盖中文文本、文本数字/小数/科学记数、空值/零/日期/百分数、单位、来源与错误输入；对照批准语义，核预览不写Record、明确保存项目后正式核算才追加Record。保留原始下载、填写前后及Office另存文件的各自SHA、步骤、截图、导入诊断和结果对照。不得要求Office保存后仍等于母版字节。 |
+| 原生WPS保存回导 | OPEN | 与Excel分列应用版本、文件及结果；验证固定结构、下拉、插入业务行及回导，不用Excel通过代替WPS通过。PR46/v4旧head回导仅属历史证据，不外推v11。 |
+| 原生Word查看与分页 | OPEN | 从同一冻结Record导出，记录Word版本与Record/报告身份，核中文、附录B表式、分页及补充说明；记录DOCX摘要与可脱敏截图。报告只消费冻结快照，验收不得查询现Catalog补算历史。 |
+| 中文IME、鼠标与人工DPI | OPEN | 记录Windows版本、原生中文输入法版本、显示缩放/分辨率；检查中文企业名/中文路径、输入法组合与候选上屏、鼠标导航/滚轮/弹层、长表单错误定位，以及100%/125%/150%下可达性、截断与焦点。保留逐场景操作及截图；Qt离屏/合成鼠标/自动像素等价与缩放测试均不能替代本项。 |
+| 企业样例闭环 | OPEN | 仅在后续明确授权和资料范围内使用真实或经批准脱敏企业样例，独立核实期间、边界、主要活动、来源与单位，完成GUI/Excel→Canonical项目保存/恢复→正式Record→Word。记录样例授权/脱敏身份、批准依据与独立期望值、差异及复核人；不以当前Calculator输出反造真值，不将客户原件/标准全文上传公开仓库。合成性能夹具不能替代企业样例。 |
+| 干净目标机（Windows 10/11分列） | OPEN | 按下述步骤验证无开发环境启动、首次初始化、完整业务闭环与重启恢复；记录系统版本、标准用户权限、环境清单、包摘要、操作/日志、失败与修复复验。Windows Server CI不能代替Windows 10/11实机，开发机成功不等于干净机。 |
+| 第三方交付履约与正式Release | OPEN | 对实际包内组件、许可文本/通知、对应源码/替换条件及VC再分发等逐项收口，保留Owner决策与正式验收；现有材料预检查、仓库公开、工程包通过均不构成商业交付完成。 |
+
+干净机执行顺序（待后续授权执行）：
+
+1. 固定验收候选ZIP/manifest/代码与CI身份，先核下载文件摘要；分别记录Windows 10/11系统版本、位数、权限及未安装Python/开发工具的环境事实。Office场景另记是否安装及其具体版本。
+2. 完整解压到标准用户可读的中文路径；正常启动，不设置 `QT_QPA_PLATFORM=offscreen`。核首次Catalog读取与独立用户data目录初始化，程序目录不落用户库。
+3. 用获准样例执行当前模板下载/保存回导、预览、项目保存、正式核算、记录查看及Word导出；错误输入应明确阻断且不生成正式Record。重复成功核算应新增Record，不覆盖上一条。
+4. 正常退出后再次启动，核未完成输入/项目恢复、旧Record只读与导出一致；在关闭所有实例并备份完整data目录的前提下检查复制交付/数据保留，不破坏现有用户数据库。
+5. 汇总每个系统/Office版本的通过、失败、未执行及原因，附包/模板/样例/报告/日志摘要；缺项继续OPEN，不以自动化冒充原生操作，也不据本清单宣布SUPPORTED。
+
+验收证据随当前工作包的 `IMPLEMENTATION_REPORT.md` / `TASK_STATE.md` 及对应PR回执索引；原始日志和大文件在获准落点保存，只在仓内记录脱敏摘要、相对路径或受控链接及SHA256，不写机器固定路径。本次交付清单整理子任务仅静态阅读注册表、构建/审计脚本与既有文档，未运行测试、构建、性能测量、原生Office/桌面交互或企业数据验证。本节所列正式交付门禁通过数量为0，状态全部OPEN；同一工作包的N研发性能采样、回归及工程候选CI执行结果另以当前TASK_STATE、IMPLEMENTATION_REPORT与对应PR回执为准，不将研发验证等同最终产品Release门禁通过。
 
 ## GitHub Actions 费用边界与 CI 节约
 

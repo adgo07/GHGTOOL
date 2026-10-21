@@ -1,0 +1,118 @@
+{
+  "production_head": "dacddd56f546e564ca6263282f88231f8d274dd2",
+  "base": "bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec",
+  "worker_script_sha256": "7ad87b464e8e27fa882cd3b8409222dafcb5fa36e1612c52468357579f684dd5",
+  "strict_seed_sha256": {
+    "catalog.sqlite": "bdd2a4cc338ad05486c355b52d10fdd9f13a2e631c2b2047e5880492b851b65c",
+    "records.sqlite": "f580e67f31934e9a77511ebe56515b6fd3741b650f18b4dbcd7f4e7dc1de2161",
+    "projects.sqlite": "6137e8b22bd38f688f587764f6cb2f14ffb386af0b947c543df76a2d9e5ffe6a"
+  },
+  "old_n_baseline_raw_sha256": "ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac",
+  "unchanged_paths": [
+    "packages/ui/carbon_material_page.py",
+    "packages/application",
+    "packages/core",
+    "packages/persistence",
+    "packages/standards",
+    "packages/excel",
+    "packages/infrastructure/reporting",
+    "resources",
+    "data-source",
+    "platform-lock.json",
+    "docs/performance/n-baseline",
+    "docs/performance/n-navigation"
+  ],
+  "sequential_primary": {
+    "independent_processes": 40,
+    "first_open_samples": 40,
+    "cached_samples": 80,
+    "process_failures": 0,
+    "qt_callback_errors": 0,
+    "query_counts_equal": true,
+    "initial_state_equal": true
+  },
+  "balanced_control": {
+    "pairs": 20,
+    "independent_processes": 40,
+    "first_open_samples": 40,
+    "cached_samples": 80,
+    "process_failures": 0,
+    "qt_callback_errors": 0,
+    "query_counts_equal": true,
+    "initial_state_equal": true
+  },
+  "local_tests": [
+    {
+      "command": "python -B -m unittest tests.test_standard_dispatch tests.test_g03_shell tests.test_uat02_geometry tests.test_uir02_source_cards tests.test_navigation_background -v",
+      "tests": 37,
+      "seconds": 55.34,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    {
+      "command": "python -B -m unittest tests.test_accounting_projects_ui tests.test_uat02_usability tests.test_p3_ab_standards tests.test_record_summaries -v",
+      "tests": 43,
+      "seconds": 158.445,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  ],
+  "negative_control": {
+    "command": "QT_QPA_PLATFORM=offscreen python -B tmp/n-first-open/negative_control.py",
+    "intentional_assertion_failures": 1,
+    "errors": 0,
+    "seconds": 0.681,
+    "result": "PASS; legacy reparent triggers expected StyleChange/ParentChange rejection; not counted among 80 production passes"
+  },
+  "snapshot": {
+    "accepted_pixel_pairs": 30,
+    "accepted_state_pairs": 2,
+    "full_named_controls_equal": true,
+    "normalized_form_equal": true,
+    "dirty_equal": true,
+    "rejected_early_style_pixel_mismatches": 6,
+    "fresh_id_normalization": "32-hex fresh UI identities only; complete snapshots/PNGs retained under tmp/n-first-open; hashes in SNAPSHOT_PROOF"
+  },
+  "excluded_data": {
+    "invalid_v1_independent_processes": 20,
+    "invalid_v1_candidate_processes": 2,
+    "reason": "Variadic timer wrapper changed PySide no-arg slot arity; process exit 0 did not prove callbacks succeeded. Before-01 and v1 candidates retained but excluded. Fixed arity and sys.excepthook assertion precede before-02/after-02/control."
+  },
+  "log_sha256": {
+    "regression-01.log": "53c0832847b78b9b435f9a957e8b709a8e674fc0ac3734966fc70d0b53a30878",
+    "regression-02.log": "1cc423d132c007b39757114d44fbd14c2742d5a28497af39301aa9e57b918021",
+    "negative-control.log": "c273eddd700a1c049a476842da351ed6763ca5439c20c378ab1863bfcb2c976e",
+    "parent-probe-01.log": "01ac0c36ca79a737a23b06fe7631b5b61c682f919b8f7e0ba316fdc8f4f166f2",
+    "style-probe-01.log": "3396d6ed2c38d2ee7feb9809091caef8f06480f5a4a7fe2f8d2876fc4725486c",
+    "offscreen-guard-check.log": "0c4f0d2c4fe9afb824e61bae99a6c3a1078ec3fb6c1a4e356221cf9dd6ec26c8"
+  },
+  "dependencies": {
+    "PySide6": "6.11.2",
+    "shiboken6": "6.11.2",
+    "openpyxl": "3.1.5",
+    "python-docx": "1.2.0",
+    "lxml": "6.1.3",
+    "CoolProp": "8.0.0",
+    "numpy": "2.3.3"
+  },
+  "delivery_checklist": "Static doc subtask only; actual v11 template hash checked; formal delivery gates all OPEN; root N measurements/regressions and future engineering CI are distinct.",
+  "ci": "Submission-time local receipt. One stable PR CI still to be executed; final current-head evidence in PR handoff. Old CI292 is not reused.",
+  "limits": [
+    "Sequential median benefit small and p95 worse; do not hide or pool it with balanced mechanism control.",
+    "Empirical n20 p95 is not stable tail/SLA; fresh process is not disk cold cache.",
+    "Offscreen Paint/pixels do not establish native first frame/DPI/IME/Office.",
+    "No original desktop operations, enterprise samples, DB migration, standard/Profile/formula/Record/template changes."
+  ],
+  "post_guard_repeat": {
+    "command": "python -B -m unittest tests.test_standard_dispatch.StandardDispatchTest.test_editor_keeps_its_style_context_when_inserted_and_reused -v",
+    "tests": 1,
+    "seconds": 3.029,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "reason": "Added module-local offscreen default so standalone execution cannot silently use native platform; included in 80 unique cases, not counted as case81."
+  },
+  "raw_whitespace_note": "Original cProfile text has final blank lines; preserved bytes. Path-only cr-at-eol/-blank-at-eof attributes apply to this raw diagnostic, not code. Initial staged diff-check flagged EOF; final base-to-head check repeated after scoped attribute fix."
+}
