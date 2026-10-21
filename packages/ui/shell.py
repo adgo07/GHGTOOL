@@ -60,6 +60,28 @@ _SIDEBAR_ACTIVE = "#116FAE"
 _SIDEBAR_ACTIVE_BACKGROUND = "#D6EBF9"
 
 
+class ContentHost(QWidget):
+    """Paint the canvas on a sibling of the pages, without repolishing editors."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.background_layer = QWidget(self)
+        self.background_layer.setObjectName("scrollCanvas")
+        self.background_layer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.background_layer.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.background_layer.lower()
+
+    def set_background(self, background: str) -> None:
+        style = f"QWidget#scrollCanvas {{ background: {background}; }}"
+        if self.background_layer.styleSheet() != style:
+            self.background_layer.setStyleSheet(style)
+
+    def resizeEvent(self, event) -> None:  # type: ignore[no-untyped-def]
+        super().resizeEvent(event)
+        self.background_layer.setGeometry(self.rect())
+        self.background_layer.lower()
+
+
 class ContentScrollArea(QScrollArea):
     """Scroll area that keeps the main content vertically scrollable only."""
 
@@ -451,7 +473,7 @@ class AppShell(QWidget):
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
         )
 
-        scroll_host = QWidget()
+        scroll_host = ContentHost()
         scroll_host.setObjectName("scrollHost")
         self.scroll_host = scroll_host
         scroll_layout = QVBoxLayout(scroll_host)
@@ -499,9 +521,7 @@ class AppShell(QWidget):
                 self._invalidate_project_views()
         page = self._ensure_page(route)
         background = HOME_CANVAS_GRADIENT if route is AppRoute.HOME else PAGE_BACKGROUND
-        self.scroll_host.setStyleSheet(
-            f"QWidget#scrollHost {{ background: {background}; }}"
-        )
+        self.scroll_host.set_background(background)
         self._sidebar.setVisible(route is not AppRoute.HOME)
         self.page_stack.setCurrentWidget(page)
         self._visible_route = route
