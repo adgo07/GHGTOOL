@@ -3174,7 +3174,7 @@ class CarbonMaterialAccountingPage(BasePage):
             ("CAR-SRC-EXPORTED-HEAT-001", lambda layout: self._build_output_heat_section(layout)),
         )
         for source_id, builder in source_definitions:
-            card = SourceCard(source_id, SOURCE_LABELS[source_id], self)
+            card = SourceCard(source_id, SOURCE_LABELS[source_id], parent_layout.parentWidget())
             source_spec = get_field_spec(f"source_status.{source_id}")
             combo = create_typed_input(card, source_spec, f"sourceStatus_{source_id}")
             combo.addItem("未启用", EmissionSourceStatus.NOT_INVOLVED)
@@ -3235,7 +3235,7 @@ class CarbonMaterialAccountingPage(BasePage):
             ("heat", "逐条填写热力量、方向和蒸汽参数。停用排放源时保留输入，计算不计入。", "新增热力来源"),
         ):
             title = group_labels[family]
-            card = QFrame(self)
+            card = QFrame(parent_layout.parentWidget())
             card.setObjectName("unifiedElectricityCard" if family == "electricity" else "unifiedHeatCard")
             card.setProperty("energyFamily", family)
             card.setFrameShape(QFrame.Shape.StyledPanel)
@@ -3295,7 +3295,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if rows_layout is None:
             raise RuntimeError("unified energy sections are not initialized")
         self._energy_row_serial += 1
-        row = _UnifiedEnergyRow(self._energy_row_serial, family, self._remove_unified_energy_row, self)
+        row = _UnifiedEnergyRow(self._energy_row_serial, family, self._remove_unified_energy_row, rows_layout.parentWidget())
         row.kind.setCurrentIndex(max(0, row.kind.findData(kind)))
         if legacy_self_consumed:
             row.attribute.setCurrentIndex(max(0, row.attribute.findData("SELF_CONSUMED_EXCLUDED")))
@@ -4371,7 +4371,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._process_row_serials[prefix] = max(self._process_row_serials[prefix], int(restored_serial[1]))
         first = not rows
         fields = self._process_sections[prefix][1]
-        host = QWidget(self)
+        host = QWidget(self._process_rows_layout[prefix].parentWidget())
         host.setObjectName(f"{prefix}Instance{instance_id}")
         host_layout = QVBoxLayout(host)
         host_layout.setContentsMargins(0, 8, 0, 8)
