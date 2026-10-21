@@ -230,6 +230,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         lower = normalized.lower()
         if "virtualkeyboard" in lower:
             issues.append(f"unapproved GPL-only Qt Virtual Keyboard component: {normalized}")
+        if relative.name.lower() in {"qpdf.dll", "qt6pdf.dll"}:
+            issues.append(f"unused PDF image component outside approved package scope: {normalized}")
         if "iapws" in lower:
             issues.append(f"unapproved iapws distribution component: {normalized}")
         if normalized.startswith("resources/") and normalized not in ALLOWED_RESOURCE_FILES:

@@ -190,6 +190,25 @@ def _remove_unused_virtual_keyboard(artifact: Path) -> None:
             candidate.unlink()
 
 
+def _remove_unused_pdf_image_plugin(artifact: Path) -> None:
+    """Remove the unused PDF image plugin and its direct Qt PDF dependency.
+
+    Product image consumers load approved PNG/SVG resources, not PDF images.
+    This is a package-scope exclusion, not a GPL-only license classification.
+    """
+    root = artifact.resolve()
+    for relative in (
+        "PySide6/plugins/imageformats/qpdf.dll",
+        "Qt6Pdf.dll",
+        "PySide6/Qt6Pdf.dll",
+    ):
+        candidate = artifact / relative
+        if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+            raise RuntimeError("refusing to remove an external Qt component")
+        if candidate.is_file():
+            candidate.unlink()
+
+
 def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> None:
     resource_root = project_root / "resources"
     expected_hashes = {
@@ -310,6 +329,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         _remove_hidden_release_placeholders(artifact)
         _remove_unpacked_docx_template(artifact)
         _remove_unused_virtual_keyboard(artifact)
+        _remove_unused_pdf_image_plugin(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:

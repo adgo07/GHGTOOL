@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import tempfile
@@ -25,6 +26,19 @@ def smoke(artifact: str | Path, *, starts: int = 2, wait_seconds: float = 8.0) -
         environment = os.environ.copy()
         environment["LOCALAPPDATA"] = data_root
         environment["QT_QPA_PLATFORM"] = "offscreen"
+        environment.pop("QZ_G08_IMAGE_PROBE_PATH", None)
+        image_probe = Path(data_root) / "image-resources.json"
+        probe_environment = {**environment, "QZ_G08_IMAGE_PROBE_PATH": str(image_probe)}
+        probe = subprocess.run([str(executable)], cwd=root, env=probe_environment,
+                               capture_output=True, timeout=30)
+        if probe.returncode != 0 or not image_probe.is_file():
+            raise RuntimeError(f"standalone image probe failed: {probe.returncode}")
+        images = json.loads(image_probe.read_text(encoding="utf-8"))
+        if set(images) != {"branding/qingzhou_logo.png", "icons/home.svg"} or any(
+            len(size) != 2 or min(size) <= 0 for size in images.values()
+        ):
+            raise RuntimeError("standalone PNG/SVG resource proof is invalid")
+        print("standalone-images: PASS (PNG/SVG)")
         for attempt in range(1, starts + 1):
             process = subprocess.Popen(
                 [str(executable)],

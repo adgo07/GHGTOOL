@@ -1,4 +1,4 @@
-# 本地材料包验证环境；Python 3.12.14 Windows x64。
+# 本地验证与CI工程构建统一约束；Python 3.12 Windows x64（patch身份另记）。
 # 精确复建约束，不代表许可放行。
 openpyxl==3.1.5
 et-xmlfile==2.0.0

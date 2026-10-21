@@ -1,0 +1,28 @@
+{
+  "scope": "User-authorized minimal delivery build repair; no new performance or business change",
+  "old_head": "fcc69c11937fc8e5c68b6c3b814711ce02ea4540",
+  "old_run": 39624195759,
+  "old_zip_sha256": "b92384e4456aecaad0dc781a6910373c1c6b9f3a44477a044b58bba025c506c8",
+  "old_candidate_status": "HOLD, original bytes retained",
+  "root_cause": "CI installed broad project dependencies without existing requirements-build constraints",
+  "constraints_file_sha256": "c48e16d623dae5fcb33a3f3094a48a2eb19789b03786562e1c1481aea2f22c42",
+  "dependency_policy": "Use existing fixed build constraints, not a change to pyproject development support range; Python patch differences recorded, no performance extrapolation",
+  "local_command": "python -B -m unittest tests.test_g08_delivery -v",
+  "local_tests": 22,
+  "local_seconds": 18.688,
+  "local_failures": 0,
+  "local_errors": 0,
+  "local_skipped": 0,
+  "relation_to_prior_tests": "18 rerun plus 4 new tests; separate from prior114 at old build head",
+  "new_tests": [
+    "unused PDF exclusion preserves PNG/SVG/native Qt",
+    "external/symlink targets rejected",
+    "audit rejects unused PDF package components without GPL-only claim",
+    "actual approved PNG/SVG decode"
+  ],
+  "local_native_exe_pyz": "NOT_RUN: user restriction",
+  "local_new_standalone_build": "NOT_RUN: one necessary new exact-head CI instead",
+  "new_ci": "PENDING: must not reuse CI296",
+  "commercial_license_clearance": "OPEN",
+  "official_license_origin": "PR57_QTPDF_ORIGIN_PROOF.json"
+}

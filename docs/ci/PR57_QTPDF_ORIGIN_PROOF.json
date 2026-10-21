@@ -1,0 +1,78 @@
+{
+  "status": "HOLD: static origin/license evidence, not commercial release approval",
+  "metadata_source": "https://pypi.org/pypi/PySide6_Pdf/6.12.0.140/json",
+  "wheel_filename": "pyside6_pdf-6.12.0.140-cp310-abi3-win_amd64.whl",
+  "wheel_sha256": "4971ba1a0ca15e7c29cfd808e9600aeb46b2305dad01456eb09fa3197166268e",
+  "wheel_bytes": 2983516,
+  "pypi_license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+  "license_files": [
+    {
+      "wheel_path": "pyside6_pdf-6.12.0.140.dist-info/licenses/LicenseRef-Qt-Commercial.txt",
+      "file": "wheel-license-00-LicenseRef-Qt-Commercial.txt",
+      "bytes": 470,
+      "sha256": "4f54763ac0fe2abd8f7f8d8fe370a94a08ebf84786aa0b91045bd6628deb08a3"
+    }
+  ],
+  "Qt6Pdf_dll": {
+    "wheel_path": "PySide6/Qt6Pdf.dll",
+    "bytes": 4623672,
+    "sha256": "5caf5744e017df85455c5c7e11028c5ec2765633a7ca64a11d7b64d127f6c4cc",
+    "candidate_byte_equal": true
+  },
+  "wheel_metadata": {
+    "Name": [
+      "PySide6_Pdf"
+    ],
+    "Version": [
+      "6.12.0.140"
+    ],
+    "License": [
+      "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only"
+    ],
+    "License-Expression": null,
+    "License-File": [
+      "LicenseRef-Qt-Commercial.txt"
+    ]
+  },
+  "static_pe_scan": {
+    "files": 149,
+    "failures": [],
+    "scope": "PE import/delay-import metadata only; no DLL or EXE loaded/executed",
+    "Qt6Pdf_direct_importers": {
+      "PySide6/plugins/imageformats/qpdf.dll": [
+        "KERNEL32.dll",
+        "Qt6Core.dll",
+        "Qt6Gui.dll",
+        "Qt6Pdf.dll",
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll"
+      ]
+    },
+    "Qt6Pdf_imports": [
+      "ADVAPI32.dll",
+      "GDI32.dll",
+      "KERNEL32.dll",
+      "MSVCP140.dll",
+      "Qt6Core.dll",
+      "Qt6Gui.dll",
+      "Qt6Network.dll",
+      "USER32.dll",
+      "VCRUNTIME140.dll",
+      "VCRUNTIME140_1.dll",
+      "WINMM.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-environment-l1-1-0.dll",
+      "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
+      "api-ms-win-crt-time-l1-1-0.dll",
+      "api-ms-win-crt-utility-l1-1-0.dll"
+    ],
+    "plugin_file_presence_not_runtime_load_proof": true
+  }
+}

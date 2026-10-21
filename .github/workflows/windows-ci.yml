@@ -31,7 +31,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install project and build dependency
-        run: python -m pip install -e ".[build]"
+        run: |
+          python -m pip install -r requirements-build.txt
+          python -m pip install --no-build-isolation -c requirements-build.txt -e ".[build]"
 
       - name: Validate canonical source
         run: python scripts/validate_canonical.py
@@ -85,7 +87,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install project and build dependency
-        run: python -m pip install -e ".[build]"
+        run: |
+          python -m pip install -r requirements-build.txt
+          python -m pip install --no-build-isolation -c requirements-build.txt -e ".[build]"
 
       - name: Validate exact-head canonical source
         run: python scripts/validate_canonical.py

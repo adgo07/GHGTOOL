@@ -17,3 +17,11 @@
 ## 交付边界
 
 用户授权“收口并交付”本轮落实为可追溯工程候选：稳定后一个PR正常CI，源独立验收，不自动合并；下载实际精确代码head的ZIP至新建获准交付目录，保留ZIP/manifest/provenance/摘要/日志并核文件集合和逐文件hash。短期Actions链接不作为永久保全。无原生桌面/CU/Office/IME/人工DPI/干净机、无企业真实数据、无付费服务或商业Release，不进RS04/05/第二标准，不宣布完整SUPPORTED。上述正式产品门禁继续OPEN。
+
+## 工程候选实包发现与已授权最小构建修复
+
+CI296（PR57 fcc69c1）完整1040/1260.347s、G08 18/9.434s、构建/审计/2启动成功；原ZIP75,751,742 bytes与API/upload/local SHA b92384e4456aecaad0dc781a6910373c1c6b9f3a44477a044b58bba025c506c8相同，323路径/322逐文件hash/manifest三提交身份通过。但实包Qt/PySide6为6.12.0、Python3.12.10，与本地性能Qt6.11.2/Python3.12.14不同，并含未消费qpdf图像插件/Qt6Pdf.dll；交付HOLD，不外推本地性能。
+
+静态原始材料证明该Qt6Pdf.dll来自官方PySide6_Pdf6.12.0.140 Windows wheel，字节相等；其METADATA提供LGPLv3/GPL选项，不是GPL-only结论。PE静态唯一直接导入者为qpdf.dll，产品只读品牌PNG/图标SVG，无PDF图像消费；未加载候选DLL/EXE验证运行依赖。完整许可/第三方履约仍OPEN。
+
+根因是CI只安装pyproject宽范围，未消费已有requirements-build固定约束。源已转达用户授权同包最小修复：CI/交付安装统一-r/-c既有约束并复用已装固定build backend；按既有安全机制只从新构建产物排除未用qpdf插件及Qt6Pdf依赖；audit守卫、隔离PNG/SVG probe和必要G08测试。pyproject支持范围、Pythonpatch、业务/模板/性能均不改。修复后本地G08 22/18.688s OK（含18重跑+4新项，不与先前114混加），0失败/错误/跳过。保留PR57、CI296原包/HOLD；新精确head正常CI与新独立目录通过前不解除HOLD，不自动合并或商业放行。

@@ -30,6 +30,7 @@ from packages.ui.view_models import AppRoute
 from scripts.build_standalone import (
     _remove_unpacked_docx_template,
     _remove_unused_virtual_keyboard,
+    _remove_unused_pdf_image_plugin,
     _validate_approved_template_inputs,
     _write_manifest,
 )
@@ -78,6 +79,57 @@ def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
 
 
 class G08DeliveryTests(unittest.TestCase):
+    def test_unused_pdf_image_exclusion_preserves_png_svg_and_core(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            removed = ("PySide6/plugins/imageformats/qpdf.dll", "Qt6Pdf.dll", "PySide6/Qt6Pdf.dll")
+            kept = ("PySide6/plugins/imageformats/qsvg.dll", "PySide6/plugins/imageformats/qjpeg.dll", "PySide6/Qt6Gui.dll")
+            for relative in (*removed, *kept):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(relative.encode())
+            _remove_unused_pdf_image_plugin(root)
+            self.assertTrue(all(not (root / path).exists() for path in removed))
+            for relative in kept:
+                self.assertEqual((root / relative).read_bytes(), relative.encode())
+
+    def test_pdf_image_exclusion_rejects_external_or_symlink_candidate(self):
+        original_resolve, original_is_symlink = Path.resolve, Path.is_symlink
+        for guard in ("symlink", "outside-root"):
+            with self.subTest(guard=guard), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "artifact"
+                candidate = root / "PySide6/plugins/imageformats/qpdf.dll"
+                candidate.parent.mkdir(parents=True)
+                candidate.write_bytes(b"must-not-unlink")
+                outside = Path(directory) / "external.dll"
+                def resolve(path, *args, **kwargs):
+                    return outside if guard == "outside-root" and path == candidate else original_resolve(path, *args, **kwargs)
+                def is_symlink(path):
+                    return (guard == "symlink" and path == candidate) or original_is_symlink(path)
+                with patch.object(Path, "resolve", resolve), patch.object(Path, "is_symlink", is_symlink), patch.object(Path, "unlink") as unlink:
+                    with self.assertRaisesRegex(RuntimeError, "external Qt component"):
+                        _remove_unused_pdf_image_plugin(root)
+                    unlink.assert_not_called()
+                self.assertEqual(candidate.read_bytes(), b"must-not-unlink")
+
+    def test_package_audit_rejects_unused_pdf_images_without_license_claim(self):
+        for relative in ("Qt6Pdf.dll", "PySide6/Qt6Pdf.dll", "PySide6/plugins/imageformats/qpdf.dll"):
+            with self.subTest(path=relative), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"unapproved package scope")
+                issues = inspect_release(root)
+                self.assertTrue(any("unused PDF image component" in issue for issue in issues))
+                self.assertFalse(any("GPL-only Qt PDF" in issue for issue in issues))
+
+    def test_actual_png_and_svg_resources_decode(self):
+        from scripts.standalone_entry import verify_image_resources
+        application = QApplication.instance() or QApplication([])
+        result = verify_image_resources()
+        self.assertEqual(set(result), {"branding/qingzhou_logo.png", "icons/home.svg"})
+        self.assertTrue(all(min(size) > 0 for size in result.values()))
+
     def test_unused_virtual_keyboard_exclusion_keeps_native_qt_components(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

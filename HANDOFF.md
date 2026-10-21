@@ -15,3 +15,9 @@ root负责四行最终容器候选、独立性能证据、必要回归、工程�
 唯一候选四行已形成生产提交58e788be36dc0d3263c48e59e5d464c2549139b5；不再扩展性能工作。实际30像素/两完整状态相等，正式20对/40进程和114不同本地回归通过，实际命令/数量/耗时、4个不利配对与环境限制见IMPLEMENTATION_REPORT及n-final-closeout/VALIDATION、COMPARISON。正式paired median14.7399%不等于聚合median6.15%，仍有数秒构造与大波动，不声称SLA。
 
 本包只运行一次正常PR CI；最终精确head、tested merge、实际ZIP/manifest/逐文件hash及本地保全路径在PR回执、最终交付目录CI_RECEIPT/DELIVERY_RECEIPT和交付说明中登记，不为事后状态再推纯文档/重跑CI。源负责独立验收，新PR不自动合并。正式交付门禁OPEN与工程候选已交付必须分列。
+
+## CI296后候选HOLD与最小构建修复
+
+CI296成功和原ZIP完整性不撤销，但不背书后续head。实包Qt6.12/Python3.12.10与本地Qt6.11.2/Python3.12.14不同，且qpdf插件携带Qt6Pdf依赖；先HOLD并保全原包。准确官方wheel/许可选项/PE链与原ZIP身份见当前报告及交付evidence/license-review，不因DLL名字误判GPL-only。
+
+源已授权原PR57内最小构建修复：CI及交付安装消费已有requirements-build约束，不扩大pyproject支持范围；新产物排除未消费qpdf/Qt6Pdf组件、审计拒绝残留，CI实际包增加隔离PNG/SVG解码probe后再原两次启动。无新性能候选或复测。已实际本地G08 22/18.688s OK；需一次新精确CI、重新下载新ZIP至新目录核manifest/逐文件hash和实际依赖，再源独立验收。旧296目录不覆盖，不以删DLL后的旧包冒充新包；全产品许可履约/原生/企业门禁继续OPEN。

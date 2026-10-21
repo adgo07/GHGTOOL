@@ -26,7 +26,8 @@
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[build]"
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip install --no-build-isolation -c requirements-build.txt -e ".[build]"
 .\.venv\Scripts\python.exe scripts\build_standalone.py --clean
 ```
 
@@ -213,6 +214,12 @@ GitHub workflow `.github/workflows/windows-ci.yml` 当前 `retention-days: 7`；
 4. 保全目录另外收录对应原始构建/审计/启动日志、CI回执、模板与许可来源索引；不混入用户数据库、客户资料或标准全文。库备份继续遵守上文完整data目录规则，独立于交付ZIP。保全记录可并入当前 `IMPLEMENTATION_REPORT.md`，不新建平行发布规范。
 
 静态来源索引：当前模板登记/实际母版对应 `packages/excel/templates.py`、`resources/excel_templates/gb_t_32151_34_2024_appendix_b_v11.xlsx`，本次只读SHA256核得上文b1e843…166c4；构建及包体检查入口是 `scripts/build_standalone.py`、`scripts/inspect_release.py`、`scripts/verify_release_archive.py`；固定依赖是 `requirements-build.txt`。蒸汽许可来源为 `resources/licenses/steam_if97/SOURCES_AND_NOTICES.json`，13份原文加来源清单共14文件，其摘要由包审计固定核对；该材料没有补齐全产品LGPL、VC或其他商业履约。N历史性能原始证据见 `docs/performance/n-first-open/`，其结果不替代交付门禁。本次文档静态阅读未运行上述测试/审计/构建/启动/原生操作；最终本地保全、候选实包核验与本轮执行统计由root报告真实结果，未执行项不填PASS。
+
+## PR57实包HOLD与受控构建修复
+
+CI296原候选ZIP完整性通过，但实包Qt6.12/Python3.12.10不同于本地测量Qt6.11.2/Python3.12.14，且未消费qpdf图像插件带入Qt6Pdf.dll。原包单独保留HOLD，不将离屏性能外推该包。准确官方PySide6_Pdf6.12.0.140 wheel METADATA提供LGPLv3/GPL选项，不按DLL名误判GPL-only；完整许可与第三方通知履约仍OPEN。
+
+产品只消费批准PNG/SVG，不读取PDF图像。用户授权最小修复后，CI及上文交付安装统一消费已有requirements-build固定约束；pyproject源码开发范围和Pythonpatch策略不变。构建仅排除新产物中qpdf插件及其Qt6Pdf直接依赖，资源审计拒绝残留；实际新包需通过PNG/SVG隔离probe、原两次启动、完整manifest/hash与来源验证，另存新目录，不能修改旧ZIP冒充修复。当前新head/新包检查结果以PR及交付回执为准；新包验证前HOLD不解除，移除一个DLL不代表商业可分发。
 
 ## GitHub Actions 费用边界与 CI 节约
 

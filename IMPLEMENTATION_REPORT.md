@@ -10,7 +10,7 @@
 
 源转达用户“进行收口并交付”，本轮限于已有热点的一轮最小可逆收口和工程候选准备；原生操作禁令继续。root为唯一生产作者/测量者；gpt-6.1-sol/medium静态代理只写docs/DELIVERY.md，没有测试/build/GUI/测量或其他文件写入。root复核其diff、真实v11哈希及样例锚点。新树与根用户文件隔离，未付费/改仓库可见性/购买服务。
 
-生产仅四行：来源卡片、统一能源卡片/能源行、过程行在最终布局parentWidget下创建。既有分项中来源卡片/子树构造为热点；本改动避免填充后插入时再换父，不改变样式应用时点或任何业务语句。未减少控件/内容/输入、未lazy/缓存、未跳资格/刷新/校验/持久化。Application/Domain/Resolver/Numeric/Record/Word/codec/数据库/模板/规则版本、中央锁与旧N数据零diff。无新增依赖、框架、产品阶段或第二路线。
+业务/UI生产改动仅四行（后续构建交付修复另列）：来源卡片、统一能源卡片/能源行、过程行在最终布局parentWidget下创建。既有分项中来源卡片/子树构造为热点；本改动避免填充后插入时再换父，不改变样式应用时点或任何业务语句。未减少控件/内容/输入、未lazy/缓存、未跳资格/刷新/校验/持久化。Application/Domain/Resolver/Numeric/Record/Word/codec/数据库/模板/规则版本、中央锁与旧N数据零diff。无新增依赖、框架、产品阶段或第二路线。
 
 ## 有限候选与正式证据
 
@@ -47,7 +47,7 @@
 
 ## 工程候选与交付出口
 
-当前本地证据稳定后只创建一个PR、正常一轮required CI；本地未做全量或standalone build，不把CI写成本地结果，不复用旧CI294。最终head、tested merge、真实G08/全量数量与制品审计/启动统计以本PR回执补充；不为CI后纯状态再push重跑。
+当前始终保持一个PR57；原计划一轮CI296已完成，实包核验发现下述构建缺陷后，用户授权最小修复及一次新精确head CI；本地未做全量或standalone build，不把CI写成本地结果，不复用旧CI294。最终head、tested merge、真实G08/全量数量与制品审计/启动统计以本PR回执补充；不为CI后纯状态再push重跑。
 
 本轮会在获准工作空间新建独立交付目录，保存该精确head实际Actions ZIP、原样manifest、ZIP/manifest及逐文件hash/size、provenance、原始CI日志与凭据、受控模板和合成验证输入/独立算式/简明说明；不覆盖用户文件或把7天Actions链接当永久保全。只有实际下载、完整文件集合/逐文件摘要及受控资源审计通过，才在最终交付凭据写“已保全”。该凭据与PR说明记录最终真实路径、摘要与数量，源码报告此处不是预填成功。
 
@@ -56,3 +56,15 @@ DELIVERY复用现有流程，补了购热0.308与独立补充20.308的合成样�
 ## 未执行与已知限制
 
 无原生桌面/CU/替代控制、原生Excel/WPS/Word、鼠标/IME/人工DPI、Windows10/11干净机或真实企业资料验证；合成样例不是企业验收，离屏测试不替代上述门禁。无商业许可采购/法律放行/代码签名/安装器/商业Release，不宣布完整SUPPORTED，不自动进入RS04/05或下一标准。当前交付是可追溯工程候选；正式交付清单门禁OPEN。源负责独立验收，新PR不自动合并。
+
+## CI296实包核验、HOLD及已授权最小构建修复
+
+CI296 run39624195759：merge job119305201523测试c71fc4348bd1841f0458a7d988d8aaa49b7321a1，1040/1260.347s/OK；exact-head job119317483271，18/9.434s/OK、审计322/归档323/来源与两启动成功。原artifact12358366858，75,751,742 bytes，ZIP SHA256 b92384e4456aecaad0dc781a6910373c1c6b9f3a44477a044b58bba025c506c8，原manifest56,914 bytes SHA a51e986f1c8f8d9e3d22076c243fce6ff2879b46589bb0e80048b9e6d6058158。已本地实际保全，323路径无重复/越界，322逐文件大小/hash、manifest副本及source/pr_head=fcc69c1、testedmerge=c71fc434全部核对。此为旧候选真实证据，未删改/重封装，不冒作修复后包。
+
+新发现：CI安装日志/实包静态PE版本为PySide6/Qt6.12.0、Python3.12.10；本地正式计时/114回归是Qt6.11.2、Python3.12.14，不外推本地数字到实包。实包Qt6Pdf.dll来自官方PyPI PySide6_Pdf6.12.0.140 Windows wheel（wheel SHA4971ba1a0ca15e7c29cfd808e9600aeb46b2305dad01456eb09fa3197166268e），DLL4,623,672 bytes SHA5caf5744e017df85455c5c7e11028c5ec2765633a7ca64a11d7b64d127f6c4cc逐字节相等。METADATA提供LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only，不能说GPL-only；wheel只附Commercial引用文本，不代表全部LGPL/PDFium等第三方履约已完成。[官方wheel元数据](https://pypi.org/pypi/PySide6_Pdf/6.12.0.140/json)及[Qt PDF官方许可说明](https://doc.qt.io/qt-6/qtpdf-licensing.html)保留；后者当前重定向6.140文档快照，不能替代该wheel材料。
+
+PE静态扫描149个可执行格式文件无解析失败，唯一直接import Qt6Pdf.dll的文件为PySide6/plugins/imageformats/qpdf.dll；apps/packages无QtPdf/QPdf/PDF图像消费者，QPixmap只用品牌PNG/图标SVG。文件存在、PE导入关系不等于已测运行时加载情况；没有运行本地候选EXE/PYZ或原生控制。交付立即HOLD，源暂不最终签PASS。
+
+根因：pyproject允许PySide6>=6.8,<7和PyInstaller宽范围，而CI两个job只pip install -e .[build]，未消费已有requirements-build.txt，导致Qt6.12/hooks2026.9等漂移。用户通过源明确授权最小构建修复：CI/交付安装先-r现有固定约束，再--no-build-isolation -c同文件安装editable，固定已验证Qt/PySide/shiboken/Essentials/Addons6.11.2与hooks2026.8，复用已有固定setuptools；不改变普通源码开发支持范围或强行对齐Pythonpatch。仅从新产物排除未消费qpdf插件及root/nested Qt6Pdf.dll，逐路径软链/越界守卫复用既有机制；audit以包范围拒绝残留，不作GPL-only断言。不删除源材料、历史包或其他Qt库。
+
+新增仅工程probe：standalone entry在专用测试环境变量下离屏解码真实PNG/SVG、写新临时proof后退出；普通入口仍main、不进入新产品流程。smoke先核该实际包probe，再原两次隔离启动，确保排除不破坏产品图像。新增G08四项覆盖排除/保留范围、路径安全、资源守卫和真实图像解码。修复后本地命令python -B -m unittest tests.test_g08_delivery -v：22 tests/18.688s/OK，0失败/错误/跳过（18重跑+4新项，不能与原114直接加总当新head全量）。之后仅一次必要新精确CI/原ZIP保全到新目录；HOLD在实际新包及源验收前保留。移除未用组件不是商业法律放行，其他许可/第三方通知、原生/企业/正式Release门禁仍OPEN。
