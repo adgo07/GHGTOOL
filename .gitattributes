@@ -26,3 +26,8 @@ scripts/profile_n_first_balanced.py text eol=lf
 scripts/probe_n_first_candidates.py text eol=lf
 scripts/snapshot_n_first_open.py text eol=lf
 scripts/summarize_n_first_open.py text eol=lf
+
+# 最终有限收口控制装置保持实际采样字节（包含原末尾CRLF）。
+# 仅该诊断脚本不作Git换行转换；业务Python与其他脚本规则不变。
+scripts/profile_n_final_closeout.py -text whitespace=cr-at-eol
+docs/performance/n-final-closeout/*.json -text
