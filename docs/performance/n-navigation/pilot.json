@@ -1,0 +1,482 @@
+{
+  "schema": 1,
+  "base": "e186b5116f16861bc65fbb939abec750a39d7f0e",
+  "head": "e186b5116f16861bc65fbb939abec750a39d7f0e",
+  "production_sha256": "fb3b28cbb8b4435d12d8707d0d03ffcca02cf56d26bc5f9bfdb71ce7ee3a48e5",
+  "production_diff": "",
+  "script_sha256": "c161dbecf0d47a3eb1ef695ff3d71156bbd4619cc086df90066e9306ae462909",
+  "environment_before": {
+    "utc": "2026-10-21T01:07:55.046292+00:00",
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.14",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "logical_cpus": 12,
+    "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":21138.96875},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":11269.265625},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":10705.84375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":3188.484375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":2456.96875},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":2418.5625},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":2287.390625},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":1848.578125}]",
+    "background_probe_exit": 0
+  },
+  "data": {
+    "synthetic_records": 200,
+    "projects": 20,
+    "viewport": "1280x800",
+    "platform": "offscreen"
+  },
+  "workers": [
+    {
+      "compose_ns": 1870341600,
+      "qt": "6.11.2",
+      "samples": [
+        {
+          "route": "home",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3400,
+            "ancestor_stylesheet": 20372000,
+            "geometry": 1343900,
+            "show_route": 24049400
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 29736000,
+          "created": false,
+          "navigate_ns": 24082400,
+          "event_pump_ns": 16242800,
+          "total_ns": 40325200,
+          "correct_page": true
+        },
+        {
+          "route": "standards",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3500,
+            "ancestor_stylesheet": 20437200,
+            "geometry": 778400,
+            "show_route": 24857500
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 28356300,
+          "created": false,
+          "navigate_ns": 24879200,
+          "event_pump_ns": 6802300,
+          "total_ns": 31681500,
+          "correct_page": true
+        },
+        {
+          "route": "new_accounting",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "records_full_query": 126658900,
+            "projects_full_query": 7352600,
+            "project_revision_query": 516600,
+            "ensure_page": 3892183100,
+            "ancestor_stylesheet": 627142200,
+            "geometry": 6227600,
+            "show_route": 4757134600
+          },
+          "calls": {
+            "records_full_query": 1,
+            "projects_full_query": 2,
+            "project_revision_query": 1,
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 6,
+            "show_route": 1
+          },
+          "first_paint_ns": 4981007200,
+          "created": true,
+          "navigate_ns": 4757169000,
+          "event_pump_ns": 262107100,
+          "total_ns": 5019276100,
+          "correct_page": true
+        },
+        {
+          "route": "excel_import",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "projects_full_query": 3850000,
+            "ensure_page": 4412755200,
+            "ancestor_stylesheet": 558210600,
+            "geometry": 5946900,
+            "show_route": 4989974600
+          },
+          "calls": {
+            "projects_full_query": 1,
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 5,
+            "show_route": 1
+          },
+          "first_paint_ns": 5017610000,
+          "created": true,
+          "navigate_ns": 4990011600,
+          "event_pump_ns": 30590300,
+          "total_ns": 5020601900,
+          "correct_page": true
+        },
+        {
+          "route": "records",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "records_summary_query": 4364600,
+            "projects_full_query": 3622300,
+            "ensure_page": 316408700,
+            "ancestor_stylesheet": 683341000,
+            "geometry": 905200,
+            "show_route": 1024910900
+          },
+          "calls": {
+            "records_summary_query": 1,
+            "projects_full_query": 1,
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 1063205200,
+          "created": true,
+          "navigate_ns": 1024943600,
+          "event_pump_ns": 43203900,
+          "total_ns": 1068147500,
+          "correct_page": true
+        },
+        {
+          "route": "factors",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 133368500,
+            "ancestor_stylesheet": 704630200,
+            "geometry": 1085800,
+            "show_route": 857336800
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 887008700,
+          "created": true,
+          "navigate_ns": 857370600,
+          "event_pump_ns": 34076200,
+          "total_ns": 891446800,
+          "correct_page": true
+        },
+        {
+          "route": "settings",
+          "kind": "first_use",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 19361400,
+            "ancestor_stylesheet": 692899900,
+            "geometry": 1082300,
+            "show_route": 725706900
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 752972700,
+          "created": true,
+          "navigate_ns": 725745500,
+          "event_pump_ns": 28387800,
+          "total_ns": 754133300,
+          "correct_page": true
+        },
+        {
+          "route": "home",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3800,
+            "ancestor_stylesheet": 686809500,
+            "geometry": 1095800,
+            "show_route": 694738800
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 724956500,
+          "created": false,
+          "navigate_ns": 694769300,
+          "event_pump_ns": 44883300,
+          "total_ns": 739652600,
+          "correct_page": true
+        },
+        {
+          "route": "standards",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3100,
+            "ancestor_stylesheet": 697648900,
+            "geometry": 839700,
+            "show_route": 708653400
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 735722600,
+          "created": false,
+          "navigate_ns": 708676800,
+          "event_pump_ns": 30355700,
+          "total_ns": 739032500,
+          "correct_page": true
+        },
+        {
+          "route": "new_accounting",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 8900,
+            "ancestor_stylesheet": 698243400,
+            "geometry": 7371600,
+            "show_route": 717692600
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 5,
+            "show_route": 1
+          },
+          "first_paint_ns": 767777900,
+          "created": false,
+          "navigate_ns": 717727300,
+          "event_pump_ns": 54531300,
+          "total_ns": 772258600,
+          "correct_page": true
+        },
+        {
+          "route": "excel_import",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 10000,
+            "ancestor_stylesheet": 690677400,
+            "geometry": 6625200,
+            "show_route": 708125600
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 5,
+            "show_route": 1
+          },
+          "first_paint_ns": 735395400,
+          "created": false,
+          "navigate_ns": 708162200,
+          "event_pump_ns": 29685600,
+          "total_ns": 737847800,
+          "correct_page": true
+        },
+        {
+          "route": "records",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3500,
+            "ancestor_stylesheet": 712609400,
+            "geometry": 910400,
+            "projects_full_query": 3869200,
+            "show_route": 866334700
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "projects_full_query": 1,
+            "show_route": 1
+          },
+          "first_paint_ns": 898131800,
+          "created": false,
+          "navigate_ns": 866367600,
+          "event_pump_ns": 36527800,
+          "total_ns": 902895400,
+          "correct_page": true
+        },
+        {
+          "route": "factors",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 4400,
+            "ancestor_stylesheet": 749812000,
+            "geometry": 1014400,
+            "show_route": 762476700
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 788636100,
+          "created": false,
+          "navigate_ns": 762516700,
+          "event_pump_ns": 30614800,
+          "total_ns": 793131500,
+          "correct_page": true
+        },
+        {
+          "route": "settings",
+          "kind": "steady_home_reset",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3400,
+            "ancestor_stylesheet": 755716200,
+            "geometry": 1118100,
+            "show_route": 767047800
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 4,
+            "show_route": 1
+          },
+          "first_paint_ns": 794398800,
+          "created": false,
+          "navigate_ns": 767080900,
+          "event_pump_ns": 28255500,
+          "total_ns": 795336400,
+          "correct_page": true
+        },
+        {
+          "route": "standards",
+          "kind": "steady_business_direct",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3100,
+            "ancestor_stylesheet": 759326200,
+            "geometry": 168300,
+            "show_route": 766019900
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 3,
+            "show_route": 1
+          },
+          "first_paint_ns": 789670500,
+          "created": false,
+          "navigate_ns": 766048000,
+          "event_pump_ns": 27128200,
+          "total_ns": 793176200,
+          "correct_page": true
+        },
+        {
+          "route": "records",
+          "kind": "steady_business_direct",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3700,
+            "ancestor_stylesheet": 754921000,
+            "geometry": 200400,
+            "show_route": 766605700
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 3,
+            "show_route": 1
+          },
+          "first_paint_ns": 793002600,
+          "created": false,
+          "navigate_ns": 766631700,
+          "event_pump_ns": 30555900,
+          "total_ns": 797187600,
+          "correct_page": true
+        },
+        {
+          "route": "factors",
+          "kind": "steady_business_direct",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 3200,
+            "ancestor_stylesheet": 777360500,
+            "geometry": 269100,
+            "show_route": 789569900
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 3,
+            "show_route": 1
+          },
+          "first_paint_ns": 814026600,
+          "created": false,
+          "navigate_ns": 789596900,
+          "event_pump_ns": 28451500,
+          "total_ns": 818048400,
+          "correct_page": true
+        },
+        {
+          "route": "settings",
+          "kind": "steady_business_direct",
+          "iteration": 0,
+          "parts_ns": {
+            "ensure_page": 4000,
+            "ancestor_stylesheet": 782858500,
+            "geometry": 446400,
+            "show_route": 789683700
+          },
+          "calls": {
+            "ensure_page": 1,
+            "ancestor_stylesheet": 1,
+            "geometry": 3,
+            "show_route": 1
+          },
+          "first_paint_ns": 813557800,
+          "created": false,
+          "navigate_ns": 789710200,
+          "event_pump_ns": 24738800,
+          "total_ns": 814449000,
+          "correct_page": true
+        }
+      ],
+      "environment_after": {
+        "utc": "2026-10-21T01:08:30.807021+00:00",
+        "os": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.14",
+        "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+        "logical_cpus": 12,
+        "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+        "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":21147.328125},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":11271.984375},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":10709.8125},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":3188.484375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":2457},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":2420.78125},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":2288.15625},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":1848.703125}]",
+        "background_probe_exit": 0
+      },
+      "process_total_ns": 36019927500
+    }
+  ],
+  "failures": [],
+  "environment_after": {
+    "utc": "2026-10-21T01:08:33.884925+00:00",
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.14",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "logical_cpus": 12,
+    "power_plan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+    "top_process_cumulative_cpu": "[{\"ProcessName\":\"ZSpaceSync\",\"Id\":21128,\"CPU\":21148.234375},{\"ProcessName\":\"python\",\"Id\":15320,\"CPU\":11272.65625},{\"ProcessName\":\"极空间\",\"Id\":23564,\"CPU\":10710.1875},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":22104,\"CPU\":3188.484375},{\"ProcessName\":\"DeepSeek Harness\",\"Id\":21756,\"CPU\":2457},{\"ProcessName\":\"星云\",\"Id\":15104,\"CPU\":2420.84375},{\"ProcessName\":\"ZSpaceSync\",\"Id\":24180,\"CPU\":2288.21875},{\"ProcessName\":\"ChatGPT\",\"Id\":15176,\"CPU\":1848.703125}]",
+    "background_probe_exit": 0
+  }
+}

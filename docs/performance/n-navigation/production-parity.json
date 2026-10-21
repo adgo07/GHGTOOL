@@ -1,0 +1,200 @@
+{
+  "head": "e186b5116f16861bc65fbb939abec750a39d7f0e",
+  "production_diff": "diff --git a/packages/ui/shell.py b/packages/ui/shell.py\nindex 4c83b8d..7612e33 100644\n--- a/packages/ui/shell.py\n+++ b/packages/ui/shell.py\n@@ -60,6 +60,28 @@ _SIDEBAR_ACTIVE = \"#116FAE\"\n _SIDEBAR_ACTIVE_BACKGROUND = \"#D6EBF9\"\n \n \n+class ContentHost(QWidget):\n+    \"\"\"Paint the canvas on a sibling of the pages, without repolishing editors.\"\"\"\n+\n+    def __init__(self) -> None:\n+        super().__init__()\n+        self.background_layer = QWidget(self)\n+        self.background_layer.setObjectName(\"scrollCanvas\")\n+        self.background_layer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)\n+        self.background_layer.setFocusPolicy(Qt.FocusPolicy.NoFocus)\n+        self.background_layer.lower()\n+\n+    def set_background(self, background: str) -> None:\n+        style = f\"QWidget#scrollCanvas {{ background: {background}; }}\"\n+        if self.background_layer.styleSheet() != style:\n+            self.background_layer.setStyleSheet(style)\n+\n+    def resizeEvent(self, event) -> None:  # type: ignore[no-untyped-def]\n+        super().resizeEvent(event)\n+        self.background_layer.setGeometry(self.rect())\n+        self.background_layer.lower()\n+\n+\n class ContentScrollArea(QScrollArea):\n     \"\"\"Scroll area that keeps the main content vertically scrollable only.\"\"\"\n \n@@ -451,7 +473,7 @@ class AppShell(QWidget):\n             Qt.ScrollBarPolicy.ScrollBarAsNeeded\n         )\n \n-        scroll_host = QWidget()\n+        scroll_host = ContentHost()\n         scroll_host.setObjectName(\"scrollHost\")\n         self.scroll_host = scroll_host\n         scroll_layout = QVBoxLayout(scroll_host)\n@@ -499,9 +521,7 @@ class AppShell(QWidget):\n                 self._invalidate_project_views()\n         page = self._ensure_page(route)\n         background = HOME_CANVAS_GRADIENT if route is AppRoute.HOME else PAGE_BACKGROUND\n-        self.scroll_host.setStyleSheet(\n-            f\"QWidget#scrollHost {{ background: {background}; }}\"\n-        )\n+        self.scroll_host.set_background(background)\n         self._sidebar.setVisible(route is not AppRoute.HOME)\n         self.page_stack.setCurrentWidget(page)\n         self._visible_route = route",
+  "script_sha256": "47229d1d88d3850bec521d3c791bdf97aee585f2ee9c79ec61ee185f70463035",
+  "scope": "offscreen/same-state; actual full-catalog production pages; not native DPI acceptance",
+  "cases": [
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "home",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "18b71142771c06a7097c6babe3dacd120984f19b74dd192a7ae6fe89ecde77d0",
+      "isolated_sha256": "18b71142771c06a7097c6babe3dacd120984f19b74dd192a7ae6fe89ecde77d0",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "standards",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "690cdac135091aa40cd99746e3507b893190a7c6e3b587ff63415a274a04171a",
+      "isolated_sha256": "690cdac135091aa40cd99746e3507b893190a7c6e3b587ff63415a274a04171a",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "new_accounting",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "39c2c491506bf1d034703938137d881c385213ec78bbb35dc2f0a70178202d24",
+      "isolated_sha256": "39c2c491506bf1d034703938137d881c385213ec78bbb35dc2f0a70178202d24",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "new_accounting",
+      "bottom": true,
+      "pixels_equal": true,
+      "legacy_sha256": "1ff43188225e4a4b69474c3923733dc7149ddc98c6f283349a6ee4fb01160974",
+      "isolated_sha256": "1ff43188225e4a4b69474c3923733dc7149ddc98c6f283349a6ee4fb01160974",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "excel_import",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "d32b93dc7e29e18a7654b74f424a986f4ac97b25a60bda8971404c18af3a4310",
+      "isolated_sha256": "d32b93dc7e29e18a7654b74f424a986f4ac97b25a60bda8971404c18af3a4310",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "records",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "136e90e98a6de952cf8fed2277c1b76e70edc01bb6101a25316a6796500d4593",
+      "isolated_sha256": "136e90e98a6de952cf8fed2277c1b76e70edc01bb6101a25316a6796500d4593",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "factors",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "9dea75463dde3ed52c30cf1ae6b53dbe18df9ccb5ddc2dce5a1b7e95f0157e14",
+      "isolated_sha256": "9dea75463dde3ed52c30cf1ae6b53dbe18df9ccb5ddc2dce5a1b7e95f0157e14",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1180,
+        720
+      ],
+      "route": "settings",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "b2d620e53bf17d83c1a66851ade1b3b7a85dba70370564595bdd897144932495",
+      "isolated_sha256": "b2d620e53bf17d83c1a66851ade1b3b7a85dba70370564595bdd897144932495",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "home",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "cafd0abfa4a1d5f95f74033144f227fb223213a14b81bfd929888a7b92c8d704",
+      "isolated_sha256": "cafd0abfa4a1d5f95f74033144f227fb223213a14b81bfd929888a7b92c8d704",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "standards",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "438ae17442808046d432c1a588421fe18a4b14d5e08398c8d07127c39a9f8983",
+      "isolated_sha256": "438ae17442808046d432c1a588421fe18a4b14d5e08398c8d07127c39a9f8983",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "new_accounting",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "be74b13e5440ae67b2df850a7e4daa69d5269c539c3acd0ac2a5d20a75a61cde",
+      "isolated_sha256": "be74b13e5440ae67b2df850a7e4daa69d5269c539c3acd0ac2a5d20a75a61cde",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "new_accounting",
+      "bottom": true,
+      "pixels_equal": true,
+      "legacy_sha256": "f3852c24c45f88dd88d7307bf61cf45e4559f7162fd6fc9fbd39b27399c5d586",
+      "isolated_sha256": "f3852c24c45f88dd88d7307bf61cf45e4559f7162fd6fc9fbd39b27399c5d586",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "excel_import",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "d572750b7262788c102f49dda0da938e5029390527e6484cb1a379f28fead961",
+      "isolated_sha256": "d572750b7262788c102f49dda0da938e5029390527e6484cb1a379f28fead961",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "records",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "2a003a1f1be3c8b8eb3dd1e405cffd4c6523ecad6f8c2f5d8cd8d6dce7240a61",
+      "isolated_sha256": "2a003a1f1be3c8b8eb3dd1e405cffd4c6523ecad6f8c2f5d8cd8d6dce7240a61",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "factors",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "db9b76f0eb19fb5295481ac1307a34f959903c304d6045310f209d00f335f998",
+      "isolated_sha256": "db9b76f0eb19fb5295481ac1307a34f959903c304d6045310f209d00f335f998",
+      "canvas_matches_host": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "route": "settings",
+      "bottom": false,
+      "pixels_equal": true,
+      "legacy_sha256": "8bbf77f76be36d99d5fd09f62775ba66bfd562842b1beffd16dcf54fed088894",
+      "isolated_sha256": "8bbf77f76be36d99d5fd09f62775ba66bfd562842b1beffd16dcf54fed088894",
+      "canvas_matches_host": true
+    }
+  ]
+}

@@ -9,3 +9,10 @@ docs/ci/B_HEAT_*PROOF.json -text
 # N原始计时证据保留现场字节；执行副本与LF文本脚本身份见SCRIPT_NORMALIZATION.json。
 docs/performance/n-baseline/raw.json -text whitespace=cr-at-eol
 scripts/measure_n_baseline.py text eol=lf
+
+# 本次N原始证据按字节保留。
+docs/performance/n-navigation/*.json -text
+scripts/profile_n_navigation.py text eol=lf
+scripts/probe_n_same_style.py text eol=lf
+scripts/probe_n_background_parity.py text eol=lf
+scripts/repeat_n_from_seed.py text eol=lf
