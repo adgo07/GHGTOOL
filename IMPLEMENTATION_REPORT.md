@@ -1,6 +1,6 @@
 # B总体收口盘点＋N性能基线测量 — 实施报告
 
-状态：IMPLEMENTED — B盘点与N基线完成，集成证据已核，待源独立验收。日期2026-10-20。
+状态：1724基线已获源独立PASS；2026-10-21收尾增量待源复核后统一PR与本轮检查，当前未合并/未优化。原测量日期仍为2026-10-20。
 
 ## 平台 / Contract 预检查
 
@@ -32,7 +32,7 @@
 
 环境为Windows10/19045 x64、Python3.12.14、PySide6/Qt6.11.2、CoolProp8/NumPy2.3.3等，完整版本/CPU标识见raw。CPU友好型号/RAM的CIM补充查询权限不足，不伪填。一次shell重定向父目录未建导致Python未启动，建目录后唯一真实测量成功；此为准备失败，不计入14指标失败。测量期间只一个执行者，无其他性能/测试/build并发。N不改生产代码、不优化、不安装新依赖、不把源码/离屏/合成样例冒作精确EXE/人工操作/企业样例或SLA。
 
-## 历史证据和本轮未执行
+## 截至原测量/本地交付时点的历史证据和未执行项
 
 PR53的CI288在head2dbb104：全量1036/1606.482s，G08 18/11.080s，0失败/错误/跳过；真实制品12272798465及其哈希见PR53最终说明。这是先前GitHub执行，不是本轮本地执行，也不冒作merge348的新精确制品。本轮不重做该全量/构建，不重触昂贵CI；不改workflow或绕过required checks。无需创建goal工具。完成测量和必要静态核验后送源独立验收，不自动合并。
 
@@ -41,9 +41,19 @@ PR53的CI288在head2dbb104：全量1036/1606.482s，G08 18/11.080s，0失败/错
 - `python -B -m scripts.measure_n_baseline`：唯一串行测量，退出0，14组×5成功实测+14暖身，无重跑；原始整数纳秒保留。脚本严格限定348 HEAD，复现需在该基线新隔离树复制脚本，不在文档提交后冒跑不同HEAD。
 - `python -B tmp/b-closeout/check_evidence.py`：8项集成证据检查通过，4注册资源哈希/采用身份与11字段一致；独立重算14组统计；真实临时工作簿哈希、206合成记录/6份DOCX及公开raw隐私有效。首次该临时核验误用records表名，按实际Repository的accounting_records修正后通过，无生产/样本修改。可追踪结果保存到 `docs/architecture/business-rules/evidence/b-closeout-2026-10-20.json`。
 - `python -B -m scripts.measure_n_baseline --help`、`python -B -m py_compile scripts/measure_n_baseline.py`、`git diff --check`均退出0；这些为CLI/编译/差异检查，不伪称业务测试全量。
-- 139个已声明生产文件前后摘要一致；另独立 `git diff 348077c -- apps packages resources data-source tests pyproject.toml platform-lock.json` 为空，补齐Canonical来源与复用测试未改证据。测量脚本SHA256 `f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d`；raw SHA256 `ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac`。Git默认LF转换会改变现场证据，因此仅对这两文件加-text并声明CR为合法行尾，保留字节，不规范化原始数据、不重新采样。
+- 139个已声明生产文件前后摘要一致；另独立 `git diff 348077c -- apps packages resources data-source tests pyproject.toml platform-lock.json` 为空，补齐Canonical来源与复用测试未改证据。当次运行执行副本SHA256 `f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d`；raw SHA256 `ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac`。Git默认LF转换会改变现场证据，因此仅对这两文件加-text并声明CR为合法行尾，保留字节，不规范化原始数据、不重新采样。
 - 未运行完整业务测试、build、新Actions/精确新制品、原生Office或桌面CU，原因分别为生产未改/用户最少CI与当前未授权范围；既有CI288身份单列。本轮未更改workflow/required checks、不绕过合并门禁；先本地稳定提交送源独立验收，不为纯文档PR触发完整Windows CI。未push/建PR/自动合并，未做性能优化/RS04/RS05/商业交付。
 
 暂存差异首次因原始CRLF行尾报空白提示，按两文件专属CR-at-EOL属性保留原始字节；属性文件多余EOF空行已清除，随后cached差异检查通过。该属性仅解释现场证据行尾，不关闭全仓空白检查、不改原始样本。暂存区已独立核原始JSON与执行脚本SHA均与上述现场哈希完全一致。
 
-N本地稳定提交 `ccf3f325fe121a228e37545395a7e9e795f0dbcc`；B治理与静态校验证据为独立后续提交。本包最终head通过Git/源验收交接定位，不生成文档自引用SHA循环。没有推送、PR或新CI，完成后停止等待源独立验收。
+N本地稳定提交 `ccf3f325fe121a228e37545395a7e9e795f0dbcc`；B治理与静态校验证据为独立后续提交。本包最终head通过Git/源验收交接定位，不生成文档自引用SHA循环。以上为原本地交付时点：当时没有push/PR/新CI；之后源已独立验收1724并推送，不能将该句解释成历史没有验收。
+
+## 2026-10-21 定向收尾与验收落仓
+
+源原始验收记录已实际读取，整理入 `docs/performance/n-baseline/ACCEPTANCE.md`；受验1724的PASS限于只读盘点/代表基线，源静态源码/生产diff与独立PowerShell复算14组70样本＋14暖身/哈希均有原记录。源未重跑benchmark/全量测试/CI，作者8项检查与DB/Word实物验证不改标成源执行。第三方指出的是仓内缺少验收落点，不是历史完全没有验收；本次不另造外部执行证据。
+
+raw原字节/原SHA `ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac` 不变。脚本由实际执行副本CRLF字节（SHA `f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d`）仅替换CRLF为LF；当前LF SHA `0b63b81142fcdca549c3017af3a94d0cf494eebc7cf0223e55dedbd14b8a2b0f`，git属性改为text eol=lf。`SCRIPT_NORMALIZATION.json`记录两类身份、字节数及纯换行一致性；不声称原运行是LF，无重测。此前两文件-text的描述属于历史保全时点，当前只有raw继续按字节保留。
+
+当前源已push1724；本次补丁本地完成后先送源增量复核，再集中push/建PR/attach，保留required checks、仅正常一轮CI，不用旧CI288代替。本会话跟进PR/CI，源负责最终检查与合并。合并后下一N定位/优化由源触发，协议与等价性门禁已写现有HANDOFF，当前无生产修改、无优化、无桌面CU或新测量。最终PR/head/检查结果在PR及源回执记录，不为纯状态说明反复push。
+
+收尾本地验证：`python -B tmp/bn-closeout-fix/verify_closeout.py`退出0，核原/现字节的精确CRLF→LF关系和AST、两类脚本哈希、raw原字节/哈希、生产范围无变化、Git LF属性、源原验收记录SHA及新增证据路径脱敏；`python -B -m py_compile scripts/measure_n_baseline.py`、`python -B -m scripts.measure_n_baseline --help`和`git diff --check`均退出0。没有新增性能样本或重跑benchmark；增量先源复核后集中push/PR，当前CI结果后续由新PR确认，不冒用原CI288。

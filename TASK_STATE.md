@@ -1,6 +1,6 @@
 # 当前任务状态 — B总体收口盘点＋N性能基线测量
 
-2026-10-20：IMPLEMENTED — 待源独立验收。PR53已合并，当前任务从最新main `348077cd972a27b6eeb80b77b712e7cb35375988` 隔离分支开始，原根用户工作簿/未跟踪内容和旧PR历史树未动。生产文件保持冻结；测量期间HEAD未变，脚本/文档/证据已本地提交，未push，待源独立验收。
+2026-10-21：受验1724已获源独立PASS（仅B盘点/N代表基线），源已推送至原同名分支；本次收尾增量待源复核后统一push/PR并完成当前required checks。测量冻结348077c不变，当前未启动优化。
 
 ## 平台 / Contract 预检查
 
@@ -14,6 +14,6 @@
 
 ## 后续与开放项
 
-原始数据复算与8项集成证据核验已通过（11字段、14组70实测值、206合成Record、6有效DOCX）；CLI help/py_compile/git diff --check通过。准确命令与一次临时查询表名错误见实施报告。为raw及执行脚本添加Git按字节保存属性，原SHA不变。提交稳定断点，送源独立验收；不自动合并。原生Office/鼠标/IME/人工DPI/企业实样/干净机及许可履约OPEN；N不做优化，RS04/RS05与SUPPORTED/商业交付未授权。GAP-009非阻塞provenance debt保留。无需创建goal工具或第二路线。
+原始数据复算与8项集成证据核验已通过（11字段、14组70实测值、206合成Record、6有效DOCX）；CLI help/py_compile/git diff --check通过。准确命令与一次临时查询表名错误见实施报告。raw按字节保留，执行副本历史SHA与当前LF脚本SHA分列，见SCRIPT_NORMALIZATION.json；无重测。原受验记录已落仓 `docs/performance/n-baseline/ACCEPTANCE.md`；作者8项核验与源PowerShell复算分列。按用户新授权送源增量复核后集中push/建PR，源负责最终检查和合并，本会话不并行合并。原生Office/鼠标/IME/人工DPI/企业实样/干净机及许可履约OPEN；本包不做优化；合并后由源触发定位先行的N新包。RS04/RS05与SUPPORTED/商业交付未授权。GAP-009非阻塞provenance debt保留。无需创建goal工具或第二路线。
 
 N稳定提交 `ccf3f325fe121a228e37545395a7e9e795f0dbcc`（脚本/协议/raw/结果与2文件字节保全属性）。B治理提交随后独立形成，最终交接head以Git与源验收回执为准，生产基线始终为348077c。

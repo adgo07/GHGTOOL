@@ -33,4 +33,6 @@ Windows x64 / CPython 3.12，沿用已安装依赖，不安装新包。Qt `offsc
 
 从仓库根运行：`python -B -m scripts.measure_n_baseline`。设定 `QT_QPA_PLATFORM=offscreen`；PYTHONPATH提供当前依赖环境（不用机器绝对路径作为仓库身份）。实际解释器为CPython3.12.14 Windows x64，精确包版本见raw。脚本严格拒绝非348077cd972a27b6eeb80b77b712e7cb35375988的HEAD；本轮证据集成提交后，不能直接在新文档提交HEAD运行。复现须新建冻结348077c的隔离worktree，将本测量脚本复制到该树scripts/measure_n_baseline.py相对位置，并使用新的tmp/n-baseline临时目录（不得复用已追加记录的旧临时数据库），再按上述命令执行。
 
-本地源码证据不等于GitHub Actions、不等于旧CI288/head2db制品、更不等于merge348精确EXE。原生Office、真实鼠标/IME/人工DPI、企业实样、干净目标机、Release、RS04/RS05仍OPEN。本包完成仅交独立集成验收，不自行合并或宣布正式支持。
+本地源码证据不等于GitHub Actions、不等于旧CI288/head2db制品、更不等于merge348精确EXE。原生Office、真实鼠标/IME/人工DPI、企业实样、干净目标机、Release、RS04/RS05仍OPEN。历史测量包1724已获源独立验收，记录见ACCEPTANCE.md；2026-10-21用户另授权收尾PR/源合并及合并后N新包，不改变本协议原测量事实，不宣布正式支持。
+
+当前脚本采用text eol=lf。历史执行副本CRLF SHA与LF规范化SHA在SCRIPT_NORMALIZATION.json分列，仅换行不同；raw字节不变，没有重测。新增N序列应另存，先按HANDOFF定位与控制测量边界，不覆盖本基线。

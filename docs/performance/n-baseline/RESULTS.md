@@ -1,6 +1,6 @@
 # N 源码性能基线结果
 
-冻结生产HEAD：`348077cd972a27b6eeb80b77b712e7cb35375988`。本地执行完成，14项指标均有1次暖身及5次成功实测，计时失败0；没有生产代码改动或性能优化。证据待独立集成验收，不构成正式支持、Release或人工桌面验收。
+冻结生产HEAD：`348077cd972a27b6eeb80b77b712e7cb35375988`。本地执行完成，14项指标均有1次暖身及5次成功实测，计时失败0；没有生产代码改动或性能优化。受验1724已由源独立验收PASS（见[ACCEPTANCE.md](ACCEPTANCE.md)），本次收尾增量另核；不构成正式支持、Release或人工桌面验收。
 
 测量时间：2026-10-20T15:00:32.429415+00:00 至 2026-10-20T15:02:35.953643+00:00（UTC）；Asia/Shanghai本地时间为2026-10-20 23:00:32–23:02:35（UTC+08）。原始UTC值保持不变。顺序和完整边界见[PROTOCOL.md](PROTOCOL.md)，未四舍五入整数纳秒见[raw.json](raw.json)。
 
@@ -45,4 +45,6 @@ Frozen中央锁`ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变。已按该SHA�
 
 Qt offscreen只证明离屏程序化路径；fresh process不证明磁盘冷cache。此处为merge348源码，不能复用旧CI288/head2db制品称作精确merge348 EXE测量。原生Office回导、真实鼠标/IME/人工DPI、企业实样、干净目标机、商业许可履约、Release、RS04/RS05仍OPEN。没有SLA、优化前后比较或企业生产规模结论。
 
-测量脚本SHA256：`f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d`。原始JSON SHA256：`ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac`。
+当次实际运行的执行副本SHA256（现场CRLF）：`f3c15fec984bda9924f80ec1668c1788587768df3d968cced4939b63111ad18d`。原始JSON SHA256：`ee02b8b7cb5ac4227f2afee5005aa1c90a7ab833c61c2c346fcc93425090edac`。
+
+2026-10-21收尾：当前仓库LF文本脚本SHA256为`0b63b81142fcdca549c3017af3a94d0cf494eebc7cf0223e55dedbd14b8a2b0f`，与历史执行副本仅换行不同；证明见[SCRIPT_NORMALIZATION.json](SCRIPT_NORMALIZATION.json)。raw保留原字节/原SHA；此后未重新测量，不把LF规范化冒作新实验。原未push/CI描述属于2026-10-20测量阶段，当前源已push受验1724，新增收尾/PR检查另行记录。
