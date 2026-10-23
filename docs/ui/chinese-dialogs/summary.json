@@ -1,14 +1,14 @@
 {
-  "head": "8f9fa119a0982d77dccc9a4ee982997004657949",
-  "dirty": true,
+  "head": "0e98c15f6453c2aef7fdf2fee090588287c39600",
+  "dirty": false,
   "python": "3.12.14",
   "os": "Windows-10-10.0.19045-SP0",
   "qt": "6.11.2",
   "platform": "offscreen",
   "translation": {
     "loaded": true,
-    "path": "G:\\Python Project\\GHGTOOL\\.venv\\Lib\\site-packages\\PySide6\\translations\\qtbase_zh_CN.qm",
-    "qt": "6.11.2"
+    "relative_path": "PySide6/translations/qtbase_zh_CN.qm",
+    "sha256": "0481a9b92a6f0578400e960a7d5ee70217a6a450eaf7f98b7d32b8dbd0d58616"
   },
   "scenes": [
     {
