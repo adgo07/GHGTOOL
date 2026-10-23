@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """真实离屏Qt、实际v6工作簿和冻结正式链（不冒充原生人工验证）。"""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
@@ -7,7 +8,7 @@ from io import BytesIO
 from pathlib import Path
 import tempfile, unittest
 from unittest.mock import patch
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication
 from openpyxl import load_workbook
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig

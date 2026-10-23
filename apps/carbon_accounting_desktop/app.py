@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from packages.ui.dialogs import MessageBox as QMessageBox
+
 import sys
 from collections.abc import Sequence
 
 from PySide6.QtGui import QCloseEvent, QFont
-from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 from packages.application import (
     CarbonAccountingUseCase,
@@ -31,6 +33,7 @@ from .logging_config import configure_logging
 from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
 from packages.ui.export_location import ExportLocationService
+from packages.ui.chinese import initialize_chinese, report_chinese_failure
 
 
 class CarbonAccountingMainWindow(QMainWindow):
@@ -55,6 +58,9 @@ def create_main_window(
 ) -> QMainWindow:
     """Create the desktop shell and compose its formal calculation workflow."""
 
+    application = QApplication.instance()
+    if application is not None:
+        initialize_chinese(application)
     app_config = config or AppConfig()
     catalog = catalog_service or create_catalog_query_service(
         app_config.resolved_catalog_database()
@@ -94,8 +100,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     qt_args = list(argv) if argv is not None else sys.argv
     application = QApplication(qt_args)
+    initialize_chinese(application)
     config = AppConfig()
     logger = configure_logging(config.resolved_log_directory(), config.app_version)
+    report_chinese_failure(application, logger)
     try:
         record_repository = SQLiteRecordRepository(
             config.resolved_records_database(),

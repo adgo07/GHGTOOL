@@ -1,0 +1,34 @@
+{
+  "head": "f4c33c277273389c7758c0ea5289cc4e290eec9e",
+  "tested_merge": "21b3336791b825ac839a34c9243e607baec33859",
+  "run": 39925766636,
+  "artifact_id": 12490593116,
+  "zip_sha256": "0cd470896f497e109ed875c43dca6b0d5b85ac516476a6038fd0badc99cb4112",
+  "bytes": 72464614,
+  "files": 319,
+  "manifest_files": 318,
+  "all_hashes_match": true,
+  "build_environment": {
+    "PySide6": "6.11.2",
+    "PySide6-Essentials": "6.11.2",
+    "PySide6-Addons": "6.11.2",
+    "shiboken6": "6.11.2",
+    "PyInstaller": "6.22.3",
+    "pyinstaller-hooks-contrib": "2026.8",
+    "Qt": "6.11.2",
+    "Python": "3.12.10",
+    "implementation": "CPython",
+    "system": "Windows",
+    "bits": "64"
+  },
+  "ci_tests": {
+    "merge": 1048,
+    "merge_seconds": 1495.136,
+    "head": 22,
+    "head_seconds": 5.838
+  },
+  "ci_png_svg": "PASS",
+  "ci_isolated_starts": 2,
+  "local_native_execution": "NOT_RUN",
+  "boundary": "Engineering candidate only; native, commercial and RS04/05 gates remain OPEN"
+}

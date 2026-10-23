@@ -215,6 +215,16 @@ def _remove_unused_pdf_image_plugin(artifact: Path) -> None:
             candidate.unlink()
 
 
+def _keep_chinese_translation_only(artifact: Path) -> None:
+    """Qt hooks collect all languages by default; product uses only qtbase zh_CN."""
+    root = artifact.resolve()
+    for candidate in (artifact / "PySide6" / "translations").glob("*.qm"):
+        if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+            raise RuntimeError("refusing to remove an external Qt translation")
+        if candidate.name != "qtbase_zh_CN.qm":
+            candidate.unlink()
+
+
 def _validate_approved_template_inputs(project_root: Path = PROJECT_ROOT) -> None:
     resource_root = project_root / "resources"
     expected_hashes = {
@@ -259,6 +269,10 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
 
     if os.name != "nt":
         raise RuntimeError("G08 standalone build must run on Windows")
+    from packages.ui.chinese import translation_path, load_translator
+    from PySide6.QtCore import QCoreApplication
+    qt_application = QCoreApplication.instance() or QCoreApplication([])
+    load_translator(translation_path())
     _validate_approved_template_inputs()
     verify_projection()
     verify_material_projection()
@@ -318,6 +332,8 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
             f"{PROJECT_ROOT / 'migrations'}{os.pathsep}migrations",
             "--add-data",
             f"{catalog_path}{os.pathsep}databases",
+            "--add-data",
+            f"{translation_path()}{os.pathsep}PySide6/translations",
             "--hidden-import",
             "CoolProp.CoolProp",
             "--hidden-import",
@@ -336,6 +352,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         _remove_unpacked_docx_template(artifact)
         _remove_unused_virtual_keyboard(artifact)
         _remove_unused_pdf_image_plugin(artifact)
+        _keep_chinese_translation_only(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:

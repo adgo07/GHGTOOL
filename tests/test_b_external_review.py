@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """PR53复核：真实PR52项目恢复、声明状态、提示与交付环境前置失败。"""
 import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -14,7 +15,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
-from PySide6.QtWidgets import QApplication, QMessageBox, QTreeWidget
+from PySide6.QtWidgets import QApplication, QTreeWidget
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import ProjectWorkspaceService

@@ -38,6 +38,15 @@ def smoke(artifact: str | Path, *, starts: int = 2, wait_seconds: float = 8.0) -
         ):
             raise RuntimeError("standalone PNG/SVG resource proof is invalid")
         print("standalone-images: PASS (PNG/SVG)")
+        chinese_probe = Path(data_root) / "chinese-resources.json"
+        probe = subprocess.run([str(executable), "--probe-chinese", str(chinese_probe)],
+                               cwd=root, env=environment, capture_output=True, timeout=30)
+        if probe.returncode or not chinese_probe.is_file():
+            raise RuntimeError("standalone Chinese resource probe failed")
+        chinese = json.loads(chinese_probe.read_text(encoding="utf-8"))
+        if not chinese.get("loaded") or chinese.get("safe_cancel") != "取消" or chinese.get("qt_cancel") != "取消":
+            raise RuntimeError("standalone Chinese resource proof is invalid")
+        print("standalone-chinese: PASS (actual packaged translation and safe buttons)")
         for attempt in range(1, starts + 1):
             process = subprocess.Popen(
                 [str(executable)],

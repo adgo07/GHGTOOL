@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from packages.ui.dialogs import MessageBox as QMessageBox
+
 from collections.abc import Callable, Mapping
 from dataclasses import fields, is_dataclass, replace
 from datetime import date, datetime
@@ -31,7 +33,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
+
     QTextEdit,
     QTabWidget,
     QPushButton,
@@ -2113,6 +2115,7 @@ class RecordLibraryPage(BasePage):
             f"将删除 {summary.enterprise_name or '未填写企业'} 的 {summary.period_start} 至 {summary.period_end} 核算记录。审计信息会保留，是否继续？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
+            button_texts={QMessageBox.StandardButton.Yes: "删除"},
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
@@ -2394,6 +2397,7 @@ class ExcelImportPage(BasePage):
                 f"同名 Excel 模板已存在：\n{path}\n是否覆盖？",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
+                button_texts={QMessageBox.StandardButton.Yes: "替换"},
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return

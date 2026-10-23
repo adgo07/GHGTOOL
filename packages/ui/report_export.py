@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from packages.ui.dialogs import MessageBox as QMessageBox
+
 from datetime import date
 import hashlib
 import logging
@@ -19,7 +21,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QLineEdit,
-    QMessageBox,
+
     QTextEdit,
     QWidget,
 )
@@ -182,6 +184,7 @@ def export_saved_record_report(
             f"同名 Word 文件已存在：\n{path}\n是否覆盖？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
+            button_texts={QMessageBox.StandardButton.Yes: "替换"},
         )
         if answer != QMessageBox.StandardButton.Yes:
             return False
