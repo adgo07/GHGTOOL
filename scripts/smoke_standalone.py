@@ -28,8 +28,7 @@ def smoke(artifact: str | Path, *, starts: int = 2, wait_seconds: float = 8.0) -
         environment["QT_QPA_PLATFORM"] = "offscreen"
         environment.pop("QZ_G08_IMAGE_PROBE_PATH", None)
         image_probe = Path(data_root) / "image-resources.json"
-        probe_environment = {**environment, "QZ_G08_IMAGE_PROBE_PATH": str(image_probe)}
-        probe = subprocess.run([str(executable)], cwd=root, env=probe_environment,
+        probe = subprocess.run([str(executable), "--probe-images", str(image_probe)], cwd=root, env=environment,
                                capture_output=True, timeout=30)
         if probe.returncode != 0 or not image_probe.is_file():
             raise RuntimeError(f"standalone image probe failed: {probe.returncode}")

@@ -22,7 +22,8 @@
   ],
   "local_native_exe_pyz": "NOT_RUN: user restriction",
   "local_new_standalone_build": "NOT_RUN: one necessary new exact-head CI instead",
-  "new_ci": "PENDING: must not reuse CI296",
+  "new_ci": "CI297 PASS for c6edb51; see CI297_SUMMARY.json. Later toolchain manifest patch requires its own CI.",
   "commercial_license_clearance": "OPEN",
-  "official_license_origin": "PR57_QTPDF_ORIGIN_PROOF.json"
+  "official_license_origin": "PR57_QTPDF_ORIGIN_PROOF.json",
+  "ci_receipt": "CI297_SUMMARY.json"
 }

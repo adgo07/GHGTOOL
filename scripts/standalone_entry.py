@@ -1,7 +1,8 @@
 """PyInstaller entry point and isolated G08 image-resource probe."""
 from __future__ import annotations
 import json
-import os
+import argparse
+import sys
 from pathlib import Path
 from apps.carbon_accounting_desktop.app import main
 
@@ -23,8 +24,10 @@ def verify_image_resources() -> dict[str, list[int]]:
 
 
 def entry() -> int:
-    output = os.environ.get("QZ_G08_IMAGE_PROBE_PATH")
-    if output:
+    if "--probe-images" in sys.argv[1:]:
+        parser = argparse.ArgumentParser(description="Isolated packaged PNG/SVG diagnostic")
+        parser.add_argument("--probe-images", required=True, type=Path)
+        output = parser.parse_args().probe_images
         from PySide6.QtWidgets import QApplication
         application = QApplication.instance() or QApplication([])
         result = verify_image_resources()

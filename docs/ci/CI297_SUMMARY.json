@@ -1,0 +1,41 @@
+{
+  "status": "PASS_ENGINEERING_CANDIDATE_ONLY",
+  "head": "c6edb51bd929051605acb038839ba1455424761d",
+  "tested_merge": "4c4a9b382aac8a249a11c2999bda2b732537cfaa",
+  "run_id": 39631342244,
+  "run_number": 297,
+  "artifact_id": 12361586214,
+  "zip_sha256": "c868b5392662da0cc3b05823db1709216585e0ef2a7df4ff05bab4c3c5aca158",
+  "zip_bytes": 72463227,
+  "manifest_files": 318,
+  "archive_files": 319,
+  "local_verification": "Rehashed retained downloaded ZIP; exact file set, all file sizes/SHA256 and provenance match; PDF/VirtualKeyboard absent. No local EXE execution.",
+  "actual_packaged_qt_file_version": "6.11.2.0 (Qt6Core.dll Windows version resource)",
+  "ci_merge_tests": {
+    "count": 1044,
+    "seconds": 1341.303,
+    "result": "OK"
+  },
+  "ci_head_tests": {
+    "count": 22,
+    "seconds": 9.658,
+    "result": "OK"
+  },
+  "ci_runtime_evidence": {
+    "png_svg_decode": "PASS",
+    "isolated_starts": 2,
+    "Python": "3.12.10",
+    "PyInstaller": "6.22.3",
+    "hooks": "2026.8"
+  },
+  "evidence_boundary": "CI297 covers c6edb51 only. Subsequent build_environment/explicit probe changes require new exact-head CI and artifact verification. Local performance is not extrapolated to this package.",
+  "open": [
+    "native Office",
+    "mouse/IME/system DPI",
+    "enterprise examples",
+    "clean target machine",
+    "complete licensing obligations",
+    "Release",
+    "RS04/RS05"
+  ]
+}

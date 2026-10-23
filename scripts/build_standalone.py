@@ -35,6 +35,7 @@ from scripts.inspect_release import (
     EXCEL_SUFFIXES,
     inspect_release,
 )
+from scripts.build_environment import collect_build_environment, validate_build_environment
 from scripts.verify_release_archive import verify_release_archive
 from scripts.project_fuel_power_rules import verify_projection
 from scripts.project_material_rules import verify_material_projection
@@ -93,6 +94,10 @@ def _sha256(path: Path) -> str:
 
 
 def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str, str]) -> None:
+    environment = collect_build_environment()
+    issues = validate_build_environment(environment)
+    if issues:
+        raise RuntimeError("; ".join(issues))
     entries: list[dict[str, Any]] = []
     for path in sorted(
         item.relative_to(artifact)
@@ -112,6 +117,7 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
     catalog_path = artifact / "databases" / "catalog.sqlite"
     manifest = {
         "manifest_version": 1,
+        "build_environment": environment,
         "artifact_name": APP_NAME,
         "app_version": app_version,
         "catalog_schema_version": catalog_meta["schema_version"],

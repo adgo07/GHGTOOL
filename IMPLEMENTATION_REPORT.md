@@ -1,3 +1,15 @@
+## PR57 构建可追溯性收口（2026-10-23）
+
+CI297 对 c6edb51 的工程候选已核验通过，回执见 docs/ci/CI297_SUMMARY.json：实际下载并保全的 ZIP 与 Actions artifact 12361586214 摘要一致，319 文件集合、318 逐文件大小/hash、三项提交身份核对通过；包内 Qt6Core 文件版本 6.11.2.0。PNG/SVG 解码、两次隔离启动来自该 CI 日志，本地未执行 EXE。旧 CI296 原包继续 HOLD，不覆盖历史证据。
+
+本次新增 build_environment：从实际构建进程采集 Python 完整 patch、PySide6/Essentials/Addons、Qt、shiboken6、PyInstaller、hooks 及系统/位数，按既有 requirements-build 固定组合检查；审计拒绝缺项和版本漂移。Python 仍允许 3.12 的不同 patch，完整身份记录但不冒称性能环境相同。图像诊断改为显式 --probe-images 输出路径，环境变量不再切换生产入口。业务树、四行 UI、模板、公式、历史 Record 和性能 raw 不变。
+
+本任务不涉及中央公共 Contract；platform-lock 的 ee5feb0cc34dbd99790500fadd0c4c932e202a20 不变，无标准解释变化。当前修补的 CI 与实包待新提交验证，CI297 不背书本次代码；不重复性能测量、不宣称首开达标。原生 Office/鼠标/IME/DPI、企业样例、干净机、完整许可履约、Release、RS04–05 继续 OPEN，不自动合并。
+
+---
+
+以下为此前实施记录；其中待 CI297/新包核验的状态已由上述回执取代。
+
 # 最后一次有限性能收口与工程候选交付报告
 
 2026-10-21；生产提交58e788be36dc0d3263c48e59e5d464c2549139b5，最终送验head以本PR回执为准。PR56已源独立PASS、CI294 success并合并59cab091aab0df44b147f2bba3b960085dbae168，本轮从实际fetch的该main创建新隔离树。origin确认为adgo07/GHGTOOL，默认main，初态干净；根用户脏工作簿/资料及全部旧工作树和原始证据未修改。
@@ -68,3 +80,5 @@ PE静态扫描149个可执行格式文件无解析失败，唯一直接import Qt
 根因：pyproject允许PySide6>=6.8,<7和PyInstaller宽范围，而CI两个job只pip install -e .[build]，未消费已有requirements-build.txt，导致Qt6.12/hooks2026.9等漂移。用户通过源明确授权最小构建修复：CI/交付安装先-r现有固定约束，再--no-build-isolation -c同文件安装editable，固定已验证Qt/PySide/shiboken/Essentials/Addons6.11.2与hooks2026.8，复用已有固定setuptools；不改变普通源码开发支持范围或强行对齐Pythonpatch。仅从新产物排除未消费qpdf插件及root/nested Qt6Pdf.dll，逐路径软链/越界守卫复用既有机制；audit以包范围拒绝残留，不作GPL-only断言。不删除源材料、历史包或其他Qt库。
 
 新增仅工程probe：standalone entry在专用测试环境变量下离屏解码真实PNG/SVG、写新临时proof后退出；普通入口仍main、不进入新产品流程。smoke先核该实际包probe，再原两次隔离启动，确保排除不破坏产品图像。新增G08四项覆盖排除/保留范围、路径安全、资源守卫和真实图像解码。修复后本地命令python -B -m unittest tests.test_g08_delivery -v：22 tests/18.688s/OK，0失败/错误/跳过（18重跑+4新项，不能与原114直接加总当新head全量）。之后仅一次必要新精确CI/原ZIP保全到新目录；HOLD在实际新包及源验收前保留。移除未用组件不是商业法律放行，其他许可/第三方通知、原生/企业/正式Release门禁仍OPEN。
+
+本次本地验证：QT_QPA_PLATFORM=offscreen；python -B -m unittest tests.test_build_environment tests.test_g08_delivery -v，26项/37.703s，0失败/错误/跳过。构建环境为Python3.12.14、Qt/PySide6/shiboken6 6.11.2、PyInstaller6.22.3、hooks2026.8。未本地全量、未本地构建或执行EXE；新CI独立补证。

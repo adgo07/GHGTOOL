@@ -58,5 +58,6 @@
   },
   "native_desktop": "NOT_RUN: user restriction",
   "local_full_suite": "NOT_RUN: related local regression and normal required CI instead",
-  "local_build": "NOT_RUN: exact-head CI build instead"
+  "local_build": "NOT_RUN: exact-head CI build instead",
+  "subsequent_ci_receipt": "../../ci/CI297_SUMMARY.json (c6edb51 only; not a performance rerun or later-patch verification)"
 }

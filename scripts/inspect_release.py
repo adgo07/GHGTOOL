@@ -18,6 +18,8 @@ from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
 
+from scripts.build_environment import validate_build_environment
+
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
 ALLOWED_SQLITE = Path("databases/catalog.sqlite")
@@ -282,6 +284,7 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         if field not in manifest:
             issues.append(f"manifest missing field: {field}")
 
+    issues.extend(validate_build_environment(manifest.get("build_environment")))
     if manifest.get("manifest_version") != 1:
         issues.append("unsupported release manifest version")
     if manifest.get("artifact_name") != "QingzhouCarbonAccounting":

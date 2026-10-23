@@ -518,6 +518,13 @@ class G08DeliveryTests(unittest.TestCase):
                 ).fetchone()[0]
             self.assertEqual(manifest["database_schema_versions"]["catalog"], catalog_schema_version)
             self.assertGreater(verify_release_archive(artifact), 0)
+            environment = manifest.pop("build_environment")
+            (artifact / "build-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertIn("manifest missing build_environment", inspect_release(artifact))
+            manifest["build_environment"] = {**environment, "Qt": "6.12.0"}
+            (artifact / "build-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertTrue(any("build_environment Qt" in issue for issue in inspect_release(artifact)))
+            manifest["build_environment"] = environment
             manifest["database_schema_versions"]["catalog"] = "001"
             (artifact / "build-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             self.assertIn(

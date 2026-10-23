@@ -1,3 +1,15 @@
+## PR57 构建可追溯性收口（2026-10-23）
+
+CI297 对 c6edb51 的工程候选已核验通过，回执见 docs/ci/CI297_SUMMARY.json：实际下载并保全的 ZIP 与 Actions artifact 12361586214 摘要一致，319 文件集合、318 逐文件大小/hash、三项提交身份核对通过；包内 Qt6Core 文件版本 6.11.2.0。PNG/SVG 解码、两次隔离启动来自该 CI 日志，本地未执行 EXE。旧 CI296 原包继续 HOLD，不覆盖历史证据。
+
+本次新增 build_environment：从实际构建进程采集 Python 完整 patch、PySide6/Essentials/Addons、Qt、shiboken6、PyInstaller、hooks 及系统/位数，按既有 requirements-build 固定组合检查；审计拒绝缺项和版本漂移。Python 仍允许 3.12 的不同 patch，完整身份记录但不冒称性能环境相同。图像诊断改为显式 --probe-images 输出路径，环境变量不再切换生产入口。业务树、四行 UI、模板、公式、历史 Record 和性能 raw 不变。
+
+本任务不涉及中央公共 Contract；platform-lock 的 ee5feb0cc34dbd99790500fadd0c4c932e202a20 不变，无标准解释变化。当前修补的 CI 与实包待新提交验证，CI297 不背书本次代码；不重复性能测量、不宣称首开达标。原生 Office/鼠标/IME/DPI、企业样例、干净机、完整许可履约、Release、RS04–05 继续 OPEN，不自动合并。
+
+---
+
+以下为此前实施记录；其中待 CI297/新包核验的状态已由上述回执取代。
+
 # 最后一轮有限性能收口与工程候选交付
 
 2026-10-21：源已独立PASS并按用户授权合并PR56，实际fetch main为59cab091aab0df44b147f2bba3b960085dbae168。本轮新隔离分支codex/n-final-closeout，根用户脏文件和所有历史原始证据保留。root唯一生产作者/测量者；gpt-6.1-sol/medium静态代理仅写docs/DELIVERY.md，已完成，无测试/build/GUI/采样。
@@ -25,3 +37,5 @@ CI296（PR57 fcc69c1）完整1040/1260.347s、G08 18/9.434s、构建/审计/2启
 静态原始材料证明该Qt6Pdf.dll来自官方PySide6_Pdf6.12.0.140 Windows wheel，字节相等；其METADATA提供LGPLv3/GPL选项，不是GPL-only结论。PE静态唯一直接导入者为qpdf.dll，产品只读品牌PNG/图标SVG，无PDF图像消费；未加载候选DLL/EXE验证运行依赖。完整许可/第三方履约仍OPEN。
 
 根因是CI只安装pyproject宽范围，未消费已有requirements-build固定约束。源已转达用户授权同包最小修复：CI/交付安装统一-r/-c既有约束并复用已装固定build backend；按既有安全机制只从新构建产物排除未用qpdf插件及Qt6Pdf依赖；audit守卫、隔离PNG/SVG probe和必要G08测试。pyproject支持范围、Pythonpatch、业务/模板/性能均不改。修复后本地G08 22/18.688s OK（含18重跑+4新项，不与先前114混加），0失败/错误/跳过。保留PR57、CI296原包/HOLD；新精确head正常CI与新独立目录通过前不解除HOLD，不自动合并或商业放行。
+
+本次本地验证：QT_QPA_PLATFORM=offscreen；python -B -m unittest tests.test_build_environment tests.test_g08_delivery -v，26项/37.703s，0失败/错误/跳过。构建环境为Python3.12.14、Qt/PySide6/shiboken6 6.11.2、PyInstaller6.22.3、hooks2026.8。未本地全量、未本地构建或执行EXE；新CI独立补证。
