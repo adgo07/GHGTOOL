@@ -25,22 +25,25 @@ class MessageBox(QMessageBox):
     @classmethod
     def _show(cls, parent, title, text, icon, buttons, default, *, button_texts=None, informative_text=""):
         box = cls(parent)
-        box.setWindowTitle(title)
-        box.setText(text)
-        box.setInformativeText(informative_text)
-        box.setIcon(icon)
-        for standard in cls.StandardButton:
-            if standard != cls.StandardButton.NoButton and buttons & standard:
-                button = box.addButton(standard)
-                if button_texts and standard in button_texts:
-                    button.setText(button_texts[standard])
-        if default != cls.StandardButton.NoButton:
-            box.setDefaultButton(default)
-        for escape in (cls.StandardButton.Cancel, cls.StandardButton.No, cls.StandardButton.Close, cls.StandardButton.Ok):
-            if buttons & escape:
-                box.setEscapeButton(escape)
-                break
-        return cls.StandardButton(box.exec())
+        try:
+            box.setWindowTitle(title)
+            box.setText(text)
+            box.setInformativeText(informative_text)
+            box.setIcon(icon)
+            for standard in cls.StandardButton:
+                if standard != cls.StandardButton.NoButton and buttons & standard:
+                    button = box.addButton(standard)
+                    if button_texts and standard in button_texts:
+                        button.setText(button_texts[standard])
+            if default != cls.StandardButton.NoButton:
+                box.setDefaultButton(default)
+            for escape in (cls.StandardButton.Cancel, cls.StandardButton.No, cls.StandardButton.Close, cls.StandardButton.Ok):
+                if buttons & escape:
+                    box.setEscapeButton(escape)
+                    break
+            return cls.StandardButton(box.exec())
+        finally:
+            box.deleteLater()
 
     @classmethod
     def question(cls, parent, title, text, buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -74,23 +77,29 @@ class InputDialog(QInputDialog):
     @classmethod
     def getText(cls, parent, title, label, echo=QLineEdit.EchoMode.Normal, text="", *, confirm_text="确定"):
         box = cls(parent)
-        box.setWindowTitle(title)
-        box.setLabelText(label)
-        box.setOkButtonText(confirm_text)
-        box.setTextEchoMode(echo)
-        box.setTextValue(text)
-        accepted = box.exec() == cls.DialogCode.Accepted
-        return box.textValue(), accepted
+        try:
+            box.setWindowTitle(title)
+            box.setLabelText(label)
+            box.setOkButtonText(confirm_text)
+            box.setTextEchoMode(echo)
+            box.setTextValue(text)
+            accepted = box.exec() == cls.DialogCode.Accepted
+            return box.textValue(), accepted
+        finally:
+            box.deleteLater()
 
     @classmethod
     def getItem(cls, parent, title, label, items, current=0, editable=True, *, confirm_text="确定"):
         box = cls(parent)
-        box.setWindowTitle(title)
-        box.setLabelText(label)
-        box.setOkButtonText(confirm_text)
-        box.setComboBoxItems(list(items))
-        box.setComboBoxEditable(editable)
-        if items:
-            box.setTextValue(items[current])
-        accepted = box.exec() == cls.DialogCode.Accepted
-        return box.textValue(), accepted
+        try:
+            box.setWindowTitle(title)
+            box.setLabelText(label)
+            box.setOkButtonText(confirm_text)
+            box.setComboBoxItems(list(items))
+            box.setComboBoxEditable(editable)
+            if items:
+                box.setTextValue(items[current])
+            accepted = box.exec() == cls.DialogCode.Accepted
+            return box.textValue(), accepted
+        finally:
+            box.deleteLater()

@@ -1,11 +1,13 @@
 from __future__ import annotations
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from PySide6.QtCore import QLocale, QTimer, Qt
-from PySide6.QtTest import QTest
+from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication, QLineEdit
 from packages.ui.chinese import initialize_chinese, load_translator, translation_path, report_chinese_failure
 from packages.ui.dialogs import MessageBox, InputDialog
@@ -62,32 +64,23 @@ class ChineseUiTests(unittest.TestCase):
             self.app._qz_chinese_status = original
             self.app._qz_chinese_notified = False
 
+    def run_modal_process(self, case):
+        environment = os.environ.copy()
+        environment['QT_QPA_PLATFORM'] = 'offscreen'
+        result = subprocess.run([sys.executable, '-B', '-m', 'tests.ui_dialog_process',
+                                 f'DialogProcessTests.test_{case}', '-v'],
+                                cwd=Path(__file__).resolve().parents[1], env=environment,
+                                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=45)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_dialog_cancel_escape_close_and_save_default(self):
-        button = MessageBox.StandardButton
-        for action in ("escape", "close", "enter", "discard"):
-            seen = []
-            def operate():
-                box = self.app.activeModalWidget()
-                seen.append((box.defaultButton().text(), box.escapeButton().text(), box.styleSheet()))
-                if action == "escape": QTest.keyClick(box, Qt.Key.Key_Escape)
-                elif action == "close": box.close()
-                elif action == "enter": QTest.keyClick(box, Qt.Key.Key_Return)
-                else: box.button(button.Discard).click()
-            QTimer.singleShot(0, operate)
-            result = MessageBox.question(None, "退出软件", "保存修改？", button.Save | button.Discard | button.Cancel,
-                                         button.Save, button_texts={button.Save: "保存后退出", button.Discard: "不保存退出"})
-            self.assertEqual(result, {"enter": button.Save, "discard": button.Discard}.get(action, button.Cancel))
-            self.assertEqual(seen[0][:2], ("保存后退出", "取消"))
-            self.assertIn("QMessageBox QPushButton", seen[0][2])
+        self.run_modal_process('message')
 
     def test_name_dialog_cancel_and_accept(self):
-        for accepted in (False, True):
-            def operate():
-                box = self.app.activeModalWidget()
-                box.setTextValue("中文名称")
-                box.accept() if accepted else box.reject()
-            QTimer.singleShot(0, operate)
-            self.assertEqual(InputDialog.getText(None, "添加", "名称"), ("中文名称", accepted))
+        self.run_modal_process('input')
+
+    def test_parented_dialogs_release_on_return_cancel_and_exception(self):
+        self.run_modal_process('lifetime')
 
     def test_save_failure_does_not_close_or_discard(self):
         from packages.ui.carbon_material_page import CarbonMaterialAccountingPage

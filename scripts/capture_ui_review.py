@@ -17,6 +17,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
+    dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True))
+    if dirty:
+        raise RuntimeError("capture requires a clean committed worktree")
     args.output.mkdir(parents=True, exist_ok=False)
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtCore import qVersion
@@ -27,6 +30,7 @@ def main():
     from packages.persistence import build_catalog_database
     from packages.reference_data import DEFAULT_SOURCE_PATH
     from packages.ui.chinese import initialize_chinese
+    from packages.qt_chinese_resource import TRANSLATION_RELATIVE, TRANSLATION_SHA256
     from packages.ui.dialogs import MessageBox, InputDialog
     application = QApplication([])
     # Offscreen Qt does not enumerate Windows fonts; use installed fonts only.
@@ -43,7 +47,7 @@ def main():
     summary = {"head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                "dirty": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
                "python": platform.python_version(), "os": platform.platform(), "qt": qVersion(),
-               "platform": application.platformName(), "translation": status, "scenes": []}
+               "platform": application.platformName(), "translation": {"loaded": status["loaded"], "relative_path": TRANSLATION_RELATIVE, "sha256": TRANSLATION_SHA256}, "scenes": []}
     def capture(widget, name):
         widget.show()
         for _ in range(4): application.processEvents()
