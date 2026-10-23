@@ -1,17 +1,24 @@
-# PR-B 核算页视觉样板（进行中）
+# C＋A 三业务区布局实施报告
 
-PR58 已最终验收并合并，merge `092604639cd5b2b61fef1523f87fcd711d8aefea`。受验 head `fd3420dbb605e31da412407685e9516e5dde4d42`；CI302/run39945672103 全量1057项/928.534s通过，精确head交付检查22项/18.191s通过。制品12498409436实下载70569824字节，ZIP SHA256 `58853b4fdcf472668d573fbbe5d35191361ce15f0d6a87d0760b39d895a403ac`；224文件集合/223文件hash与大小一致，本地审计通过223文件，实际Qt DLL6.11.2.0。包内中文/图像及两次启动来自CI日志，本地未执行EXE。此前本地全量的缩放超时不冒称一次全绿，最终由CI302闭环。
+## 结果
 
-## 当前范围
+按用户批准的紧凑版样板接入实际核算页，保留应用左侧导航。燃料三列排列，实测报告采用同排标签/输入对齐；电力购入/输出及来源选项、煅烧材料来源采用原 typed combo 的轻量单选视图。所有来源资格/禁用项/草稿仍由原逻辑决定，未复制业务规则。
 
-从包含PR58的main隔离开展PR-B，按Owner批准V1.1 §6.1，先做核算页顶部、项目区、排放源入口及燃料/能源真实Qt样板。仅在整体视觉方向确认后推广至其他区域。首页、业务计算、来源资格、稳定ID、Canonical、数据库、Record、Excel和Word不变；原生桌面操作未启动。
-
-第一版复用现有控件与token：项目保存和打开分行、折叠条右侧标记、来源名称换行、样板区尺寸和字重调整。样板仍在检查，尚未提交PR、push或触发CI，不作为交付验收通过。
+目录切换不启停排放源；禁用页说明输入保留，并提供明确启用操作。固定编辑区起点并在内部滚动，避免煅烧展开推动其它目录位置。校验错误跳转会先揭示正确目录。新增和恢复的条目沿用相同布局，其它业务区不推广。
 
 ## 平台 / Contract 预检查
 
-本仓origin和隔离分支已实际核对，起点为上述合并提交；Frozen lock `ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变。已读中央当前UI指南v0.2。本任务不涉及中央公共Contract，无标准解释变化，无新增Standard Issue，不修改中央规范。
+本仓 origin 已核实为 `adgo07/GHGTOOL`，已 fetch；复用隔离分支 `codex/ui-business-layout`，基线含 PR58 合并。中央 Frozen lock `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，已读当前 UI 指南 v0.2。本任务不涉及中央公共 Contract；不改变标准解释、来源资格、Calculator、Canonical 或 Record，无新增 Standard Issue。
 
-## 后续验证与边界
+## 本地验证
 
-本地 `python -B -m unittest tests.test_accounting_projects_ui -q`：21/21，106.641s，0失败/错误；覆盖项目、核算单元及恢复相关保护。真实Qt普通视口四场景（顶部、项目展开、燃料、电力）已捕获并查看，回调异常0。系统字体仅供离屏捕获，不打包字体。代表性缩放、键盘、完整轻量性能对照及PR-B CI尚未执行，不冒称最终验收通过。样板只请求整体视觉方向确认；后续推广再补代表性缩放/尺寸、键盘、状态与轻量性能对照。离屏不替代原生Office、鼠标/IME/系统DPI、企业样例、干净机及商业交付验证，以上继续OPEN。当前不进入RS04/RS05，不宣布首开性能达标。
+Python 3.12.14 / Qt 6.11.2 / offscreen。使用现有项目依赖环境，没有安装新依赖。
+
+1. `python -B -m unittest tests.test_accounting_source_directory tests.test_compact_choices tests.test_uir02_source_cards tests.test_b1_fuel_consumers tests.test_b1_fuel_lifecycle tests.test_b1_fuel_drafts tests.test_b_material_gui_excel tests.test_b_material_draft_scope tests.test_electricity_region_persistence tests.test_pr46_electricity_source_consistency -q`：56/56，86.754s，0失败/错误。
+2. `python -B -m unittest tests.test_accounting_projects_ui -q`：最终21/21，94.279s，0失败/错误，覆盖项目/核算单元保存、恢复、正式记录保护。本轮最终两组共77项；此前第一轮29项不重复相加。
+3. `python -B scripts/capture_accounting_ca.py <新的输出目录>`：退出0；9次目录往返完整 form_state 相同，输入与实测报告文本保留；报告输入对齐误差≤2px；真实按钮切换和换算展开通过，回调异常0。1680×1120、1440×1000共10张截图已检查。
+4. `git diff --check` 通过。源文件哈希及执行脚本哈希见 `docs/ui/ca-layout/summary.json`；本地工作区捕获不冒充精确head构建。
+
+## 未执行与交付边界
+
+未运行全量套件、CI、打包或原生桌面；本轮没有数据库、公式、标准范围、Excel或Word改动。未 push/PR/合并。原生Office、鼠标/IME/系统DPI、企业样例和正式交付门继续OPEN。本轮只达到三段布局的本地实施与定向自检断点，待视觉验收。

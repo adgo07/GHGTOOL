@@ -1,0 +1,336 @@
+{
+  "head": "408b0f73ec5e94002d2f2e8465500d40da35abd3",
+  "script_sha256": "176f1edfad5aae573db26ba6bf3d2bed43e9bed747ca9b7c8d9518ea77783e22",
+  "qt": "6.11.2",
+  "platform": "offscreen",
+  "real_widgets_preserved": true,
+  "scenes": [
+    {
+      "name": "01-fuel-defaults",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "02-fuel-measured",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "03-fuel-calculated",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "04-electricity",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "05-calcination",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "07-electricity-export-other",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "08-calcination-conversion",
+      "editor_rect": [
+        501,
+        0,
+        1098,
+        850
+      ],
+      "window": [
+        1680,
+        1120
+      ]
+    },
+    {
+      "name": "09-narrow-calcination",
+      "editor_rect": [
+        501,
+        0,
+        858,
+        850
+      ],
+      "window": [
+        1440,
+        1000
+      ]
+    },
+    {
+      "name": "10-narrow-fuel",
+      "editor_rect": [
+        501,
+        0,
+        858,
+        850
+      ],
+      "window": [
+        1440,
+        1000
+      ]
+    }
+  ],
+  "checks": [
+    "shared measured report and carbon input aligned within 2 pixels",
+    "9 directory switches: complete form_state unchanged (values, sources, identities and drafts)",
+    "fuel/electricity/material sentinel input values retained",
+    "all scenes share the exact editor origin",
+    "actual measured radio click updated original source combo",
+    "actual export and OTHER radio clicks and material basis expansion executed"
+  ],
+  "source_files_sha256": {
+    "packages/ui/source_directory.py": "445d7dfee828cca7695049d7e1f54af36a1f22a8eb6d4032628edede977ae08a",
+    "packages/ui/compact_choices.py": "ccfc60963170a1edbf21a46f4d5a79fb2a328fb493ae0dc56b0f17fe0ad448d7",
+    "packages/ui/carbon_material_fuel.py": "b50254ea73a29080d2af290326f7c085b74b61a967a45afaf8f47df54f991aa5",
+    "packages/ui/carbon_material_page.py": "d7c8c992b0bef458ea6fed4510a43029802bd28313bf970725576587cdebfef0",
+    "packages/ui/design_tokens.py": "883934f09b1d2a01905101ef6d6f213b588fbe620c8691b7f0f58e841957e9ea"
+  },
+  "catalog_sources": {
+    "fuelLhvSource1": {
+      "selected": "STANDARD_DEFAULT",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelCarbonSource1": {
+      "selected": "STANDARD_DEFAULT",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelDirectcarbonSource1": {
+      "selected": "MEASURED",
+      "value": [
+        [
+          "计算值",
+          "CALCULATED",
+          true
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelOxidationSource1": {
+      "selected": "STANDARD_DEFAULT",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    }
+  },
+  "final_sources": {
+    "fuelLhvSource1": {
+      "selected": "MEASURED",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelCarbonSource1": {
+      "selected": "STANDARD_DEFAULT",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelDirectcarbonSource1": {
+      "selected": "CALCULATED",
+      "value": [
+        [
+          "计算值",
+          "CALCULATED",
+          true
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    },
+    "fuelOxidationSource1": {
+      "selected": "STANDARD_DEFAULT",
+      "value": [
+        [
+          "缺省值",
+          "STANDARD_DEFAULT",
+          true
+        ],
+        [
+          "计算值",
+          "CALCULATED",
+          false
+        ],
+        [
+          "实测值",
+          "MEASURED",
+          true
+        ],
+        [
+          "历史填写来源（需确认）",
+          "USER_DEFINED",
+          false
+        ]
+      ]
+    }
+  },
+  "callback_errors": []
+}

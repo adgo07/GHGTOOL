@@ -134,6 +134,7 @@ from .report_export import export_saved_record_report
 from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState, SourceToggleButton, SourceHeaderSwitch
 from .compact_choices import SegmentedChoiceControl
+from .source_directory import SourceDirectory
 from .name_selector import NameSelector, normalized_name, chemical_label
 from .input_fields import labeled_field
 from .responsive_fields import ResponsiveFieldGrid
@@ -613,6 +614,10 @@ class _UnifiedEnergyRow(QWidget):
         self.enthalpy_field.hide()
         self.measured_heat_factor_field.hide()
         self.heat_source_field.hide()
+        if family == "electricity":
+            for control in self.findChildren(SegmentedChoiceControl):
+                control.set_radio_style()
+
 class _SearchableEnterpriseCombo(QComboBox):
     """Editable recent-name selector with the legacy line-edit convenience API."""
 
@@ -3033,6 +3038,8 @@ class CarbonMaterialAccountingPage(BasePage):
             export_saved_record_report(self, self.record_repository, record)
 
     def _scroll_to_widget(self, widget: QWidget) -> None:
+        if hasattr(self, "source_directory"):
+            self.source_directory.reveal(widget)
         scroll_area = self.window().findChild(QScrollArea, "mainScrollArea")
         if scroll_area is not None:
             scroll_area.ensureWidgetVisible(widget)
@@ -3233,6 +3240,17 @@ class CarbonMaterialAccountingPage(BasePage):
             parent_layout.addWidget(card)
 
         self._build_unified_energy_section(parent_layout)
+        entries = (
+            ("fuel", "化石燃料燃烧", self._source_cards["CAR-SRC-FUEL-001"]),
+            ("electricity", "购入／输出电力", self._unified_energy_cards["electricity"]),
+            ("calcination", "原料煅烧", self._source_cards["CAR-SRC-CALCINATION-001"]),
+        )
+        insertion = parent_layout.indexOf(entries[0][2])
+        for _key, _title, card in entries:
+            parent_layout.removeWidget(card)
+        self.source_directory = SourceDirectory(entries, self)
+        self.source_directory.enable_requested.connect(self._toggle_source_group)
+        parent_layout.insertWidget(insertion, self.source_directory)
 
         parameter_summary = QWidget(self)
         parameter_summary_layout = QVBoxLayout(parameter_summary)
@@ -3690,6 +3708,8 @@ class CarbonMaterialAccountingPage(BasePage):
         # A partially restored legacy group is made consistently enabled by a
         # deliberate click; a fully enabled group is deliberately disabled.
         target_enabled = not bool(current) or not all(current)
+        if target_enabled and hasattr(self, "source_directory"):
+            self.source_directory.select(group_id)
         target = EmissionSourceStatus.INVOLVED if target_enabled else EmissionSourceStatus.NOT_INVOLVED
         for source_id in source_ids:
             combo = self._source_statuses.get(source_id)
@@ -4563,7 +4583,11 @@ class CarbonMaterialAccountingPage(BasePage):
                     caption.setWordWrap(True)
                     caption.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                     material_header.addWidget(caption, stretch if stretch else 0)
-                material_layout.addLayout(material_header)
+                if prefix != "calcination":
+                    material_layout.addLayout(material_header)
+                else:
+                    while material_header.count():
+                        material_header.takeAt(0).widget().deleteLater()
                 material_rows_host = QWidget(material_host)
                 material_rows_layout = QVBoxLayout(material_rows_host)
                 material_rows_layout.setContentsMargins(0, 0, 0, 0)
@@ -4659,7 +4683,7 @@ class CarbonMaterialAccountingPage(BasePage):
         outer_layout.setContentsMargins(0, 0, 0, 0)
         main_row = QWidget(container)
         outer_layout.addWidget(main_row)
-        row_layout = QHBoxLayout(main_row)
+        row_layout = QGridLayout(main_row) if prefix == "calcination" else QHBoxLayout(main_row)
         row_layout.setContentsMargins(0, 2, 0, 2)
         row_layout.setSpacing(6)
         role = QComboBox(container)
@@ -4705,11 +4729,24 @@ class CarbonMaterialAccountingPage(BasePage):
             cell_layout.setContentsMargins(0, 0, 0, 0)
             cell_layout.setSpacing(3)
             cell_layout.addWidget(edit)
-            cell_layout.addWidget(SegmentedChoiceControl(source, parent=cell, values=tuple(source.itemData(i) for i in range(source.count()))))
+            choices = SegmentedChoiceControl(source, parent=cell, values=tuple(source.itemData(i) for i in range(source.count())))
+            if prefix == "calcination":
+                choices.set_radio_style()
+            cell_layout.addWidget(choices)
             composition_controls.append(cell)
-        for widget, stretch in ((role, 2), (name, 2), (mass, 1), (composition_controls[0], 1), (composition_controls[1], 1), (remove, 0)):
-            row_layout.addWidget(widget, stretch)
+        fields = ((role, 2), (name, 2), (mass, 1), (composition_controls[0], 1), (composition_controls[1], 1), (remove, 0))
+        titles = ("物料类别", "物料名称", "数量（t）", "固定碳含量（%）", "挥发分（%）", "操作")
+        for index, (widget, stretch) in enumerate(fields):
+            if prefix == "calcination":
+                row_layout.addWidget(labeled_field(titles[index], widget), index // 3, index % 3, Qt.AlignmentFlag.AlignTop)
+            else:
+                row_layout.addWidget(widget, stretch)
             self._wire_dirty_tracking(widget)
+        if prefix == "calcination":
+            row_layout.setHorizontalSpacing(18)
+            row_layout.setVerticalSpacing(10)
+            for column in range(3):
+                row_layout.setColumnStretch(column, 1)
         self._wire_dirty_tracking(carbon_source)
         self._wire_dirty_tracking(volatile_source)
         for widget in (name, mass, carbon, volatile):
@@ -7249,6 +7286,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 if card.isHidden() == visible:
                     card.setVisible(visible)
                     visibility_changed = True
+        if hasattr(self, "source_directory"):
+            self.source_directory.refresh()
         self._refresh_source_toggle_buttons()
         self._refresh_live_feedback()
         if visibility_changed:

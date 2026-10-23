@@ -1,6 +1,6 @@
 """Connected segmented controls bind stable combo values without owning business state."""
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtWidgets import QButtonGroup, QComboBox, QHBoxLayout, QToolButton, QLabel, QWidget
+from PySide6.QtWidgets import QButtonGroup, QComboBox, QHBoxLayout, QToolButton, QRadioButton, QLabel, QWidget
 
 
 def _choice_value(value):
@@ -14,6 +14,7 @@ class SegmentedChoiceControl(QWidget):
         self.setObjectName(combo.objectName() + "Choices")
         self.combo, self.indices = combo, indices
         self.values = None if values is None else frozenset(_choice_value(value) for value in values)
+        self._radio_style = False
         self.group = QButtonGroup(self)
         self.row = QHBoxLayout(self)
         self.row.setContentsMargins(0, 0, 0, 0)
@@ -60,6 +61,24 @@ class SegmentedChoiceControl(QWidget):
         """)
         self._rebuild()
 
+    def set_radio_style(self):
+        """Presentation only: retain the combo, policy filters and signal adapter."""
+        if self._radio_style:
+            return
+        self._radio_style = True
+        self.row.setSpacing(14)
+        self.single_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.setStyleSheet("""
+            QRadioButton {font-size:14px;spacing:7px;min-height:30px;color:#344E61;}
+            QRadioButton::indicator {width:14px;height:14px;border:1px solid #93A8B6;border-radius:8px;background:white;}
+            QRadioButton::indicator:checked {background:#147BB5;border:3px solid #CEE5F3;}
+            QRadioButton:focus {outline:1px solid #197CC2;}
+            QRadioButton:disabled {color:#9BA8B0;}
+            QLabel#singleAllowedChoiceLabel {font-size:13px;color:#526A7A;min-height:30px;border:0;padding:0;}
+            QLabel#choiceConfirmationNotice {color:#936026;font-size:12px;}
+        """)
+        self._rebuild()
+
     def set_allowed_values(self, values):
         """Restrict visible choices without changing the combo's stored selection."""
         normalized = None if values is None else frozenset(_choice_value(value) for value in values)
@@ -84,6 +103,7 @@ class SegmentedChoiceControl(QWidget):
         for button in self.group.buttons():
             self.group.removeButton(button)
             self.row.removeWidget(button)
+            button.hide()
             button.deleteLater()
         self.row.removeWidget(self.single_label)
         self.row.removeWidget(self.notice)
@@ -103,7 +123,7 @@ class SegmentedChoiceControl(QWidget):
         else:
             for position, index in enumerate(allowed):
                 value = _choice_value(self.combo.itemData(index))
-                button = QToolButton(self)
+                button = QRadioButton(self) if self._radio_style else QToolButton(self)
                 button.setText(self.combo.itemText(index))
                 button.setCheckable(True)
                 button.setAccessibleName(self.combo.itemText(index))

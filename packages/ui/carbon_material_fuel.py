@@ -190,11 +190,11 @@ class _FuelRow(QWidget):
         self.oxidation_label = QLabel("碳氧化率（%）", self)
         self.source_reference_label = QLabel("实测报告/来源定位", self)
         self.source_reference_control = QWidget(self)
-        source_layout = QHBoxLayout(self.source_reference_control)
+        source_layout = QVBoxLayout(self.source_reference_control)
         source_layout.setContentsMargins(0, 0, 0, 0)
         source_layout.setSpacing(5)
         source_layout.addWidget(self.source_reference_label)
-        source_layout.addWidget(self.source_reference, 1)
+        source_layout.addWidget(self.source_reference)
         self.source_reference_control.hide()
         self.calculated_carbon_label = QLineEdit(self)
         self.calculated_carbon_label.setReadOnly(True)
@@ -226,15 +226,20 @@ class _FuelRow(QWidget):
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(3)
-        # Two business rows, with sources beside their own parameter.
+        # Compact C+A layout; source qualification remains on the original combos.
         self.path_choices = TwoChoiceControl(self.path, parent=self)
         for column, (label, widget) in enumerate(((self.fuel_type_label, self.fuel_type), (self.path_label, self.path_choices), (self.activity_label, self.activity))):
-            grid.addWidget(self._field_cell(label, widget), 0, column * 4, 1, 4)
-        for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.direct_carbon_label, carbon_value_cell), (self.oxidation_label, self.oxidation_control))):
-            grid.addWidget(self._field_cell(label, widget), 1, column * 3, 1, 3)
-        grid.addWidget(self.source_reference_control, 2, 0, 1, 12)
-        for column in range(12):
+            grid.addWidget(self._field_cell(label, widget), 0, column, Qt.AlignmentFlag.AlignTop)
+        for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.oxidation_label, self.oxidation_control))):
+            grid.addWidget(self._field_cell(label, widget), 1, column, Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(self._field_cell(self.direct_carbon_label, carbon_value_cell), 2, 0, Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(self.source_reference_control, 2, 1, 1, 2, Qt.AlignmentFlag.AlignTop)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(16)
+        for column in range(3):
             grid.setColumnStretch(column, 1)
+        for control in self.findChildren(SegmentedChoiceControl):
+            control.set_radio_style()
         self.input_grid = grid
         outer.addLayout(grid)
         self._last_path = getattr(self.path.currentData(), "value", self.path.currentData())
