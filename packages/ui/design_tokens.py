@@ -255,3 +255,39 @@ def application_stylesheet() -> str:
 def message_button_stylesheet() -> str:
     """Instance-only message buttons; retain native default/focus feedback."""
     return "QMessageBox QPushButton { font-size: 14px; font-weight: normal; min-height: 24px; min-width: 72px; padding: 5px 10px; }"
+
+
+def accounting_sample_stylesheet() -> str:
+    """PR-B sample roles, applied once by the accounting page only."""
+    return f"""
+        QWidget[layoutSample="true"] QLabel {{ font-size: 14px; }}
+        QWidget[layoutSample="true"] QLabel#cardTitle {{ font-size: 18px; font-weight: 600; }}
+        QWidget[layoutSample="true"] QLineEdit,
+        QWidget[layoutSample="true"] QComboBox,
+        QWidget[layoutSample="true"] QSpinBox,
+        QWidget[layoutSample="true"] QDateEdit {{
+            min-height: 28px; padding: 4px 8px; border: 1px solid {BORDER};
+            border-radius: 6px; font-size: 14px; font-weight: normal;
+        }}
+        QWidget[layoutSample="true"] QComboBox QLineEdit,
+        QWidget[layoutSample="true"] QAbstractSpinBox QLineEdit {{
+            min-height: 0px; padding: 0px; border: none; background: transparent;
+        }}
+        QWidget[layoutSample="true"] QPushButton {{
+            min-height: 28px; padding: 4px 12px; font-size: 14px; font-weight: normal;
+        }}
+        QPushButton#projectUnitControlsToggle {{
+            min-height: 28px; padding: 4px 12px; text-align: left;
+            font-size: 14px; font-weight: 600;
+        }}
+        QWidget[layoutSample="true"] QPushButton#saveAccountingProjectButton {{
+            background: {PRIMARY_BRAND}; color: white; border-color: {PRIMARY_BRAND};
+        }}
+        QWidget[layoutSample="true"] QPushButton#deleteAccountingProjectButton,
+        QWidget[layoutSample="true"] QPushButton#deleteAccountingUnitButton {{
+            color: {SECONDARY_TEXT}; background: transparent;
+        }}
+        QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
+            min-height: 54px; padding: 0px; font-weight: normal;
+        }}
+    """

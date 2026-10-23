@@ -139,7 +139,7 @@ from .input_fields import labeled_field
 from .responsive_fields import ResponsiveFieldGrid
 from .typed_inputs import NumericLineEdit, create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
-from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
+from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED, accounting_sample_stylesheet
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -841,6 +841,7 @@ class CarbonMaterialAccountingPage(BasePage):
             page_description.hide()
 
         identity, identity_layout = _card("核算信息与边界", self)
+        identity.setProperty("layoutSample", True)
         form = QFormLayout()
         form.setHorizontalSpacing(20)
         form.setVerticalSpacing(10)
@@ -886,7 +887,9 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_month.hide()
         self.period_month.valueChanged.connect(self._sync_period_choice_from_month)
         self.period_year.setPrefix("年份 ")
+        self.period_year.setMaximumWidth(180)
         self.period_type.setMinimumWidth(140)
+        self.period_type.setMaximumWidth(220)
         period_layout.addWidget(self.period_year)
         period_layout.addWidget(self.period_type)
         period_layout.addStretch(1)
@@ -1286,15 +1289,23 @@ class CarbonMaterialAccountingPage(BasePage):
             }}
             QLabel#calculationTotal {{ font-size: 24px; font-weight: 600; color: {PRIMARY_BRAND}; }}
             QLabel#calculationTrace, QLabel#calculationBreakdown {{ font-size: 14px; }}
-        """)
+        """ + accounting_sample_stylesheet())
 
     def _build_project_unit_controls(self) -> None:
         toggle = QPushButton("展开项目与核算单元", self)
         toggle.setObjectName("projectUnitControlsToggle")
         toggle.setCheckable(True)
         toggle.setAccessibleName("项目与核算单元")
+        toggle_layout = QHBoxLayout(toggle)
+        toggle_layout.setContentsMargins(12, 0, 12, 0)
+        toggle_layout.addStretch(1)
+        indicator = QLabel("＋", toggle)
+        indicator.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        toggle_layout.addWidget(indicator)
+        toggle.toggled.connect(lambda expanded: indicator.setText("−" if expanded else "＋"))
         card, layout = _card("项目与核算单元", self)
         card.setObjectName("projectUnitControlsCard")
+        card.setProperty("layoutSample", True)
         card.setVisible(False)
         toggle.toggled.connect(card.setVisible)
         toggle.toggled.connect(
@@ -1313,9 +1324,12 @@ class CarbonMaterialAccountingPage(BasePage):
         self.save_project_button.setObjectName("saveAccountingProjectButton")
         self.save_project_button.clicked.connect(self._save_project)
         project_row.addWidget(self.save_project_button)
+        layout.addLayout(project_row)
+        project_row = QHBoxLayout()
+        project_row.addWidget(QLabel("已保存项目", card))
         self.saved_projects = QComboBox(card)
         self.saved_projects.setObjectName("savedAccountingProjects")
-        project_row.addWidget(self.saved_projects)
+        project_row.addWidget(self.saved_projects, 1)
         self.open_project_button = QPushButton("打开", card)
         self.open_project_button.setObjectName("openAccountingProjectButton")
         self.open_project_button.clicked.connect(self._open_selected_project)
@@ -3118,6 +3132,10 @@ class CarbonMaterialAccountingPage(BasePage):
             button = SourceToggleButton(label, selector_host)
             button.setObjectName(f"sourceToggle_{group_id}")
             button.setAccessibleName(label)
+            button.title_label.setWordWrap(True)
+            button.title_label.setStyleSheet("background: transparent; color: #213A4F; font-size: 14px; font-weight: 600;")
+            button.layout().setContentsMargins(12, 8, 12, 8)
+            button.layout().setSpacing(4)
             button.clicked.connect(lambda _checked=False, _group=group_id: self._toggle_source_group(_group))
             selector_layout.addWidget(button, index // 4, index % 4)
             self._source_toggle_buttons[group_id] = button
@@ -3242,6 +3260,7 @@ class CarbonMaterialAccountingPage(BasePage):
             card = QFrame(parent_layout.parentWidget())
             card.setObjectName("unifiedElectricityCard" if family == "electricity" else "unifiedHeatCard")
             card.setProperty("energyFamily", family)
+            card.setProperty("layoutSample", True)
             card.setFrameShape(QFrame.Shape.StyledPanel)
             layout = QVBoxLayout(card)
             title_bar = QFrame(card)
@@ -3748,6 +3767,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self,
             fuel_options=self._fuel_catalog_options(),
         )
+        row.setProperty("layoutSample", True)
         self._mark_search_combo_input(row.fuel_type)
         self._fuel_rows.append(row)
         self.fuel_rows_layout.addWidget(row)

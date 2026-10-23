@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
+    parser.add_argument("--accounting", action="store_true")
     args = parser.parse_args()
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True))
     if dirty:
@@ -65,6 +66,37 @@ def main():
         root = Path(directory)
         catalog = build_catalog_database(DEFAULT_SOURCE_PATH, root / "catalog.sqlite")
         window = create_main_window(AppConfig(catalog_database=catalog, log_directory=root / "logs"))
+        if args.accounting:
+            from packages.ui.view_models import AppRoute
+            from PySide6.QtWidgets import QScrollArea
+            window.resize(1440, 1000)
+            window.show()
+            shell = window.centralWidget()
+            shell.navigate(AppRoute.NEW_ACCOUNTING)
+            page = shell.pages[AppRoute.NEW_ACCOUNTING]
+            capture(window, "accounting-top")
+            window.show()
+            page.project_unit_toggle.setChecked(True)
+            capture(window, "accounting-project")
+            window.show()
+            page.project_unit_toggle.setChecked(False)
+            page._toggle_source_group("fuel")
+            scroll = window.findChild(QScrollArea, "mainScrollArea")
+            for _ in range(4): application.processEvents()
+            scroll.ensureWidgetVisible(page._fuel_rows[0], 0, 20)
+            capture(window, "accounting-fuel")
+            window.show()
+            page._toggle_source_group("electricity")
+            for _ in range(4): application.processEvents()
+            scroll.ensureWidgetVisible(page._unified_energy_cards["electricity"], 0, 20)
+            capture(window, "accounting-electricity")
+            summary["callback_errors"] = errors
+            (args.output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+            window.hide()
+            window.deleteLater()
+            if errors:
+                raise RuntimeError(str(errors))
+            return
         capture(window, "home")
         box = MessageBox(window)
         box.setWindowTitle("退出软件")
