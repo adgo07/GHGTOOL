@@ -25,5 +25,14 @@
   "new_ci": "CI297 PASS for c6edb51; see CI297_SUMMARY.json. Later toolchain manifest patch requires its own CI.",
   "commercial_license_clearance": "OPEN",
   "official_license_origin": "PR57_QTPDF_ORIGIN_PROOF.json",
-  "ci_receipt": "CI297_SUMMARY.json"
+  "ci_receipt": "CI297_SUMMARY.json",
+  "latest_followup": {
+    "failed_head": "3f821a710142763e83ab0c166354201dc43a2e7d",
+    "run": 39921526799,
+    "result": "FAIL: direct-script import error; no artifact",
+    "fix": "bootstrap repository root before repository imports; subprocess valid/invalid artifact regression without PYTHONPATH",
+    "local_tests": 5,
+    "local_seconds": 3.355,
+    "next_ci": "PENDING_FOR_NEW_HEAD"
+  }
 }

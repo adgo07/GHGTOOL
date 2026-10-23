@@ -12,11 +12,18 @@ from contextlib import closing
 import hashlib
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
+
+# Support the documented `python scripts/inspect_release.py ...` invocation.
+# scripts is repository tooling, deliberately not an installed product package.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.build_environment import validate_build_environment
 

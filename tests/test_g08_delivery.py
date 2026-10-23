@@ -6,6 +6,7 @@ from fnmatch import fnmatchcase
 import json
 from hashlib import sha256
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import tomllib
@@ -518,6 +519,25 @@ class G08DeliveryTests(unittest.TestCase):
                 ).fetchone()[0]
             self.assertEqual(manifest["database_schema_versions"]["catalog"], catalog_schema_version)
             self.assertGreater(verify_release_archive(artifact), 0)
+            # Archive excludes repository placeholders; audit the same file set.
+            (artifact / "migrations" / ".gitkeep").unlink()
+            (artifact / "resources" / "icons" / ".gitkeep").unlink()
+            # Exercise the documented CLI, not just imports under unittest's path.
+            environment = os.environ.copy()
+            environment.pop("PYTHONPATH", None)
+            environment.pop("PYTHONHOME", None)
+            with tempfile.TemporaryDirectory() as unrelated_cwd:
+                command = [sys.executable, "-I", str(PROJECT_ROOT / "scripts/inspect_release.py"), str(artifact)]
+                result = subprocess.run(command, cwd=unrelated_cwd, env=environment,
+                                        capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("release-audit: PASS", result.stdout)
+                # Invalid input must still fail by audit, not a Python import error.
+                result = subprocess.run(command[:-1] + [unrelated_cwd], cwd=unrelated_cwd,
+                                        env=environment, capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("FAIL:", result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
             environment = manifest.pop("build_environment")
             (artifact / "build-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             self.assertIn("manifest missing build_environment", inspect_release(artifact))

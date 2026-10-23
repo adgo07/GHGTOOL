@@ -1,5 +1,13 @@
 ## PR57 构建可追溯性收口（2026-10-23）
 
+### CI298 审计入口退修（2026-10-23）
+
+CI298/run39921526799 的 merge-ref 全量成功，精确 head job120314607512 在独立 audit 步骤因 ModuleNotFoundError: scripts 失败；archive/provenance/smoke/upload 未执行，无制品，3f821a7 不放行。修复 inspect_release 的文件路径入口引导，与 build_standalone 相同；scripts 仍仅为仓库工具，不移入产品包。
+
+本地命令：QT_QPA_PLATFORM=offscreen；python -B -m unittest tests.test_g08_delivery.G08DeliveryTests.test_uploaded_archive_preserves_manifest_file_set tests.test_build_environment -v，5项/3.355s OK，0失败/错误/跳过。新增真实子进程在非仓库 cwd、无 PYTHONPATH/PYTHONHOME、Python -I 隔离模式执行脚本：合法合成包 PASS；空目录正常 FAIL，无导入异常。首次测试发现夹具含归档排除的 .gitkeep，调整为实际上传集合后通过，未降低审计规则。
+
+仅修入口及测试/工具约定，不改业务、manifest 版本约束或性能证据；待新精确 head CI 和实包，不用 CI297/298 替代。原生及商业交付门禁继续 OPEN，本轮无原生操作、不自动合并。
+
 CI297 对 c6edb51 的工程候选已核验通过，回执见 docs/ci/CI297_SUMMARY.json：实际下载并保全的 ZIP 与 Actions artifact 12361586214 摘要一致，319 文件集合、318 逐文件大小/hash、三项提交身份核对通过；包内 Qt6Core 文件版本 6.11.2.0。PNG/SVG 解码、两次隔离启动来自该 CI 日志，本地未执行 EXE。旧 CI296 原包继续 HOLD，不覆盖历史证据。
 
 本次新增 build_environment：从实际构建进程采集 Python 完整 patch、PySide6/Essentials/Addons、Qt、shiboken6、PyInstaller、hooks 及系统/位数，按既有 requirements-build 固定组合检查；审计拒绝缺项和版本漂移。Python 仍允许 3.12 的不同 patch，完整身份记录但不冒称性能环境相同。图像诊断改为显式 --probe-images 输出路径，环境变量不再切换生产入口。业务树、四行 UI、模板、公式、历史 Record 和性能 raw 不变。
