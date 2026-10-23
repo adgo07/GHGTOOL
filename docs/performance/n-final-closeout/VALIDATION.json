@@ -1,0 +1,63 @@
+{
+  "local_tests": [
+    {
+      "log": "ui-regression-01.log",
+      "count": 37,
+      "seconds": 57.488,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "log": "project-regression-01.log",
+      "count": 43,
+      "seconds": 187.071,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "log": "consumer-delivery-regression-01.log",
+      "count": 34,
+      "seconds": 97.687,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "executions": 114,
+  "parsed_test_ids": 114,
+  "distinct_test_ids": 114,
+  "runtime": {
+    "python": "3.12.14 (main, Sep  1 2026, 14:17:39) [MSC v.1944 64 bit (AMD64)]",
+    "PySide6": "6.11.2",
+    "Qt": "6.11.2",
+    "shiboken6": "6.11.2",
+    "openpyxl": "3.1.5",
+    "python_docx": "1.2.0",
+    "lxml": "6.1.3",
+    "CoolProp": "8.0.0",
+    "numpy": "2.3.3"
+  },
+  "scope": "Local offscreen related regression only; no local full suite/build or native operation.",
+  "production_commit": "58e788be36dc0d3263c48e59e5d464c2549139b5",
+  "canonical_validation": {
+    "standards": 9,
+    "sources": 12,
+    "parameters": 102,
+    "factors": 138,
+    "exit_code": 0
+  },
+  "compile_check": {
+    "paths": [
+      "packages/ui/carbon_material_page.py",
+      "scripts/profile_n_final_closeout.py",
+      "scripts/summarize_n_final_closeout.py"
+    ],
+    "exit_code": 0
+  },
+  "native_desktop": "NOT_RUN: user restriction",
+  "local_full_suite": "NOT_RUN: related local regression and normal required CI instead",
+  "local_build": "NOT_RUN: exact-head CI build instead",
+  "subsequent_ci_receipt": "../../ci/CI297_SUMMARY.json (c6edb51 only; not a performance rerun or later-patch verification)"
+}

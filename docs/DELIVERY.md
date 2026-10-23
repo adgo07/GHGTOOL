@@ -4,7 +4,7 @@
 
 ## 当前生产与证据时点（2026-10-21 静态整理）
 
-PR53已合并至main基线348077c；当前行业算法EXTERNAL.1、输入母版v11/2.9.0、payload6/封套2、新报告Schema3.1.0（无补充节点历史记录3.0.0）。本文后续PR46/52及v4/v10等内容是对应阶段的交付记录，不覆盖当前版本。
+本轮有限收口从PR56已合并基线 `59cab091aab0df44b147f2bba3b960085dbae168` 开始；PR56源PASS/CI294 success的具体回执由当前工作包报告索引，不重复该包实施或把其制品改标为本轮新head。业务版本继续为行业算法EXTERNAL.1、输入母版v11/2.9.0、payload6/封套2、新报告Schema3.1.0（无补充节点历史记录3.0.0）。本文后续PR46/52及v4/v10等内容是对应阶段的交付记录，不覆盖当前版本。
 
 本节保留的PR53工程制品为[CI288](https://github.com/adgo07/GHGTOOL/actions/runs/39433861262)的head2dbb104（不是merge348或本轮文档head的精确新制品），全量1036/G08 18及包审计/2启动通过。此为PR53历史工程制品；后续N导航及首次新建优化的精确head、测量和CI以当前TASK_STATE、IMPLEMENTATION_REPORT与对应PR回执为准，本清单不重标旧制品。原生Office/鼠标/IME/人工DPI/企业样例/干净机/全产品许可履约与正式Release仍OPEN；工程制品不是商业交付许可。
 
@@ -26,7 +26,8 @@ PR53已合并至main基线348077c；当前行业算法EXTERNAL.1、输入母版v
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[build]"
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip install --no-build-isolation -c requirements-build.txt -e ".[build]"
 .\.venv\Scripts\python.exe scripts\build_standalone.py --clean
 ```
 
@@ -183,6 +184,42 @@ PR52-F01当时输入模板为v10/2.8.0（烟气v9/2.7.0、脱硫v8/2.6.0为更�
 5. 汇总每个系统/Office版本的通过、失败、未执行及原因，附包/模板/样例/报告/日志摘要；缺项继续OPEN，不以自动化冒充原生操作，也不据本清单宣布SUPPORTED。
 
 验收证据随当前工作包的 `IMPLEMENTATION_REPORT.md` / `TASK_STATE.md` 及对应PR回执索引；原始日志和大文件在获准落点保存，只在仓内记录脱敏摘要、相对路径或受控链接及SHA256，不写机器固定路径。本次交付清单整理子任务仅静态阅读注册表、构建/审计脚本与既有文档，未运行测试、构建、性能测量、原生Office/桌面交互或企业数据验证。本节所列正式交付门禁通过数量为0，状态全部OPEN；同一工作包的N研发性能采样、回归及工程候选CI执行结果另以当前TASK_STATE、IMPLEMENTATION_REPORT与对应PR回执为准，不将研发验证等同最终产品Release门禁通过。
+
+### 可复用合成验证样例（不是企业验收）
+
+以下样例只复用现有Mapping及测试夹具，不新增Golden权威、标准解释或路线。独立预期先来自批准Mapping的算式/状态约定，再与程序结果对照；不能把当次Calculator输出复制成期望值。真实企业期间、边界、完整活动和凭证尚无授权材料，企业样例闭环继续OPEN。历史 `docs/rpt02/samples/` 与 `scripts/rpt02_acceptance_samples.py` 包含EXCEL_R2身份，仅用于对应历史Record/版式证据，不当作当前v11正式输入样例。
+
+| 合成场景 | 准备及独立预期 | 既有可执行覆盖/证据定位 |
+|---|---|---|
+| 单一边界外购热 | 年度2026、确认边界，除购入热力外均明确不涉及；蒸汽1t（1000kg），合法独立已知焓2800kJ/kg，因子0.11tCO₂/GJ。按Mapping `TV-CAR-FML-013` / `TV-CAR-POL-006`：1000×2800÷1000000=2.8GJ；2.8×0.11=0.308tCO₂，显示修约与全值分开记录。 | `tests/test_b_heat_chain.py` 的 `HeatQtTests.prepare` 和 `test_known_gui_project_reopen_and_frozen_record_word`：项目恢复、两次成功追加两Record及冻结Word；辅助压力草稿999不参与合法已知焓计算。 |
+| v11表格及外部补充状态 | 在上一购热样例上，B.9设置B3=饱和蒸汽、C3=1、F3=2800、H3=已知焓、I3=缺省值、J3=边界外，其他活动表留空。软件补充B4=纳入、B5=数值20、B6=合成外部结果；原ET保持0.308，补充合计独立为20.308tCO₂（显示20.31），并不证明外部结果/企业完整性已核验。B5空白为待补充、数值0为明确零、不纳入时不形成补充合计；不能互相替代。 | `tests/test_b_external_excel.py` 的 `test_state_matrix_preview_zero_records_and_project_reopen`；`tests/test_b_external_chain.py` 的冻结Record/Word与重复追加覆盖。原ET与补充合计分列，补充不是B.10或标准ET。 |
+| 错误输入零新增Record | 以上已选择纳入的补充值改为-1、NaN，或填入公式；应按相应入口拒绝，记录数保持不变。Excel数值20与文本“20”分列，本场景文本数字拒绝，不把GUI文本输入约定套入工作簿。未选择纳入的无效文本草稿与OOXML公式安全检查也分列。 | `tests/test_b_external_runtime.py`、`tests/test_b_external_excel.py` 的状态矩阵，以及 `tests/test_b_external_chain.py` 的追加/错误路径；记录实际诊断与前后Record数，不只截成功画面。 |
+| 多来源输入覆盖 | `tests/exb01_fixture_helper.py` 的 `write_valid_appendix_b_workbook(path, all_sources=True)` 以当前母版生成B.2～B.9合成数据；已知焓2777是显式算术输入，不是独立IF97参考点。 | 可复用作表格结构和多来源回归输入；逐分项期望仍需依Mapping独立展开和复核，当前不据此宣布完整Golden/RS04通过。 |
+
+后续执行者可在已安装本项目依赖的隔离环境、仓库根运行下列既有定向验证；本次文档子任务没有执行，数量与耗时由实际执行者填入工作包报告。测试含offscreen Qt/临时SQLite，只说明工程路径覆盖，不能替代上表原生Office/IME/DPI门禁：
+
+```powershell
+python -m unittest tests.test_b_heat_chain tests.test_b_external_runtime tests.test_b_external_excel tests.test_b_external_chain -v
+```
+
+人工复验沿用上表“待验场景与证据出口”的操作，不另建框架：先登记候选/模板/样例哈希与独立算式；预览时核Record数不变，明确保存项目并重开核输入一致；成功计算两次核两个不同Record，错误输入核零新增；从选定Record导出Word核0.308与20.308各自身份，关闭重启后再核冻结内容。保存输入文件、诊断、Record/项目身份及Word摘要，缺步骤即记NOT_RUN及原因。合成企业名、示例来源标签不得伪装真实企业凭证。
+
+### 工程候选本地保全与证据索引
+
+GitHub workflow `.github/workflows/windows-ci.yml` 当前 `retention-days: 7`；Actions artifact下载链接是短期获取入口，不能作为永久交付存档。后续执行者应把实际候选ZIP、原样manifest与原始日志复制到获准的本地保全落点，登记相对目录和SHA256；未实际保全前保持未完成。`scripts/verify_release_archive.py` 只在临时目录做ZIP过滤往返并销毁临时ZIP，不会替用户保存最终ZIP。
+
+1. 复用同head已有成功运行时，先核run/job/artifact ID、PR head、tested merge与实际manifest三项提交身份；下载原ZIP后先记大小/SHA256，保留原文件。若另从本地standalone目录压缩形成保全ZIP，分配新文件名、重算自身摘要并标为“本地封装”；不得沿用Actions ZIP摘要或artifact ID冒充同一字节对象。
+2. 在新建的独立目录完整解压候选，使用现有 `python scripts/inspect_release.py <解压后含exe的目录>` 核路径集合、manifest所列字节、Catalog和受控资源；留命令/退出码/日志摘要。另用 `Get-FileHash -Algorithm SHA256 -LiteralPath <ZIP或manifest路径>` 和 `Get-Item -LiteralPath <路径>` 记录ZIP及manifest各自SHA/大小。审计通过不能反推下载原ZIP已经永久保存。
+3. 从原manifest抄录 `source_commit`、`pr_head_sha`、`tested_merge_sha`，与日志对应；保留应用/数据/模板/规则/布局/实际依赖身份。文档或证据提交可在产品代码之后出现，分列其head，不改写已构建manifest。只有最终实际文件存在并复核后，才在工作包报告写“已保全”及真实相对路径、摘要、大小、命令结果和保全日期；不要预填预期包哈希。
+4. 保全目录另外收录对应原始构建/审计/启动日志、CI回执、模板与许可来源索引；不混入用户数据库、客户资料或标准全文。库备份继续遵守上文完整data目录规则，独立于交付ZIP。保全记录可并入当前 `IMPLEMENTATION_REPORT.md`，不新建平行发布规范。
+
+静态来源索引：当前模板登记/实际母版对应 `packages/excel/templates.py`、`resources/excel_templates/gb_t_32151_34_2024_appendix_b_v11.xlsx`，本次只读SHA256核得上文b1e843…166c4；构建及包体检查入口是 `scripts/build_standalone.py`、`scripts/inspect_release.py`、`scripts/verify_release_archive.py`；固定依赖是 `requirements-build.txt`。蒸汽许可来源为 `resources/licenses/steam_if97/SOURCES_AND_NOTICES.json`，13份原文加来源清单共14文件，其摘要由包审计固定核对；该材料没有补齐全产品LGPL、VC或其他商业履约。N历史性能原始证据见 `docs/performance/n-first-open/`，其结果不替代交付门禁。本次文档静态阅读未运行上述测试/审计/构建/启动/原生操作；最终本地保全、候选实包核验与本轮执行统计由root报告真实结果，未执行项不填PASS。
+
+## PR57实包HOLD与受控构建修复
+
+CI296原候选ZIP完整性通过，但实包Qt6.12/Python3.12.10不同于本地测量Qt6.11.2/Python3.12.14，且未消费qpdf图像插件带入Qt6Pdf.dll。原包单独保留HOLD，不将离屏性能外推该包。准确官方PySide6_Pdf6.12.0.140 wheel METADATA提供LGPLv3/GPL选项，不按DLL名误判GPL-only；完整许可与第三方通知履约仍OPEN。
+
+产品只消费批准PNG/SVG，不读取PDF图像。用户授权最小修复后，CI及上文交付安装统一消费已有requirements-build固定约束；pyproject源码开发范围和Pythonpatch策略不变。构建仅排除新产物中qpdf插件及其Qt6Pdf直接依赖，资源审计拒绝残留；实际新包需通过PNG/SVG隔离probe、原两次启动、完整manifest/hash与来源验证，另存新目录，不能修改旧ZIP冒充修复。当前新head/新包检查结果以PR及交付回执为准；新包验证前HOLD不解除，移除一个DLL不代表商业可分发。
 
 ## GitHub Actions 费用边界与 CI 节约
 

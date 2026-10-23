@@ -32,7 +32,8 @@ python -m venv .venv
 构建依赖、启动、数据目录、卸载保留、限制与排障说明见 [docs/DELIVERY.md](docs/DELIVERY.md)。
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[build]"
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip install --no-build-isolation -c requirements-build.txt -e ".[build]"
 .\.venv\Scripts\python.exe scripts\build_standalone.py --clean
 .\.venv\Scripts\python.exe scripts\inspect_release.py dist\QingzhouCarbonAccounting
 ```

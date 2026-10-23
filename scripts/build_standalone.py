@@ -35,6 +35,7 @@ from scripts.inspect_release import (
     EXCEL_SUFFIXES,
     inspect_release,
 )
+from scripts.build_environment import collect_build_environment, validate_build_environment
 from scripts.verify_release_archive import verify_release_archive
 from scripts.project_fuel_power_rules import verify_projection
 from scripts.project_material_rules import verify_material_projection
@@ -93,6 +94,10 @@ def _sha256(path: Path) -> str:
 
 
 def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str, str]) -> None:
+    environment = collect_build_environment()
+    issues = validate_build_environment(environment)
+    if issues:
+        raise RuntimeError("; ".join(issues))
     entries: list[dict[str, Any]] = []
     for path in sorted(
         item.relative_to(artifact)
@@ -112,6 +117,7 @@ def _write_manifest(artifact: Path, *, app_version: str, catalog_meta: dict[str,
     catalog_path = artifact / "databases" / "catalog.sqlite"
     manifest = {
         "manifest_version": 1,
+        "build_environment": environment,
         "artifact_name": APP_NAME,
         "app_version": app_version,
         "catalog_schema_version": catalog_meta["schema_version"],
@@ -182,6 +188,25 @@ def _remove_unused_virtual_keyboard(artifact: Path) -> None:
         "PySide6/plugins/platforminputcontexts/qtvirtualkeyboardplugin.dll",
         "Qt6VirtualKeyboard.dll",  # Qt 6.11 layout
         "PySide6/Qt6VirtualKeyboard.dll",  # Observed Qt 6.12 CI layout
+    ):
+        candidate = artifact / relative
+        if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+            raise RuntimeError("refusing to remove an external Qt component")
+        if candidate.is_file():
+            candidate.unlink()
+
+
+def _remove_unused_pdf_image_plugin(artifact: Path) -> None:
+    """Remove the unused PDF image plugin and its direct Qt PDF dependency.
+
+    Product image consumers load approved PNG/SVG resources, not PDF images.
+    This is a package-scope exclusion, not a GPL-only license classification.
+    """
+    root = artifact.resolve()
+    for relative in (
+        "PySide6/plugins/imageformats/qpdf.dll",
+        "Qt6Pdf.dll",
+        "PySide6/Qt6Pdf.dll",
     ):
         candidate = artifact / relative
         if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
@@ -310,6 +335,7 @@ def build_standalone(output_root: str | Path = "dist", *, clean: bool = False) -
         _remove_hidden_release_placeholders(artifact)
         _remove_unpacked_docx_template(artifact)
         _remove_unused_virtual_keyboard(artifact)
+        _remove_unused_pdf_image_plugin(artifact)
         _write_manifest(artifact, app_version=app_version, catalog_meta=catalog_meta)
         issues = inspect_release(artifact)
         if issues:

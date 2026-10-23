@@ -1,17 +1,49 @@
-# 当前任务状态 — 首次打开核算页性能与交付清单
+## PR57 构建可追溯性收口（2026-10-23）
 
-2026-10-21：源已独立PASS并合并PR55，merge `bb28ffe4c4c2733de57a3c6be8a63ee8c3b1b9ec`。实际核origin/fetch/main/head/status后建立新隔离分支codex/n-accounting-first-open；根用户文件和旧两批N原始证据保护。
+### CI298 审计入口退修（2026-10-23）
+
+CI298/run39921526799 的 merge-ref 全量成功，精确 head job120314607512 在独立 audit 步骤因 ModuleNotFoundError: scripts 失败；archive/provenance/smoke/upload 未执行，无制品，3f821a7 不放行。修复 inspect_release 的文件路径入口引导，与 build_standalone 相同；scripts 仍仅为仓库工具，不移入产品包。
+
+本地命令：QT_QPA_PLATFORM=offscreen；python -B -m unittest tests.test_g08_delivery.G08DeliveryTests.test_uploaded_archive_preserves_manifest_file_set tests.test_build_environment -v，5项/3.355s OK，0失败/错误/跳过。新增真实子进程在非仓库 cwd、无 PYTHONPATH/PYTHONHOME、Python -I 隔离模式执行脚本：合法合成包 PASS；空目录正常 FAIL，无导入异常。首次测试发现夹具含归档排除的 .gitkeep，调整为实际上传集合后通过，未降低审计规则。
+
+仅修入口及测试/工具约定，不改业务、manifest 版本约束或性能证据；待新精确 head CI 和实包，不用 CI297/298 替代。原生及商业交付门禁继续 OPEN，本轮无原生操作、不自动合并。
+
+CI297 对 c6edb51 的工程候选已核验通过，回执见 docs/ci/CI297_SUMMARY.json：实际下载并保全的 ZIP 与 Actions artifact 12361586214 摘要一致，319 文件集合、318 逐文件大小/hash、三项提交身份核对通过；包内 Qt6Core 文件版本 6.11.2.0。PNG/SVG 解码、两次隔离启动来自该 CI 日志，本地未执行 EXE。旧 CI296 原包继续 HOLD，不覆盖历史证据。
+
+本次新增 build_environment：从实际构建进程采集 Python 完整 patch、PySide6/Essentials/Addons、Qt、shiboken6、PyInstaller、hooks 及系统/位数，按既有 requirements-build 固定组合检查；审计拒绝缺项和版本漂移。Python 仍允许 3.12 的不同 patch，完整身份记录但不冒称性能环境相同。图像诊断改为显式 --probe-images 输出路径，环境变量不再切换生产入口。业务树、四行 UI、模板、公式、历史 Record 和性能 raw 不变。
+
+本任务不涉及中央公共 Contract；platform-lock 的 ee5feb0cc34dbd99790500fadd0c4c932e202a20 不变，无标准解释变化。当前修补的 CI 与实包待新提交验证，CI297 不背书本次代码；不重复性能测量、不宣称首开达标。原生 Office/鼠标/IME/DPI、企业样例、干净机、完整许可履约、Release、RS04–05 继续 OPEN，不自动合并。
+
+---
+
+以下为此前实施记录；其中待 CI297/新包核验的状态已由上述回执取代。
+
+# 最后一轮有限性能收口与工程候选交付
+
+2026-10-21：源已独立PASS并按用户授权合并PR56，实际fetch main为59cab091aab0df44b147f2bba3b960085dbae168。本轮新隔离分支codex/n-final-closeout，根用户脏文件和所有历史原始证据保留。root唯一生产作者/测量者；gpt-6.1-sol/medium静态代理仅写docs/DELIVERY.md，已完成，无测试/build/GUI/采样。
 
 ## 平台 / Contract 预检查
 
-中央锁仍 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；已核可信中央origin，Architecture2.1/Numeric1/Profiles1按锁，ACTIVE UI v0.2按正式已合并版本读取。MUST：分层、同Canonical/Application、Profile传播/ambient独立/精确比较、冻结Record/Word与草稿/资格/正式验证；MUST NOT：遥测回流、跳刷新/校验、陈旧缓存、历史重算或公式/标准范围/Frozen升级。Carbon p40/HALF_UP属允许项目差异。本任务不涉及中央公共Contract变更，无新增冲突/中央缺口。相关Issue016/017/018/020沿用，不改变标准解释。
+本轮读实际AGENTS/唯一路线/TASK/HANDOFF/台账与platform-lock；可信中央origin已核。中央Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，Architecture2.1按锁，ACTIVE UI v0.2按正式已合并版本读取。本任务不涉及中央公共Contract变更；保持分层、同Application/Calculator与Profile/ambient/exact比较、不可变Record/冻结Word，不改公式/资格/数据库/模板/算法身份/标准解释或SUPPORTED。遥测不回流业务，不跳刷新/校验、不减草稿、不加缓存/lazy。沿用Issue016/017/018/020，无新增解释或中央缺口；Carbon p40/HALF_UP仍为允许项目差异。
 
-## 分工与稳定断点
+## 有限收口断点
 
-root独占生产/测量和本状态、HANDOFF、REPORT；gpt-6.1-sol/medium文档代理仅静态改docs/DELIVERY.md，已完成且未测试/build/GUI/测量。当前生产提交dacddd56f546e564ca6263282f88231f8d274dd2，仅shell一行最终parent及行为回归；控件/内容/业务方法不减，无缓存/lazy，carbon_material_page零diff。
+生产提交58e788be36dc0d3263c48e59e5d464c2549139b5：仅四处parent参数（来源卡片、统一能源卡片/行、过程行）直接使用最终layout.parentWidget，避免填充后再换父；不移样式时点、不减控件、不缓存/lazy。实际前后离屏三尺寸30像素、两完整form/命名控件/dirty状态完全相同，0Qt回调错。
 
-有效顺序20+20进程首开median3574.161→3383.047ms仅降5.3%，p95升高；追加独立ABBA20对，配对median降幅16.336%、19/20更快，插栈589.805→0.351ms且换父/样式事件1→0。两序列独立保留，不宣称SLA或稳定尾延迟。相同worker/3库字节、查询/Resolver次数、3409控件等初始化形状；共80有效新进程、80首开/160缓存返回，0进程/Qt回调失败。协议/原始值/分项/配对/SHA及限制见新N目录。
+独立正式ABBA20对/40新进程（40首开/80缓存返回），0进程/Qt失败，所有跟踪方法调用次数含查询/Resolver/刷新逐对一致。首开median3139.477→2946.261ms（聚合约6.15%），配对中位降412.398ms/14.7399%、16/20更快；4对更慢（最不利+3759.257ms），p956145.271→4555.587ms，候选max6836.219ms，不能宣称SLA。诊断与正式独立，旧N raw不改；采样时HEAD仍基线、四行工作区diff和production SHA另存，未把基线冒称含改动提交。原始值/分项/反例/环境/字节身份见docs/performance/n-final-closeout。
 
-v1变参计时包装器导致Qt无参槽TypeError，原20进程及两候选保留无效，不以进程0退出当Qt成功；修复arity+sys.excepthook断言后重采。提前样式候选有6/30像素差异已撤回。最终30像素、两完整控件/规范化输入/dirty配对相同；37/55.340s+43/158.445s=80回归PASS，0失败/错误/跳过；旧parent负控制1预期断言由外层检查PASS，单列不计生产通过数。
+性能优化到此结束，不追加候选。采样结束后串行本地37/57.488s+43/187.071s+34/97.687s=114不同测试通过，0失败/错误/跳过，覆盖UI/草稿/项目、动态行、能源消费者和G08。规范数据9标准/12来源/102参数/138因子有效，修改脚本/生产文件编译与diff检查通过。未本地全量/build；新PR正常CI及实际候选保全结果以该head回执/交付凭据补充，不复用旧CI294。
 
-旧N raw/证据与业务路径零diff已核，v11模板SHA与实际资源同；本次清单整理子任务的正式交付门禁OPEN，研发回归/工程CI另列。未本地全量/build、未原生桌面/Office/IME/企业样例/干净机；不进RS04/05/商业交付。不再扩大候选，稳定后单次push/新PR正常CI源独立验收，不自动合并；最终head/检查按PR回执，旧CI292不背书本包。
+## 交付边界
+
+用户授权“收口并交付”本轮落实为可追溯工程候选：稳定后一个PR正常CI，源独立验收，不自动合并；下载实际精确代码head的ZIP至新建获准交付目录，保留ZIP/manifest/provenance/摘要/日志并核文件集合和逐文件hash。短期Actions链接不作为永久保全。无原生桌面/CU/Office/IME/人工DPI/干净机、无企业真实数据、无付费服务或商业Release，不进RS04/05/第二标准，不宣布完整SUPPORTED。上述正式产品门禁继续OPEN。
+
+## 工程候选实包发现与已授权最小构建修复
+
+CI296（PR57 fcc69c1）完整1040/1260.347s、G08 18/9.434s、构建/审计/2启动成功；原ZIP75,751,742 bytes与API/upload/local SHA b92384e4456aecaad0dc781a6910373c1c6b9f3a44477a044b58bba025c506c8相同，323路径/322逐文件hash/manifest三提交身份通过。但实包Qt/PySide6为6.12.0、Python3.12.10，与本地性能Qt6.11.2/Python3.12.14不同，并含未消费qpdf图像插件/Qt6Pdf.dll；交付HOLD，不外推本地性能。
+
+静态原始材料证明该Qt6Pdf.dll来自官方PySide6_Pdf6.12.0.140 Windows wheel，字节相等；其METADATA提供LGPLv3/GPL选项，不是GPL-only结论。PE静态唯一直接导入者为qpdf.dll，产品只读品牌PNG/图标SVG，无PDF图像消费；未加载候选DLL/EXE验证运行依赖。完整许可/第三方履约仍OPEN。
+
+根因是CI只安装pyproject宽范围，未消费已有requirements-build固定约束。源已转达用户授权同包最小修复：CI/交付安装统一-r/-c既有约束并复用已装固定build backend；按既有安全机制只从新构建产物排除未用qpdf插件及Qt6Pdf依赖；audit守卫、隔离PNG/SVG probe和必要G08测试。pyproject支持范围、Pythonpatch、业务/模板/性能均不改。修复后本地G08 22/18.688s OK（含18重跑+4新项，不与先前114混加），0失败/错误/跳过。保留PR57、CI296原包/HOLD；新精确head正常CI与新独立目录通过前不解除HOLD，不自动合并或商业放行。
+
+本次本地验证：QT_QPA_PLATFORM=offscreen；python -B -m unittest tests.test_build_environment tests.test_g08_delivery -v，26项/37.703s，0失败/错误/跳过。构建环境为Python3.12.14、Qt/PySide6/shiboken6 6.11.2、PyInstaller6.22.3、hooks2026.8。未本地全量、未本地构建或执行EXE；新CI独立补证。

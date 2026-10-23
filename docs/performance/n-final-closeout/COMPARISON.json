@@ -1,0 +1,2559 @@
+{
+  "base": "59cab091aab0df44b147f2bba3b960085dbae168",
+  "sampling_head": "59cab091aab0df44b147f2bba3b960085dbae168",
+  "production_sha256": "9b8a65a149e8c29438dd3de57a03f8800ebefc55f3afcc50a335f2775b6046df",
+  "series": "independent formal ABBA, not pooled with diagnostic or PR56",
+  "strategies": {
+    "legacy_parent": {
+      "first_open": {
+        "total": {
+          "n": 20,
+          "median_ns": 3139476650.0,
+          "p95_nearest_rank_ns": 6145271100,
+          "min_ns": 2629598600,
+          "max_ns": 8356522600
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "calls": {
+              "n": 20,
+              "median_ns": 21.0,
+              "p95_nearest_rank_ns": 21,
+              "min_ns": 21,
+              "max_ns": 21
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 85466950.0,
+              "p95_nearest_rank_ns": 274065600,
+              "min_ns": 68840200,
+              "max_ns": 277639300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 85466950.0,
+              "p95_nearest_rank_ns": 274065600,
+              "min_ns": 68840200,
+              "max_ns": 277639300
+            }
+          },
+          "catalog_repository.list_parameters": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12604900.0,
+              "p95_nearest_rank_ns": 19862600,
+              "min_ns": 9839300,
+              "max_ns": 22122500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 12604900.0,
+              "p95_nearest_rank_ns": 19862600,
+              "min_ns": 9839300,
+              "max_ns": 22122500
+            }
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 10804550.0,
+              "p95_nearest_rank_ns": 16392300,
+              "min_ns": 8556500,
+              "max_ns": 21750500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 10804550.0,
+              "p95_nearest_rank_ns": 16392300,
+              "min_ns": 8556500,
+              "max_ns": 21750500
+            }
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 37701550.0,
+              "p95_nearest_rank_ns": 68565000,
+              "min_ns": 26717400,
+              "max_ns": 76604500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 37701550.0,
+              "p95_nearest_rank_ns": 68565000,
+              "min_ns": 26717400,
+              "max_ns": 76604500
+            }
+          },
+          "catalog_repository.list_source_tables": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 6628450.0,
+              "p95_nearest_rank_ns": 10236900,
+              "min_ns": 5119500,
+              "max_ns": 11212400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 6628450.0,
+              "p95_nearest_rank_ns": 10236900,
+              "min_ns": 5119500,
+              "max_ns": 11212400
+            }
+          },
+          "catalog_repository.list_sources": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 5882600.0,
+              "p95_nearest_rank_ns": 9474700,
+              "min_ns": 4373500,
+              "max_ns": 10541600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 5882600.0,
+              "p95_nearest_rank_ns": 9474700,
+              "min_ns": 4373500,
+              "max_ns": 10541600
+            }
+          },
+          "catalog_repository.list_standards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 8.0,
+              "p95_nearest_rank_ns": 8,
+              "min_ns": 8,
+              "max_ns": 8
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12420750.0,
+              "p95_nearest_rank_ns": 19252400,
+              "min_ns": 10069400,
+              "max_ns": 24764300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 12420750.0,
+              "p95_nearest_rank_ns": 19252400,
+              "min_ns": 10069400,
+              "max_ns": 24764300
+            }
+          },
+          "catalog_repository.list_subjects": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1431100.0,
+              "p95_nearest_rank_ns": 2870300,
+              "min_ns": 1191400,
+              "max_ns": 2916200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 1431100.0,
+              "p95_nearest_rank_ns": 2870300,
+              "min_ns": 1191400,
+              "max_ns": 2916200
+            }
+          },
+          "catalog_service.list_parameter_factors": {
+            "calls": {
+              "n": 20,
+              "median_ns": 3.0,
+              "p95_nearest_rank_ns": 3,
+              "min_ns": 3,
+              "max_ns": 3
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 11307250.0,
+              "p95_nearest_rank_ns": 15879200,
+              "min_ns": 9886000,
+              "max_ns": 16808300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 145250.0,
+              "p95_nearest_rank_ns": 212400,
+              "min_ns": 111700,
+              "max_ns": 255300
+            }
+          },
+          "catalog_service.list_reference_data_assets": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2510400.0,
+              "p95_nearest_rank_ns": 4066000,
+              "min_ns": 2120800,
+              "max_ns": 4249900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 12950.0,
+              "p95_nearest_rank_ns": 19100,
+              "min_ns": 7100,
+              "max_ns": 20100
+            }
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 23069050.0,
+              "p95_nearest_rank_ns": 40280200,
+              "min_ns": 16259500,
+              "max_ns": 51676900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 11650.0,
+              "p95_nearest_rank_ns": 16400,
+              "min_ns": 7900,
+              "max_ns": 16400
+            }
+          },
+          "catalog_service.list_source_tables": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1492350.0,
+              "p95_nearest_rank_ns": 2307500,
+              "min_ns": 1252500,
+              "max_ns": 2423500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 9150.0,
+              "p95_nearest_rank_ns": 13900,
+              "min_ns": 6500,
+              "max_ns": 14400
+            }
+          },
+          "catalog_service.list_sources": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1432600.0,
+              "p95_nearest_rank_ns": 2143600,
+              "min_ns": 1086200,
+              "max_ns": 2154100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8350.0,
+              "p95_nearest_rank_ns": 13600,
+              "min_ns": 5200,
+              "max_ns": 15500
+            }
+          },
+          "catalog_service.list_subjects": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1439150.0,
+              "p95_nearest_rank_ns": 2887500,
+              "min_ns": 1197300,
+              "max_ns": 2933600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8700.0,
+              "p95_nearest_rank_ns": 17200,
+              "min_ns": 5700,
+              "max_ns": 17400
+            }
+          },
+          "catalog_service.standard_implementation_date": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 3145050.0,
+              "p95_nearest_rank_ns": 4329200,
+              "min_ns": 2405700,
+              "max_ns": 6873700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 38350.0,
+              "p95_nearest_rank_ns": 57600,
+              "min_ns": 26300,
+              "max_ns": 60900
+            }
+          },
+          "catalog_service.standard_version": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1523650.0,
+              "p95_nearest_rank_ns": 2000500,
+              "min_ns": 1311900,
+              "max_ns": 2075700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 19300.0,
+              "p95_nearest_rank_ns": 26100,
+              "min_ns": 15300,
+              "max_ns": 26400
+            }
+          },
+          "page.__init__": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2621379450.0,
+              "p95_nearest_rank_ns": 5084994400,
+              "min_ns": 2198382400,
+              "max_ns": 6838739100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 5364000.0,
+              "p95_nearest_rank_ns": 104915900,
+              "min_ns": 4783800,
+              "max_ns": 110353500
+            }
+          },
+          "page._apply_accounting_style": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 664852250.0,
+              "p95_nearest_rank_ns": 947314000,
+              "min_ns": 561466800,
+              "max_ns": 977928100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 664852250.0,
+              "p95_nearest_rank_ns": 947314000,
+              "min_ns": 561466800,
+              "max_ns": 977928100
+            }
+          },
+          "page._build_electricity_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 7599700.0,
+              "p95_nearest_rank_ns": 11417300,
+              "min_ns": 6233300,
+              "max_ns": 18550500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 7599700.0,
+              "p95_nearest_rank_ns": 11417300,
+              "min_ns": 6233300,
+              "max_ns": 18550500
+            }
+          },
+          "page._build_fuel_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 98289600.0,
+              "p95_nearest_rank_ns": 487551800,
+              "min_ns": 80844200,
+              "max_ns": 651594300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 98275050.0,
+              "p95_nearest_rank_ns": 487537100,
+              "min_ns": 80831700,
+              "max_ns": 651579400
+            }
+          },
+          "page._build_heat_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 41862050.0,
+              "p95_nearest_rank_ns": 225842800,
+              "min_ns": 32654500,
+              "max_ns": 248086100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 17530600.0,
+              "p95_nearest_rank_ns": 22965700,
+              "min_ns": 14059700,
+              "max_ns": 25694500
+            }
+          },
+          "page._build_material_controls": {
+            "calls": {
+              "n": 20,
+              "median_ns": 3.0,
+              "p95_nearest_rank_ns": 3,
+              "min_ns": 3,
+              "max_ns": 3
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 47133400.0,
+              "p95_nearest_rank_ns": 64120400,
+              "min_ns": 41333500,
+              "max_ns": 76131900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 24616700.0,
+              "p95_nearest_rank_ns": 34846100,
+              "min_ns": 20829400,
+              "max_ns": 41474300
+            }
+          },
+          "page._build_output_electricity_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 6472750.0,
+              "p95_nearest_rank_ns": 8618700,
+              "min_ns": 5704000,
+              "max_ns": 10004800
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 2512050.0,
+              "p95_nearest_rank_ns": 3391100,
+              "min_ns": 2045400,
+              "max_ns": 4124700
+            }
+          },
+          "page._build_output_heat_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 33062650.0,
+              "p95_nearest_rank_ns": 48855400,
+              "min_ns": 27647100,
+              "max_ns": 49680700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 9792900.0,
+              "p95_nearest_rank_ns": 14749100,
+              "min_ns": 7894800,
+              "max_ns": 15345900
+            }
+          },
+          "page._build_page": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2533494400.0,
+              "p95_nearest_rank_ns": 4842656100,
+              "min_ns": 2130185900,
+              "max_ns": 6609387200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 19920650.0,
+              "p95_nearest_rank_ns": 1110851400,
+              "min_ns": 14410800,
+              "max_ns": 2542485300
+            }
+          },
+          "page._build_process_section.baking": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 235853200.0,
+              "p95_nearest_rank_ns": 380631500,
+              "min_ns": 209558700,
+              "max_ns": 419064900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 221360650.0,
+              "p95_nearest_rank_ns": 356493100,
+              "min_ns": 195888300,
+              "max_ns": 389603300
+            }
+          },
+          "page._build_process_section.calcination": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 166597800.0,
+              "p95_nearest_rank_ns": 250511000,
+              "min_ns": 145260300,
+              "max_ns": 348902000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 150872300.0,
+              "p95_nearest_rank_ns": 225224500,
+              "min_ns": 131524100,
+              "max_ns": 326344100
+            }
+          },
+          "page._build_process_section.fgd": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 92685250.0,
+              "p95_nearest_rank_ns": 188206000,
+              "min_ns": 81802700,
+              "max_ns": 206663600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 58511050.0,
+              "p95_nearest_rank_ns": 147024100,
+              "min_ns": 50600800,
+              "max_ns": 154172800
+            }
+          },
+          "page._build_process_section.fume": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 13668400.0,
+              "p95_nearest_rank_ns": 89618900,
+              "min_ns": 11767200,
+              "max_ns": 123308300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 13653650.0,
+              "p95_nearest_rank_ns": 89594800,
+              "min_ns": 11754200,
+              "max_ns": 123290200
+            }
+          },
+          "page._build_process_section.graphitization": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 327444350.0,
+              "p95_nearest_rank_ns": 405009600,
+              "min_ns": 279919500,
+              "max_ns": 478840200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 311198150.0,
+              "p95_nearest_rank_ns": 387369600,
+              "min_ns": 266035000,
+              "max_ns": 454287800
+            }
+          },
+          "page._build_project_unit_controls": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 7757300.0,
+              "p95_nearest_rank_ns": 16764500,
+              "min_ns": 6295000,
+              "max_ns": 29926300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 3474050.0,
+              "p95_nearest_rank_ns": 9175900,
+              "min_ns": 2536500,
+              "max_ns": 24381000
+            }
+          },
+          "page._build_source_cards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1608661000.0,
+              "p95_nearest_rank_ns": 2993415600,
+              "min_ns": 1401870700,
+              "max_ns": 3281715500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 242738800.0,
+              "p95_nearest_rank_ns": 341041700,
+              "min_ns": 212517700,
+              "max_ns": 507155300
+            }
+          },
+          "page._build_unified_energy_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 354161100.0,
+              "p95_nearest_rank_ns": 539595200,
+              "min_ns": 293659000,
+              "max_ns": 597895000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 184982700.0,
+              "p95_nearest_rank_ns": 316977600,
+              "min_ns": 152031700,
+              "max_ns": 337098900
+            }
+          },
+          "page._capture_form_state": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 17630600.0,
+              "p95_nearest_rank_ns": 61515600,
+              "min_ns": 12736700,
+              "max_ns": 63375800
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 17630600.0,
+              "p95_nearest_rank_ns": 61515600,
+              "min_ns": 12736700,
+              "max_ns": 63375800
+            }
+          },
+          "page._install_dirty_tracking": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 24361350.0,
+              "p95_nearest_rank_ns": 31210600,
+              "min_ns": 19708200,
+              "max_ns": 45820700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 24361350.0,
+              "p95_nearest_rank_ns": 31210600,
+              "min_ns": 19708200,
+              "max_ns": 45820700
+            }
+          },
+          "page._refresh_content_geometry": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1571400.0,
+              "p95_nearest_rank_ns": 2332600,
+              "min_ns": 1459400,
+              "max_ns": 3184900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 817400.0,
+              "p95_nearest_rank_ns": 1182900,
+              "min_ns": 758300,
+              "max_ns": 1822500
+            }
+          },
+          "page._refresh_energy_factor_options": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12302900.0,
+              "p95_nearest_rank_ns": 15372800,
+              "min_ns": 9943800,
+              "max_ns": 16470700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 4062650.0,
+              "p95_nearest_rank_ns": 5308600,
+              "min_ns": 2955200,
+              "max_ns": 6176500
+            }
+          },
+          "page._refresh_energy_region_options": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 155594250.0,
+              "p95_nearest_rank_ns": 225827800,
+              "min_ns": 131354800,
+              "max_ns": 244325400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 48702400.0,
+              "p95_nearest_rank_ns": 78994100,
+              "min_ns": 38419700,
+              "max_ns": 85701900
+            }
+          },
+          "page._refresh_enterprise_candidates": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 160832400.0,
+              "p95_nearest_rank_ns": 350421400,
+              "min_ns": 132011900,
+              "max_ns": 351170900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 894850.0,
+              "p95_nearest_rank_ns": 55377000,
+              "min_ns": 681100,
+              "max_ns": 192151800
+            }
+          },
+          "page._refresh_heat_factor_details": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 25217750.0,
+              "p95_nearest_rank_ns": 194245000,
+              "min_ns": 21286600,
+              "max_ns": 214677100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 1194750.0,
+              "p95_nearest_rank_ns": 1726600,
+              "min_ns": 829600,
+              "max_ns": 1844800
+            }
+          },
+          "page._refresh_source_cards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 31.0,
+              "p95_nearest_rank_ns": 31,
+              "min_ns": 31,
+              "max_ns": 31
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 5118200.0,
+              "p95_nearest_rank_ns": 21579100,
+              "min_ns": 4026200,
+              "max_ns": 27465900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 5118200.0,
+              "p95_nearest_rank_ns": 21579100,
+              "min_ns": 4026200,
+              "max_ns": 27465900
+            }
+          },
+          "projects.list_all": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 8748500.0,
+              "p95_nearest_rank_ns": 12091500,
+              "min_ns": 7353100,
+              "max_ns": 15879800
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8748500.0,
+              "p95_nearest_rank_ns": 12091500,
+              "min_ns": 7353100,
+              "max_ns": 15879800
+            }
+          },
+          "projects.revisions": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 683050.0,
+              "p95_nearest_rank_ns": 999000,
+              "min_ns": 534300,
+              "max_ns": 1083700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 683050.0,
+              "p95_nearest_rank_ns": 999000,
+              "min_ns": 534300,
+              "max_ns": 1083700
+            }
+          },
+          "records.list_all": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 152222950.0,
+              "p95_nearest_rank_ns": 263575100,
+              "min_ns": 127162100,
+              "max_ns": 339387400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 152222950.0,
+              "p95_nearest_rank_ns": 263575100,
+              "min_ns": 127162100,
+              "max_ns": 339387400
+            }
+          },
+          "resolver.resolve": {
+            "calls": {
+              "n": 20,
+              "median_ns": 118.0,
+              "p95_nearest_rank_ns": 118,
+              "min_ns": 118,
+              "max_ns": 118
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 154910650.0,
+              "p95_nearest_rank_ns": 203530100,
+              "min_ns": 136027800,
+              "max_ns": 230816000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 154910650.0,
+              "p95_nearest_rank_ns": 203530100,
+              "min_ns": 136027800,
+              "max_ns": 230816000
+            }
+          },
+          "shell._apply_content_geometry": {
+            "calls": {
+              "n": 20,
+              "median_ns": 6.0,
+              "p95_nearest_rank_ns": 6,
+              "min_ns": 6,
+              "max_ns": 6
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 7425950.0,
+              "p95_nearest_rank_ns": 10717700,
+              "min_ns": 6158100,
+              "max_ns": 11176600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 7425950.0,
+              "p95_nearest_rank_ns": 10717700,
+              "min_ns": 6158100,
+              "max_ns": 11176600
+            }
+          },
+          "shell._ensure_page": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2705955850.0,
+              "p95_nearest_rank_ns": 5232940300,
+              "min_ns": 2271290400,
+              "max_ns": 7280129700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 24893450.0,
+              "p95_nearest_rank_ns": 91788200,
+              "min_ns": 19921300,
+              "max_ns": 368720800
+            }
+          },
+          "shell._show_route": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2965596800.0,
+              "p95_nearest_rank_ns": 5583855700,
+              "min_ns": 2482610400,
+              "max_ns": 7705279600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 240916750.0,
+              "p95_nearest_rank_ns": 409111700,
+              "min_ns": 206581700,
+              "max_ns": 419368200
+            }
+          }
+        }
+      },
+      "cached_return": {
+        "total": {
+          "n": 40,
+          "median_ns": 24695700.0,
+          "p95_nearest_rank_ns": 46262500,
+          "min_ns": 15800400,
+          "max_ns": 56622000
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "calls": {
+              "n": 40,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 4335400.0,
+              "p95_nearest_rank_ns": 7963100,
+              "min_ns": 3895500,
+              "max_ns": 9658600
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 4335400.0,
+              "p95_nearest_rank_ns": 7963100,
+              "min_ns": 3895500,
+              "max_ns": 9658600
+            }
+          },
+          "shell._ensure_page": {
+            "calls": {
+              "n": 40,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 11250.0,
+              "p95_nearest_rank_ns": 13300,
+              "min_ns": 7600,
+              "max_ns": 108800
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 11250.0,
+              "p95_nearest_rank_ns": 13300,
+              "min_ns": 7600,
+              "max_ns": 108800
+            }
+          },
+          "shell._show_route": {
+            "calls": {
+              "n": 40,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 7363750.0,
+              "p95_nearest_rank_ns": 14300800,
+              "min_ns": 6454900,
+              "max_ns": 15831000
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 3791400.0,
+              "p95_nearest_rank_ns": 6877600,
+              "min_ns": 3148200,
+              "max_ns": 8827100
+            }
+          }
+        }
+      }
+    },
+    "final_parent": {
+      "first_open": {
+        "total": {
+          "n": 20,
+          "median_ns": 2946261450.0,
+          "p95_nearest_rank_ns": 4555587300,
+          "min_ns": 2322480800,
+          "max_ns": 6836218800
+        },
+        "parts": {
+          "catalog_repository.list_factors": {
+            "calls": {
+              "n": 20,
+              "median_ns": 21.0,
+              "p95_nearest_rank_ns": 21,
+              "min_ns": 21,
+              "max_ns": 21
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 85493350.0,
+              "p95_nearest_rank_ns": 127124800,
+              "min_ns": 71123100,
+              "max_ns": 194120700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 85493350.0,
+              "p95_nearest_rank_ns": 127124800,
+              "min_ns": 71123100,
+              "max_ns": 194120700
+            }
+          },
+          "catalog_repository.list_parameters": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12032850.0,
+              "p95_nearest_rank_ns": 16702900,
+              "min_ns": 9854300,
+              "max_ns": 20920500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 12032850.0,
+              "p95_nearest_rank_ns": 16702900,
+              "min_ns": 9854300,
+              "max_ns": 20920500
+            }
+          },
+          "catalog_repository.list_reference_data_assets": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 10539050.0,
+              "p95_nearest_rank_ns": 15678400,
+              "min_ns": 8764500,
+              "max_ns": 17635400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 10539050.0,
+              "p95_nearest_rank_ns": 15678400,
+              "min_ns": 8764500,
+              "max_ns": 17635400
+            }
+          },
+          "catalog_repository.list_reference_data_bindings": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 36260600.0,
+              "p95_nearest_rank_ns": 54770100,
+              "min_ns": 27517900,
+              "max_ns": 69864100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 36260600.0,
+              "p95_nearest_rank_ns": 54770100,
+              "min_ns": 27517900,
+              "max_ns": 69864100
+            }
+          },
+          "catalog_repository.list_source_tables": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 6862000.0,
+              "p95_nearest_rank_ns": 9751900,
+              "min_ns": 5238000,
+              "max_ns": 10693500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 6862000.0,
+              "p95_nearest_rank_ns": 9751900,
+              "min_ns": 5238000,
+              "max_ns": 10693500
+            }
+          },
+          "catalog_repository.list_sources": {
+            "calls": {
+              "n": 20,
+              "median_ns": 4.0,
+              "p95_nearest_rank_ns": 4,
+              "min_ns": 4,
+              "max_ns": 4
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 5865100.0,
+              "p95_nearest_rank_ns": 8902300,
+              "min_ns": 4501300,
+              "max_ns": 9562100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 5865100.0,
+              "p95_nearest_rank_ns": 8902300,
+              "min_ns": 4501300,
+              "max_ns": 9562100
+            }
+          },
+          "catalog_repository.list_standards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 8.0,
+              "p95_nearest_rank_ns": 8,
+              "min_ns": 8,
+              "max_ns": 8
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12251000.0,
+              "p95_nearest_rank_ns": 17391900,
+              "min_ns": 10133600,
+              "max_ns": 21818500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 12251000.0,
+              "p95_nearest_rank_ns": 17391900,
+              "min_ns": 10133600,
+              "max_ns": 21818500
+            }
+          },
+          "catalog_repository.list_subjects": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1475050.0,
+              "p95_nearest_rank_ns": 2452700,
+              "min_ns": 1245900,
+              "max_ns": 2537200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 1475050.0,
+              "p95_nearest_rank_ns": 2452700,
+              "min_ns": 1245900,
+              "max_ns": 2537200
+            }
+          },
+          "catalog_service.list_parameter_factors": {
+            "calls": {
+              "n": 20,
+              "median_ns": 3.0,
+              "p95_nearest_rank_ns": 3,
+              "min_ns": 3,
+              "max_ns": 3
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 12040250.0,
+              "p95_nearest_rank_ns": 17797400,
+              "min_ns": 10093700,
+              "max_ns": 21071700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 173000.0,
+              "p95_nearest_rank_ns": 306200,
+              "min_ns": 116300,
+              "max_ns": 310400
+            }
+          },
+          "catalog_service.list_reference_data_assets": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2538100.0,
+              "p95_nearest_rank_ns": 4332300,
+              "min_ns": 2196300,
+              "max_ns": 4492700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 13100.0,
+              "p95_nearest_rank_ns": 21800,
+              "min_ns": 7600,
+              "max_ns": 23300
+            }
+          },
+          "catalog_service.list_reference_data_bindings": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 22986500.0,
+              "p95_nearest_rank_ns": 36275800,
+              "min_ns": 16533800,
+              "max_ns": 48454300
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 11050.0,
+              "p95_nearest_rank_ns": 17900,
+              "min_ns": 8400,
+              "max_ns": 31300
+            }
+          },
+          "catalog_service.list_source_tables": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1518500.0,
+              "p95_nearest_rank_ns": 2470200,
+              "min_ns": 1317800,
+              "max_ns": 2515200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 9750.0,
+              "p95_nearest_rank_ns": 17500,
+              "min_ns": 6700,
+              "max_ns": 28400
+            }
+          },
+          "catalog_service.list_sources": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1422150.0,
+              "p95_nearest_rank_ns": 2318900,
+              "min_ns": 1129900,
+              "max_ns": 2662400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8100.0,
+              "p95_nearest_rank_ns": 20800,
+              "min_ns": 5300,
+              "max_ns": 24600
+            }
+          },
+          "catalog_service.list_subjects": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1484250.0,
+              "p95_nearest_rank_ns": 2468100,
+              "min_ns": 1251700,
+              "max_ns": 2552000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8800.0,
+              "p95_nearest_rank_ns": 18500,
+              "min_ns": 5500,
+              "max_ns": 22300
+            }
+          },
+          "catalog_service.standard_implementation_date": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 3013700.0,
+              "p95_nearest_rank_ns": 4626500,
+              "min_ns": 2465400,
+              "max_ns": 5410700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 35850.0,
+              "p95_nearest_rank_ns": 79000,
+              "min_ns": 26900,
+              "max_ns": 96500
+            }
+          },
+          "catalog_service.standard_version": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1531700.0,
+              "p95_nearest_rank_ns": 2750100,
+              "min_ns": 1363100,
+              "max_ns": 3551100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 18600.0,
+              "p95_nearest_rank_ns": 45600,
+              "min_ns": 14700,
+              "max_ns": 50000
+            }
+          },
+          "page.__init__": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2456918700.0,
+              "p95_nearest_rank_ns": 3312010400,
+              "min_ns": 1903236800,
+              "max_ns": 3605211200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 5357150.0,
+              "p95_nearest_rank_ns": 141698400,
+              "min_ns": 4700500,
+              "max_ns": 277939700
+            }
+          },
+          "page._apply_accounting_style": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 717655150.0,
+              "p95_nearest_rank_ns": 922156500,
+              "min_ns": 558042700,
+              "max_ns": 972897200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 717655150.0,
+              "p95_nearest_rank_ns": 922156500,
+              "min_ns": 558042700,
+              "max_ns": 972897200
+            }
+          },
+          "page._build_electricity_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 8143700.0,
+              "p95_nearest_rank_ns": 11941300,
+              "min_ns": 6386400,
+              "max_ns": 12003500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 8143700.0,
+              "p95_nearest_rank_ns": 11941300,
+              "min_ns": 6386400,
+              "max_ns": 12003500
+            }
+          },
+          "page._build_fuel_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 99580500.0,
+              "p95_nearest_rank_ns": 190963400,
+              "min_ns": 81305300,
+              "max_ns": 197935900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 99557650.0,
+              "p95_nearest_rank_ns": 190947200,
+              "min_ns": 81291500,
+              "max_ns": 197915700
+            }
+          },
+          "page._build_heat_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 41332800.0,
+              "p95_nearest_rank_ns": 73194300,
+              "min_ns": 33418300,
+              "max_ns": 136511000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 18278050.0,
+              "p95_nearest_rank_ns": 27416700,
+              "min_ns": 14395100,
+              "max_ns": 33110200
+            }
+          },
+          "page._build_material_controls": {
+            "calls": {
+              "n": 20,
+              "median_ns": 3.0,
+              "p95_nearest_rank_ns": 3,
+              "min_ns": 3,
+              "max_ns": 3
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 53738400.0,
+              "p95_nearest_rank_ns": 73838500,
+              "min_ns": 41942800,
+              "max_ns": 90708100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 27900550.0,
+              "p95_nearest_rank_ns": 36831200,
+              "min_ns": 21245400,
+              "max_ns": 52573800
+            }
+          },
+          "page._build_output_electricity_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 7407250.0,
+              "p95_nearest_rank_ns": 9535800,
+              "min_ns": 5762800,
+              "max_ns": 12609900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 2699150.0,
+              "p95_nearest_rank_ns": 4660600,
+              "min_ns": 2118400,
+              "max_ns": 4785400
+            }
+          },
+          "page._build_output_heat_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 34978050.0,
+              "p95_nearest_rank_ns": 57809800,
+              "min_ns": 27356200,
+              "max_ns": 62437000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 10155150.0,
+              "p95_nearest_rank_ns": 16968800,
+              "min_ns": 7998200,
+              "max_ns": 17702100
+            }
+          },
+          "page._build_page": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2369825450.0,
+              "p95_nearest_rank_ns": 3213280700,
+              "min_ns": 1831245900,
+              "max_ns": 3431073200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 19727700.0,
+              "p95_nearest_rank_ns": 96047800,
+              "min_ns": 14784400,
+              "max_ns": 305479500
+            }
+          },
+          "page._build_process_section.baking": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 226845850.0,
+              "p95_nearest_rank_ns": 303287000,
+              "min_ns": 172823200,
+              "max_ns": 461323700
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 207591400.0,
+              "p95_nearest_rank_ns": 280295800,
+              "min_ns": 158504700,
+              "max_ns": 430359400
+            }
+          },
+          "page._build_process_section.calcination": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 139062050.0,
+              "p95_nearest_rank_ns": 245659500,
+              "min_ns": 118135600,
+              "max_ns": 258029900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 123126400.0,
+              "p95_nearest_rank_ns": 222974000,
+              "min_ns": 104478800,
+              "max_ns": 229690000
+            }
+          },
+          "page._build_process_section.fgd": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 94342400.0,
+              "p95_nearest_rank_ns": 134934400,
+              "min_ns": 71779300,
+              "max_ns": 135100500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 54439100.0,
+              "p95_nearest_rank_ns": 77338800,
+              "min_ns": 39224200,
+              "max_ns": 78999700
+            }
+          },
+          "page._build_process_section.fume": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 9872450.0,
+              "p95_nearest_rank_ns": 16120600,
+              "min_ns": 7833900,
+              "max_ns": 47846900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 9855400.0,
+              "p95_nearest_rank_ns": 16103100,
+              "min_ns": 7822300,
+              "max_ns": 47821100
+            }
+          },
+          "page._build_process_section.graphitization": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 281746000.0,
+              "p95_nearest_rank_ns": 506503300,
+              "min_ns": 225545300,
+              "max_ns": 735090400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 264125650.0,
+              "p95_nearest_rank_ns": 468921700,
+              "min_ns": 211446500,
+              "max_ns": 710340500
+            }
+          },
+          "page._build_project_unit_controls": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 8212600.0,
+              "p95_nearest_rank_ns": 11608400,
+              "min_ns": 6366400,
+              "max_ns": 12533400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 3460600.0,
+              "p95_nearest_rank_ns": 5094200,
+              "min_ns": 2536500,
+              "max_ns": 5693200
+            }
+          },
+          "page._build_source_cards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1367320050.0,
+              "p95_nearest_rank_ns": 2092729900,
+              "min_ns": 1063874000,
+              "max_ns": 2189918000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 29139150.0,
+              "p95_nearest_rank_ns": 44104100,
+              "min_ns": 22407000,
+              "max_ns": 77065200
+            }
+          },
+          "page._build_unified_energy_section": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 367480000.0,
+              "p95_nearest_rank_ns": 497914100,
+              "min_ns": 265959800,
+              "max_ns": 504380500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 174155050.0,
+              "p95_nearest_rank_ns": 228506600,
+              "min_ns": 114443000,
+              "max_ns": 248106000
+            }
+          },
+          "page._capture_form_state": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 15987950.0,
+              "p95_nearest_rank_ns": 30630400,
+              "min_ns": 13435100,
+              "max_ns": 38179200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 15987950.0,
+              "p95_nearest_rank_ns": 30630400,
+              "min_ns": 13435100,
+              "max_ns": 38179200
+            }
+          },
+          "page._install_dirty_tracking": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 23488750.0,
+              "p95_nearest_rank_ns": 30138900,
+              "min_ns": 20478200,
+              "max_ns": 38869100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 23488750.0,
+              "p95_nearest_rank_ns": 30138900,
+              "min_ns": 20478200,
+              "max_ns": 38869100
+            }
+          },
+          "page._refresh_content_geometry": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 1651350.0,
+              "p95_nearest_rank_ns": 2576500,
+              "min_ns": 1460800,
+              "max_ns": 3159100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 814400.0,
+              "p95_nearest_rank_ns": 1296400,
+              "min_ns": 752900,
+              "max_ns": 1528300
+            }
+          },
+          "page._refresh_energy_factor_options": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 13298500.0,
+              "p95_nearest_rank_ns": 16286000,
+              "min_ns": 10288600,
+              "max_ns": 16558200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 4578700.0,
+              "p95_nearest_rank_ns": 6052000,
+              "min_ns": 3189400,
+              "max_ns": 6073800
+            }
+          },
+          "page._refresh_energy_region_options": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 178664150.0,
+              "p95_nearest_rank_ns": 269437800,
+              "min_ns": 135129600,
+              "max_ns": 278797200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 58690100.0,
+              "p95_nearest_rank_ns": 80517800,
+              "min_ns": 39526300,
+              "max_ns": 117181400
+            }
+          },
+          "page._refresh_enterprise_candidates": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 159789200.0,
+              "p95_nearest_rank_ns": 299846100,
+              "min_ns": 131179600,
+              "max_ns": 343904100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 795550.0,
+              "p95_nearest_rank_ns": 1662700,
+              "min_ns": 685800,
+              "max_ns": 64497200
+            }
+          },
+          "page._refresh_heat_factor_details": {
+            "calls": {
+              "n": 20,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 26874000.0,
+              "p95_nearest_rank_ns": 47488900,
+              "min_ns": 21486800,
+              "max_ns": 122619400
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 1363450.0,
+              "p95_nearest_rank_ns": 1980500,
+              "min_ns": 843700,
+              "max_ns": 2198600
+            }
+          },
+          "page._refresh_source_cards": {
+            "calls": {
+              "n": 20,
+              "median_ns": 31.0,
+              "p95_nearest_rank_ns": 31,
+              "min_ns": 31,
+              "max_ns": 31
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 4909600.0,
+              "p95_nearest_rank_ns": 10216200,
+              "min_ns": 3974900,
+              "max_ns": 13000200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 4909600.0,
+              "p95_nearest_rank_ns": 10216200,
+              "min_ns": 3974900,
+              "max_ns": 13000200
+            }
+          },
+          "projects.list_all": {
+            "calls": {
+              "n": 20,
+              "median_ns": 2.0,
+              "p95_nearest_rank_ns": 2,
+              "min_ns": 2,
+              "max_ns": 2
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 9487800.0,
+              "p95_nearest_rank_ns": 13523500,
+              "min_ns": 7367600,
+              "max_ns": 14099600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 9487800.0,
+              "p95_nearest_rank_ns": 13523500,
+              "min_ns": 7367600,
+              "max_ns": 14099600
+            }
+          },
+          "projects.revisions": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 668500.0,
+              "p95_nearest_rank_ns": 1100000,
+              "min_ns": 531500,
+              "max_ns": 1103200
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 668500.0,
+              "p95_nearest_rank_ns": 1100000,
+              "min_ns": 531500,
+              "max_ns": 1103200
+            }
+          },
+          "records.list_all": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 153811750.0,
+              "p95_nearest_rank_ns": 228495900,
+              "min_ns": 126303700,
+              "max_ns": 333802100
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 153811750.0,
+              "p95_nearest_rank_ns": 228495900,
+              "min_ns": 126303700,
+              "max_ns": 333802100
+            }
+          },
+          "resolver.resolve": {
+            "calls": {
+              "n": 20,
+              "median_ns": 118.0,
+              "p95_nearest_rank_ns": 118,
+              "min_ns": 118,
+              "max_ns": 118
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 176752100.0,
+              "p95_nearest_rank_ns": 236858800,
+              "min_ns": 140611900,
+              "max_ns": 257830500
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 176752100.0,
+              "p95_nearest_rank_ns": 236858800,
+              "min_ns": 140611900,
+              "max_ns": 257830500
+            }
+          },
+          "shell._apply_content_geometry": {
+            "calls": {
+              "n": 20,
+              "median_ns": 6.0,
+              "p95_nearest_rank_ns": 6,
+              "min_ns": 6,
+              "max_ns": 6
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 6870650.0,
+              "p95_nearest_rank_ns": 9090700,
+              "min_ns": 6061200,
+              "max_ns": 10622000
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 6870650.0,
+              "p95_nearest_rank_ns": 9090700,
+              "min_ns": 6061200,
+              "max_ns": 10622000
+            }
+          },
+          "shell._ensure_page": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2547319700.0,
+              "p95_nearest_rank_ns": 3428962600,
+              "min_ns": 1975934400,
+              "max_ns": 3716293900
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 25414100.0,
+              "p95_nearest_rank_ns": 39852100,
+              "min_ns": 19906000,
+              "max_ns": 47901200
+            }
+          },
+          "shell._show_route": {
+            "calls": {
+              "n": 20,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 20,
+              "median_ns": 2807671050.0,
+              "p95_nearest_rank_ns": 3794259900,
+              "min_ns": 2194959400,
+              "max_ns": 4028259600
+            },
+            "self_ns": {
+              "n": 20,
+              "median_ns": 237920900.0,
+              "p95_nearest_rank_ns": 317708300,
+              "min_ns": 208706000,
+              "max_ns": 958720800
+            }
+          }
+        }
+      },
+      "cached_return": {
+        "total": {
+          "n": 40,
+          "median_ns": 24077000.0,
+          "p95_nearest_rank_ns": 34100800,
+          "min_ns": 16086200,
+          "max_ns": 35322200
+        },
+        "parts": {
+          "shell._apply_content_geometry": {
+            "calls": {
+              "n": 40,
+              "median_ns": 5.0,
+              "p95_nearest_rank_ns": 5,
+              "min_ns": 5,
+              "max_ns": 5
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 4270900.0,
+              "p95_nearest_rank_ns": 5990100,
+              "min_ns": 3898600,
+              "max_ns": 7058900
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 4270900.0,
+              "p95_nearest_rank_ns": 5990100,
+              "min_ns": 3898600,
+              "max_ns": 7058900
+            }
+          },
+          "shell._ensure_page": {
+            "calls": {
+              "n": 40,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 10900.0,
+              "p95_nearest_rank_ns": 17300,
+              "min_ns": 7700,
+              "max_ns": 25300
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 10900.0,
+              "p95_nearest_rank_ns": 17300,
+              "min_ns": 7700,
+              "max_ns": 25300
+            }
+          },
+          "shell._show_route": {
+            "calls": {
+              "n": 40,
+              "median_ns": 1.0,
+              "p95_nearest_rank_ns": 1,
+              "min_ns": 1,
+              "max_ns": 1
+            },
+            "inclusive_ns": {
+              "n": 40,
+              "median_ns": 7386000.0,
+              "p95_nearest_rank_ns": 9940400,
+              "min_ns": 6373800,
+              "max_ns": 10834200
+            },
+            "self_ns": {
+              "n": 40,
+              "median_ns": 3813200.0,
+              "p95_nearest_rank_ns": 4935100,
+              "min_ns": 3086700,
+              "max_ns": 5953800
+            }
+          }
+        }
+      }
+    }
+  },
+  "pairs": [
+    {
+      "pair": 0,
+      "legacy_ns": 2629598600,
+      "final_ns": 2365192100,
+      "reduction_ns": 264406500,
+      "reduction_percent": 10.055013719584426
+    },
+    {
+      "pair": 1,
+      "legacy_ns": 2836280500,
+      "final_ns": 2355300200,
+      "reduction_ns": 480980300,
+      "reduction_percent": 16.9581358402316
+    },
+    {
+      "pair": 2,
+      "legacy_ns": 2911631500,
+      "final_ns": 2673712500,
+      "reduction_ns": 237919000,
+      "reduction_percent": 8.171329373239711
+    },
+    {
+      "pair": 3,
+      "legacy_ns": 2814798100,
+      "final_ns": 2904457900,
+      "reduction_ns": -89659800,
+      "reduction_percent": -3.1853012832430148
+    },
+    {
+      "pair": 4,
+      "legacy_ns": 2749892100,
+      "final_ns": 2373437900,
+      "reduction_ns": 376454200,
+      "reduction_percent": 13.689780773580171
+    },
+    {
+      "pair": 5,
+      "legacy_ns": 2839386000,
+      "final_ns": 2391044500,
+      "reduction_ns": 448341500,
+      "reduction_percent": 15.790086307391809
+    },
+    {
+      "pair": 6,
+      "legacy_ns": 2896645400,
+      "final_ns": 2353584100,
+      "reduction_ns": 543061300,
+      "reduction_percent": 18.74793856369164
+    },
+    {
+      "pair": 7,
+      "legacy_ns": 2651651400,
+      "final_ns": 2349815100,
+      "reduction_ns": 301836300,
+      "reduction_percent": 11.382955542346178
+    },
+    {
+      "pair": 8,
+      "legacy_ns": 3201991400,
+      "final_ns": 2322480800,
+      "reduction_ns": 879510600,
+      "reduction_percent": 27.46761281120243
+    },
+    {
+      "pair": 9,
+      "legacy_ns": 3232976300,
+      "final_ns": 2988065000,
+      "reduction_ns": 244911300,
+      "reduction_percent": 7.5754127860448595
+    },
+    {
+      "pair": 10,
+      "legacy_ns": 3076961900,
+      "final_ns": 6836218800,
+      "reduction_ns": -3759256900,
+      "reduction_percent": -122.1743077156724
+    },
+    {
+      "pair": 11,
+      "legacy_ns": 8356522600,
+      "final_ns": 3536186800,
+      "reduction_ns": 4820335800,
+      "reduction_percent": 57.68351299618337
+    },
+    {
+      "pair": 12,
+      "legacy_ns": 6078744500,
+      "final_ns": 4555587300,
+      "reduction_ns": 1523157200,
+      "reduction_percent": 25.05710184068437
+    },
+    {
+      "pair": 13,
+      "legacy_ns": 3691497000,
+      "final_ns": 2862349900,
+      "reduction_ns": 829147100,
+      "reduction_percent": 22.460998884734295
+    },
+    {
+      "pair": 14,
+      "legacy_ns": 3275609100,
+      "final_ns": 3770011600,
+      "reduction_ns": -494402500,
+      "reduction_percent": -15.09345239027453
+    },
+    {
+      "pair": 15,
+      "legacy_ns": 6145271100,
+      "final_ns": 3816703900,
+      "reduction_ns": 2328567200,
+      "reduction_percent": 37.89201748967592
+    },
+    {
+      "pair": 16,
+      "legacy_ns": 5599521000,
+      "final_ns": 3228117400,
+      "reduction_ns": 2371403600,
+      "reduction_percent": 42.35011530450551
+    },
+    {
+      "pair": 17,
+      "legacy_ns": 3943496700,
+      "final_ns": 3085061400,
+      "reduction_ns": 858435300,
+      "reduction_percent": 21.76837880959809
+    },
+    {
+      "pair": 18,
+      "legacy_ns": 3988729100,
+      "final_ns": 3870402900,
+      "reduction_ns": 118326200,
+      "reduction_percent": 2.966513820153893
+    },
+    {
+      "pair": 19,
+      "legacy_ns": 2976079900,
+      "final_ns": 3712791500,
+      "reduction_ns": -736711600,
+      "reduction_percent": -24.754429476170987
+    }
+  ],
+  "query_counts_equal": true,
+  "all_tracked_call_counts_equal": true,
+  "qt_callback_errors": 0,
+  "actual_final_methods_match": true,
+  "paired_median_reduction_ns": 412397850.0,
+  "paired_median_reduction_percent": 14.739933540485989,
+  "pairs_faster": 16,
+  "initial_state": {
+    "qwidgets": 3409,
+    "source_cards": 10,
+    "fields": 54,
+    "project_dirty": false,
+    "input_dirty": false,
+    "default_form_state_keys": 444
+  }
+}

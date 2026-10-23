@@ -12,11 +12,20 @@ from contextlib import closing
 import hashlib
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
+
+# Support the documented `python scripts/inspect_release.py ...` invocation.
+# scripts is repository tooling, deliberately not an installed product package.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.build_environment import validate_build_environment
 
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
@@ -230,6 +239,8 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         lower = normalized.lower()
         if "virtualkeyboard" in lower:
             issues.append(f"unapproved GPL-only Qt Virtual Keyboard component: {normalized}")
+        if relative.name.lower() in {"qpdf.dll", "qt6pdf.dll"}:
+            issues.append(f"unused PDF image component outside approved package scope: {normalized}")
         if "iapws" in lower:
             issues.append(f"unapproved iapws distribution component: {normalized}")
         if normalized.startswith("resources/") and normalized not in ALLOWED_RESOURCE_FILES:
@@ -280,6 +291,7 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
         if field not in manifest:
             issues.append(f"manifest missing field: {field}")
 
+    issues.extend(validate_build_environment(manifest.get("build_environment")))
     if manifest.get("manifest_version") != 1:
         issues.append("unsupported release manifest version")
     if manifest.get("artifact_name") != "QingzhouCarbonAccounting":
