@@ -36,7 +36,7 @@ def main():
     application = QApplication([])
     # Offscreen Qt does not enumerate Windows fonts; use installed fonts only.
     fonts = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts"
-    for name in ("msyh.ttc", "msyhbd.ttc"):
+    for name in ("msyh.ttc", "msyhbd.ttc", "seguisym.ttf"):
         if QFontDatabase.addApplicationFont(str(fonts / name)) < 0:
             raise RuntimeError("offscreen Chinese font unavailable")
     application.setFont(QFont("Microsoft YaHei", 9))

@@ -260,6 +260,7 @@ def message_button_stylesheet() -> str:
 def accounting_sample_stylesheet() -> str:
     """PR-B sample roles, applied once by the accounting page only."""
     return f"""
+        QFrame#projectUnitControlsCard {{ background: {CARD_BACKGROUND}; border: 1px solid {BORDER}; border-radius: 12px; }}
         QWidget[layoutSample="true"] QLabel {{ font-size: 14px; }}
         QWidget[layoutSample="true"] QLabel#cardTitle {{ font-size: 18px; font-weight: 600; }}
         QWidget[layoutSample="true"] QLineEdit,
