@@ -6,6 +6,8 @@ business-language summaries and optional professional details.
 
 from __future__ import annotations
 
+from packages.ui.dialogs import MessageBox as QMessageBox, InputDialog as QInputDialog
+
 from packages.standards.carbon_material_external_co2 import ExternalCO2Input
 from packages.application.reporting.software_supplement import software_supplement_summary
 
@@ -39,7 +41,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
+
     QTreeWidget,
     QTreeWidgetItem,
     QPushButton,
@@ -49,7 +51,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QScrollArea,
     QDateEdit,
-    QInputDialog,
 )
 
 from packages.application.carbon_accounting import (
@@ -2562,10 +2563,10 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _add_accounting_unit(self) -> None:
         kinds = ("全厂", "生产工序", "其他核算范围")
-        kind, accepted = QInputDialog.getItem(self, "添加核算单元", "单元类型", kinds, 1, False)
+        kind, accepted = QInputDialog.getItem(self, "添加核算单元", "单元类型", kinds, 1, False, confirm_text="下一步")
         if not accepted:
             return
-        name, accepted = QInputDialog.getText(self, "添加核算单元", "核算单元名称")
+        name, accepted = QInputDialog.getText(self, "添加核算单元", "核算单元名称", confirm_text="添加")
         if not accepted or not name.strip():
             return
         self._workspace = self._workspace_with_current_form()
@@ -2586,7 +2587,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _rename_accounting_unit(self) -> None:
         unit = self._unit()
-        name, accepted = QInputDialog.getText(self, "修改核算单元名称", "核算单元名称", text=unit.name)
+        name, accepted = QInputDialog.getText(self, "修改核算单元名称", "核算单元名称", text=unit.name, confirm_text="保存名称")
         if not accepted or not name.strip():
             return
         units = list(self._workspace.units)
@@ -2601,7 +2602,7 @@ class CarbonMaterialAccountingPage(BasePage):
             QMessageBox.information(self, "无法删除", "项目必须至少保留一个核算单元。")
             return
         unit = self._unit()
-        answer = QMessageBox.question(self, "删除核算单元", f"删除“{unit.name}”的未保存项目数据？历史核算记录不会删除。")
+        answer = QMessageBox.question(self, "删除核算单元", f"删除“{unit.name}”的未保存项目数据？历史核算记录不会删除。", button_texts={QMessageBox.StandardButton.Yes: "删除"})
         if answer != QMessageBox.StandardButton.Yes:
             return
         units = [item for item in self._workspace.units if item.unit_id != unit.unit_id]
@@ -2679,7 +2680,7 @@ class CarbonMaterialAccountingPage(BasePage):
         project_id = self.saved_projects.currentData()
         if not project_id:
             return
-        answer = QMessageBox.question(self, "删除项目", "删除所选项目及其未完成输入？既有核算记录和审计不会删除。")
+        answer = QMessageBox.question(self, "删除项目", "删除所选项目及其未完成输入？既有核算记录和审计不会删除。", button_texts={QMessageBox.StandardButton.Yes: "删除"})
         if answer != QMessageBox.StandardButton.Yes:
             return
         deleted = self.project_service.delete(str(project_id))
@@ -2939,10 +2940,13 @@ class CarbonMaterialAccountingPage(BasePage):
     def _confirm_save_discard_cancel(self, action: str) -> bool:
         answer = QMessageBox.question(
             self,
-            "保存项目修改？",
-            f"当前核算项目有未保存修改。是否先保存再{action}？",
+            "退出软件" if action == "关闭软件" else "保存项目修改？",
+            "当前项目有未保存的修改。是否保存后退出？" if action == "关闭软件" else f"当前核算项目有未保存修改。是否先保存再{action}？",
             QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Save,
+            button_texts={QMessageBox.StandardButton.Save: "保存后退出" if action == "关闭软件" else f"保存后{action}",
+                          QMessageBox.StandardButton.Discard: "不保存退出" if action == "关闭软件" else f"不保存{action}"},
+            informative_text="已生成的核算记录不会受影响。",
         )
         if answer == QMessageBox.StandardButton.Save:
             return self._save_project()

@@ -1,0 +1,216 @@
+{
+  "head": "8f9fa119a0982d77dccc9a4ee982997004657949",
+  "dirty": true,
+  "python": "3.12.14",
+  "os": "Windows-10-10.0.19045-SP0",
+  "qt": "6.11.2",
+  "platform": "offscreen",
+  "translation": {
+    "loaded": true,
+    "path": "G:\\Python Project\\GHGTOOL\\.venv\\Lib\\site-packages\\PySide6\\translations\\qtbase_zh_CN.qm",
+    "qt": "6.11.2"
+  },
+  "scenes": [
+    {
+      "name": "home",
+      "logical_size": [
+        1280,
+        800
+      ],
+      "pixels": [
+        1280,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "buttons": [
+        {
+          "text": "标准库",
+          "rect": [
+            0,
+            0,
+            300,
+            198
+          ],
+          "enabled": true
+        },
+        {
+          "text": "新建核算",
+          "rect": [
+            314,
+            0,
+            204,
+            198
+          ],
+          "enabled": true
+        },
+        {
+          "text": "表格导入",
+          "rect": [
+            532,
+            0,
+            204,
+            198
+          ],
+          "enabled": true
+        },
+        {
+          "text": "核算记录",
+          "rect": [
+            750,
+            0,
+            204,
+            198
+          ],
+          "enabled": true
+        },
+        {
+          "text": "参数与因子库",
+          "rect": [
+            968,
+            0,
+            204,
+            198
+          ],
+          "enabled": true
+        },
+        {
+          "text": "全部项目  ›",
+          "rect": [
+            360,
+            0,
+            69,
+            45
+          ],
+          "enabled": true
+        },
+        {
+          "text": "查看全部  ›",
+          "rect": [
+            566,
+            0,
+            69,
+            45
+          ],
+          "enabled": true
+        },
+        {
+          "text": "设置",
+          "rect": [
+            0,
+            0,
+            44,
+            41
+          ],
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "exit",
+      "logical_size": [
+        329,
+        114
+      ],
+      "pixels": [
+        329,
+        114
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "buttons": [
+        {
+          "text": "保存后退出",
+          "rect": [
+            13,
+            0,
+            94,
+            36
+          ],
+          "enabled": true
+        },
+        {
+          "text": "不保存退出",
+          "rect": [
+            113,
+            0,
+            94,
+            36
+          ],
+          "enabled": true
+        },
+        {
+          "text": "取消",
+          "rect": [
+            213,
+            0,
+            94,
+            36
+          ],
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "startup-error",
+      "logical_size": [
+        400,
+        112
+      ],
+      "pixels": [
+        400,
+        112
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei",
+      "buttons": [
+        {
+          "text": "确定",
+          "rect": [
+            284,
+            0,
+            94,
+            36
+          ],
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "input-name",
+      "logical_size": [
+        342,
+        160
+      ],
+      "pixels": [
+        342,
+        160
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "buttons": [
+        {
+          "text": "保存名称",
+          "rect": [
+            186,
+            0,
+            76,
+            55
+          ],
+          "enabled": true
+        },
+        {
+          "text": "取消",
+          "rect": [
+            268,
+            0,
+            52,
+            55
+          ],
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "callback_errors": []
+}

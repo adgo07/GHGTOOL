@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """脱硫实际Qt/Excel/SQLite/正式Record/冻结Word整链。"""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -8,7 +9,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 from openpyxl import load_workbook
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication
 import tests.test_b_material_draft_scope as material_fixtures
 from packages.application.project_workspaces import ProjectWorkspaceService
 from packages.persistence import SQLiteProjectWorkspaceRepository, SQLiteRecordRepository

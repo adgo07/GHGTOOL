@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """PR50 F01-F03实际offscreen Qt/Excel/Application/SQLite退修回归。"""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
@@ -9,7 +10,7 @@ from pathlib import Path
 import json,tempfile,unittest
 from unittest.mock import patch
 from openpyxl import load_workbook
-from PySide6.QtWidgets import QApplication,QMessageBox
+from PySide6.QtWidgets import QApplication
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import ProjectWorkspaceService

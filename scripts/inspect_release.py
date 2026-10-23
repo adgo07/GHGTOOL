@@ -26,6 +26,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.build_environment import validate_build_environment
+from packages.qt_chinese_resource import TRANSLATION_RELATIVE, TRANSLATION_SHA256
 
 APP_EXECUTABLE = "QingzhouCarbonAccounting.exe"
 MANIFEST_NAME = "build-manifest.json"
@@ -195,6 +196,12 @@ def inspect_release(root: str | Path) -> tuple[str, ...]:
     issues: list[str] = []
     if not artifact.is_dir():
         return (f"release directory does not exist: {artifact}",)
+
+    translation = artifact / TRANSLATION_RELATIVE
+    if not translation.is_file() or _sha256(translation) != TRANSLATION_SHA256:
+        issues.append("missing or mismatched Simplified Chinese translation")
+    if any(p.name != "qtbase_zh_CN.qm" for p in (artifact / "PySide6/translations").glob("*.qm")):
+        issues.append("unexpected Qt translation resource")
 
     executable = artifact / APP_EXECUTABLE
     if not executable.is_file():

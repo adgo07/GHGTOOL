@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """PR49 F02/F03 actual offscreen regressions; no native UI claim."""
 import os
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
@@ -6,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 import tempfile,unittest
 from unittest.mock import patch
-from PySide6.QtWidgets import QApplication,QMessageBox
+from PySide6.QtWidgets import QApplication
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application import ProjectWorkspaceService

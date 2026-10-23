@@ -1,3 +1,4 @@
+from packages.ui.dialogs import MessageBox as QMessageBox
 """Issue020真实正式入口/GUI/B.6/SQLite/冻结Word整链；非人工CU。"""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
@@ -9,7 +10,7 @@ from pathlib import Path
 import json,tempfile,unittest
 from unittest.mock import patch
 from openpyxl import load_workbook
-from PySide6.QtWidgets import QApplication,QMessageBox
+from PySide6.QtWidgets import QApplication
 import tests.test_b_fgd_acceptance_fixes as qt_fixtures
 import tests.test_b_fume_segments as fume_fixtures
 from packages.standards.carbon_material import CarbonMaterialInput,CarbonMaterialCalculator,EmissionSourceState,EmissionSourceStatus,SOURCE_FUME,FumeIncinerationInput,InputValue

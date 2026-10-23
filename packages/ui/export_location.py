@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from packages.ui.dialogs import MessageBox as QMessageBox
+
 import logging
 import re
 import tempfile
@@ -10,7 +12,7 @@ from typing import Callable
 
 from PySide6.QtCore import QStandardPaths, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import QFileDialog, QWidget
 
 from packages.core.models import SettingEntry, Settings
 from packages.core.repositories import SettingsRepository

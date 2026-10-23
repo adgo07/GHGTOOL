@@ -250,3 +250,8 @@ def application_stylesheet() -> str:
             padding: 0 12px; color: {PRIMARY_BRAND}; background: {CARD_BACKGROUND};
         }}
     """
+
+
+def message_button_stylesheet() -> str:
+    """Instance-only message buttons; retain native default/focus feedback."""
+    return "QMessageBox QPushButton { font-size: 14px; font-weight: normal; min-height: 24px; min-width: 72px; padding: 5px 10px; }"

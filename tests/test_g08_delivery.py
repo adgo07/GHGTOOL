@@ -58,6 +58,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def _copy_controlled_templates(root: Path) -> dict[Path, Path]:
     copied = {}
+    from packages.ui.chinese import translation_path, TRANSLATION_RELATIVE
+    target = root / TRANSLATION_RELATIVE
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(translation_path().read_bytes())
     for relative in STEAM_LICENSE_HASHES:
         target=root/relative;target.parent.mkdir(parents=True,exist_ok=True)
         target.write_bytes((PROJECT_ROOT/relative).read_bytes())
@@ -190,7 +194,7 @@ class G08DeliveryTests(unittest.TestCase):
             logger = unittest.mock.Mock()
             with (
                 patch.dict(os.environ, {"LOCALAPPDATA": directory}, clear=False),
-                patch("apps.carbon_accounting_desktop.app.QApplication", return_value=object()),
+                patch("apps.carbon_accounting_desktop.app.QApplication", return_value=QApplication.instance() or QApplication([])),
                 patch("apps.carbon_accounting_desktop.app.configure_logging", return_value=logger),
                 patch(
                     "apps.carbon_accounting_desktop.app.SQLiteProjectWorkspaceRepository",
