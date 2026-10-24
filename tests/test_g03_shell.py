@@ -208,10 +208,17 @@ class G03ShellTest(unittest.TestCase):
         self.assertIn("#E6F2FC", sidebar.styleSheet())
         self.assertIn("font-size: 13px", sidebar.styleSheet())
 
-    def test_settings_overview_uses_real_product_info_and_v4_two_column_layout(self) -> None:
+    def test_settings_overview_uses_real_product_info_and_business_page_layout(self) -> None:
         settings = self.shell.pages[AppRoute.SETTINGS]
         self.assertEqual(settings.findChild(QLabel, "pageTitle").text(), "设置")
-        self.assertEqual(len(settings.findChildren(QFrame, "settingsSurface")), 2)
+        columns = settings.findChild(QWidget, "settingsColumns").layout()
+        self.assertEqual(columns.count(), 2)
+        self.assertEqual(
+            [columns.itemAt(index).widget().objectName() for index in range(columns.count())],
+            ["settingsExportSurface", "settingsInformationSurface"],
+        )
+        for name in ("settingsExportSurface", "settingsInformationSurface"):
+            self.assertIsNotNone(settings.findChild(QFrame, name))
         labels = [label.text() for label in settings.findChildren(QLabel)]
         self.assertIn("软件信息", labels)
         self.assertIn("导出位置", labels)
@@ -261,7 +268,16 @@ class G03ShellTest(unittest.TestCase):
         page = shell.pages[AppRoute.EXCEL_IMPORT]
         self.assertEqual(page.findChild(QLabel, "pageTitle").text(), "表格导入")
         self.assertEqual(AppRoute.EXCEL_IMPORT.value, "excel_import")
-        self.assertEqual(page.findChild(QLabel, "excelImportSectionTitle").text(), "01 获取模板")
+        template = page.findChild(QFrame, "excelImportTemplateSection")
+        self.assertEqual(template.findChild(QLabel, "pageDescription").text(),
+                         page.excel_adapter.template_description)
+        for section_name, title in (
+            ("excelImportFileSection", "01 选择文件与核算信息"),
+            ("excelImportCheckSection", "02 数据检查与预览"),
+            ("excelImportActionSection", "03 保存项目与正式核算"),
+        ):
+            section = page.findChild(QFrame, section_name)
+            self.assertEqual(section.findChild(QLabel, "cardTitle").text(), title)
         for section_name in (
             "excelImportTemplateSection",
             "excelImportFileSection",
