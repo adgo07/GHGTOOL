@@ -1,21 +1,15 @@
-# PR58 中文弹窗退修（2026-10-23，验证中）
+# PR-B：本地1074全绿，接续唯一PR与精确head交付
 
-受验基线 `572f32ae0ca335a2ea329d7bd48e7c01d454abfc`：实际 CI301/run39932777629 全量 1056 项/1031.702s，2 failures，精确包 job skipped。确认是新模态测试在共享 QApplication 全量环境中的状态依赖；单模块通过不构成完整验收。此前 CI299 仅背书已合并 PR57，不背书 PR58。
+继续既有codex/ui-business-layout及隔离工作树，不重做已认可UI、不创建替代分支或重置成果。用户要求通过后提交PR，由源会话最终验收；不自动合并，不原生CU。
 
-## 修复
+当前正式本地证据：python -B -m unittest discover -s tests -t . -v，1074/1074 OK，0失败/错误、未列跳过，2741.635秒。源码/测试/资源开始结束SHA无变化，原始命令/子进程无探针；外部只采资源；未处理的已删除Qt对象错误0。原45/60秒和几何100ms都未改。integration/qt-lifecycle/full/identity.json和full-tests.log是本次权威身份，原log SHA bb87c7ac200458d16a6af08bbb7fdb7a84dc748f97f175702aeea8dbb4ee7302。
 
-三个同步弹窗入口均在配置/exec/读取返回值外层使用 finally/deleteLater，返回值先取得，不使用 WA_DeleteOnClose，不引入管理器。真实 Qt 测试在新进程执行：回调绑定具体实例，先断言可见且为当前模态窗口，再操作，异常显式传回、子进程有超时；保留实际 exec、Esc/×/Enter/放弃与文本返回验证。新增同一父窗口反复取消三类弹窗及异常路径，处理 DeferredDelete 后对象数恢复基线。
+生产收口：燃料适配器可见性guard（原combo、itemData、信号、来源资格、精度草稿与报告保留）以及shell/SourceCard两个QObject上下文。测试收口：11处close-only夹具正确销毁，派发正常已请求DeferredDelete；原100ms等待改稳定完整观测，不强制产品刷新；新增2个生命周期先红后绿用例。相对cd4既有test_* AST不变，不减输入数据或验证。算法、Canonical、DB、历史Record、标准解释/支持范围、其他页面业务/布局不变。
 
-截图脚本拒绝脏工作树；公共摘要仅记录中文资源相对路径、SHA 与加载结果，不公开本机路径。已在干净代码提交 `0e98c15f6453c2aef7fdf2fee090588287c39600` 重采（dirty=false），截图字节与先前一致；证据提交与代码提交分别注明，不冒称截图生成于自身回执提交。QFileDialog 原生策略不变，本轮没有原生文件对话框或系统语言验收，后续仍须单列。
+astra当前两张真实Qt宽窄展开图局部PASS、8/8源hash匹配，入口integration/qt-lifecycle/fuel-capture/review.html；旧53a独立13/13、151/8行和原42图均为历史，不重标当前源。新专项保留实际超时13前序的栈/进度、回收对照、两个回调红绿、几何正常两轮收敛证据和诊断限制。较早一份11项代表日志被同名后续运行覆盖，已有后续完整同故障重现日志及两个核心完整失败原件保留，详见README，不能冒称无此缺项。
 
-## 平台 / Contract 预检查
+下一步：最新origin/main已fetch核仍0926046且为祖先；GitHub当前public/main，本分支无既有PR。先整理稳定本地提交，查询同head已有run，再正常非force push现分支、创建唯一PR并attach_artifact。沿现有Windows CI取得merge-ref完整测试和exact PR-head standalone/G08/audit/archive/provenance/smoke结果；原ZIP/manifest/hash/来源实际保全到独立新目录，再离屏本地审计/启动。不要无变化rerun、改费用或工作流；CI失败先读日志定位。不将旧CI或旧包重标新head。CI后用PR描述和本地回执记录实际身份，避免纯回执push再触发全量。
 
-origin adgo07/GHGTOOL、原 PR58 分支及隔离工作树已核实并 fetch。Frozen baseline `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变。本任务不涉及中央公共 Contract；无标准解释变化，无新增 Standard Issue。仅修 UI 生命周期、测试和证据，不改业务、Numeric、数据库、Record、模板、Word、首页布局。
+不等待Owner再选A/B，不采用B；正式本地门禁已满足。先前跨聊天状态发送被拒，源会话明确主动wait/read，当前无需回传授权即可继续本地与已授权交付；不重试绕过。未执行原生Office/IME/DPI/真实企业样例，不宣称Windows正式Release或SUPPORTED升级。
 
-## 验证
-
-本地 Python 3.12.14 / Qt 6.11.2，QT_QPA_PLATFORM=offscreen：`python -B -m unittest tests.test_ui_chinese -v`，9/9，9.363s，0失败/错误/跳过。包含真实子进程反复弹窗与释放回归。
-
-`python -B -m unittest discover -s tests -t . -v` 实际运行 1057 项/1498.659s：0 failures，1 error（既有 UIR04 缩放子进程 scale=1.0 超过60秒）。本次中文测试9项在完整套件中全部通过。未改缩放代码或超时限制；随后单独重跑原缩放测试（含1.0/1.25/1.5）通过，1/1，59.954s。该轮不称全量一次通过。推送后必须再以远端全量和精确包核验闭环，原 CI301 失败历史保留。
-
-PR57 已合并 `8f9fa119`。PR58 未合并，PR-B 未开始。原生 Office、鼠标/IME/人工 DPI、企业样例、干净机、商业许可与正式发布仍 OPEN；本轮不操作桌面，不自动合并。
+平台 / Contract预检查：业务仓受验父提交cd4d32d0f09b2e9f3f2a0e27146a20e750166900，实际worktree/origin/HEAD/status均已核；origin为adgo07/GHGTOOL，最新fetch后origin/main仍092604639cd5b2b61fef1523f87fcd711d8aefea且为当前分支祖先，默认main，不需合并调整。沿用codex/ui-business-layout，不重置成果。中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20，已核中央origin、锁定Architecture V2.1及当前UI指南v0.2。适用MUST/MUST NOT：保持Presentation/Application/Domain/Infrastructure分层，Domain不依赖Qt/SQLite/Windows；展示不回流正式计算；UI State不冒充公共Workspace；不可变Record与参数快照不漂移。无公共Contract冲突或需分类的新增偏差，无中央修改或Frozen adoption。本任务不涉及中央公共 Contract。相关Standard Issue：有，既有004/016/018、017、020；本任务改变既有软件解释：否；无新标准问题。

@@ -29,7 +29,7 @@ from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
-from tests.ui_tree_helpers import tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_texts
 
 
 SOURCE_IDS = (
@@ -77,6 +77,7 @@ class UIR02SourceCardTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def _card(self, source_id: str) -> SourceCard:

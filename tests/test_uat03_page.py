@@ -35,6 +35,7 @@ from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.responsive_fields import ResponsiveFieldGrid
 from packages.ui.compact_choices import SegmentedChoiceControl
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 class UAT03AccountingPageV2Tests(unittest.TestCase):
@@ -55,6 +56,7 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.page.close()
+        dispose_test_widget(self.page)
         self.app.processEvents()
 
     def _set_source(self, source_id: str, value: EmissionSourceStatus) -> None:
@@ -228,7 +230,7 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
     def test_heat_labeled_fields_hide_as_groups_and_keep_method_labels_distinct(self) -> None:
         row = self.page._energy_family_rows["heat"][0]
         self.assertEqual(row.heat_kind_field.findChild(QLabel, "detailFieldLabel").text(), "蒸汽状态")
-        self.assertEqual(row.pressure_field.findChild(QLabel, "fieldUnitHint").text(), "MPa（绝压）")
+        self.assertEqual(row.pressure_field.findChild(QLabel, "detailFieldLabel").text(), "蒸汽压力（MPa，绝压）")
         self.assertEqual(row.temperature_field.findChild(QLabel, "fieldUnitHint").text(), "℃（过热蒸汽）")
         self.assertEqual(row.enthalpy_field.findChild(QLabel, "fieldUnitHint").text(), "kJ/kg")
         self.assertEqual(row.measured_heat_factor_field.findChild(QLabel, "fieldUnitHint").text(), "tCO₂/GJ")
@@ -408,7 +410,13 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
             self.assertEqual(selected.carbon_content.value, Decimal("0.0153"))
             self.assertEqual(selected.carbon_content.unit, "tC/GJ")
             self.assertEqual(selected.oxidation_rate.value, Decimal("0.99"))
-            self.assertFalse(row.oxidation_source.isHidden())
+            from packages.ui.compact_choices import SegmentedChoiceControl
+            choices = next(control for control in row.findChildren(SegmentedChoiceControl)
+                           if control.combo is row.oxidation_source)
+            self.assertTrue(row.oxidation_source.isHidden())
+            self.assertIs(choices.combo, row.oxidation_source)
+            self.assertFalse(choices.isHidden())
+            self.assertTrue(any(button.isEnabled() and not button.isHidden() for button in choices.group.buttons()))
             self.assertTrue(row.source_reference_control.isHidden())
 
             row.carbon_basis.setCurrentIndex(row.carbon_basis.findData("DIRECT"))

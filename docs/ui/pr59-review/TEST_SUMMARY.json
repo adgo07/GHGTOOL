@@ -1,0 +1,34 @@
+{
+  "code_head": "7308473895faf4500f7c4fd1ad596531408d9eeb",
+  "combined_command": "python -B -m unittest tests.test_pr59_compatibility_navigation tests.test_b_fume_chain tests.test_b_material_chain -v",
+  "combined_tests": 32,
+  "combined_seconds": 216.654,
+  "combined_exit": 0,
+  "targeted_tests": 8,
+  "targeted_seconds": 108.776,
+  "targeted_exit": 0,
+  "original_logs_untouched": {
+    "build/pr59-p2/reproduction.log": "3f107883f15bc5aa7b05de1e30aae1a002d3df1e29edd400bf875d236448c861",
+    "build/pr59-p2/reproduction.json": "fa6c491ce905aaf7937e16165056f4f7478664d1f10396ce75e494dae12a967c",
+    "build/pr59-p2/targeted-r4.log": "d38ee1b7bf9c28f4ff66aaed9a6c5905e3729a08294732a417f22606c4fe1042",
+    "build/pr59-p2/targeted-r5.log": "6d3a7cec60184d7e30a4450b82aad2684a535fff19ada50c53ab2529ebd1ee15",
+    "build/pr59-p2/combined-final.log": "7361aa1fc3d282f127943901d3a9a6a4c1f52e78be615bf648f147931522dead",
+    "build/pr59-p2/color-token-equivalence.json": "3d1a69fd9e944b31fb0530c1da2eaa31f9a2ede3449c16e24b393256af43fa8e",
+    "build/pr59-p2/capture-r1.log": "1720bf2c93a4455ee8050ca1d3e4d3b33cd59d256a313664f68d438226019ade"
+  },
+  "capture_count": 14,
+  "capture_code_head": "7308473895faf4500f7c4fd1ad596531408d9eeb",
+  "capture_callback_errors": 0,
+  "full_tests": {
+    "tests": 1082,
+    "passed": 1082,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 3440.48,
+    "head": "7444b9b2e1d5e744fe3b313cdb6b81b4bca03259",
+    "log_sha256": "f416a3e43c75b9dfdaa0e33d2b41ca308d09504631f2f7da79795191d65b0d72"
+  },
+  "ci": "提交后在 PR59 描述中追加当前 head 的实际 CI 与制品回执。",
+  "navigation_tests": 16,
+  "navigation_seconds": 201.33
+}

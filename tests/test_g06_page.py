@@ -45,7 +45,7 @@ from packages.standards.carbon_material_input_policy import fuel_path_for_unit
 from packages.ui.field_specs import get_field_spec
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
-from tests.ui_tree_helpers import tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_texts
 
 
 class G06PageTests(unittest.TestCase):
@@ -80,6 +80,7 @@ class G06PageTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def test_page_exposes_g06_sections_and_v2_source_groups(self) -> None:

@@ -29,7 +29,7 @@ from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard
 from packages.ui.view_models import AppRoute
-from tests.ui_tree_helpers import tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_texts
 
 
 CALCINATION_SOURCE = "CAR-SRC-CALCINATION-001"
@@ -68,6 +68,7 @@ class UIR03AdvancedDetailsTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def _set_involved(self, source_id: str) -> None:

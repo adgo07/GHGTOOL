@@ -1,0 +1,30 @@
+{
+  "archive_name": "pr59-p2-full-initial-7308473895fa.zip",
+  "archive_sha256": "9147845312f18ec218c05504f01ae683c0b3713a98c19bbf270e93f98b771067",
+  "files": [
+    {
+      "path": "build/pr59-p2/full/unittest-original.log",
+      "sha256": "a09e90d9ffc155dc5f3d7d0cd1ba9adb842b67d5477fcdd2f78b6a1a04e74b50",
+      "bytes": 282440
+    },
+    {
+      "path": "build/pr59-p2/full/summary.json",
+      "sha256": "3f0ed3ba4ea1aad76a27e34f147c98f2a206a4240f3644f009d2074c6884bdaf",
+      "bytes": 38009
+    },
+    {
+      "path": "build/pr59-p2/full-runner.log",
+      "sha256": "05c4b8c10b1c56a57c297d7a1ea2d7502e7486c4fc0e540e3b6920f3a45a21af",
+      "bytes": 5547
+    }
+  ],
+  "tests": 1082,
+  "passed": 1081,
+  "failures": 1,
+  "errors": 0,
+  "seconds": 2959.407,
+  "failed_test": "tests.test_uat02_usability.UAT02UsabilityTests.test_failed_calculation_focuses_the_specific_fuel_field",
+  "source_hashes_unchanged": true,
+  "unhandled_deleted_qt_object_errors": 0,
+  "result": "FAILED, preserved unchanged"
+}

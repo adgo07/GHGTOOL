@@ -47,6 +47,7 @@ from packages.core.models import (
 from packages.standards.carbon_material import FuelPath
 from packages.ui.view_models import AppRoute
 from packages.persistence.in_memory_records import InMemoryRecordRepository
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 def _home_record() -> AccountingRecord:
@@ -113,6 +114,7 @@ class G03ShellTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
         self._project_directory.cleanup()
 
