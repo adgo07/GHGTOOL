@@ -1,0 +1,78 @@
+{
+  "archive_name": "pr59-ci305-fix-9dda57e8599d.zip",
+  "archive_sha256": "643dddec9d6fecbb047d2e9569d6150c86cd4e4c8152ab589d5294b03b32eb7c",
+  "files": [
+    {
+      "path": "build/pr59-p2/ci305-geometry-green.log",
+      "bytes": 284,
+      "sha256": "3ee2dc6fe77d7e13ecd003ee43f55cdfcb8c277fdb2b53d6262698e84a8459a4"
+    },
+    {
+      "path": "build/pr59-p2/ci305-geometry-prefix-green.log",
+      "bytes": 3195,
+      "sha256": "0af07e1be3ead9fa9aaf75f4689b6dd1ba8e6d14152c8dfecedca36cb58d0558"
+    },
+    {
+      "path": "build/pr59-p2/ci305-timer-profile.json",
+      "bytes": 632,
+      "sha256": "ae2f0488cd34deff22580d1d6d518df1298829c2b1dc851c946e5c5f7907301d"
+    }
+  ],
+  "ci_run": 40119067445,
+  "ci_head": "9dda57e8599d94912156e94a5d71334c84ade88d",
+  "ci_tests": 1082,
+  "ci_passed": 1081,
+  "ci_failures": 1,
+  "ci_errors": 0,
+  "ci_seconds": 2075.817,
+  "ci_failed_case": "tests.test_uat02_geometry.UAT02GeometryTests.test_dynamic_fuel_rows_resize_scroll_host_across_source_toggle",
+  "ci_observations": [
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ],
+    [
+      11209,
+      11209,
+      10409
+    ]
+  ],
+  "local_geometry_tests": 1,
+  "local_geometry_seconds": 12.438,
+  "local_prefix_tests": 9,
+  "local_prefix_seconds": 57.906,
+  "unchanged_requirements": {
+    "timeout_ms": 100,
+    "minimum_samples": 8,
+    "successive_equal_samples": 3,
+    "exact_expected_height": true
+  },
+  "change": "仅移除每轮 QTest.qWait(1) 定时休眠，保留每轮正常事件派发和所有原断言。",
+  "local_timer_profile_scope": "仅本机测量，不冒称 CI 宿主时钟测量。"
+}

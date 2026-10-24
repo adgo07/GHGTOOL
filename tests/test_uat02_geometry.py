@@ -75,7 +75,8 @@ class UAT02GeometryTests(unittest.TestCase):
                 # Do not dispatch an unobserved extra event turn after settling.
                 self._assert_scroll_geometry_matches_page()
                 return
-            QTest.qWait(1)
+            # Dispatch normal events on the next turn without a timed sleep:
+            # Windows timer granularity must not limit the sample count.
         self.fail(f"正常布局事件在原{timeout_ms}ms内未稳定：height/expected/scroll_max={samples}")
 
     def _assert_scroll_geometry_matches_page(self) -> None:

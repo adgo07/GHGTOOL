@@ -22,5 +22,12 @@
     "13-shared-result.png": "ce97469b00d17275eef52bc30546186cf8a512ab5c051d1b14f36b19ef4d3c02",
     "14-folded-conversion-first-error.png": "f66e1cce5679a44fefa28950120f77e270b7eca74b77f95626ce4d40aa1664ce"
   },
-  "evidence_commit_note": "后续提交仅证据和治理文档；最新 PR head 及 CI 身份见 PR59 交付回执。"
+  "evidence_commit_note": "后续提交仅证据和治理文档；最新 PR head 及 CI 身份见 PR59 交付回执。",
+  "post_full_test_only_changes": [
+    {
+      "path": "tests/test_uat02_geometry.py",
+      "sha256": "047151cd2fd553e74ef7309f3a0b8e1827a12b38bc5d4185deb7098f0af79f86",
+      "reason": "CI305 定时休眠消耗观察预算；断言和100ms/8次/3次稳定门禁不变。"
+    }
+  ]
 }

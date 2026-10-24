@@ -1,0 +1,22 @@
+{
+  "run": 40119067445,
+  "head": "9dda57e8599d94912156e94a5d71334c84ade88d",
+  "files": [
+    {
+      "path": "run-raw.json",
+      "bytes": 11913,
+      "sha256": "380ab9f49da73a83936d6571a3dababdeb4db738be6fc2ea2209cc8a1f8f0767"
+    },
+    {
+      "path": "jobs-raw.json",
+      "bytes": 4302,
+      "sha256": "64ce3f3321b483da57ff1d115b3d6ff58cb035ce41f7105d03f361150d96e5c2"
+    },
+    {
+      "path": "job-120946448121.log",
+      "bytes": 382407,
+      "sha256": "438dce73fe2b2124635f2a78b0d05a3af257086a0a307b5410a7d5b0d5d019b5"
+    }
+  ],
+  "delivery_directory_name": "40119067445-9dda57e8599d94912156e94a5d71334c84ade88d"
+}
