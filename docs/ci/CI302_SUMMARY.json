@@ -1,0 +1,43 @@
+{
+  "head": "fd3420dbb605e31da412407685e9516e5dde4d42",
+  "tested_merge": "09a1cafe905c14f08c1090b61155d73092e4d82d",
+  "run": 39945672103,
+  "artifact_id": 12498409436,
+  "zip_sha256": "58853b4fdcf472668d573fbbe5d35191361ce15f0d6a87d0760b39d895a403ac",
+  "bytes": 70569824,
+  "files": 224,
+  "manifest_files": 223,
+  "all_hashes_match": true,
+  "qm_files": [
+    "PySide6/translations/qtbase_zh_CN.qm"
+  ],
+  "build_environment": {
+    "PySide6": "6.11.2",
+    "PySide6-Essentials": "6.11.2",
+    "PySide6-Addons": "6.11.2",
+    "shiboken6": "6.11.2",
+    "PyInstaller": "6.22.3",
+    "pyinstaller-hooks-contrib": "2026.8",
+    "Qt": "6.11.2",
+    "Python": "3.12.10",
+    "implementation": "CPython",
+    "system": "Windows",
+    "bits": "64"
+  },
+  "local_full_suite": {
+    "count": 1057,
+    "seconds": 1498.659,
+    "failures": 0,
+    "errors": 1,
+    "error": "existing scale=1.0 subprocess timeout60s",
+    "unchanged_retry": "1/1 OK 59.954s (1.0,1.25,1.5)"
+  },
+  "ci_tests": {
+    "merge": 1057,
+    "merge_seconds": 928.534,
+    "head": 22,
+    "head_seconds": 18.191
+  },
+  "runtime_evidence": "CI302 logs: actual packaged Chinese, PNG/SVG, 2 isolated starts PASS; no local EXE execution",
+  "native_validation": false
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
+from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import QTimer, Signal, Qt
 from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import (
@@ -198,7 +199,7 @@ class SourceCard(QFrame):
         shell = central_widget() if callable(central_widget) else None
         update_content_geometry = getattr(shell, "update_content_geometry", None)
         if callable(update_content_geometry):
-            QTimer.singleShot(0, update_content_geometry)
+            QTimer.singleShot(0, self, update_content_geometry)
         self._sync_controls()
 
     def _on_action_clicked(self) -> None:
@@ -216,18 +217,27 @@ class _SourceSwitch(QWidget):
     """Decorative switch; the enclosing accessible button owns interaction."""
     def __init__(self, parent):
         super().__init__(parent)
-        self.setFixedSize(32, 18)
+        self.setFixedSize(36, 20)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.active = False
+        self.state = "未启用"
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#197CC2" if self.active else "#B8C8D4"))
-        painter.drawRoundedRect(0, 1, 32, 16, 8, 8)
-        painter.setBrush(QColor("#FFFFFF"))
-        painter.drawEllipse(17 if self.active else 3, 3, 12, 12)
+        colors = {"已启用": ACCOUNTING_COLORS['brand'], "部分启用": ACCOUNTING_COLORS['source_selected'], "待确认": ACCOUNTING_COLORS['pending_indicator']}
+        painter.setBrush(QColor(colors.get(self.state, ACCOUNTING_COLORS['switch_inactive'])))
+        painter.drawRoundedRect(0, 1, 36, 18, 9, 9)
+        painter.setBrush(QColor(ACCOUNTING_COLORS['white']))
+        if self.state == "部分启用":
+            painter.setBrush(QColor(ACCOUNTING_COLORS['brand']))
+            painter.drawRoundedRect(12, 8, 12, 4, 2, 2)
+        elif self.state == "待确认":
+            painter.setPen(QColor(ACCOUNTING_COLORS['pending_glyph']))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "?")
+        else:
+            painter.drawEllipse(21 if self.active else 3, 4, 12, 12)
 
 
 class SourceToggleButton(QPushButton):
@@ -241,7 +251,7 @@ class SourceToggleButton(QPushButton):
         self.title_label = QLabel(title, self)
         self.title_label.setWordWrap(False)
         self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.title_label.setStyleSheet("background: transparent; color: #213A4F; font-size: 16px; font-weight: 600;")
+        self.title_label.setStyleSheet(f"background: transparent; color: {ACCOUNTING_COLORS['primary_text']}; font-size: 16px; font-weight: 600;")
         layout.addWidget(self.title_label)
         status_row = QHBoxLayout()
         status_row.setSpacing(7)
@@ -249,14 +259,15 @@ class SourceToggleButton(QPushButton):
         status_row.addWidget(self.switch)
         self.state_label = QLabel(self)
         self.state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.state_label.setStyleSheet("background: transparent; color: #597187; font-size: 13px;")
+        self.state_label.setStyleSheet(f"background: transparent; color: {ACCOUNTING_COLORS['state_text']}; font-size: 13px;")
         status_row.addWidget(self.state_label)
         status_row.addStretch(1)
         layout.addLayout(status_row)
 
     def set_source_state(self, state):
         self.setText(f"{state} | {self._title}")
-        self.switch.active = state != "未启用"
+        self.switch.state = state
+        self.switch.active = state == "已启用"
         self.switch.update()
         self.state_label.setText(("✓ " if self.switch.active else "") + state)
 
@@ -274,14 +285,16 @@ class SourceHeaderSwitch(QPushButton):
         super().__init__(parent)
         self.setObjectName("sourceHeaderSwitch")
         self.setAccessibleName(title + "排放源开关")
-        self.setStyleSheet("QPushButton#sourceHeaderSwitch { min-height:24px; padding:0; border:none; background:transparent; }")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMinimumWidth(142)
+        self.setStyleSheet(f"\n            QPushButton#sourceHeaderSwitch {{ min-height:30px; padding:4px 10px; border:2px solid {ACCOUNTING_COLORS['switch_border']}; border-radius:8px; background:{ACCOUNTING_COLORS['switch_surface']}; }}\n            QPushButton#sourceHeaderSwitch[state=\"已启用\"] {{ background:{ACCOUNTING_COLORS['source_active_surface']}; border-color:{ACCOUNTING_COLORS['brand']}; }}\n            QPushButton#sourceHeaderSwitch[state=\"部分启用\"] {{ background:{ACCOUNTING_COLORS['source_active_surface']}; border-color:{ACCOUNTING_COLORS['brand']}; }}\n            QPushButton#sourceHeaderSwitch[state=\"待确认\"] {{ background:{ACCOUNTING_COLORS['pending_surface']}; border-color:{ACCOUNTING_COLORS['pending_border']}; }}\n            QPushButton#sourceHeaderSwitch:hover {{ border:2px solid {ACCOUNTING_COLORS['source_hover_border']}; background:{ACCOUNTING_COLORS['source_selected']}; }}\n            QPushButton#sourceHeaderSwitch[state=\"待确认\"]:hover {{ background:{ACCOUNTING_COLORS['pending_hover']}; }}\n            QPushButton#sourceHeaderSwitch[state=\"未启用\"]:hover {{ background:{ACCOUNTING_COLORS['source_inactive_hover']}; }}\n            QPushButton#sourceHeaderSwitch:focus {{ border:2px solid {ACCOUNTING_COLORS['source_active_text']}; }}\n            QPushButton#sourceHeaderSwitch:pressed {{ background:{ACCOUNTING_COLORS['source_selected']}; }}\n        ")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(2,0,2,0)
         layout.setSpacing(7)
         self.switch = _SourceSwitch(self)
         self.label = QLabel(self)
         self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.label.setStyleSheet("background:transparent; color:#075985; font-size:13px;")
+        self.label.setStyleSheet(f"background:transparent; color:{ACCOUNTING_COLORS['source_active_text']}; font-size:14px; font-weight:600;")
         layout.addWidget(self.switch)
         layout.addWidget(self.label)
 
@@ -292,9 +305,17 @@ class SourceHeaderSwitch(QPushButton):
         return self.sizeHint()
 
     def set_source_state(self,state):
-        self.switch.active = state != "未启用"
+        self.switch.state = state
+        self.switch.active = state == "已启用"
         self.switch.update()
         self.label.setText(state)
+        color = ACCOUNTING_COLORS['pending_text'] if state == "待确认" else (ACCOUNTING_COLORS['inactive_text'] if state == "未启用" else ACCOUNTING_COLORS['source_active_text'])
+        self.label.setStyleSheet(f"background:transparent;color:{color};font-size:14px;font-weight:600;")
+        self.setToolTip(f"当前{state}；点击切换，停用保留已有输入。")
+        if self.property("state") != state:
+            self.setProperty("state", state)
+            self.style().unpolish(self)
+            self.style().polish(self)
         self.updateGeometry()
         self.setAccessibleDescription(f"当前{state}；点击切换，停用保留数据。")
 

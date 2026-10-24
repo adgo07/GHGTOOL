@@ -26,7 +26,7 @@ from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.source_cards import SourceCard, SourceCardPresentationState
 from packages.ui.view_models import AppRoute
-from tests.ui_tree_helpers import tree_items, tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_items, tree_texts
 
 
 I01 = "CAR-SRC-PURCHASED-ELECTRICITY-001"
@@ -70,6 +70,7 @@ class UIR04FinalizationTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def _involve(self, source_id: str) -> None:

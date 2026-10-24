@@ -44,6 +44,44 @@ STATUS_ABOLISHED = "#B9484A"
 STATUS_UNKNOWN = SECONDARY_TEXT
 
 
+# 核算页面专用；保持现有色值，不影响全局样式或其他页面。
+ACCOUNTING_COLORS = {'choice_selected_text': '#075985',
+ 'source_active_text': '#075D88',
+ 'directory_selected_text': '#096C9F',
+ 'source_hover_border': '#126DAA',
+ 'radio_selected': '#147BB5',
+ 'brand': '#197CC2',
+ 'primary_text': '#213A4F',
+ 'radio_text': '#344E61',
+ 'inactive_text': '#425F74',
+ 'choice_text': '#486A80',
+ 'single_choice_text': '#526A7A',
+ 'state_text': '#597187',
+ 'switch_border': '#71869A',
+ 'pending_text': '#80520A',
+ 'pending_glyph': '#805213',
+ 'choice_notice': '#92651A',
+ 'radio_notice': '#936026',
+ 'radio_border': '#93A8B6',
+ 'choice_disabled_text': '#9AA9B3',
+ 'radio_disabled_text': '#9BA8B0',
+ 'pending_border': '#A46A11',
+ 'switch_inactive': '#B8C8D4',
+ 'choice_border': '#C8DCEB',
+ 'radio_selected_border': '#CEE5F3',
+ 'directory_border': '#DCE8F1',
+ 'source_selected': '#DDEEF9',
+ 'source_active_surface': '#E6F4FB',
+ 'source_inactive_hover': '#E7EDF2',
+ 'choice_disabled_surface': '#F3F6F8',
+ 'switch_surface': '#F3F6F9',
+ 'directory_surface': '#F3F8FC',
+ 'pending_indicator': '#F8E3B5',
+ 'pending_hover': '#FCEBC1',
+ 'pending_surface': '#FFF4DA',
+ 'white': '#FFFFFF'}
+
+
 def responsive_page_margin(viewport_width: int) -> int:
     """Match the V4 page padding clamp in CSS viewport units."""
 
@@ -255,3 +293,40 @@ def application_stylesheet() -> str:
 def message_button_stylesheet() -> str:
     """Instance-only message buttons; retain native default/focus feedback."""
     return "QMessageBox QPushButton { font-size: 14px; font-weight: normal; min-height: 24px; min-width: 72px; padding: 5px 10px; }"
+
+
+def accounting_sample_stylesheet() -> str:
+    """PR-B sample roles, applied once by the accounting page only."""
+    return f"""
+        QFrame#projectUnitControlsCard {{ background: {CARD_BACKGROUND}; border: 1px solid {BORDER}; border-radius: 12px; }}
+        QWidget[layoutSample="true"] QLabel {{ font-size: 14px; }}
+        QWidget[layoutSample="true"] QLabel#cardTitle {{ font-size: 18px; font-weight: 600; }}
+        QWidget[layoutSample="true"] QLineEdit,
+        QWidget[layoutSample="true"] QComboBox,
+        QWidget[layoutSample="true"] QSpinBox,
+        QWidget[layoutSample="true"] QDateEdit {{
+            min-height: 28px; padding: 4px 8px; border: 1px solid {BORDER};
+            border-radius: 6px; font-size: 14px; font-weight: normal;
+        }}
+        QWidget[layoutSample="true"] QComboBox QLineEdit,
+        QWidget[layoutSample="true"] QAbstractSpinBox QLineEdit {{
+            min-height: 0px; padding: 0px; border: none; background: transparent;
+        }}
+        QWidget[layoutSample="true"] QPushButton {{
+            min-height: 28px; padding: 4px 12px; font-size: 14px; font-weight: normal;
+        }}
+        QPushButton#projectUnitControlsToggle {{
+            min-height: 28px; padding: 4px 12px; text-align: left;
+            font-size: 14px; font-weight: 600;
+        }}
+        QWidget[layoutSample="true"] QPushButton#saveAccountingProjectButton {{
+            background: {PRIMARY_BRAND}; color: white; border-color: {PRIMARY_BRAND};
+        }}
+        QWidget[layoutSample="true"] QPushButton#deleteAccountingProjectButton,
+        QWidget[layoutSample="true"] QPushButton#deleteAccountingUnitButton {{
+            color: {SECONDARY_TEXT}; background: transparent;
+        }}
+        QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
+            min-height: 54px; padding: 0px; font-weight: normal;
+        }}
+    """

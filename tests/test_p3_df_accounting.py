@@ -18,7 +18,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QCoreApplication, QEvent, QPoint
-from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QLabel, QPushButton, QScrollArea
+from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QLabel, QPushButton, QScrollArea, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -103,8 +103,15 @@ class P3DFAccountingLayoutTests(unittest.TestCase):
 
     def test_result_card_precedes_calculation_basis_and_standard_title_wraps(self) -> None:
         page = self.page
-        result_index = page.body_layout.indexOf(page.result_card)
-        basis_index = page.body_layout.indexOf(page.process_card)
+        shared_regions = page.findChildren(QWidget, "accountingSharedResults")
+        self.assertEqual(len(shared_regions), 1)
+        shared = shared_regions[0]
+        self.assertGreaterEqual(page.body_layout.indexOf(shared), 0)
+        self.assertFalse(page.source_directory.isAncestorOf(shared))
+        self.assertIs(page.result_card.parentWidget(), shared)
+        self.assertIs(page.process_card.parentWidget(), shared)
+        result_index = shared.layout().indexOf(page.result_card)
+        basis_index = shared.layout().indexOf(page.process_card)
         self.assertGreaterEqual(result_index, 0)
         self.assertGreaterEqual(basis_index, 0)
         self.assertLess(result_index, basis_index)

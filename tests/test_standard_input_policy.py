@@ -123,7 +123,47 @@ class StandardInputPolicyTests(unittest.TestCase):
             row.fuel_type.confirm_name(force=True)
             self.assertEqual(row.fuel_type.currentText(),"天然气")
             self.assertEqual(row.fuel_type.currentData(),FuelType.NATURAL_GAS)
-            self.assertEqual(row.input_grid.rowCount(),3) # two input bands + optional evidence
+            # V2 places the business path before parameters and reflows the
+            # same inputs; an old fixed row count cannot describe that layout.
+            properties = ("fuel_type", "path", "activity", "carbon_basis",
+                          "lower_heating_value", "carbon", "oxidation",
+                          "lhv_source", "carbon_source", "direct_carbon_source", "oxidation_source")
+            controls = {name: getattr(row, name) for name in properties}
+            modes = (row.lhv_source, row.carbon_source, row.direct_carbon_source, row.oxidation_source)
+            def source_state():
+                return [(mode.currentData(), tuple((mode.itemText(i), mode.itemData(i),
+                         mode.model().flags(mode.model().index(i, 0))) for i in range(mode.count())))
+                        for mode in modes]
+            original_sources = source_state()
+            row.show()
+            for width in (1100, 650, 430, 1100):
+                row.resize(width, row.height())
+                for _ in range(8):
+                    app.processEvents()
+                row.resize(row.width(), row.sizeHint().height())
+                for _ in range(8):
+                    app.processEvents()
+                for name, control in controls.items():
+                    self.assertIs(getattr(row, name), control)
+                    self.assertTrue(row.isAncestorOf(control))
+                self.assertEqual(source_state(), original_sources)
+                self.assertEqual(row.fuel_type.count(), 1)
+                self.assertEqual(row.fuel_type.currentText(), "天然气")
+                self.assertEqual(row.fuel_type.currentData(), FuelType.NATURAL_GAS)
+                cells = [*row.identity_cells, row.basis_field, *row.parameter_cells,
+                         row.carbon_value_field, row.source_reference_control, row.inactive_parameters_toggle]
+                visible_cells = [cell for cell in cells if not cell.isHidden()]
+                actual_cells = [row.input_grid.itemAt(i).widget() for i in range(row.input_grid.count())]
+                self.assertEqual(len(actual_cells), len({id(cell) for cell in actual_cells}))
+                self.assertCountEqual([cell for cell in actual_cells if not cell.isHidden()], visible_cells)
+                basis_index = row.input_grid.indexOf(row.basis_field)
+                self.assertGreaterEqual(basis_index, 0)
+                basis_row = row.input_grid.getItemPosition(basis_index)[0]
+                for cell in row.parameter_cells:
+                    if not cell.isHidden():
+                        index = row.input_grid.indexOf(cell)
+                        self.assertGreaterEqual(index, 0)
+                        self.assertLess(basis_row, row.input_grid.getItemPosition(index)[0])
         finally:
             row.deleteLater();app.processEvents()
 

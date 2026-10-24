@@ -116,3 +116,22 @@ class CompactChoiceTests(unittest.TestCase):
         self.assertEqual(label.text(), "暂无适用来源")
         self.assertEqual(combo.currentData(), "STANDARD_DEFAULT")
         control.close()
+
+    def test_radio_style_keeps_policy_disabled_state_and_keyboard(self):
+        combo = QComboBox()
+        for label, value in (("缺省值", "STANDARD_DEFAULT"), ("计算值", "CALCULATED"), ("实测值", "MEASURED")):
+            combo.addItem(label, value)
+        combo.model().item(1).setEnabled(False)
+        control = SegmentedChoiceControl(combo)
+        control.set_radio_style()
+        control.show()
+        self.app.processEvents()
+        first, disabled, last = control.group.buttons()
+        self.assertFalse(disabled.isEnabled())
+        QTest.keyClick(first, Qt.Key.Key_Right)
+        self.assertEqual(combo.currentData(), "MEASURED")
+        control.set_allowed_values({"STANDARD_DEFAULT", "MEASURED"})
+        self.assertEqual(combo.currentData(), "MEASURED")
+        self.assertEqual(len(control.group.buttons()), 2)
+        control.close()
+        control.deleteLater()

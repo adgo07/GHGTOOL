@@ -1,0 +1,58 @@
+{
+  "archive_name": "pr59-p2-final-7444b9b2e1d5.zip",
+  "archive_sha256": "d0572227e8a22cfb9fe19096ceb6336f77c16e5646da4dbba69100e94b060d57",
+  "files": [
+    {
+      "path": "build/pr59-p2/full-final/unittest-original.log",
+      "sha256": "f416a3e43c75b9dfdaa0e33d2b41ca308d09504631f2f7da79795191d65b0d72",
+      "bytes": 281610
+    },
+    {
+      "path": "build/pr59-p2/full-final/summary.json",
+      "sha256": "4aec01aa8f8a3b136dc2507d6158e9ea2c61f4b90ba82594b7d7669f18b2e926",
+      "bytes": 32965
+    },
+    {
+      "path": "build/pr59-p2/full-final-runner.log",
+      "sha256": "3f155e86eb86aba446d1b5a530dc1497b53ca9423637495ad88d2e42ebe82ff8",
+      "bytes": 503
+    },
+    {
+      "path": "build/pr59-p2/fuel-focus-red.log",
+      "sha256": "430e71061c2e2204e25cfe376310a946cf342e80b325e0a3eb6277721264acfc",
+      "bytes": 1563
+    },
+    {
+      "path": "build/pr59-p2/fuel-focus-green.log",
+      "sha256": "54cc8390959ee0a265c34d788d55a0aa805420343b8cb3e4353d29435f622eee",
+      "bytes": 1563
+    },
+    {
+      "path": "build/pr59-p2/fuel-focus-green-r2.log",
+      "sha256": "8e75b42a3ab19cff9ac417420b590bd0e6876d7294557babf3d03e4715f12da1",
+      "bytes": 1563
+    },
+    {
+      "path": "build/pr59-p2/fuel-focus-trace.log",
+      "sha256": "51d764fd37bad03f6bc6175d2db6ed260c3eb2f7c0f3757eeee413849cfa73d0",
+      "bytes": 1919
+    },
+    {
+      "path": "build/pr59-p2/trace_fuel_focus.py",
+      "sha256": "c7a05a5edcc8050898f785e8d440b5180b213fec6db63d27685f29c9ade29a6f",
+      "bytes": 876
+    },
+    {
+      "path": "build/pr59-p2/navigation-final.log",
+      "sha256": "5a697f1fa50b9ae9c92ac5edc060999fbc96615a4f061fc284f0c91ecbbad26f",
+      "bytes": 11403
+    },
+    {
+      "path": "build/pr59-p2/run_full.py",
+      "sha256": "7c0dbdd27569299a4c057553e4f9b662291e91d392a7bb02326ac250f4c7d386",
+      "bytes": 2091
+    }
+  ],
+  "verified": true,
+  "original_bytes_unchanged": true
+}

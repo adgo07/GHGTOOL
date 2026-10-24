@@ -1,0 +1,344 @@
+{
+  "code_head": "7308473895faf4500f7c4fd1ad596531408d9eeb",
+  "source_files_sha256": {
+    "apps/__init__.py": "5956703d8fe74d6bf30a5392894ce0d9deb54d029047968616c664856e3174ef",
+    "apps/carbon_accounting_desktop/__init__.py": "3e4b4bd8ab5f14b702952b18c349998bbcdc5a74be84941eaf1ba57de7b97562",
+    "apps/carbon_accounting_desktop/__main__.py": "d1d9f5d44d355504ad472478ff9719948bfb8135a6f64ef0462f67ebc5a4187b",
+    "apps/carbon_accounting_desktop/app.py": "1ebe167d573b25ef3e1c5fa9e71f92a223f1da53498490369e7f16453a9e32ed",
+    "apps/carbon_accounting_desktop/config.py": "fae98af2594c39e52894e3d4eecafbd46317ddbb128e04fe2b384ce0c622eaa1",
+    "apps/carbon_accounting_desktop/logging_config.py": "4cffe8440b117c484a258173fee0b1ce5d272023a5a8da882c3900b00c5fd602",
+    "apps/carbon_accounting_desktop/product.py": "51b3b128d0e0b5e2f925a952803a0bd8d77123d23bfdf49c3daae403d757f727",
+    "packages/__init__.py": "cee87297e338d4d27cd670c45f96ed60810dece409711c0333c504f4de728f93",
+    "packages/application/__init__.py": "41ad5906fca6f2c831818a87df2174da98788e2179d6ba972f1b77e6ff6adb7d",
+    "packages/application/business_rules_candidate.py": "e844f6f4fa38c7c1f50822931b2af2337d09a35c7d49147972526090cfffc3b6",
+    "packages/application/canonical_input_codec.py": "3ab78b797b7e4fe3af34490d85aa35909c2be8848287e3e8db6f38f59fc84b1a",
+    "packages/application/canonical_input_errors.py": "66ecc5879c8bc7ba9941693b99f58700262143584926256fe80a877f5334d4e6",
+    "packages/application/carbon_accounting.py": "22379152ea4b3402380b1cad4aa1342658af2191d1c1190511f9daf38d38415c",
+    "packages/application/carbon_material_implementation.py": "1da62fa289233cfdc4dede8f2e8b117b69eccc0d633d2a0d9ceee52e6ab2755c",
+    "packages/application/carbon_material_input_codec.py": "aa3cf76b59f69e12d1a15703ab06f84f0c55fdccb6eb742bc226b0b30b682ba2",
+    "packages/application/catalog_queries.py": "c3db5fee7f75c6cc9b3f1d16dd0383985f02e263ca4cde044d2d03efd37d56f3",
+    "packages/application/enterprise_history.py": "86535945ffff039f89b5888b4aa1b27a9f4f07d856f250b8cd244c8ea26d7072",
+    "packages/application/project_workspaces.py": "d5c85edc78439d2f73cda3aca7657110b8d3541f5cbc99c5e2fcb1885e72fe86",
+    "packages/application/reporting/__init__.py": "d865c74ea5eda4b523fdd93edc6dd6dad4fedb2d26111beb68a367138fe5d6cf",
+    "packages/application/reporting/appendix_b.py": "6b4e6f649aae3a21e5c89db32011b357fb7948d3a1b3f184ce773c20eeddac74",
+    "packages/application/reporting/appendix_b_layout.json": "691c0345dbf6805e586bffea0eef62174f3ed78355ef448e9992aace6983b10b",
+    "packages/application/reporting/carbon_material_model.py": "83bf842ee77e777b091d910252ae3140762e3dd5381609bdd3f5f39854a6e4b9",
+    "packages/application/reporting/model.py": "6d975a37811ec8086be7371b0956d323b9bc955e8f3dca0d469e58721c7aae66",
+    "packages/application/reporting/presentation.py": "28bf3db6581c911296deee00bc55be1b51399f4d2f16b65d65a6733208410560",
+    "packages/application/reporting/service.py": "4827955c8fcda1285377cf9da54df0ea150eaf2e079472b7d73e12aeb9381bbe",
+    "packages/application/reporting/software_supplement.py": "df26d87aba17d123a94d51e3b31c1ff81113e67aec7a79211d688b1df6c409e2",
+    "packages/application/reporting/types.py": "478d40d7957898ceafdab7788f914aac81d3a0a495c711f82ac612a59d748579",
+    "packages/application/source_display.py": "650971f7fbd11fdaf0160accc43b978522425aa59db2de491831b12e516dbab5",
+    "packages/application/standard_registry.py": "c3e30c7f6f8503860dd47ac9fafec7959e89005f85292b3cb93ff136c7e53bc8",
+    "packages/application/uat03_parameter_queries.py": "0bead774bd69ed2a91721473b9630a2262e3bf5ba45633b41d37cf395b7643cf",
+    "packages/audit/__init__.py": "ea36332aa3d8fc349b0ea33bb91ebbaa1620971b60727c92f2dd2545e5461936",
+    "packages/core/__init__.py": "e1401e89abb513fd706bbedc32900e39c68c83f67ee4b70c550d96d2fe6812a6",
+    "packages/core/business_field_policy.py": "22073fcb731cefd4517b3867aa0011162ebb15a77dbd56cd8b3aca9ce4c879f9",
+    "packages/core/contracts.py": "978364d2ffd4ee5ef03e00129f4967a2d28e36dc11ad7a01616d73054bad0a51",
+    "packages/core/decimal_policy.py": "2f30fd92b779bf760dd9e6fc79501edb5f87cd3fa39712e022236ad9464d3d51",
+    "packages/core/errors.py": "657efa407edebb6c51f48ce30944a1792478afae7b17442aa245c3c09ca09921",
+    "packages/core/models.py": "38f8e391161d32e7e7610b45a6190f44fd48ecdfc3981ec2ae9b46a710c7fa05",
+    "packages/core/parameter_resolution.py": "7d480f5c1155f0517c4dcc7a11b152283c4c9da8a3bd5bba65fbfec624b8ce71",
+    "packages/core/record_summaries.py": "5e892b03c4d0d068b372fcb9bbb1f057c8294a77174a3e6d7c5f15145d2554a0",
+    "packages/core/repositories.py": "2d6b78c9f6a6c36eb390aef303fcc22fa0ade480ebb6020e0fd3eb232892bd9e",
+    "packages/core/rules.py": "a29d99b9a1c8b91abe6161c3502f7f888866b7d097a01a064a9a3cdd260c42c4",
+    "packages/core/units.py": "145604692f38cfc6f4c45543e5e636a399cba7e877ca86a2215568e9e5f7ac4c",
+    "packages/excel/__init__.py": "e8d60e2fdf4cfecad76892a7376ca53083c7d9801727fc0215cddecdec450034",
+    "packages/excel/appendix_b.py": "8ec1387e07648918d9e4034a39c95efaccf4483bfe52dc7fe6e0db8192e74a59",
+    "packages/excel/appendix_b_legacy_structure.py": "d61115d56d32cd7dc4e09ed5a3548e9036097d9a7698b6c5c34a009fd466f1ca",
+    "packages/excel/appendix_b_processes.py": "bf7b5a28da6bc4e664c0e263987ae1b634bad53ec620883a82b7376261f1b5e3",
+    "packages/excel/ingress.py": "a44207d1fdad5dd4f598de03509427cdc316b11c99a4a1c3a97e4fae8b9f69c2",
+    "packages/excel/templates.py": "ac3483ac12634db6f15c69fcd0e83eb5a8837c8a8fabaec15b9975829e789cf3",
+    "packages/infrastructure/__init__.py": "cec1e8e3aa81ef8dc415d724ddccdb8fdab0a91cc56b1fdd929e46980918611e",
+    "packages/infrastructure/reporting/__init__.py": "4aeaaa179001c52b9141064d53658a0c9c0ad4b002c4ca411c60aaf2f840c396",
+    "packages/infrastructure/reporting/word_renderer.py": "1ceb784eefb961e26d770dc9e9a445b7abdeab6abe0e2018f6ae1c04780ebafe",
+    "packages/persistence/__init__.py": "51bec2d5a68c4824ae0188940fca634e902c7bdf84ab8a578ce2d8341e672560",
+    "packages/persistence/catalog_builder.py": "81795320925c595618506913a84405e27a60d0c1b5549e75dbc936f9ed15f16b",
+    "packages/persistence/catalog_queries_factory.py": "a265a8685f28a73673df233254c484dd692684f812ce1beef6f1eaeae76409b6",
+    "packages/persistence/catalog_repository.py": "f963742da3c15015e9c12fb3919f77b5fc9dc9a933f100876abbbe5b55985c01",
+    "packages/persistence/in_memory_records.py": "b56db9091dfe0593f827ef767073d01b9da96e77b56466bd9d39210babbd67fb",
+    "packages/persistence/projects_repository.py": "99d4704e25df1815b7ab3a6020739a1f039051d7f583b7a785cf247c9a17a1df",
+    "packages/persistence/records_repository.py": "e70c90f79a81757a8db1416bddb6ceb296651801d4d1941d29734cf8e06d030a",
+    "packages/persistence/settings_repository.py": "a8f10f1ccb7bad84e68d5d751d2a34812d3419a9e4423907f7bfba8a687a4f32",
+    "packages/persistence/sqlite.py": "b55c3a7a98215a768872772705bcdec5b5688be4289e675a8c16b31d4f8dc2ec",
+    "packages/qt_chinese_resource.py": "86e616a5428d9830c4bff2c3db75e01ae3535083ecf4765e91e0412852714b36",
+    "packages/reference_data/__init__.py": "ca0b6181443a766840fb982a8722fff5ec0db585b6e1812142a653f019ad01b4",
+    "packages/reference_data/validation.py": "6c84fda0bb49bf38ff05d9066ab0c76fc94da19adb7e839d5790507f743d7de0",
+    "packages/standards/__init__.py": "a0874c4c7b970d1e3bea71fcc5d5db0b630a189b559b61d88c8efc8e9730c3a1",
+    "packages/standards/_numeric_authority.py": "45cf5a23b2d700bb7e51c425acecca542b9bae5bc6a4f0c2de156d7fb2f36c07",
+    "packages/standards/carbon_material.py": "85e07d20f1ee7f1f82316ad9e53ebdefab9a71ebcded9dfc79e836fa24aa88f5",
+    "packages/standards/carbon_material_business_policy.py": "9544a1b8b1127a2839decbb843169dc29fa22a68ef0f93885ec27bb911b76647",
+    "packages/standards/carbon_material_external_co2.py": "5cdaa8ff51ee336e4eb12f91cf84bf9d10f00888a80263cf4468e96a87c60001",
+    "packages/standards/carbon_material_fume_segments.py": "92761ed4549c9c605e7763b34867ff51c2db4684d66ff2b3360658a3930cf52e",
+    "packages/standards/carbon_material_heat.py": "4324854539bc62e5aadc0fb9d700cef7de8dd3e7f3d25b7dac08f60c99002c91",
+    "packages/standards/carbon_material_input_policy.py": "b62e8cbd2c7cb16c5b2bf7dbac30223c494e20ca70bf36f9a9928709d4d4d1b9",
+    "packages/standards/carbon_material_normalization.py": "634d754fab3c013716303086ab5c50446b2d69ab1a886eb6fa885ca448fa19a7",
+    "packages/standards/carbon_material_process_inputs.py": "d4992bb8f7c2899307cf0a7bfdf9dbf605cfee1653ed749e5703757d3a50d1c5",
+    "packages/standards/carbon_material_steam_if97.py": "96e996c7a2d30e71ce76ffbdd03c71a7550d01ddeafff2c27617bc75e988e5db",
+    "packages/standards/catalog.py": "7e5a978f54af4bef3fb3f2980b11c8d0217337023336bf1c41f357e38181a40f",
+    "packages/ui/__init__.py": "9ec25e921e55d9b9f003c459e326515736e10d8b9e77ddc4db3e8ebaa72b058a",
+    "packages/ui/carbon_material_fuel.py": "4fa9276562582e9a3fa80d276d82bcb6a49509bb7cb510e5e3b9b9454c02c824",
+    "packages/ui/carbon_material_legacy_state.py": "0c966b2a456a5914b2f028b604a9ccdb1fda5a6b5a48220e68dd3013fa3d50ff",
+    "packages/ui/carbon_material_page.py": "12c5959d837f052833fcf923eace7e08361b7174e0f84434535481d0631ff050",
+    "packages/ui/catalog_pages.py": "1f3b18207d3b11c770fd587936472372fff44e872b8d9831ad57bc9c2a65c04d",
+    "packages/ui/chinese.py": "0861527e31f1d2771e57eea7240268aee97340c1b3bf2b5cc1929fe93ccff586",
+    "packages/ui/compact_choices.py": "f6a02ae5e3e8a4a25e2a3142bf8272f75a749ffffd270b0342c1a6318409f13a",
+    "packages/ui/design_tokens.py": "e1f64e76d353a97459b9c7efac09c3c01acb5d35f239dbb5d08ce28f4dfee5e5",
+    "packages/ui/dialogs.py": "07e0b09861ebf9806279ad20486b3d74f5f96234d9db91a536d15f23f43d7635",
+    "packages/ui/excel_import_components.py": "d722dd066f224556f10efe93d083bcabcbde0b5912c4926d95b9697eb6a7f1cd",
+    "packages/ui/export_location.py": "5011f8074f824240d9b7be9336e600dad7256baa7584c86da5d84eeb46b5b929",
+    "packages/ui/field_specs.py": "50a5d5c42ab701e4a9a5974bc64138eadd7eac19b0ed5e7090c24657b3d1f043",
+    "packages/ui/icons.py": "20056b2f0fe14960a6dc491c1928c73b165b9e3edc8798c97d1b70e2677e1b71",
+    "packages/ui/input_fields.py": "b85d91c8292658d4b93fccd7997395a2e2f3ac2e76d7f547b3f7c3c93fdfb56c",
+    "packages/ui/name_selector.py": "d42f15ef1ee46cefb107ba11340371d9fccec08007f8f03d1ff23ab09ab9d198",
+    "packages/ui/pages.py": "09caec31f96512fd4f3414f4e775b77d18b9bd57c46cc89e579768aba8a881ce",
+    "packages/ui/record_experience.py": "9a3a932f8e8fc4feb06ecb2b9355c5c1d7612a1985d19a5be57e2e72f825832a",
+    "packages/ui/record_tables.py": "b358fc323a95903d0019dd0b6ff9f8535bfeab4fb22761dfd1145f7a40d874af",
+    "packages/ui/report_export.py": "319e8fb654c512b03874acc1be015d71554dc6a52a56cc0d32cf0633afeb463f",
+    "packages/ui/responsive_fields.py": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860",
+    "packages/ui/routing.py": "065382410b551ec6b6268908ffcc7abe652728031e0d019b549d746d1f1611a9",
+    "packages/ui/shell.py": "bd6904cab9825e3853666fb0423fa1344a200be3b3f74889e0c219dbf8c339cc",
+    "packages/ui/source_cards.py": "64b1f93cf736dd0dbb04bff3629f67f98258c10ae69f4d6513d0171be0b1fb4b",
+    "packages/ui/source_directory.py": "65e31393a6c7075b1deba39aa12eabdda2ccf476468649d1c4d1f1234b3ff67f",
+    "packages/ui/standard_editors.py": "7e458753e19e79fb115bbce9485e3f2c48d0e5bbd5b5676d880544ed6d40d52a",
+    "packages/ui/typed_inputs.py": "56b17bde7d53b6b66a6ffdda5103f47f61dac3e2df05582efca8356dda30a0f6",
+    "packages/ui/view_models.py": "6a2de548e2c0af4ef0d61a444216907b14c2c333032ea5306e81129fb63fe181",
+    "resources/__init__.py": "27dac3cf07d7c3c5bdcc3dc87247b74145de106ece50932c0923e3426c81bbb2",
+    "resources/business_rules/fgd.json": "560c7151e797c47aeb0da698440ed773d1335d8498fbda35aac9e2781fa7bce7",
+    "resources/business_rules/fuel_power.json": "691b6a20fff83e54194e9591a15bdc6a1ced3d6af5e3c1d9d5db49e4fbebcf79",
+    "resources/business_rules/heat.json": "37844a5b09fce7350ebc172457b768b86b665a4be8398408c4e2727be1216ca3",
+    "resources/business_rules/material.json": "1737efec0f3b27bc14b373d4e70f8870f162a3bef6a702931207f4dc6cd93c02",
+    "resources/icons/chevron-down.svg": "2877b5640f998c112cde958e4e54c4f14c38be21046a951e8495e66ea49883ca",
+    "resources/icons/excel.svg": "33ce36d5b967738e4d70a5dd91037f5bdafeddf73e83ea27e8c0d2fe34e94766",
+    "resources/icons/factors.svg": "839bdfa5222ef91c117170209f48e3b99b33c63a66f0b50af66c854ed7f1a27d",
+    "resources/icons/home.svg": "298245e879291746cfe3f13f0cbc275f18ef75dd2cfe87730b13133f71e652fd",
+    "resources/icons/new.svg": "03b1452202f2f2b216d02c3a1fd79653fc8a1f7d52c23ce71bfffcd511ab95bd",
+    "resources/icons/records.svg": "ed20b958015f31d7f516f6f74c97f759b5a3644e8986e552574760d6ab97ae72",
+    "resources/icons/settings.svg": "381066110d91f8bec8ab5829df7dc45bd922069174af82e3600153dd3f9bf49b",
+    "resources/icons/standards.svg": "3bb0388b8e1c14db40ce45e456f4099e5b7cf180f6535747a5da6880ffa9deba",
+    "resources/licenses/steam_if97/SOURCES_AND_NOTICES.json": "2f825d09038c4a927adeb253baf5af836ac75e41cbaaaf0aa74d72c57ce411f2",
+    "scripts/capture_pr59_final.py": "c3a8cf49e588bdcbcc78aa6b9a925b36154214ab468abd45b77822c16417a87a",
+    "tests/test_pr59_compatibility_navigation.py": "05eee42867f3bdabedacbe64e08cd4377643ca36ae90bef6dfd78848e09b87b0"
+  },
+  "qt": "6.11.2",
+  "platform": "offscreen",
+  "font_registration_developer_process_only": {
+    "msyh.ttc": 0,
+    "msyhbd.ttc": 1,
+    "seguisym.ttf": 2
+  },
+  "scenes": [
+    {
+      "name": "01-fuel-wide",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "02-fuel-narrow",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "13-shared-result",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 1,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "03-material-first-error",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "calcination_calcination-1_materialMass_289e7db259434b09bf6985012b967590"
+    },
+    {
+      "name": "04-material-first-error",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "calcination_calcination-1_materialMass_5093d16cbeb24b238f7cf50ee3c48f6a"
+    },
+    {
+      "name": "05-baking",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "06-graphitization",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "10-fgd",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "11-electricity",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "12-heat",
+      "window": [
+        1680,
+        1000
+      ],
+      "viewport": [
+        1428,
+        1000
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": false,
+      "target": null
+    },
+    {
+      "name": "07-legacy-duration",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "fume_duration"
+    },
+    {
+      "name": "09-explicit-fume-upgrade",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "fume_fume-1_segment_start"
+    },
+    {
+      "name": "08-legacy-duration",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "fume_duration"
+    },
+    {
+      "name": "14-folded-conversion-first-error",
+      "window": [
+        1180,
+        850
+      ],
+      "viewport": [
+        928,
+        850
+      ],
+      "dpr": 1.0,
+      "records": 0,
+      "target_fully_inside_viewport": true,
+      "target": "calcination_calcination-1_materialMoisture_13936d8c404f4b48b0e60102796965a0"
+    }
+  ],
+  "callback_errors": [],
+  "synthetic_data_only": true
+}

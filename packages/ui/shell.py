@@ -195,7 +195,7 @@ class AppShell(QWidget):
                 self._ensure_page(item.route)
 
         self.router.navigate(AppRoute.HOME)
-        QTimer.singleShot(0, self.update_content_geometry)
+        QTimer.singleShot(0, self, self.update_content_geometry)
 
     def _ensure_page(self, route: AppRoute) -> QWidget:
         standard_id = None

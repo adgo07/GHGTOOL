@@ -1,0 +1,1216 @@
+{
+  "historical_head": "a96f8ed90a1d9183a93de1c1185ab8906c979b07",
+  "archive_name": "pr59-historical-a96f8ed90a1d.zip",
+  "files": [
+    {
+      "path": "docs/ui/ca-layout/01-fuel-defaults.png",
+      "bytes": 113180,
+      "sha256": "765bfab6ec44c96c9ef7b41cddb924967f25ecda1586afcdd84c9dc37a73599e"
+    },
+    {
+      "path": "docs/ui/ca-layout/02-fuel-measured.png",
+      "bytes": 119266,
+      "sha256": "2f5c56217e16758e9ebc8e8e7ee04b6ad7dceb102e6d41d67a8a1c9d53d1ae17"
+    },
+    {
+      "path": "docs/ui/ca-layout/03-fuel-calculated.png",
+      "bytes": 123209,
+      "sha256": "d01955606eafd3bfc91f6eb9ef762e348ae099c2fe401561a4368d741eff298b"
+    },
+    {
+      "path": "docs/ui/ca-layout/04-electricity.png",
+      "bytes": 124636,
+      "sha256": "6620220deae015f80eda27d112aaedb485edce09aa4571970a74ba6f4aef0f36"
+    },
+    {
+      "path": "docs/ui/ca-layout/05-calcination.png",
+      "bytes": 156781,
+      "sha256": "d88b4fa66620a5c5f5fcb28b557224e594f0eeccb6fcec4350eec7846d5717a0"
+    },
+    {
+      "path": "docs/ui/ca-layout/06-calcination-bottom.png",
+      "bytes": 156711,
+      "sha256": "ed57f5841853824efb87659a4925867c7feaeb80aa33a518317bfa4d3962d1da"
+    },
+    {
+      "path": "docs/ui/ca-layout/07-electricity-export-other.png",
+      "bytes": 120099,
+      "sha256": "0d26cbe398c8bb97247ec444cf338c6003ef75adeedb8018c0e75832854054e2"
+    },
+    {
+      "path": "docs/ui/ca-layout/08-calcination-conversion.png",
+      "bytes": 155148,
+      "sha256": "ba54b1bd7631a5b33d2f915de974139087ddf4b59e384965cc709630b1fc546c"
+    },
+    {
+      "path": "docs/ui/ca-layout/09-narrow-calcination.png",
+      "bytes": 139045,
+      "sha256": "d1bb5a537058a5c7d39f8a3f3194013aad3ebd002216f7246e45e732c43cd2e3"
+    },
+    {
+      "path": "docs/ui/ca-layout/10-narrow-fuel.png",
+      "bytes": 107539,
+      "sha256": "ce8cd91dbde2e4c8e13489958ebb934fb621370a13fa67e50d5854c9aea613d8"
+    },
+    {
+      "path": "docs/ui/ca-layout/review.html",
+      "bytes": 2889,
+      "sha256": "6d536acba6df1cc6878b1952d1ff0d37b9127160d46bfe4de339e76871af5882"
+    },
+    {
+      "path": "docs/ui/ca-layout/summary.json",
+      "bytes": 6817,
+      "sha256": "1c81eb6bc34771f153c00fc2c7ea38fb9c0b790d2f99616ebf6ddb3b58567a8a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/01-fuel-defaults.png",
+      "bytes": 158158,
+      "sha256": "0a51831c89cae96c6a0275d3151ba8d3f7ee1cf0b313b5c67b7232da25bee753"
+    },
+    {
+      "path": "docs/ui/whole-page-review/02-fuel-measured.png",
+      "bytes": 164533,
+      "sha256": "00b4b39809b08e75c0a28c485a49a60b248023ee8ccc7af3fb8cdf452322d7f0"
+    },
+    {
+      "path": "docs/ui/whole-page-review/03-fuel-calculated.png",
+      "bytes": 162491,
+      "sha256": "53aab222933094b4d0960f79e2d3d80406a67f59e3ed2485700a7387c4f30ff1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/04-electricity.png",
+      "bytes": 168144,
+      "sha256": "21978906a1e42aa9385e6749b07322e768e5aee145c38e560e38eb539e7f4844"
+    },
+    {
+      "path": "docs/ui/whole-page-review/05-calcination.png",
+      "bytes": 166772,
+      "sha256": "7b2b545f0f72516ed4dbb76aed9916b2201d6b265c2f1b5a019be6e6e073d30f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/06-calcination-bottom.png",
+      "bytes": 141384,
+      "sha256": "6ce90091ec4bbd54a891c15afd99c671c6bd7826e2730e7d96f73ca1ede32a5f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/07-electricity-export-other.png",
+      "bytes": 163770,
+      "sha256": "9a41b544cd8d31b01fcb66d1f229d9369995110c4ff98ca37df57211c8d5771c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/08-calcination-conversion.png",
+      "bytes": 167815,
+      "sha256": "1250bee4631d6bbcc0155310e862f144c0fbf8ef4f6c276ebda8a64bf4f357fe"
+    },
+    {
+      "path": "docs/ui/whole-page-review/09-narrow-calcination.png",
+      "bytes": 152290,
+      "sha256": "31d407ce5ecd0402706580b3753c91d315e9c226cc5324c338b5be548f4989b5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/10-narrow-fuel.png",
+      "bytes": 144563,
+      "sha256": "3ab29b31d7e8af24c13c27afa1a593755e62002d7fd9aed1a7b06e9f8fd1500f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/11-full-page-top.png",
+      "bytes": 156907,
+      "sha256": "8ccb161182aa4d9d17fc113cf7279c83a6c214fc4e65dc1ab454e657fd0a8611"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-baking.png",
+      "bytes": 174609,
+      "sha256": "ba9761d025bd79f35c71a1548303ff8eb193c9422ec19b38f9714ceca6c34b3b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-calcination.png",
+      "bytes": 167815,
+      "sha256": "1250bee4631d6bbcc0155310e862f144c0fbf8ef4f6c276ebda8a64bf4f357fe"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-electricity.png",
+      "bytes": 163536,
+      "sha256": "c4c2e30d1487598f9fbe2ccdd8a291d928a2182db11bb3a040e70c4b85674509"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-fgd.png",
+      "bytes": 160408,
+      "sha256": "7e8b8045ea349d25e826a40443bffa54b81cc3999024af30ade606af8df99e95"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-fuel.png",
+      "bytes": 162491,
+      "sha256": "53aab222933094b4d0960f79e2d3d80406a67f59e3ed2485700a7387c4f30ff1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-fume.png",
+      "bytes": 185817,
+      "sha256": "832b42d76c7f742147a1059c76f9d564210891fa6b7378d96f1df7a4f6a06970"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-graphitization.png",
+      "bytes": 176360,
+      "sha256": "53ac950002de6637262298bcedf6cd467c3b3fe4856504b8e969c60bdeb14180"
+    },
+    {
+      "path": "docs/ui/whole-page-review/12-directory-heat.png",
+      "bytes": 174944,
+      "sha256": "c7556a1af71bd36ded72056ba7e9c1f57888ab1e54c65d6a9b55208a2e763b0c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/13-shared-results.png",
+      "bytes": 159877,
+      "sha256": "604811909773406377d5f3bbacc4bb6f1e0b508814e1a1186250978ca7199df3"
+    },
+    {
+      "path": "docs/ui/whole-page-review/14-successful-result.png",
+      "bytes": 174759,
+      "sha256": "45d832c2d70f2b3080add02929deaae7aa747a6807b51ae854e2309dc357e243"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/01-fuel-defaults.png",
+      "bytes": 158472,
+      "sha256": "9ab5d0c8a012155489cf2dc01f90dd38fa10a56b4d042d0f0fa022e3da1001e0"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/02-fuel-measured.png",
+      "bytes": 164831,
+      "sha256": "1f06d99115d21bff9788e49121289199e162e33096bf08e9c4557ed839580b19"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/03-fuel-calculated.png",
+      "bytes": 163029,
+      "sha256": "de3829e0a549732ac65e7b812656b6ecc375f03fd63aaff0e2836256a50a8900"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/04-electricity.png",
+      "bytes": 167389,
+      "sha256": "dafcdf99f589f5de53cd129e8b90379ad7f42d5cf670d9f51feae3ebb4761d88"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/05-calcination.png",
+      "bytes": 156716,
+      "sha256": "0e15552d00fe0f5a717fdfce8cdf35f632ebd861f8659b090f2163f3e0ee6605"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/06-calcination-bottom.png",
+      "bytes": 131087,
+      "sha256": "b949961433743a2cccaf4abca5276e2ce9689fc0bdbb32f390f8dad84bca80f5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/07-electricity-export-other.png",
+      "bytes": 157616,
+      "sha256": "4195c3f97129d6e867f0d72743c16bf1cd729ee8ff657880f4fe7984f23f191b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/08-calcination-conversion.png",
+      "bytes": 155767,
+      "sha256": "247f7058cd85dcc3b7a2e540ede5cba8e74e181f1f14471ec4bf8e5e3524ec09"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/09-narrow-calcination.png",
+      "bytes": 146994,
+      "sha256": "d5a3f10ad48ea2f347a15ab24d56d16d0c2dc4ae12c070d36096440075a117fd"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/10-narrow-fuel.png",
+      "bytes": 147610,
+      "sha256": "90ffae6100423e82b7bf86f3ecb19513e22931297648e2f5d98ad888c98fe7a8"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/11-full-page-top.png",
+      "bytes": 157619,
+      "sha256": "c2c6c4fdadd63295f80f1b2c1082fc1b8cb6fd0a2f7d0a2d0b6a61c95c6aa9b5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-baking.png",
+      "bytes": 159366,
+      "sha256": "1b52363d57e20e969339a2b98b3edadef7b1ee78d5e499aac444b10cbdc7812a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-calcination.png",
+      "bytes": 155767,
+      "sha256": "247f7058cd85dcc3b7a2e540ede5cba8e74e181f1f14471ec4bf8e5e3524ec09"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-electricity.png",
+      "bytes": 157357,
+      "sha256": "884d2c8b7cca149f0dab2b7808a84aa151eef94e08bd5bec273dd1461a162b98"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-fgd.png",
+      "bytes": 164554,
+      "sha256": "36ecccc515b61b01d489ef96b15297511194d86b07795cef5552fdcd92959627"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-fuel.png",
+      "bytes": 163029,
+      "sha256": "de3829e0a549732ac65e7b812656b6ecc375f03fd63aaff0e2836256a50a8900"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-fume.png",
+      "bytes": 182723,
+      "sha256": "f733648efcb048367e37ec6ec62a27d1c635b45d2bfe0427dd1161d15a814ae4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-graphitization.png",
+      "bytes": 155201,
+      "sha256": "8251b9e3bb4f4917d279637a7a990fe0c1aa5cbe8e3bce7aca523952654d3128"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/12-directory-heat.png",
+      "bytes": 176186,
+      "sha256": "a6adfaf59adb56ef8e2c0726e47f70c24b2f243d33496596ca56d02dabd4c9a5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/13-shared-results.png",
+      "bytes": 164903,
+      "sha256": "5c24ae7dc153fc023fc031ea54e549e8a06e54aebce0bb897248d1ded19c354c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/14-successful-result.png",
+      "bytes": 174265,
+      "sha256": "9553e1809f97f896de6b34156fb9fcefabd13bdf0accfbf349a75c1a3accb833"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/15-expanded-baking.png",
+      "bytes": 157954,
+      "sha256": "6909242665d676f3095fe7afd224df17c2a795f11bde2335952d3f560428bba1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/15-expanded-graphitization.png",
+      "bytes": 153852,
+      "sha256": "ba3cc58ac10abffaf71a76d475fdf19fb9d4b5d1bd278bfac67a223cc235da71"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/16-drafts-fgd.png",
+      "bytes": 176294,
+      "sha256": "a3f96246ffd4cdc164c0930ffa0fe957cd1d069a254f9bac9d35a894798ff318"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/16-drafts-fume.png",
+      "bytes": 201038,
+      "sha256": "b22021c9a4c0b74fe6e03dd05e886bad21c1023379fb459adb6a54564e611efc"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/16-drafts-heat.png",
+      "bytes": 173283,
+      "sha256": "b798e253ac69851662e22d20c1ba8611dbd64858a342e65bcc40a9fe0094123c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/17-heat-auto.png",
+      "bytes": 174240,
+      "sha256": "771062b697a19c57497fc8e353a33aa7e2ee2f8883f0e5911c68a4027762b9b9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-baking.png",
+      "bytes": 126144,
+      "sha256": "c1797351e08043a8f0e0bd2c6376e1cc7cc06fe00266a69f2e64837c4443bf48"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-calcination.png",
+      "bytes": 124000,
+      "sha256": "dd85e081032727b7b87562720ee34b8650e3a93ba75a8cd1d4fe25ac83019ab4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-electricity.png",
+      "bytes": 122284,
+      "sha256": "f6d390d56e7feed7a394935a88402db471461d8315b8d402298e1cfb4b7a1a14"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-fgd.png",
+      "bytes": 139931,
+      "sha256": "41c4eb0a268d08345a31cd1a7cab2b288bda86c65d302f6a4a55fd6d89a66226"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-fuel.png",
+      "bytes": 128038,
+      "sha256": "a11ed8783a81e04f82bd2328d9457f4f4be7ddc3de76c15cd8e3233a9d7e39fa"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-fume.png",
+      "bytes": 150385,
+      "sha256": "8d6389e8282f560476153abf964342738518344fd5289d86a7f597960deaa5a2"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-graphitization.png",
+      "bytes": 122717,
+      "sha256": "f368aefa9d55cd00a6ea93de74133b2ed687460f7cf52c85e457c9d87ac9d5bb"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/18-small-heat.png",
+      "bytes": 137810,
+      "sha256": "ce1206dfa52e6c59ad29b95a3420690f4276cd77682e22d9e430b4ad998b5dfc"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/19-state-INVOLVED.png",
+      "bytes": 161895,
+      "sha256": "07bd8ecdc0f5b5e4f2755d69805e7e5b4d70fa67c9f7fa99b9cd7d8dec84c8b6"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/19-state-NOT_INVOLVED.png",
+      "bytes": 126769,
+      "sha256": "65f67b5901b0063f69941e5354a65e854bd7702323f0d94d3affb0f1930dd3b0"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/19-state-UNCONFIRMED.png",
+      "bytes": 127847,
+      "sha256": "eb20bea7dee17fb660c9486666eac9813858b23019fc7938609de9dab40c98a0"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/19-switch-focus.png",
+      "bytes": 161895,
+      "sha256": "07bd8ecdc0f5b5e4f2755d69805e7e5b4d70fa67c9f7fa99b9cd7d8dec84c8b6"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/19-switch-hover.png",
+      "bytes": 161907,
+      "sha256": "3a120b9c0285a1bfca2c875e7662493f2b09edf1d7210d4f01688573d8448efd"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/20-state-partial.png",
+      "bytes": 157938,
+      "sha256": "b853a5251bdb427bf803fb175bd4d463180bd52fb188679f0ab3c1f79e5dcecb"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/21-stale-result.png",
+      "bytes": 121865,
+      "sha256": "98495f98a63119f7745c4983f9b160cf668760434d8813b9702b3f774b206c07"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/capture.log",
+      "bytes": 2975,
+      "sha256": "cec363c87a97d4bb919e6df7ff7b7d763307993271bc300dba7cf8efefb4fc3c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/directory-final.log",
+      "bytes": 2896,
+      "sha256": "0dfa277a09a448b9f50ca2d42e82b961825d5aea1d73ca4caf4df834629f9c18"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/error_locator_final_delta.patch",
+      "bytes": 607,
+      "sha256": "a263c130080d024c8ae93fbf6d1ef506fb77d847a25537a5ee2b6c0db3f77358"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/independent_acceptance.md",
+      "bytes": 1383,
+      "sha256": "7d626590fbe3653db5e815406dc52d43241c226e16c3c84e90382159e2e6b9ac"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/locator-visible-final.log",
+      "bytes": 686,
+      "sha256": "78be1aec209aa55a99d46d3c4f094bcbc168d20dff9b9a3ffbc4a66d6afdd310"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/regression.log",
+      "bytes": 36398,
+      "sha256": "16ca65f394a919aaf8b9d12f856d5145d0aebc6d8ceb6e20e7ad932fc960244c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/review.html",
+      "bytes": 4274,
+      "sha256": "9a0a2f2dfb3175266a3b78a694a32f76f10a624f53330817a8043e2904e234e7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/summary.json",
+      "bytes": 9792,
+      "sha256": "4038d75b811dbb6ee933877f56d61b7610cd77a091bd5df232580906fba0eb1b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/final/tested_151_identity.json",
+      "bytes": 1097,
+      "sha256": "f7c1158b48e285ab103b828307d5e6943be15a8f43a266a2771a03a0cfa4b945"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/.gitattributes",
+      "bytes": 221,
+      "sha256": "e950f2e320b167dbfa469a968addd891de85c84992f91714466980cc1227137d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/README.md",
+      "bytes": 9067,
+      "sha256": "3cae06488102cc66ef750ce8c313be6a2bbc53158352b4ac928a314d0620ba49"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/adapter-final-capture.log",
+      "bytes": 2706,
+      "sha256": "fac7393c0c5593e8350cf49f0052bd88435eaef0d62ddf43059e59dc13971591"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/canonical.log",
+      "bytes": 61,
+      "sha256": "f1cdcc069f0fb47c5c0f043eb17dd6b39a6a9f6b482fc9f518a43ad0a5420473"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/capture_direct_expanded.py",
+      "bytes": 4382,
+      "sha256": "0221fde93a82942656ed58f5c3d5b5233b0e464c10eaa974f9514a9581fa6a97"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/databases.log",
+      "bytes": 232,
+      "sha256": "12abb1621cd6a69f665c57dd23a7298fcd44ac3c222accfa6c2a62f77b5fde9a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/direct-expanded-capture.log",
+      "bytes": 82,
+      "sha256": "3ad7fb734f5a5dd5525529b13ab3eb0fc4fb27fcfb5c70f2ba432579bc966db7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/modal-message.stderr.log",
+      "bytes": 166,
+      "sha256": "4ac42b0ae2651e0396537450acd8a01c00c69f61dd232accac7c2e023c8bf7e1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/modal-message.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.0.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.0.stdout.log",
+      "bytes": 96,
+      "sha256": "20a956b31ba698f585284c32e69181de93d02071c1442a9e407cdbb1a8d1255b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.25.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.25.stdout.log",
+      "bytes": 97,
+      "sha256": "fbebc43b0de22883ce43e80d162e53309d7de10689865fcf24b8b2138cf4e30d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.5.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/scale-1.5.stdout.log",
+      "bytes": 96,
+      "sha256": "1792e4f2cb491355e2aaaf53284b620ca3d9fb672edc90eaf1a2d6b72e1100a2"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact-children/summary.json",
+      "bytes": 1790,
+      "sha256": "e0dc2f7dbd134f1313b357bcc71cc8018e5365c92ba412cd26983ebb35ef573b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/exact_children.py",
+      "bytes": 1863,
+      "sha256": "2056ab68a87aec2f1f63d35ee8d7e965f664e64dda9b00a683443ea1fa0a59e9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/final-compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/final-discover-identity.json",
+      "bytes": 36828,
+      "sha256": "ac49a5a24bfd252cc56e64c560a57dfda5c8f2d7ea519876f3923140b6306234"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/final-discover-runner.log",
+      "bytes": 156,
+      "sha256": "cefdaff17583890daecdd4a8cb239c4a97a0f5deae7fa35ee40956c341c6cf57"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/final-full-tests.log",
+      "bytes": 274108,
+      "sha256": "93ad344e3ed774b52bef5ac14ef2d88736c54011779637c157f4667195b0f3b9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/final_discover.py",
+      "bytes": 1896,
+      "sha256": "0bc462a5899892b30f0f3c22d73ccc172e57ea7b15373f97dfbc6ae466a4efd3"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-adapter-fix-tests.log",
+      "bytes": 3238,
+      "sha256": "8731dec11f67c6f95f4ae4c2f57931b57bea97b0df7708fe3377c9ab2b28e5ac"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/01-fuel-defaults.png",
+      "bytes": 158428,
+      "sha256": "159754634d76e138c2aa29bfc662b50efb9b1ae220965836eb4dac7fb37e7aa1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/02-fuel-measured.png",
+      "bytes": 164781,
+      "sha256": "bd07b3d5e1933e5e858cb35b249d45668e1805c7a1f08a0eaa8e4f2bfd570873"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/03-fuel-calculated.png",
+      "bytes": 162983,
+      "sha256": "11c85f7898115cf0d28b3084400c5979e5f0abe387e15c04ec04b41261a07d45"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/10-narrow-fuel.png",
+      "bytes": 147571,
+      "sha256": "957ed33c1497422074375323eb7e1334c45a7fd9b7e7aac0e6f7413e2a49c71c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/18-small-fuel.png",
+      "bytes": 127997,
+      "sha256": "b0010f2d49338f0635f28c5dea2b17e10ead65927ddd7d8af429f16d14fd3dc4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/22-direct-expanded-1180.png",
+      "bytes": 132822,
+      "sha256": "25a254ce9d294d064a3f6e1a7202177550f5220b8806cceecef869351756416d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/22-direct-expanded-1680.png",
+      "bytes": 173721,
+      "sha256": "f8cf0aff682d761bf534402232d9a318204b9a91a76ddfd7633b297eef51b57e"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/expanded-summary.json",
+      "bytes": 1382,
+      "sha256": "d83ca7d63b3662e310caa0b01551d41a1863b619d0bfdb168c45ecb880135686"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/review.html",
+      "bytes": 1011,
+      "sha256": "9fdb219e2f8490fb9e73ac489fe1f39a448d1876aa8e7249f53972b6aceae919"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-capture/summary.json",
+      "bytes": 9792,
+      "sha256": "499bda7958608a5835b1de5e0c69689363d1c67c44a178bc84a60a5f5fa2883b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/fuel-proxy-policy-wide-narrow.log",
+      "bytes": 329,
+      "sha256": "47c41b7888c81851bab3f6e3d80e2e7a7e7ad92197244ce8f1743b188f8acb3b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/full-tests.log",
+      "bytes": 278711,
+      "sha256": "72e57cbeb5217e7d2e19ea76f3d7bd7736afbd807ecdc5113d4aff702dcf56ed"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/geometry-current.json",
+      "bytes": 47501,
+      "sha256": "68900f53bb5768f614036cc1589c63afa368d1530c8de11414c46dacaa4a95ac"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/geometry-current.log",
+      "bytes": 1097,
+      "sha256": "bf8ea48f927a2ed6991803fb4ddafefcb884c49bd1d64b388d860602bd65c7d7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/geometry-main.json",
+      "bytes": 46812,
+      "sha256": "9add2a7217004eee285c30d893900eacc08ad1df59640c644cc094e5c22abe71"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/geometry-main.log",
+      "bytes": 808,
+      "sha256": "97894e3df0f065503a72479bfb1c0830047932e5ee1ea96819503f1f31a18edd"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/gui-scenarios.log",
+      "bytes": 2549,
+      "sha256": "d359a87166acce184d9b04abf2ded19efea16631793c6fde8c7187a514edfa19"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/initial-failures.txt",
+      "bytes": 6286,
+      "sha256": "9bc3e18143c292544463b4923de3eeac686cc9d5ca05fbce64892e8b730fbc7c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/modal-isolated.log",
+      "bytes": 247,
+      "sha256": "af685bc6d0b0ece03ca9aef3fa5f34445a9bcb883aaf0091b4bb775694e2f5e5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/numeric-scan-clean.log",
+      "bytes": 1758,
+      "sha256": "6672f17af5d659117c5504d5d67a27a2f3bfe2cf78cbed8c6b620500c1780dd5"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/pip-check.log",
+      "bytes": 31,
+      "sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/preflight.json",
+      "bytes": 1379,
+      "sha256": "3b36d8518a0912553cd848957e405c62c8cba48d80dd80ff91f6140f0e504540"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/probe_geometry.py",
+      "bytes": 3371,
+      "sha256": "2dcb5fbfa5f98add8a3738cb65e26a03d6df56276557d04852641584cdf3a10b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/README.md",
+      "bytes": 5218,
+      "sha256": "00a2ccc009708857ac391cde4ff2ada0ef0a49317690f3352ff33064c8d5ba77"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite-runner.log",
+      "bytes": 508,
+      "sha256": "1440359b4160c7cc3a0758536b753ee88b3556f7880f2b7ca4f7b036ad906d69"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite/child-27812.fault.log",
+      "bytes": 1351,
+      "sha256": "daa0a880a6f173fb2acfc8f327a35b28b2445434b2bc307e43fc4b02783fbcb3"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite/child-27812.resources.jsonl",
+      "bytes": 1019,
+      "sha256": "97d099e743c1dcb02ed421b82c7839f2189f13ac9fa7d3e532189941c93eefce"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite/events.jsonl",
+      "bytes": 4683,
+      "sha256": "3ae58f39aef9a1faea4c0ea879ae9ae04b40404d926a3c870e9808def943d6ab"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite/selection.json",
+      "bytes": 730,
+      "sha256": "f850570fac1f222ce4e7395dbfd638bce1e1643827a5a998151fd38686f973be"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-lite/tests.log",
+      "bytes": 1311,
+      "sha256": "f533ffd6dbfea67cb030925a8ff56954828dee6296470f1bd402335226969579"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline-runner.log",
+      "bytes": 508,
+      "sha256": "1440359b4160c7cc3a0758536b753ee88b3556f7880f2b7ca4f7b036ad906d69"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-22812.fault.log",
+      "bytes": 4492,
+      "sha256": "c200e80f3e5ccb540a6591286ede3a92a38a93df9ce2a64bfe879b8ebc25da43"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-22812.samples.jsonl",
+      "bytes": 13060,
+      "sha256": "e228b903c79d49f33e1bc30c45f0501b5881a3b12d1c28a00b65dfc8a6cc353b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-23048.fault.log",
+      "bytes": 3599,
+      "sha256": "9497b090135a4e3cd17ae20995365057af6ededc16bfc686fd6cd1cb5178a52e"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-23048.samples.jsonl",
+      "bytes": 13487,
+      "sha256": "4a0029a6efdff43a499f2ed8a70f4125193a0b59bacca9a3cad5dc21fe07ef1b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-30464.fault.log",
+      "bytes": 4508,
+      "sha256": "3ccadc7d4bc420c1cfc681f44e71d09918554dc6fa7e251a999c313b961fd6f6"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/child-30464.samples.jsonl",
+      "bytes": 9808,
+      "sha256": "7fe5322bc95173dbe80c24aeeb10b3548fd8449b5155243adbb05efc7d82a864"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/events.jsonl",
+      "bytes": 5979,
+      "sha256": "864d22313a38fdbd805e4dd8794a8c59e50bf8673013af9c985a2faae26dbae4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/selection.json",
+      "bytes": 730,
+      "sha256": "f850570fac1f222ce4e7395dbfd638bce1e1643827a5a998151fd38686f973be"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/baseline/tests.log",
+      "bytes": 1312,
+      "sha256": "b0f2c9f2404ed32285046c2511e681c2af105c8f28a8ec4d658d2e916f3b9db8"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/capture-lifecycle.log",
+      "bytes": 82,
+      "sha256": "3ad7fb734f5a5dd5525529b13ab3eb0fc4fb27fcfb5c70f2ba432579bc966db7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/capture_lifecycle.py",
+      "bytes": 4850,
+      "sha256": "9247cec5faff283f55f3e4436e79098fcfdb31c418d57a5388fb2f5ad5c7016c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/card-lifecycle-before.log",
+      "bytes": 1111,
+      "sha256": "0cc9ceec9a89d0accd617baef461177558d00b62453a93f9385119a84530f6c4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/card-lifecycle-red.log",
+      "bytes": 1263,
+      "sha256": "115aa3eca3a38a71e2953ccce9f383e84d6a79c7298ec0c4012a9ea412a99183"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/compile-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/diff-check-final.log",
+      "bytes": 1316,
+      "sha256": "75fe621eb19e81966f1ea1cb5c241941beecc889e831d93e3665463058e961e3"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/fixture-audit.json",
+      "bytes": 4614,
+      "sha256": "555b4aa7571be391ffbeece9390de163453e7023ceae1451d5e29dd17a174279"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/fixture-edit-audit.json",
+      "bytes": 3026,
+      "sha256": "23c9cc7e934b7cff6b7c39c238f2dbbdb7841b0a69f7158077a31cf8a5918b35"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-after-failure.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-after-wait-v2-runner.log",
+      "bytes": 78,
+      "sha256": "a7712db32a566ad76600cd98b9ed9dbd53bcac286162cdaa3ee7d1a248e7de59"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-after-wait-v2/after-failure.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-after-wait-v2/callback-errors.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-after-wait-v2/selection.json",
+      "bytes": 652,
+      "sha256": "a4f50feb6125a2e406f6d32a7e29ac446eb0f437794bfa1f9ef1a13348b8c56f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-after-wait-v2/tests.log",
+      "bytes": 1149,
+      "sha256": "b6082779dff8eeda37b645161a8b30186964d0e4e86be91e9b1175c6dff258d2"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-ctx-v1-runner.log",
+      "bytes": 78,
+      "sha256": "57e78135963e846b572e2edd241476cf2816b20fc6553b9ccb7a651fb69aa486"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-ctx-v1/after-failure.json",
+      "bytes": 1798,
+      "sha256": "daa412da69673e0231a5cd563356240fd2b7f076fcba3969baedd2ca23faf196"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-ctx-v1/callback-errors.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-ctx-v1/selection.json",
+      "bytes": 652,
+      "sha256": "a4f50feb6125a2e406f6d32a7e29ac446eb0f437794bfa1f9ef1a13348b8c56f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry-prefix-ctx-v1/tests.log",
+      "bytes": 2365,
+      "sha256": "817d8f3eac4548a53c3bbf72843b6376b327a57abe6ad532677847c457b8a596"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/geometry_prefix_ctx.py",
+      "bytes": 1882,
+      "sha256": "d9e3cc14a4410ea667def37fc5c935097fcb232e487caab97de7a8b8b45f9bb9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/hook-v1.py",
+      "bytes": 1852,
+      "sha256": "0b3d6b320a7ad5c24841eac34571e496dce09cf6af8f24d34bbfcb665c4247c8"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/hook-v2.py",
+      "bytes": 668,
+      "sha256": "3454e969f26b5c4b6cdf85e1bebd24330631644a572ff02863ab14e9912984ef"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/hook/sitecustomize.py",
+      "bytes": 1414,
+      "sha256": "09b27431127162107c34e40a431324983cbdd8c8a57f94433804d33a54efd015"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/lifecycle-after.log",
+      "bytes": 307,
+      "sha256": "00909ce491cb4ebb736a102f8392f34035b3d5e2c1c64f2872ed657cbcffe1e7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/lifecycle-both-green.log",
+      "bytes": 503,
+      "sha256": "1d11ad897a79473cfe0877922b470c5b346eb1a5bfed865197fd65c104d67d44"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/lifecycle-geometry-before-runner.log",
+      "bytes": 57,
+      "sha256": "1b5415eb03bf8e67400dac97c5458a3412457065e1240d58210fc91e8a0749e8"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/lifecycle-geometry-before.log",
+      "bytes": 1471,
+      "sha256": "551b9efd5b54c9b17f860471a8071aa3ebebb2256ead9e1e7f21694e162745be"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/lifecycle_geometry_before.py",
+      "bytes": 1615,
+      "sha256": "d2d97dfaa30af7da8b53086bd326bbf2d30ea2d25e4d0e87fde63f3778f3020c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/local-profile-binaries.json",
+      "bytes": 3393,
+      "sha256": "8f6ef08677552faa0aebff35f58cf67064baa220836acd60a20549bf6ff0515b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/navigation-final.log",
+      "bytes": 1052,
+      "sha256": "fb6618923637a59dbf3706c8eb2513c3f12a183301283a899897273e024b85c9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/old-checkpoint.stats.log",
+      "bytes": 5715,
+      "sha256": "eea08a33d6c0287c6ba1b93d616bc46e179624a3aa78719bf6e92d6dda12abd9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/old-checkpoint.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/old-checkpoint.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/old.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/old.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain-callers-after-runner.log",
+      "bytes": 32,
+      "sha256": "5fe90a29ebbfa2c80aa3a056a68fbed7487b3e93afbbc82337833435577142ab"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain-callers-after-shell-context.log",
+      "bytes": 4217,
+      "sha256": "85bdcb11e76009579144f49cc5621897cfce11dc3926324be897108e4f041c41"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain-callers-command.json",
+      "bytes": 1411,
+      "sha256": "3c7c8c6f098e4e3214b8b02159fe28290217a70905a801b6cdf159f22b1a79ed"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain-callers-runner.log",
+      "bytes": 32,
+      "sha256": "5fe90a29ebbfa2c80aa3a056a68fbed7487b3e93afbbc82337833435577142ab"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain-callers.log",
+      "bytes": 4217,
+      "sha256": "85bdcb11e76009579144f49cc5621897cfce11dc3926324be897108e4f041c41"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain_callers-before.py",
+      "bytes": 1360,
+      "sha256": "e1ade6649b187076149e95b30c6435e0a8cd0600272ddaf596fe92c513021227"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/plain_callers.py",
+      "bytes": 1376,
+      "sha256": "85ae89f866a9d756999ccb0d91df9a0e0563a46b5286aa1a37491d4ff85cd2ff"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed-runner.log",
+      "bytes": 1159,
+      "sha256": "0865c76f92144bc078bda007cba6c45411e94a325509530c195b7a5e8076224a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-20996.fault.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-20996.progress.jsonl",
+      "bytes": 102300,
+      "sha256": "880cd4b138318de03610e047c28c6343ec6f2ccbb1cafabe69edfa252e5d9630"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-20996.resources.jsonl",
+      "bytes": 2336,
+      "sha256": "7491e1cb7c26834d6eb4c943147a11cf6f7995d6a5bb6a68d129fa314b129c4f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-21252.fault.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-21252.progress.jsonl",
+      "bytes": 101319,
+      "sha256": "7291aa68ce44a1ec4ec8e5eaaec60152204d7054309b6ceced03bf35206878b1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-21252.resources.jsonl",
+      "bytes": 2451,
+      "sha256": "b1111a5153a6dfb5b86e28c92f9264323c537ab8c9d74f8ddc730c566373aca8"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-34080.fault.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-34080.progress.jsonl",
+      "bytes": 88028,
+      "sha256": "68a5f1a8cb7e192053728ceb5482a2af2d5450e911b76540660f73a92ae33ae9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/child-34080.resources.jsonl",
+      "bytes": 2056,
+      "sha256": "c939e5b589544f3099c39ac1775b3f15ce0d157a2b457db9f566e30eb22f2cb2"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/events.jsonl",
+      "bytes": 16824,
+      "sha256": "e1dd91df365735590b81f130f4da49eafb96612e2fd54ce19ec22d90e329c18f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/selection.json",
+      "bytes": 2121,
+      "sha256": "87e075e4211b36bc186c43a1fa27d7565a038a21dcf4904d7ce3bd5883ad455a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-disposed/tests.log",
+      "bytes": 2797,
+      "sha256": "a87dfb6011700f5bf161a2c57bf8b098577b32c390d0685a587a2c99a3bdc811"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03-runner.log",
+      "bytes": 1159,
+      "sha256": "52f6936e45685cbead942a073ecd84699e53acd3cdc44c9ca34437f382f9cc27"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/child-18032.fault.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/child-18032.progress.jsonl",
+      "bytes": 98773,
+      "sha256": "ad4914398d4460fcd7ee0e9eb6dcfd51a9b52a09a10399f60feaa57e2448b6d7"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/child-18032.resources.jsonl",
+      "bytes": 2648,
+      "sha256": "e1d0cfb98ebd58c6555f4279534c284f8b3fec0516dd3f04937dd1f47b0b1d08"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/events.jsonl",
+      "bytes": 14354,
+      "sha256": "99cd5e8b4ef08ab083e1e769e4197253e9ca89433cc6d29020458df7f7d43429"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/selection.json",
+      "bytes": 2121,
+      "sha256": "87e075e4211b36bc186c43a1fa27d7565a038a21dcf4904d7ce3bd5883ad455a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/tests.log",
+      "bytes": 4608,
+      "sha256": "badd8c45affbc048ce92d1ee55e4d425c99121c1bfab3b6f6fb4c9a59b81915c"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/timeout.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/prefix-uir03/timeout.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/profile-old-checkpoint-runner.log",
+      "bytes": 106,
+      "sha256": "329fae707f936eb95eaa701d98f65590a21276dd87c66e4757dcdcf0dbd9870e"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/profile-old-runner.log",
+      "bytes": 82,
+      "sha256": "d823bc965b38046b3e79837750d88c883bd757917f3f9aa6a02f8c524dd85006"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/profile_scale.py",
+      "bytes": 1878,
+      "sha256": "ad57f2da56ec927a829b423b137c2463aa42da73fd953e5c2da2487e98e0a598"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/run-v1.py",
+      "bytes": 5317,
+      "sha256": "07d7c5687fc64df4c33e9147492cc5c148b4d135a162613bfdb4271a40bd724d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/run-v2.py",
+      "bytes": 7121,
+      "sha256": "771901b77dfabc67cf72628dd09a7fe51438cc55d31e88dbd3fad6aa061b8715"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/run.py",
+      "bytes": 7121,
+      "sha256": "771901b77dfabc67cf72628dd09a7fe51438cc55d31e88dbd3fad6aa061b8715"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/taxonomy-after-archive.log",
+      "bytes": 1758,
+      "sha256": "17e81d2f55eae8a89603e3c58a5b10c768307ef346af80a91a77854bf2a32fa1"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/diagnostics/test-method-ast-audit.json",
+      "bytes": 504,
+      "sha256": "058bda61de0ea0d62be50690a08b9c3835001befb2f31ca67a709822e7ec3ad0"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/fuel-capture/22-direct-expanded-1180.png",
+      "bytes": 132822,
+      "sha256": "25a254ce9d294d064a3f6e1a7202177550f5220b8806cceecef869351756416d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/fuel-capture/22-direct-expanded-1680.png",
+      "bytes": 173721,
+      "sha256": "f8cf0aff682d761bf534402232d9a318204b9a91a76ddfd7633b297eef51b57e"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/fuel-capture/expanded-summary.json",
+      "bytes": 1629,
+      "sha256": "df20475ecc60662c1d35efc35923cdf8de6a86b0c72fcdb7ae86fe6a81e74f98"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/fuel-capture/review.html",
+      "bytes": 648,
+      "sha256": "ca2207abb7f4583a082acd7f409989fc6f38428a9aed85415f12cf9005a45d4f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/full/full-tests.log",
+      "bytes": 273143,
+      "sha256": "bb87c7ac200458d16a6af08bbb7fdb7a84dc748f97f175702aeea8dbb4ee7302"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/full/identity.json",
+      "bytes": 37653,
+      "sha256": "52181e2eb7fe30e7c01410bb66df924b6605366cf060598303d0dc69d6564ab9"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/full/resources.jsonl",
+      "bytes": 59189,
+      "sha256": "0d46616c04e60fe95008cc1fd828f015f110b04d26b9ed1226acc8fc9eaf4e25"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/full/runner.py",
+      "bytes": 4068,
+      "sha256": "3017b407651de52c296324626c43cfa3e3947b6676fd80311138bde0f926182f"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/qt-lifecycle/post-full-capture-eof.json",
+      "bytes": 427,
+      "sha256": "6734be71247f44cde49da76fd356e00e3c6072556b0f935135e36cc73ca982f3"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale-test-isolated.log",
+      "bytes": 278,
+      "sha256": "044f4ebc8b4f0d6b6eb267e2fc000ec2b58bc61c960ae9d90147821b0896740e"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale-trace-runner.log",
+      "bytes": 376,
+      "sha256": "3330fb8ae4aafc1eaed4a9a1c832e5eb1dc2b39663b6ce965cec3b5bb5c65c03"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale-trace.json",
+      "bytes": 417,
+      "sha256": "31267037d68c00d336fc249c7493c2b5c43977a4311c5c728d705dedb4fe2a72"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale-trace.stderr.log",
+      "bytes": 3626,
+      "sha256": "d89b9a29d39cb6fac400e84759c6133b1fae071cee452c84b37521f4f6fad01b"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale-trace.stdout.log",
+      "bytes": 138,
+      "sha256": "cb355adab94d19af8031b8f8a2a27fa40c978a18d71b7647c81b57b8b39287e6"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale125.log",
+      "bytes": 97,
+      "sha256": "fbebc43b0de22883ce43e80d162e53309d7de10689865fcf24b8b2138cf4e30d"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/scale150.log",
+      "bytes": 96,
+      "sha256": "1792e4f2cb491355e2aaaf53284b620ca3d9fb672edc90eaf1a2d6b72e1100a2"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/trace_scale.py",
+      "bytes": 1515,
+      "sha256": "c1e7d250afc09c13d76d44a338d8e2077482c7b348f64f7c5bf91173c6db9b05"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/twenty-rows-updated.log",
+      "bytes": 1009,
+      "sha256": "3af4e330caa64c5b88fee4296535fe0434c6a91a6221ffc6a6449184824cc1b4"
+    },
+    {
+      "path": "docs/ui/whole-page-review/integration/updated-layout-tests.log",
+      "bytes": 2432,
+      "sha256": "ffd89e4df5121138883ba4dd13f6b0fff9fac9e5eee76fa890d3384f80ebd30a"
+    },
+    {
+      "path": "docs/ui/whole-page-review/review.html",
+      "bytes": 3197,
+      "sha256": "bbada8bbc976c4744dd733fc6e9f86867a20808750a2e0e980d6dadf92c72e30"
+    },
+    {
+      "path": "docs/ui/whole-page-review/summary.json",
+      "bytes": 7142,
+      "sha256": "c9edc2e6fccb716a3425aea54744dfd1aef1eafbea3e5ece04a2fcbdafa0e8cd"
+    }
+  ],
+  "archive_sha256": "6c3b91e82a8b8e81fbeb0a098862eac4db58b38323454aa129d1fcf52eb1b9d1",
+  "file_count": 241,
+  "png_count": 82,
+  "archive_verified": true,
+  "history_note": "归档保留原始字节和历史身份；当前树压缩不会缩小既有 Git history。历史父 HEAD + 逐文件哈希仍是有效的历史源码绑定。"
+}

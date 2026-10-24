@@ -1,12 +1,15 @@
-# 五个业务页面 UI V2 — 暂停实施报告
+# 五个业务页面 UI V2 — 恢复实施报告
 
-本报告是安全断点，不是验收通过结论。用户优先退修PR59，本包暂停生产写入；独立分支codex/ui-five-business-pages-v2保留，未推送/PR/CI/发布。工作树位置通过聊天附件确定，不把机器绝对路径写成治理身份。
+2026-10-25恢复核查：实际origin为adgo07/GHGTOOL，已fetch，默认main，原分支干净且HEAD确为4230226d9969bdba6ba44811349bffc5add9fdba；最新origin/main为PR59合并提交d7159f77ddb103376f5ca6bdd3a9532c101433e3。五页与main的生产文件无重叠，正常merge只冲突当前两份阶段文档；按本阶段语义协调文档，保留原断点历史，不整文件覆盖生产源码、不重套原包或修改预期hash。PR59限定验收/CI306/精确6026包证据仍属PR59，不背书五页。中央origin再次核实并fetch，当前UI指南v0.2仍适用；locked ee5feb0不变。五页HOLD具体意见已从astra原会话重新读取，待逐项修正。
+
+
+本报告记录五页安全断点后的恢复，不是验收通过结论。PR59已由源会话独立验收合并，现复用五页分支既有成果，未推送/PR/CI/发布；不把本机路径写成治理身份。
 
 ## 基线与范围
 
 实际origin为adgo07/GHGTOOL，实际fetch后origin/main为092604639cd5b2b61fef1523f87fcd711d8aefea。原包apply_all.py先--repo/--diff只检查：6个既有Git blob匹配，10文件及限定方法保护通过，再--apply。两次原输出与真实patch在build/ui-five-pages-check/；原包/目标摘要在checkpoint-identity.json。未修改预期hash，不回退main，不整文件覆盖旧代码，不叠加单标准库旧包。
 
-生产变更仅catalog_pages.py、pages.py指定五页方法、excel_import_components.py、record_tables.py及新增business_page_style.py。HomePage与其余受保护AST、7个新建核算/壳相关源文件检查未变；Catalog/Resolver/Calculator/数值/Schema/模板/Word业务/依赖不变。PR59未进入此基线，没有复制其生产代码。
+生产变更仅catalog_pages.py、pages.py指定五页方法、excel_import_components.py、record_tables.py及新增business_page_style.py。HomePage与其余受保护AST、7个新建核算/壳相关源文件检查未变；Catalog/Resolver/Calculator/数值/Schema/模板/Word业务/依赖不变。原4230226断点当时未含PR59；本次正常合并最新main吸收PR59，其生产代码作为受保护基线保留，不将旧截图/测试重标为合并后的新证据。
 
 ## 已做的局部修正
 

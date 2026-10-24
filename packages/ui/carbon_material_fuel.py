@@ -190,11 +190,11 @@ class _FuelRow(QWidget):
         self.oxidation_label = QLabel("碳氧化率（%）", self)
         self.source_reference_label = QLabel("实测报告/来源定位", self)
         self.source_reference_control = QWidget(self)
-        source_layout = QHBoxLayout(self.source_reference_control)
+        source_layout = QVBoxLayout(self.source_reference_control)
         source_layout.setContentsMargins(0, 0, 0, 0)
         source_layout.setSpacing(5)
         source_layout.addWidget(self.source_reference_label)
-        source_layout.addWidget(self.source_reference, 1)
+        source_layout.addWidget(self.source_reference)
         self.source_reference_control.hide()
         self.calculated_carbon_label = QLineEdit(self)
         self.calculated_carbon_label.setReadOnly(True)
@@ -215,9 +215,9 @@ class _FuelRow(QWidget):
         self.carbon_direct_cell = self.direct_carbon_control
         carbon_value_layout.addWidget(self.carbon_calc_cell, 2)
         carbon_value_layout.addWidget(self.carbon_direct_cell, 2)
-        carbon_value_layout.addWidget(self.carbon_basis_choices)
+        # The business path selector precedes all parameter inputs.
         self.carbon_direct_cell.hide()
-        self.carbon_basis_label.hide()
+        self.carbon_basis_label.show()
 
         self.lhv_cell = self.lhv_control
         self.oxidation_cell = self.oxidation_control
@@ -226,15 +226,33 @@ class _FuelRow(QWidget):
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(3)
-        # Two business rows, with sources beside their own parameter.
+        # Compact C+A layout; source qualification remains on the original combos.
         self.path_choices = TwoChoiceControl(self.path, parent=self)
+        self.identity_cells = []
         for column, (label, widget) in enumerate(((self.fuel_type_label, self.fuel_type), (self.path_label, self.path_choices), (self.activity_label, self.activity))):
-            grid.addWidget(self._field_cell(label, widget), 0, column * 4, 1, 4)
-        for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.direct_carbon_label, carbon_value_cell), (self.oxidation_label, self.oxidation_control))):
-            grid.addWidget(self._field_cell(label, widget), 1, column * 3, 1, 3)
-        grid.addWidget(self.source_reference_control, 2, 0, 1, 12)
-        for column in range(12):
+            cell = self._field_cell(label, widget)
+            self.identity_cells.append(cell)
+            grid.addWidget(cell, 0, column, Qt.AlignmentFlag.AlignTop)
+        self.basis_field = self._field_cell(self.carbon_basis_label, self.carbon_basis_choices)
+        grid.addWidget(self.basis_field, 1, 0, 1, 3)
+        self.parameter_cells = []
+        for column, (label, widget) in enumerate(((self.lhv_label, self.lhv_control), (self.carbon_label, self.carbon_control), (self.oxidation_label, self.oxidation_control))):
+            cell = self._field_cell(label, widget)
+            self.parameter_cells.append(cell)
+            grid.addWidget(cell, 2, column, Qt.AlignmentFlag.AlignTop)
+        self.inactive_parameters_toggle = QPushButton("查看未参与本次计算的热值参数", self)
+        self.inactive_parameters_toggle.setCheckable(True)
+        self.inactive_parameters_toggle.toggled.connect(self.refresh_parameter_visibility)
+        grid.addWidget(self.inactive_parameters_toggle, 4, 0, 1, 3, Qt.AlignmentFlag.AlignLeft)
+        self.carbon_value_field = self._field_cell(self.direct_carbon_label, carbon_value_cell)
+        grid.addWidget(self.carbon_value_field, 3, 0, Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(self.source_reference_control, 3, 1, 1, 2, Qt.AlignmentFlag.AlignTop)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(16)
+        for column in range(3):
             grid.setColumnStretch(column, 1)
+        for control in self.findChildren(SegmentedChoiceControl):
+            control.set_radio_style()
         self.input_grid = grid
         outer.addLayout(grid)
         self._last_path = getattr(self.path.currentData(), "value", self.path.currentData())
@@ -266,6 +284,43 @@ class _FuelRow(QWidget):
         self._parameter_source_drafts: dict[tuple[str, str], str] = {}
         self.parameter_drafts = FuelParameterDrafts()
         self.parameter_source = "AUTO"
+
+    def refresh_parameter_visibility(self):
+        direct = self.carbon_basis.currentData() == "DIRECT"
+        self.inactive_parameters_toggle.setVisible(direct)
+        for cell in self.parameter_cells[:2]:
+            cell.setVisible(not direct or self.inactive_parameters_toggle.isChecked())
+        columns = 3 if self.width() >= 820 else (2 if self.width() >= 540 else 1)
+        grid = self.input_grid
+        while grid.count():
+            grid.takeAt(0)
+        for col in range(3):
+            grid.setColumnStretch(col, int(col < columns))
+        for i, cell in enumerate(self.identity_cells):
+            grid.addWidget(cell, i // columns, i % columns, Qt.AlignmentFlag.AlignTop)
+        row = (len(self.identity_cells) + columns - 1) // columns
+        grid.addWidget(self.basis_field, row, 0, 1, columns)
+        row += 1
+        cells = ([self.carbon_value_field, self.parameter_cells[2], self.source_reference_control]
+                 if direct else [*self.parameter_cells, self.carbon_value_field, self.source_reference_control])
+        # Source report visibility is controlled by the existing source policy.
+        cells = [cell for cell in cells if not cell.isHidden()]
+        for i, cell in enumerate(cells):
+            grid.addWidget(cell, row + i // columns, i % columns, Qt.AlignmentFlag.AlignTop)
+        row += (len(cells) + columns - 1) // columns
+        grid.addWidget(self.inactive_parameters_toggle, row, 0, 1, columns, Qt.AlignmentFlag.AlignLeft)
+        if direct and self.inactive_parameters_toggle.isChecked():
+            for i, cell in enumerate(self.parameter_cells[:2]):
+                grid.addWidget(cell, row + 1 + i // columns, i % columns, Qt.AlignmentFlag.AlignTop)
+        self.updateGeometry()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "input_grid"):
+            columns = 3 if self.width() >= 820 else (2 if self.width() >= 540 else 1)
+            if getattr(self, "_layout_columns", None) != columns:
+                self._layout_columns = columns
+                self.refresh_parameter_visibility()
 
     @staticmethod
     def _field_cell(label: QLabel, widget: QWidget) -> QWidget:
