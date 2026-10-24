@@ -313,3 +313,98 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertTrue(page.external_amount.isVisibleTo(page))
         self.assertFalse(page.external_included.isChecked())
         self.assertEqual(page._capture_form_state(), original)
+
+    def test_fuel_source_adapters_stay_hidden_while_real_choices_change_original_data(self):
+        from PySide6.QtWidgets import QComboBox
+        from packages.standards.carbon_material import FuelType
+        page = self.page
+        legacy = QComboBox(page)
+        page._set_fuel_source_visibility(legacy, True)
+        self.assertFalse(legacy.isHidden())
+        page._set_fuel_source_visibility(legacy, False)
+        self.assertTrue(legacy.isHidden())
+        legacy.deleteLater()
+        page._toggle_source_group("fuel")
+        page.source_directory.select("fuel")
+        fuel = page._fuel_rows[0]
+        fuel.fuel_type.setCurrentIndex(fuel.fuel_type.findData(FuelType.NATURAL_GAS))
+        fuel.fuel_type.confirm_name(force=True)
+        original = {name: getattr(fuel, name) for name in
+                    ("lhv_source", "carbon_source", "oxidation_source", "direct_carbon_source")}
+        def choose(name, value):
+            combo = original[name]
+            choices = [choice for choice in fuel.findChildren(SegmentedChoiceControl) if choice.combo is combo]
+            self.assertEqual(len(choices), 1)
+            choice = choices[0]
+            button = next(button for button in choice.group.buttons()
+                          if combo.itemData(choice.group.id(button)) == value)
+            self.assertTrue(button.isEnabled())
+            self.assertTrue(button.isVisibleTo(fuel))
+            button.click()
+            self.pump()
+            self.assertIs(getattr(fuel, name), combo)
+            self.assertEqual(combo.currentData(), value)
+            self.assertTrue(combo.isHidden())
+            return choice
+        fields = (("lhv_source", "lower_heating_value", "388.123456789"),
+                  ("carbon_source", "carbon", "0.023456789"),
+                  ("oxidation_source", "oxidation", "97.123456789"))
+        page.show()
+        column_counts = set()
+        for width in (1680, 1000):
+            page.resize(width, 1000)
+            fuel.carbon_basis.setCurrentIndex(fuel.carbon_basis.findData("HEAT_CONTENT"))
+            for _ in range(5):
+                self.pump()
+            column_counts.add(len({cell.x() for cell in fuel.identity_cells}))
+            for name, edit_name, value in fields:
+                choice = choose(name, "STANDARD_DEFAULT")
+                self.assertNotIn("CALCULATED", {original[name].itemData(choice.group.id(button))
+                                               for button in choice.group.buttons()})
+                edit = getattr(fuel, edit_name)
+                self.assertTrue(edit.isReadOnly())
+                self.assertTrue(fuel.source_reference_control.isHidden())
+                choose(name, "MEASURED")
+                self.assertFalse(edit.isReadOnly())
+                self.assertTrue(edit.isEnabled())
+                self.assertFalse(fuel.source_reference_control.isHidden())
+                edit.setText(value)
+                choose(name, "STANDARD_DEFAULT")
+                choose(name, "MEASURED")
+                self.assertEqual(edit.text(), value)
+                choose(name, "STANDARD_DEFAULT")
+            self.assertTrue(fuel.source_reference_control.isHidden())
+            fuel.carbon_basis.setCurrentIndex(fuel.carbon_basis.findData("DIRECT"))
+            self.pump()
+            choose("direct_carbon_source", "CALCULATED")
+            self.assertFalse(fuel.source_reference_control.isHidden())
+            fuel.carbon_direct.setText("4.567890123")
+            choose("direct_carbon_source", "MEASURED")
+            fuel.carbon_direct.setText("5.678901234")
+            choose("direct_carbon_source", "CALCULATED")
+            self.assertEqual(fuel.carbon_direct.text(), "4.567890123")
+            choose("direct_carbon_source", "MEASURED")
+            self.assertEqual(fuel.carbon_direct.text(), "5.678901234")
+            self.assertFalse(fuel.source_reference_control.isHidden())
+            fuel.inactive_parameters_toggle.setChecked(True)
+            self.pump()
+            disabled_state = page._capture_form_state()
+            for name in ("lhv_source", "carbon_source"):
+                choice = next(choice for choice in fuel.findChildren(SegmentedChoiceControl)
+                              if choice.combo is original[name])
+                self.assertTrue(choice.isVisibleTo(fuel))
+                for button in choice.group.buttons():
+                    self.assertFalse(button.isEnabled())
+                    button.click()
+            self.assertEqual(page._capture_form_state(), disabled_state)
+            self.assertTrue(all(combo.isHidden() for combo in original.values()))
+        self.assertGreaterEqual(len(column_counts), 2, column_counts)
+        fuel.activity.setText("12.3456789")
+        fuel.source_reference.setText("合成检测报告 SOURCE-TEST")
+        saved = page._capture_form_state()
+        page.source_directory.select("electricity")
+        page.source_directory.select("fuel")
+        self.pump()
+        self.assertEqual(page._capture_form_state(), saved)
+        self.assertTrue(all(combo.isHidden() for combo in original.values()))
+        self.assertEqual(len(self.records.list_all()), 0)

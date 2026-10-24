@@ -1,0 +1,55 @@
+{
+  "source_sha256": "bb1208c2a829e3715423440d0bdfe0da7124fe3e4e9fbac37fb04ebad421612e",
+  "results": [
+    {
+      "name": "modal-message",
+      "command": [
+        "C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe",
+        "-B",
+        "-m",
+        "tests.ui_dialog_process",
+        "DialogProcessTests.test_message",
+        "-v"
+      ],
+      "timeout_seconds": 45,
+      "elapsed_seconds": 12.485000000000582,
+      "returncode": 0
+    },
+    {
+      "name": "scale-1.0",
+      "command": [
+        "C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe",
+        "G:\\Python Project\\GHGTOOL\\.accept-tmp\\ui-business-layout\\scripts\\uir04_scale_acceptance.py",
+        "--scale",
+        "1.0"
+      ],
+      "timeout_seconds": 60,
+      "elapsed_seconds": 52.79699999999866,
+      "returncode": 0
+    },
+    {
+      "name": "scale-1.25",
+      "command": [
+        "C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe",
+        "G:\\Python Project\\GHGTOOL\\.accept-tmp\\ui-business-layout\\scripts\\uir04_scale_acceptance.py",
+        "--scale",
+        "1.25"
+      ],
+      "timeout_seconds": 60,
+      "elapsed_seconds": 39.48400000000038,
+      "returncode": 0
+    },
+    {
+      "name": "scale-1.5",
+      "command": [
+        "C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe",
+        "G:\\Python Project\\GHGTOOL\\.accept-tmp\\ui-business-layout\\scripts\\uir04_scale_acceptance.py",
+        "--scale",
+        "1.5"
+      ],
+      "timeout_seconds": 60,
+      "elapsed_seconds": 44.8130000000001,
+      "returncode": 0
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "code_head": "53a3ae83256aeb6ee8b95f426fb6d7297493b65c",
+  "origin_main": "092604639cd5b2b61fef1523f87fcd711d8aefea",
+  "locked_central": "ee5feb0cc34dbd99790500fadd0c4c932e202a20",
+  "v2_input_sha256": "d676e55afeebd4ba18d6ba24e93dee31aa45040f94257004338e6d1e97134721",
+  "independent_acceptance_sha256": "7d626590fbe3653db5e815406dc52d43241c226e16c3c84e90382159e2e6b9ac",
+  "source_files_sha256": {
+    "packages/ui/source_directory.py": "f6d258a8da8b14c4f99e0dd0c32b048643522358cd695d12568c121851e01d3e",
+    "packages/ui/compact_choices.py": "ccfc60963170a1edbf21a46f4d5a79fb2a328fb493ae0dc56b0f17fe0ad448d7",
+    "packages/ui/carbon_material_fuel.py": "4fa9276562582e9a3fa80d276d82bcb6a49509bb7cb510e5e3b9b9454c02c824",
+    "packages/ui/carbon_material_page.py": "330cf5e575d9d628cc4017783931b7a3b1f664f0cfb09948575bfebc33f9dbe9",
+    "packages/ui/design_tokens.py": "883934f09b1d2a01905101ef6d6f213b588fbe620c8691b7f0f58e841957e9ea",
+    "packages/ui/source_cards.py": "dbf39251685830ad4a66e0c233028ae7ecbcb62a6e9b6599fde34816c235ec93",
+    "packages/ui/responsive_fields.py": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860"
+  },
+  "screenshot_script_sha256": "a78aa99fc1ed14589c35413e545f756b56bed0a3978120bd7cc5a91ff8a68308",
+  "repository_visibility": "public",
+  "existing_branch_prs": 0,
+  "existing_code_head_pr_actions": 0
+}

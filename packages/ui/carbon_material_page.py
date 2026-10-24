@@ -4191,6 +4191,13 @@ class CarbonMaterialAccountingPage(BasePage):
             if choices.combo is combo:
                 choices.set_allowed_values(allowed)
 
+    @staticmethod
+    def _set_fuel_source_visibility(combo: QComboBox, visible: bool) -> None:
+        """Hide only a data combo owned by the visible compact choice adapter."""
+        owner = combo.parentWidget()
+        adapted = isinstance(owner, SegmentedChoiceControl) and owner.combo is combo
+        combo.setVisible(visible and not adapted)
+
     def _refresh_fuel_row(self, row: _FuelRow, *, initialize_defaults: bool = False) -> None:
         # Compatibility-only source kinds must remain visible as pending values,
         # rather than leaving a "实测值" label selected over different provenance.
@@ -4306,8 +4313,9 @@ class CarbonMaterialAccountingPage(BasePage):
         direct_mode = modes["direct_carbon"]
         if direct_mode is None:
             direct_mode = "MEASURED"
-        row.direct_carbon_source.setVisible(direct)
-        row.oxidation_source.setVisible(True)
+        # Source combos remain data adapters; the visible choice controls own interaction.
+        self._set_fuel_source_visibility(row.direct_carbon_source, direct)
+        self._set_fuel_source_visibility(row.oxidation_source, True)
         row.parameter_summary.hide()
         row.carbon_basis_label.show()
 
@@ -4316,9 +4324,9 @@ class CarbonMaterialAccountingPage(BasePage):
         row.carbon_basis.setEnabled(path in {FuelPath.VOLUME, FuelPath.MASS})
         row.lhv_control.setVisible(path is not FuelPath.HEAT)
         row.lhv_control.setEnabled(not direct and path is not FuelPath.HEAT)
-        row.lhv_source.setVisible(not direct and path is not FuelPath.HEAT)
+        self._set_fuel_source_visibility(row.lhv_source, not direct and path is not FuelPath.HEAT)
         row.carbon_control.setEnabled(not direct)
-        row.carbon_source.setVisible(not direct)
+        self._set_fuel_source_visibility(row.carbon_source, not direct)
         row.carbon_calc_cell.setVisible(not direct)
         row.carbon_direct_cell.setVisible(direct)
         row.refresh_parameter_visibility()

@@ -1,0 +1,11 @@
+Carbon-material calculation validation: WARNING：核算期间晚于所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD] | WARNING：参数 CAR-FLD-F01-fuel-4d999d8a15cd4aac8637f4703c9ac474-CARBON 的来源未关联目录来源编号或版本；本次仍按录入数值计算。 [CAR-VAL-FACTOR-SOURCE] | WARNING：参数 CAR-FLD-F01-fuel-4d999d8a15cd4aac8637f4703c9ac474-FOX 的来源未关联目录来源编号或版本；本次仍按录入数值计算。 [CAR-VAL-FACTOR-SOURCE]
+Carbon-material calculation validation: WARNING：核算期间跨越所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD]
+Carbon-material calculation validation: WARNING：核算期间跨越所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD] | ERROR：CAR-SRC-CALCINATION-001.calcination-1 非收到基数据缺少水分/换算证据或未归一为收到基。 [CAR-VAL-MATERIAL-BASIS-CONVERSION]
+Carbon-material calculation validation: WARNING：核算期间晚于所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD]
+Carbon-material calculation validation: WARNING：核算期间跨越所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD]
+UIR04 人工 GUI 验收脚本观察结果
+场景A PASS：燃料直接含碳量+购入常规电力完成计算；结果=温室气体排放总量：11.14 tCO₂；记录数=1；状态=核算状态：已完成（含提醒）
+场景B PASS：原料煅烧物料行按收到基默认口径完成；核算状态：已完成（含提醒）
+场景C PASS：旧DRY物料及归一口径原值保留；缺少换算证据时按规则阻断且不生成记录。
+场景D PASS：非化石购电无需证明字段仍可完成核算；电力因子：已确定 0.00 tCO₂/MWh · 推荐值（标准缺省） · GB/T32151.34—2024 第5.2.6.1条；附录D.1.1；表1；核算状态：已完成（含提醒）
+场景E PASS：企业名称留空仍可成功核算；记录数=1；状态=核算状态：已完成（含提醒）

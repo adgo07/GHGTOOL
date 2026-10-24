@@ -1,0 +1,4 @@
+catalog: build\ui-v2-integration\databases\catalog.sqlite
+user: build\ui-v2-integration\databases\user.sqlite
+records: build\ui-v2-integration\databases\records.sqlite
+projects: build\ui-v2-integration\databases\projects.sqlite

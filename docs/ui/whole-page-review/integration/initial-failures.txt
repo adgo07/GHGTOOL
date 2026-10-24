@@ -1,0 +1,75 @@
+
+======================================================================
+ERROR: test_heat_labeled_fields_hide_as_groups_and_keep_method_labels_distinct (tests.test_uat03_page.UAT03AccountingPageV2Tests.test_heat_labeled_fields_hide_as_groups_and_keep_method_labels_distinct)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_uat03_page.py", line 231, in test_heat_labeled_fields_hide_as_groups_and_keep_method_labels_distinct
+    self.assertEqual(row.pressure_field.findChild(QLabel, "fieldUnitHint").text(), "MPa（绝压）")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'text'
+
+======================================================================
+ERROR: test_dialog_cancel_escape_close_and_save_default (tests.test_ui_chinese.ChineseUiTests.test_dialog_cancel_escape_close_and_save_default)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_ui_chinese.py", line 77, in test_dialog_cancel_escape_close_and_save_default
+    self.run_modal_process('message')
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_ui_chinese.py", line 70, in run_modal_process
+    result = subprocess.run([sys.executable, '-B', '-m', 'tests.ui_dialog_process',
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 1630, in _communicate
+    raise TimeoutExpired(self.args, orig_timeout)
+subprocess.TimeoutExpired: Command '['C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe', '-B', '-m', 'tests.ui_dialog_process', 'DialogProcessTests.test_message', '-v']' timed out after 45 seconds
+
+======================================================================
+ERROR: test_common_windows_scale_factors_keep_controls_visible (tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_uir04_finalization.py", line 318, in test_common_windows_scale_factors_keep_controls_visible
+    completed = subprocess.run(
+                ^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\subprocess.py", line 1630, in _communicate
+    raise TimeoutExpired(self.args, orig_timeout)
+subprocess.TimeoutExpired: Command '['C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe', 'G:\\Python Project\\GHGTOOL\\.accept-tmp\\ui-business-layout\\scripts\\uir04_scale_acceptance.py', '--scale', '1.0']' timed out after 60 seconds
+
+======================================================================
+FAIL: test_result_card_precedes_calculation_basis_and_standard_title_wraps (tests.test_p3_df_accounting.P3DFAccountingLayoutTests.test_result_card_precedes_calculation_basis_and_standard_title_wraps)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_p3_df_accounting.py", line 108, in test_result_card_precedes_calculation_basis_and_standard_title_wraps
+    self.assertGreaterEqual(result_index, 0)
+AssertionError: -1 not greater than or equal to 0
+
+======================================================================
+FAIL: test_fuel_editor_lists_only_canonical_options_and_searches_aliases (tests.test_standard_input_policy.StandardInputPolicyTests.test_fuel_editor_lists_only_canonical_options_and_searches_aliases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_standard_input_policy.py", line 126, in test_fuel_editor_lists_only_canonical_options_and_searches_aliases
+    self.assertEqual(row.input_grid.rowCount(),3) # two input bands + optional evidence
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 5 != 3
+
+======================================================================
+FAIL: test_twenty_dynamic_rows_expand_and_shrink_scroll_host (tests.test_uat02_usability.UAT02UsabilityTests.test_twenty_dynamic_rows_expand_and_shrink_scroll_host)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_uat02_usability.py", line 151, in test_twenty_dynamic_rows_expand_and_shrink_scroll_host
+    self.assertLess(self.shell.scroll_host.height(), grown)
+AssertionError: 12501 not less than 12501
+
+----------------------------------------------------------------------
+Ran 1071 tests in 2994.432s
+
+FAILED (failures=3, errors=3)

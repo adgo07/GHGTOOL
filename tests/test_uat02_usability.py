@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
+from unittest.mock import patch
 import unittest
 from decimal import Decimal
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPoint, QPointF, Qt
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QPushButton, QWidget
+from PySide6.QtWidgets import QAbstractButton, QApplication, QComboBox, QLineEdit, QPushButton, QWidget
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -133,22 +135,50 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertFalse(self.page._application_event_filter_installed)
 
     def test_twenty_dynamic_rows_expand_and_shrink_scroll_host(self) -> None:
-        self.page._source_toggle_buttons["fuel"].click()
-        self.application.processEvents()
-        baseline = self.shell.scroll_host.height()
-        for _ in range(20):
-            self.page._add_fuel_row()
-        self.application.processEvents()
-        QTest.qWait(1)
-        grown = self.shell.scroll_host.height()
-        self.assertGreater(grown, baseline)
-        self.assertGreater(self.shell.main_scroll_area.verticalScrollBar().maximum(), 0)
-        middle = self.page._fuel_rows[10]
-        self.page._remove_fuel_row(middle)
-        self.application.processEvents()
-        QTest.qWait(1)
-        self.assertEqual(len(self.page._fuel_rows), 20)
-        self.assertLess(self.shell.scroll_host.height(), grown)
+        errors = []
+        def settle_geometry():
+            # Normal Qt events only: a real deadline and successive stable
+            # observations, never a forced product/layout refresh.
+            samples = []
+            deadline = time.monotonic() + 2.0
+            while time.monotonic() < deadline:
+                self.application.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 5)
+                QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+                samples.append((self.shell.scroll_host.height(),
+                    self.shell.main_scroll_area.verticalScrollBar().maximum(),
+                    tuple(row.geometry().getRect() for row in self.page._fuel_rows)))
+                self.assertEqual(errors, [], errors)
+                if len(samples) >= 8 and samples[-3:] == [samples[-1]] * 3:
+                    return samples[-1]
+            self.fail(f"正常事件处理2秒内几何未收敛：height/scroll_max序列={[(x[0], x[1]) for x in samples]}; Qt异常={errors}")
+
+        with patch("sys.excepthook", side_effect=lambda kind, value, trace: errors.append(f"{kind.__name__}: {value}")):
+            self.page._source_toggle_buttons["fuel"].click()
+            baseline = settle_geometry()[0]
+            for _ in range(20):
+                self.page._add_fuel_row()
+            grown, grown_scroll, _ = settle_geometry()
+            self.assertGreater(grown, baseline)
+            self.assertGreater(grown_scroll, 0)
+            middle = self.page._fuel_rows[10]
+            expected_remaining = [row for row in self.page._fuel_rows if row is not middle]
+            self.page._remove_fuel_row(middle)
+            shrunk, shrunk_scroll, _ = settle_geometry()
+            self.assertEqual(len(self.page._fuel_rows), 20)
+            self.assertEqual(self.page._fuel_rows, expected_remaining)
+            self.assertLess(shrunk, grown)
+            self.assertLess(shrunk_scroll, grown_scroll)
+            host = self.page.fuel_rows_host
+            for index, row in enumerate(self.page._fuel_rows):
+                self.assertTrue(host.rect().contains(row.geometry()))
+                self.assertGreaterEqual(row.height(), row.minimumSizeHint().height())
+                if index:
+                    self.assertLess(self.page._fuel_rows[index - 1].geometry().bottom(), row.geometry().top())
+                for control in row.findChildren(QWidget):
+                    if isinstance(control, (QLineEdit, QComboBox, QAbstractButton)) and control.isVisibleTo(row):
+                        self.assertTrue(control.parentWidget().rect().contains(control.geometry()),
+                                        (control.objectName(), control.geometry(), control.parentWidget().size()))
+            self.assertEqual(errors, [])
 
     def test_fgd_id_stays_internal_and_process_addition_is_secondary(self) -> None:
         component = self.page._process_rows["fgd"][0]["components"][0]
