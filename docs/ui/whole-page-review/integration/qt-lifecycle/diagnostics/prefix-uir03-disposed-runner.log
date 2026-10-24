@@ -1,4 +1,0 @@
-Carbon-material calculation validation: WARNING：核算期间跨越所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD] | ERROR：请填写物料名称。 [GEN-VAL-REQUIRED-MISSING]
-Carbon-material calculation validation: WARNING：核算期间晚于所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD] | ERROR：购入电力需要接入 G05 参数解析服务。 [CAR-VAL-PARAMETER-RESOLVER-MISSING]
-Carbon-material calculation validation: WARNING：核算期间晚于所选标准的实施日期（2025-03-01）；系统仍按您选择的 GB/T 32151.34—2024 继续核算。此提醒不阻断核算。 [CAR-VAL-STANDARD-IMPLEMENTATION-PERIOD] | ERROR：自动蒸汽焓需要填写蒸汽压力（绝压）。 [CAR-VAL-STEAM-STATE] | WARNING：当前规则要求实测优先，但未提供合格实测值，将回退到标准缺省值。 [GEN-PAR-MEASURED-FALLBACK]
-{"count": 13, "failures": 0, "errors": 0}

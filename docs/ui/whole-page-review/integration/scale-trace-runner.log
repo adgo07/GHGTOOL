@@ -1,1 +1,0 @@
-{"command": ["C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe", "-B", "-c", "faulthandler enabled runpy original scale script 1.0"], "timeout_seconds": 60, "elapsed_seconds": 38.96800000000076, "returncode": 0, "note": "Diagnostic instrumentation only; no timeout/script/production changes; not the unchanged wrapper result."}

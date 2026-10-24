@@ -1,0 +1,26 @@
+{
+  "production_capture_head": "7308473895faf4500f7c4fd1ad596531408d9eeb",
+  "full_test_head": "7444b9b2e1d5e744fe3b313cdb6b81b4bca03259",
+  "full_source_files_verified": 292,
+  "capture_source_files_verified": 118,
+  "production_source_unchanged_after_full": true,
+  "capture_source_unchanged": true,
+  "final_png_count": 14,
+  "png_sha256": {
+    "01-fuel-wide.png": "b86c177e9bfcdede4c4fe7ccb7ab6f678a777ced350dafa8e6d9f11a8c42a6b7",
+    "02-fuel-narrow.png": "9c8f3bd067bedf6d9b69f8a18a2d57cce6aae606d4693d754f91583e3cb89f37",
+    "03-material-first-error.png": "3da0cc3129d706cbac99541d3aa13b0d24f2fc234f57f32476200dc8382af606",
+    "04-material-first-error.png": "d4024d13876e6b5217e18e492fd3a8ab0a57005b4f88362c6d2cc44705cab6b1",
+    "05-baking.png": "dab6695d3910101169855ea3a968746aebbc354516556a709303f1e018d07931",
+    "06-graphitization.png": "09ab668455c660730a04b111f16940edfcfb240528fccc42debaa7880032a17a",
+    "07-legacy-duration.png": "ba84bc64e7b9874c0abf0813a03034d6f7941675881209b290423723021986ed",
+    "08-legacy-duration.png": "89346439ecfb9f4cf969fe0b376bfc39fc2b9efb595150cbcc8713e1936b64dd",
+    "09-explicit-fume-upgrade.png": "a692ea73a243cc06ef2960f4eb2ead1353420bfd45fb06c82f3ef9532ad55bb6",
+    "10-fgd.png": "47828b7f7c9e5b0a766854d661b63748fd1309ec9fba7bba7ea8c5acf338d068",
+    "11-electricity.png": "95625e92d03c1ac98f0e3490bfb405a245d1504f96b7d8b65c96c53bb0717a26",
+    "12-heat.png": "c22e6eb9290a94186122cb0cabde25a15df90e95a879ab3aa25f1510a819ff91",
+    "13-shared-result.png": "ce97469b00d17275eef52bc30546186cf8a512ab5c051d1b14f36b19ef4d3c02",
+    "14-folded-conversion-first-error.png": "f66e1cce5679a44fefa28950120f77e270b7eca74b77f95626ce4d40aa1664ce"
+  },
+  "evidence_commit_note": "后续提交仅证据和治理文档；最新 PR head 及 CI 身份见 PR59 交付回执。"
+}

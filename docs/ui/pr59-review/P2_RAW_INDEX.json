@@ -1,0 +1,99 @@
+{
+  "archive_name": "pr59-p2-pre-full-7308473895fa.zip",
+  "archive_sha256": "9297ea21e009742dec5228a2950d6de1711e47d5db643430e3717c55d4b04c34",
+  "files": [
+    {
+      "path": "build/pr59-p2/archive_historical.py",
+      "bytes": 2227,
+      "sha256": "96f42dad1b2abf98e5180de87bea052005c8c1c63d87b2794c36a2dc91b6cf68"
+    },
+    {
+      "path": "build/pr59-p2/capture-r1.log",
+      "bytes": 2426,
+      "sha256": "1720bf2c93a4455ee8050ca1d3e4d3b33cd59d256a313664f68d438226019ade"
+    },
+    {
+      "path": "build/pr59-p2/color-token-equivalence.json",
+      "bytes": 368,
+      "sha256": "3d1a69fd9e944b31fb0530c1da2eaa31f9a2ede3449c16e24b393256af43fa8e"
+    },
+    {
+      "path": "build/pr59-p2/combined-final.log",
+      "bytes": 17004,
+      "sha256": "7361aa1fc3d282f127943901d3a9a6a4c1f52e78be615bf648f147931522dead"
+    },
+    {
+      "path": "build/pr59-p2/legacy-r2.json",
+      "bytes": 69,
+      "sha256": "01a24585c9238716cf4d7e59963cfc22919f515cf2db84874f8bf9161d9e47f6"
+    },
+    {
+      "path": "build/pr59-p2/legacy-r2.log",
+      "bytes": 2280,
+      "sha256": "454e817f56ba880f867fdd212a232958fe915629bfd1cba0200bcd495b4bd38a"
+    },
+    {
+      "path": "build/pr59-p2/legacy-r3.log",
+      "bytes": 2897,
+      "sha256": "c73b9f63ce51d0203e98135e9a6703651d79ebf04189a25851141ad8a7120350"
+    },
+    {
+      "path": "build/pr59-p2/red-tests.log",
+      "bytes": 7347,
+      "sha256": "4deb1e041037293065e82011995e2240fde04217d58e946531878d1880cb914e"
+    },
+    {
+      "path": "build/pr59-p2/reproduce.py",
+      "bytes": 5876,
+      "sha256": "522835522bbec420f307cd2c2b98d987dc2ef2cf02c28feaf2b51623008437b2"
+    },
+    {
+      "path": "build/pr59-p2/reproduction.json",
+      "bytes": 2305,
+      "sha256": "fa6c491ce905aaf7937e16165056f4f7478664d1f10396ce75e494dae12a967c"
+    },
+    {
+      "path": "build/pr59-p2/reproduction.log",
+      "bytes": 4316,
+      "sha256": "3f107883f15bc5aa7b05de1e30aae1a002d3df1e29edd400bf875d236448c861"
+    },
+    {
+      "path": "build/pr59-p2/run_full.py",
+      "bytes": 1991,
+      "sha256": "ffb9d341f6da27973b80b60c36e7ce853c67670d0657bc03f37d774c26dc573b"
+    },
+    {
+      "path": "build/pr59-p2/run_targeted.py",
+      "bytes": 1353,
+      "sha256": "43efa722f62bbfb2375edab4ffc3fef0658af8ead4304141d546390248700cf7"
+    },
+    {
+      "path": "build/pr59-p2/targeted-r1.json",
+      "bytes": 211,
+      "sha256": "083cb996027c6f9b2a5b26884105c79953f1d00b0531e4265edbb118bf41c679"
+    },
+    {
+      "path": "build/pr59-p2/targeted-r1.log",
+      "bytes": 5326,
+      "sha256": "40ee7c3236c5cd9c6eaf2ea67c4ce5c083f9bce31de68c445d0e75b00ffec90d"
+    },
+    {
+      "path": "build/pr59-p2/targeted-r4.log",
+      "bytes": 12631,
+      "sha256": "d38ee1b7bf9c28f4ff66aaed9a6c5905e3729a08294732a417f22606c4fe1042"
+    },
+    {
+      "path": "build/pr59-p2/targeted-r5.log",
+      "bytes": 8492,
+      "sha256": "6d3a7cec60184d7e30a4450b82aad2684a535fff19ada50c53ab2529ebd1ee15"
+    },
+    {
+      "path": "build/pr59-p2/tokenize_colors.py",
+      "bytes": 3257,
+      "sha256": "a8ae20fa93db78bff1809febb075e2fb5cd0ff57be4621ac60a9fc4b035453d4"
+    }
+  ],
+  "verified": true,
+  "original_bytes_unchanged": true,
+  "note": "Contains reproduction, intermediate failed/incomplete tests, final 8 and 32 test raw logs, capture log and development helpers. Full-suite evidence is separate."
+}

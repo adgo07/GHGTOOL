@@ -1,5 +1,0 @@
-{"elapsed": 59.81300000000192, "pid": 27812, "physical_available_mb": 814.31640625, "system_load": 95, "memory_read_ok": true, "private_mb": 0.3828125, "working_mb": 1.50390625, "page_faults": 407}
-{"elapsed": 64.82800000000134, "pid": 27812, "physical_available_mb": 698.53515625, "system_load": 95, "memory_read_ok": true, "private_mb": 130.5703125, "working_mb": 157.24609375, "page_faults": 48457}
-{"elapsed": 69.82800000000134, "pid": 27812, "physical_available_mb": 652.1484375, "system_load": 95, "memory_read_ok": true, "private_mb": 175.32421875, "working_mb": 202.33203125, "page_faults": 60295}
-{"elapsed": 74.82800000000134, "pid": 27812, "physical_available_mb": 569.12109375, "system_load": 96, "memory_read_ok": true, "private_mb": 227.25390625, "working_mb": 253.390625, "page_faults": 73394}
-{"elapsed": 79.84400000000096, "pid": 27812, "physical_available_mb": 513.16015625, "system_load": 96, "memory_read_ok": true, "private_mb": 272.62890625, "working_mb": 297.73046875, "page_faults": 84771}

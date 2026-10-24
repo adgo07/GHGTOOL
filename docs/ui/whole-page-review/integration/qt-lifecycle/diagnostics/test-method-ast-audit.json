@@ -1,9 +1,0 @@
-{
-  "existing_test_methods_changed": [],
-  "removed_test_methods": [],
-  "new_test_methods": [
-    "tests/test_navigation_background.py:NavigationBackgroundTests.test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed",
-    "tests/test_navigation_background.py:NavigationBackgroundTests.test_source_card_geometry_callback_is_cancelled_with_its_owner"
-  ],
-  "note": "Only fixture teardown/shared deletion helper and geometry wait helper changed; original test_* ASTs are unchanged."
-}
