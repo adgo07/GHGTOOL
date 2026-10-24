@@ -75,19 +75,20 @@ class ReportTableCard(QFrame):
     """A report table rendered with its frozen headings, merges, and notes."""
 
     def __init__(self, report: ReportTable, parent: QWidget | None = None) -> None:
+        from PySide6.QtGui import QColor
         super().__init__(parent)
         self.report = report
         self.setObjectName("recordReportTableCard")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(
             "QFrame#recordReportTableCard { border: 1px solid #DCE7EF; border-radius: 7px; background: white; }"
-            "QLabel#recordReportTableTitle { color: #18364F; font-size: 13px; font-weight: 650; }"
-            "QLabel#recordReportContext { color: #5B7287; font-size: 11px; }"
-            "QLabel#recordReportFootnote { color: #5B6874; font-size: 11px; }"
+            "QLabel#recordReportTableTitle { color: #18364F; font-size: 16px; font-weight: 600; }"
+            "QLabel#recordReportContext { color: #5B7287; font-size: 13px; }"
+            "QLabel#recordReportFootnote { color: #5B6874; font-size: 13px; }"
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(9, 8, 9, 8)
-        layout.setSpacing(5)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(8)
 
         if report.context_label:
             context = QLabel(report.context_label, self)
@@ -122,8 +123,8 @@ class ReportTableCard(QFrame):
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         table.setStyleSheet(
-            "QTableWidget#recordBusinessTable { gridline-color: #DCE5EC; border: 1px solid #DCE5EC; }"
-            "QTableWidget#recordBusinessTable::item { padding: 4px 6px; }"
+            "QTableWidget#recordBusinessTable { font-size: 14px; gridline-color: #DCE5EC; border: 1px solid #DCE5EC; }"
+            "QTableWidget#recordBusinessTable::item { padding: 7px 8px; }"
             "QTableWidget#recordBusinessTable::item:selected { background: #EDF5FA; color: #18364F; }"
         )
 
@@ -136,7 +137,7 @@ class ReportTableCard(QFrame):
                 item = QTableWidgetItem(_cell_text(cell))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                item.setBackground(Qt.GlobalColor.lightGray)
+                item.setBackground(QColor("#F2F7FB"))
                 table.setItem(row_index, column_index, item)
 
         hidden_body_cells = _covered_cells(report.body_merges)
@@ -275,7 +276,7 @@ class RecordReportTab(QWidget):
                 heading = QLabel(section.title, self.content)
                 heading.setObjectName("recordReportSectionTitle")
                 heading.setWordWrap(True)
-                heading.setStyleSheet("font-size: 14px; font-weight: 700; color: #18364F; padding-top: 3px;")
+                heading.setStyleSheet("font-size: 17px; font-weight: 600; color: #18364F; padding-top: 3px;")
                 self.content_layout.addWidget(heading)
             for report in section.tables:
                 card = ReportTableCard(report, self.content)
@@ -285,7 +286,7 @@ class RecordReportTab(QWidget):
                 note_label = QLabel(note, self.content)
                 note_label.setObjectName("recordReportSectionNote")
                 note_label.setWordWrap(True)
-                note_label.setStyleSheet("color: #536A7B; font-size: 11px; padding: 1px 3px;")
+                note_label.setStyleSheet("color: #536A7B; font-size: 13px; padding: 1px 3px;")
                 self.content_layout.addWidget(note_label)
 
         if self.include_audit:

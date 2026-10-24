@@ -147,9 +147,9 @@ class P3ABStandardsTests(unittest.TestCase):
             table.horizontalHeader().sectionResizeMode(1),
             QHeaderView.ResizeMode.Stretch,
         )
-        self.assertEqual(table.columnWidth(4), 104)
-        self.assertIn("font-size: 13px", table.styleSheet())
-        self.assertEqual(table.verticalHeader().defaultSectionSize(), 46)
+        self.assertEqual(table.columnWidth(4), 124)
+        self.assertIn("font-size: 14px", table.styleSheet())
+        self.assertEqual(table.verticalHeader().defaultSectionSize(), 54)
 
         page.search_input.setText("炭素材料生产企业")
         self._process_events()
@@ -210,7 +210,7 @@ class P3ABStandardsTests(unittest.TestCase):
         ]
         self.assertEqual(
             titles,
-            ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"],
+            ["基本信息", "适用范围", "标准要求"],
         )
         detail_text = "\n".join(
             label.text()

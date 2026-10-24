@@ -1,21 +1,13 @@
-# PR58 中文弹窗退修（2026-10-23，验证中）
+# 五个业务页面 UI V2 — 安全断点
 
-受验基线 `572f32ae0ca335a2ea329d7bd48e7c01d454abfc`：实际 CI301/run39932777629 全量 1056 项/1031.702s，2 failures，精确包 job skipped。确认是新模态测试在共享 QApplication 全量环境中的状态依赖；单模块通过不构成完整验收。此前 CI299 仅背书已合并 PR57，不背书 PR58。
+状态：PAUSED / VISUAL HOLD。用户优先要求退修 PR59，五页生产写入已暂停；内容保存在 codex/ui-five-business-pages-v2 独立工作树，未推送、未建 PR、未触发 CI。PR59 与本包不混分支。
 
-## 修复
+实际 fetch 后基线 origin/main@092604639cd5b2b61fef1523f87fcd711d8aefea。原包只检查6旧文件哈希全部匹配，10目标与受保护AST/信号接线预检通过，再按原工具应用；未改预期hash、未叠加旧标准库包。当前所有源码、开发脚本、原始日志和截图均保留。
 
-三个同步弹窗入口均在配置/exec/读取返回值外层使用 finally/deleteLater，返回值先取得，不使用 WA_DeleteOnClose，不引入管理器。真实 Qt 测试在新进程执行：回调绑定具体实例，先断言可见且为当前模态窗口，再操作，异常显式传回、子进程有超时；保留实际 exec、Esc/×/Enter/放弃与文本返回验证。新增同一父窗口反复取消三类弹窗及异常路径，处理 DeferredDelete 后对象数恢复基线。
+最新相关真实Qt组70/70通过，37.694s（原README九模块＋6补充守卫，在同一进程登记本机既有Windows字体；原断言未减）。真实Excel/项目/失效及冻结Record/Word保护39/39通过68.485s，执行于后续冻结ET标签/参数详情最小高度调整前；业务实现字节未变，不将它冒称修后全量。Canonical 9/12/102/138、compileall、pip check和diff检查通过。尚未运行本包完整回归、CI或独立构建。
 
-截图脚本拒绝脏工作树；公共摘要仅记录中文资源相对路径、SHA 与加载结果，不公开本机路径。已在干净代码提交 `0e98c15f6453c2aef7fdf2fee090588287c39600` 重采（dirty=false），截图字节与先前一致；证据提交与代码提交分别注明，不冒称截图生成于自身回执提交。QFileDialog 原生策略不变，本轮没有原生文件对话框或系统语言验收，后续仍须单列。
+r3真实Qt60图在build/ui-five-pages-after-r3/，含两尺寸、源码SHA、字体/DPR/Qt/图片hash，回调异常0。astra核28源/60图hash全部匹配，但视觉HOLD：标准列表徽标叠字和编号/名称省略；参数长行裁切、来源展开入口/正文不足；记录列表裁切；B.9表头单位截断；需补补充量区域和核对复选框勾形。尚未实施这些后续修正。r1缺字图明确INVALID；r2仅中间稿，均不作最终视觉证据。
 
-## 平台 / Contract 预检查
+本包未复制PR59生产修复，首页/全局导航/shell/新建核算及业务、Catalog、Schema、模板、Word业务、依赖未改。后续恢复先核实际main/并行改动和当前断点，不覆盖既有内容。详细边界、已执行项及剩余问题见IMPLEMENTATION_REPORT.md。
 
-origin adgo07/GHGTOOL、原 PR58 分支及隔离工作树已核实并 fetch。Frozen baseline `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变。本任务不涉及中央公共 Contract；无标准解释变化，无新增 Standard Issue。仅修 UI 生命周期、测试和证据，不改业务、Numeric、数据库、Record、模板、Word、首页布局。
-
-## 验证
-
-本地 Python 3.12.14 / Qt 6.11.2，QT_QPA_PLATFORM=offscreen：`python -B -m unittest tests.test_ui_chinese -v`，9/9，9.363s，0失败/错误/跳过。包含真实子进程反复弹窗与释放回归。
-
-`python -B -m unittest discover -s tests -t . -v` 实际运行 1057 项/1498.659s：0 failures，1 error（既有 UIR04 缩放子进程 scale=1.0 超过60秒）。本次中文测试9项在完整套件中全部通过。未改缩放代码或超时限制；随后单独重跑原缩放测试（含1.0/1.25/1.5）通过，1/1，59.954s。该轮不称全量一次通过。推送后必须再以远端全量和精确包核验闭环，原 CI301 失败历史保留。
-
-PR57 已合并 `8f9fa119`。PR58 未合并，PR-B 未开始。原生 Office、鼠标/IME/人工 DPI、企业样例、干净机、商业许可与正式发布仍 OPEN；本轮不操作桌面，不自动合并。
+平台 / Contract预检查：locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，已核中央origin并读取其当前已合并UI指南v0.2/产品家族规格/验收清单及locked Architecture V2.1。保持分层、展示不回流计算、历史Record不重算、UI state非公共Workspace；无冲突、adoption或中央修改。本任务不涉及中央公共 Contract。相关既有Issue004/016/018、017、020，不改变软件解释，无新标准问题。原生桌面/Office/IME未授权；本包不合并、不发布。

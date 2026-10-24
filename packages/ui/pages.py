@@ -1422,96 +1422,65 @@ class PlaceholderPage(BasePage):
 class SettingsPage(BasePage):
     """Standard-neutral settings overview matching the V4 two-column layout."""
 
-    def __init__(
-        self,
-        view_model: ShellViewModel,
-        parent: QWidget | None = None,
-    ) -> None:
+    def __init__(self, view_model: ShellViewModel, parent: QWidget | None = None) -> None:
+        from .business_page_style import apply_business_page_style, surface
         super().__init__(AppRoute.SETTINGS, parent)
         self.export_location_service = service_for_parent(self)
-        self.add_header(
-            "设置",
-            "统一设置 Word 报告与 Excel 输入模板的导出文件夹；其他业务设置暂未开放。",
-        )
-        card, card_layout = _card("当前版本", self)
-        columns = QWidget(card)
+        self.add_header("设置", "设置报告与输入模板的导出位置，查看软件信息。")
+        columns = QWidget(self)
         columns.setObjectName("settingsColumns")
-        columns_layout = QHBoxLayout(columns)
-        columns_layout.setContentsMargins(0, 0, 0, 0)
-        columns_layout.setSpacing(16)
+        layout = QVBoxLayout(columns)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
 
-        info = QFrame(columns)
-        info.setObjectName("settingsSurface")
-        info_layout = QVBoxLayout(info)
-        info_layout.setContentsMargins(14, 14, 14, 14)
-        info_layout.setSpacing(12)
-        info_title = QLabel("软件信息", info)
-        info_title.setObjectName("cardTitle")
-        info_layout.addWidget(info_title)
-        facts = (
-            ("产品", view_model.product_name),
-            ("运行平台", "Windows 桌面版"),
-            ("界面技术", "PySide6 · Qt Widgets"),
-        )
-        for label_text, value_text in facts:
-            row = QWidget(info)
-            row_layout = QGridLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setHorizontalSpacing(14)
-            row_layout.setVerticalSpacing(8)
-            label = QLabel(label_text, row)
-            label.setObjectName("detailFieldLabel")
-            value = QLabel(value_text, row)
-            value.setObjectName("detailFieldValue")
-            value.setWordWrap(True)
-            row_layout.addWidget(label, 0, 0)
-            row_layout.addWidget(value, 0, 1)
-            row_layout.setColumnStretch(1, 1)
-            info_layout.addWidget(row)
-        info_layout.addStretch(1)
-
-        options = QFrame(columns)
-        options.setObjectName("settingsSurface")
-        options_layout = QVBoxLayout(options)
-        options_layout.setContentsMargins(14, 14, 14, 14)
-        options_layout.setSpacing(12)
-        options_title = QLabel("导出位置", options)
-        options_title.setObjectName("cardTitle")
-        options_layout.addWidget(options_title)
-        export_description = QLabel(
-            "Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。",
-            options,
-        )
-        export_description.setObjectName("emptyStateDescription")
-        export_description.setWordWrap(True)
-        options_layout.addWidget(export_description)
-        directory_label = QLabel("统一导出文件夹", options)
-        directory_label.setObjectName("detailFieldLabel")
-        options_layout.addWidget(directory_label)
-        directory_row = QWidget(options)
-        directory_row_layout = QHBoxLayout(directory_row)
-        directory_row_layout.setContentsMargins(0, 0, 0, 0)
-        directory_row_layout.setSpacing(8)
-        self.export_directory_path = QLineEdit(directory_row)
+        options, options_layout = surface("导出位置", columns, "settingsExportSurface")
+        description = QLabel("Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。", options)
+        description.setObjectName("pageDescription")
+        description.setWordWrap(True)
+        options_layout.addWidget(description)
+        caption = QLabel("统一导出文件夹", options)
+        caption.setObjectName("detailFieldLabel")
+        options_layout.addWidget(caption)
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        self.export_directory_path = QLineEdit(options)
         self.export_directory_path.setObjectName("exportDirectoryPath")
         self.export_directory_path.setReadOnly(True)
-        directory_row_layout.addWidget(self.export_directory_path, 1)
-        self.choose_export_directory_button = QPushButton("更改…", directory_row)
+        self.export_directory_path.setAccessibleName("统一导出文件夹，只读")
+        row.addWidget(self.export_directory_path, 1)
+        self.choose_export_directory_button = QPushButton("更改…", options)
         self.choose_export_directory_button.setObjectName("chooseExportDirectoryButton")
         self.choose_export_directory_button.clicked.connect(self._choose_export_directory)
-        directory_row_layout.addWidget(self.choose_export_directory_button)
-        options_layout.addWidget(directory_row)
+        row.addWidget(self.choose_export_directory_button)
+        options_layout.addLayout(row)
         self.export_directory_status = QLabel(options)
         self.export_directory_status.setObjectName("exportDirectoryStatus")
         self.export_directory_status.setWordWrap(True)
         options_layout.addWidget(self.export_directory_status)
-        options_layout.addStretch(1)
+        layout.addWidget(options)
 
-        columns_layout.addWidget(info, 1)
-        columns_layout.addWidget(options, 1)
-        card_layout.addWidget(columns, 1)
-        self.body_layout.addWidget(card)
+        info, info_layout = surface("软件信息", columns, "settingsInformationSurface")
+        facts = QGridLayout()
+        facts.setHorizontalSpacing(24)
+        facts.setVerticalSpacing(12)
+        for index, (caption, text) in enumerate((
+            ("产品", view_model.product_name),
+            ("运行平台", "Windows 桌面版"),
+            ("界面技术", "PySide6 · Qt Widgets"),
+        )):
+            label = QLabel(caption, info)
+            label.setObjectName("detailFieldLabel")
+            value = QLabel(text, info)
+            value.setObjectName("detailFieldValue")
+            value.setWordWrap(True)
+            facts.addWidget(label, index, 0, Qt.AlignmentFlag.AlignTop)
+            facts.addWidget(value, index, 1)
+        facts.setColumnStretch(1, 1)
+        info_layout.addLayout(facts)
+        layout.addWidget(info)
+        self.body_layout.addWidget(columns)
         self.body_layout.addStretch(1)
+        apply_business_page_style(self)
         self._refresh_export_directory_display()
 
 
@@ -1580,6 +1549,7 @@ class RecordLibraryPage(BasePage):
         parent: QWidget | None = None,
         project_service=None,
     ) -> None:
+        from .business_page_style import apply_business_page_style, surface
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
         self.project_service = project_service
@@ -1601,7 +1571,9 @@ class RecordLibraryPage(BasePage):
         list_layout.setContentsMargins(0, 0, 0, 0)
         list_layout.setSpacing(16)
 
-        filter_card, filter_layout = _card("搜索与筛选", self.list_view)
+        filter_card, filter_layout = surface("", self.list_view, "recordFilterToolbar")
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_card.setProperty("businessSurface", False)
         filter_row = QHBoxLayout()
         filter_row.setSpacing(12)
         self.search_input = QLineEdit(filter_card)
@@ -1647,8 +1619,13 @@ class RecordLibraryPage(BasePage):
         self.record_list.verticalHeader().setVisible(False)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((230, 150, 205, 165, 100, 125, 115)):
+        for column, width in enumerate((200, 120, 168, 160, 92, 110, 110)):
             self.record_list.setColumnWidth(column, width)
+        self.record_list.horizontalHeader().setStretchLastSection(False)
+        self.record_list.horizontalHeader().setMinimumSectionSize(96)
+        self.record_list.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.record_list.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.record_list.setShowGrid(False)
         self.record_list.setMinimumHeight(340)
         self.record_list.cellActivated.connect(
             lambda row, _column: self._open_record_row(row)
@@ -1675,6 +1652,18 @@ class RecordLibraryPage(BasePage):
         detail_header.addWidget(self.detail_heading, 1)
         detail_layout.addLayout(detail_header)
         detail_card, detail_card_layout = _card("历史记录 · 只读", self.detail_view)
+        self.record_total_caption = QLabel("冻结排放总量", detail_card)
+        self.record_total_caption.setObjectName("detailFieldLabel")
+        self.record_total_value = QLabel("—", detail_card)
+        self.record_total_value.setObjectName("recordFrozenTotal")
+        self.record_total_value.setWordWrap(True)
+        self.record_total_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.record_identity = QLabel("", detail_card)
+        self.record_identity.setObjectName("recordFrozenIdentity")
+        self.record_identity.setWordWrap(True)
+        detail_card_layout.addWidget(self.record_total_caption)
+        detail_card_layout.addWidget(self.record_total_value)
+        detail_card_layout.addWidget(self.record_identity)
         self.detail_tabs = QTabWidget(detail_card)
         self.detail_tabs.setObjectName("recordDetailTabs")
         from .record_tables import RecordReportTab
@@ -1694,7 +1683,7 @@ class RecordLibraryPage(BasePage):
         self.export_word_button = QPushButton("导出 Word 核算报告", detail_card)
         self.export_word_button.setObjectName("exportWordReportButton")
         self.export_word_button.clicked.connect(self._export_selected_report)
-        actions.addWidget(self.export_word_button)
+        detail_header.addWidget(self.export_word_button)
         detail_card_layout.addLayout(actions)
         detail_layout.addWidget(detail_card, 1)
         self.view_stack.addWidget(self.detail_view)
@@ -1726,6 +1715,7 @@ class RecordLibraryPage(BasePage):
             QTabWidget#recordDetailTabs::pane { border: 1px solid #DAE7F1; border-radius: 9px; }
             QTabWidget#recordDetailTabs QTabBar::tab { padding: 0 18px; font-size: 13px; }
         """)
+        apply_business_page_style(self)
         self.refresh_records(force_reload=True)
 
     def _read_snapshot(self, method_name: str, record_id: str) -> tuple[object, bool]:
@@ -1820,6 +1810,7 @@ class RecordLibraryPage(BasePage):
         )
         self.record_list.setUpdatesEnabled(False)
         try:
+            self.record_list.clearSpans()
             self.record_list.clearContents()
             self.record_list.setRowCount(len(self._records))
             selected_row = -1
@@ -1852,6 +1843,7 @@ class RecordLibraryPage(BasePage):
                         Qt.ItemDataRole.AccessibleTextRole,
                         f"{self.record_list.horizontalHeaderItem(column).text()}：{value or summary.record_id}",
                     )
+                    item.setTextAlignment((Qt.AlignmentFlag.AlignRight if column == 3 else Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter)
                     self.record_list.setItem(index, column, item)
                 status_badge = QLabel(status_label(summary.status), self.record_list)
                 status_badge.setObjectName("recordStatusBadge")
@@ -1870,6 +1862,9 @@ class RecordLibraryPage(BasePage):
                 self.record_list.setRowHeight(index, 62)
                 if summary.record_id == selected_before:
                     selected_row = index
+            self.record_list.resizeRowsToContents()
+            for row in range(len(self._records)):
+                self.record_list.setRowHeight(row, max(64, self.record_list.rowHeight(row)))
             self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
             self.delete_button.setEnabled(bool(self._records))
             self.export_word_button.setEnabled(bool(self._records))
@@ -1979,6 +1974,8 @@ class RecordLibraryPage(BasePage):
     def _clear_details(self, message: str) -> None:
         self._detail_record_id = None
         self._detail_record = None
+        self.record_total_value.setText("—")
+        self.record_identity.clear()
         self.summary_view.clear(message)
         self.input_basis_view.clear(message)
 
@@ -2010,6 +2007,11 @@ class RecordLibraryPage(BasePage):
             return
         self._detail_record_id = summary.record_id
         self._detail_record = record
+        self.record_total_caption.setText(
+            "原标准核算总量 ET（冻结值）" if record.standard_id == "gbt_32151_34_2024" else "冻结排放总量"
+        )
+        self.record_total_value.setText(format_amount(summary.total_amount, summary.total_unit))
+        self.record_identity.setText(f"{status_label(summary.status)} · {_summary_period_label(summary)} · 历史记录只读")
         getters = {
             "raw": "get_raw_input_snapshot",
             "rules": "get_effective_rule_set",
@@ -2188,178 +2190,7 @@ class ExcelImportPage(BasePage):
             "下载模板并选择工作簿，检查预览后保存为项目，再主动进行正式核算；预览不会生成正式记录。",
         )
 
-        self.body_layout.setSpacing(12)
-
-        template_section, template_layout = create_excel_import_section(
-            "excelImportTemplateSection", "01 获取模板", self
-        )
-        template_row = QHBoxLayout()
-        self.templateButton = QPushButton(self.excel_adapter.template_button_label, template_section)
-        self.templateButton.setObjectName("templateButton")
-        self.templateButton.clicked.connect(self._download_template)
-        template_row.addWidget(self.templateButton)
-        template_row.addWidget(
-            QLabel(self.excel_adapter.template_description, template_section),
-            1,
-        )
-        template_layout.addLayout(template_row)
-        self.body_layout.addWidget(template_section)
-
-        file_section, file_layout = create_excel_import_section(
-            "excelImportFileSection", "02 选择文件与核算信息", self
-        )
-        file_row = QHBoxLayout()
-        self.selectFileButton = QPushButton("选择 Excel 文件", file_section)
-        self.selectFileButton.setObjectName("selectFileButton")
-        self.selectFileButton.clicked.connect(self._choose_workbook)
-        file_row.addWidget(self.selectFileButton)
-        self.selected_file_label = QLabel("尚未选择工作簿", file_section)
-        self.selected_file_label.setObjectName("selectedExcelFile")
-        self.selected_file_label.setWordWrap(True)
-        self.selected_file_label.setAccessibleName("已选择的 Excel 工作簿")
-        file_row.addWidget(self.selected_file_label, 1)
-        self.preview_button = QPushButton("检查并预览", file_section)
-        self.preview_button.setObjectName("previewExcelWorkbookButton")
-        self.preview_button.clicked.connect(self._run_selected_workbook_preview)
-        file_row.addWidget(self.preview_button)
-        file_layout.addLayout(file_row)
-        file_layout.addWidget(
-            QLabel("以下信息用于新工作簿导入；打开已保存项目时，以项目中保存的信息为准。", file_section)
-        )
-
-        context_row = QHBoxLayout()
-        context_row.addWidget(QLabel("企业名称（可选）", file_section))
-        self.import_enterprise_name = QLineEdit(file_section)
-        self.import_enterprise_name.setObjectName("importEnterpriseName")
-        self.import_enterprise_name.setPlaceholderText("可留空")
-        context_row.addWidget(self.import_enterprise_name, 2)
-        context_row.addWidget(QLabel("期间类型", file_section))
-        self.import_period_type = QComboBox(file_section)
-        self.import_period_type.setObjectName("importPeriodType")
-        self.import_period_type.addItem("请选择", None)
-        self.import_period_type.addItem("年度", PeriodType.ANNUAL.value)
-        self.import_period_type.addItem("月度", PeriodType.MONTHLY.value)
-        self.import_period_type.addItem("自定义期间", PeriodType.CUSTOM.value)
-        context_row.addWidget(self.import_period_type)
-        context_row.addWidget(QLabel("开始日期", file_section))
-        self.import_period_start = QLineEdit(file_section)
-        self.import_period_start.setObjectName("importPeriodStart")
-        self.import_period_start.setPlaceholderText("YYYY-MM-DD")
-        self.import_period_start.setMaximumWidth(120)
-        context_row.addWidget(self.import_period_start)
-        context_row.addWidget(QLabel("结束日期", file_section))
-        self.import_period_end = QLineEdit(file_section)
-        self.import_period_end.setObjectName("importPeriodEnd")
-        self.import_period_end.setPlaceholderText("YYYY-MM-DD")
-        self.import_period_end.setMaximumWidth(120)
-        context_row.addWidget(self.import_period_end)
-        file_layout.addLayout(context_row)
-
-        context_row_two = QHBoxLayout()
-        context_row_two.addWidget(QLabel("电力地区", file_section))
-        self.import_region = QComboBox(file_section)
-        self.import_region.setObjectName("importRegion")
-        self.import_region.addItem("全国（使用全国路径）", None)
-        context_row_two.addWidget(self.import_region)
-        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", file_section)
-        self.import_boundary_confirmed.setObjectName("importBoundaryConfirmed")
-        context_row_two.addWidget(self.import_boundary_confirmed)
-        context_row_two.addStretch(1)
-        file_layout.addLayout(context_row_two)
-
-        self.fuel_override_panel = QFrame(file_section)
-        self.fuel_override_panel.setObjectName("fuelPathOverridePanel")
-        self.fuel_override_layout = QVBoxLayout(self.fuel_override_panel)
-        self.fuel_override_layout.setContentsMargins(0, 0, 0, 0)
-        self.fuel_override_panel.hide()
-        file_layout.addWidget(self.fuel_override_panel)
-
-        self.import_period_type.currentIndexChanged.connect(self._refresh_import_regions)
-        self.import_period_type.currentIndexChanged.connect(self._import_context_changed)
-        self.import_period_start.editingFinished.connect(self._refresh_import_regions)
-        self.import_period_end.editingFinished.connect(self._refresh_import_regions)
-        self.import_period_start.textChanged.connect(self._import_context_changed)
-        self.import_period_end.textChanged.connect(self._import_context_changed)
-        self.import_enterprise_name.textChanged.connect(self._import_context_changed)
-        self.import_region.currentIndexChanged.connect(self._import_context_changed)
-        self.import_boundary_confirmed.stateChanged.connect(self._import_context_changed)
-        self.body_layout.addWidget(file_section)
-
-        preview_section, preview_layout = create_excel_import_section(
-            "excelImportCheckSection", "03 数据检查与预览", self
-        )
-        self.preview_panel = ExcelImportPreviewPanel(preview_section)
-        self.preview_panel.units.currentCellChanged.connect(self._preview_unit_selection_changed)
-        self.preview_panel.set_details(
-            "选择工作簿并检查后，这里会显示核算单元状态、需要修正的单元格位置和导入提醒。"
-        )
-        self.preview_text = self.preview_panel.details
-        preview_layout.addWidget(self.preview_panel)
-        self.body_layout.addWidget(preview_section)
-
-        action_section, project_layout = create_excel_import_section(
-            "excelImportActionSection", "04 保存项目、正式核算与结果", self
-        )
-        project_layout.addWidget(
-            QLabel("预览不会生成正式记录。先保存有效核算单元为项目，再主动执行正式核算。", action_section)
-        )
-        name_row = QHBoxLayout()
-        name_row.addWidget(QLabel("项目名称", action_section))
-        self.project_name = QLineEdit(action_section)
-        self.project_name.setObjectName("excelProjectName")
-        self.project_name.setPlaceholderText("可为导入项目填写名称")
-        name_row.addWidget(self.project_name, 1)
-        self.save_project_button = QPushButton("保存有效核算单元为项目", action_section)
-        self.save_project_button.setObjectName("saveExcelProjectButton")
-        self.save_project_button.clicked.connect(self._save_preview_as_project)
-        name_row.addWidget(self.save_project_button)
-        project_layout.addLayout(name_row)
-
-        saved_row = QHBoxLayout()
-        saved_row.addWidget(QLabel("已保存项目", action_section))
-        self.saved_projects = QComboBox(action_section)
-        self.saved_projects.setObjectName("savedExcelProjects")
-        saved_row.addWidget(self.saved_projects, 1)
-        self.open_project_button = QPushButton("打开项目", action_section)
-        self.open_project_button.setObjectName("openExcelProjectButton")
-        self.open_project_button.clicked.connect(self._open_selected_project)
-        saved_row.addWidget(self.open_project_button)
-        project_layout.addLayout(saved_row)
-
-        unit_row = QHBoxLayout()
-        unit_row.addWidget(QLabel("核算单元", action_section))
-        self.unit_selector = QComboBox(action_section)
-        self.unit_selector.setObjectName("canonicalUnitSelector")
-        self.unit_selector.currentIndexChanged.connect(self._selected_unit_changed)
-        unit_row.addWidget(self.unit_selector, 1)
-        self.calculate_button = QPushButton("正式计算排放量", action_section)
-        self.calculate_button.setObjectName("formalCalculateButton")
-        self.calculate_button.clicked.connect(self._calculate_selected_unit)
-        unit_row.addWidget(self.calculate_button)
-        self.material_upgrade_button = QPushButton("升级输入规则副本", action_section)
-        self.material_upgrade_button.setObjectName("upgradeMaterialProjectButton")
-        self.material_upgrade_button.clicked.connect(self._upgrade_material_project)
-        unit_row.addWidget(self.material_upgrade_button)
-        project_layout.addLayout(unit_row)
-
-        record_row = QHBoxLayout()
-        record_row.addWidget(QLabel("本单元正式记录", action_section))
-        self.unit_record_selector = QComboBox(action_section)
-        self.unit_record_selector.setObjectName("unitRecordSelector")
-        record_row.addWidget(self.unit_record_selector, 1)
-        self.open_record_button = QPushButton("查看核算记录", action_section)
-        self.open_record_button.setObjectName("openUnitRecordButton")
-        self.open_record_button.clicked.connect(self._open_selected_record)
-        record_row.addWidget(self.open_record_button)
-        project_layout.addLayout(record_row)
-
-        self.status_label = QLabel(action_section)
-        self.status_label.setObjectName("excelWorkflowStatus")
-        self.status_label.setWordWrap(True)
-        self.status_label.setAccessibleName("表格导入操作结果")
-        project_layout.addWidget(self.status_label)
-        self.body_layout.addWidget(action_section)
-        self.body_layout.addStretch(1)
+        self._build_import_workspace()
 
         self._refresh_saved_projects()
         self._update_controls()
@@ -3183,6 +3014,173 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("记录存储尚未配置，无法打开正式记录。")
             return
         self.record_requested.emit(str(record_id))
+
+
+    def _build_import_workspace(self) -> None:
+        from .business_page_style import apply_business_page_style, surface
+        self.body_layout.setSpacing(16)
+        # Existing template region/identity retained; no new download implementation.
+        template_section, template_layout = surface("", self, "excelImportTemplateSection")
+        template_layout.setContentsMargins(16, 12, 16, 12)
+        template_row = QHBoxLayout()
+        template_note = QLabel(self.excel_adapter.template_description, template_section)
+        template_note.setWordWrap(True)
+        template_note.setObjectName("pageDescription")
+        template_row.addWidget(template_note, 1)
+        self.templateButton = QPushButton(self.excel_adapter.template_button_label, template_section)
+        self.templateButton.setObjectName("templateButton")
+        self.templateButton.clicked.connect(self._download_template)
+        template_row.addWidget(self.templateButton)
+        template_layout.addLayout(template_row)
+        self.body_layout.addWidget(template_section)
+
+        file_section, file_layout = surface("01 选择文件与核算信息", self, "excelImportFileSection")
+        file_row = QHBoxLayout()
+        file_row.setSpacing(12)
+        self.selectFileButton = QPushButton("选择 Excel 文件", file_section)
+        self.selectFileButton.setObjectName("selectFileButton")
+        self.selectFileButton.clicked.connect(self._choose_workbook)
+        file_row.addWidget(self.selectFileButton)
+        self.selected_file_label = QLabel("尚未选择工作簿", file_section)
+        self.selected_file_label.setObjectName("selectedExcelFile")
+        self.selected_file_label.setAccessibleName("已选择的 Excel 工作簿")
+        self.selected_file_label.setWordWrap(True)
+        file_row.addWidget(self.selected_file_label, 1)
+        self.preview_button = QPushButton("检查并预览", file_section)
+        self.preview_button.setObjectName("previewExcelWorkbookButton")
+        self.preview_button.setProperty("visualRole", "primary")
+        self.preview_button.clicked.connect(self._run_selected_workbook_preview)
+        file_row.addWidget(self.preview_button)
+        file_layout.addLayout(file_row)
+        note = QLabel("以下信息用于新工作簿导入；打开已保存项目时，以项目中保存的信息为准。", file_section)
+        note.setObjectName("pageDescription")
+        note.setWordWrap(True)
+        file_layout.addWidget(note)
+
+        self.import_enterprise_name = QLineEdit(file_section)
+        self.import_enterprise_name.setObjectName("importEnterpriseName")
+        self.import_enterprise_name.setPlaceholderText("可留空")
+        self.import_period_type = QComboBox(file_section)
+        self.import_period_type.setObjectName("importPeriodType")
+        for label, value in (("请选择", None), ("年度", PeriodType.ANNUAL.value),
+                             ("月度", PeriodType.MONTHLY.value), ("自定义期间", PeriodType.CUSTOM.value)):
+            self.import_period_type.addItem(label, value)
+        self.import_period_start = QLineEdit(file_section)
+        self.import_period_start.setObjectName("importPeriodStart")
+        self.import_period_start.setPlaceholderText("YYYY-MM-DD")
+        self.import_period_end = QLineEdit(file_section)
+        self.import_period_end.setObjectName("importPeriodEnd")
+        self.import_period_end.setPlaceholderText("YYYY-MM-DD")
+        self.import_region = QComboBox(file_section)
+        self.import_region.setObjectName("importRegion")
+        self.import_region.addItem("全国（使用全国路径）", None)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(8)
+        for label_text, widget, row, column, span in (
+            ("企业名称（可选）", self.import_enterprise_name, 0, 0, 2),
+            ("期间类型", self.import_period_type, 0, 2, 1),
+            ("开始日期", self.import_period_start, 2, 0, 1),
+            ("结束日期", self.import_period_end, 2, 1, 1),
+            ("电力地区", self.import_region, 2, 2, 1),
+        ):
+            label = QLabel(label_text, file_section)
+            label.setObjectName("detailFieldLabel")
+            label.setBuddy(widget)
+            widget.setAccessibleName(label_text)
+            grid.addWidget(label, row, column, 1, span)
+            grid.addWidget(widget, row + 1, column, 1, span)
+        for column in range(3):
+            grid.setColumnStretch(column, 1)
+        file_layout.addLayout(grid)
+        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", file_section)
+        self.import_boundary_confirmed.setObjectName("importBoundaryConfirmed")
+        file_layout.addWidget(self.import_boundary_confirmed)
+        self.fuel_override_panel = QFrame(file_section)
+        self.fuel_override_panel.setObjectName("fuelPathOverridePanel")
+        self.fuel_override_layout = QVBoxLayout(self.fuel_override_panel)
+        self.fuel_override_layout.setContentsMargins(0, 0, 0, 0)
+        self.fuel_override_panel.hide()
+        file_layout.addWidget(self.fuel_override_panel)
+        self.import_period_type.currentIndexChanged.connect(self._refresh_import_regions)
+        self.import_period_type.currentIndexChanged.connect(self._import_context_changed)
+        self.import_period_start.editingFinished.connect(self._refresh_import_regions)
+        self.import_period_end.editingFinished.connect(self._refresh_import_regions)
+        self.import_period_start.textChanged.connect(self._import_context_changed)
+        self.import_period_end.textChanged.connect(self._import_context_changed)
+        self.import_enterprise_name.textChanged.connect(self._import_context_changed)
+        self.import_region.currentIndexChanged.connect(self._import_context_changed)
+        self.import_boundary_confirmed.stateChanged.connect(self._import_context_changed)
+        self.body_layout.addWidget(file_section)
+
+        preview_section, preview_layout = surface("02 数据检查与预览", self, "excelImportCheckSection")
+        self.preview_panel = ExcelImportPreviewPanel(preview_section)
+        self.preview_panel.units.currentCellChanged.connect(self._preview_unit_selection_changed)
+        self.preview_panel.set_details("选择工作簿并检查后，这里会显示核算单元状态、需要修正的单元格位置和导入提醒。")
+        self.preview_text = self.preview_panel.details
+        preview_layout.addWidget(self.preview_panel)
+        self.body_layout.addWidget(preview_section)
+
+        action_section, project_layout = surface("03 保存项目与正式核算", self, "excelImportActionSection")
+        description = QLabel("预览不会生成正式记录。先保存有效核算单元为项目，再主动执行正式核算。", action_section)
+        description.setObjectName("pageDescription")
+        description.setWordWrap(True)
+        project_layout.addWidget(description)
+        actions = QGridLayout()
+        actions.setHorizontalSpacing(12)
+        actions.setVerticalSpacing(12)
+        self.project_name = QLineEdit(action_section)
+        self.project_name.setObjectName("excelProjectName")
+        self.project_name.setPlaceholderText("可为导入项目填写名称")
+        self.save_project_button = QPushButton("保存有效核算单元为项目", action_section)
+        self.save_project_button.setObjectName("saveExcelProjectButton")
+        self.save_project_button.clicked.connect(self._save_preview_as_project)
+        self.saved_projects = QComboBox(action_section)
+        self.saved_projects.setObjectName("savedExcelProjects")
+        self.open_project_button = QPushButton("打开项目", action_section)
+        self.open_project_button.setObjectName("openExcelProjectButton")
+        self.open_project_button.clicked.connect(self._open_selected_project)
+        self.unit_selector = QComboBox(action_section)
+        self.unit_selector.setObjectName("canonicalUnitSelector")
+        self.unit_selector.currentIndexChanged.connect(self._selected_unit_changed)
+        self.calculate_button = QPushButton("正式计算排放量", action_section)
+        self.calculate_button.setObjectName("formalCalculateButton")
+        self.calculate_button.setProperty("visualRole", "primary")
+        self.calculate_button.clicked.connect(self._calculate_selected_unit)
+        self.unit_record_selector = QComboBox(action_section)
+        self.unit_record_selector.setObjectName("unitRecordSelector")
+        self.open_record_button = QPushButton("查看核算记录", action_section)
+        self.open_record_button.setObjectName("openUnitRecordButton")
+        self.open_record_button.clicked.connect(self._open_selected_record)
+        for row, (caption, field, button) in enumerate((
+            ("项目名称", self.project_name, self.save_project_button),
+            ("已保存项目", self.saved_projects, self.open_project_button),
+            ("核算单元", self.unit_selector, self.calculate_button),
+            ("本单元正式记录", self.unit_record_selector, self.open_record_button),
+        )):
+            label = QLabel(caption, action_section)
+            label.setObjectName("detailFieldLabel")
+            label.setBuddy(field)
+            actions.addWidget(label, row, 0)
+            actions.addWidget(field, row, 1)
+            actions.addWidget(button, row, 2)
+        actions.setColumnStretch(1, 1)
+        project_layout.addLayout(actions)
+        upgrade_row = QHBoxLayout()
+        upgrade_row.addStretch(1)
+        self.material_upgrade_button = QPushButton("升级输入规则副本", action_section)
+        self.material_upgrade_button.setObjectName("upgradeMaterialProjectButton")
+        self.material_upgrade_button.clicked.connect(self._upgrade_material_project)
+        upgrade_row.addWidget(self.material_upgrade_button)
+        project_layout.addLayout(upgrade_row)
+        self.status_label = QLabel(action_section)
+        self.status_label.setObjectName("excelWorkflowStatus")
+        self.status_label.setWordWrap(True)
+        self.status_label.setAccessibleName("表格导入操作结果")
+        project_layout.addWidget(self.status_label)
+        self.body_layout.addWidget(action_section)
+        self.body_layout.addStretch(1)
+        apply_business_page_style(self)
 
 def create_page(
     route: AppRoute,

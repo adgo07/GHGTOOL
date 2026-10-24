@@ -79,8 +79,8 @@ class ExcelImportPreviewPanel(QFrame):
         self.units.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.units.setAlternatingRowColors(True)
         self.units.setWordWrap(True)
-        self.units.setMinimumHeight(66)
-        self.units.setMaximumHeight(190)
+        self.units.setMinimumHeight(86)
+        self.units.setMaximumHeight(300)
         header = self.units.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -96,12 +96,12 @@ class ExcelImportPreviewPanel(QFrame):
         self.details = QTextEdit(self)
         self.details.setObjectName("excelImportPreview")
         self.details.setReadOnly(True)
-        self.details.setMinimumHeight(96)
-        self.details.setMaximumHeight(130)
+        self.details.setMinimumHeight(160)
+        self.details.setMaximumHeight(280)
         self.details.setPlaceholderText("选择核算单元后，这里显示需要修正的单元格位置和导入提醒。")
         self.details.setAccessibleName("导入检查详情")
         self.details.setStyleSheet(
-            f"QTextEdit#excelImportPreview {{ background: {SURFACE_MUTED}; border: 1px solid {BORDER}; border-radius: 6px; padding: 6px; color: {PRIMARY_TEXT}; }}"
+            f"QTextEdit#excelImportPreview {{ background: {SURFACE_MUTED}; border: 1px solid {BORDER}; border-radius: 6px; padding: 10px; min-height: 160px; max-height: 280px; font-size: 14px; color: {PRIMARY_TEXT}; }}"
         )
         layout.addWidget(self.details)
 
@@ -135,8 +135,8 @@ class ExcelImportPreviewPanel(QFrame):
                     flags |= Qt.ItemFlag.ItemIsSelectable
                 item.setFlags(flags)
                 self.units.setItem(row_index, column_index, item)
-            self.units.setRowHeight(row_index, 34)
-        self.units.setFixedHeight(min(190, 66 + max(0, len(values) - 1) * 34))
+            self.units.setRowHeight(row_index, 42)
+        self.units.setFixedHeight(min(300, 86 + max(0, len(values) - 1) * 42))
         self.units.clearSelection()
         if values and selectable:
             self.units.selectRow(0)
