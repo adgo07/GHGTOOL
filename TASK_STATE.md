@@ -16,4 +16,6 @@
 
 当前报告IMPLEMENTATION_REPORT.md；新证据入口integration/qt-lifecycle/README.md与fuel-capture/review.html。原1071/1072完整失败和cd4 HOLD断点保留，Numeric副本污染已移出工作树且原扫描复验通过；没有采用绕本地门禁的方案B。源会话主动wait/read，无需重试先前被拒的跨聊天状态消息。
 
+发布前完整分支差异检查仅清理开发截图脚本末尾空行，AST/token等价证明在qt-lifecycle/post-full-capture-eof.json；程序/测试/Canonical与1074受验字节一致，旧截图脚本身份不改。原始日志末尾空行按证据目录属性保留，不为这些证据/EOF修正触发重复完整回归。
+
 平台 / Contract预检查：业务仓受验父提交cd4d32d0f09b2e9f3f2a0e27146a20e750166900，实际worktree/origin/HEAD/status均已核；origin为adgo07/GHGTOOL，最新fetch后origin/main仍092604639cd5b2b61fef1523f87fcd711d8aefea且为当前分支祖先，默认main，不需合并调整。沿用codex/ui-business-layout，不重置成果。中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20，已核中央origin、锁定Architecture V2.1及当前UI指南v0.2。适用MUST/MUST NOT：保持Presentation/Application/Domain/Infrastructure分层，Domain不依赖Qt/SQLite/Windows；展示不回流正式计算；UI State不冒充公共Workspace；不可变Record与参数快照不漂移。无公共Contract冲突或需分类的新增偏差，无中央修改或Frozen adoption。本任务不涉及中央公共 Contract。相关Standard Issue：有，既有004/016/018、017、020；本任务改变既有软件解释：否；无新标准问题。

@@ -40,6 +40,8 @@
 
 完整原始log SHA256：bb87c7ac200458d16a6af08bbb7fdb7a84dc748f97f175702aeea8dbb4ee7302。受验父HEAD为cd4d32d0f09b2e9f3f2a0e27146a20e750166900；工作树实际身份由逐文件SHA清单确定，不把父HEAD当无差异受验提交。提交后核源码身份，最终发布head见PR/交付回执，避免文档自引用SHA。log/json/jsonl/txt按目录属性保留原始字节，代码与资源身份分列。
 
+完整分支差异检查随后只清理开发截图生成器scripts/capture_accounting_ca.py末尾多余空行；AST与有效token完全等价，运行程序、测试、Canonical资源字节仍与受验清单一致，见qt-lifecycle/post-full-capture-eof.json。不为无语义EOF清理机械重跑1074；截图历史脚本身份保留，不改旧摘要。原始统计日志自带末尾空行按证据属性保存，不修改日志字节。
+
 ## 视觉范围
 
 当前8源绑定入口：integration/qt-lifecycle/fuel-capture/review.html，1680/1180真实Qt展开图；摘要绑定8个UI源及捕获脚本，销毁后异常0、代理/边界/保值/零Record守卫通过。astra实际逐张局部视觉PASS，8/8源哈希匹配，未见来源/报告/未参与参数层次的视觉回退、裁切或重叠；astra只目视，自动守卫属于脚本执行，不冒称其亲自跑测试。

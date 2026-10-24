@@ -1,0 +1,8 @@
+{
+  "path": "scripts/capture_accounting_ca.py",
+  "before_sha256": "a78aa99fc1ed14589c35413e545f756b56bed0a3978120bd7cc5a91ff8a68308",
+  "after_sha256": "54e46b42da08d8ae0c48efef397ee5f191b93c14e5623c8e3ae2481c3751bde9",
+  "ast_equal": true,
+  "effective_tokens_equal": true,
+  "scope": "Development screenshot generator EOF only; runtime/tests/canonical unchanged; historical screenshot script identities retained."
+}

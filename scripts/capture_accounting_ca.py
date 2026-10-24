@@ -152,5 +152,3 @@ with tempfile.TemporaryDirectory(prefix='qz-ca-preview-') as tmp:
  (OUT/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf8')
  window.hide();window.deleteLater()
  print('PASS: genuine controls, source states, 9 navigation transitions, single outer scroll; no callback errors.')
-
-
