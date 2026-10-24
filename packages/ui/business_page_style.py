@@ -4,6 +4,7 @@ Not an application theme. Styles are applied once; table reflow stays local.
 No business state, timers, assets, dependencies, locale, or business policy.
 """
 from __future__ import annotations
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QApplication, QFrame, QLabel, QStyle, QStyledItemDelegate,
     QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget)
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
@@ -29,7 +30,8 @@ class ReadableTable(QTableWidget):
         self._fitting_rows = False
         self.verticalHeader().setMinimumSectionSize(40)
         self.setItemDelegate(_CellWidgetDelegate(self))
-        self.horizontalHeader().sectionResized.connect(self._fit_rows)
+        self.horizontalHeader().sectionResized.connect(
+            self._fit_rows, Qt.ConnectionType.QueuedConnection)
 
     def resizeRowsToContents(self):
         self._fit_rows()
@@ -42,9 +44,11 @@ class ReadableTable(QTableWidget):
             super().resizeRowsToContents()
             # Qt's wrapped-item hint can omit stylesheet paint insets.
             # Keep space for the last line instead of clipping at the grid edge.
-            if self._row_padding:
-                for row in range(self.rowCount()):
-                    self.setRowHeight(row, self.rowHeight(row) + self._row_padding)
+            for row in range(self.rowCount()):
+                # Stretch headers can settle during the native resize pass.
+                # Include the hint at the final width before adding paint space.
+                height = max(self.rowHeight(row), self.sizeHintForRow(row))
+                self.setRowHeight(row, height + self._row_padding)
         finally:
             self._fitting_rows = False
 
