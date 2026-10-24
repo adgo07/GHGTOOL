@@ -12,7 +12,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPoint, QPointF, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPoint, QPointF, QRect, Qt
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QAbstractButton, QApplication, QComboBox, QLineEdit, QPushButton, QWidget
@@ -233,9 +233,22 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.page.quick_calculate_button.click()
         self.application.processEvents()
         self.application.processEvents()
+        # PR59 deliberately waits for layout/range stability before focus.
+        # Observe normal events within 100 ms; never force a product refresh.
+        viewport = self.shell.main_scroll_area.viewport()
+        deadline = time.monotonic() + 0.1
+        while time.monotonic() < deadline:
+            rectangle = QRect(row.carbon_direct.mapTo(viewport, QPoint()), row.carbon_direct.size())
+            if (self.application.focusWidget() is row.carbon_direct
+                    and viewport.rect().contains(rectangle)
+                    and not self.shell._content_geometry_refresh_pending):
+                break
+            self.application.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 5)
         self.assertTrue(self.page._source_cards["CAR-SRC-FUEL-001"].is_expanded)
         self.assertIn("未完成：请修正", self.page.calculation_status_hint.text())
         self.assertIs(self.application.focusWidget(), row.carbon_direct)
+        self.assertTrue(viewport.rect().contains(QRect(
+            row.carbon_direct.mapTo(viewport, QPoint()), row.carbon_direct.size())))
         self.assertEqual(self.page.record_repository.list_all(), ())
 
     def test_small_display_value_is_not_zeroed_or_written_to_input(self) -> None:
