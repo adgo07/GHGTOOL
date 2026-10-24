@@ -1,0 +1,11 @@
+warning: in the working copy of 'TASK_STATE.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'packages/ui/source_cards.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_g03_shell.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_g06_fgd_ui.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_g06_page.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_g07_records.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_navigation_background.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_uat02_geometry.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_uat02_usability.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_uat03_page.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/test_uir02_source_cards.py', CRLF will be replaced by LF the next time Git touches it

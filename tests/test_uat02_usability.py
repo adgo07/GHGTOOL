@@ -27,7 +27,7 @@ from packages.standards.carbon_material import EmissionSourceStatus, FuelPath, F
 from packages.ui.carbon_material_page import _display_amount, _display_compact_decimal
 from packages.ui.record_experience import format_amount
 from packages.ui.view_models import AppRoute
-from tests.ui_tree_helpers import tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_texts
 
 
 class UAT02UsabilityTests(unittest.TestCase):
@@ -59,6 +59,7 @@ class UAT02UsabilityTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def test_closed_selectors_and_year_do_not_consume_page_wheel(self) -> None:

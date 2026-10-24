@@ -1,0 +1,13 @@
+{"elapsed": 155.59400000000096, "pid": 18032, "physical_available_mb": 210.5390625, "system_load": 98, "memory_read_ok": true, "private_mb": 12.421875, "working_mb": 17.89453125, "page_faults": 4774}
+{"elapsed": 160.76599999999962, "pid": 18032, "physical_available_mb": 427.04296875, "system_load": 97, "memory_read_ok": true, "private_mb": 30.77734375, "working_mb": 44.77734375, "page_faults": 12656}
+{"elapsed": 165.76599999999962, "pid": 18032, "physical_available_mb": 429.10546875, "system_load": 97, "memory_read_ok": true, "private_mb": 39.484375, "working_mb": 58.8671875, "page_faults": 18702}
+{"elapsed": 170.76599999999962, "pid": 18032, "physical_available_mb": 364.80078125, "system_load": 97, "memory_read_ok": true, "private_mb": 110.2265625, "working_mb": 137.21875, "page_faults": 45505}
+{"elapsed": 175.78099999999904, "pid": 18032, "physical_available_mb": 472.88671875, "system_load": 97, "memory_read_ok": true, "private_mb": 139.05078125, "working_mb": 165.484375, "page_faults": 53028}
+{"elapsed": 180.78099999999904, "pid": 18032, "physical_available_mb": 391.09765625, "system_load": 97, "memory_read_ok": true, "private_mb": 179.13671875, "working_mb": 205.30078125, "page_faults": 63242}
+{"elapsed": 185.78099999999904, "pid": 18032, "physical_available_mb": 419.96484375, "system_load": 97, "memory_read_ok": true, "private_mb": 217.08203125, "working_mb": 243.2734375, "page_faults": 72985}
+{"elapsed": 190.78099999999904, "pid": 18032, "physical_available_mb": 364.71875, "system_load": 97, "memory_read_ok": true, "private_mb": 250.61328125, "working_mb": 276.5, "page_faults": 81509}
+{"elapsed": 195.78099999999904, "pid": 18032, "physical_available_mb": 293.2734375, "system_load": 98, "memory_read_ok": true, "private_mb": 277.7109375, "working_mb": 303.0078125, "page_faults": 88311}
+{"elapsed": 200.78099999999904, "pid": 18032, "physical_available_mb": 243.3125, "system_load": 98, "memory_read_ok": true, "private_mb": 310.3984375, "working_mb": 334.12109375, "page_faults": 96624}
+{"elapsed": 205.78099999999904, "pid": 18032, "physical_available_mb": 593.21484375, "system_load": 96, "memory_read_ok": true, "private_mb": 332.3828125, "working_mb": 355.50390625, "page_faults": 102107}
+{"elapsed": 210.78099999999904, "pid": 18032, "physical_available_mb": 698.67578125, "system_load": 95, "memory_read_ok": true, "private_mb": 367.33984375, "working_mb": 389.74609375, "page_faults": 110893}
+{"elapsed": 215.7970000000023, "pid": 18032, "physical_available_mb": 1079.05859375, "system_load": 93, "memory_read_ok": true, "private_mb": 0.07421875, "working_mb": 0.03125, "page_faults": 117350}

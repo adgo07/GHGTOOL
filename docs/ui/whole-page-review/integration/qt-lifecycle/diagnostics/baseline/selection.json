@@ -1,0 +1,11 @@
+{
+  "head": "cd4d32d0f09b2e9f3f2a0e27146a20e750166900",
+  "test_ids": [
+    "tests.test_uir04_finalization.UIR04FinalizationTests.test_business_error_is_clickable_and_expands_own_source_card",
+    "tests.test_uir04_finalization.UIR04FinalizationTests.test_common_window_sizes_keep_controls_visible_without_horizontal_scroll",
+    "tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible"
+  ],
+  "timeout_unchanged": 60,
+  "note": "Diagnostic prefix subset; not full regression evidence. Original scale data/assertions unchanged; sitecustomize samples child stacks/resources only.",
+  "page_sha256": "bb1208c2a829e3715423440d0bdfe0da7124fe3e4e9fbac37fb04ebad421612e"
+}

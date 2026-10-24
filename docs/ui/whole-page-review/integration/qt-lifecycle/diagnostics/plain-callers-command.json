@@ -1,0 +1,18 @@
+[
+  "C:\\Users\\WANGWEI\\AppData\\Local\\uv\\python\\cpython-3.12.14-windows-x86_64-none\\python.exe",
+  "-B",
+  "-m",
+  "unittest",
+  "tests.test_g03_shell.G03ShellTest.test_all_routes_are_reachable_and_home_actions_share_routes",
+  "tests.test_g06_fgd_ui.G06FgdUiTests.test_confirmed_catalog_factor_is_locked_and_ratios_allow_only_default_or_measured",
+  "tests.test_g06_page.G06PageTests.test_blank_fuel_activity_is_distinct_from_explicit_zero",
+  "tests.test_g07_records.G07UiTests.test_closing_uncomputed_page_closes_without_confirmation",
+  "tests.test_navigation_background.NavigationBackgroundTests.test_background_changes_do_not_restyle_hidden_editors",
+  "tests.test_uat02_geometry.UAT02GeometryTests.test_dynamic_fuel_rows_resize_scroll_host_across_source_toggle",
+  "tests.test_uat02_usability.UAT02UsabilityTests.test_accounting_page_event_filter_follows_page_visibility",
+  "tests.test_uat03_page.UAT03AccountingPageV2Tests.test_catalog_fch_can_be_edited_with_explicit_calculated_or_measured_source",
+  "tests.test_uir02_source_cards.UIR02SourceCardTests.test_completed_summary_is_business_facing_and_hides_internal_names",
+  "tests.test_uir03_advanced_details.UIR03AdvancedDetailsTests.test_component_kinds_are_automatic_and_domain_values_remain_explicit",
+  "tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible",
+  "-v"
+]

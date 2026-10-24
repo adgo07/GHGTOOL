@@ -1,0 +1,18 @@
+test_business_error_is_clickable_and_expands_own_source_card (tests.test_uir04_finalization.UIR04FinalizationTests.test_business_error_is_clickable_and_expands_own_source_card) ... ok
+test_common_window_sizes_keep_controls_visible_without_horizontal_scroll (tests.test_uir04_finalization.UIR04FinalizationTests.test_common_window_sizes_keep_controls_visible_without_horizontal_scroll) ... ok
+test_common_windows_scale_factors_keep_controls_visible (tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible) ... FAIL
+
+======================================================================
+FAIL: test_common_windows_scale_factors_keep_controls_visible (tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_uir04_finalization.py", line 332, in test_common_windows_scale_factors_keep_controls_visible
+    self.assertEqual(
+AssertionError: 3221225477 != 0 : scale=1.5 failed
+stdout=
+stderr=
+
+----------------------------------------------------------------------
+Ran 3 tests in 109.562s
+
+FAILED (failures=1)

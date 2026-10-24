@@ -35,6 +35,7 @@ from packages.standards.carbon_material_normalization import MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
 from packages.ui.responsive_fields import ResponsiveFieldGrid
 from packages.ui.compact_choices import SegmentedChoiceControl
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 class UAT03AccountingPageV2Tests(unittest.TestCase):
@@ -55,6 +56,7 @@ class UAT03AccountingPageV2Tests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.page.close()
+        dispose_test_widget(self.page)
         self.app.processEvents()
 
     def _set_source(self, source_id: str, value: EmissionSourceStatus) -> None:

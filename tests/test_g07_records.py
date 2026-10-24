@@ -45,6 +45,7 @@ from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput
 from packages.ui.pages import RecordLibraryPage
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 STANDARD_ID = "gbt_32151_34_2024"
@@ -299,6 +300,7 @@ class G07UiTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
         self.directory.cleanup()
 

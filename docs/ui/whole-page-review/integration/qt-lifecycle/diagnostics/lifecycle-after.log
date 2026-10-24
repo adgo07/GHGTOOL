@@ -1,0 +1,6 @@
+test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed (tests.test_navigation_background.NavigationBackgroundTests.test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.090s
+
+OK

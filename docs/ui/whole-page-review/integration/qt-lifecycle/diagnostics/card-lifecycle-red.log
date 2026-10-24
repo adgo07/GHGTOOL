@@ -1,0 +1,22 @@
+test_source_card_geometry_callback_is_cancelled_with_its_owner (tests.test_navigation_background.NavigationBackgroundTests.test_source_card_geometry_callback_is_cancelled_with_its_owner) ... FAIL
+
+======================================================================
+FAIL: test_source_card_geometry_callback_is_cancelled_with_its_owner (tests.test_navigation_background.NavigationBackgroundTests.test_source_card_geometry_callback_is_cancelled_with_its_owner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_navigation_background.py", line 85, in test_source_card_geometry_callback_is_cancelled_with_its_owner
+    self.assertEqual(errors, [])
+AssertionError: Lists differ: ['RuntimeError: libshiboken: Internal C++ [40 chars]ed.'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'RuntimeError: libshiboken: Internal C++ object (ContentScrollArea) already deleted.'
+
++ []
+- ['RuntimeError: libshiboken: Internal C++ object (ContentScrollArea) already '
+-  'deleted.']
+
+----------------------------------------------------------------------
+Ran 1 test in 0.110s
+
+FAILED (failures=1)

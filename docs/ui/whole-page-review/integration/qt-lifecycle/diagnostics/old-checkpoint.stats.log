@@ -1,0 +1,55 @@
+Sat Oct 24 14:11:02 2026    G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\build\ui-v2-integration\context-probe\old-checkpoint-part-019.prof
+
+         772784 function calls (742503 primitive calls) in 17.697 seconds
+
+   Ordered by: cumulative time
+   List reduced from 2333 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   17.698   17.698 <frozen runpy>:262(run_path)
+    861/2    0.101    0.000   17.617    8.808 {built-in method builtins.exec}
+        1    0.000    0.000   17.572   17.572 <frozen runpy>:91(_run_module_code)
+        1    0.000    0.000   17.572   17.572 <frozen runpy>:65(_run_code)
+        1    0.000    0.000   17.572   17.572 scripts/uir04_scale_acceptance.py:1(<module>)
+        1    2.772    2.772   17.513   17.513 scripts/uir04_scale_acceptance.py:18(main)
+   315/10    0.007    0.000   13.713    1.371 <frozen importlib._bootstrap>:1349(_find_and_load)
+   315/10    0.003    0.000   13.711    1.371 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+   308/13    0.004    0.000   13.699    1.054 <frozen importlib._bootstrap>:911(_load_unlocked)
+   644/24    0.001    0.000   13.671    0.570 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+   252/11    0.002    0.000   12.088    1.099 <frozen importlib._bootstrap_external>:993(exec_module)
+        1    0.076    0.076   11.167   11.167 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\apps\carbon_accounting_desktop\app.py:1(<module>)
+     36/6    0.000    0.000   10.835    1.806 {built-in method builtins.__import__}
+        1    0.000    0.000    9.683    9.683 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\__init__.py:1(<module>)
+        1    0.359    0.359    9.479    9.479 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\shell.py:1(<module>)
+        1    0.174    0.174    7.416    7.416 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\pages.py:1(<module>)
+        1    0.042    0.042    6.142    6.142 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\report_export.py:1(<module>)
+        1    0.000    0.000    5.569    5.569 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\infrastructure\reporting\__init__.py:1(<module>)
+        1    0.000    0.000    5.522    5.522 G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\infrastructure\reporting\word_renderer.py:1(<module>)
+        1    0.000    0.000    5.398    5.398 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\__init__.py:1(<module>)
+     1481    0.004    0.000    4.721    0.003 shibokensupport/signature/loader.py:68(feature_imported)
+     1481    0.003    0.000    4.718    0.003 shibokensupport/feature.py:135(feature_imported)
+      240    0.003    0.000    4.714    0.020 shibokensupport/feature.py:151(_mod_uses_pyside)
+      240    0.001    0.000    4.712    0.020 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\inspect.py:1279(getsource)
+      240    0.003    0.000    4.708    0.020 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\inspect.py:1258(getsourcelines)
+      240    0.004    0.000    4.703    0.020 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\inspect.py:1070(findsource)
+      213    0.002    0.000    4.662    0.022 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\linecache.py:36(getlines)
+      213    0.004    0.000    4.661    0.022 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\linecache.py:83(updatecache)
+      213    0.006    0.000    4.164    0.020 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\tokenize.py:453(open)
+      213    0.005    0.000    4.092    0.019 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\tokenize.py:360(detect_encoding)
+      235    0.001    0.000    4.083    0.017 C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\tokenize.py:384(read_or_stop)
+      235    4.082    0.017    4.082    0.017 {method 'readline' of '_io.BufferedReader' objects}
+      252    0.009    0.000    3.790    0.015 <frozen importlib._bootstrap_external>:1066(get_code)
+      256    3.736    0.015    3.736    0.015 {method 'read' of '_io.BufferedReader' objects}
+      252    0.002    0.000    3.700    0.015 <frozen importlib._bootstrap_external>:1187(get_data)
+        1    0.000    0.000    3.622    3.622 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\api.py:1(<module>)
+        1    0.000    0.000    3.507    3.507 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\package.py:1(<module>)
+        1    0.000    0.000    2.877    2.877 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\opc\package.py:1(<module>)
+        1    0.000    0.000    2.277    2.277 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\opc\part.py:1(<module>)
+  308/306    0.002    0.000    1.753    0.006 <frozen importlib._bootstrap>:806(module_from_spec)
+    16/15    0.000    0.000    1.731    0.115 <frozen importlib._bootstrap_external>:1291(create_module)
+    16/15    1.633    0.102    1.731    0.115 {built-in method _imp.create_dynamic}
+        1    0.001    0.001    1.546    1.546 G:\Python Project\GHGTOOL\.venv\Lib\site-packages\docx\oxml\__init__.py:1(<module>)
+    16/15    0.000    0.000    1.228    0.082 <frozen importlib._bootstrap_external>:1299(exec_module)
+    16/15    0.658    0.041    1.228    0.082 {built-in method _imp.exec_dynamic}
+
+

@@ -1,0 +1,12 @@
+{"elapsed": 179.36000000000058, "pid": 20996, "physical_available_mb": 1733.125, "system_load": 89, "memory_read_ok": true, "private_mb": 0.37890625, "working_mb": 1.5078125, "page_faults": 407}
+{"elapsed": 184.375, "pid": 20996, "physical_available_mb": 1715.49609375, "system_load": 89, "memory_read_ok": true, "private_mb": 28.16015625, "working_mb": 41.7734375, "page_faults": 12121}
+{"elapsed": 189.375, "pid": 20996, "physical_available_mb": 1728.7265625, "system_load": 89, "memory_read_ok": true, "private_mb": 32.515625, "working_mb": 47.546875, "page_faults": 13849}
+{"elapsed": 194.375, "pid": 20996, "physical_available_mb": 1690.90234375, "system_load": 89, "memory_read_ok": true, "private_mb": 39.96875, "working_mb": 58.27734375, "page_faults": 18297}
+{"elapsed": 199.375, "pid": 20996, "physical_available_mb": 1538.34765625, "system_load": 90, "memory_read_ok": true, "private_mb": 126.20703125, "working_mb": 152.98828125, "page_faults": 50065}
+{"elapsed": 204.375, "pid": 20996, "physical_available_mb": 1646.76171875, "system_load": 89, "memory_read_ok": true, "private_mb": 149.734375, "working_mb": 176.31640625, "page_faults": 56757}
+{"elapsed": 209.375, "pid": 20996, "physical_available_mb": 1593.69921875, "system_load": 90, "memory_read_ok": true, "private_mb": 195.71484375, "working_mb": 222.34765625, "page_faults": 68565}
+{"elapsed": 214.375, "pid": 20996, "physical_available_mb": 1608.91796875, "system_load": 90, "memory_read_ok": true, "private_mb": 236.04296875, "working_mb": 261.484375, "page_faults": 78605}
+{"elapsed": 219.375, "pid": 20996, "physical_available_mb": 1558.71484375, "system_load": 90, "memory_read_ok": true, "private_mb": 269.8984375, "working_mb": 295.1640625, "page_faults": 87247}
+{"elapsed": 224.375, "pid": 20996, "physical_available_mb": 1528.140625, "system_load": 90, "memory_read_ok": true, "private_mb": 300.25390625, "working_mb": 325.12890625, "page_faults": 94935}
+{"elapsed": 229.375, "pid": 20996, "physical_available_mb": 1409.8671875, "system_load": 91, "memory_read_ok": true, "private_mb": 327.5703125, "working_mb": 351.03515625, "page_faults": 101906}
+{"elapsed": 234.375, "pid": 20996, "physical_available_mb": 1493.41015625, "system_load": 90, "memory_read_ok": true, "private_mb": 365.421875, "working_mb": 388.390625, "page_faults": 111488}

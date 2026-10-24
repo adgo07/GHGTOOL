@@ -23,6 +23,7 @@ from packages.ui.name_selector import NameSelector, chemical_label
 from packages.ui.compact_choices import SegmentedChoiceControl
 from packages.ui.shell import AppShell
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 class G06FgdUiTests(unittest.TestCase):
@@ -56,6 +57,7 @@ class G06FgdUiTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def _catalog_option(self, parameter_id: str):

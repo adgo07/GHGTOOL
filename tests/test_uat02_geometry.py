@@ -21,6 +21,7 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.persistence.in_memory_records import InMemoryRecordRepository
 from packages.standards.carbon_material import EmissionSourceStatus
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import dispose_test_widget
 
 
 class UAT02GeometryTests(unittest.TestCase):
@@ -52,28 +53,30 @@ class UAT02GeometryTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
+        dispose_test_widget(self.window)
         self.application.processEvents()
 
     def _process_layout_events(self, *, timeout_ms: int = 100) -> None:
-        """Wait briefly for queued Qt layout requests, then keep exact geometry checks."""
+        """Observe a stable exact geometry within the existing time budget."""
         self.application.processEvents()
         QTest.qWait(5)
         deadline = time.monotonic() + timeout_ms / 1000
-        stable_matches = 0
-        while stable_matches < 2 and time.monotonic() < deadline:
+        samples = []
+        while time.monotonic() < deadline:
             self.application.processEvents()
             expected_height = max(
                 self.shell.main_scroll_area.viewport().height(),
                 self.shell.page_stack.sizeHint().height(),
             )
-            if self.shell.scroll_host.height() == expected_height:
-                stable_matches += 1
-            else:
-                stable_matches = 0
-            if stable_matches < 2:
-                QTest.qWait(1)
-        self.application.processEvents()
-        self._assert_scroll_geometry_matches_page()
+            sample = (self.shell.scroll_host.height(), expected_height,
+                      self.shell.main_scroll_area.verticalScrollBar().maximum())
+            samples.append(sample)
+            if len(samples) >= 8 and samples[-3:] == [sample] * 3 and sample[0] == sample[1]:
+                # Do not dispatch an unobserved extra event turn after settling.
+                self._assert_scroll_geometry_matches_page()
+                return
+            QTest.qWait(1)
+        self.fail(f"正常布局事件在原{timeout_ms}ms内未稳定：height/expected/scroll_max={samples}")
 
     def _assert_scroll_geometry_matches_page(self) -> None:
         expected_height = max(

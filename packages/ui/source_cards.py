@@ -198,7 +198,7 @@ class SourceCard(QFrame):
         shell = central_widget() if callable(central_widget) else None
         update_content_geometry = getattr(shell, "update_content_geometry", None)
         if callable(update_content_geometry):
-            QTimer.singleShot(0, update_content_geometry)
+            QTimer.singleShot(0, self, update_content_geometry)
         self._sync_controls()
 
     def _on_action_clicked(self) -> None:

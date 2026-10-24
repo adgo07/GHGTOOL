@@ -1,0 +1,34 @@
+Timeout (0:00:10)!
+Thread 0x00005228 (most recent call first):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\build\ui-v2-integration\context-probe\hook\sitecustomize.py", line 35 in sample
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1012 in run
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1075 in _bootstrap_inner
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1032 in _bootstrap
+
+Thread 0x0000080c (most recent call first):
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\pathlib.py"Windows fatal exception: access violation
+
+Thread 0x00005228 (most recent call first):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\build\ui-v2-integration\context-probe\hook\sitecustomize.py", line 35 in sample
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1012 in run
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1075 in _bootstrap_inner
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\threading.py", line 1032 in _bootstrap
+
+Thread 0x0000080c (most recent call first):
+  File "C:\Users\WANGWEI\AppData\Local\uv\python\cpython-3.12.14-windows-x86_64-none\Lib\pathlib.py", line 1019 in read_bytes
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\standards\carbon_material_business_policy.py", line 223 in _fgd_document
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\standards\carbon_material_business_policy.py", line 243 in fgd_binding_conditions
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\application\carbon_accounting.py", line 232 in <genexpr>
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\application\carbon_accounting.py", line 232 in _verified_fuel_power_bindings
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\application\carbon_accounting.py", line 331 in create_g06_parameter_resolver
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\application\carbon_material_implementation.py", line 8 in create_calculator
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\application\standard_registry.py", line 78 in services
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\standard_editors.py", line 4 in _carbon_material_editor
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\standard_editors.py", line 14 in create_standard_editor
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\pages.py", line 3240 in create_page
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\shell.py", line 212 in _ensure_page
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\shell.py", line 522 in _show_route
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\routing.py", line 34 in navigate
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\packages\ui\shell.py", line 288 in navigate
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\scripts\uir04_scale_acceptance.py", line 61 in main
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\scripts\uir04_scale_acceptance.py", line 164 in <module>

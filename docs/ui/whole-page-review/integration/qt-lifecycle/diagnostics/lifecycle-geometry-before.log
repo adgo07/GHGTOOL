@@ -1,0 +1,23 @@
+test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed (tests.test_navigation_background.NavigationBackgroundTests.test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed) ... FAIL
+test_dynamic_fuel_rows_resize_scroll_host_across_source_toggle (tests.test_uat02_geometry.UAT02GeometryTests.test_dynamic_fuel_rows_resize_scroll_host_across_source_toggle) ... ok
+
+======================================================================
+FAIL: test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed (tests.test_navigation_background.NavigationBackgroundTests.test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\Python Project\GHGTOOL\.accept-tmp\ui-business-layout\tests\test_navigation_background.py", line 61, in test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed
+    self.assertEqual(errors, [])
+AssertionError: Lists differ: ['RuntimeError: libshiboken: Internal C++ [40 chars]ed.'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'RuntimeError: libshiboken: Internal C++ object (ContentScrollArea) already deleted.'
+
++ []
+- ['RuntimeError: libshiboken: Internal C++ object (ContentScrollArea) already '
+-  'deleted.']
+
+----------------------------------------------------------------------
+Ran 2 tests in 17.646s
+
+FAILED (failures=1)

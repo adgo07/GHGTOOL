@@ -2,15 +2,19 @@
 from __future__ import annotations
 import os
 import unittest
+from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QMainWindow, QVBoxLayout, QWidget
 from apps.carbon_accounting_desktop.config import AppConfig
 from apps.carbon_accounting_desktop.product import carbon_accounting_view_model
 from packages.ui.design_tokens import HOME_CANVAS_GRADIENT, PAGE_BACKGROUND, application_stylesheet
 from packages.ui.shell import AppShell
+from packages.ui.source_cards import SourceCard
+from packages.standards.carbon_material import EmissionSourceStatus
 from packages.ui.view_models import AppRoute
+from tests.ui_tree_helpers import dispose_test_widget
 
 class NavigationBackgroundTests(unittest.TestCase):
     @classmethod
@@ -35,10 +39,50 @@ class NavigationBackgroundTests(unittest.TestCase):
         self.window.resize(1280,800); self.window.show(); self.settle()
 
     def tearDown(self):
-        self.window.close(); self.settle()
+        self.window.close()
+        dispose_test_widget(self.window)
+        self.settle()
 
     def settle(self):
         for _ in range(4): self.app.processEvents()
+
+    def test_pending_geometry_callback_is_cancelled_when_shell_is_destroyed(self):
+        errors = []
+        config = AppConfig()
+        window = QMainWindow()
+        shell = AppShell(
+            carbon_accounting_view_model(), config.logo_path(), config.icons_directory(),
+            page_factory=lambda _route, _model, _navigate, parent: QWidget(parent),
+        )
+        window.setCentralWidget(shell)
+        # Destroy before the constructor's first queued geometry callback.
+        with patch("sys.excepthook", side_effect=lambda kind, value, trace:
+                   errors.append(f"{kind.__name__}: {value}")):
+            dispose_test_widget(window)
+            self.settle()
+        self.assertEqual(errors, [])
+
+    def test_source_card_geometry_callback_is_cancelled_with_its_owner(self):
+        errors = []
+        config = AppConfig()
+        window = QMainWindow()
+        shell = AppShell(
+            carbon_accounting_view_model(), config.logo_path(), config.icons_directory(),
+            page_factory=lambda _route, _model, _navigate, parent: QWidget(parent),
+        )
+        window.setCentralWidget(shell)
+        card = SourceCard("callback-test", "排放源回调", shell.page_stack.currentWidget())
+        status = QComboBox(card)
+        status.addItem("未启用", EmissionSourceStatus.NOT_INVOLVED)
+        status.addItem("已启用", EmissionSourceStatus.INVOLVED)
+        card.set_status_widget(status, not_involved_value=EmissionSourceStatus.NOT_INVOLVED,
+                                   involved_value=EmissionSourceStatus.INVOLVED)
+        status.setCurrentIndex(1)
+        with patch("sys.excepthook", side_effect=lambda kind, value, trace:
+                   errors.append(f"{kind.__name__}: {value}")):
+            dispose_test_widget(window)
+            self.settle()
+        self.assertEqual(errors, [])
 
     def test_background_changes_do_not_restyle_hidden_editors(self):
         class Probe(QObject):
