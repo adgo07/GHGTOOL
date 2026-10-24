@@ -1,0 +1,64 @@
+{
+  "code_head": "e2c7520ef58eb7623ddf0f8ba5a45be9193a1b30",
+  "reviewer": "astra",
+  "thread_id": "01a16b66-8d18-7302-a8d5-75e2417b8a82",
+  "turn_id": "01a16fcc-4e56-7252-8940-65401e991c57",
+  "result": "PASS_LIMITED_TO_REVIEWED_SCREENSHOTS",
+  "local_full_test_head": "5c0c34013db938f56924329b43861fa5890c52d3",
+  "changes_since_capture": [
+    "HANDOFF.md",
+    "IMPLEMENTATION_REPORT.md",
+    "TASK_STATE.md",
+    "tests/test_g03_shell.py"
+  ],
+  "all_29_captured_sources_identical_to_full_test_sources": true,
+  "reviewed_pngs": 60,
+  "reviewed_source_hashes": 29,
+  "published_pngs": {
+    "1440-standards.png": "3648915b71de00b265e29066787582badf8a7b87f540cbcf56ab607ef946471a",
+    "1440-factor-search-trace.png": "113b7986349f6b634d7265facf54e921c2ab985d7087e8f0329ce48db11cf624",
+    "1440-import-valid-synthetic-workbook-bottom.png": "c3bf05fc16961aba438a3af75a892ed6c9127dd011c9ad92053837b16c75600f",
+    "1440-records-restored.png": "31ddb8cfb9feaae3640f57634ae8c06f524abedcc2706a58b9ed9edfebecea42",
+    "1440-record-basis-bottom.png": "424bc8bf6009807bb77847b0790668d99db935c51cbbc4ca84bdbb938b11d64c",
+    "1440-settings-long-path.png": "bbbf9a7bedf5a9ac884ee3e68d559c5e66503032e3f4a09b41ef1664a21e414c",
+    "1440-home-protected.png": "0a47c35cc467d796443599e7a27cf0482b3137fa764fa67a75279f96a6a01d4c",
+    "1180-standards.png": "c408fe63e921cff11d65875b36d666b5f59f0aba505a6fefd04265aa07c9a781",
+    "1180-factor-search-trace.png": "459338ab5d94b447e19d22f178a8234f70e430a894622bc0d888ec91092b7d0d",
+    "1180-import-valid-synthetic-workbook-bottom.png": "bfc063ebfe580fae2012524f902e1a677ff971df2eae824be7206ea247470c87",
+    "1180-records-restored.png": "a169bb6e22e62856e40be7321be8e878cc356cdbabb73e16ae07b34db873c45d",
+    "1180-record-basis-bottom.png": "ac53c5430b03d4df0cc8d436cc999e85a7e82130b7a291cbe3e51da3e46e0c56",
+    "1180-settings-long-path.png": "b72da761a294de9563f6d24bf8e6985106475af36f3606b791ac4278f34903b1",
+    "1180-home-protected.png": "ddca649b94f9c1029d1dd49bed66d4b6e1f62e7974a173b70924607d3e713a18",
+    "1180-standard-detail-industry.png": "0b034124e7a2701dc54980039b4eb1c79b680764a6680cac7b113183036a6806",
+    "1180-standard-detail-general.png": "a0215ddbf8ab12d195aa01b4243f73a1bfc008c0515144b5595c82616ef889f2",
+    "1180-standard-detail-unavailable.png": "c5511f7004e14ce6ce63cd57dc339802fa175f99b71188f51cf44613a4537828",
+    "1180-factor-browse.png": "2b9fe83492123e6565b88c4ce7a88f5479cbefa84b81b10afe48b82da78056d9",
+    "1180-factor-longest-registered-value.png": "c732718ef6c64595bde8e95ccc775dcd3008bc4ec315710525115cee8372ffef",
+    "1180-import-initial.png": "b549d3c1ce722ee7b50754a37c9fdc670fab060cfc053674acea801bcf0f4a9f",
+    "1180-import-mixed-render-fixture-bottom.png": "6934fe8b5097e091e3dc90deca530580cc5169425d612927c1a3540bbaadfe4c",
+    "1180-import-saved-project-bottom.png": "bf743bb03ddcba460fde6ca6a11e8a7c43ebfe88f42395877cd6054dd2d79a10",
+    "1180-record-software-supplement-supplement.png": "74bc12f3158404c2e6d5cfb1159db9a3a7e47c704a4f7ba82e337d8b4ac1e2b8",
+    "1180-record-software-supplement-pending.png": "ed1cdb254255ac354d12eaa050861b09d33c94f63ac4aa9a59619f6d7c157088",
+    "1180-record-legacy-missing.png": "73bc38229b4cd2dc073ff1b2a52dffdabd22dcade23f7f30a54bade38b26a84c",
+    "1180-record-basis-source-bottom.png": "0c26342067210f9db10a03296307228c4406c50807e5d5973623871174f9d4c3",
+    "checkbox-baseline.png": "6494adf12b01c5173639875614c1a3f7e905e00a36441451bc407dfa216b6163",
+    "checkbox-business-page.png": "613060a3883fdbde52cc5f5dbec8ef877da2b22dac2ec04698132bc5bdb58ce2"
+  },
+  "closed_hold_items": [
+    "标准长文本及状态重叠",
+    "参数行裁切",
+    "来源展开入口",
+    "记录状态徽标",
+    "B.9单位"
+  ],
+  "limits": [
+    "只读视觉复验",
+    "未执行业务测试、原生交互测试或CI",
+    "不等同于正式发布验收"
+  ],
+  "original_evidence_archive": {
+    "name": "original-evidence.zip",
+    "sha256": "84a16bc933fab487430db34c365882db9d80e1f1264b08abe6ffc11935ea1ec4",
+    "files": 528
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "origin": "local Windows Python 3.12.14 Qt 6.11.2 offscreen; synthetic isolated stores",
+  "full_head": "5c0c34013db938f56924329b43861fa5890c52d3",
+  "full_tests": 1106,
+  "full_seconds": 2731.183,
+  "full_log_sha256": "e2c33a8d1096ef4da28a71b728d74f7aa965e6083fdeee1e9978f3062b73b93a",
+  "source_hashes_unchanged": true,
+  "diagnostics": "PYTHONFAULTHANDLER=1; original unittest CLI; no font injection in full run",
+  "targeted": [
+    {
+      "log": "visual-targeted-queued-final.log",
+      "tests": 74,
+      "seconds": 207.86,
+      "result": "OK",
+      "log_sha256": "f4372d5f5ca546ff142c3b8fc03f451fe29a8d935c6907b8599e0961d9803a46"
+    },
+    {
+      "log": "crash-adjacent-queued-final.log",
+      "tests": 27,
+      "seconds": 164.197,
+      "result": "OK",
+      "log_sha256": "398edd7bfe1036f7662e8510ae1f41077dacae2d9eadcc4f06c6748a21beaa11"
+    },
+    {
+      "log": "g03-approved-layout-final.log",
+      "tests": 13,
+      "seconds": 19.338,
+      "result": "OK",
+      "log_sha256": "828336847cebd50dd1bab7e67880ef60c2aa425105a5c8990d4df09972dff3c3"
+    },
+    {
+      "log": "resume-workflow-guards-final.log",
+      "tests": 39,
+      "seconds": 166.62,
+      "result": "OK",
+      "log_sha256": "b261f631a15fd01af5ab7b3d26faabccb45d48a423b83ebacc333530005055a2"
+    }
+  ],
+  "counts_overlap": true,
+  "canonical": {
+    "standards": 9,
+    "sources": 12,
+    "parameters": 102,
+    "factors": 138
+  },
+  "compileall_exit": 0,
+  "pip_check_exit": 0,
+  "limits": [
+    "workspace TEMP override",
+    "no native desktop, mouse, IME, Office, real enterprise sample or clean-machine acceptance"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "head": "5c0c34013db938f56924329b43861fa5890c52d3",
+  "main": "d7159f77ddb103376f5ca6bdd3a9532c101433e3",
+  "repository": "adgo07/GHGTOOL",
+  "protected_ast": {
+    "packages/ui/catalog_pages.py": true,
+    "packages/ui/pages.py": true,
+    "packages/ui/excel_import_components.py": true,
+    "packages/ui/record_tables.py": true
+  },
+  "protected_sources": {
+    "packages/ui/carbon_material_page.py": {
+      "unchanged": true,
+      "main_blob": "a1fd5192b530cac1fd220323f02366d01a72aceb",
+      "sha256": "10a5f65cdd00e9f115650249de78d87c5db8acc7a00c1e7d572553c957097930"
+    },
+    "packages/ui/carbon_material_fuel.py": {
+      "unchanged": true,
+      "main_blob": "e48129ab89c4a3b26797ca7c8f236bcbc1c754e1",
+      "sha256": "e3eb9ca525cd1b8e8d11a2e88dc7d909360280211d851d679931c34cddfa7fc7"
+    },
+    "packages/ui/shell.py": {
+      "unchanged": true,
+      "main_blob": "438060efb975abc57ae0e80c2595d240c430a647",
+      "sha256": "bd6904cab9825e3853666fb0423fa1344a200be3b3f74889e0c219dbf8c339cc"
+    },
+    "packages/ui/source_cards.py": {
+      "unchanged": true,
+      "main_blob": "e42cf48b34a6281ee80fa7049c781f5465b9c232",
+      "sha256": "64b1f93cf736dd0dbb04bff3629f67f98258c10ae69f4d6513d0171be0b1fb4b"
+    },
+    "packages/ui/source_directory.py": {
+      "unchanged": true,
+      "main_blob": "02885a335cda7910f6b75ef6a28dc7bd43821033",
+      "sha256": "65e31393a6c7075b1deba39aa12eabdda2ccf476468649d1c4d1f1234b3ff67f"
+    },
+    "packages/ui/compact_choices.py": {
+      "unchanged": true,
+      "main_blob": "f9c4a346381fdfec1d7acd4b4aede46fb404014e",
+      "sha256": "f6a02ae5e3e8a4a25e2a3142bf8272f75a749ffffd270b0342c1a6318409f13a"
+    },
+    "packages/ui/design_tokens.py": {
+      "unchanged": true,
+      "main_blob": "75921f6f84f272f2c15eeeeadb7ed760657c607c",
+      "sha256": "e1f64e76d353a97459b9c7efac09c3c01acb5d35f239dbb5d08ce28f4dfee5e5"
+    },
+    "packages/ui/responsive_fields.py": {
+      "unchanged": true,
+      "main_blob": "7c303de380df90d2b22f0966c2c2e8b27dfddab1",
+      "sha256": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860"
+    }
+  },
+  "excel_connections": {
+    "equal": true,
+    "original": 19,
+    "current": 19
+  },
+  "business_resource_changes": []
+}

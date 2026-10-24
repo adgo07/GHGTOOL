@@ -1,63 +1,50 @@
-# 五个业务页面 UI V2 — 视觉退修稳定断点
+# 五个业务页面 UI V2 实施报告
 
-当前完成本地局部修复，待astra新源复核、完整回归与独立PR。没有合并、发布或宣布标准正式支持。PR59已由源会话验收合并，本包基于其新main继续，证据不相互冒用。
+本地实施、限定视觉复核与完整回归已完成，当前准备独立范围 PR / required CI / 精确 head 候选包；尚未合并、发布或完成源会话独立验收。
 
-## 基线与受控范围
+## 身份与实施范围
 
-实际origin adgo07/GHGTOOL；4230226原断点干净，fetch后main d7159f77ddb103376f5ca6bdd3a9532c101433e3，正常merge仅冲突两份阶段文档，协调后恢复head1520fb9629efdb86a5505abccafa0653b9e8f0ae。原包仅在旧基线6旧blob/10目标符合后受控应用，原包hash及输出保留；不重套、不改预期hash、不整文件覆盖生产源。
+实际 origin 为 adgo07/GHGTOOL，分支 codex/ui-five-business-pages-v2。复用原4230226断点，正常吸收PR59合并后的main d7159f77ddb103376f5ca6bdd3a9532c101433e3；最终fetch确认main未变。原包仅在原基线6旧blob/10目标匹配后受控应用，原包apply_all SHA e52441f1311767faad0a4d13a44416303039925c11efbd18eda7b1866970da3a。未重套旧包、改预期hash或整文件覆盖生产源。
 
-只改catalog_pages、pages指定呈现方法、excel_import_components、record_tables的Qt显示，以及一个局部business_page_style模块；开发捕获和相关测试配套。所有未授权方法AST与main相同，8个核算/壳源无差异；Excel原构造与新构造+布局的connect AST多重集合19/19相同。Application/Core/Calculator/持久化/Canonical资源/依赖/workflow零改动。HomePage及其余pages类受protected_tree保护。
+生产仅五页呈现：标准库及详情、参数与因子库、表格导入、记录及详情、设置；一个局部business_page_style helper。标准编号及名称按最终字体/列宽呈现，徽标保留原模型文本供选择与辅助功能，仅避免cellWidget下重复绘字；参数来源可展开正文；记录徽标紧凑完整；冻结B.9等表头完整显示原单位。表格列宽变化通过Qt排队连接在表头布局完成后重排行高，保留最终提示最小高度，参数搜索单独留12px末行绘制空间，不加定时器或业务状态。
 
-## 本轮局部修复
+原首页、导航、壳、新建核算、Application/Core/Calculator/持久化/Canonical资源/依赖/workflow均未改。原包protected_tree核对所有未授权方法通过；8个核算/壳保护源与main一致；Excel原构造和新构造+布局的connect AST多重集合19/19相同。ReportTableCard只改显示宽度，不改冻结表式、投影、模板或Word。原标准ET、外部补充、软件合计分别展示；合成截图8.62/20.00/28.62仅是冻结完整值的显示修约，待补不补零。全局主题未改，复选框指示器与原主题对照像素一致。
 
-- 原模型文本保留供选择/辅助功能，仅在已有cellWidget覆盖的单元格避免重复绘制；不为隐藏重字清空状态数据。
-- 标准编号按最终字体及字重测量，名称按最终列宽换行。三张业务表仅在自身列宽/show/resize及既有刷新调用中重排行高，不加定时器或后台状态。
-- 参数搜索的Qt提示高度未含足实际末行绘制空间，额外留白只用于该表；守卫按实际文字换行高度检查，覆盖两尺寸、模式和同宽查询刷新。来源按钮恢复中文，实际展开来源正文补证。
-- 记录企业/标准列保留弹性，日期/状态/操作重新分配；状态徽标紧凑，按实际文字测量最小宽度，原文本和数据不改。
-- 冻结B.9等表头仅按原有文字测量可读列宽，完整显示kJ/kg，不改合并、表式、报告投影、模板或Word。
-- 捕获对内层布局先处理事件再定位；软件补充在现有输入/依据页签，保持业务路由。实际记录正值20.00/软件合计28.62与待填/未形成分别补图，原标准ET截图显示8.62（合成案例、冻结完整值仅作显示修约）。不再生成相同标准详情顶/底重复截图；没有删除旧原件。
-- 原主题与业务局部样式的原生QCheckBox离屏对照，指示器SHA完全相同，全局design_tokens与main一致；不顺手改变全局勾形。
+## 视觉与测试身份
 
-## 本地验证（数量重叠，不累计）
+r9从干净生产提交e2c7520ef58eb7623ddf0f8ba5a45be9193a1b30采集，真实Qt6.11.2/offscreen、DPR1、1440×1000与1180×800、合成隔离库；开发进程只登记本机已有Windows字体，产品无新增字体包。58页面图+2主题对照图、29源hash全部匹配，callback_errors为空。astra turn 01a16fcc-4e56-7252-8940-65401e991c57独立只读复验PASS（限截图）；52页面图与已审r8逐字节相同、6张变化图重查，原五项HOLD关闭。该结论不证明访问冲突根因、不代替业务/原生/CI/发布验收。
 
-Windows/Python3.12.14/Qt6.11.2/offscreen，全部合成输入及隔离库。开发捕获/特定字体运行器只登记本机已有Windows字体，不新增产品字体包。原始日志留build/ui-five-pages-check。
+本地完整验证head 5c0c34013db938f56924329b43861fa5890c52d3相对r9仅改G03旧布局预期和阶段文档，29项捕获源与完整测试源逐项SHA相同；生产未再次变化，不以旧图冒称新源图。后续证据/阶段文档提交不会重标该测试或截图head；最终PR head以PR/API及交付回执为准。
 
-| 命令或范围 | 实际结果 | 身份/边界 |
-|---|---|---|
-| python -B build/ui-five-pages-check/run_with_windows_fonts.py（最终九模块） | 74/74，178.555s | README原九模块加4个可读性守卫；原断言保留 |
-| python -B -m unittest tests.test_rs03_excel_project_workflow tests.test_rs03_excel_entrypoints tests.test_b_external_chain tests.test_rpt02_appendix_b -v | 39/39，166.620s | 实际Excel/项目/失效/Record/冻结Word保护；未操作Office |
-| 4项新增可读性专项 | 4/4，17.726s | 包含同宽查询刷新、实际文字高度和完整冻结单位字串 |
-| 原70项恢复组 | 70/70，123.275s | 增补4项前，不冒称新完整组 |
-| 首次74项 | 73通过/1失败，169.852s | 徽标实际104px小于108px，补足字体测量宽度后修复；原日志保留 |
-| 原包protected_tree＋保护源＋connect AST | 全部通过，19/19接线相同 | resumed-scope-proof.json；实际对main，不放宽原允许方法 |
-| r7开发捕获 | 58个页面状态＋2对照图，两尺寸，回调异常0 | dirty=true、父head1520+实际29源hash；不是最终干净head送验图 |
+## 本地真实验证（数量重叠，不累计）
 
-R4捕获错误地到summary找补充，R5把横向报告区标题的尾部空白当作必须完全入屏，均保留FAILED原件。修脚本定位既有input/basis及实际绘制文字，不移动数据、不放宽正式字段检查。R6虽完成捕获，目视发现提示高度断言仍不足以发现参数/B.9裁切，故继续局部修复后才得r7；不把R6列为视觉通过。原423断点的早期70/39及缺字r1/中间r2/r3HOLD均保留历史身份，不重标本轮。
+| 命令或范围 | 实际结果 |
+|---|---|
+| python -B -m unittest discover -s tests -t . -v | 1106/1106，2731.183s；原CLI，PYTHONFAULTHANDLER=1，无字体注入；源码前后hash一致，deleted Qt对象异常0 |
+| python -B build/ui-five-pages-check/run_with_windows_fonts.py | 74/74，207.860s；原九模块及4个可读性守卫，开发进程已有Windows字体 |
+| python -B -X faulthandler -m unittest tests.test_b_material_draft_scope tests.test_b_material_gui_excel tests.test_build_environment tests.test_business_field_policy_isolation tests.test_business_pages_visual -v | 27/27，164.197s；无字体注入的相邻模块组合 |
+| python -B -m unittest tests.test_g03_shell -v | 13/13，19.338s；批准布局预期同步，业务断言保留 |
+| python -B -m unittest tests.test_rs03_excel_project_workflow tests.test_rs03_excel_entrypoints tests.test_b_external_chain tests.test_rpt02_appendix_b -v | 39/39，166.620s；其后也包含在1106项原始整轮中 |
+| python -B scripts/validate_canonical.py | 9标准/12来源/102参数/138因子，exit0 |
+| python -B -m compileall -q apps packages resources scripts tests | exit0 |
+| python -B -m pip check；git diff --check | 无依赖冲突；通过 |
+
+完整原始日志SHA e2c33a8d1096ef4da28a71b728d74f7aa965e6083fdeee1e9978f3062b73b93a。以上均为本地执行，不能写成GitHub Actions结果。测试使用工作区TEMP及合成库，不操作用户工作簿或参考文件。GitHub CI尚待本次独立PR真实运行，不复用PR59旧CI/候选包。
+
+## 失败、修复及证据保留
+
+652301a上的首次完整CLI于1297.813s在第340项附近访问冲突0xC0000005退出，无最终测试摘要。单用例通过；相邻27项26通过/1失败136.004s，发现未注入字体下行高54<原提示63；首次仅补提示仍失败（27项26通过/1失败177.421s，同源74项通过220.792s）。诊断显示列宽回调在表头原生布局未完成时测量；Qt排队连接修复后27/74组通过。其后e2c完整1106项跑完2860.222s，1104通过/1失败/1错误，未复现访问冲突；两处是G03旧settingsSurface与01获取模板呈现断言，改为批准的两真实设置区块及顺序、Adapter原模板说明和三工作区标题，全部期间/地区/边界/模板/按钮/初始状态/首页导航业务断言保留。5c完整1106/1106通过；两轮均未复现原访问冲突，仍不宣称根因已确定。
+
+旧缺字r1、中间r2/r3HOLD、R4脚本错误定位补充、R5标题尾部空白可视判定、R6未完全解决裁切、R7脏树开发图、R8旧干净图及全部原始失败/诊断日志均保留，不重标为通过。原始证据528文件已在独立保留目录逐文件SHA/ZIP CRC复核，归档SHA 84a16bc933fab487430db34c365882db9d80e1f1264b08abe6ffc11935ea1ec4；本工作树忽略build暂不清理。
+
+仓库精选28图、全部60图/29源哈希索引、限定视觉回执及本地完整摘要见[证据页](docs/ui/business-pages-v2/review.html)。完整原始ZIP为本地保留证据，真实保留路径在最终交付回执，不写机器绝对路径进治理正文。
 
 ## 平台 / Contract预检查
 
-业务入口4230226，恢复head1520fb9，当前main d7159f77ddb103376f5ca6bdd3a9532c101433e3。中央origin再次核对并fetch，适用当前合并c5fc6d4的UIv0.2、产品规格与清单；locked中央ee5feb0cc34dbd99790500fadd0c4c932e202a20的Architecture V2.1保持。适用MUST/MUST NOT：分层，Domain不依赖Qt/SQLite/Windows；显示不回流计算；历史Record只消费冻结快照，不查当前Catalog补算；UI state不作为公共Workspace；不改变来源资格和标准状态。无冲突、偏差、adoption或中央修改。本任务不涉及中央公共 Contract。
+验证业务head5c0c34013db938f56924329b43861fa5890c52d3，main d7159f77ddb103376f5ca6bdd3a9532c101433e3；中央origin再次核验并fetch，适用当前正式合并c5fc6d4的UIv0.2及清单。locked中央ee5feb0cc34dbd99790500fadd0c4c932e202a20、Architecture V2.1及本仓Numeric Profile不变。MUST/MUST NOT：保持分层；Domain不依赖Qt/SQLite/Windows；显示不回流计算；历史Record只消费冻结快照，不查当前Catalog补算；UI state非公共Workspace；不改来源资格/标准状态。无冲突、adoption或中央修改。本任务不涉及中央公共 Contract。
 
-相关Standard Issue：有，既有004/016/018、017、020；改变软件解释：否；无新标准问题。整体标准状态仍由独立门禁决定，本UI不宣称SUPPORTED。
+相关Standard Issue：有，既有004/016/018、017、020；改变软件解释：否；无新标准问题，不宣布SUPPORTED。原生桌面/鼠标/系统DPI/IME/Office/企业真实样例/干净机未执行；离屏及脚本缩放测试不冒称这些验收。
 
-## 尚未完成
+## 剩余交付
 
-astra对最终干净源及新图复核、本包完整回归、独立范围PR/CI/精确包和源独立验收未完成。原生桌面/鼠标/系统DPI/IME/Office/企业真实样例未执行；离屏不冒称原生验收。工作包不自行合并或发布，用户参考文件与原包只读。接续先保存稳定代码再重采，不把截图父head、实际源hash与后续证据提交混为一个身份。
-
-## 完整回归异常后的稳定断点
-
-代码652301a的r8：astra只读视觉复验PASS，原60张PNG/29源哈希匹配，五项HOLD关闭；该结论限原截图范围。其后原始完整CLI运行1297.813s，在第340项附近访问冲突0xC0000005退出，无最终测试摘要，不计完整通过。原始日志SHA 1b4d9b0170093feb84020cc119673fef9d554e06562abfa5e9d009517e17ff53，全部源哈希未变。
-
-单一崩溃位置用例1/1通过8.608s；相邻27项未复现访问冲突，但26通过/1失败136.004s：标准列表行高54px低于原提示断言63px。首次仅补最终提示仍失败（27项26通过/1失败177.421s；同源74项通过220.792s），原件保留。诊断显示列宽信号回调在Qt表头布局未完成时测量；局部改用Qt排队连接，在最终宽度下重排并保留原提示最小高度。不加定时器，不改原断言/阈值/业务或受保护源。此修复不宣称已证明访问冲突原因，下一轮完整原始CLI启用PYTHONFAULTHANDLER=1捕获故障栈。
-
-修后实际本地：27/27，164.197s（crash-adjacent-queued-final.log）；74/74，207.860s（visual-targeted-queued-final.log）。这两组数量重叠，不累计。当前须提交稳定源后重新生成两尺寸截图、交astra复验，并完成完整回归；旧r8不直接背书改后源码。原始失败、开发图和日志不覆盖。
-
-软件补充截图的8.62/20.00/28.62仅为冻结完整值的显示修约，不改变Record或正式计算。
-
-## G03既有布局守卫同步断点
-
-e2c7520上的原始完整CLI已实际跑完1106项，2860.222s：1104通过、1失败、1错误；源哈希未变、deleted Qt对象异常0，本轮未复现访问冲突，不据此宣称已确定崩溃根因。原始日志SHA 0f619f23a77d3765b7b54cb2045ee106c3d46a6b0089a11b635a02e6af19ac78。
-
-两项未通过均为G03旧呈现预期：settingsSurface两列旧对象名、01获取模板旧独立标题。仅更新该测试文件：明确检查批准的导出位置/软件信息两个真实区块及顺序；模板区检查既有Adapter原说明，三个新工作区标题逐项检查。所有附录B/无R2、期间、地区、边界确认、只读预览、保存/正式核算/记录按钮、初始状态及首页/导航业务断言保留。完整G03模块13/13，19.338s。没有再次改生产源，r9的29项源哈希继续匹配。
-
-r9由astra独立只读复核PASS，head e2c7520ef58eb7623ddf0f8ba5a45be9193a1b30，29/29源与60/60图匹配、callback_errors为空；58页面图中52与r8逐字节一致，6张变化图已复看。审查turn 01a16fcc-4e56-7252-8940-65401e991c57。结论仅限截图，不证明崩溃根因，不代替完整回归/原生/CI/发布验收。下一步从仅测试与阶段文档变化的新干净提交完成原始完整CLI，不重采相同生产字节、不重复视觉送验，不把1104+13拼成完整通过。
+稳定证据批次独立PR，复用同head required checks；下载本次真实精确head制品并审计，结果分开标注GitHub和本地。不得改变workflow/付费预算/可见性、不得无变化重复触发CI。随后停止等待源会话独立验收，不自动合并或发布。
