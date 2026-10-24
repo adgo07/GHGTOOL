@@ -1,21 +1,15 @@
-# PR-B：整页V2本地完整回归PASS，待PR/CI与独立验收
+# PR59：两项 P2 修复，待最终截图、完整回归与独立验收
 
-2026-10-24：原始unittest完整1074/1074通过，0失败/错误、未列跳过，2741.635秒。运行期间源码/测试/资源SHA无变化，未处理的已删除Qt对象异常0。原100ms几何、45秒模态、每档60秒缩放限制均未改。完整身份/原始log/资源曲线见docs/ui/whole-page-review/integration/qt-lifecycle/full/。
+2026-10-25：五页 V2 已在独立分支保存并暂停；当前只处理 PR59。原 PR 仍开放，未合并或发布。
 
-## 完成范围与修复
+已恢复 FUME_V1 原有“时长（天）”输入，保留原值、单位和版本。取消升级不改变输入，明确升级保留原始状态。实际旧项目恢复、实际计算按钮验证：致命错误零 Record，成功新增 Record，重复计算不覆盖。
 
-已完成新建核算整页：八来源目录/十个身份、四态入口、3/2/1响应、真实控件/来源/草稿保留、单正文滚动、公共问题/结果/快照、错误定位。正式计算、来源资格、Canonical、数据库、Record/项目模型及标准支持状态不变，标准库提案未进入本变更。
+错误定位等待真实布局和主滚动区范围稳定，再滚动并聚焦。限制最多十二个事件轮次，使用 QObject 所有者；后续请求、切换来源、目标删除或页面销毁取消旧请求。补齐物料水分、换算方法和基准错误的控件映射。核算页专用命名颜色保持原值，不改变其他页面。
 
-正式集成发现并修复燃料原始source combo误显：只对已被SegmentedChoiceControl接管的data combo保持隐藏，真实按钮和未包装combo原行为保留。生命周期专项发现只close的测试窗口累积；11个每次setUp拥有的夹具在原断言/close后正确派发已请求的DeferredDelete，检查自身确实销毁，不关闭其他活窗口。销毁揭露两个排队回调访问已删除滚动区；shell构造和SourceCard展开各补QObject上下文，由Qt取消已销毁所有者的任务，不吞异常。新增2个先失败后通过的生命周期用例。生命周期收口相对cd4的原test_*方法AST不改、不删；几何辅助等待保留100ms与全部精确断言，按连续稳定完整状态返回，不强制刷新。
+专项 `python -B build/pr59-p2/run_targeted.py`：8/8 通过，108.776 秒；开发进程注册现有系统字体，Qt 回调异常 0。无字体注入的三模块原始 unittest 联合回归进行中。当前代码尚未执行新的全量、CI 或独立包验证，旧 a96 的本地 1074/1074 与 CI304 只证明旧身份。
 
-13用例同探针对照：旧前序缩放1.0超60秒、父进程13主窗口/约1561MiB；回收后13/13通过250.470秒，三档均0，结束主窗口/顶层对象0、启动子进程前约614MiB。插桩有开销且成功运行执行三档，不把总时间当性能提升。无探针完整1074全绿才是本轮正式本地证明。源码8哈希新2图由astra局部视觉PASS；旧151/42图/7图仍只背书各历史源。
+旧截图/诊断已原样归档：241 文件、82 PNG，ZIP 和逐文件 SHA256 均已复核；公共索引 `docs/ui/pr59-review/ARCHIVE_INDEX.json`。当前树的旧证据尚未删除。历史父 HEAD + 源码哈希绑定仍有效；压缩当前树不会缩小既有 Git history。后续将稳定代码单独提交，再捕获十四张真实 Qt 整窗图，区分代码提交与后续证据提交。
 
-## 当前交付状态
+平台 / Contract 预检查：本任务入口业务 HEAD a96f8ed90a1d9183a93de1c1185ab8906c979b07；origin 已核为 adgo07/GHGTOOL，默认 main，已 fetch 并沿用原任务分支。中央锁定 ee5feb0cc34dbd99790500fadd0c4c932e202a20；锁定 Architecture V2.1 与中央当前 UI 指南 v0.2 已读取。保持分层、展示不回流计算、UI State 不冒充公共 Workspace、正式 Record 不可变；无冲突、无中央修改或 Frozen adoption。本任务不涉及中央公共 Contract。相关 Standard Issue：004/016/018、017、020；改变既有软件解释：否；无新标准问题。
 
-完整回归通过后按用户要求提交唯一PR，由源会话设计/最终验收；当前尚未push/PR/CI/实包/合并。接续只允许稳定批次、复用既有workflow、核同head运行、保全精确PR-head包，不改费用/工作流，不先合并。PR/CI/制品身份写对应回执，不将CI结果写成本地执行。原生桌面/鼠标/IME/系统DPI、Office、企业真实样例未执行。
-
-当前报告IMPLEMENTATION_REPORT.md；新证据入口integration/qt-lifecycle/README.md与fuel-capture/review.html。原1071/1072完整失败和cd4 HOLD断点保留，Numeric副本污染已移出工作树且原扫描复验通过；没有采用绕本地门禁的方案B。源会话主动wait/read，无需重试先前被拒的跨聊天状态消息。
-
-发布前完整分支差异检查仅清理开发截图脚本末尾空行，AST/token等价证明在qt-lifecycle/post-full-capture-eof.json；程序/测试/Canonical与1074受验字节一致，旧截图脚本身份不改。原始日志末尾空行按证据目录属性保留，不为这些证据/EOF修正触发重复完整回归。
-
-平台 / Contract预检查：业务仓受验父提交cd4d32d0f09b2e9f3f2a0e27146a20e750166900，实际worktree/origin/HEAD/status均已核；origin为adgo07/GHGTOOL，最新fetch后origin/main仍092604639cd5b2b61fef1523f87fcd711d8aefea且为当前分支祖先，默认main，不需合并调整。沿用codex/ui-business-layout，不重置成果。中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20，已核中央origin、锁定Architecture V2.1及当前UI指南v0.2。适用MUST/MUST NOT：保持Presentation/Application/Domain/Infrastructure分层，Domain不依赖Qt/SQLite/Windows；展示不回流正式计算；UI State不冒充公共Workspace；不可变Record与参数快照不漂移。无公共Contract冲突或需分类的新增偏差，无中央修改或Frozen adoption。本任务不涉及中央公共 Contract。相关Standard Issue：有，既有004/016/018、017、020；本任务改变既有软件解释：否；无新标准问题。
+未执行：原生桌面、鼠标/IME/系统 DPI、Office、企业真实样例。最终由源会话独立验收，不自行合并或发布。

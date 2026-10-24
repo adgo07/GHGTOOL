@@ -1,4 +1,5 @@
 """Presentation-only directory: navigation never changes source participation."""
+from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent
 from .source_cards import SourceHeaderSwitch
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea
@@ -46,6 +47,7 @@ class SourceDirectory(QWidget):
         self.enable_buttons = {}
         self._scroll_positions = {}
         self._selected = None
+        self._selection_revision = 0
         self.titles = {key: title for key, title, card in entries}
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -53,7 +55,7 @@ class SourceDirectory(QWidget):
         nav = QFrame(self)
         nav.setObjectName("sourceDirectoryNavigation")
         nav.setFixedWidth(170)
-        nav.setStyleSheet("QFrame#sourceDirectoryNavigation {background:#F3F8FC;border:1px solid #DCE8F1;border-radius:9px;}")
+        nav.setStyleSheet(f"QFrame#sourceDirectoryNavigation {{background:{ACCOUNTING_COLORS['directory_surface']};border:1px solid {ACCOUNTING_COLORS['directory_border']};border-radius:9px;}}")
         links = QVBoxLayout(nav)
         links.setContentsMargins(10, 16, 10, 16)
         links.addWidget(QLabel("排放源目录", nav))
@@ -65,7 +67,7 @@ class SourceDirectory(QWidget):
             button.setObjectName("sourceDirectory_" + key)
             button.setCheckable(True)
             button.installEventFilter(self)
-            button.setStyleSheet("QPushButton {text-align:left;font-size:14px;padding:10px 8px;border:0;background:transparent;} QPushButton:checked {background:#DDEEF9;color:#096C9F;font-weight:600;} QPushButton:focus {border:1px solid #197CC2;}")
+            button.setStyleSheet(f"QPushButton {{text-align:left;font-size:14px;padding:10px 8px;border:0;background:transparent;}} QPushButton:checked {{background:{ACCOUNTING_COLORS['source_selected']};color:{ACCOUNTING_COLORS['directory_selected_text']};font-weight:600;}} QPushButton:focus {{border:1px solid {ACCOUNTING_COLORS['brand']};}}")
             button.clicked.connect(lambda checked=False, group=key: self.select(group))
             links.addWidget(button)
             self.buttons[key], self.indices[key] = button, i
@@ -117,6 +119,8 @@ class SourceDirectory(QWidget):
     def select(self, key, *, restore_scroll=True):
         if key not in self.indices:
             return
+        if key != self._selected:
+            self._selection_revision += 1
         scroll = self._outer_scroll()
         reading_editor = False
         if scroll is not None and self._selected is not None:

@@ -26,7 +26,9 @@ import hashlib
 import json
 import logging
 import re
+from weakref import ref
 from uuid import uuid4
+from shiboken6 import isValid
 
 from PySide6.QtCore import QDate, QEvent, QSignalBlocker, QTimer, Qt, Signal
 from PySide6.QtCore import QLocale
@@ -2496,9 +2498,7 @@ class CarbonMaterialAccountingPage(BasePage):
                     with QSignalBlocker(combo):
                         combo.clear()
                         combo.addItem(identity[key+"_name"], identity[key+"_id"])
-            row["upgrade_button"].setVisible(self._fume_execution_version != "FUME_V2")
-            row["segment_controls"].setVisible(self._fume_execution_version == "FUME_V2")
-            row["legacy_notice"].setVisible(self._fume_execution_version != "FUME_V2")
+            self._refresh_fume_row_mode(row)
         self._rebuild_fume_choices()
         for unit in self._process_rows.get("fgd", ()):
             for component in unit.get("components", ()):
@@ -3056,7 +3056,11 @@ class CarbonMaterialAccountingPage(BasePage):
         if record is not None:
             export_saved_record_report(self, self.record_repository, record)
 
-    def _scroll_to_widget(self, widget: QWidget) -> None:
+    def _scroll_to_widget(self, widget: QWidget, *, focus: bool = False) -> None:
+        self._scroll_request_generation = getattr(self, "_scroll_request_generation", 0) + 1
+        generation = self._scroll_request_generation
+        if not isValid(widget):
+            return
         ancestor = widget.parentWidget()
         while ancestor is not None:
             disclosure = getattr(ancestor, "_disclosure_button", None)
@@ -3066,8 +3070,53 @@ class CarbonMaterialAccountingPage(BasePage):
         if hasattr(self, "source_directory"):
             self.source_directory.reveal(widget)
         scroll_area = self.window().findChild(QScrollArea, "mainScrollArea")
-        if scroll_area is not None:
-            scroll_area.ensureWidgetVisible(widget)
+        if scroll_area is None:
+            if focus:
+                widget.setFocus(Qt.FocusReason.OtherFocusReason)
+            return
+        target_ref, scroll_ref = ref(widget), ref(scroll_area)
+        directory = getattr(self, "source_directory", None)
+        revision = getattr(directory, "_selection_revision", 0)
+        owner = scroll_area.parentWidget()
+        while owner is not None and not hasattr(owner, "_content_geometry_refresh_pending"):
+            owner = owner.parentWidget()
+        previous = None
+        focused = False
+
+        def settle(turn: int = 0) -> None:
+            nonlocal previous, focused
+            target, scroll = target_ref(), scroll_ref()
+            if (generation != self._scroll_request_generation or target is None or scroll is None
+                    or not isValid(target) or not isValid(scroll) or not self.isVisible()
+                    or (target is not self and not self.isAncestorOf(target))
+                    or not target.isVisibleTo(self)):
+                return
+            if directory is not None and (not isValid(directory)
+                    or revision != directory._selection_revision):
+                return
+            # Revealing a long source/disclosure posts layout and shell-range work.
+            # Recheck in bounded event turns, then verify once after focus changes.
+            scroll.ensureWidgetVisible(target, 16, 24)
+            position = target.mapTo(scroll.widget(), target.rect().topLeft())
+            viewport = scroll.viewport()
+            geometry = (position.x(), position.y(), target.width(), target.height(),
+                        scroll.verticalScrollBar().maximum(), scroll.widget().height(),
+                        viewport.width(), viewport.height())
+            rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
+            fits = (viewport.rect().contains(rectangle) if rectangle.width() <= viewport.width()
+                    and rectangle.height() <= viewport.height() else viewport.rect().intersects(rectangle))
+            pending = owner is not None and isValid(owner) and owner._content_geometry_refresh_pending
+            ready = turn >= 3 and previous == geometry and fits and not pending
+            previous = geometry
+            if ready:
+                if not focus or focused:
+                    return
+                target.setFocus(Qt.FocusReason.OtherFocusReason)
+                focused = True
+            if turn < 11:
+                QTimer.singleShot(0, self, lambda: settle(turn + 1))
+
+        QTimer.singleShot(0, self, settle)
 
     def _jump_to_source(self, _index: int) -> None:
         group_id = self.source_navigation.currentData()
@@ -3084,7 +3133,7 @@ class CarbonMaterialAccountingPage(BasePage):
             else self._source_cards.get(source_ids[0]) if source_ids else None
         )
         if card is not None:
-            QTimer.singleShot(0, self, lambda: self._scroll_to_widget(card))
+            self._scroll_to_widget(card)
 
     def _focus_validation_item(self, item: QTreeWidgetItem, _column: int = 0) -> None:
         target_name = item.data(0, Qt.ItemDataRole.UserRole)
@@ -3098,7 +3147,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if widget is None and card is not None:
             widget = card
         if widget is not None:
-            QTimer.singleShot(0, self, lambda _widget=widget: (self._scroll_to_widget(_widget), _widget.setFocus()))
+            self._scroll_to_widget(widget, focus=True)
 
     def _focus_first_error(self) -> None:
         for index in range(self.validation_list.topLevelItemCount()):
@@ -5143,13 +5192,19 @@ class CarbonMaterialAccountingPage(BasePage):
         unit.currentIndexChanged.connect(self._mark_input_dirty)
         row["duration_unit"] = unit
         duration = row.get("duration_editor")
-        if isinstance(duration, QWidget):
-            segment_cells.append(labeled_field("本监测段时长", duration))
-        segment_cells.append(labeled_field("监测段时长单位", unit))
         form.set_cells(segment_cells)
         note = QLabel("每条为一个监测段；真实起止须为整小时，分钟和秒为0，不自动截断。时长优先用小时填写，与区间一致；天值按小时转天规范化校验。报告期独立，有缺口只计算已覆盖部分。", controls)
         note.setWordWrap(True)
         layout.addWidget(controls)
+        # The original editor is shared by V1 and V2. Only segment metadata and
+        # its unit selector disappear for legacy input; never hide the V1 value.
+        duration_host = QWidget(host)
+        duration_form = AdaptiveFieldLayout(duration_host, maximum_columns=2)
+        duration_field = labeled_field("本监测段时长", duration)
+        row["duration_label"] = duration_field.findChild(QLabel)
+        row["duration_unit_field"] = labeled_field("监测段时长单位", unit)
+        duration_form.set_cells([duration_field, row["duration_unit_field"]])
+        layout.addWidget(duration_host)
         row["coverage_note"] = note
         button = QPushButton("确认采用监测分段输入", host)
         button.setObjectName(f"fume_{row['instance_id']}_upgrade")
@@ -5162,7 +5217,7 @@ class CarbonMaterialAccountingPage(BasePage):
         legacy_notice.setVisible(getattr(self,"_fume_execution_version","FUME_V2") != "FUME_V2")
         row["legacy_notice"] = legacy_notice
         layout.addWidget(legacy_notice)
-        controls.setVisible(getattr(self, "_fume_execution_version", "FUME_V2") == "FUME_V2")
+        self._refresh_fume_row_mode(row)
         # New row is not yet in _process_rows. Collect earlier choices explicitly.
         for key in ("source", "boundary"):
             combo = row[key+"_selector"]
@@ -5170,6 +5225,17 @@ class CarbonMaterialAccountingPage(BasePage):
                 previous = other[key+"_selector"]
                 if combo.findData(previous.currentData()) < 0:
                     combo.addItem(previous.currentText(), previous.currentData())
+
+    def _refresh_fume_row_mode(self, row):
+        legacy = getattr(self, "_fume_execution_version", "FUME_V2") != "FUME_V2"
+        row["segment_controls"].setVisible(not legacy)
+        row["duration_unit_field"].setVisible(not legacy)
+        row["upgrade_button"].setVisible(legacy)
+        row["legacy_notice"].setVisible(legacy)
+        row["coverage_note"].setVisible(not legacy)
+        caption = "时长（天）" if legacy else "本监测段时长"
+        row["duration_label"].setText(caption)
+        row["duration_editor"].setAccessibleName(caption)
 
     def _sync_fume_identity_name(self, row, key, text):
         owner = row.get(key+"_selector")
@@ -5216,9 +5282,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self._fume_upgrade_original_state = original
         self._fume_execution_version = "FUME_V2"
         for row in self._process_rows.get("fume", ()):
-            row["upgrade_button"].hide()
-            row["segment_controls"].show()
-            row["legacy_notice"].hide()
+            self._refresh_fume_row_mode(row)
         self._mark_input_dirty()
 
     def _fume_segment_inputs(self):
@@ -8536,6 +8600,10 @@ class CarbonMaterialAccountingPage(BasePage):
                                 continue
                             suffix = field_id.rsplit(material_id, 1)[-1].lower()
                             key = next((name for marker, name in (
+                                (".moisture_received_percent", "moisture_received_percent"),
+                                (".conversion_method", "conversion_method"),
+                                (".mass_basis", "mass_basis"),
+                                (".composition_basis", "composition_basis"),
                                 (".fixed_carbon", "fixed_carbon"),
                                 (".volatile_matter", "volatile_matter"),
                                 (".mass", "mass"),

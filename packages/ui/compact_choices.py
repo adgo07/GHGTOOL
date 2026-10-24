@@ -1,4 +1,5 @@
 """Connected segmented controls bind stable combo values without owning business state."""
+from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import QButtonGroup, QComboBox, QHBoxLayout, QToolButton, QRadioButton, QLabel, QWidget
 
@@ -36,29 +37,7 @@ class SegmentedChoiceControl(QWidget):
         combo.model().rowsInserted.connect(self._rebuild)
         combo.model().rowsRemoved.connect(self._rebuild)
         self.group.idClicked.connect(combo.setCurrentIndex)
-        self.setStyleSheet("""
-            QToolButton { min-height:32px; padding:4px 10px; border:1px solid #C8DCEB;
-                          border-radius:0; background:#FFFFFF; color:#486A80; font-size:14px; }
-            QToolButton[segmentPosition="first"] {
-                border-top-left-radius:7px; border-bottom-left-radius:7px;
-            }
-            QToolButton[segmentPosition="middle"], QToolButton[segmentPosition="last"] {
-                border-left:0;
-            }
-            QToolButton[segmentPosition="last"] {
-                border-top-right-radius:7px; border-bottom-right-radius:7px;
-            }
-            QToolButton[segmentPosition="single"] { border-radius:7px; }
-            QToolButton:checked { background:#E6F4FB; color:#075985; border-color:#197CC2; }
-            QToolButton:focus { border:2px solid #197CC2; }
-            QToolButton:disabled { color:#9AA9B3; background:#F3F6F8; }
-            QLabel#singleAllowedChoiceLabel {
-                min-height:32px; padding:4px 10px; border:1px solid #C8DCEB;
-                border-radius:7px; background:#F3F6F8; color:#486A80; font-size:14px;
-            }
-            QLabel#singleAllowedChoiceLabel:disabled { color:#9AA9B3; }
-            QLabel#choiceConfirmationNotice { font-size:12px; color:#92651A; }
-        """)
+        self.setStyleSheet(f"\n            QToolButton {{ min-height:32px; padding:4px 10px; border:1px solid {ACCOUNTING_COLORS['choice_border']};\n                          border-radius:0; background:{ACCOUNTING_COLORS['white']}; color:{ACCOUNTING_COLORS['choice_text']}; font-size:14px; }}\n            QToolButton[segmentPosition=\"first\"] {{\n                border-top-left-radius:7px; border-bottom-left-radius:7px;\n            }}\n            QToolButton[segmentPosition=\"middle\"], QToolButton[segmentPosition=\"last\"] {{\n                border-left:0;\n            }}\n            QToolButton[segmentPosition=\"last\"] {{\n                border-top-right-radius:7px; border-bottom-right-radius:7px;\n            }}\n            QToolButton[segmentPosition=\"single\"] {{ border-radius:7px; }}\n            QToolButton:checked {{ background:{ACCOUNTING_COLORS['source_active_surface']}; color:{ACCOUNTING_COLORS['choice_selected_text']}; border-color:{ACCOUNTING_COLORS['brand']}; }}\n            QToolButton:focus {{ border:2px solid {ACCOUNTING_COLORS['brand']}; }}\n            QToolButton:disabled {{ color:{ACCOUNTING_COLORS['choice_disabled_text']}; background:{ACCOUNTING_COLORS['choice_disabled_surface']}; }}\n            QLabel#singleAllowedChoiceLabel {{\n                min-height:32px; padding:4px 10px; border:1px solid {ACCOUNTING_COLORS['choice_border']};\n                border-radius:7px; background:{ACCOUNTING_COLORS['choice_disabled_surface']}; color:{ACCOUNTING_COLORS['choice_text']}; font-size:14px;\n            }}\n            QLabel#singleAllowedChoiceLabel:disabled {{ color:{ACCOUNTING_COLORS['choice_disabled_text']}; }}\n            QLabel#choiceConfirmationNotice {{ font-size:12px; color:{ACCOUNTING_COLORS['choice_notice']}; }}\n        ")
         self._rebuild()
 
     def set_radio_style(self):
@@ -68,15 +47,7 @@ class SegmentedChoiceControl(QWidget):
         self._radio_style = True
         self.row.setSpacing(14)
         self.single_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self.setStyleSheet("""
-            QRadioButton {font-size:14px;spacing:7px;min-height:30px;color:#344E61;}
-            QRadioButton::indicator {width:14px;height:14px;border:1px solid #93A8B6;border-radius:8px;background:white;}
-            QRadioButton::indicator:checked {background:#147BB5;border:3px solid #CEE5F3;}
-            QRadioButton:focus {outline:1px solid #197CC2;}
-            QRadioButton:disabled {color:#9BA8B0;}
-            QLabel#singleAllowedChoiceLabel {font-size:13px;color:#526A7A;min-height:30px;border:0;padding:0;}
-            QLabel#choiceConfirmationNotice {color:#936026;font-size:12px;}
-        """)
+        self.setStyleSheet(f"\n            QRadioButton {{font-size:14px;spacing:7px;min-height:30px;color:{ACCOUNTING_COLORS['radio_text']};}}\n            QRadioButton::indicator {{width:14px;height:14px;border:1px solid {ACCOUNTING_COLORS['radio_border']};border-radius:8px;background:white;}}\n            QRadioButton::indicator:checked {{background:{ACCOUNTING_COLORS['radio_selected']};border:3px solid {ACCOUNTING_COLORS['radio_selected_border']};}}\n            QRadioButton:focus {{outline:1px solid {ACCOUNTING_COLORS['brand']};}}\n            QRadioButton:disabled {{color:{ACCOUNTING_COLORS['radio_disabled_text']};}}\n            QLabel#singleAllowedChoiceLabel {{font-size:13px;color:{ACCOUNTING_COLORS['single_choice_text']};min-height:30px;border:0;padding:0;}}\n            QLabel#choiceConfirmationNotice {{color:{ACCOUNTING_COLORS['radio_notice']};font-size:12px;}}\n        ")
         self._rebuild()
 
     def set_allowed_values(self, values):
