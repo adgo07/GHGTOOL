@@ -1,16 +1,17 @@
-# 五个业务页面 UI V2 — 恢复实施 / 视觉 HOLD
+# 五个业务页面 UI V2：视觉退修收口，待独立复核与完整回归
 
-2026-10-25恢复核查：实际origin为adgo07/GHGTOOL，已fetch，默认main，原分支干净且HEAD确为4230226d9969bdba6ba44811349bffc5add9fdba；最新origin/main为PR59合并提交d7159f77ddb103376f5ca6bdd3a9532c101433e3。五页与main的生产文件无重叠，正常merge只冲突当前两份阶段文档；按本阶段语义协调文档，保留原断点历史，不整文件覆盖生产源码、不重套原包或修改预期hash。PR59限定验收/CI306/精确6026包证据仍属PR59，不背书五页。中央origin再次核实并fetch，当前UI指南v0.2仍适用；locked ee5feb0不变。五页HOLD具体意见已从astra原会话重新读取，待逐项修正。
+2026-10-25。已复用4230226安全断点，正常合入PR59后的main，恢复提交1520fb9629efdb86a5505abccafa0653b9e8f0ae；分支codex/ui-five-business-pages-v2，origin为adgo07/GHGTOOL。原包受控应用的6旧blob/10目标检查历史保留，未重套包、修改预期hash或覆盖生产文件。
 
+当前局部修复：标准编号按已polish的加粗字体确定宽度，状态徽标不重复绘制底层文本；标准/参数/记录按最终列宽重排行高，参数搜索额外留出末行绘制空间；参数来源入口恢复中文并补实际展开正文；记录状态徽标紧凑且按实际字体留足宽度；B.9等冻结表头按原文测量可读宽度，不改表式、数据或Word。仅五页呈现范围，不改首页、壳、全局导航或新建核算。
 
-状态：恢复实施 / VISUAL HOLD。PR59 已经源会话独立验收并合并；复用 codex/ui-five-business-pages-v2 的4230226安全断点，保全既有源码和原始证据，五页仍未推送或建立PR。
+本地真实Qt定向组74/74通过，178.555秒；真实Excel/项目/冻结Record/Word保护组39/39通过，166.620秒。数量存在重叠，不累计。新增4个缩放/文字高度/来源/徽标/B.9守卫包含实际行高、原值和Record数量检查。此前74项中1个徽标宽度失败（104<108）已保留，按实际字体补足后4项专项通过，最终74项再通过；未减断言。
 
-实际 fetch 后基线 origin/main@092604639cd5b2b61fef1523f87fcd711d8aefea。原包只检查6旧文件哈希全部匹配，10目标与受保护AST/信号接线预检通过，再按原工具应用；未改预期hash、未叠加旧标准库包。当前所有源码、开发脚本、原始日志和截图均保留。
+开发r7共58个页面状态及2个QCheckBox对照图，1440×1000/1180×800，Qt6.11.2、DPR1、源码捕获期间未变、回调异常0。来源正文、软件补充正值与待填状态及B.9单位已实际可见。QCheckBox指示器原主题/本次局部样式像素SHA相同，全局主题与main相同，未顺手修改。开发图dirty=true，不作干净head正式送验图；接续先保存代码，再重采并交astra。
 
-最新相关真实Qt组70/70通过，37.694s（原README九模块＋6补充守卫，在同一进程登记本机既有Windows字体；原断言未减）。真实Excel/项目/失效及冻结Record/Word保护39/39通过68.485s，执行于后续冻结ET标签/参数详情最小高度调整前；业务实现字节未变，不将它冒称修后全量。Canonical 9/12/102/138、compileall、pip check和diff检查通过。尚未运行本包完整回归、CI或独立构建。
+限定方法AST全部通过；8个核算/壳保护源与origin/main逐字内容一致，Excel构造与布局的信号接线多重集合19/19一致；Application/Core/Calculator/持久化/Canonical资源/依赖/workflow零改动。证据在build/ui-five-pages-check/resumed-scope-proof.json。R4/R5捕获脚本失败及R6未完全解决裁切的开发图均保留，不混为通过。
 
-r3真实Qt60图在build/ui-five-pages-after-r3/，含两尺寸、源码SHA、字体/DPR/Qt/图片hash，回调异常0。astra核28源/60图hash全部匹配，但视觉HOLD：标准列表徽标叠字和编号/名称省略；参数长行裁切、来源展开入口/正文不足；记录列表裁切；B.9表头单位截断；需补补充量区域和核对复选框勾形。尚未实施这些后续修正。r1缺字图明确INVALID；r2仅中间稿，均不作最终视觉证据。
+尚未完成：astra对新源复验、本包完整回归、独立PR/CI/精确包与源会话验收。本包不合并、不发布。PR59源验收/CI306只证明PR59，不背书五页。
 
-本次已吸收PR59合并后的最新main；首页/全局导航/shell/新建核算等保护源保持与新main一致，五页相对新main不修改这些文件。业务、Catalog、Schema、模板、Word业务和依赖不改。详细边界、已执行项及剩余问题见IMPLEMENTATION_REPORT.md。
+平台 / Contract预检查：本轮入口4230226、恢复基线main d7159f77ddb103376f5ca6bdd3a9532c101433e3；central lock ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。已验证中央origin/fetch，当前合并指南c5fc6d4的UIv0.2适用；已读locked Architecture V2.1。保持分层、显示不回流计算、历史Record只消费冻结值、不查询当前Catalog补算、UI state非公共Workspace；无冲突、adoption或中央修改。本任务不涉及中央公共 Contract。相关既有Issue004/016/018、017、020；不改变解释，无新标准问题。
 
-平台 / Contract预检查：locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，已核中央origin并读取其当前已合并UI指南v0.2/产品家族规格/验收清单及locked Architecture V2.1。保持分层、展示不回流计算、历史Record不重算、UI state非公共Workspace；无冲突、adoption或中央修改。本任务不涉及中央公共 Contract。相关既有Issue004/016/018、017、020，不改变软件解释，无新标准问题。原生桌面/Office/IME未授权；本包不合并、不发布。
+原生桌面/鼠标/系统DPI/IME/Office/企业真实样例未执行；离屏字形字体登记只在开发进程，不新增产品字体或依赖。原始包和用户参考材料只读；完整历史断点由Git及原始日志保留。

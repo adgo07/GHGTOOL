@@ -154,6 +154,7 @@ class StandardLibraryPage(BasePage):
         self._refresh()
 
     def _build_page(self) -> None:
+        from .business_page_style import ReadableTable
         self.add_header("标准库", "查看已登记标准、适用范围与核算要求")
         self.page_title = self.findChild(QLabel, "pageTitle")
         self.page_description = self.findChild(QLabel, "pageDescription")
@@ -209,7 +210,7 @@ class StandardLibraryPage(BasePage):
         summary_row.addWidget(self.result_summary)
         list_card_layout.addLayout(summary_row)
 
-        self.standard_table = QTableWidget(list_card)
+        self.standard_table = ReadableTable(list_card)
         _configure_table(self.standard_table,
             ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"))
         self.standard_table.setObjectName("standardLibraryTable")
@@ -272,6 +273,7 @@ class StandardLibraryPage(BasePage):
         return "核算未开放"
 
     def _refresh(self) -> None:
+        from PySide6.QtGui import QFontMetrics
         status = _enum_data(self.status_filter.currentData(), CatalogStatus)
         results = self._service.search_standards(
             self.search_input.text(),
@@ -315,6 +317,11 @@ class StandardLibraryPage(BasePage):
                     badge = self._standard_badge(value, "standardCalculationBadge", "implemented", self.standard_table)
                     badge.setAccessibleName("软件支持：已实现核算；未改变正式支持状态")
                     self.standard_table.setCellWidget(row_number, column, badge)
+        self.standard_table.ensurePolished()
+        number_width = max((QFontMetrics(self.standard_table.item(row, 0).font().resolve(
+            self.standard_table.font())).horizontalAdvance(self.standard_table.item(row, 0).text())
+            for row in range(len(results))), default=150)
+        self.standard_table.setColumnWidth(0, number_width + 36)
         self.standard_table.resizeRowsToContents()
         content_height = self.standard_table.horizontalHeader().height() + self.standard_table.verticalHeader().length() + 6
         self.standard_table.setMinimumHeight(min(560, max(260, content_height)))
@@ -731,6 +738,7 @@ class ParameterFactorLibraryPage(BasePage):
         self._refresh_tables()
 
     def _build_page(self) -> None:
+        from .business_page_style import ReadableTable
         from .business_page_style import surface
         self.body_layout.setSpacing(16)
         self.add_header(
@@ -883,7 +891,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_results_splitter = QSplitter(Qt.Orientation.Vertical, self.search_results_panel)
         self.search_results_splitter.setObjectName("referenceLibraryResultsSplitter")
         self.search_results_splitter.setChildrenCollapsible(False)
-        self.search_result_table = QTableWidget(self.search_results_splitter)
+        self.search_result_table = ReadableTable(self.search_results_splitter, row_padding=12)
         _configure_table(
             self.search_result_table,
             ("参数名称", "数值", "单位", "类别"),
@@ -1366,6 +1374,7 @@ class ParameterFactorLibraryPage(BasePage):
 
             trace_toggle = QToolButton(self.factor_detail_host)
             trace_toggle.setObjectName("parameterDetailTraceToggle")
+            trace_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
             trace_toggle.setCheckable(True)
             trace_toggle.setChecked(False)
             trace_toggle.setArrowType(Qt.ArrowType.RightArrow)

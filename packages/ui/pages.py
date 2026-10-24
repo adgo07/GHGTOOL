@@ -1549,7 +1549,7 @@ class RecordLibraryPage(BasePage):
         parent: QWidget | None = None,
         project_service=None,
     ) -> None:
-        from .business_page_style import apply_business_page_style, surface
+        from .business_page_style import ReadableTable, apply_business_page_style, surface
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
         self.project_service = project_service
@@ -1598,7 +1598,7 @@ class RecordLibraryPage(BasePage):
         self.result_count = QLabel(records_card)
         self.result_count.setObjectName("recordResultCount")
         records_layout.addWidget(self.result_count)
-        self.record_list = QTableWidget(records_card)
+        self.record_list = ReadableTable(records_card)
         self.record_list.setObjectName("recordTable")
         self.record_list.setAccessibleName("核算记录列表")
         self.record_list.setAccessibleDescription(
@@ -1617,9 +1617,10 @@ class RecordLibraryPage(BasePage):
         self.record_list.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.record_list.setTabKeyNavigation(True)
         self.record_list.verticalHeader().setVisible(False)
+        self.record_list.verticalHeader().setMinimumSectionSize(64)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((200, 120, 168, 160, 92, 110, 110)):
+        for column, width in enumerate((200, 96, 168, 106, 132, 96, 96)):
             self.record_list.setColumnWidth(column, width)
         self.record_list.horizontalHeader().setStretchLastSection(False)
         self.record_list.horizontalHeader().setMinimumSectionSize(96)
@@ -1851,7 +1852,15 @@ class RecordLibraryPage(BasePage):
                 status_badge.setProperty("warning", "true" if warning else "false")
                 status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 status_badge.setAccessibleName(f"记录状态：{status_label(summary.status)}")
-                self.record_list.setCellWidget(index, 4, status_badge)
+                status_host = QWidget(self.record_list)
+                status_host.setObjectName("recordBadgeCell")
+                status_layout = QHBoxLayout(status_host)
+                status_layout.setContentsMargins(4, 0, 4, 0)
+                status_badge.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+                status_layout.addWidget(status_badge, 0, Qt.AlignmentFlag.AlignCenter)
+                status_badge.ensurePolished()
+                status_badge.setMinimumWidth(status_badge.fontMetrics().horizontalAdvance(status_badge.text()) + 16)
+                self.record_list.setCellWidget(index, 4, status_host)
                 open_button = QPushButton("查看详情  ›", self.record_list)
                 open_button.setObjectName("openRecordRowButton")
                 open_button.setAccessibleName(f"打开 {company} 的核算记录详情")

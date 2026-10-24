@@ -1,11 +1,60 @@
 """Opt-in, presentation-only styles for the reference/import/record/settings pages.
 
-Not an application theme. Called once during page construction. No new runtime
-state, timer, assets, dependencies, locale, or business policy.
+Not an application theme. Styles are applied once; table reflow stays local.
+No business state, timers, assets, dependencies, locale, or business policy.
 """
 from __future__ import annotations
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QApplication, QFrame, QLabel, QStyle, QStyledItemDelegate,
+    QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget)
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
+
+
+class _CellWidgetDelegate(QStyledItemDelegate):
+    """Keep model/accessibility text, but paint it only once under cell widgets."""
+    def paint(self, painter, option, index):
+        if self.parent().indexWidget(index) is None:
+            return super().paint(painter, option, index)
+        cell = QStyleOptionViewItem(option)
+        self.initStyleOption(cell, index)
+        cell.text = ""
+        style = cell.widget.style() if cell.widget is not None else QApplication.style()
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, cell, painter, cell.widget)
+
+
+class ReadableTable(QTableWidget):
+    """Reflow wrapped rows when their actual column widths change, without timers."""
+    def __init__(self, parent=None, *, row_padding=0):
+        super().__init__(parent)
+        self._row_padding = row_padding
+        self._fitting_rows = False
+        self.verticalHeader().setMinimumSectionSize(40)
+        self.setItemDelegate(_CellWidgetDelegate(self))
+        self.horizontalHeader().sectionResized.connect(self._fit_rows)
+
+    def resizeRowsToContents(self):
+        self._fit_rows()
+
+    def _fit_rows(self, *_args):
+        if self._fitting_rows:
+            return
+        self._fitting_rows = True
+        try:
+            super().resizeRowsToContents()
+            # Qt's wrapped-item hint can omit stylesheet paint insets.
+            # Keep space for the last line instead of clipping at the grid edge.
+            if self._row_padding:
+                for row in range(self.rowCount()):
+                    self.setRowHeight(row, self.rowHeight(row) + self._row_padding)
+        finally:
+            self._fitting_rows = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_rows()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_rows()
 
 
 def surface(title: str, parent: QWidget, name: str = "businessSurface") -> tuple[QFrame, QVBoxLayout]:

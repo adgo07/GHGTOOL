@@ -39,9 +39,9 @@ def main():
     output = args.output.resolve()
     if output.exists(): parser.error("输出目录已存在，不覆盖既有证据")
     from PySide6 import __version__ as pyside_version
-    from PySide6.QtCore import QCoreApplication, QEvent, qVersion
+    from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QRect, Qt, qVersion
     from PySide6.QtGui import QFontInfo, QFontDatabase, QFont, QRawFont
-    from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
+    from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QScrollArea, QToolButton, QWidget
     from shiboken6 import isValid
     from openpyxl import load_workbook
     from apps.carbon_accounting_desktop.app import create_main_window
@@ -114,16 +114,36 @@ def main():
                     app.processEvents()
                     if errors: raise RuntimeError("Qt callback error: " + errors[-1])
 
-                def grab(name, *, target=None, pane=None, kind="actual-Qt-synthetic-data"):
+                def grab(name, *, target=None, pane=None, inner_target=None, kind="actual-Qt-synthetic-data"):
                     flush()
                     shell.main_scroll_area.verticalScrollBar().setValue(0)
                     if target is not None:
                         shell.main_scroll_area.ensureWidgetVisible(target, 0, 18)
-                    if pane is not None:
-                        pane.scroll_area.verticalScrollBar().setValue(pane.scroll_area.verticalScrollBar().maximum())
                     flush()
+                    if pane is not None:
+                        if inner_target is not None:
+                            top = inner_target.mapTo(pane.content, QPoint()).y()
+                            pane.scroll_area.verticalScrollBar().setValue(max(0, top - 8))
+                        else:
+                            pane.scroll_area.verticalScrollBar().setValue(pane.scroll_area.verticalScrollBar().maximum())
+                    flush()
+                    if inner_target is not None:
+                        viewport = pane.scroll_area.viewport()
+                        rectangle = QRect(inner_target.mapTo(viewport, QPoint()), inner_target.size())
+                        # A heading spans the horizontally scrollable report content;
+                        # prove its painted text, rather than trailing empty space, fits.
+                        rectangle.setWidth(min(rectangle.width(), inner_target.fontMetrics().horizontalAdvance(inner_target.text()) + 4))
+                        assert viewport.rect().contains(rectangle), (name, rectangle.getRect(), viewport.rect().getRect())
                     pixmap = window.grab()
                     filename = f"{width}-{name}.png"
+                    if name.startswith("standard-detail-") and name.endswith("-bottom"):
+                        previous = output / f"{width}-{name.removesuffix('-bottom')}.png"
+                        from PySide6.QtCore import QBuffer, QIODevice
+                        buffer = QBuffer()
+                        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+                        pixmap.save(buffer, "PNG")
+                        if previous.is_file() and previous.read_bytes() == bytes(buffer.data()):
+                            return
                     assert pixmap.save(str(output / filename))
                     current = shell.page_stack.currentWidget()
                     fonts = []
@@ -135,6 +155,9 @@ def main():
                         "image": [pixmap.width(), pixmap.height()], "dpr": pixmap.devicePixelRatio(),
                         "font": QFontInfo(window.font()).family(), "effective_fonts": fonts,
                         "outer_scroll": shell.main_scroll_area.verticalScrollBar().value(),
+                        "inner_scrolls": [{"name": area.objectName(), "value": area.verticalScrollBar().value(),
+                            "maximum": area.verticalScrollBar().maximum()} for area in current.findChildren(QScrollArea) if area.isVisible()],
+                        "target_visible": inner_target.text() if inner_target is not None else None,
                         "sha256": hashlib.sha256((output / filename).read_bytes()).hexdigest()})
 
                 shell.navigate(AppRoute.HOME)
@@ -174,7 +197,13 @@ def main():
                 toggle = factor.findChild(QToolButton, "parameterDetailTraceToggle")
                 if toggle is not None:
                     toggle.setChecked(True)
-                    factor.factor_detail_scroll.verticalScrollBar().setValue(factor.factor_detail_scroll.verticalScrollBar().maximum())
+                    flush()
+                    trace = factor.findChild(QWidget, "parameterDetailTrace")
+                    assert trace is not None and trace.isVisible()
+                    assert toggle.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+                    trace_top = toggle.mapTo(factor.factor_detail_scroll.widget(), QPoint()).y()
+                    factor.factor_detail_scroll.verticalScrollBar().setValue(trace_top)
+                    flush()
                     grab("factor-search-trace", target=factor.factor_detail_scroll)
                 longest = max((item for item in catalog.search_reference_library("") if item.asset is not None),
                               key=lambda item: len(item.value_text or ""))
@@ -243,7 +272,16 @@ def main():
                     record_page.detail_tabs.setCurrentIndex(0)
                     assert record_page.detail_tabs.currentIndex() == 0
                     grab("record-summary-" + key)
+                    # The existing frozen-model routing puts software supplement
+                    # in input/basis; do not move data between tabs for a screenshot.
+                    record_page.detail_tabs.setCurrentIndex(1)
+                    flush()
+                    supplement_heading = next(label for label in record_page.input_basis_view.findChildren(QLabel, "recordReportSectionTitle")
+                                              if "外部CO₂软件补充" in label.text())
+                    grab("record-software-supplement-" + key, target=record_page.detail_tabs,
+                         pane=record_page.input_basis_view, inner_target=supplement_heading)
                     if key == "supplement":
+                        record_page.detail_tabs.setCurrentIndex(0)
                         grab("record-summary-bottom", target=record_page.detail_tabs, pane=record_page.summary_view)
                         record_page.detail_tabs.setCurrentIndex(1)
                         grab("record-basis-bottom", target=record_page.detail_tabs, pane=record_page.input_basis_view)
@@ -263,6 +301,48 @@ def main():
                 flush()
                 assert not isValid(window)
                 window = None
+            # Compare native checkbox indicators under the unchanged baseline
+            # and page-local styles; this is evidence, not a theme modification.
+            from PySide6.QtCore import QBuffer, QIODevice
+            from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStyle, QStyleOptionButton
+            from packages.ui.design_tokens import application_stylesheet
+            from packages.ui.business_page_style import apply_business_page_style
+            indicator_hashes = {}
+            comparison_images = {}
+            for key in ("baseline", "business-page"):
+                probe = QWidget()
+                probe.setFont(QFont("Microsoft YaHei UI", 10))
+                probe.setStyleSheet(application_stylesheet())
+                if key == "business-page":
+                    apply_business_page_style(probe)
+                probe.resize(360, 70)
+                check = QCheckBox("已确认组织边界", probe)
+                check.setChecked(True)
+                QHBoxLayout(probe).addWidget(check)
+                probe.show()
+                flush()
+                option = QStyleOptionButton()
+                check.initStyleOption(option)
+                indicator = check.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, check)
+                pixmap = check.grab()
+                filename = f"checkbox-{key}.png"
+                assert pixmap.save(str(output / filename))
+                comparison_images[filename] = hashlib.sha256((output / filename).read_bytes()).hexdigest()
+                buffer = QBuffer()
+                buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+                assert pixmap.copy(indicator).save(buffer, "PNG")
+                indicator_hashes[key] = hashlib.sha256(bytes(buffer.data())).hexdigest()
+                probe.close()
+                probe.deleteLater()
+                flush()
+                assert not isValid(probe)
+            baseline_blob = git("rev-parse", "origin/main:packages/ui/design_tokens.py")
+            current_blob = git("hash-object", "--path=packages/ui/design_tokens.py", "packages/ui/design_tokens.py")
+            assert baseline_blob == current_blob
+            assert indicator_hashes["baseline"] == indicator_hashes["business-page"], indicator_hashes
+            summary["checkbox_comparison"] = {"images_sha256": comparison_images,
+                "indicator_sha256": indicator_hashes, "indicators_identical": True,
+                "baseline_theme_blob": baseline_blob, "global_theme_unchanged": True}
             assert summary["source_sha256"] == sources(), "source changed during capture"
             summary["status"] = "CAPTURE_COMPLETED_NOT_RELEASE_ACCEPTANCE"
     except BaseException:
@@ -277,6 +357,10 @@ def main():
         sys.excepthook = old_hook
         (output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf8")
         scenes = ''.join('<section><h2>' + s['file'] + '</h2><p>' + s['kind'] + '</p><img loading="lazy" src="' + s['file'] + '"></section>' for s in summary['scenes'])
+        if summary.get("checkbox_comparison"):
+            scenes += '<h2>原有复选框与局部样式对照</h2>' + ''.join(
+                '<section><h3>' + filename + '</h3><img src="' + filename + '"></section>'
+                for filename in summary["checkbox_comparison"]["images_sha256"])
         (output / "review.html").write_text('<!doctype html><meta charset="utf-8"><title>五页实际Qt</title><style>body{font:16px sans-serif;margin:24px;background:#edf3f8}section{margin:24px 0}img{max-width:100%;border:1px solid #bbb}</style><h1>五页实际Qt离屏图</h1><p>隔离合成数据；混合预览明确为渲染夹具，其他Excel场景使用合成工作簿和既有Adapter；非原生Windows/Office/IME验收。</p>' + scenes, encoding="utf8")
     print("Captured actual Qt pages:", output)
     return 0

@@ -1,50 +1,45 @@
-# 五个业务页面 UI V2 — 恢复实施报告
+# 五个业务页面 UI V2 — 视觉退修稳定断点
 
-2026-10-25恢复核查：实际origin为adgo07/GHGTOOL，已fetch，默认main，原分支干净且HEAD确为4230226d9969bdba6ba44811349bffc5add9fdba；最新origin/main为PR59合并提交d7159f77ddb103376f5ca6bdd3a9532c101433e3。五页与main的生产文件无重叠，正常merge只冲突当前两份阶段文档；按本阶段语义协调文档，保留原断点历史，不整文件覆盖生产源码、不重套原包或修改预期hash。PR59限定验收/CI306/精确6026包证据仍属PR59，不背书五页。中央origin再次核实并fetch，当前UI指南v0.2仍适用；locked ee5feb0不变。五页HOLD具体意见已从astra原会话重新读取，待逐项修正。
+当前完成本地局部修复，待astra新源复核、完整回归与独立PR。没有合并、发布或宣布标准正式支持。PR59已由源会话验收合并，本包基于其新main继续，证据不相互冒用。
 
+## 基线与受控范围
 
-本报告记录五页安全断点后的恢复，不是验收通过结论。PR59已由源会话独立验收合并，现复用五页分支既有成果，未推送/PR/CI/发布；不把本机路径写成治理身份。
+实际origin adgo07/GHGTOOL；4230226原断点干净，fetch后main d7159f77ddb103376f5ca6bdd3a9532c101433e3，正常merge仅冲突两份阶段文档，协调后恢复head1520fb9629efdb86a5505abccafa0653b9e8f0ae。原包仅在旧基线6旧blob/10目标符合后受控应用，原包hash及输出保留；不重套、不改预期hash、不整文件覆盖生产源。
 
-## 基线与范围
+只改catalog_pages、pages指定呈现方法、excel_import_components、record_tables的Qt显示，以及一个局部business_page_style模块；开发捕获和相关测试配套。所有未授权方法AST与main相同，8个核算/壳源无差异；Excel原构造与新构造+布局的connect AST多重集合19/19相同。Application/Core/Calculator/持久化/Canonical资源/依赖/workflow零改动。HomePage及其余pages类受protected_tree保护。
 
-实际origin为adgo07/GHGTOOL，实际fetch后origin/main为092604639cd5b2b61fef1523f87fcd711d8aefea。原包apply_all.py先--repo/--diff只检查：6个既有Git blob匹配，10文件及限定方法保护通过，再--apply。两次原输出与真实patch在build/ui-five-pages-check/；原包/目标摘要在checkpoint-identity.json。未修改预期hash，不回退main，不整文件覆盖旧代码，不叠加单标准库旧包。
+## 本轮局部修复
 
-生产变更仅catalog_pages.py、pages.py指定五页方法、excel_import_components.py、record_tables.py及新增business_page_style.py。HomePage与其余受保护AST、7个新建核算/壳相关源文件检查未变；Catalog/Resolver/Calculator/数值/Schema/模板/Word业务/依赖不变。原4230226断点当时未含PR59；本次正常合并最新main吸收PR59，其生产代码作为受保护基线保留，不将旧截图/测试重标为合并后的新证据。
+- 原模型文本保留供选择/辅助功能，仅在已有cellWidget覆盖的单元格避免重复绘制；不为隐藏重字清空状态数据。
+- 标准编号按最终字体及字重测量，名称按最终列宽换行。三张业务表仅在自身列宽/show/resize及既有刷新调用中重排行高，不加定时器或后台状态。
+- 参数搜索的Qt提示高度未含足实际末行绘制空间，额外留白只用于该表；守卫按实际文字换行高度检查，覆盖两尺寸、模式和同宽查询刷新。来源按钮恢复中文，实际展开来源正文补证。
+- 记录企业/标准列保留弹性，日期/状态/操作重新分配；状态徽标紧凑，按实际文字测量最小宽度，原文本和数据不改。
+- 冻结B.9等表头仅按原有文字测量可读列宽，完整显示kJ/kg，不改合并、表式、报告投影、模板或Word。
+- 捕获对内层布局先处理事件再定位；软件补充在现有输入/依据页签，保持业务路由。实际记录正值20.00/软件合计28.62与待填/未形成分别补图，原标准ET仍为冻结8.62（合成案例）。不再生成相同标准详情顶/底重复截图；没有删除旧原件。
+- 原主题与业务局部样式的原生QCheckBox离屏对照，指示器SHA完全相同，全局design_tokens与main一致；不顺手改变全局勾形。
 
-## 已做的局部修正
+## 本地验证（数量重叠，不累计）
 
-- 导入详情设置受全局QSS覆盖，实际minimumHeight=60；组件局部QSS恢复改稿160目标，保留失败断言。
-- 参数详情被分隔器压到约65高，补280最小高度，让改稿原定详情区可读。
-- 标准要求中的原有软件说明明确标为非标准原文要求；官方URL/禁用/接线保留，原文按钮移至操作行，不增加来源区。
-- 新摘要明确“原标准核算总量ET（冻结值）”，不把软件补充合计冒充标准ET，不改任何正式数值。
-- 捕获改为每种尺寸独立窗口和临时库、记录页签显式0、初始状态断言；区分混合渲染夹具和真实合成Excel Adapter/临时项目保存场景。记录正式合成seed后，预览和项目保存不增加Record。源码/脚本/字体/图片hash和实际尺寸/Qt/DPR/回调异常均记录。
-- 离屏环境未枚举字体，r1为缺字图已标INVALID；仅捕获/开发测试进程登记已有Windows系统字体，无产品字体包或新依赖。
+Windows/Python3.12.14/Qt6.11.2/offscreen，全部合成输入及隔离库。开发捕获/特定字体运行器只登记本机已有Windows字体，不新增产品字体包。原始日志留build/ui-five-pages-check。
 
-## 执行证据
-
-所有输出在build/ui-five-pages-check/，无未执行项冒称PASS。测试数量有重叠，不能相加为累计独立用例。
-
-| 命令/组 | 真实结果 | 边界 |
+| 命令或范围 | 实际结果 | 身份/边界 |
 |---|---|---|
-| python -B -m unittest tests.test_standard_library_pilot tests.test_business_pages_visual -v | 首次14项：13通过/1失败，11.367s | 导入详情60/160真实失败，随后局部修 |
-| README九模块原命令（逐模块名见readme-tests.log） | 64/64，36.883s | 增补守卫前；离屏默认字体环境 |
-| 补充后test_business_pages_visual | 首次14项/1 error，17.009s；修夹具后14/14，9.280s | 新增故障注入误向tuple赋值，改为替换tuple，未改业务断言 |
-| python -B build/ui-five-pages-check/run_with_windows_fonts.py | 70/70，37.694s | 同README九模块＋6新增守卫，已有系统字体登记；r3当前生产源 |
-| python -B -m unittest tests.test_rs03_excel_project_workflow tests.test_rs03_excel_entrypoints tests.test_b_external_chain tests.test_rpt02_appendix_b -v | 39/39，68.485s | 真实合成Excel预览/保存/打开/正式核算/失效、成功追加/失败零Record、冻结Record/Word不重算；后续仅ET标签/详情高度变化，不冒称最终完整回归 |
-| python -B scripts/capture_business_pages.py --output build/ui-five-pages-after-r3 | 60张，1440×1000/1180×800，Qt/PySide6 6.11.2，DPR1，回调异常0 | 本机字体字形守卫通过；真实离屏，非原生桌面/人工DPI/Office/IME |
-| python -B scripts/validate_canonical.py | 9 standards /12 sources /102 parameters /138 factors，exit0 | Canonical原内容不变 |
-| python -B -m compileall -q apps packages resources scripts tests | exit0 | 仅语法/编译 |
-| python -B -m pip check | No broken requirements，exit0 | 使用已有依赖，未安装升级 |
-| git diff --check；限定方法AST与保护文件检查 | PASS | 范围，不替代运行验收 |
+| python -B build/ui-five-pages-check/run_with_windows_fonts.py（最终九模块） | 74/74，178.555s | README原九模块加4个可读性守卫；原断言保留 |
+| python -B -m unittest tests.test_rs03_excel_project_workflow tests.test_rs03_excel_entrypoints tests.test_b_external_chain tests.test_rpt02_appendix_b -v | 39/39，166.620s | 实际Excel/项目/失效/Record/冻结Word保护；未操作Office |
+| 4项新增可读性专项 | 4/4，17.726s | 包含同宽查询刷新、实际文字高度和完整冻结单位字串 |
+| 原70项恢复组 | 70/70，123.275s | 增补4项前，不冒称新完整组 |
+| 首次74项 | 73通过/1失败，169.852s | 徽标实际104px小于108px，补足字体测量宽度后修复；原日志保留 |
+| 原包protected_tree＋保护源＋connect AST | 全部通过，19/19接线相同 | resumed-scope-proof.json；实际对main，不放宽原允许方法 |
+| r7开发捕获 | 58个页面状态＋2对照图，两尺寸，回调异常0 | dirty=true、父head1520+实际29源hash；不是最终干净head送验图 |
 
-## astra视觉HOLD与剩余项
-
-astra已核当前28源码（27UI模块＋脚本）和r3的60图，hash均匹配；2026-10-24给出限定HOLD，未修改代码/运行测试/操作桌面。标准详情信息层级及官方按钮位置、导入三段和底部、设置路径与按钮、记录双页签及删除入口未见阻塞重叠。
-
-须恢复后局部处理：标准列表状态徽标叠字，长编号省略及名称行高；参数搜索长行裁切、来源入口仅箭头及展开正文不足；记录列表企业/标准/状态裁切；B.9表头单位kJ/...截断；补拍正补充/待填补充区域。复选框蓝色无勾需先对照未改全局样式，不借此修改受保护全局主题。底部图有6对标准详情与顶图相同，后续证据可精简。
-
-尚未执行：上述视觉修正及复验、本包最终完整回归、CI、精确head实包、原生桌面/人工DPI/IME/Office/企业样例、独立验收。没有宣布正式支持或发布。
+R4捕获错误地到summary找补充，R5把横向报告区标题的尾部空白当作必须完全入屏，均保留FAILED原件。修脚本定位既有input/basis及实际绘制文字，不移动数据、不放宽正式字段检查。R6虽完成捕获，目视发现提示高度断言仍不足以发现参数/B.9裁切，故继续局部修复后才得r7；不把R6列为视觉通过。原423断点的早期70/39及缺字r1/中间r2/r3HOLD均保留历史身份，不重标本轮。
 
 ## 平台 / Contract预检查
 
-业务SHA/base见上；locked central ee5feb0cc34dbd99790500fadd0c4c932e202a20。中央origin实际核验，ACTIVE指南从其已fetch的origin/main读取，非中央脏工作树；UI指南v0.2、家族规格、相关验收清单，Frozen Architecture按locked SHA读取。MUST/MUST NOT为分层、展示不回流计算、不可变历史Record/参数快照不漂移、UI state不成为公共Workspace、官方原文使用已登记URL。不修改lock、不adopt、不变公共语义，未发现需中央处理冲突。本任务不涉及中央公共 Contract。既有Standard Issue004/016/018、017、020；本任务不改变软件解释，无新增问题。按用户优先级暂停本包，转PR59独立修复，不混分支。
+业务入口4230226，恢复head1520fb9，当前main d7159f77ddb103376f5ca6bdd3a9532c101433e3。中央origin再次核对并fetch，适用当前合并c5fc6d4的UIv0.2、产品规格与清单；locked中央ee5feb0cc34dbd99790500fadd0c4c932e202a20的Architecture V2.1保持。适用MUST/MUST NOT：分层，Domain不依赖Qt/SQLite/Windows；显示不回流计算；历史Record只消费冻结快照，不查当前Catalog补算；UI state不作为公共Workspace；不改变来源资格和标准状态。无冲突、偏差、adoption或中央修改。本任务不涉及中央公共 Contract。
+
+相关Standard Issue：有，既有004/016/018、017、020；改变软件解释：否；无新标准问题。整体标准状态仍由独立门禁决定，本UI不宣称SUPPORTED。
+
+## 尚未完成
+
+astra对最终干净源及新图复核、本包完整回归、独立范围PR/CI/精确包和源独立验收未完成。原生桌面/鼠标/系统DPI/IME/Office/企业真实样例未执行；离屏不冒称原生验收。工作包不自行合并或发布，用户参考文件与原包只读。接续先保存稳定代码再重采，不把截图父head、实际源hash与后续证据提交混为一个身份。

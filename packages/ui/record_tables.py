@@ -172,8 +172,16 @@ class ReportTableCard(QFrame):
         total_weight = sum(max(0.1, value) for value in weights)
         target_width = max(620, min(1280, 92 * column_count))
         table_width = 0
+        table.ensurePolished()
+        metrics = table.fontMetrics()
         for column, weight in enumerate(weights):
             width = max(66, min(240, round(target_width * max(0.1, weight) / total_weight)))
+            # Preserve frozen header text and merges; size only the visual cell.
+            header_width = max((metrics.horizontalAdvance(line)
+                for row in range(header_count)
+                if table.item(row, column) is not None and table.columnSpan(row, column) == 1
+                for line in table.item(row, column).text().splitlines()), default=0)
+            width = max(width, min(240, header_width + 40))
             table.setColumnWidth(column, width)
             table_width += width
         table.setMinimumWidth(table_width + 4)

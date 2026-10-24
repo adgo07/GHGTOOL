@@ -13,9 +13,10 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QAbstractItemView, QLabel, QPushButton
+from PySide6.QtGui import QFontMetrics
+from PySide6.QtWidgets import QApplication, QAbstractItemView, QLabel, QPushButton, QToolButton, QWidget
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application.catalog_queries import CatalogQueryService
@@ -250,5 +251,99 @@ class BusinessPageVisualTests(unittest.TestCase):
         self.assertEqual(action.parent().objectName(), "standardDetailActions")
         self.assertTrue(action.property("officialSourceUrl").startswith("https://"))
         self.assertIsNone(page.findChild(QLabel, "standardSourceNote"))
+
+
+    def test_standard_numbers_and_wrapped_names_fit_after_window_resize(self):
+        page = self.page(AppRoute.STANDARDS)
+        table = page.standard_table
+        expected = tuple(tuple(table.item(row, column).text() for column in range(5))
+                         for row in range(table.rowCount()))
+        for width in (1440, 1180):
+            self.window.resize(width, 800)
+            self.flush()
+            for row in range(table.rowCount()):
+                item = table.item(row, 0)
+                metrics = QFontMetrics(item.font().resolve(table.font()))
+                self.assertGreaterEqual(table.columnWidth(0), metrics.horizontalAdvance(item.text()) + 28)
+                self.assertGreaterEqual(table.rowHeight(row), table.sizeHintForRow(row))
+                # Visible badges must not be implemented by erasing model text.
+                self.assertTrue(table.item(row, 2).text())
+            self.assertEqual(expected, tuple(tuple(table.item(row, column).text() for column in range(5))
+                                             for row in range(table.rowCount())))
+
+    def test_parameter_rows_and_trace_label_remain_readable_after_resize(self):
+        page = self.page(AppRoute.FACTORS)
+        page.view_mode_filter.setCurrentIndex(1)
+        page.search_input.setText("0.11")
+        for width in (1440, 1180):
+            self.window.resize(width, 800)
+            self.flush()
+            for row in range(page.search_result_table.rowCount()):
+                table = page.search_result_table
+                self.assertGreaterEqual(table.rowHeight(row), table.sizeHintForRow(row))
+                item = table.item(row, 0)
+                metrics = QFontMetrics(item.font().resolve(table.font()))
+                wrapped = metrics.boundingRect(QRect(0, 0, table.columnWidth(0) - 20, 10000),
+                    int(Qt.TextFlag.TextWordWrap), item.text()).height()
+                self.assertGreaterEqual(table.rowHeight(row), wrapped + 16)
+        for query in ("7.5.6", "0.11"):
+            page.search_input.setText(query)
+            self.flush()
+            self.assertGreater(page.search_result_table.rowCount(), 0)
+            for row in range(page.search_result_table.rowCount()):
+                table = page.search_result_table
+                item = table.item(row, 0)
+                metrics = QFontMetrics(item.font().resolve(table.font()))
+                wrapped = metrics.boundingRect(QRect(0, 0, table.columnWidth(0) - 20, 10000),
+                    int(Qt.TextFlag.TextWordWrap), item.text()).height()
+                self.assertGreaterEqual(table.rowHeight(row), wrapped + 16)
+        asset_row = next(index for index, result in enumerate(page._search_results) if result.asset is not None)
+        page.search_result_table.selectRow(asset_row)
+        self.flush()
+        toggle = page.findChild(QToolButton, "parameterDetailTraceToggle")
+        self.assertIn("查看完整来源", toggle.text())
+        self.assertNotEqual(toggle.toolButtonStyle(), Qt.ToolButtonStyle.ToolButtonIconOnly)
+        toggle.setChecked(True)
+        self.flush()
+        trace = page.findChild(QWidget, "parameterDetailTrace")
+        self.assertTrue(trace.isVisible())
+        self.assertIn("来源定位", "\n".join(label.text() for label in trace.findChildren(QLabel)))
+        self.assertEqual(len(self.records.list_all()), 2)
+
+    def test_long_record_list_keeps_full_badges_and_wrapped_rows(self):
+        sample = _record("ui.long-company", warning=True)
+        self.records.create(replace(sample, input_snapshot=replace(sample.input_snapshot,
+            enterprise_name="合成界面验证企业·长中文名称用于检查列表换行与完整历史身份")))
+        page = self.page(AppRoute.RECORDS)
+        for width in (1440, 1180):
+            self.window.resize(width, 800)
+            self.flush()
+            for row in range(page.record_list.rowCount()):
+                self.assertGreaterEqual(page.record_list.rowHeight(row), page.record_list.sizeHintForRow(row))
+                host = page.record_list.cellWidget(row, 4)
+                badge = host.findChild(QLabel, "recordStatusBadge")
+                self.assertIsNotNone(badge)
+                self.assertLessEqual(badge.height(), 44)
+                self.assertGreaterEqual(badge.width(), badge.fontMetrics().horizontalAdvance(badge.text()) + 12)
+                self.assertTrue(page.record_list.item(row, 4).text())
+        self.assertEqual(len(self.records.list_all()), 3)
+
+    def test_frozen_report_header_displays_complete_enthalpy_unit(self):
+        page = self.page(AppRoute.RECORDS)
+        self.assertTrue(page.open_record("ui.sample.one"))
+        page.detail_tabs.setCurrentIndex(1)
+        self.flush()
+        found = []
+        for card in page.input_basis_view.report_table_cards:
+            table = card.table_widget
+            for row in range(table.rowCount()):
+                for column in range(table.columnCount()):
+                    item = table.item(row, column)
+                    if item is not None and "kJ/kg" in item.text():
+                        found.append(item.text())
+                        unit_line = item.text().splitlines()[-1]
+                        self.assertGreaterEqual(table.columnWidth(column), table.fontMetrics().horizontalAdvance(unit_line) + 32)
+        self.assertTrue(found, "Frozen B.9 header must remain present")
+        self.assertEqual(len(self.records.list_all()), 2)
 
 if __name__ == "__main__":unittest.main()
