@@ -1,0 +1,13 @@
+{
+  "base_head": "1c1ff710ee443b73a4f11c0a465939866947c403",
+  "description": "151项主回归启动时的生产UI源码；与最终生产代码仅差同目录error_locator_final_delta.patch。来源为末次定位补丁前已完成的真实Qt捕获哈希，重建补丁前page文件哈希已匹配。",
+  "source_files_sha256": {
+    "packages/ui/source_directory.py": "f6d258a8da8b14c4f99e0dd0c32b048643522358cd695d12568c121851e01d3e",
+    "packages/ui/compact_choices.py": "ccfc60963170a1edbf21a46f4d5a79fb2a328fb493ae0dc56b0f17fe0ad448d7",
+    "packages/ui/carbon_material_fuel.py": "4fa9276562582e9a3fa80d276d82bcb6a49509bb7cb510e5e3b9b9454c02c824",
+    "packages/ui/carbon_material_page.py": "0af880f616023edfb2ac5ac4458f50a1858830c710464ef70b9b616621571c50",
+    "packages/ui/design_tokens.py": "883934f09b1d2a01905101ef6d6f213b588fbe620c8691b7f0f58e841957e9ea",
+    "packages/ui/source_cards.py": "dbf39251685830ad4a66e0c233028ae7ecbcb62a6e9b6599fde34816c235ec93",
+    "packages/ui/responsive_fields.py": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860"
+  }
+}

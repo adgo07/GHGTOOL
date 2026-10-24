@@ -137,7 +137,7 @@ from .compact_choices import SegmentedChoiceControl
 from .source_directory import SourceDirectory
 from .name_selector import NameSelector, normalized_name, chemical_label
 from .input_fields import labeled_field
-from .responsive_fields import ResponsiveFieldGrid
+from .responsive_fields import ResponsiveFieldGrid, AdaptiveFieldLayout
 from .typed_inputs import NumericLineEdit, create_read_only_parameter, create_typed_input
 from .view_models import AppRoute
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED, accounting_sample_stylesheet
@@ -443,6 +443,9 @@ class _UnifiedEnergyRow(QWidget):
         amount_title, amount_unit = ("电量", "MWh") if family == "electricity" else ("热力量", "t")
         self.amount_field = labeled_field(amount_title, self.amount, amount_unit)
         self.unit_label = self.amount_field.findChild(QLabel, "fieldUnitHint")
+        amount_heading = self.unit_label.parentWidget().layout()
+        amount_heading.setStretch(0, 0)
+        amount_heading.addStretch(1)
         self.remove_button = QPushButton("删除", self)
         self.remove_button.setObjectName(f"removeEnergyRow{index}")
         self.remove_button.clicked.connect(lambda _checked=False: remove(self))
@@ -457,7 +460,7 @@ class _UnifiedEnergyRow(QWidget):
         outer.addLayout(main)
 
         self.electricity_details = QWidget(self)
-        electricity = QGridLayout(self.electricity_details)
+        electricity = AdaptiveFieldLayout(self.electricity_details)
         electricity.setContentsMargins(0, 0, 0, 0)
         electricity.setHorizontalSpacing(10)
         electricity.setVerticalSpacing(8)
@@ -515,19 +518,13 @@ class _UnifiedEnergyRow(QWidget):
         self.electricity_source.setObjectName(f"energyElectricitySource{index}")
         self.electricity_source.setPlaceholderText("填写来源文件或资料编号（可选）")
         self.electricity_source_field = labeled_field("因子来源说明", self.electricity_source)
-        electricity.addWidget(self.attribute_group, 0, 0, 1, 2)
-        electricity.addWidget(self.geographic_level_field, 0, 2, 1, 2)
-        electricity.addWidget(self.region_field, 0, 4, 1, 2)
-        electricity.addWidget(self.factor_mode_field, 1, 0, 1, 2)
-        electricity.addWidget(self.factor_selector_field, 1, 2, 1, 4)
-        electricity.addWidget(self.manual_factor_field, 2, 2, 1, 2)
-        electricity.addWidget(self.electricity_source_field, 2, 4, 1, 2)
-        for column in range(6):
-            electricity.setColumnStretch(column, 1)
+        electricity.set_cells([self.attribute_group, self.factor_mode_field,
+            self.geographic_level_field, self.region_field, self.factor_selector_field,
+            self.manual_factor_field, self.electricity_source_field])
         outer.addWidget(self.electricity_details)
 
         self.heat_details = QWidget(self)
-        heat = QGridLayout(self.heat_details)
+        heat = AdaptiveFieldLayout(self.heat_details)
         heat.setContentsMargins(0, 0, 0, 0)
         heat.setHorizontalSpacing(10)
         heat.setVerticalSpacing(8)
@@ -562,14 +559,15 @@ class _UnifiedEnergyRow(QWidget):
         )
         self.heat_kind_field = labeled_field("蒸汽状态", self.heat_kind_choices)
         self.pressure = create_typed_input(self.heat_details, get_field_spec("heat_pressure"), f"energyHeatPressure{index}", "绝压 MPa")
-        self.pressure_field = labeled_field("蒸汽压力", self.pressure, "MPa（绝压）")
+        self.pressure_field = labeled_field("蒸汽压力（MPa，绝压）", self.pressure)
         self.temperature = create_typed_input(self.heat_details, get_field_spec("heat_temperature"), f"energyHeatTemperature{index}", "℃（过热蒸汽）")
         self.temperature_field = labeled_field("蒸汽温度", self.temperature, "℃（过热蒸汽）")
         self.enthalpy_mode = QComboBox(self.heat_details)
         self.enthalpy_mode.setObjectName(f"energyHeatEnthalpyMode{index}")
-        self.enthalpy_mode.addItem("IF97自动焓", "AUTO")
-        self.enthalpy_mode.addItem("独立已知焓", "MANUAL")
+        self.enthalpy_mode.addItem("按蒸汽状态自动获取", "AUTO")
+        self.enthalpy_mode.addItem("填写已知焓值", "MANUAL")
         self.enthalpy_mode_choices = SegmentedChoiceControl(self.enthalpy_mode, values={"AUTO", "MANUAL"})
+        self.enthalpy_mode.setToolTip("自动获取采用既有 IF97 物性计算；已知焓值沿用独立输入路径。")
         self.enthalpy_mode_field = labeled_field("焓值获取方式", self.enthalpy_mode_choices)
         self.enthalpy = create_typed_input(self.heat_details, get_field_spec("heat_enthalpy"), f"energyHeatEnthalpy{index}", "kJ/kg")
         self.enthalpy_field = labeled_field("已知焓值", self.enthalpy, "kJ/kg")
@@ -589,18 +587,10 @@ class _UnifiedEnergyRow(QWidget):
         self.heat_source.setObjectName(f"energyHeatSource{index}")
         self.heat_source.setPlaceholderText("填写来源文件或资料编号（可选）")
         self.heat_source_field = labeled_field("实测因子来源说明", self.heat_source)
-        heat.addWidget(self.heat_kind_field, 0, 0, 1, 2)
-        heat.addWidget(self.pressure_field, 0, 2)
-        heat.addWidget(self.temperature_field, 0, 3)
-        heat.addWidget(self.enthalpy_mode_field, 1, 0, 1, 2)
-        heat.addWidget(self.enthalpy_field, 1, 2, 1, 2)
-        heat.addWidget(self.heat_factor_mode_field, 2, 0, 1, 2)
-        heat.addWidget(self.measured_heat_factor_field, 2, 2)
-        heat.addWidget(self.heat_source_field, 2, 3)
-        heat.addWidget(self.heat_boundary_field, 3, 0, 1, 2)
-        heat.addWidget(self.heat_fuel_accounted_field, 3, 2, 1, 2)
-        for column in range(4):
-            heat.setColumnStretch(column, 1)
+        heat.set_cells([self.heat_boundary_field, self.heat_fuel_accounted_field,
+            self.heat_kind_field, self.enthalpy_mode_field, self.pressure_field,
+            self.temperature_field, self.enthalpy_field, self.heat_factor_mode_field,
+            self.measured_heat_factor_field, self.heat_source_field])
         outer.addWidget(self.heat_details)
 
         self.status = QLabel("参数状态：等待录入", self)
@@ -614,9 +604,8 @@ class _UnifiedEnergyRow(QWidget):
         self.enthalpy_field.hide()
         self.measured_heat_factor_field.hide()
         self.heat_source_field.hide()
-        if family == "electricity":
-            for control in self.findChildren(SegmentedChoiceControl):
-                control.set_radio_style()
+        for control in self.findChildren(SegmentedChoiceControl):
+            control.set_radio_style()
 
 class _SearchableEnterpriseCombo(QComboBox):
     """Editable recent-name selector with the legacy line-edit convenience API."""
@@ -1059,16 +1048,14 @@ class CarbonMaterialAccountingPage(BasePage):
         source_activity, source_activity_layout = _card("排放源与活动数据", self)
         source_activity.setProperty("dfActivityRegion", True)
         source_activity_layout.setSpacing(12)
-        source_navigation_row = QHBoxLayout()
         self.source_navigation = QComboBox(source_activity)
         self.source_navigation.setObjectName("accountingSourceNavigation")
         self.source_navigation.addItem("快速定位排放源", None)
-        source_navigation_row.addWidget(self.source_navigation, 1)
+        self.source_navigation.hide()  # Legacy restore identity; pure navigation is not saved input.
         self.quick_calculate_button = QPushButton("检查并计算", source_activity)
         self.quick_calculate_button.setObjectName("quickCalculateAccountingButton")
         self.quick_calculate_button.clicked.connect(self._run_calculation)
-        source_navigation_row.addWidget(self.quick_calculate_button)
-        source_activity_layout.addLayout(source_navigation_row)
+        self.project_overview_layout.itemAt(0).layout().addWidget(self.quick_calculate_button)
         self._build_source_cards(source_activity_layout)
         for group_id, label, _source_ids in self._source_toggle_groups:
             self.source_navigation.addItem(label, group_id)
@@ -1081,7 +1068,16 @@ class CarbonMaterialAccountingPage(BasePage):
         self.external_included = QCheckBox('纳入补充（声明同边界、同期且原结果未计入）', external_card)
         self.external_included.setObjectName('externalIncluded')
         external_layout.addWidget(self.external_included)
-        external_form = QFormLayout()
+        external_details = QWidget(external_card)
+        external_form = QFormLayout(external_details)
+        external_form.setContentsMargins(0, 0, 0, 0)
+        external_toggle = QPushButton("填写／查看外部补充明细", external_card)
+        external_toggle.setCheckable(True)
+        external_details._disclosure_button = external_toggle
+        external_toggle.toggled.connect(external_details.setVisible)
+        external_toggle.setStyleSheet("QPushButton {border:none;background:transparent;color:#126DAA;text-align:left;padding:4px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:1px solid #197CC2;}")
+        external_layout.addWidget(external_toggle, 0, Qt.AlignmentFlag.AlignLeft)
+        external_details.hide()
         self.external_amount = QLineEdit(external_card)
         self.external_amount.setObjectName('externalAmount')
         self.external_amount.setPlaceholderText('空白表示待补；0表示已核算的真实0')
@@ -1089,7 +1085,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.external_label.setObjectName('externalLabel')
         external_form.addRow('外部已核算CO₂（tCO₂）', self.external_amount)
         external_form.addRow('短名称（可选）', self.external_label)
-        external_layout.addLayout(external_form)
+        external_layout.addWidget(external_details)
         self.external_state_hint = QLabel('未纳入；草稿保留但不参加合计。外部计算真实性由企业确认。', external_card)
         self.external_state_hint.setWordWrap(True)
         external_layout.addWidget(self.external_state_hint)
@@ -1210,6 +1206,20 @@ class CarbonMaterialAccountingPage(BasePage):
         self.calculate_button.clicked.connect(self._run_calculation)
         status_layout.addWidget(self.calculate_button, 0, 4, 2, 1)
         self.body_layout.addWidget(status_bar)
+        # One unit-level region, outside the source stack. Keep existing widgets
+        # and signal connections; moving them does not mutate calculation state.
+        shared = QWidget(self)
+        shared.setObjectName("accountingSharedResults")
+        shared_layout = QVBoxLayout(shared)
+        shared_layout.setContentsMargins(188, 0, 0, 0)
+        for widget in (external_card, quality_card, result_card, process_card, self.parameter_summary, status_bar):
+            self.body_layout.removeWidget(widget)
+            shared_layout.addWidget(widget)
+        self.body_layout.addWidget(shared)
+        self.source_directory.results_requested.connect(lambda: self._scroll_to_widget(shared))
+        back = QPushButton("返回排放源目录 ↑", shared)
+        back.clicked.connect(lambda: self._scroll_to_widget(self.source_directory))
+        shared_layout.addWidget(back, 0, Qt.AlignmentFlag.AlignLeft)
         self.body_layout.addStretch(1)
         self._apply_accounting_style()
         self._refresh_source_cards()
@@ -1329,7 +1339,13 @@ class CarbonMaterialAccountingPage(BasePage):
         self.save_project_button.setObjectName("saveAccountingProjectButton")
         self.save_project_button.clicked.connect(self._save_project)
         project_row.addWidget(self.save_project_button)
-        layout.addLayout(project_row)
+        overview = QWidget(self)
+        overview.setObjectName("accountingProjectOverview")
+        overview_layout = QVBoxLayout(overview)
+        overview_layout.setContentsMargins(0, 0, 0, 0)
+        overview_layout.addLayout(project_row)
+        self.project_overview_layout = overview_layout
+        self.body_layout.insertWidget(self.body_layout.indexOf(toggle), overview)
         project_row = QHBoxLayout()
         project_row.addWidget(QLabel("已保存项目", card))
         self.saved_projects = QComboBox(card)
@@ -1349,7 +1365,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self.unit_selector = QComboBox(card)
         self.unit_selector.setObjectName("accountingUnitSelector")
         self.unit_selector.currentIndexChanged.connect(self._switch_unit)
-        unit_row.addWidget(self.unit_selector, 1)
+        active_row = QHBoxLayout()
+        active_row.addWidget(QLabel("当前核算单元", overview))
+        active_row.addWidget(self.unit_selector, 1)
+        overview_layout.addLayout(active_row)
         self.add_unit_button = QPushButton("添加核算单元", card)
         self.add_unit_button.setObjectName("addAccountingUnitButton")
         self.add_unit_button.clicked.connect(self._add_accounting_unit)
@@ -1373,10 +1392,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self.unit_result_summary = QLabel("当前核算单元尚无成功计算结果。", card)
         self.unit_result_summary.setObjectName("accountingUnitResultSummary")
         self.unit_result_summary.setWordWrap(True)
-        layout.addWidget(self.unit_result_summary)
+        overview_layout.addWidget(self.unit_result_summary)
         self.project_save_status = QLabel("项目尚未保存。", card)
         self.project_save_status.setObjectName("accountingProjectSaveStatus")
-        layout.addWidget(self.project_save_status)
+        overview_layout.addWidget(self.project_save_status)
         self._refresh_unit_selector()
         self._refresh_saved_projects()
 
@@ -1730,7 +1749,7 @@ class CarbonMaterialAccountingPage(BasePage):
         values: dict[str, object] = {"external_state_recorded": self._external_state_recorded, "external_known_facts": dict(self._external_known_facts)}
         excluded = {
             "accountingProjectName", "savedAccountingProjects", "accountingUnitSelector",
-            "showProfessionalDetailsCheckBox", "accountingPeriodMonth",
+            "showProfessionalDetailsCheckBox", "accountingPeriodMonth", "accountingSourceNavigation",
         }
         for widget in self.findChildren(QWidget):
             name = widget.objectName()
@@ -3038,6 +3057,12 @@ class CarbonMaterialAccountingPage(BasePage):
             export_saved_record_report(self, self.record_repository, record)
 
     def _scroll_to_widget(self, widget: QWidget) -> None:
+        ancestor = widget.parentWidget()
+        while ancestor is not None:
+            disclosure = getattr(ancestor, "_disclosure_button", None)
+            if isinstance(disclosure, QPushButton) and disclosure.isCheckable():
+                disclosure.setChecked(True)
+            ancestor = ancestor.parentWidget()
         if hasattr(self, "source_directory"):
             self.source_directory.reveal(widget)
         scroll_area = self.window().findChild(QScrollArea, "mainScrollArea")
@@ -3148,7 +3173,7 @@ class CarbonMaterialAccountingPage(BasePage):
             self._source_toggle_buttons[group_id] = button
         for column in range(4):
             selector_layout.setColumnStretch(column, 1)
-        parent_layout.addWidget(selector_host)
+        selector_host.hide()  # Compatibility controls; the directory is the sole visible navigation.
 
         source_definitions = (
             ("CAR-SRC-FUEL-001", lambda layout: self._build_fuel_section(layout)),
@@ -3240,10 +3265,10 @@ class CarbonMaterialAccountingPage(BasePage):
             parent_layout.addWidget(card)
 
         self._build_unified_energy_section(parent_layout)
-        entries = (
-            ("fuel", "化石燃料燃烧", self._source_cards["CAR-SRC-FUEL-001"]),
-            ("electricity", "购入／输出电力", self._unified_energy_cards["electricity"]),
-            ("calcination", "原料煅烧", self._source_cards["CAR-SRC-CALCINATION-001"]),
+        entries = tuple(
+            (key, title, self._unified_energy_cards[key] if key in self._unified_energy_cards
+             else self._source_cards[source_ids[0]])
+            for key, title, source_ids in self._source_toggle_groups
         )
         insertion = parent_layout.indexOf(entries[0][2])
         for _key, _title, card in entries:
@@ -3262,7 +3287,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.parameter_snapshot_summary.setObjectName("parameterSnapshotSummary")
         self.parameter_snapshot_summary.setWordWrap(True)
         parameter_summary_layout.addWidget(self.parameter_snapshot_summary)
-        parent_layout.addWidget(parameter_summary)
+        self.parameter_summary = parameter_summary
 
         self._refresh_source_cards()
 
@@ -3287,6 +3312,7 @@ class CarbonMaterialAccountingPage(BasePage):
             title_layout.setContentsMargins(14, 8, 14, 8)
             heading = QLabel(title, title_bar)
             heading.setObjectName("unifiedElectricityTitle" if family == "electricity" else "unifiedHeatTitle")
+            heading.setWordWrap(True)
             heading.setProperty("accountingSourceTitle", True)
             title_layout.addWidget(heading, 1)
             header_switch = SourceHeaderSwitch(title, title_bar)
@@ -3370,6 +3396,9 @@ class CarbonMaterialAccountingPage(BasePage):
         for combo in (row.heat_boundary, row.heat_fuel_accounted):
             combo.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
             combo.currentIndexChanged.connect(self._refresh_source_cards)
+        if family == "heat":
+            for edit in (row.pressure, row.temperature, row.enthalpy, row.measured_heat_factor):
+                edit.editingFinished.connect(lambda _row=row: self._refresh_unified_energy_row_preview(_row))
         row.amount.textChanged.connect(lambda *_args: self._refresh_source_cards())
         row.amount.textChanged.connect(lambda *_args: self._refresh_electricity_rows())
         row.factor_selector.currentIndexChanged.connect(lambda *_args, _row=row: self._on_energy_factor_choice_changed(_row))
@@ -3602,9 +3631,10 @@ class CarbonMaterialAccountingPage(BasePage):
             electricity and not output and (row.legacy_attribute is not None or row.legacy_acquisition_mode is not None)
         )
         needs_region = electricity and (output or (not self_consumed and attribute is ElectricityAttribute.ORDINARY))
-        row.geographic_level_field.setVisible(needs_region)
-        row.region_field.setVisible(needs_region)
         manual = row.factor_mode.currentData() == "MANUAL"
+        row.geographic_level_field.setVisible(needs_region and not manual)
+        row.region_field.setVisible(needs_region and not manual)
+        row.attribute_group.setVisible(show_attribute or (electricity and not output and (row.legacy_attribute is not None or row.legacy_acquisition_mode is not None)))
         show_factor_controls = needs_region
         row.factor_mode_field.setVisible(show_factor_controls)
         row.factor_selector_field.setVisible(show_factor_controls and not manual)
@@ -3734,8 +3764,13 @@ class CarbonMaterialAccountingPage(BasePage):
                 state = "已启用"
             elif enabled_count:
                 state = "部分启用"
+            elif any(_enum(self._source_statuses[source_id].currentData(), EmissionSourceStatus) is EmissionSourceStatus.UNCONFIRMED
+                     for source_id in source_ids if source_id in self._source_statuses):
+                state = "待确认"
             else:
                 state = "未启用"
+            if hasattr(self, "source_directory"):
+                self.source_directory.set_state(group_id, state)
             for header_switch in self._source_header_buttons.get(group_id, ()):
                 header_switch.set_source_state(state)
             if button.property("sourceState") != state:
@@ -3754,7 +3789,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.add_fuel_button = QPushButton("添加燃料", self)
         self.add_fuel_button.setObjectName("addFuelButton")
         self.add_fuel_button.clicked.connect(self._add_fuel_row)
-        parent_layout.addWidget(self.add_fuel_button)
+        parent_layout.addWidget(self.add_fuel_button, 0, Qt.AlignmentFlag.AlignLeft)
         self._add_fuel_row()
 
     def _fuel_catalog_options(self) -> tuple[object, ...]:
@@ -4274,7 +4309,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.direct_carbon_source.setVisible(direct)
         row.oxidation_source.setVisible(True)
         row.parameter_summary.hide()
-        row.carbon_basis_label.hide()
+        row.carbon_basis_label.show()
 
         quantity = FUEL_QUANTITIES[path.value]
         activity_unit, lhv_unit, direct_carbon_unit = quantity.display_unit, quantity.lhv_unit, quantity.direct_carbon_unit.replace("10^4Nm3", "10⁴Nm³")
@@ -4286,6 +4321,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.carbon_source.setVisible(not direct)
         row.carbon_calc_cell.setVisible(not direct)
         row.carbon_direct_cell.setVisible(direct)
+        row.refresh_parameter_visibility()
         active_source_keys = ["oxidation"]
         if direct:
             active_source_keys.append("direct_carbon")
@@ -4298,6 +4334,7 @@ class CarbonMaterialAccountingPage(BasePage):
             for key in active_source_keys
         )
         row.source_reference_control.setVisible(has_measured_parameter or origin is InputOrigin.CUSTOM)
+        row.refresh_parameter_visibility()
         row.lower_heating_value.setEnabled(not direct and path is not FuelPath.HEAT)
         row.activity_label.setText(f"活动量（{activity_unit}）")
         row.activity.setProperty("fieldUnit", activity_unit)
@@ -4466,7 +4503,7 @@ class CarbonMaterialAccountingPage(BasePage):
             reagent_name.setMaxLength(120)
             name_layout.addWidget(reagent_name, 1)
             self._wire_dirty_tracking(reagent_name)
-            group_layout.addWidget(name_row)
+
             facility_row = QHBoxLayout()
             facility_row.addWidget(QLabel("所属脱硫设施", group_fields))
             facility_selector = QComboBox(group_fields)
@@ -4482,7 +4519,7 @@ class CarbonMaterialAccountingPage(BasePage):
             row["facility_selector"] = facility_selector
             self._wire_dirty_tracking(facility_selector)
             facility_row.addWidget(facility_selector, 1)
-            group_layout.addLayout(facility_row)
+
             upgrade_button = QPushButton("确认采用脱硫批次输入", group_fields)
             upgrade_button.setObjectName(f"fgd_{instance_id}_upgrade")
             upgrade_button.clicked.connect(self._upgrade_fgd_rules)
@@ -4490,7 +4527,7 @@ class CarbonMaterialAccountingPage(BasePage):
             row["upgrade_button"] = upgrade_button
             group_layout.addWidget(upgrade_button)
             group_amount_row = QWidget(group_fields)
-            amount_layout = QHBoxLayout(group_amount_row)
+            amount_layout = QVBoxLayout(group_amount_row)
             amount_layout.setContentsMargins(0, 0, 0, 0)
             amount_layout.addWidget(QLabel("本批整剂净耗量（t）", group_amount_row))
             group_amount = create_typed_input(
@@ -4499,7 +4536,13 @@ class CarbonMaterialAccountingPage(BasePage):
             )
             amount_layout.addWidget(group_amount, 1)
             self._wire_dirty_tracking(group_amount)
-            group_layout.addWidget(group_amount_row)
+            # Retain legacy row containers for visibility and restore callers.
+            name_row.hide()
+            facility_fields = QWidget(group_fields)
+            facility_grid = AdaptiveFieldLayout(facility_fields)
+            facility_grid.set_cells([labeled_field("所属脱硫设施", facility_selector),
+                labeled_field("脱硫剂 / 批次名称", reagent_name), group_amount_row])
+            group_layout.addWidget(facility_fields)
             legacy_amount_notice = QLabel(
                 "旧项目各碳酸盐组分保存了不同用量，已按原值保留；确认统一用量后可填写上方组用量。",
                 group_fields,
@@ -4523,7 +4566,7 @@ class CarbonMaterialAccountingPage(BasePage):
             add_component = QPushButton("新增碳酸盐组分", host)
             add_component.setObjectName(f"add_fgd_component_{instance_id}")
             add_component.clicked.connect(lambda _checked=False, _row=row: self._add_fgd_component(_row))
-            host_layout.addWidget(add_component)
+            host_layout.addWidget(add_component, 0, Qt.AlignmentFlag.AlignLeft)
             for component_id in component_ids or ():
                 self._add_fgd_component(row, component_id=component_id)
             if component_ids is None:
@@ -4542,10 +4585,14 @@ class CarbonMaterialAccountingPage(BasePage):
                     spec = get_field_spec(f"{prefix}.{field}")
                     edit = self._build_business_field(responsive_fields, prefix, field, instance_id, first=first)
                     widgets[field] = edit
-                    responsive_fields.add_field("监测段时长（单位见下方）" if field == "duration" else spec.label, edit)
-                host_layout.addWidget(responsive_fields)
+                    if field != "duration":
+                        responsive_fields.add_field(spec.label, edit)
                 row["responsive_fields"] = responsive_fields
+                row["duration_editor"] = widgets.get("duration")
                 self._build_fume_segment_controls(row, host_layout, host)
+                host_layout.addWidget(QLabel("本监测段参数", host))
+                host_layout.addWidget(responsive_fields)
+                host_layout.addWidget(row["coverage_note"])
             else:
                 for group_name, group_fields in field_groups:
                     group = QWidget(host)
@@ -4583,11 +4630,8 @@ class CarbonMaterialAccountingPage(BasePage):
                     caption.setWordWrap(True)
                     caption.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                     material_header.addWidget(caption, stretch if stretch else 0)
-                if prefix != "calcination":
-                    material_layout.addLayout(material_header)
-                else:
-                    while material_header.count():
-                        material_header.takeAt(0).widget().deleteLater()
+                while material_header.count():
+                    material_header.takeAt(0).widget().deleteLater()
                 material_rows_host = QWidget(material_host)
                 material_rows_layout = QVBoxLayout(material_rows_host)
                 material_rows_layout.setContentsMargins(0, 0, 0, 0)
@@ -4599,7 +4643,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 add_material = QPushButton("新增物料", material_host)
                 add_material.setObjectName(f"add_{prefix}_material_{instance_id}")
                 add_material.clicked.connect(lambda _checked=False, _row=row: self._add_material_line(_row))
-                material_layout.addWidget(add_material)
+                material_layout.addWidget(add_material, 0, Qt.AlignmentFlag.AlignLeft)
                 host_layout.addWidget(material_host)
                 row["materials_host"] = material_host
                 row["materials_layout"] = material_rows_layout
@@ -4632,8 +4676,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 advanced_button = QPushButton("防重复计碳检查", host)
                 advanced_button.setCheckable(True)
                 advanced_button.toggled.connect(advanced_check.setVisible)
-                host_layout.addWidget(advanced_button)
-                host_layout.addWidget(advanced_check)
+                host_layout.addWidget(advanced_button, 0, Qt.AlignmentFlag.AlignLeft)
+                host_layout.addWidget(advanced_check, 0, Qt.AlignmentFlag.AlignLeft)
                 flags["carbon_output_included_in_input"] = checkbox
                 self._wire_dirty_tracking(checkbox)
             elif prefix == "graphitization":
@@ -4683,7 +4727,7 @@ class CarbonMaterialAccountingPage(BasePage):
         outer_layout.setContentsMargins(0, 0, 0, 0)
         main_row = QWidget(container)
         outer_layout.addWidget(main_row)
-        row_layout = QGridLayout(main_row) if prefix == "calcination" else QHBoxLayout(main_row)
+        row_layout = AdaptiveFieldLayout(main_row)
         row_layout.setContentsMargins(0, 2, 0, 2)
         row_layout.setSpacing(6)
         role = QComboBox(container)
@@ -4730,23 +4774,23 @@ class CarbonMaterialAccountingPage(BasePage):
             cell_layout.setSpacing(3)
             cell_layout.addWidget(edit)
             choices = SegmentedChoiceControl(source, parent=cell, values=tuple(source.itemData(i) for i in range(source.count())))
-            if prefix == "calcination":
-                choices.set_radio_style()
+            choices.set_radio_style()
             cell_layout.addWidget(choices)
             composition_controls.append(cell)
-        fields = ((role, 2), (name, 2), (mass, 1), (composition_controls[0], 1), (composition_controls[1], 1), (remove, 0))
-        titles = ("物料类别", "物料名称", "数量（t）", "固定碳含量（%）", "挥发分（%）", "操作")
-        for index, (widget, stretch) in enumerate(fields):
-            if prefix == "calcination":
-                row_layout.addWidget(labeled_field(titles[index], widget), index // 3, index % 3, Qt.AlignmentFlag.AlignTop)
-            else:
-                row_layout.addWidget(widget, stretch)
+        fields = (role, name, mass, composition_controls[0], composition_controls[1])
+        titles = ("物料类别", "物料名称", "数量（t）", "固定碳含量（%）", "挥发分（%）")
+        row_layout.set_cells([labeled_field(title, widget) for title, widget in zip(titles, fields)])
+        actions = QHBoxLayout()
+        material_caption = QLabel(f"物料 {len(material_rows) + 1}", container)
+        actions.addWidget(material_caption)
+        actions.addStretch(1)
+        actions.addWidget(remove)
+        outer_layout.insertLayout(0, actions)
+        remove.setMaximumHeight(32)
+        for widget in (*fields, remove):
             self._wire_dirty_tracking(widget)
-        if prefix == "calcination":
-            row_layout.setHorizontalSpacing(18)
-            row_layout.setVerticalSpacing(10)
-            for column in range(3):
-                row_layout.setColumnStretch(column, 1)
+        container.setStyleSheet("QWidget#" + container.objectName() + " {border-bottom:1px solid #DCE8F1;}")
+        outer_layout.setContentsMargins(0, 8, 0, 12)
         self._wire_dirty_tracking(carbon_source)
         self._wire_dirty_tracking(volatile_source)
         for widget in (name, mass, carbon, volatile):
@@ -4759,7 +4803,7 @@ class CarbonMaterialAccountingPage(BasePage):
             )
         conversion = QWidget(container)
         conversion.setObjectName(f"{control_scope}_materialConversion_{line_id}")
-        conversion_form = QFormLayout(conversion)
+        conversion_form = AdaptiveFieldLayout(conversion, maximum_columns=2)
         conversion_form.setContentsMargins(0, 4, 0, 4)
         mass_basis = QComboBox(conversion)
         composition_basis = QComboBox(conversion)
@@ -4774,14 +4818,17 @@ class CarbonMaterialAccountingPage(BasePage):
         method.addItem("按收到基水分归一", "DRY_TO_RECEIVED_MOISTURE")
         moisture.setObjectName(f"{control_scope}_materialMoisture_{line_id}")
         moisture.setPlaceholderText("实际收到基水分，不自动填值")
-        conversion_form.addRow("质量基准", mass_basis)
-        conversion_form.addRow("含量基准", composition_basis)
-        conversion_form.addRow("收到基水分（%）", moisture)
-        conversion_form.addRow("换算方法", method)
-        conversion_button = QPushButton("数据基准与换算", container)
+        conversion_form.set_cells([labeled_field(label, control) for label, control in
+            (("质量基准", mass_basis), ("含量基准", composition_basis),
+             ("收到基水分（%）", moisture), ("换算方法", method))])
+        conversion_button = QPushButton("数据基准与换算 +", container)
+        conversion_button.setStyleSheet("QPushButton {border:none;background:transparent;color:#126DAA;text-align:left;padding:4px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:1px solid #197CC2;}")
+        conversion_button.setToolTip("展开数据基准与换算 +；仅查看不改变输入。")
         conversion_button.setCheckable(True)
+        conversion._disclosure_button = conversion_button
         conversion_button.toggled.connect(conversion.setVisible)
-        outer_layout.addWidget(conversion_button)
+        conversion_button.toggled.connect(lambda expanded: conversion_button.setText("数据基准与换算 −" if expanded else "数据基准与换算 +"))
+        outer_layout.addWidget(conversion_button, 0, Qt.AlignmentFlag.AlignLeft)
         upgrade_button = QPushButton("采用当前材料规则", container)
         upgrade_button.setObjectName(f"{control_scope}_materialUpgrade_{line_id}")
         upgrade_button.clicked.connect(self._upgrade_material_rules)
@@ -5057,7 +5104,8 @@ class CarbonMaterialAccountingPage(BasePage):
         row["segment_id"] = uuid4().hex
         row["business_touched"] = False
         controls = QWidget(host)
-        form = QFormLayout(controls)
+        form = AdaptiveFieldLayout(controls, maximum_columns=2)
+        segment_cells = []
         row["segment_controls"] = controls
         for key, label in (("source", "排放源实例"), ("boundary", "计量边界")):
             combo = QComboBox(controls)
@@ -5071,7 +5119,7 @@ class CarbonMaterialAccountingPage(BasePage):
             combo.editTextChanged.connect(lambda _text, _row=row: _row.update(business_touched=True))
             combo.editTextChanged.connect(lambda text, _row=row, _key=key: self._sync_fume_identity_name(_row,_key,text))
             row[key+"_selector"] = combo
-            form.addRow(label+"（同一实例请选择已有项）", combo)
+            segment_cells.append(labeled_field(label+"（同一实例请选择已有项）", combo))
         for key, label in (("segment_start", "监测开始"), ("segment_end", "监测结束（不含终点）")):
             edit = QLineEdit(controls)
             edit.setObjectName(f"fume_{row['instance_id']}_{key}")
@@ -5079,18 +5127,22 @@ class CarbonMaterialAccountingPage(BasePage):
             edit.setAccessibleName(label)
             self._wire_dirty_tracking(edit)
             row[key] = edit
-            form.addRow(label, edit)
+            segment_cells.append(labeled_field(label, edit))
         unit = QComboBox(controls)
         unit.setObjectName(f"fume_{row['instance_id']}_durationUnit")
         unit.addItem("天", "d")
         unit.addItem("小时（推荐）", "h")
         unit.currentIndexChanged.connect(self._mark_input_dirty)
         row["duration_unit"] = unit
-        form.addRow("监测段时长单位", unit)
+        duration = row.get("duration_editor")
+        if isinstance(duration, QWidget):
+            segment_cells.append(labeled_field("本监测段时长", duration))
+        segment_cells.append(labeled_field("监测段时长单位", unit))
+        form.set_cells(segment_cells)
         note = QLabel("每条为一个监测段；真实起止须为整小时，分钟和秒为0，不自动截断。时长优先用小时填写，与区间一致；天值按小时转天规范化校验。报告期独立，有缺口只计算已覆盖部分。", controls)
         note.setWordWrap(True)
-        form.addRow(note)
         layout.addWidget(controls)
+        row["coverage_note"] = note
         button = QPushButton("确认采用监测分段输入", host)
         button.setObjectName(f"fume_{row['instance_id']}_upgrade")
         button.clicked.connect(self._upgrade_fume_rules)
@@ -5520,10 +5572,9 @@ class CarbonMaterialAccountingPage(BasePage):
         outer = QVBoxLayout(container)
         outer.setContentsMargins(0, 4, 0, 4)
         outer.setSpacing(3)
-        grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(3)
+        fields_host = QWidget(container)
+        grid = AdaptiveFieldLayout(fields_host)
+        component_cells = []
         widgets: dict[str, object] = {}
         field_labels = {
             "carbonate_type": "碳酸盐组分",
@@ -5534,7 +5585,7 @@ class CarbonMaterialAccountingPage(BasePage):
         for column, field in enumerate(("carbonate_type", "i", "ef1", "tr")):
             label = QLabel(field_labels[field], container)
             label.setWordWrap(True)
-            grid.addWidget(label, 0, column)
+            label.deleteLater()
             if field == "carbonate_type":
                 selector = NameSelector(container)
                 selector.setObjectName("fgdCarbonateTypeSelector" if first else f"fgd_{unit['instance_id']}_{component_id}_carbonateTypeSelector")
@@ -5544,7 +5595,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 self._populate_carbonate_selector(selector, text="未选择碳酸盐种类")
                 widgets[field] = selector
                 self._wire_dirty_tracking(selector)
-                grid.addWidget(selector, 1, column)
+                component_cells.append(labeled_field(field_labels[field], selector))
             elif field in {"i", "tr"}:
                 spec = get_field_spec(f"fgd.{field}")
                 name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
@@ -5577,7 +5628,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 widgets[f"{field}_legacy_index"] = legacy_index
                 self._wire_dirty_tracking(edit)
                 self._wire_dirty_tracking(mode)
-                grid.addWidget(cell, 1, column)
+                component_cells.append(labeled_field(field_labels[field], cell))
             else:
                 spec = get_field_spec(f"fgd.{field}")
                 name = f"fgd_{field}" if first else f"fgd_{unit['instance_id']}_{component_id}_{field}"
@@ -5612,8 +5663,10 @@ class CarbonMaterialAccountingPage(BasePage):
                 widgets["ef1_source"] = mode
                 widgets["ef1_legacy_index"] = legacy_index
                 self._wire_dirty_tracking(mode)
-                grid.addWidget(cell, 1, column)
-            grid.setColumnStretch(column, (2, 2, 2, 2)[column])
+                component_cells.append(labeled_field(field_labels[field], cell))
+        grid.set_cells(component_cells)
+        for control in fields_host.findChildren(SegmentedChoiceControl):
+            control.set_radio_style()
         # Keep the old per-component amount controls for project compatibility.
         amount_spec = get_field_spec("fgd.cal")
         amount_name = f"fgd_cal" if first else f"fgd_{unit['instance_id']}_{component_id}_cal"
@@ -5627,7 +5680,8 @@ class CarbonMaterialAccountingPage(BasePage):
         self._wire_dirty_tracking(old_amount)
         widgets["cal"] = old_amount
         widgets["legacy_amount_row"] = legacy_amount_row
-        outer.addLayout(grid)
+        outer.addWidget(fields_host)
+        container.setStyleSheet("QWidget#" + container.objectName() + " {border-bottom:1px solid #DCE8F1;}")
         outer.addWidget(legacy_amount_row)
         footer = QHBoxLayout()
         source_ref = create_typed_input(container, get_field_spec("fgd.factor_source_reference"), "fgdFactorSourceReferenceInput" if first else f"fgd_{unit['instance_id']}_{component_id}_factorSourceReference")
@@ -5639,7 +5693,7 @@ class CarbonMaterialAccountingPage(BasePage):
         remove = QPushButton("删除组分", container)
         remove.setObjectName(f"remove_fgd_component_{unit['instance_id']}_{component_id}")
         remove.clicked.connect(lambda _checked=False, _unit=unit, _id=component_id: self._remove_fgd_component(_unit, _id))
-        footer.addWidget(remove)
+        footer.addWidget(remove, 0, Qt.AlignmentFlag.AlignRight)
         outer.addLayout(footer)
         component_layout.addWidget(container)
         widgets["_widget"] = container

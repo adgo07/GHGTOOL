@@ -216,18 +216,27 @@ class _SourceSwitch(QWidget):
     """Decorative switch; the enclosing accessible button owns interaction."""
     def __init__(self, parent):
         super().__init__(parent)
-        self.setFixedSize(32, 18)
+        self.setFixedSize(36, 20)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.active = False
+        self.state = "未启用"
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#197CC2" if self.active else "#B8C8D4"))
-        painter.drawRoundedRect(0, 1, 32, 16, 8, 8)
+        colors = {"已启用": "#197CC2", "部分启用": "#DDEEF9", "待确认": "#F8E3B5"}
+        painter.setBrush(QColor(colors.get(self.state, "#B8C8D4")))
+        painter.drawRoundedRect(0, 1, 36, 18, 9, 9)
         painter.setBrush(QColor("#FFFFFF"))
-        painter.drawEllipse(17 if self.active else 3, 3, 12, 12)
+        if self.state == "部分启用":
+            painter.setBrush(QColor("#197CC2"))
+            painter.drawRoundedRect(12, 8, 12, 4, 2, 2)
+        elif self.state == "待确认":
+            painter.setPen(QColor("#805213"))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "?")
+        else:
+            painter.drawEllipse(21 if self.active else 3, 4, 12, 12)
 
 
 class SourceToggleButton(QPushButton):
@@ -256,7 +265,8 @@ class SourceToggleButton(QPushButton):
 
     def set_source_state(self, state):
         self.setText(f"{state} | {self._title}")
-        self.switch.active = state != "未启用"
+        self.switch.state = state
+        self.switch.active = state == "已启用"
         self.switch.update()
         self.state_label.setText(("✓ " if self.switch.active else "") + state)
 
@@ -274,14 +284,26 @@ class SourceHeaderSwitch(QPushButton):
         super().__init__(parent)
         self.setObjectName("sourceHeaderSwitch")
         self.setAccessibleName(title + "排放源开关")
-        self.setStyleSheet("QPushButton#sourceHeaderSwitch { min-height:24px; padding:0; border:none; background:transparent; }")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMinimumWidth(142)
+        self.setStyleSheet("""
+            QPushButton#sourceHeaderSwitch { min-height:30px; padding:4px 10px; border:2px solid #71869A; border-radius:8px; background:#F3F6F9; }
+            QPushButton#sourceHeaderSwitch[state="已启用"] { background:#E6F4FB; border-color:#197CC2; }
+            QPushButton#sourceHeaderSwitch[state="部分启用"] { background:#E6F4FB; border-color:#197CC2; }
+            QPushButton#sourceHeaderSwitch[state="待确认"] { background:#FFF4DA; border-color:#A46A11; }
+            QPushButton#sourceHeaderSwitch:hover { border:2px solid #126DAA; background:#DDEEF9; }
+            QPushButton#sourceHeaderSwitch[state="待确认"]:hover { background:#FCEBC1; }
+            QPushButton#sourceHeaderSwitch[state="未启用"]:hover { background:#E7EDF2; }
+            QPushButton#sourceHeaderSwitch:focus { border:2px solid #075D88; }
+            QPushButton#sourceHeaderSwitch:pressed { background:#DDEEF9; }
+        """)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(2,0,2,0)
         layout.setSpacing(7)
         self.switch = _SourceSwitch(self)
         self.label = QLabel(self)
         self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.label.setStyleSheet("background:transparent; color:#075985; font-size:13px;")
+        self.label.setStyleSheet("background:transparent; color:#075D88; font-size:14px; font-weight:600;")
         layout.addWidget(self.switch)
         layout.addWidget(self.label)
 
@@ -292,9 +314,17 @@ class SourceHeaderSwitch(QPushButton):
         return self.sizeHint()
 
     def set_source_state(self,state):
-        self.switch.active = state != "未启用"
+        self.switch.state = state
+        self.switch.active = state == "已启用"
         self.switch.update()
         self.label.setText(state)
+        color = "#80520A" if state == "待确认" else ("#425F74" if state == "未启用" else "#075D88")
+        self.label.setStyleSheet(f"background:transparent;color:{color};font-size:14px;font-weight:600;")
+        self.setToolTip(f"当前{state}；点击切换，停用保留已有输入。")
+        if self.property("state") != state:
+            self.setProperty("state", state)
+            self.style().unpolish(self)
+            self.style().polish(self)
         self.updateGeometry()
         self.setAccessibleDescription(f"当前{state}；点击切换，停用保留数据。")
 

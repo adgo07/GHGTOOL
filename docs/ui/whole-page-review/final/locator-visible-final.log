@@ -1,0 +1,10 @@
+本地执行；Python 3.12.14 / Qt 6.11.2 / QT_QPA_PLATFORM=offscreen
+命令：python -B -m unittest tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_opens_conversion_and_external_disclosures_without_input_changes -v
+注意：损坏项目JSON与非法业务输入是预期负向测试；以结尾 unittest 统计为准。
+
+test_validation_opens_conversion_and_external_disclosures_without_input_changes (tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_opens_conversion_and_external_disclosures_without_input_changes) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 7.929s
+
+OK

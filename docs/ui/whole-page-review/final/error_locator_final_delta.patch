@@ -1,0 +1,13 @@
+--- 151-tested/packages/ui/carbon_material_page.py
++++ final/packages/ui/carbon_material_page.py
+@@ -1075,0 +1076 @@
++        external_details._disclosure_button = external_toggle
+@@ -3058,0 +3060,6 @@
++        ancestor = widget.parentWidget()
++        while ancestor is not None:
++            disclosure = getattr(ancestor, "_disclosure_button", None)
++            if isinstance(disclosure, QPushButton) and disclosure.isCheckable():
++                disclosure.setChecked(True)
++            ancestor = ancestor.parentWidget()
+@@ -4820,0 +4828 @@
++        conversion._disclosure_button = conversion_button

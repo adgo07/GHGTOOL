@@ -1,14 +1,9 @@
-# PR-B：C＋A 三业务区布局已实施，待视觉验收
+# PR-B：新建核算整页V2，本地实施完成待独立验收
 
-Owner 已确认紧凑对齐样板。本轮将布局接入实际核算页，仅限燃料、电力、原料煅烧；保留应用侧栏、项目区、其他业务区和正式计算入口。未 push、未建 PR、未触发 CI、未启动原生桌面。
+用户已认可样板并授权全页实施。八类业务编辑器、四态启用入口、3/2/1列响应、单正文滚动、公共结果与跨源定位已收口；既有真实控件/来源/草稿/稳定身份保留。astra视觉范围PASS；源会话独立最终验收待执行。
 
-- 排放源目录只切换查看，不改变启用状态或输入。启用仍需显式操作；错误定位会打开对应目录。
-- 燃料三列分组，实测报告同排对齐；电力方向与来源、煅烧来源采用轻量单选外观。选项仍来自原 combo/业务规则。
-- 煅烧新增和恢复条目使用同一布局；换算区域保留。编辑区固定起点、内部滚动。
-- 真实页面截图及捕获记录：`docs/ui/ca-layout/review.html`、`summary.json`。捕获来自本地工作区，以父提交、脚本和源文件哈希绑定，不冒充精确提交制品。
+本地151项主回归通过（394.851秒）；最后8行展示定位差异由13项专项通过覆盖（79.044秒），可见性直接断言1项通过（7.929秒）。12项重叠及单项重复不累计；151并非全部在最终head执行，源码身份/最后差异/命令/日志见IMPLEMENTATION_REPORT与final图集目录。
 
-验证详见 `IMPLEMENTATION_REPORT.md`。原生鼠标/IME/系统 DPI、Office、企业样例与交付门仍 OPEN。下一步先检查本轮实际页面效果，再决定 PR-B 后续推广；不自动扩大到其他业务区。
+当前图集：`docs/ui/whole-page-review/final/review.html`，42张真实Qt图和当前源哈希；原第一阶段图集保留。未push/PR/CI/合并/原生桌面操作；Office/IME/系统DPI/企业样例/实包和完整discover未执行。
 
-## 平台 / Contract 预检查
-
-本仓 origin 已核实为 `adgo07/GHGTOOL`，已 fetch；复用隔离分支 `codex/ui-business-layout`，基线含 PR58 合并。中央 Frozen lock `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，已读当前 UI 指南 v0.2。本任务不涉及中央公共 Contract；不改变标准解释、来源资格、Calculator、Canonical 或 Record，无新增 Standard Issue。
+平台/Contract预检查：实际核worktree、origin/fetch、main默认分支、HEAD和工作区，沿用codex/ui-business-layout及原样板，起点1c1ff710ee443b73a4f11c0a465939866947c403。中央origin核验通过；locked ee5feb0cc34dbd99790500fadd0c4c932e202a20不升级，读锁定Architecture V2.1与UI v0.2。分层/显示不回流/UI State隔离/历史Record不漂移保持，无冲突或中央修改；相关既有Issue004/016/018、017、020，无新解释。本任务不涉及中央公共 Contract。
