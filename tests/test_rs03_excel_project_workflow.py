@@ -218,11 +218,16 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
 
         requested_record_ids = []
         self.page.record_requested.connect(requested_record_ids.append)
+        self.assertEqual(self.page.unit_record_selector.currentData(), created_record_ids[-1])
+        self.page.open_record_button.click()
+        self.assertEqual(requested_record_ids, [created_record_ids[-1]])
+        self.assertEqual(len(self.records.list_all()), 2)
         selected_record_index = self.page.unit_record_selector.findData(records[1].record_id)
         self.assertGreaterEqual(selected_record_index, 0)
         self.page.unit_record_selector.setCurrentIndex(selected_record_index)
         self.page.open_record_button.click()
-        self.assertEqual(requested_record_ids, [records[1].record_id])
+        self.assertEqual(requested_record_ids, [created_record_ids[-1], records[1].record_id])
+        self.assertEqual(len(self.records.list_all()), 2)
 
         for record in records:
             raw = self.records.get_raw_input_snapshot(record.record_id)

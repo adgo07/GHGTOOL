@@ -2839,13 +2839,24 @@ class ExcelImportPage(BasePage):
             return None
         return next((unit for unit in self._workspace.units if unit.unit_id == unit_id), None)
 
-    def _selected_unit_changed(self, *_args) -> None:
+    def _selected_unit_changed(self, *_args, preferred_record_id: str | None = None) -> None:
         unit = self._selected_unit()
+        previous = self.unit_record_selector.currentData()
+        previous_unit = getattr(self, "_record_selection_unit_id", None)
         blocker = QSignalBlocker(self.unit_record_selector)
         self.unit_record_selector.clear()
         if unit is not None:
             for index, record_id in enumerate(unit.record_ids, 1):
                 self.unit_record_selector.addItem(f"第 {index} 次正式核算", record_id)
+            target = preferred_record_id
+            if target is None and previous_unit == unit.unit_id and previous in unit.record_ids:
+                target = previous
+            if target not in unit.record_ids:
+                target = unit.record_ids[-1] if unit.record_ids else None
+            selected_index = self.unit_record_selector.findData(target)
+            if selected_index >= 0:
+                self.unit_record_selector.setCurrentIndex(selected_index)
+        self._record_selection_unit_id = unit.unit_id if unit is not None else None
         del blocker
         self._update_controls()
         if unit is None or unit.canonical_input is None:
@@ -3001,18 +3012,18 @@ class ExcelImportPage(BasePage):
                 message = "正式记录已保存，但项目关联和恢复信息均未保存。请在核算记录页面查看该记录，并保存诊断信息以便排查项目关联。"
             self.status_label.setText(message)
             QMessageBox.warning(self, "正式记录已保存，项目关联待处理", message)
-            self._selected_unit_changed()
+            self._selected_unit_changed(preferred_record_id=record.record_id)
             return
         except Exception:
             _LOGGER.exception("Project association state is unknown for saved record %s", record.record_id)
             message = "正式记录已保存，但项目关联状态无法确认。请先在核算记录页面检查该记录，并保存诊断信息以便排查。"
             self.status_label.setText(message)
             QMessageBox.warning(self, "项目关联状态无法确认", message)
-            self._selected_unit_changed()
+            self._selected_unit_changed(preferred_record_id=record.record_id)
             return
 
         self.status_label.setText("正式核算已完成并新增一条不可编辑记录；项目已保存该记录关联。")
-        self._selected_unit_changed()
+        self._selected_unit_changed(preferred_record_id=record.record_id)
 
     def _open_selected_record(self) -> None:
         record_id = self.unit_record_selector.currentData()

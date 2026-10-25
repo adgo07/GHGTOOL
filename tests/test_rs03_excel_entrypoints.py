@@ -542,6 +542,17 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
             warning.assert_called_once()
             self.assertIn(expected, warning.call_args.args[2])
             self.assertEqual(len(self.repository.list_all()), expected_states.index((recovery_pending, association_saved, expected)) + 1)
+            saved_records = self.repository.list_all()
+            latest_id = page._selected_unit().record_ids[-1]
+            self.assertEqual(page.unit_record_selector.currentData(), latest_id)
+            requested = []
+            handler = requested.append
+            page.record_requested.connect(handler)
+            page.open_record_button.click()
+            self.assertEqual(requested, [latest_id])
+            page.record_requested.disconnect(handler)
+            self.assertEqual(self.repository.list_all(), saved_records)
+            self.assertEqual(page.status_label.text(), message)
 
         with (
             patch.object(page.project_service, "save_after_record", side_effect=OSError("unknown private failure")),
