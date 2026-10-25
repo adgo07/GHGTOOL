@@ -15,7 +15,7 @@ import unittest
 from unittest.mock import patch
 from PySide6.QtCore import QCoreApplication, QEvent, QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtGui import QFontMetrics
+from PySide6.QtGui import QFontMetrics, QFontDatabase
 from PySide6.QtWidgets import QApplication, QAbstractItemView, QLabel, QPushButton, QToolButton, QWidget
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -33,6 +33,18 @@ class BusinessPageVisualTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+        # Offscreen Qt on Windows can enumerate no fonts and measure every
+        # Latin digit as a missing-glyph square. Keep visual assertions intact;
+        # register existing host fonts in this QA process only, as capture does.
+        if not QFontDatabase.families():
+            windows = os.environ.get("WINDIR")
+            if windows:
+                for name in ("msyh.ttc", "msyhbd.ttc", "seguisym.ttf", "segoeui.ttf"):
+                    path = Path(windows) / "Fonts" / name
+                    if path.is_file():
+                        QFontDatabase.addApplicationFont(str(path))
+            if not QFontDatabase.families():
+                raise RuntimeError("视觉测试需要可用字体；未安装或打包新字体，当前离屏进程无法加载系统字体。")
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="ghg-five-page-")
