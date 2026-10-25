@@ -356,7 +356,7 @@ def main():
             from packages.ui.business_page_style import apply_business_page_style, BusinessCheckBox
             indicator_hashes = {}
             comparison_images = {}
-            for key in ("baseline", "business-page", "unchecked", "disabled-checked", "partial"):
+            for key in ("baseline", "business-page", "unchecked", "disabled-checked", "partial", "focus"):
                 probe = QWidget()
                 probe.setFont(QFont("Microsoft YaHei UI", 10))
                 probe.setStyleSheet(application_stylesheet())
@@ -371,7 +371,11 @@ def main():
                     check.setCheckState(Qt.CheckState.PartiallyChecked)
                 QHBoxLayout(probe).addWidget(check)
                 probe.show()
+                if key == "focus":
+                    probe.activateWindow()
+                    check.setFocus(Qt.FocusReason.TabFocusReason)
                 flush()
+                if key == "focus": assert check.hasFocus()
                 option = QStyleOptionButton()
                 check.initStyleOption(option)
                 indicator = check.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, check)
@@ -391,6 +395,8 @@ def main():
             current_blob = git("hash-object", "--path=packages/ui/design_tokens.py", "packages/ui/design_tokens.py")
             assert baseline_blob == current_blob
             assert indicator_hashes["baseline"] != indicator_hashes["business-page"], indicator_hashes
+            assert indicator_hashes["unchecked"] != indicator_hashes["partial"], indicator_hashes
+            assert indicator_hashes["business-page"] != indicator_hashes["disabled-checked"], indicator_hashes
             summary["checkbox_comparison"] = {"images_sha256": comparison_images,
                 "indicator_sha256": indicator_hashes, "indicators_identical": False, "local_checked_mark_added": True,
                 "baseline_theme_blob": baseline_blob, "global_theme_unchanged": True}

@@ -78,21 +78,29 @@ def _column_labels(report: ReportTable) -> tuple[str, ...]:
 
 
 
+_FOOTNOTE_MARKERS = {"ᵃ": "a", "ᵇ": "b"}
+
 def _footnote_html(text: str) -> str:
-    """Draw the existing a marker with ordinary Latin glyphs, not a new font."""
+    """Draw the existing footnote markers with ordinary Latin glyphs, not a new font."""
     text = text.replace("\u2028", "\n").replace("\u2029", "\n")
-    return escape(text).replace("ᵃ", "<sup>a</sup>").replace("\n", "<br>")
+    rendered = escape(text).replace("\n", "<br>")
+    for marker, letter in _FOOTNOTE_MARKERS.items():
+        rendered = rendered.replace(marker, f"<sup>{letter}</sup>")
+    return rendered
 
 
 def _set_frozen_label(label: QLabel, text: str) -> None:
     label.setProperty("frozenText", text)
-    label.setTextFormat(Qt.TextFormat.RichText if "ᵃ" in text else Qt.TextFormat.PlainText)
-    label.setText(_footnote_html(text) if "ᵃ" in text else text)
-    label.setAccessibleName(text.replace("ᵃ", "，脚注 a"))
+    label.setTextFormat(Qt.TextFormat.RichText if any(marker in text for marker in _FOOTNOTE_MARKERS) else Qt.TextFormat.PlainText)
+    label.setText(_footnote_html(text) if any(marker in text for marker in _FOOTNOTE_MARKERS) else text)
+    accessible = text
+    for marker, letter in _FOOTNOTE_MARKERS.items():
+        accessible = accessible.replace(marker, f"，脚注 {letter}")
+    label.setAccessibleName(accessible)
 
 
 class FrozenFootnoteDelegate(QStyledItemDelegate):
-    """Keep the frozen model text; paint its a marker as a typographic superscript."""
+    """Keep the frozen model text; paint its footnote markers as a typographic superscript."""
     def _document(self, option):
         document = QTextDocument()
         document.setDocumentMargin(0)
@@ -103,7 +111,7 @@ class FrozenFootnoteDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         cell = QStyleOptionViewItem(option)
         self.initStyleOption(cell, index)
-        if "ᵃ" not in cell.text:
+        if not any(marker in cell.text for marker in _FOOTNOTE_MARKERS):
             return super().paint(painter, option, index)
         widget = cell.widget if cell.widget is not None else self.parent()
         style = widget.style()
@@ -126,7 +134,7 @@ class FrozenFootnoteDelegate(QStyledItemDelegate):
         native = super().sizeHint(option, index)
         cell = QStyleOptionViewItem(option)
         self.initStyleOption(cell, index)
-        if "ᵃ" not in cell.text:
+        if not any(marker in cell.text for marker in _FOOTNOTE_MARKERS):
             return native
         document = self._document(cell)
         table = self.parent()

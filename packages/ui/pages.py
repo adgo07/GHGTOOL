@@ -1640,7 +1640,7 @@ class RecordLibraryPage(BasePage):
         self.record_list.verticalHeader().setMinimumSectionSize(64)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((220, 88, 190, 118, 116, 94, 72)):
+        for column, width in enumerate((220, 88, 190, 118, 140, 118, 88)):
             self.record_list.setColumnWidth(column, width)
         self.record_list.horizontalHeader().setStretchLastSection(False)
         self.record_list.horizontalHeader().setMinimumSectionSize(64)
@@ -1890,6 +1890,7 @@ class RecordLibraryPage(BasePage):
                 status_layout.addWidget(status_badge, 0, Qt.AlignmentFlag.AlignCenter)
                 status_badge.ensurePolished()
                 status_badge.setMinimumWidth(status_badge.fontMetrics().horizontalAdvance(status_badge.text()) + 16)
+                self.record_list.setColumnWidth(4, max(self.record_list.columnWidth(4), status_badge.minimumWidth() + 12))
                 self.record_list.setCellWidget(index, 4, status_host)
                 open_button = QPushButton("查看详情  ›", self.record_list)
                 open_button.setObjectName("openRecordRowButton")
@@ -2150,6 +2151,15 @@ class RecordLibraryPage(BasePage):
                     *sections[1:],
                 ),
             )
+        full_basis = build_calculation_basis_view(
+            record, trace=values["trace"], provenance=values["provenance"],
+            states={"Trace 快照": states["trace"], "Provenance 快照": states["provenance"]},
+            display_values=False,
+        )
+        for label in self.input_basis_view.business_basis_labels:
+            if label.text() == professional:
+                label.setToolTip(full_basis)
+                label.setAccessibleDescription(full_basis)
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 
     def _delete_selected(self) -> None:
@@ -2984,6 +2994,12 @@ class ExcelImportPage(BasePage):
         created = getattr(self, "_created_record_by_unit", {})
         is_current = bool(unit is not None and unit.record_ids and created.get(unit.unit_id) == unit.record_ids[-1])
         self.open_record_button.setText("查看本次记录" if is_current else "查看最新记录")
+        for button, primary in ((self.open_record_button, has_records), (self.calculate_button, not has_records)):
+            role = "primary" if primary else "secondary"
+            if button.property("visualRole") != role:
+                button.setProperty("visualRole", role)
+                button.style().unpolish(button)
+                button.style().polish(button)
         self.open_history_record_button.setEnabled(has_records)
         self.open_record_button.setVisible(bool(unit is not None and unit.record_ids))
         self.import_context_panel.setVisible(self._workspace is None)
@@ -3304,6 +3320,11 @@ class ExcelImportPage(BasePage):
         self.open_history_record_button.clicked.connect(self._open_selected_record)
         self.existing_project_toggle = QToolButton(template_section)
         self.existing_project_toggle.setText("打开已保存项目")
+        self.existing_project_toggle.setObjectName("openExistingExcelProjectToggle")
+        self.existing_project_toggle.setArrowType(Qt.ArrowType.DownArrow)
+        self.existing_project_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.existing_project_toggle.toggled.connect(lambda expanded: self.existing_project_toggle.setArrowType(
+            Qt.ArrowType.UpArrow if expanded else Qt.ArrowType.DownArrow))
         self.existing_project_toggle.setCheckable(True)
         self.existing_project_panel = QWidget(template_section)
         existing_row = QHBoxLayout(self.existing_project_panel)

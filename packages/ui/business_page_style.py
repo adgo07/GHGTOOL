@@ -4,7 +4,7 @@ Not an application theme. Styles are applied once; table reflow stays local.
 No business state, timers, assets, dependencies, locale, or business policy.
 """
 from __future__ import annotations
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPointF, QRectF
 from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QLabel, QStyle, QStyleOptionButton, QStyledItemDelegate,
     QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget)
@@ -125,6 +125,12 @@ def apply_business_page_style(page: QWidget) -> None:
         QTabBar::tab {{ min-height:22px; padding:8px 16px; font-size:14px; font-weight:500; }}
         QCheckBox {{ font-size:14px; spacing:8px; }}
         QToolButton {{ font-size:13px; }}
+        QToolButton#openExistingExcelProjectToggle {{ padding:5px 0; border:none;
+            color:{PRIMARY_BRAND}; background:transparent; font-size:13px; }}
+        QToolButton#openExistingExcelProjectToggle:focus {{ border:1px solid {PRIMARY_BRAND}; }}
+        QLabel#savedImportContext {{ font-size:14px; color:{PRIMARY_TEXT}; padding:8px;
+            background:{SURFACE_MUTED}; border-radius:6px; }}
+        QCheckBox:disabled {{ color:#778B9B; }}
         QLabel#excelWorkflowStatus {{ font-size:13px; color:#526B7E; }}
     """)
 
@@ -133,15 +139,25 @@ class BusinessCheckBox(QCheckBox):
     """Locally reinforce the checked indicator; native focus and events remain intact."""
     def paintEvent(self, event):
         super().paintEvent(event)
-        if not self.isChecked():
+        checked = self.checkState() != Qt.CheckState.Unchecked
+        if not checked and not self.hasFocus():
             return
         option = QStyleOptionButton()
         self.initStyleOption(option)
         box = self.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, self)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(QPen(QColor("#FFFFFF"), 2.0,
-                            Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-        points = ((.22, .50), (.78, .50)) if self.checkState() == Qt.CheckState.PartiallyChecked else ((.22, .50), (.43, .72), (.79, .28))
-        painter.drawPolyline(QPolygonF([QPointF(box.x()+box.width()*x, box.y()+box.height()*y) for x,y in points]))
+        if checked:
+            fill = QColor(PRIMARY_BRAND if self.isEnabled() else "#A7BAC8")
+            painter.setPen(QPen(fill, 1))
+            painter.setBrush(fill)
+            painter.drawRoundedRect(QRectF(box).adjusted(.5, .5, -.5, -.5), 4, 4)
+            painter.setPen(QPen(QColor("#FFFFFF"), 2.0, Qt.PenStyle.SolidLine,
+                                Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+            points = ((.22, .50), (.78, .50)) if self.checkState() == Qt.CheckState.PartiallyChecked else ((.22, .50), (.43, .72), (.79, .28))
+            painter.drawPolyline(QPolygonF([QPointF(box.x()+box.width()*x, box.y()+box.height()*y) for x,y in points]))
+        if self.hasFocus():
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor(PRIMARY_BRAND), 1, Qt.PenStyle.DashLine))
+            painter.drawRoundedRect(QRectF(self.rect()).adjusted(.5, .5, -.5, -.5), 3, 3)
         painter.end()

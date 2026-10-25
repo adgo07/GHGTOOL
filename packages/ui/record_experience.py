@@ -430,11 +430,43 @@ def build_frozen_activity_view(record: AccountingRecord) -> str:
     return "\n".join(output)
 
 
+def _basis_variable_label(name: str, source: str) -> str:
+    labels = {
+        "fuel_total": "化石燃料排放合计", "qge": "购入电量", "qse": "输出电量",
+        "ef2": "电力排放因子", "bgd": "购入蒸汽质量", "bsd": "输出蒸汽质量",
+        "ef3": "热力排放因子", "steam_quantity_input": "录入蒸汽量",
+        "hm_reference": "保存的参考焓值", "t": "报告期时长",
+        "er subtotal": "烟气焚烧排放小计", "ed subtotal": "烟气脱硫排放小计",
+        "efu": "化石燃料排放合计", "ec": "原料煅烧排放合计",
+        "eb": "焙烧/炭化排放合计", "eg": "石墨化排放合计", "ep": "烟气治理排放合计",
+        "ege": "购入电力排放", "egd": "购入热力排放", "ese": "输出电力对应排放",
+        "esd": "输出热力对应排放", "es": "直接排放量", "ei": "间接排放量",
+        "output_carbon_total": "输出物料含碳量合计",
+    }
+    if name == "hm" and source in (SOURCE_PURCHASED_HEAT, SOURCE_EXPORTED_HEAT):
+        return "蒸汽焓值"
+    component = re.fullmatch(r"(cal|i|ef1|tr)\[(\d+)\]", name)
+    if component:
+        term = {"cal": "碳酸盐原料净耗量", "i": "组分含量", "ef1": "二氧化碳质量分数", "tr": "转化率"}[component[1]]
+        return f"第 {component[2]} 组分 · {term}"
+    return labels.get(name, REPORT_FIELD_LABELS.get(name, "历史业务用量（名称未记录）"))
+
+
 def build_calculation_basis_view(
     record: AccountingRecord, *, trace: object, provenance: object,
-    states: Mapping[str, SnapshotState],
+    states: Mapping[str, SnapshotState], display_values: bool = True,
 ) -> str:
     """Frozen business formulas/values/standard clauses, without technical audit."""
+    def value_text(value):
+        if display_values:
+            try:
+                Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                pass
+            else:
+                return format_amount(value, "")
+        return business_choice_label(value)
+
     output = [f"企业：{record.input_snapshot.enterprise_name or '未填写'}",
               f"核算标准：{standard_label(record.standard_id)}",
               f"标准版本：{record.standard_version or '未记录'}"]
@@ -443,16 +475,22 @@ def build_calculation_basis_view(
     for index, step in enumerate(_trace_steps(trace), 1):
         output.append(f"\n计算依据 {index} · {SOURCE_LABELS.get(str(step.get('emission_source_id')), '排放量汇总与换算')}")
         if step.get("calculation_step"):
-            output.append("冻结计算式：" + business_source_text(str(step["calculation_step"])))
+            expression = business_source_text(str(step["calculation_step"]))
+            expression = re.sub(r"；(?:实例|燃料)\s+[^；\n]+", "", expression)
+            if "按映射变量代入" in expression:
+                expression = "按保存时的物料平衡关系与参数计算；各项业务用量和标准依据列于本条。"
+            if display_values:
+                expression = re.sub(r"(?<![\w.])-?\d+\.\d{7,}(?:[eE][+-]?\d+)?", lambda match: value_text(match[0]), expression)
+            output.append("保存的计算式：" + expression)
         if step.get("standard_location"):
             output.append("标准依据：" + str(step["standard_location"]))
         if step.get("intermediate_result") is not None:
-            output.append(f"冻结结果：{step['intermediate_result']} {step.get('unit') or ''}".strip())
+            output.append(f"保存的排放结果：{value_text(step['intermediate_result'])} {step.get('unit') or ''}".strip())
         for number, variable in enumerate(step.get("input_variables") or (), 1):
             if isinstance(variable, Mapping):
                 name = str(variable.get("name") or "").lower()
-                label = REPORT_FIELD_LABELS.get(name, f"采用值 {number}")
-                value = business_choice_label(variable.get("value", "未记录"))
+                label = _basis_variable_label(name, str(step.get("emission_source_id") or ""))
+                value = value_text(variable.get("value", "未记录"))
                 output.append(f"  {label}：{value} {variable.get('unit') or ''}".strip())
         evidence = step.get("calculation_provenance")
         if isinstance(evidence, Mapping):
@@ -460,7 +498,7 @@ def build_calculation_basis_view(
                                ("automatic_reference_enthalpy_kj_per_kg", "保存的参考焓值（kJ/kg）"),
                                ("standard_location", "标准依据")):
                 if evidence.get(key) is not None:
-                    output.append(f"  {label}：{evidence[key]}")
+                    output.append(f"  {label}：{value_text(evidence[key]) if key != 'standard_location' else evidence[key]}")
     if isinstance(provenance, Mapping):
         rule_set = provenance.get("effective_rule_set")
         rules = rule_set.get("rules", ()) if isinstance(rule_set, Mapping) else ()
@@ -473,7 +511,10 @@ def build_calculation_basis_view(
             if description and description not in seen:
                 output.append("标准与业务依据：" + description)
                 seen.add(description)
-    output.append("\n以上展示保存时的业务依据；历史记录不会重新核算。")
+    if display_values:
+        output.append("\n以上数值按界面精度显示；悬停本段可查看保存时完整数值。历史记录不会重新核算。")
+    else:
+        output.append("\n以上为保存时的完整业务数值；历史记录不会重新核算。")
     return "\n".join(output)
 
 

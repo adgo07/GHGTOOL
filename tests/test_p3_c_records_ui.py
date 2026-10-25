@@ -153,6 +153,18 @@ class P3CRecordUiTests(unittest.TestCase):
             "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
             side_effect=AssertionError("No historical recalculation")):
             self.assertTrue(self.page.open_record(record.record_id))
+        basis_label = next(label for label in self.page.input_basis_view.business_basis_labels
+                           if "悬停本段" in label.text())
+        self.assertNotIn("采用值 1", basis_label.text())
+        self.assertNotIn("；实例 ", basis_label.text())
+        self.assertNotIn("按映射变量代入", basis_label.text())
+        self.assertIn("待煅烧原料总量", basis_label.text())
+        self.assertIn("烟气焚烧排放小计", basis_label.text())
+        for line in basis_label.text().splitlines():
+            if "保存的排放结果" in line:
+                self.assertNotRegex(line, r"\d+\.\d{13,}")
+        self.assertIn(str(trace["formula_steps"][0]["intermediate_result"]), basis_label.toolTip())
+        self.assertEqual(basis_label.accessibleDescription(), basis_label.toolTip())
         self.assertEqual(
             {card.table_widget.property("reportTableId") for card in self.page.summary_view.report_table_cards},
             {"basic-info", "b1"},
@@ -287,6 +299,43 @@ class P3CRecordUiTests(unittest.TestCase):
         self.page.refresh_records()
         self.assertIs(self.page.view_stack.currentWidget(), self.page.list_view)
         self.assertIsNone(self.page._detail_record_id)
+
+
+    def test_actual_power_record_shows_business_names_and_keeps_exact_saved_values(self):
+        from packages.application.carbon_accounting import CarbonAccountingUseCase, create_g06_parameter_resolver
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+        from packages.core.models import ElectricityAcquisitionMode, ElectricityAttribute
+        from packages.core.parameter_resolution import ElectricityConsumptionDetail
+        from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput
+        from tests.test_pr46_baseline_integration import CASES, PERIOD, NOW, STANDARD_ID
+        catalog = SQLiteCatalogRepository(build_catalog_database(output_path=Path(self.directory.name) / "power-catalog.sqlite"))
+        calculator = CarbonMaterialCalculator(parameter_resolver=create_g06_parameter_resolver(catalog))
+        detail = ElectricityConsumptionDetail(
+            "power.business-view", "enterprise.business-view", STANDARD_ID, PERIOD,
+            "100.1234567890123456789", "MWh", ElectricityAcquisitionMode.PURCHASED,
+            ElectricityAttribute.ORDINARY, selected_factor_id=CASES[0][4], factor_selection_reason="显式采用既有全国因子",
+        )
+        input_value = CarbonMaterialInput("input.business-view", "enterprise.business-view", "保存值业务呈现", PERIOD,
+            boundary_confirmed=True, electricity_details=(detail,))
+        outcome = CarbonAccountingUseCase(calculator, self.repo).calculate(input_value, calculated_at=NOW)
+        self.assertTrue(outcome.successful, outcome.problems)
+        record_id = outcome.record.record_id
+        before = (asdict(self.repo.get(record_id)), self.repo.get_raw_input_snapshot(record_id),
+                  self.repo.get_trace_snapshot(record_id), self.repo.list_audit(record_id))
+        record_count = len(self.repo.list_all())
+        with patch.object(calculator, "calculate", side_effect=AssertionError("No record recalculation")):
+            self.assertTrue(self.page.open_record(record_id))
+        basis = next(label for label in self.page.input_basis_view.business_basis_labels if "悬停本段" in label.text())
+        self.assertIn("购入电量：100.12 MWh", basis.text())
+        self.assertIn("电力排放因子", basis.text())
+        self.assertNotIn("采用值 1", basis.text())
+        self.assertNotIn("100.1234567890123456789", basis.text())
+        self.assertIn("100.1234567890123456789", basis.toolTip())
+        exact_result = str(before[2]["formula_steps"][0]["intermediate_result"])
+        self.assertIn(exact_result, basis.toolTip())
+        self.assertEqual((asdict(self.repo.get(record_id)), self.repo.get_raw_input_snapshot(record_id),
+                          self.repo.get_trace_snapshot(record_id), self.repo.list_audit(record_id)), before)
+        self.assertEqual(len(self.repo.list_all()), record_count)
 
 
 if __name__ == "__main__":

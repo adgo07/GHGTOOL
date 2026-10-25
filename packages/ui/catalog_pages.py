@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from decimal import Decimal
 from enum import Enum
 
-from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal
+from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal, QRect, QSize
 from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -130,6 +130,31 @@ def _enum_data(value: object, enum_type: type[Enum]) -> Enum | None:
         except ValueError:
             return None
     return None
+
+
+class _WrappedSourceList(QListWidget):
+    """Size full source names at the settled viewport width, including paint insets."""
+    def _fit_items(self):
+        if getattr(self, "_fitting_items", False):
+            return
+        self._fitting_items = True
+        try:
+            width = max(24, self.viewport().width() - 24)
+            for row in range(self.count()):
+                item = self.item(row)
+                bounds = self.fontMetrics().boundingRect(
+                    QRect(0, 0, width, 10000), Qt.TextFlag.TextWordWrap, item.text())
+                item.setSizeHint(QSize(0, max(40, bounds.height() + 20)))
+        finally:
+            self._fitting_items = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_items()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_items()
 
 
 class StandardLibraryPage(BasePage):
@@ -876,7 +901,7 @@ class ParameterFactorLibraryPage(BasePage):
         source_list_layout.setContentsMargins(8, 10, 8, 10)
         self.search_source_panel.setMinimumWidth(164)
         self.search_source_panel.setMaximumWidth(210)
-        self.search_source_list = QListWidget(self.search_source_panel)
+        self.search_source_list = _WrappedSourceList(self.search_source_panel)
         self.search_source_list.setObjectName("referenceLibrarySourceList")
         self.search_source_list.setAccessibleName("来源筛选")
         self.search_source_list.setAccessibleDescription("按资料来源筛选全库搜索结果。")
@@ -1020,6 +1045,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_source_filter.blockSignals(False)
         self.search_source_list.setCurrentRow(0)
         self.search_source_list.blockSignals(False)
+        self.search_source_list._fit_items()
         preferred = next(
             (index for index in range(self.source_filter.count())
              if "32151.34" in self.source_filter.itemText(index)),

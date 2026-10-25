@@ -333,6 +333,13 @@ class BusinessPageVisualTests(unittest.TestCase):
             self.assertLessEqual(page.record_list.rowHeight(row), page.record_list.fontMetrics().lineSpacing() * 3 + 36)
         self.assertEqual(len(self.records.list_all()), 3)
 
+        for row in range(page.record_list.rowCount()):
+            host = page.record_list.cellWidget(row, 4)
+            badge = host.findChild(QLabel, "recordStatusBadge")
+            self.assertGreaterEqual(host.width(), badge.minimumWidth() + 8)
+            date_item = page.record_list.item(row, 5)
+            self.assertGreaterEqual(page.record_list.columnWidth(5), page.record_list.fontMetrics().horizontalAdvance(date_item.text()) + 20)
+
     def test_frozen_report_header_displays_complete_enthalpy_unit(self):
         page = self.page(AppRoute.RECORDS)
         self.assertTrue(page.open_record("ui.sample.one"))
@@ -405,5 +412,12 @@ class BusinessPageVisualTests(unittest.TestCase):
         self.assertEqual(len(page._search_results), 0)
         self.assertLessEqual(page.search_result_table.height(), 100)
         self.assertGreaterEqual(page.factor_detail_scroll.height(), 280)
+        for row in range(page.search_source_list.count()):
+            item = page.search_source_list.item(row)
+            width = max(24, page.search_source_list.viewport().width() - 20)
+            text_height = page.search_source_list.fontMetrics().boundingRect(
+                QRect(0, 0, width, 10000), Qt.TextFlag.TextWordWrap, item.text()).height()
+            self.assertGreaterEqual(item.sizeHint().height(), text_height + 12, item.text())
+
 
 if __name__ == "__main__":unittest.main()
