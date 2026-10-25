@@ -1214,9 +1214,11 @@ class CarbonMaterialAccountingPage(BasePage):
         shared.setObjectName("accountingSharedResults")
         shared_layout = QVBoxLayout(shared)
         shared_layout.setContentsMargins(188, 0, 0, 0)
-        for widget in (external_card, quality_card, result_card, process_card, self.parameter_summary, status_bar):
+        for widget in (quality_card, result_card, process_card, self.parameter_summary, status_bar):
             self.body_layout.removeWidget(widget)
             shared_layout.addWidget(widget)
+        self.body_layout.removeWidget(external_card)
+        self.source_directory.add_supplement("external", "外部CO₂软件补充", external_card)
         self.body_layout.addWidget(shared)
         self.source_directory.results_requested.connect(lambda: self._scroll_to_widget(shared))
         back = QPushButton("返回排放源目录 ↑", shared)
@@ -3323,6 +3325,7 @@ class CarbonMaterialAccountingPage(BasePage):
         for _key, _title, card in entries:
             parent_layout.removeWidget(card)
         self.source_directory = SourceDirectory(entries, self)
+        self.source_directory.activated.connect(self._activate_source_group)
         self.source_directory.enable_requested.connect(self._toggle_source_group)
         parent_layout.insertWidget(insertion, self.source_directory)
 
@@ -3774,6 +3777,13 @@ class CarbonMaterialAccountingPage(BasePage):
             if parameter.parameter_id == parameter_id:
                 return parameter_id, str(getattr(parameter, "canonical_unit", getattr(parameter, "default_unit", "tCO2/MWh")))
         return parameter_id, "tCO2/MWh"
+
+    def _activate_source_group(self, group_id: str) -> None:
+        group = next((item for item in self._source_toggle_groups if item[0] == group_id), None)
+        if group is None:  # Software supplement has its own explicit declaration.
+            return
+        if not all(self._source_is_enabled(source_id) for source_id in group[2]):
+            self._toggle_source_group(group_id)
 
     def _toggle_source_group(self, group_id: str) -> None:
         group = next((item for item in self._source_toggle_groups if item[0] == group_id), None)

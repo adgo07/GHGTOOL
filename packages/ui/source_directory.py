@@ -1,4 +1,4 @@
-"""Presentation-only directory: navigation never changes source participation."""
+"""Explicit source activation and presentation-only programmatic navigation."""
 from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent
 from .source_cards import SourceHeaderSwitch
@@ -35,6 +35,7 @@ class ContentStack(QWidget):
 
 
 class SourceDirectory(QWidget):
+    activated = Signal(str)
     enable_requested = Signal(str)
     results_requested = Signal()
 
@@ -57,6 +58,8 @@ class SourceDirectory(QWidget):
         nav.setFixedWidth(170)
         nav.setStyleSheet(f"QFrame#sourceDirectoryNavigation {{background:{ACCOUNTING_COLORS['directory_surface']};border:1px solid {ACCOUNTING_COLORS['directory_border']};border-radius:9px;}}")
         links = QVBoxLayout(nav)
+        self._navigation = nav
+        self._links = links
         links.setContentsMargins(10, 16, 10, 16)
         links.addWidget(QLabel("排放源目录", nav))
         self.stack = ContentStack(self)
@@ -68,7 +71,7 @@ class SourceDirectory(QWidget):
             button.setCheckable(True)
             button.installEventFilter(self)
             button.setStyleSheet(f"QPushButton {{text-align:left;font-size:14px;padding:10px 8px;border:0;background:transparent;}} QPushButton:checked {{background:{ACCOUNTING_COLORS['source_selected']};color:{ACCOUNTING_COLORS['directory_selected_text']};font-weight:600;}} QPushButton:focus {{border:1px solid {ACCOUNTING_COLORS['brand']};}}")
-            button.clicked.connect(lambda checked=False, group=key: self.select(group))
+            button.clicked.connect(lambda checked=False, group=key: self.activate(group))
             links.addWidget(button)
             self.buttons[key], self.indices[key] = button, i
             panel = QWidget(self.stack)
@@ -98,15 +101,38 @@ class SourceDirectory(QWidget):
             self.placeholders[key] = placeholder
             self.stack.addWidget(panel)
         results = QPushButton("问题与结果 ↓", nav)
+        self._results_button = results
         results.clicked.connect(self.results_requested.emit)
         links.addWidget(results)
         links.addSpacing(12)
-        tip = QLabel("切换目录仅查看；启用状态与输入分别保留。", nav)
+        tip = QLabel("点击未启用的排放源即可启用；再次点击仅查看。停用请使用内容区开关，输入始终保留。", nav)
         tip.setWordWrap(True)
         links.addWidget(tip)
         layout.addWidget(nav, 0, Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.stack, 1, Qt.AlignmentFlag.AlignTop)
         self.select(entries[0][0])
+
+    def activate(self, key):
+        """Only a deliberate button action requests participation."""
+        self.select(key)
+        self.activated.emit(key)
+
+    def add_supplement(self, key, title, card):
+        """A ninth software entry; visiting never accepts its declaration."""
+        self.cards[key], self.titles[key] = card, title
+        button = QPushButton(title, self._navigation)
+        button.setObjectName("sourceDirectory_" + key)
+        button.setCheckable(True)
+        button.installEventFilter(self)
+        button.setStyleSheet(next(iter(self.buttons.values())).styleSheet())
+        button.clicked.connect(lambda checked=False: self.activate(key))
+        self._links.insertWidget(self._links.indexOf(self._results_button), button)
+        self.buttons[key], self.indices[key] = button, len(self.indices)
+        panel = QWidget(self.stack)
+        contents = QVBoxLayout(panel)
+        contents.setContentsMargins(0, 0, 0, 0)
+        contents.addWidget(card)
+        self.stack.addWidget(panel)
 
     def _outer_scroll(self):
         ancestor = self.parentWidget()
@@ -171,6 +197,7 @@ class SourceDirectory(QWidget):
 
     def refresh(self):
         for group, card in self.cards.items():
-            self.placeholders[group].setVisible(card.isHidden())
+            if group in self.placeholders:
+                self.placeholders[group].setVisible(card.isHidden())
         self.stack.updateGeometry()
         self.updateGeometry()
