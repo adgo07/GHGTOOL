@@ -1,0 +1,3541 @@
+{
+  "kind": "actual-Qt-offscreen",
+  "head": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "dirty": false,
+  "source_sha256": {
+    "packages/ui/__init__.py": "9ec25e921e55d9b9f003c459e326515736e10d8b9e77ddc4db3e8ebaa72b058a",
+    "packages/ui/business_page_style.py": "32a255bf85318f05ffc199b38f2d008dd693d591a0b539c0f5b66d30b17ae339",
+    "packages/ui/carbon_material_fuel.py": "e3eb9ca525cd1b8e8d11a2e88dc7d909360280211d851d679931c34cddfa7fc7",
+    "packages/ui/carbon_material_legacy_state.py": "0c966b2a456a5914b2f028b604a9ccdb1fda5a6b5a48220e68dd3013fa3d50ff",
+    "packages/ui/carbon_material_page.py": "10a5f65cdd00e9f115650249de78d87c5db8acc7a00c1e7d572553c957097930",
+    "packages/ui/catalog_pages.py": "289ad672c8a4e6ddcbb76bdb90b711ed5b366f70ee536a95a83a806a38c8e098",
+    "packages/ui/chinese.py": "0861527e31f1d2771e57eea7240268aee97340c1b3bf2b5cc1929fe93ccff586",
+    "packages/ui/compact_choices.py": "f6a02ae5e3e8a4a25e2a3142bf8272f75a749ffffd270b0342c1a6318409f13a",
+    "packages/ui/design_tokens.py": "e1f64e76d353a97459b9c7efac09c3c01acb5d35f239dbb5d08ce28f4dfee5e5",
+    "packages/ui/dialogs.py": "07e0b09861ebf9806279ad20486b3d74f5f96234d9db91a536d15f23f43d7635",
+    "packages/ui/excel_import_components.py": "f52164e200c401ca1843d0341451f5b0097a8e3d06436feed51a8273448e6337",
+    "packages/ui/export_location.py": "5011f8074f824240d9b7be9336e600dad7256baa7584c86da5d84eeb46b5b929",
+    "packages/ui/field_specs.py": "50a5d5c42ab701e4a9a5974bc64138eadd7eac19b0ed5e7090c24657b3d1f043",
+    "packages/ui/icons.py": "20056b2f0fe14960a6dc491c1928c73b165b9e3edc8798c97d1b70e2677e1b71",
+    "packages/ui/input_fields.py": "b85d91c8292658d4b93fccd7997395a2e2f3ac2e76d7f547b3f7c3c93fdfb56c",
+    "packages/ui/name_selector.py": "d42f15ef1ee46cefb107ba11340371d9fccec08007f8f03d1ff23ab09ab9d198",
+    "packages/ui/pages.py": "eb610c4aa38e72def8ecc5e33323492adcd2b6ccf0b180d9abcd37fd80867f35",
+    "packages/ui/record_experience.py": "f03c86e8c8418c5a9262c358c43f4e17a2169edde8f111cc7e0947946baa80f7",
+    "packages/ui/record_tables.py": "ea61724929611b240a50a8ec5ad0706f4aad9473069c4e5c15139dbaac10ec51",
+    "packages/ui/report_export.py": "319e8fb654c512b03874acc1be015d71554dc6a52a56cc0d32cf0633afeb463f",
+    "packages/ui/responsive_fields.py": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860",
+    "packages/ui/routing.py": "065382410b551ec6b6268908ffcc7abe652728031e0d019b549d746d1f1611a9",
+    "packages/ui/shell.py": "bd6904cab9825e3853666fb0423fa1344a200be3b3f74889e0c219dbf8c339cc",
+    "packages/ui/source_cards.py": "64b1f93cf736dd0dbb04bff3629f67f98258c10ae69f4d6513d0171be0b1fb4b",
+    "packages/ui/source_directory.py": "65e31393a6c7075b1deba39aa12eabdda2ccf476468649d1c4d1f1234b3ff67f",
+    "packages/ui/standard_editors.py": "7e458753e19e79fb115bbce9485e3f2c48d0e5bbd5b5676d880544ed6d40d52a",
+    "packages/ui/typed_inputs.py": "56b17bde7d53b6b66a6ffdda5103f47f61dac3e2df05582efca8356dda30a0f6",
+    "packages/ui/view_models.py": "6a2de548e2c0af4ef0d61a444216907b14c2c333032ea5306e81129fb63fe181",
+    "scripts/capture_business_pages.py": "8720da6b270783504159ac7c2c6565e03d2faaa0c71f42a4f5f33773819e8258"
+  },
+  "qt": "6.11.2",
+  "pyside": "6.11.2",
+  "platform": "offscreen",
+  "font_bootstrap": [
+    {
+      "file": "msyh.ttc",
+      "families": [
+        "Microsoft YaHei",
+        "Microsoft YaHei UI"
+      ],
+      "sha256": "d79c55e68b1131eea0cc1c47be4f572d964f28c682e143db2ad09c1e4cb07a3f"
+    },
+    {
+      "file": "msyhbd.ttc",
+      "families": [
+        "Microsoft YaHei",
+        "Microsoft YaHei UI"
+      ],
+      "sha256": "4508821b3dffe01f0ef5e5326a3e60df705a44633858811f67b6982dce3f6ee6"
+    },
+    {
+      "file": "seguisym.ttf",
+      "families": [
+        "Segoe UI Symbol"
+      ],
+      "sha256": "d2f8326a354456d93e78b0537c58793e7072c3617af7d9ee187f10d6d595f510"
+    }
+  ],
+  "cjk_glyph_probe": true,
+  "catalog_fixture_as_of": "2026-09-12",
+  "data": "synthetic isolated stores",
+  "scenes": [
+    {
+      "file": "1440-home-protected.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 30,
+          "point_size": 22.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "0a47c35cc467d796443599e7a27cf0482b3137fa764fa67a75279f96a6a01d4c"
+    },
+    {
+      "file": "1440-standards.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "3648915b71de00b265e29066787582badf8a7b87f540cbcf56ab607ef946471a"
+    },
+    {
+      "file": "1440-standard-detail-industry.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "a7c6a05f311b83c7268291a0b4332b3de58213f73dc2e8080c4694a676223a58"
+    },
+    {
+      "file": "1440-standard-detail-general.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "e3f523e1efd62602fe85c4ed0117f627f1543bcbbb5fd725710fdd659ca7a3a5"
+    },
+    {
+      "file": "1440-standard-detail-unavailable.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "2b784de321cf9d74ed2ae2e2d2b4b568a3a988b7e7fc2f948bbb7395b49e2513"
+    },
+    {
+      "file": "1440-standard-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "01a9bba2715a100b5cbcf6fd84dcbf375738bae344c105e23b3d96714f68ef93"
+    },
+    {
+      "file": "1440-factor-browse.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "6e2951926e5013dd893acb7207adfd8e5f0b90ed275463e10e38355d9e8c9402"
+    },
+    {
+      "file": "1440-factor-long-source-name.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 125
+        }
+      ],
+      "target_visible": null,
+      "sha256": "5772d3d05c8caef00399d4a7694784a02f8bc839455999a5bdd0ae1c23d03674"
+    },
+    {
+      "file": "1440-factor-search.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 82
+        }
+      ],
+      "target_visible": null,
+      "sha256": "e45442947b0801e460c628a7cff029918f60b3de26495d30d3f63865b7ebf3f8"
+    },
+    {
+      "file": "1440-factor-search-trace.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 311,
+          "maximum": 992
+        }
+      ],
+      "target_visible": null,
+      "sha256": "fac4706bea6ff076d31c4dfa19f3aa4bd6c20767c50b9c02c6d8f032113ab9d3"
+    },
+    {
+      "file": "1440-factor-longest-registered-value.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 82,
+          "maximum": 82
+        }
+      ],
+      "target_visible": null,
+      "sha256": "4fbd0490a0219c07a3519cdeb2de46d932927f4a9ecd4bc965dcc8e13798bd61"
+    },
+    {
+      "file": "1440-factor-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 0
+        }
+      ],
+      "target_visible": null,
+      "sha256": "097d539428d0f4807f434452baf46b3f3ab464002252713dd2255fc220dcf570"
+    },
+    {
+      "file": "1440-import-initial.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "0dba0a8fec69e58c2b80619285a6df6d1447148f4d5ea4b982eeea8b1c0af0d9"
+    },
+    {
+      "file": "1440-import-initial-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "0dba0a8fec69e58c2b80619285a6df6d1447148f4d5ea4b982eeea8b1c0af0d9"
+    },
+    {
+      "file": "1440-import-mixed-render-fixture.png",
+      "kind": "render-only-fixture-NOT-workbook-validation",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "939615511cfca3b2d2373896f3ffce365efa9069886a24366671830632e6818d"
+    },
+    {
+      "file": "1440-import-mixed-render-fixture-bottom.png",
+      "kind": "render-only-fixture-NOT-workbook-validation",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 239,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "4335a2e681c56e33dfb6d0124020e41ab942f75195c0afa23090156bd23e5201"
+    },
+    {
+      "file": "1440-import-valid-synthetic-workbook.png",
+      "kind": "actual-adapter-synthetic-workbook",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "701c350ac659f0291e0516c34afdbbcd2843cabeb9e202564be452f0d0d57c94"
+    },
+    {
+      "file": "1440-import-valid-synthetic-workbook-bottom.png",
+      "kind": "actual-adapter-synthetic-workbook",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 197,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "cb672b0b9a27a2cd91069f38713e6ee20487dab36cf0ed56c7ac0a29b31399b8"
+    },
+    {
+      "file": "1440-import-saved-context.png",
+      "kind": "actual-saved-canonical-context",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "db0b5d8f73cc9900106777508089a6e2cbc85b25a1973c8c89cfce4a4782370d"
+    },
+    {
+      "file": "1440-import-open-existing-project.png",
+      "kind": "existing-project-secondary-entry",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "7a17524c34ba383072b3a3398116a793fedf62e6492048d0f506680fc9721321"
+    },
+    {
+      "file": "1440-import-saved-project-bottom.png",
+      "kind": "actual-save-temporary-project-NO-formal-Record",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 70,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "26316a2835a607a2aadf80b4676b37066d16662695c91e1b3e636bde988dcc34"
+    },
+    {
+      "file": "1440-records-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "1ebd32d78998fdac9d846c872faa54744f9b84fcc7e7eff0668fe14ae1afbd4a"
+    },
+    {
+      "file": "1440-records-restored.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "dbe958569996ffa7ca48d9c1ac4251bee0d53cd7d00505730fc5dce33728c34e"
+    },
+    {
+      "file": "1440-record-summary-supplement.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 0,
+          "maximum": 1149
+        }
+      ],
+      "target_visible": null,
+      "sha256": "fc2a4022dbf6575ab016374c7c85fe180170d9ca9bb6fb36cd36a98d3a256b16"
+    },
+    {
+      "file": "1440-record-software-supplement-supplement.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 43,
+          "maximum": 3844
+        }
+      ],
+      "target_visible": "外部CO₂软件补充（非标准表）",
+      "sha256": "352578ec7a7c9a83318ca34bd7cd681173589a5c3ff13fe47e19ca8b284d681b"
+    },
+    {
+      "file": "1440-record-summary-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1149,
+          "maximum": 1149
+        }
+      ],
+      "target_visible": null,
+      "sha256": "d15932b14cd67516334691dc2932e874286f81ada84fcda1f18d6f9050493bde"
+    },
+    {
+      "file": "1440-record-basis-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3844,
+          "maximum": 3844
+        }
+      ],
+      "target_visible": null,
+      "sha256": "dbd8653a53815b9dffa4d7052d771247a3d2b929a92be21fb1dec8bc6ab689d5"
+    },
+    {
+      "file": "1440-record-business-source-basis.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3844,
+          "maximum": 3844
+        }
+      ],
+      "target_visible": null,
+      "sha256": "dbd8653a53815b9dffa4d7052d771247a3d2b929a92be21fb1dec8bc6ab689d5"
+    },
+    {
+      "file": "1440-record-summary-pending.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1149,
+          "maximum": 1192
+        }
+      ],
+      "target_visible": null,
+      "sha256": "a1ba620a6463ecc13b0a8a0347a970d04501e27b7beec41e36d9654b29e72460"
+    },
+    {
+      "file": "1440-record-software-supplement-pending.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 43,
+          "maximum": 3880
+        }
+      ],
+      "target_visible": "外部CO₂软件补充（非标准表）",
+      "sha256": "f955f93f3923a9f35588e722f68657a912594bd02e3553d5f0900b10777bd331"
+    },
+    {
+      "file": "1440-record-legacy-missing.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1108,
+          "maximum": 1108
+        }
+      ],
+      "target_visible": null,
+      "sha256": "cc9209ceed3b2b48825d9062c2cff0874564e410948c1c66ff9f4938e11c2ade"
+    },
+    {
+      "file": "1440-record-legacy-business-basis.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3175,
+          "maximum": 3175
+        }
+      ],
+      "target_visible": null,
+      "sha256": "5d20b2be46ff901a4094e9b4bf3ab7534b93a1e1ae3d3232676503aa6d12f0cf"
+    },
+    {
+      "file": "1440-record-b2-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 90,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B. 2    化石燃料燃烧活动数据和排放因子数据一览表",
+      "sha256": "28693d6e71527ca428cf96d9853df09323ce43e073073a85a23eb5e43b8e51d3"
+    },
+    {
+      "file": "1440-record-b2-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 90,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B. 2    化石燃料燃烧活动数据和排放因子数据一览表",
+      "sha256": "4b34804e6852163a9b79a6631b9dc6895a1254a8219caec7892cdc2f8262ef47"
+    },
+    {
+      "file": "1440-record-b8-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3771,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B. 8   购入和输出的电力对应的活动数据及排放因子数据一览表",
+      "sha256": "6edc5ee118db395378086daa74f673d8e6a0dd226e3e1755ee8e558e24c15167"
+    },
+    {
+      "file": "1440-record-b8-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3771,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B. 8   购入和输出的电力对应的活动数据及排放因子数据一览表",
+      "sha256": "6edc5ee118db395378086daa74f673d8e6a0dd226e3e1755ee8e558e24c15167"
+    },
+    {
+      "file": "1440-record-b8-footnote.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4099,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "       a     若购入或输出的电力存在一个以上不同排放因子的电力来源 ,可自行分行一一列明并填数 。",
+      "sha256": "f5843c0e8768170b8ca1a43c18f533ffb771e5457e0a1820a174be34fbde87b1"
+    },
+    {
+      "file": "1440-record-b9-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4213,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B.9   购入和输出的热力对应的活动数据及排放因子数据一览表",
+      "sha256": "2ca3e7352fa7465bf09663059bbf9b5ac9add2008fd2a25e8a01921cff8a2e39"
+    },
+    {
+      "file": "1440-record-b9-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4213,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "表 B.9   购入和输出的热力对应的活动数据及排放因子数据一览表",
+      "sha256": "2ca3e7352fa7465bf09663059bbf9b5ac9add2008fd2a25e8a01921cff8a2e39"
+    },
+    {
+      "file": "1440-record-b9-footnote.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4479,
+          "maximum": 7137
+        }
+      ],
+      "target_visible": "       a     若购入或输出的热力存在一个以上不同排放因子的热力来源 ,可自行分行一一列明并填数 。",
+      "sha256": "7d40780495eaa05d906d9dace89f2045e4618df92d1660d17726a269d4cf0c88"
+    },
+    {
+      "file": "1440-settings-long-path.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "f42c96438e40f3729e3e8512805e7d5c0b9a86dbf5f6cfb41b06a90e9d01a1b0"
+    },
+    {
+      "file": "1440-import-two-calculations-success.png",
+      "kind": "actual-two-calculations-isolated-store",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 170,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "459f6df018b59e0daaaab016883371eb58b2552903acb7aa05a9f53ebca24f25"
+    },
+    {
+      "file": "1440-import-history-selection.png",
+      "kind": "history-selection-NO-extra-Record",
+      "window": [
+        1440,
+        1000
+      ],
+      "image": [
+        1440,
+        1000
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 170,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "f76675991cf51352fe499f492a364d00656d3d3a2b85c0bd55cdb0785a9ad45e"
+    },
+    {
+      "file": "1180-home-protected.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 30,
+          "point_size": 22.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "ddca649b94f9c1029d1dd49bed66d4b6e1f62e7974a173b70924607d3e713a18"
+    },
+    {
+      "file": "1180-standards.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "c408fe63e921cff11d65875b36d666b5f59f0aba505a6fefd04265aa07c9a781"
+    },
+    {
+      "file": "1180-standard-detail-industry.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "0b034124e7a2701dc54980039b4eb1c79b680764a6680cac7b113183036a6806"
+    },
+    {
+      "file": "1180-standard-detail-general.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "a0215ddbf8ab12d195aa01b4243f73a1bfc008c0515144b5595c82616ef889f2"
+    },
+    {
+      "file": "1180-standard-detail-unavailable.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "standardDetailName",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 22,
+          "point_size": 16.5
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "c5511f7004e14ce6ce63cd57dc339802fa175f99b71188f51cf44613a4537828"
+    },
+    {
+      "file": "1180-standard-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "02d4fa26f10f3dfaa4c0cffc32e07c71301660eb17596b8ac4d03d3320a97c79"
+    },
+    {
+      "file": "1180-factor-browse.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "2b9fe83492123e6565b88c4ce7a88f5479cbefa84b81b10afe48b82da78056d9"
+    },
+    {
+      "file": "1180-factor-long-source-name.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 161
+        }
+      ],
+      "target_visible": null,
+      "sha256": "f981a4ec767afd734ab17fe4e89d9a3cf2d265f1584caa98033f04e55cc27603"
+    },
+    {
+      "file": "1180-factor-search.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 100
+        }
+      ],
+      "target_visible": null,
+      "sha256": "73392787a7f4bf4e09da3508acc15b528483fc2a9c2a0300864a902c30483f6f"
+    },
+    {
+      "file": "1180-factor-search-trace.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 329,
+          "maximum": 1046
+        }
+      ],
+      "target_visible": null,
+      "sha256": "83e1c54658e03379e22514191c916f8f667717931c6e1cadc08e3fedcc8f3e2d"
+    },
+    {
+      "file": "1180-factor-longest-registered-value.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 82,
+          "maximum": 82
+        }
+      ],
+      "target_visible": null,
+      "sha256": "042a8ee3094a5111db562b9050230a67a2f40e901efaeccfcaef61e041b87845"
+    },
+    {
+      "file": "1180-factor-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "parameterDetailScroll",
+          "value": 0,
+          "maximum": 0
+        }
+      ],
+      "target_visible": null,
+      "sha256": "07ce1b4c87e78d8494ab9ef914280c9dd31952cdf5b07b0580b677d55ccccd73"
+    },
+    {
+      "file": "1180-import-initial.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "2b491569fe47cf86e69f2c783eb0820b3cf9f072077c4018d7f637436fd978d8"
+    },
+    {
+      "file": "1180-import-initial-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 95,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "7687f08148daf5fa4379ab951de45bb13d3bb0a8b97579383221d4dc0eae5c9f"
+    },
+    {
+      "file": "1180-import-mixed-render-fixture.png",
+      "kind": "render-only-fixture-NOT-workbook-validation",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "f7f6e5508bff03e5b2a53bcc4784432be8f28d95a668f75a419339c8a6c67c1f"
+    },
+    {
+      "file": "1180-import-mixed-render-fixture-bottom.png",
+      "kind": "render-only-fixture-NOT-workbook-validation",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 431,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "0b649eb4b81d32db7b64e82cee2f64a6581118f6e8595b522b0f08bf7634b502"
+    },
+    {
+      "file": "1180-import-valid-synthetic-workbook.png",
+      "kind": "actual-adapter-synthetic-workbook",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "13d7d63243436d59468723570f5ce6466921771f10cfc6f46e12fc40eef48295"
+    },
+    {
+      "file": "1180-import-valid-synthetic-workbook-bottom.png",
+      "kind": "actual-adapter-synthetic-workbook",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 389,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "14f71e840dfa4e68912004e422e4a10e55cdc3cf07e638381083bc7170438863"
+    },
+    {
+      "file": "1180-import-saved-context.png",
+      "kind": "actual-saved-canonical-context",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "18822c941432c2bba4791ff6c1a2bb7734fbbedbbf5e86a0bb0e0122ec49838d"
+    },
+    {
+      "file": "1180-import-open-existing-project.png",
+      "kind": "existing-project-secondary-entry",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "73096faa2fb02d265f7d8b6831dd352ede0ae4339568d7f97b44743507b0e0a7"
+    },
+    {
+      "file": "1180-import-saved-project-bottom.png",
+      "kind": "actual-save-temporary-project-NO-formal-Record",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 262,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "f4880a9905615dc3899d578534696574064445f1a0e4d541a3cccf38b696bf4c"
+    },
+    {
+      "file": "1180-records-empty.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "af7337b17dab5dcc0a1e85f6880d07fa642645f658faee818f7d0558d7d5fb83"
+    },
+    {
+      "file": "1180-records-restored.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "fb1952d815b2d3559566daf66f4b160e962ae1a2c6e6329b22821f0f63be87ee"
+    },
+    {
+      "file": "1180-record-summary-supplement.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 0,
+          "maximum": 1333
+        }
+      ],
+      "target_visible": null,
+      "sha256": "7b5db78b45e18346163ab04ed7b5c3c629e16eb5c70ddea2efe2913c7d538f94"
+    },
+    {
+      "file": "1180-record-software-supplement-supplement.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 43,
+          "maximum": 4028
+        }
+      ],
+      "target_visible": "外部CO₂软件补充（非标准表）",
+      "sha256": "184c814e0d92674c435405713d76cc10289ebc8c046da02bbd0d0ee83ac5ce77"
+    },
+    {
+      "file": "1180-record-summary-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1333,
+          "maximum": 1333
+        }
+      ],
+      "target_visible": null,
+      "sha256": "112b6900f2b6c32e57bd50268972358834016fbb4c11c27ed2783a278c9462b6"
+    },
+    {
+      "file": "1180-record-basis-bottom.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4028,
+          "maximum": 4028
+        }
+      ],
+      "target_visible": null,
+      "sha256": "66668449d46511bc3e436c6305c48c6016afe2b41842b2a48061f0019402ebc1"
+    },
+    {
+      "file": "1180-record-business-source-basis.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4028,
+          "maximum": 4028
+        }
+      ],
+      "target_visible": null,
+      "sha256": "66668449d46511bc3e436c6305c48c6016afe2b41842b2a48061f0019402ebc1"
+    },
+    {
+      "file": "1180-record-summary-pending.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1333,
+          "maximum": 1376
+        }
+      ],
+      "target_visible": null,
+      "sha256": "b7ac9c4878acb5ce1979abfa477963e21cebaf03e835bbbb0f88a4ac3a00a922"
+    },
+    {
+      "file": "1180-record-software-supplement-pending.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 43,
+          "maximum": 4064
+        }
+      ],
+      "target_visible": "外部CO₂软件补充（非标准表）",
+      "sha256": "70fff727550f2927ea677ed57c76dc7bf8b504aac65a532e96cb5d576e9308b0"
+    },
+    {
+      "file": "1180-record-legacy-missing.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordSummaryViewScrollArea",
+          "value": 1292,
+          "maximum": 1292
+        }
+      ],
+      "target_visible": null,
+      "sha256": "31486e192592f2debca110795599b2a1008a3fe0f977a148cf11dfdcd2f44522"
+    },
+    {
+      "file": "1180-record-legacy-business-basis.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3359,
+          "maximum": 3359
+        }
+      ],
+      "target_visible": null,
+      "sha256": "9d39bfe6a17e8cd59bef6d0d3a0a32c16d3f8f267aca9aea75b10329135122a3"
+    },
+    {
+      "file": "1180-record-b2-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 90,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B. 2    化石燃料燃烧活动数据和排放因子数据一览表",
+      "sha256": "3477ca348b0da40d32e237d277aa6783dfa25b74b64dbab824eacd33c5276d6e"
+    },
+    {
+      "file": "1180-record-b2-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 90,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B. 2    化石燃料燃烧活动数据和排放因子数据一览表",
+      "sha256": "8cfe6a8d8ffbc1adc78f26857dd5a8581aca48653a11133e050021cb9d15e2db"
+    },
+    {
+      "file": "1180-record-b8-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3771,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B. 8   购入和输出的电力对应的活动数据及排放因子数据一览表",
+      "sha256": "737f12ae915058c33ca591b291decf55a2f9df03a51635a28c59166b6470746b"
+    },
+    {
+      "file": "1180-record-b8-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 3771,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B. 8   购入和输出的电力对应的活动数据及排放因子数据一览表",
+      "sha256": "737f12ae915058c33ca591b291decf55a2f9df03a51635a28c59166b6470746b"
+    },
+    {
+      "file": "1180-record-b8-footnote.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4099,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "       a     若购入或输出的电力存在一个以上不同排放因子的电力来源 ,可自行分行一一列明并填数 。",
+      "sha256": "9191a6c1c6b918ea9de796c71d906323d20f1162bedea6cb68b0a794f8added5"
+    },
+    {
+      "file": "1180-record-b9-left.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4213,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B.9   购入和输出的热力对应的活动数据及排放因子数据一览表",
+      "sha256": "1a7784a36ccda93323e92e4ecb13c2c8f174d01236f10901e683fe7ecd475b87"
+    },
+    {
+      "file": "1180-record-b9-right.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4213,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "表 B.9   购入和输出的热力对应的活动数据及排放因子数据一览表",
+      "sha256": "1a7784a36ccda93323e92e4ecb13c2c8f174d01236f10901e683fe7ecd475b87"
+    },
+    {
+      "file": "1180-record-b9-footnote.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "recordFrozenTotal",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 26,
+          "point_size": 19.5
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [
+        {
+          "name": "recordInputBasisViewScrollArea",
+          "value": 4479,
+          "maximum": 7321
+        }
+      ],
+      "target_visible": "       a     若购入或输出的热力存在一个以上不同排放因子的热力来源 ,可自行分行一一列明并填数 。",
+      "sha256": "7655d844bf54e14c1a9a8ab3b018916ef30a4e8f3a53e29e86aacaf1bbf17736"
+    },
+    {
+      "file": "1180-settings-long-path.png",
+      "kind": "actual-Qt-synthetic-data",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 0,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "25772ef8bfc8c06556218915f6078f827d5c5fcf741f7040500bfd97e615bd91"
+    },
+    {
+      "file": "1180-import-two-calculations-success.png",
+      "kind": "actual-two-calculations-isolated-store",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 362,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "8efc340373e4ad15e16f78f72fd8c05237c51b47a8faa821ec3ce96e3705e7d0"
+    },
+    {
+      "file": "1180-import-history-selection.png",
+      "kind": "history-selection-NO-extra-Record",
+      "window": [
+        1180,
+        800
+      ],
+      "image": [
+        1180,
+        800
+      ],
+      "dpr": 1.0,
+      "font": "Microsoft YaHei UI",
+      "effective_fonts": [
+        {
+          "name": "pageTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 24,
+          "point_size": 18.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        },
+        {
+          "name": "cardTitle",
+          "family": "Microsoft YaHei UI",
+          "pixel_size": 16,
+          "point_size": 12.0
+        }
+      ],
+      "outer_scroll": 362,
+      "inner_scrolls": [],
+      "target_visible": null,
+      "sha256": "91e035d6238e7aa63c4ce83252eecc07f8a66c33959b903a103b6bca4e903eb6"
+    }
+  ],
+  "callback_errors": [],
+  "status": "CAPTURE_COMPLETED_NOT_RELEASE_ACCEPTANCE",
+  "checkbox_comparison": {
+    "images_sha256": {
+      "checkbox-baseline.png": "6494adf12b01c5173639875614c1a3f7e905e00a36441451bc407dfa216b6163",
+      "checkbox-business-page.png": "f6c5d6740c39b865872aada744ef7f3914d9a65d374843b38c382cbc5161c368",
+      "checkbox-unchecked.png": "c06ec5abc32cbcd44e754324367518f730b45c0cf9ee842cb5b4e06ff18a596d",
+      "checkbox-disabled-checked.png": "08a39789c4e221a753aa92b4753e0caca5b04c25a0e5df5f29a424af8b7ddd2a",
+      "checkbox-partial.png": "fd83c2cb8a6d8aa4f80bb804b57393c875306c521fdd249f7984e06b27fb1590",
+      "checkbox-focus.png": "f6c5d6740c39b865872aada744ef7f3914d9a65d374843b38c382cbc5161c368"
+    },
+    "indicator_sha256": {
+      "baseline": "7f04fb38b1fb6ef114068ea18d61dc281abdec6a44cfe408129134e8c32a5924",
+      "business-page": "d30be8aadeab00edb9ddd0d5861853020c575967ac778469a331b1252cea3b10",
+      "unchecked": "7490a2f8f71400ed947bc0d9e074328030791cbb146098d45115a76ca152ae60",
+      "disabled-checked": "4acdd0b09083ff9c0984fd1ac7ca3388c8f31c3f506d059d3d9bf4726e43d826",
+      "partial": "95ef3294394354b5f31007917d2625b1062e6fbae2388557e2004d8dc8306852",
+      "focus": "d30be8aadeab00edb9ddd0d5861853020c575967ac778469a331b1252cea3b10"
+    },
+    "indicators_identical": false,
+    "local_checked_mark_added": true,
+    "baseline_theme_blob": "75921f6f84f272f2c15eeeeadb7ed760657c607c",
+    "global_theme_unchanged": true
+  }
+}

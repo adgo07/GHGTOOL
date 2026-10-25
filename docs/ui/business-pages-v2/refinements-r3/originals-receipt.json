@@ -1,0 +1,10 @@
+{
+  "code_head": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "count": 364,
+  "archive": "original-evidence.zip",
+  "archive_sha256": "a3cae2c5504a919f5bf0af174245f1a6715f0b596fbcf7c55bf580ccf7056fb7",
+  "roundtrip_all_hashes_match": true,
+  "kind": "original source-bound captures/logs/probes and UI source; synthetic isolated data",
+  "index_sha256": "37ae887715c377468a87e87821049f343cde81358010c1c2e3f2dd1abcb81df1",
+  "machine_path_not_repository_identity": true
+}

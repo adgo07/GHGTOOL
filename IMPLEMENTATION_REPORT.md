@@ -1,45 +1,49 @@
-# PR60 五页 V2：启动日志缺陷增补报告
+# PR60 五页 V2 与验收问题收口报告
 
-用户实测45a8178候选EXE因日志初始化PermissionError出现Unhandled exception。此前CI308/离屏启动成功不覆盖该真实启动缺陷，PR60保持未合并。本轮最小修复及本地定向验证完成，待同一PR的新head required CI、精确新包与源独立验收。
+本轮在已批准五页 V2 上收口普通记录业务依据、脚注字形、导入项目/记录操作和可读性问题，并完整保留此前启动日志失败的安全退出修复。产品代码固定于 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；本地裸字体完整运行 **1121通过/1失败，5371.075s**，受控运行代码/测试/构建/资源 338 项前后哈希不变。astra r3 对两尺寸实际 Qt 离屏图及相关源码给出限定视觉 PASS。源会话正式独立验收另行进行，PR60未合并。
 
-## 诊断与最小决定
+## 本轮范围与行为
 
-入口基线45a8178fa92ef88eed8988c9d8dd671db93d32cb，origin实核adgo07/GHGTOOL，分支codex/ui-five-business-pages-v2，fetch后main仍d7159f77ddb103376f5ca6bdd3a9532c101433e3，入口干净。复用现有PR工作树，不重建五页、不覆盖既有成果。
+- 记录详情保持两个页签。普通层撤除技术审计入口，直接提供已冻结业务输入、参数来源、计算依据和标准定位；旧记录、无表式或局部快照损坏仍保留可读原值与缺项说明。内部枚举改为业务名称，来源文档编号原文保留；完整数值以业务内容 tooltip/无障碍说明保留，普通数值显示修约不回流历史数据或正式判定。
+- B.1/B.2/B.7/B.8/B.9既有脚注 a/b 在 Qt 呈现层使用普通拉丁字形上标绘制，明确保留单位换行。原冻结表头、合并单元格、脚注、共享报告模型及Word分页逐字不改；不增加或打包字体。
+- 导入顺序为工作簿→核算信息/边界→检查预览→保存全部有效单元→主动正式核算。空态隐藏空表/空详情；已保存项目独立次级入口，展示 Canonical 保存的企业、期间、地区与边界，隐藏新导入草稿而不覆盖草稿或写默认。信息/计量路径变化后须重检才能保存。
+- 正式核算成功仍每次新增不可编辑 Record。本次/最新查看绑定本单元最后实际生成记录，历史选择有独立查看动作；关联保存失败保留原恢复提示，不冒称成功。成功后主操作为查看本次记录，再次核算降为次级，明确其追加效果。
+- 来源长名完整换行并按实际宽度保留末行，少量搜索结果让详情获得空间；记录列表压缩行高且保留状态/日期，详情头紧凑、宽表仅在表内横滚；设置路径从盘符起显示并可完整复制/访问。勾选、半选、禁用及焦点只在导入局部强化，全局主题、首页/壳/新建核算未改。
 
-app.main在任何业务数据库初始化前直接调用configure_logging，日志目录mkdir或RotatingFileHandler打开失败均可抛OSError，原来没有启动边界保护。实际用户文件访问失败的原因仍未确定：受限进程权限不代表资源管理器正常用户启动的权限，不能由sandbox写失败推定用户ACL问题；文件占用、安全策略和启动方式仍待区分。本轮未访问或修改实际用户日志路径，不改ACL、不要求管理员运行、不删除日志、不迁移用户数据、不启动原生桌面。
+## 代码与证据身份
 
-选择固定中文提示并安全退出，不改日志路径或静默降级。仅app.main的日志初始化外增加OSError捕获；提示“应用日志无法打开”“应用日志无法创建或写入。核算记录和项目数据尚未打开”，提供检查日志文件夹可写性/可能占用的重试方向，return1，不显示任意异常原文。日志仍不可写时仍拒绝启动；本修复消除未处理异常，不声称消除了用户环境访问阻塞，也不把正常用户真实启动宣布已恢复。
+Canonical repository 为 `adgo07/GHGTOOL`，实际 origin/fetch 已核对；复用 `codex/ui-five-business-pages-v2`，入口 `e33624ed98c1ceb2e6445917b6e12cee0bd02a8a`，main `d7159f77ddb103376f5ca6bdd3a9532c101433e3`。不依据机器绝对路径识别仓库，不覆盖另一工作区的用户修改。
 
-configure_logging、RotatingFileHandler轮转配置、结构化事件/字段白名单逐字不变；正式Record及audit_log实现未改，失败在records/projects/settings仓库调用前退出，正常流程仍创建真实隔离库并进入原事件循环。严格AST证明：仅拆掉新日志try/except后，app.py整文件AST与45a8178一致，含create_main_window及全部原数据库/业务启动组合。packages/resources/scripts/workflow/依赖/platform-lock无变化，r9全部29项UI源hash仍匹配。
+本轮是 Owner 新授权的 PR60 增量，不再冒用原 UI package 的初始白名单。显式方法保护证明覆盖6个UI文件；Canonical项目保存/来源证据方法、正式calculate与save_after_record调用不变，Application/Core/Calculator/Adapter/DB/迁移/资源/受控母版/Word模型/依赖/workflow与启动修后入口基线无差异，8个受保护UI源逐项不变。证明见[scope-proof.json](docs/ui/business-pages-v2/refinements-r3/scope-proof.json)。产品代码、证据文档head及最终PR/CI/制品身份分列；正式最新head及CI/ZIP/manifest以PR60最终交付回执锁定，不把旧CI309或旧包改标新版本。
 
-## 本地验证（数量重叠，不累计）
+## 本地执行与失败记录
 
-Windows/Python3.12.14。新启动测试使用隔离合成路径；消息框及应用事件循环替身，不是原生交互验收。真实文件系统负例为日志目录已有文件、application.jsonl已有目录、Windows只读文件、Windows独占共享拒绝句柄；另注入handler PermissionError及EXE入口转发负例。正常守卫使用真实隔离SQLite仓库和结构化日志，保留原日志内容、启动/退出事件。
+主命令 `python -B -m unittest discover -s tests -t . -v`；本地裸字体完整运行实际为 **1121通过/1失败，5371.075s**。运行前后全部受控运行代码/测试/构建/资源哈希一致，原始全量日志SHA256 `6f618d0d52ae8b093c1374006dbae4c0200dc81f108f8990cba77f850c6bafbf`。见[完整摘要](docs/ui/business-pages-v2/refinements-r3/local-full-summary.json)。Windows/Python3.12.14，Qt6.11.2，离屏与隔离合成库；不等同原生交互。
 
-| 命令 | 结果 |
-|---|---|
-| 修前 python -B -m unittest tests.test_startup_logging -v | 原6项：1正常通过/5错误，2.556s；五类错误均未处理，原件保留 |
-| 修后 python -B -m unittest tests.test_startup_logging tests.test_logging tests.test_g08_delivery -v | 当时6项新用例＋原守卫共29/29，88.703s |
-| 最终 python -B -m unittest tests.test_startup_logging tests.test_logging tests.test_g08_delivery tests.test_g07_records.G07RecordRepositoryTests -v | 36/36，86.057s；7项启动用例、日志隐私、22项交付、6项正式Record/审计守卫 |
-| python -B -m compileall -q apps tests/test_startup_logging.py；git diff --check | exit0；通过 |
-| app整文件受控AST；29项r9源SHA；未改业务/资源/依赖/工作流 | 全部通过 |
+定向组有重叠，不累计：记录绑定2/2（40.441s）；A-11修后34/34（129.090s）及真实旧记录/跨启动2/2（27.663s）；脚注及冻结Word守卫20/20（31.531s）；可读性九模块80/80（335.305s），来源行高修后同组80/80（442.401s）；导入/恢复/冻结报告24/24（244.685s），上下文与Shell15/15（42.472s）；astra首轮修后冻结详情/Word及核算31/31（121.197s）；真实电力正式Record呈现1/1（5.844s）；最终列表/字体2/2（26.627s）。命令/日志名/摘要见[定向索引](docs/ui/business-pages-v2/refinements-r3/local-directed-index.json)，完整原件独立保留。
 
-Record审计守卫包括审计插入失败必须回滚正式Record、成功记录追加与全快照、删除留审计且ID不复用。没有以诊断日志可用性替代正式审计。修前/修后原始日志已独立保留；本轮源hash、命令/数量/耗时、各日志SHA和范围证明见[startup-logging-review.json](docs/ui/business-pages-v2/startup-logging-review.json)。本地真实路径只记最终执行回执，不写进治理正文。
+修前真实记录绑定1项失败、A-11修前1项失败均已复现并修复。第一次A-11组32/33通过，待删除QLabel被测试误读为重复当前内容；随后隐藏移除控件并维护当前业务标签列表。第一次可读性运行因新增测试插入位置错误未执行；原日志保留。新增业务名称守卫曾误要求无电量变量的表式夹具显示电量（2项1通过/1失败57.103s），改核实际保存业务项并新增真实Canonical电力→Record→只读界面场景；该新增场景初次目录引用错误（2项1通过/1错误13.618s）也保留，修正后独立重跑通过。两版完整运行因截图发现来源末行及窄窗列宽问题主动中止，均不计完整通过。所有失败/中止与修后日志不覆盖。另一次字体引导完整复验为固化可复现的QA前置而主动停止，未完成不计通过；最终同head完整required CI单独执行并记录。
 
-本轮没有重跑无变化的五页截图/视觉或本地完整1106项；启动边界已由36项直接守卫覆盖，完整回归由本次必需的merge-ref CI执行，结果必须按实际新head单独记录，不能把旧1106＋新增组拼成新完整通过。当前新CI/新制品未完成。
+Canonical校验9标准/12来源/102参数/138因子、compileall、pip check和diff检查均通过；数量仅为目录验证，不代表支持9项标准。未重复执行无变化的工作流，不修改费用预算、可见性或required checks。
 
-## 原五页基线身份与证据边界
+## 本机离屏字体前置与QA修正
 
-保留批准的标准库/详情、参数因子库、表格导入、记录/详情、设置V2。原包仅在6旧blob/10目标匹配后受控应用，未重套或修改预期hash。原protected_tree、8个核算/壳源及Excel接线19/19的保护保持。r9限定视觉PASS，干净捕获e2c7520ef58eb7623ddf0f8ba5a45be9193a1b30，60图/29源匹配、回调异常0，原五项HOLD关闭，当前UI源未变；不把r9称作本轮启动错误提示截图。
+上述完整运行唯一失败为日期列宽视觉断言。相同产品/断言在字体枚举0的进程测得日期140px（104px列宽不足）；仅QA进程注册已有系统字体后测得76px，同一断言通过。原失败不改标为完整通过。修复仅测试setUpClass与QFontDatabase导入：字体枚举为空时加载可用Windows系统字体，仍无字体则明确报错，不skip、不安装或打包字体、不放宽断言。修后普通命令 `python -B -m unittest -v tests.test_business_pages_visual`，21/21，119.918s。QA增量head `4cd2d09ba9595fdc8ff44b91a5f366adace6c525`；产品29源与astra的fb56逐项相同。断言体AST保护证明及字体复现另存，最终完整required CI独立记录，不能用定向相加冒充本地全量通过。
 
-原本地完整1106/1106（2731.183s）在5c0c34013db938f56924329b43861fa5890c52d3，原CI308在45a8178的merge-ref1106/G08 22成功及旧精确包，均是本轮增补之前的证据，不能证明新启动修复或真实用户路径可写。旧528份原始证据归档及早期完整运行异常原件保留，不覆盖、不重标；[五页图集](docs/ui/business-pages-v2/review.html)继续仅作原视觉范围证据。
+## astra限定视觉复核
 
-此前smoke将LOCALAPPDATA/TEMP隔离到合成目录，因此覆盖新用户可写目录启动、PNG/SVG和中文资源，不覆盖既有实际用户目录的ACL、文件占用、压缩文件、安全策略、启动身份，也不是原生桌面/鼠标/IME/Office/人工DPI/企业样例/干净机验收。
+r3捕获于清洁产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；1180×800与1440×1000共86整窗图，另6张控件状态图，回调异常0。92/92图、29/29源hash由astra独立核对，复核turn `01a1719a-f04a-7890-9fba-288ecd0b361b`。r1四项HOLD（状态/日期、长小数与匿名用量、B2脚注、成功后按钮主次）全部关闭，无新增视觉阻断。完整快照清单SHA256 `5ee7e5e92f716f811d26371c1e95d844a64b3f66c5446ccc9bf0494103fd4dbc`。
+
+[精选图集](docs/ui/business-pages-v2/refinements-r3/review.html) · [限定回执](docs/ui/business-pages-v2/refinements-r3/astra-receipt.json)。astra确认完整业务依据绑定tooltip/无障碍说明，但未实测悬停或读屏；截图与定向属性检查不能替代原生行为验收。r1/r2/r3全部原图、脚注前后probe与哈希、原始日志独立归档，旧r9图集/早期CI与候选包保留原身份。
 
 ## 平台 / Contract预检查
 
-业务入口45a8178fa92ef88eed8988c9d8dd671db93d32cb，locked中央ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；沿用本会话已核验的中央当前合并UIv0.2/清单及locked Architecture V2.1。适用MUST/MUST NOT：保持分层，诊断日志不写任意企业/活动/秘密数据，显示不回流计算，正式Record/审计语义不降级，不改Canonical、Calculator、迁移、来源资格或标准支持状态。无冲突、偏差、adoption或中央修改。本任务不涉及中央公共 Contract。相关Standard Issue：本启动工程缺陷无标准解释问题；不改变既有软件解释或支持范围。
+业务仓产品代码SHA如上；中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，Architecture V2.1 / Numeric v1 / Numeric Profiles v1仍为FROZEN。已读中央当前正式UI v0.2及适用界面指南（ACTIVE/EVOLVING，不当Frozen）；本任务不涉及中央公共 Contract。适用MUST/MUST NOT：保持分层、显示与计算隔离、Carbon项目p40/HALF_UP Profile与完整值正式比较、冻结Record与独立projects.sqlite语义、旧记录与来源证据、正式审计、受控Excel及Word表式。无中央冲突、偏差、adoption或baseline升级。相关Standard Issue：无本轮新增标准解释问题，不改变已有软件解释或支持范围。
 
-## 接续与停止条件
+## 工程交付与独立验收边界
 
-稳定本地批次一次push更新PR60，仅复用同head required checks；取得本次真实精确head ZIP，核GitHub digest/manifest/两job原始日志，执行本地审计、隔离离屏正常启动及启动后再审计。原生实际用户启动及真实访问原因仍待独立确认。交源会话独立验收，不自动合并、发布、修改ACL/预算/workflow或无变化重跑CI。
+既有启动日志OSError保护完整保留：业务仓库初始化前固定中文提示并return1，真实用户日志路径不可写时仍安全拒绝启动。实际访问失败原因仍未确定；不声称该环境阻塞消除。未修改用户实际日志/数据库、ACL或管理员策略。一次中止旧测试的筛选曾误匹配另一仓库两个测试进程，中止返回错误后已核实其仍运行；后续仅对解释器/完整命令/启动时间核实的本聊天固定PID操作，未修改其他仓库文件。
+
+本提交记录产品代码本地与视觉证据；同一PR的required CI、实际精确head ZIP/manifest、两个job原日志、本地包审计/两次隔离启动/启动后再审计及静态冻结模块绑定，按最终交付回执实际结果单列。旧e336/CI309仅为历史启动基线，不覆盖本轮。原生Windows桌面、实际用户目录负例、IME、Office、人工DPI、企业样例和干净机未执行；不以离屏或CI代替。PR60保持未合并、不发布，交源会话独立验收后停止。
+
+后续新建核算整页改进是独立范围，本PR不实施。Owner已批准热力“常用入口简化，特殊情况可展开，旧值保留”，015防重复计碳/未知边界/输出语义不改；无需重复询问。

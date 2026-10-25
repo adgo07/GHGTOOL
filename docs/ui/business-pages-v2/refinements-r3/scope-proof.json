@@ -1,0 +1,99 @@
+{
+  "base": "e33624ed98c1ceb2e6445917b6e12cee0bd02a8a",
+  "head": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "kind": "Owner-authorized PR60 delta; not original package whitelist",
+  "method_changes": {
+    "packages/ui/pages.py": [
+      "ExcelImportPage._build_import_workspace",
+      "ExcelImportPage._calculate_selected_unit",
+      "ExcelImportPage._fuel_path_choice_changed",
+      "ExcelImportPage._open_latest_record",
+      "ExcelImportPage._run_selected_workbook_preview",
+      "ExcelImportPage._select_workbook",
+      "ExcelImportPage._selected_unit_changed",
+      "ExcelImportPage._show_fuel_path_choices",
+      "ExcelImportPage._update_controls",
+      "RecordLibraryPage.__init__",
+      "RecordLibraryPage._apply_filters",
+      "RecordLibraryPage._show_selected_record",
+      "SettingsPage._refresh_export_directory_display",
+      "_snapshot_lines",
+      "_snapshot_measurement",
+      "_snapshot_scalar"
+    ],
+    "packages/ui/record_experience.py": [
+      "_basis_variable_label",
+      "build_activity_evidence_view",
+      "build_calculation_basis_view",
+      "build_frozen_activity_view",
+      "build_parameter_view",
+      "business_choice_label",
+      "business_source_text"
+    ],
+    "packages/ui/record_tables.py": [
+      "FrozenFootnoteDelegate._document",
+      "FrozenFootnoteDelegate.paint",
+      "FrozenFootnoteDelegate.sizeHint",
+      "RecordReportTab.__init__",
+      "RecordReportTab._clear_layout",
+      "RecordReportTab.set_sections",
+      "ReportTableCard.__init__",
+      "_footnote_html",
+      "_set_frozen_label"
+    ],
+    "packages/ui/catalog_pages.py": [
+      "ParameterFactorLibraryPage._build_page",
+      "ParameterFactorLibraryPage._refresh_search",
+      "ParameterFactorLibraryPage._refresh_sources",
+      "_WrappedSourceList._fit_items",
+      "_WrappedSourceList.resizeEvent",
+      "_WrappedSourceList.showEvent"
+    ],
+    "packages/ui/excel_import_components.py": [
+      "ExcelImportPreviewPanel.set_details",
+      "ExcelImportPreviewPanel.set_empty",
+      "ExcelImportPreviewPanel.set_units"
+    ],
+    "packages/ui/business_page_style.py": [
+      "BusinessCheckBox.paintEvent",
+      "apply_business_page_style"
+    ]
+  },
+  "frozen_unchanged": [
+    {
+      "path": "packages/ui/carbon_material_page.py",
+      "sha256": "10a5f65cdd00e9f115650249de78d87c5db8acc7a00c1e7d572553c957097930"
+    },
+    {
+      "path": "packages/ui/carbon_material_fuel.py",
+      "sha256": "e3eb9ca525cd1b8e8d11a2e88dc7d909360280211d851d679931c34cddfa7fc7"
+    },
+    {
+      "path": "packages/ui/shell.py",
+      "sha256": "bd6904cab9825e3853666fb0423fa1344a200be3b3f74889e0c219dbf8c339cc"
+    },
+    {
+      "path": "packages/ui/source_cards.py",
+      "sha256": "64b1f93cf736dd0dbb04bff3629f67f98258c10ae69f4d6513d0171be0b1fb4b"
+    },
+    {
+      "path": "packages/ui/source_directory.py",
+      "sha256": "65e31393a6c7075b1deba39aa12eabdda2ccf476468649d1c4d1f1234b3ff67f"
+    },
+    {
+      "path": "packages/ui/compact_choices.py",
+      "sha256": "f6a02ae5e3e8a4a25e2a3142bf8272f75a749ffffd270b0342c1a6318409f13a"
+    },
+    {
+      "path": "packages/ui/design_tokens.py",
+      "sha256": "e1f64e76d353a97459b9c7efac09c3c01acb5d35f239dbb5d08ce28f4dfee5e5"
+    },
+    {
+      "path": "packages/ui/responsive_fields.py",
+      "sha256": "08d859c2256e79493be4bbeaa7ca7a41ef7df210de38a6bcdeb6b377613d2860"
+    }
+  ],
+  "formal_calculate_and_project_persistence_calls_unchanged": true,
+  "protected_layers_resources_and_baseline_unchanged": true,
+  "contract": "本任务不涉及中央公共 Contract；锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20；无标准解释变化"
+}

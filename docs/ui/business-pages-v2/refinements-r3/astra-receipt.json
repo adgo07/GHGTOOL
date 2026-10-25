@@ -1,0 +1,12 @@
+{
+  "reviewer_thread_id": "01a16b66-8d18-7302-a8d5-75e2417b8a82",
+  "reviewer_title": "GHGTOOL：整页视觉设计与交互复核",
+  "turn_id": "01a1719a-f04a-7890-9fba-288ecd0b361b",
+  "scope": "PR60 refinement r3 limited screenshot/source visual review only",
+  "code_head": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "summary_sha256": "5ee7e5e92f716f811d26371c1e95d844a64b3f66c5446ccc9bf0494103fd4dbc",
+  "images": 92,
+  "sources": 29,
+  "verbatim_result": "**PR60 refinement r3：限定视觉复验 PASS。**\n\n对应提交：`fb56ad737b6d0a676e5f594f689e08e88f14aaa3`。\n\n- 92/92 张图片、29/29 项源码哈希核对一致，工作区干净。\n- r1 四项 HOLD 已关闭：状态／日期裁切、业务依据长小数及匿名参数、B.2 脚注方框、成功后按钮主次。\n- 来源列表换行、复选框各状态与焦点、打开项目入口均已改善。\n- 两种窗口尺寸的其余场景未发现新增视觉阻断；记录保留两个标签页，普通界面未见技术审计入口。\n- 源码确认完整业务依据仍绑定 tooltip 与无障碍说明；未实测悬停及读屏行为。\n\n本结论仅覆盖该提交的截图与相关源码检查；完整回归、GitHub Actions 和 PR 正式验收仍需单独完成。本轮未修改文件。",
+  "limits": "仅截图与相关源码检查；未实测悬停/读屏，未替代本地完整回归、CI、PR正式验收、原生桌面/Office/IME/人工DPI/企业样例/干净机。"
+}
