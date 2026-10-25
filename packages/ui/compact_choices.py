@@ -132,7 +132,7 @@ class SegmentedChoiceControl(QWidget):
         current_value = self.combo.currentData()
         legacy = current_value is not None and not known
         self.notice.setVisible(legacy)
-        self.notice.setText("历史来源不适用，请确认" if legacy else "")
+        self.notice.setText("历史来源不适用\n请确认" if legacy else "")
         self.notice.setToolTip(self.combo.currentText() if legacy else "")
         self.notice.setAccessibleName(self.notice.text())
         if len(allowed) == 1 and self.combo.currentIndex() == allowed[0]:

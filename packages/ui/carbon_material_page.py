@@ -512,7 +512,22 @@ class _UnifiedEnergyRow(QWidget):
         self.factor_mode_field = labeled_field("因子获取方式", self.factor_mode_choices)
         self.factor_selector = QComboBox(self.electricity_details)
         self.factor_selector.setObjectName(f"energyElectricityFactor{index}")
-        self.factor_selector_field = labeled_field("目录因子候选", self.factor_selector)
+        self.factor_selector_field = labeled_field("排放因子", self.factor_selector)
+        self.factor_value = QLabel(self.electricity_details)
+        self.factor_value.setWordWrap(True)
+        self.factor_value.setTextFormat(Qt.TextFormat.PlainText)
+        self.factor_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.factor_value.setToolTip("当前所选候选值；正式采用值以成功核算生成的冻结记录为准。")
+        self.factor_selector_field.layout().addWidget(self.factor_value)
+        self.factor_explanation = QLabel(self.electricity_details)
+        self.factor_explanation.setWordWrap(True)
+        self.factor_selector_field.layout().addWidget(self.factor_explanation)
+        self.region_group = QWidget(self.electricity_details)
+        region_layout = QVBoxLayout(self.region_group)
+        region_layout.setContentsMargins(0, 0, 0, 0)
+        region_layout.setSpacing(6)
+        region_layout.addWidget(self.geographic_level_field)
+        region_layout.addWidget(self.region_field)
         self.manual_factor = QLineEdit(self.electricity_details)
         self.manual_factor.setObjectName(f"energyElectricityManualFactor{index}")
         self.manual_factor.setPlaceholderText("输入电力排放因子")
@@ -522,7 +537,7 @@ class _UnifiedEnergyRow(QWidget):
         self.electricity_source.setPlaceholderText("填写来源文件或资料编号（可选）")
         self.electricity_source_field = labeled_field("因子来源说明", self.electricity_source)
         electricity.set_cells([self.attribute_group, self.factor_mode_field,
-            self.geographic_level_field, self.region_field, self.factor_selector_field,
+            self.region_group, self.factor_selector_field,
             self.manual_factor_field, self.electricity_source_field])
         outer.addWidget(self.electricity_details)
 
@@ -543,6 +558,22 @@ class _UnifiedEnergyRow(QWidget):
         self.heat_fuel_accounted.addItem("已计入本企业燃料排放", True)
         self.heat_fuel_accounted.addItem("未计入本企业燃料排放", False)
         self.heat_fuel_accounted_field = labeled_field("供热燃料排放", self.heat_fuel_accounted)
+        # Owner-approved convenience for a newly created purchased-heat row.
+        # Restore applies saved or explicit unknown values afterwards, unchanged.
+        if family == "heat":
+            self.heat_boundary.setCurrentIndex(self.heat_boundary.findData("OUTSIDE_ENTERPRISE"))
+            self.heat_fuel_accounted.setCurrentIndex(self.heat_fuel_accounted.findData(False))
+        self.heat_boundary_summary = QLabel(self.heat_details)
+        self.heat_boundary_summary.setWordWrap(True)
+        self.heat_special_toggle = QPushButton("特殊热源情况", self.heat_details)
+        self.heat_special_toggle.setCheckable(True)
+        self.heat_boundary_group = QWidget(self.heat_details)
+        boundary_layout = QVBoxLayout(self.heat_boundary_group)
+        boundary_layout.setContentsMargins(0, 0, 0, 0)
+        boundary_layout.addWidget(self.heat_boundary_field)
+        boundary_layout.addWidget(self.heat_fuel_accounted_field)
+        self.heat_boundary_group._disclosure_button = self.heat_special_toggle
+        self._heat_boundary_presentation_signature = None
         self.heat_kind = QComboBox(self.heat_details)
         self.heat_kind.setObjectName(f"energyHeatKind{index}")
         for label, kind in STEAM_KIND_LABELS.items():
@@ -590,7 +621,7 @@ class _UnifiedEnergyRow(QWidget):
         self.heat_source.setObjectName(f"energyHeatSource{index}")
         self.heat_source.setPlaceholderText("填写来源文件或资料编号（可选）")
         self.heat_source_field = labeled_field("实测因子来源说明", self.heat_source)
-        heat.set_cells([self.heat_boundary_field, self.heat_fuel_accounted_field,
+        heat.set_cells([self.heat_boundary_summary, self.heat_special_toggle, self.heat_boundary_group,
             self.heat_kind_field, self.enthalpy_mode_field, self.pressure_field,
             self.temperature_field, self.enthalpy_field, self.heat_factor_mode_field,
             self.measured_heat_factor_field, self.heat_source_field])
@@ -1058,7 +1089,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.source_navigation.setObjectName("accountingSourceNavigation")
         self.source_navigation.addItem("快速定位排放源", None)
         self.source_navigation.hide()  # Legacy restore identity; pure navigation is not saved input.
-        self.quick_calculate_button = QPushButton("检查并计算", source_activity)
+        self.quick_calculate_button = QPushButton("核算并生成记录", source_activity)
         self.quick_calculate_button.setObjectName("quickCalculateAccountingButton")
         self.quick_calculate_button.clicked.connect(self._run_calculation)
         self.project_overview_layout.itemAt(0).layout().addWidget(self.quick_calculate_button)
@@ -1109,7 +1140,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
         process_card, process_layout = _card("计算依据", self)
         self.process_card = process_card
-        self.trace_output = QLabel("点击“计算排放量”后显示分项计算结果。", process_card)
+        self.trace_output = QLabel("核算成功后显示分项结果；每次成功核算新增一条记录。", process_card)
         self.trace_output.setObjectName("calculationTrace")
         self.trace_output.setWordWrap(True)
         process_layout.addWidget(self.trace_output)
@@ -1206,9 +1237,11 @@ class CarbonMaterialAccountingPage(BasePage):
         status_layout.addWidget(self.reminder_count, 0, 2)
         status_layout.addWidget(self.calculation_status_hint, 1, 0, 1, 4)
 
-        self.calculate_button = QPushButton("计算排放量", self)
+        self.calculate_button = QPushButton("核算并生成记录", self)
         self.calculate_button.setObjectName("calculateAccountingButton")
         self.calculate_button.setProperty("primary", True)
+        self.calculate_button.setToolTip("通过正式校验后新增一条只读核算记录，无需先保存项目。")
+        self.quick_calculate_button.setToolTip(self.calculate_button.toolTip())
         self.calculate_button.clicked.connect(self._run_calculation)
         status_layout.addWidget(self.calculate_button, 0, 4, 2, 1)
         self.body_layout.addWidget(status_bar)
@@ -1373,6 +1406,10 @@ class CarbonMaterialAccountingPage(BasePage):
         self.unit_selector = QComboBox(card)
         self.unit_selector.setObjectName("accountingUnitSelector")
         self.unit_selector.currentIndexChanged.connect(self._switch_unit)
+        self.project_context_label = QLabel("当前项目：" + self.project_name.text(), overview)
+        self.project_context_label.setWordWrap(True)
+        overview_layout.addWidget(self.project_context_label)
+        self.project_name.textChanged.connect(lambda name: self.project_context_label.setText("当前项目：" + (name or "未命名项目")))
         active_row = QHBoxLayout()
         active_row.addWidget(QLabel("当前核算单元", overview))
         active_row.addWidget(self.unit_selector, 1)
@@ -3109,6 +3146,19 @@ class CarbonMaterialAccountingPage(BasePage):
                         scroll.verticalScrollBar().maximum(), scroll.widget().height(),
                         viewport.width(), viewport.height())
             rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
+            # Qt may reveal an editor's cursor rectangle while leaving its frame
+            # outside the viewport. Keep the whole field visible after reflow.
+            for bar, start, end, length, available, preferred in (
+                (scroll.verticalScrollBar(), rectangle.top(), rectangle.bottom(), rectangle.height(), viewport.height(), 24),
+                (scroll.horizontalScrollBar(), rectangle.left(), rectangle.right(), rectangle.width(), viewport.width(), 16),
+            ):
+                if length <= available:
+                    margin = min(preferred, max(0, (available - length) // 2))
+                    if start < margin:
+                        bar.setValue(bar.value() + start - margin)
+                    elif end >= available - margin:
+                        bar.setValue(bar.value() + end - available + margin + 1)
+            rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
             fits = (viewport.rect().contains(rectangle) if rectangle.width() <= viewport.width()
                     and rectangle.height() <= viewport.height() else viewport.rect().intersects(rectangle))
             pending = owner is not None and isValid(owner) and owner._content_geometry_refresh_pending
@@ -3446,6 +3496,7 @@ class CarbonMaterialAccountingPage(BasePage):
         row.factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._clear_legacy_measured_factor_on_edit(_row))
         row.factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.manual_factor.textChanged.connect(lambda *_args, _row=row: self._clear_legacy_measured_factor_on_edit(_row))
+        row.heat_special_toggle.toggled.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.heat_kind.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.enthalpy_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
         row.heat_factor_mode.currentIndexChanged.connect(lambda *_args, _row=row: self._refresh_unified_energy_row(_row))
@@ -3563,7 +3614,9 @@ class CarbonMaterialAccountingPage(BasePage):
         selector.addItem("请选择适用因子口径", None)
         for option, short_label in zip(options, electricity_factor_short_labels(options)):
             factor = option.factor
-            selector.addItem(short_label, option)
+            # Value first; keep every original option and its selectability.
+            value_label = f"{factor.value} {factor.unit}"
+            selector.addItem(f"{value_label} · {factor.factor_year or '年份未记录'} · {short_label.split('：', 1)[0]}", option)
             selector.setItemData(selector.count() - 1, f"{option.label}；年份：{factor.factor_year or '未记录'}；{factor.source_location or ''}", Qt.ItemDataRole.ToolTipRole)
             item = selector.model().item(selector.count() - 1)
             if item is not None and not option.selectable:
@@ -3690,16 +3743,41 @@ class CarbonMaterialAccountingPage(BasePage):
         manual = row.factor_mode.currentData() == "MANUAL"
         row.geographic_level_field.setVisible(needs_region and not manual)
         row.region_field.setVisible(needs_region and not manual)
+        row.region_group.setVisible(needs_region and not manual)
         row.attribute_group.setVisible(show_attribute or (electricity and not output and (row.legacy_attribute is not None or row.legacy_acquisition_mode is not None)))
         show_factor_controls = needs_region
         row.factor_mode_field.setVisible(show_factor_controls)
         row.factor_selector_field.setVisible(show_factor_controls and not manual)
+        chosen = row.factor_selector.currentData()
+        factor = getattr(chosen, "factor", None)
+        row.factor_value.setText(f"所选候选：{factor.value} {factor.unit}" if factor is not None else "尚未选择适用因子")
+        row.factor_explanation.setText(
+            f"{getattr(chosen, 'label', '')}；年份：{factor.factor_year or '未记录'}；{factor.source_location or ''}"
+            if factor is not None else "请选择适用因子；无适用候选时不自动借用其他地区或口径。"
+        )
         row.manual_factor_field.setVisible(show_factor_controls and manual)
         row.electricity_source_field.setVisible(show_factor_controls and manual)
 
         purchased_heat = heat and row.kind.currentData() == "purchased_heat"
-        row.heat_boundary_field.setVisible(purchased_heat)
-        row.heat_fuel_accounted_field.setVisible(purchased_heat)
+        boundary = row.heat_boundary.currentData()
+        accounted = row.heat_fuel_accounted.currentData()
+        signature = (kind, boundary, accounted)
+        special = boundary != "OUTSIDE_ENTERPRISE" or accounted is not False
+        if signature != row._heat_boundary_presentation_signature:
+            row._heat_boundary_presentation_signature = signature
+            if purchased_heat and special:
+                row.heat_special_toggle.setChecked(True)
+        expanded = purchased_heat and row.heat_special_toggle.isChecked()
+        row.heat_special_toggle.setVisible(purchased_heat)
+        row.heat_boundary_group.setVisible(expanded)
+        row.heat_boundary_field.setVisible(expanded)
+        row.heat_fuel_accounted_field.setVisible(expanded)
+        row.heat_boundary_summary.setVisible(heat)
+        row.heat_boundary_summary.setText(
+            "外购热力：边界外供热，供热燃料未计入本企业。" if purchased_heat and not special
+            else f"热源情况：{row.heat_boundary.currentText()}；{row.heat_fuel_accounted.currentText()}" if purchased_heat
+            else "输出热力按既有规则抵扣；原热源草稿保留。"
+        )
         internal_accounted = (purchased_heat and row.heat_boundary.currentData() == "INSIDE_ENTERPRISE"
                               and row.heat_fuel_accounted.currentData() is True)
         heat = heat and not internal_accounted
@@ -5898,6 +5976,17 @@ class CarbonMaterialAccountingPage(BasePage):
             for index, row in enumerate(rows, 1):
                 name = row.get("instance_name") or row.get("reagent_name")
                 detail = name.text() if isinstance(name, QLineEdit) else ""
+                if prefix == "fgd":
+                    facility = row.get("facility_selector")
+                    amount = row.get("group_amount")
+                    facts = [detail, facility.currentText() if isinstance(facility, QComboBox) else "",
+                             amount.text() + " t" if isinstance(amount, QLineEdit) and amount.text() else "",
+                             str(len(row.get("components", ()))) + " 种组分"]
+                    detail = " · ".join(value for value in facts if value)
+                elif prefix == "fume":
+                    facts = [row[key].currentText() for key in ("source_selector", "boundary_selector") if key in row]
+                    facts += [row[key].text() for key in ("segment_start", "segment_end") if key in row and row[key].text()]
+                    detail = " · ".join(facts)
                 caption(row["title"], f"{row['display_title']} {index}" + (f" · {detail}" if detail else ""))
                 for number, material in enumerate(row.get("materials", ()), 1):
                     title = material.get("title")

@@ -1,7 +1,7 @@
 """Page-local repeat-item framing; presentation only, retaining original widgets."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
-from .design_tokens import ACCOUNTING_COLORS as C
+from .design_tokens import ACCOUNTING_COLORS as C, STATUS_ABOLISHED
 
 
 def frame_entry(host, title, remove, *, toolbar=None, inner=False):
@@ -63,9 +63,9 @@ def frame_entry(host, title, remove, *, toolbar=None, inner=False):
     host.setStyleSheet(f'''
         QWidget[repeatEntryLevel="outer"] {{background:{C['white']};border:1px solid {C['choice_border']};border-radius:7px;}}
         QWidget[repeatEntryLevel="inner"] {{background:{C['directory_surface']};border:1px solid {C['directory_border']};border-radius:5px;}}
-        QFrame#repeatEntryHeader {{background:{C['source_active_surface']};border:0;border-radius:5px;}}
+        QFrame#repeatEntryHeader {{background:{C['directory_surface'] if inner else C['source_active_surface']};border:0;border-radius:5px;}}
         QFrame#repeatEntryHeader QLabel {{color:{C['primary_text']};font-weight:600;border:0;}}
     ''')
     remove.setProperty('danger', True)
-    remove.setStyleSheet('QPushButton {color:#B9484A;background:transparent;border:0;padding:5px;} QPushButton:focus {border:1px solid #B9484A;}')
+    remove.setStyleSheet(f'QPushButton {{color:{STATUS_ABOLISHED};background:transparent;border:0;padding:5px;}} QPushButton:focus {{border:1px solid {STATUS_ABOLISHED};}}')
     return body

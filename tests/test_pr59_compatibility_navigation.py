@@ -277,6 +277,8 @@ class PR59CompatibilityNavigationTests(unittest.TestCase):
                 if toggle.isChecked():
                     toggle.click()
                 self.assertFalse(toggle.isChecked())
+                process["widget"]._entry_toggle.setChecked(False)
+                material["widget"]._entry_toggle.setChecked(False)
                 page.source_directory.select("fuel")
                 self.pump()
                 before = page._capture_form_state()
@@ -284,6 +286,8 @@ class PR59CompatibilityNavigationTests(unittest.TestCase):
                 target = material["moisture_received_percent"]
                 self.click_error(page, shell, target)
                 self.assertTrue(toggle.isChecked())
+                self.assertTrue(process["widget"]._entry_toggle.isChecked())
+                self.assertTrue(material["widget"]._entry_toggle.isChecked())
                 self.assert_in_viewport(shell, target)
                 self.assertIs(self.app.focusWidget(), target)
                 self.assertEqual(before, page._capture_form_state())
@@ -312,6 +316,9 @@ class PR59CompatibilityNavigationTests(unittest.TestCase):
     def test_browsing_away_and_back_cancels_obsolete_error_focus(self):
         with self.page("source-cancel") as (page, projects, records, shell):
             process, material = self.material_failure(page)
+            page._toggle_source_group("baking")  # Both deliberate clicks now browse enabled sources.
+            page.calculate_button.click()  # Enabling input invalidated the previous issue list.
+            self.pump()
             before = page._capture_form_state()
             dirty = (page._input_dirty, page._project_dirty)
             page._focus_validation_item(self.actual_error(page, material["mass"]))
@@ -323,6 +330,23 @@ class PR59CompatibilityNavigationTests(unittest.TestCase):
             self.assertEqual(page.source_directory._selected, "calcination")
             self.assertEqual(before, page._capture_form_state())
             self.assertEqual(dirty, (page._input_dirty, page._project_dirty))
+            self.assertEqual(len(records.list_all()), 0)
+
+    def test_deliberate_new_source_activation_cancels_old_focus_and_keeps_other_inputs(self):
+        with self.page("activate-cancel") as (page, projects, records, shell):
+            process, material = self.material_failure(page)
+            before = page._capture_form_state()
+            page._focus_validation_item(self.actual_error(page, material["mass"]))
+            page.source_directory.buttons["baking"].click()
+            page.source_directory.buttons["baking"].setFocus()
+            self.pump()
+            self.assertEqual(page.source_directory._selected, "baking")
+            self.assertTrue(page._source_is_enabled("CAR-SRC-BAKING-001"))
+            self.assertIs(self.app.focusWidget(), page.source_directory.buttons["baking"])
+            after = page._capture_form_state()
+            key = "sourceStatus_CAR-SRC-BAKING-001"
+            self.assertNotEqual(before.pop(key), after.pop(key))
+            self.assertEqual(before, after)
             self.assertEqual(len(records.list_all()), 0)
 
     def test_deleted_target_and_route_change_cancel_pending_navigation(self):
