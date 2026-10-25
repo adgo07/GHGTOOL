@@ -1,11 +1,9 @@
-# 五个业务页面 UI V2：本地完成，待独立PR / CI交付
+# PR60：五页V2启动日志缺陷收口，待新head工程验证
 
-2026-10-25。分支codex/ui-five-business-pages-v2，实际origin adgo07/GHGTOOL；最新fetch main d7159f77ddb103376f5ca6bdd3a9532c101433e3。复用原安全断点并正常吸收PR59，未重套旧包或改变预期hash。
+2026-10-25。实际origin adgo07/GHGTOOL，复用codex/ui-five-business-pages-v2；入口45a8178fa92ef88eed8988c9d8dd671db93d32cb干净，fetch后main d7159f77ddb103376f5ca6bdd3a9532c101433e3。PR60未合并，原CI308/旧包不覆盖用户实测日志PermissionError缺陷。
 
-五页呈现及局部表格可读性已完成，首页/壳/新建核算/业务/数据库/Canonical/模板/Word不改。受保护AST、8源逐字内容及Excel接线19/19均通过。
+最小修复：仅app.main在业务仓库初始化前捕获日志初始化OSError，固定中文提示并return1，不显示任意异常原文。日志路径不可写时仍安全拒绝启动；不声称用户实际访问原因已消除。未触碰用户日志/数据，不改ACL或管理员绕过，不删日志、不静默停正式Record审计。
 
-astra r9限定视觉PASS：干净生产head e2c7520ef58eb7623ddf0f8ba5a45be9193a1b30，60图/29源hash匹配，回调异常0。验证head5c0c34013db938f56924329b43861fa5890c52d3只同步G03旧呈现预期和阶段文档，29源hash与r9相同。本地原始完整CLI 1106/1106，2731.183s，源码前后hash一致；27/74/13/39定向组通过，数量重叠不累计。Canonical/编译/依赖/范围检查通过。原完整访问冲突与1104通过/2项旧呈现断言未通过的两轮原件保留，不冒称当轮PASS；根因未确定，后两整轮未复现访问冲突。
+修前隔离6项1通过/5错误2.556s；修后组29/29 88.703s；最终启动/隐私/G08/Record审计36/36 86.057s，数量重叠不累计。7项启动守卫含EXE入口、真实路径冲突、只读与独占占用、注入PermissionError及正常真实隔离库；消息框/事件循环替身不是原生验收。AST证明拆掉新增保护后app整文件与45一致；日志实现及r9 29项UI源不变，业务/数据库/模板/Word/依赖/workflow不改。详细命令/hash与边界见IMPLEMENTATION_REPORT及startup-logging-review.json。
 
-精选相对路径[证据页](docs/ui/business-pages-v2/review.html)包含28图、完整身份索引及限定回执。528份原始证据独立归档并校验；原始build暂留，不清理工作树。详细命令、数量、失败、SHA及未执行项见IMPLEMENTATION_REPORT。
-
-当前待独立PR/required CI/本次精确head制品审计和源会话验收；不自动合并、不发布，不复用PR59旧CI。平台锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，当前适用UIv0.2已读；保持分层/显示隔离/冻结Record/来源资格，无冲突、adoption或中央修改。本任务不涉及中央公共 Contract。相关既有Issue004/016/018、017、020，不改变解释。未执行原生桌面/鼠标/IME/Office/人工DPI/企业样例/干净机验收。
+当前待新head required CI与精确修后包，原五页图集/1106项/CI308仅是此前基线，不复用为本轮通过。此前smoke隔离LOCALAPPDATA不能证明真实用户路径可写；实际启动方式、文件占用/安全策略原因未确定。最终交源会话独立验收，不自动合并。平台锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，本任务不涉及中央公共Contract，无标准解释变化；不启动原生桌面。

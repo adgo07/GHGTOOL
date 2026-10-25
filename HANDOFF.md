@@ -1,11 +1,11 @@
-# 五个业务页面 UI V2 实施交接
+# PR60 启动日志缺陷增补交接
 
-当前唯一工作包为批准的business-pages V2：标准库及详情、参数与因子库、表格导入、记录及详情、设置。原包受控应用证据保留；复用原4230226断点，正常合入PR59后main d7159f77ddb103376f5ca6bdd3a9532c101433e3，不重套、不改旧blob预期、不整文件覆盖。
+五页V2成果继续保留；用户实测45a8178旧候选包因日志初始化PermissionError出现Unhandled exception，原CI308及隔离smoke不覆盖此真实路径访问问题。复用当前PR60工作树/分支，未合并。仅授权补启动日志错误边界与相关测试/证据，不重做五页，不改业务/DB/迁移/Calculator/Canonical/模板/Word/依赖/工作流/来源资格。
 
-生产源r9 head e2c7520已获astra限定截图PASS；验证head5c0c340仅改G03旧布局预期及阶段文档，29源hash与r9相同。本地完整原CLI1106/1106通过2731.183s，27/74/13/39组通过且数量重叠；准确命令、早期崩溃/失败、hash、未执行项见IMPLEMENTATION_REPORT。证据提交只整理文档/截图，不重标测试head。
+最小方案已实施：app.main捕获configure_logging及日志目录解析的OSError，业务仓库调用前固定中文提示并return1。不删日志、不改ACL、不要求管理员运行、不迁移用户数据、不静默降级正式Record审计。不可写时仍拒绝启动；修复不等于确定或消除真实用户权限/占用/安全策略原因。消息框、事件循环替身的启动用例不冒称实际原生交互。
 
-只允许五页呈现方法、局部business_page_style、冻结Qt表格可读性、相关测试/捕获与本阶段证据。首页、壳、导航、新建核算、业务计算、来源资格、Canonical、DB/Schema、受控模板/Word受保护；不新增标准/依赖/字体包/业务设置。原包protected_tree全部通过，8源与main相同，Excel接线19/19。冻结Record只消费原快照，外部补充与标准ET分开，缺失不补零。
+最终本地启动/隐私/G08/Record审计组36/36，86.057s；原失败日志和修后结果保留，数量/命令/源hash及AST保护见IMPLEMENTATION_REPORT和docs/ui/business-pages-v2/startup-logging-review.json。原五页r9源29项不变，不重采相同UI。原1106项与旧CI308只作增补前基线，本轮新head必须有自己的required CI和精确包。
 
-接续：独立范围PR，复用同head required checks，取得本次真实精确head制品并完成本地审计/离屏启动，交源会话独立验收后停止。不要自动合并、发布、改workflow/预算/可见性或无变化重跑CI；PR59旧CI/候选包不背书本包。原始528文件已独立归档校验，忽略build仍保留，不清理工作树。治理正文只用仓库相对路径；本地保留地址由最终交付回执记录。
+接续：稳定批次一次push更新PR60，等新head merge-ref完整CI及exact-head候选包；保留原始ZIP/元数据/两job日志，核digest/manifest及source/pr_head/tested_merge，再本地审计、隔离离屏正常启动、启动后再审计。随后交源独立验收并停止，不自动合并或发布。旧smoke使用隔离LOCALAPPDATA/TEMP，不能声称验证真实用户目录或原生桌面；不启动原生桌面，不触碰用户工作簿/日志/ACL。
 
-平台锁/当前路线不变；本任务不涉及中央公共Contract，无解释变化。原生桌面/鼠标/IME/Office/人工DPI/企业样例/干净机未执行，离屏不作原生验收。
+本仓platform-lock与路线不变，无公共Contract或标准解释变化。原528份证据及CI308原包仍保留；新增回执单独命名，不覆盖旧证据。
