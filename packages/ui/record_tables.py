@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from html import escape
+from math import ceil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QAbstractTextDocumentLayout, QTextDocument, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -12,6 +15,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QScrollArea,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -71,6 +77,65 @@ def _column_labels(report: ReportTable) -> tuple[str, ...]:
     return tuple(labels)
 
 
+
+def _footnote_html(text: str) -> str:
+    """Draw the existing a marker with ordinary Latin glyphs, not a new font."""
+    text = text.replace("\u2028", "\n").replace("\u2029", "\n")
+    return escape(text).replace("ᵃ", "<sup>a</sup>").replace("\n", "<br>")
+
+
+def _set_frozen_label(label: QLabel, text: str) -> None:
+    label.setProperty("frozenText", text)
+    label.setTextFormat(Qt.TextFormat.RichText if "ᵃ" in text else Qt.TextFormat.PlainText)
+    label.setText(_footnote_html(text) if "ᵃ" in text else text)
+    label.setAccessibleName(text.replace("ᵃ", "，脚注 a"))
+
+
+class FrozenFootnoteDelegate(QStyledItemDelegate):
+    """Keep the frozen model text; paint its a marker as a typographic superscript."""
+    def _document(self, option):
+        document = QTextDocument()
+        document.setDocumentMargin(0)
+        document.setDefaultFont(option.font)
+        document.setHtml('<div align="center">' + _footnote_html(option.text) + '</div>')
+        return document
+
+    def paint(self, painter, option, index):
+        cell = QStyleOptionViewItem(option)
+        self.initStyleOption(cell, index)
+        if "ᵃ" not in cell.text:
+            return super().paint(painter, option, index)
+        widget = cell.widget if cell.widget is not None else self.parent()
+        style = widget.style()
+        region = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, cell, widget)
+        document = self._document(cell)
+        document.setTextWidth(max(1, region.width()))
+        cell.text = ""
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, cell, painter, widget)
+        context = QAbstractTextDocumentLayout.PaintContext()
+        context.palette = cell.palette
+        if cell.state & QStyle.StateFlag.State_Selected:
+            context.palette.setColor(QPalette.ColorRole.Text, cell.palette.color(QPalette.ColorRole.HighlightedText))
+        painter.save()
+        painter.setClipRect(region)
+        painter.translate(region.x(), region.y() + max(0, (region.height() - document.size().height()) / 2))
+        document.documentLayout().draw(painter, context)
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        native = super().sizeHint(option, index)
+        cell = QStyleOptionViewItem(option)
+        self.initStyleOption(cell, index)
+        if "ᵃ" not in cell.text:
+            return native
+        document = self._document(cell)
+        table = self.parent()
+        span = table.columnSpan(index.row(), index.column())
+        width = sum(table.columnWidth(column) for column in range(index.column(), index.column() + span))
+        document.setTextWidth(max(1, width - 16))
+        return QSize(native.width(), max(native.height(), ceil(document.size().height()) + 16))
+
+
 class ReportTableCard(QFrame):
     """A report table rendered with its frozen headings, merges, and notes."""
 
@@ -95,7 +160,8 @@ class ReportTableCard(QFrame):
             context.setObjectName("recordReportContext")
             context.setWordWrap(True)
             layout.addWidget(context)
-        title = QLabel(report.title, self)
+        title = QLabel(self)
+        _set_frozen_label(title, report.title)
         title.setObjectName("recordReportTableTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
@@ -106,6 +172,7 @@ class ReportTableCard(QFrame):
         column_count = len(report.columns)
         table = QTableWidget(row_count, column_count, self)
         table.setObjectName("recordBusinessTable")
+        table.setItemDelegate(FrozenFootnoteDelegate(table))
         table.setProperty("reportTableId", report.table_id)
         table.setAccessibleName(report.title)
         table.setAccessibleDescription("来自已保存核算记录的只读报告表。来源类别和依据可通过单元格提示及本页业务依据查看。")
@@ -194,7 +261,8 @@ class ReportTableCard(QFrame):
         self.table_widget = table
 
         for footnote in (*report.footnotes, *(row.note for row in report.rows if row.note)):
-            label = QLabel(footnote, self)
+            label = QLabel(self)
+            _set_frozen_label(label, footnote)
             label.setObjectName("recordReportFootnote")
             label.setWordWrap(True)
             layout.addWidget(label)
