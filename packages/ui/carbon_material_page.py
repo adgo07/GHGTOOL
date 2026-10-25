@@ -138,6 +138,8 @@ from .source_cards import SourceCard, SourceCardPresentationState, SourceToggleB
 from .compact_choices import SegmentedChoiceControl
 from .source_directory import SourceDirectory
 from .repeated_entries import frame_entry
+from .business_page_style import BusinessCheckBox
+from .accounting_controls import AccountingSpinBox
 from .name_selector import NameSelector, normalized_name, chemical_label
 from .input_fields import labeled_field
 from .responsive_fields import ResponsiveFieldGrid, AdaptiveFieldLayout
@@ -902,7 +904,7 @@ class CarbonMaterialAccountingPage(BasePage):
         period_layout = QHBoxLayout(period_row)
         period_layout.setContentsMargins(0, 0, 0, 0)
         period_layout.setSpacing(10)
-        self.period_year = QSpinBox(period_row)
+        self.period_year = AccountingSpinBox(period_row)
         self.period_year.setObjectName("accountingPeriodYear")
         self.period_year.setProperty("fieldSpecKey", "period_year")
         self.period_year.setRange(2000, 2100)
@@ -910,7 +912,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.period_year.valueChanged.connect(lambda _value: self._refresh_heat_factor_details())
         self.period_year.valueChanged.connect(lambda _value: self._refresh_fuel_defaults())
         self.period_year.valueChanged.connect(lambda _value: self._refresh_energy_parameters())
-        self.period_month = QSpinBox(period_row)
+        self.period_month = AccountingSpinBox(period_row)
         self.period_month.setObjectName("accountingPeriodMonth")
         self.period_month.setProperty("fieldSpecKey", "period_month")
         self.period_month.setRange(1, 12)
@@ -965,6 +967,7 @@ class CarbonMaterialAccountingPage(BasePage):
             identity,
             get_field_spec("boundary_confirmed"),
             "boundaryConfirmedCheckBox",
+            checkbox_type=BusinessCheckBox,
         )
         self.boundary_confirmed.setChecked(True)
         self.boundary_confirmed.hide()
@@ -972,12 +975,14 @@ class CarbonMaterialAccountingPage(BasePage):
             identity,
             get_field_spec("other_activity_present"),
             "otherIndustryActivityCheckBox",
+            checkbox_type=BusinessCheckBox,
         )
         self.other_activity_present.hide()
         self.transport_present = create_typed_input(
             identity,
             get_field_spec("transport_present"),
             "upstreamDownstreamTransportCheckBox",
+            checkbox_type=BusinessCheckBox,
         )
         self.transport_present.hide()
         self.scope_exclusion_notice = QWidget(identity)
@@ -996,14 +1001,23 @@ class CarbonMaterialAccountingPage(BasePage):
         self.scope_exclusion_notice.setVisible(False)
         identity_layout.addWidget(self.scope_exclusion_notice)
 
-        self.report_data_toggle = QCheckBox("补充报告信息与数据来源（可选，不影响普通周期计算）", identity)
+        self.report_data_toggle = BusinessCheckBox("补充报告信息与数据来源（可选，不影响普通周期计算）", identity)
         self.report_data_toggle.setObjectName("reportDataDetailsToggle")
         identity_layout.addWidget(self.report_data_toggle)
         self.report_data_details = QWidget(identity)
         self.report_data_details.setObjectName("reportDataDetails")
         report_layout = QVBoxLayout(self.report_data_details)
         report_layout.setContentsMargins(0, 0, 0, 0)
+        report_layout.setSpacing(12)
+        self.report_section_titles = {}
+        def report_heading(text, key):
+            heading = QLabel(text, self.report_data_details)
+            heading.setObjectName("reportSection_" + key)
+            heading.setProperty("reportSectionHeading", True)
+            self.report_section_titles[key] = heading
+            return heading
         report_form = QFormLayout()
+        report_form.setVerticalSpacing(8)
         self.reporting_fields: dict[str, QLineEdit] = {}
         for key, label in (
             ("organization_nature", "单位性质"),
@@ -1022,11 +1036,12 @@ class CarbonMaterialAccountingPage(BasePage):
             edit.setPlaceholderText("可留空；作为本次输入和新记录的报告资料快照")
             self.reporting_fields[key] = edit
             report_form.addRow(label, edit)
-        report_layout.addWidget(QLabel("年度报告主体与说明", self.report_data_details))
+        report_layout.addWidget(report_heading("报告资料与主体说明", "report"))
         report_layout.addLayout(report_form)
 
         self.activity_evidence_fields: dict[str, QLineEdit] = {}
         activity_form = QFormLayout()
+        activity_form.setVerticalSpacing(8)
         for key, label in (
             ("applies_to", "适用范围说明"), ("source_reference", "来源/凭证定位"),
             ("monitoring_location", "监测地点"), ("monitoring_method", "获取/监测方法"),
@@ -1039,12 +1054,12 @@ class CarbonMaterialAccountingPage(BasePage):
             edit.setPlaceholderText("可选")
             self.activity_evidence_fields[key] = edit
             activity_form.addRow(label, edit)
-        report_layout.addWidget(QLabel("可复用活动数据证据", self.report_data_details))
+        report_layout.addWidget(report_heading("活动数据证据", "activity"))
         report_layout.addLayout(activity_form)
         activity_scope_grid = QGridLayout()
         self.activity_evidence_sources: dict[str, QCheckBox] = {}
         for index, (label, source_id) in enumerate(_REPORT_SOURCE_OPTIONS):
-            check = QCheckBox(label, self.report_data_details)
+            check = BusinessCheckBox(label, self.report_data_details)
             check.setObjectName(f"activityEvidenceSource{index}")
             self.activity_evidence_sources[source_id] = check
             activity_scope_grid.addWidget(check, index // 5, index % 5)
@@ -1053,6 +1068,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
         self.factor_evidence_fields: dict[str, QLineEdit] = {}
         factor_form = QFormLayout()
+        factor_form.setVerticalSpacing(8)
         for key, label in (
             ("applies_to", "适用范围说明"), ("source_reference", "来源/检测报告定位"),
             ("sampling_method", "取样方法"), ("sampling_frequency", "取样频次"),
@@ -1064,12 +1080,12 @@ class CarbonMaterialAccountingPage(BasePage):
             edit.setPlaceholderText("可选；标准缺省值无需重复填写")
             self.factor_evidence_fields[key] = edit
             factor_form.addRow(label, edit)
-        report_layout.addWidget(QLabel("可复用实测因子证据", self.report_data_details))
+        report_layout.addWidget(report_heading("实测因子证据", "factor"))
         report_layout.addLayout(factor_form)
         factor_scope_grid = QGridLayout()
         self.factor_evidence_sources: dict[str, QCheckBox] = {}
         for index, (label, source_id) in enumerate(_REPORT_SOURCE_OPTIONS):
-            check = QCheckBox(label, self.report_data_details)
+            check = BusinessCheckBox(label, self.report_data_details)
             check.setObjectName(f"factorEvidenceSource{index}")
             self.factor_evidence_sources[source_id] = check
             factor_scope_grid.addWidget(check, index // 5, index % 5)
@@ -1102,7 +1118,7 @@ class CarbonMaterialAccountingPage(BasePage):
         external_card, external_layout = _card('外部CO₂软件补充（非标准排放源）', self)
         self._external_state_recorded = True
         self._external_known_facts = {}
-        self.external_included = QCheckBox('纳入补充（声明同边界、同期且原结果未计入）', external_card)
+        self.external_included = BusinessCheckBox('纳入补充（声明同边界、同期且原结果未计入）', external_card)
         self.external_included.setObjectName('externalIncluded')
         external_layout.addWidget(self.external_included)
         external_details = QWidget(external_card)
@@ -1229,7 +1245,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.error_count.setObjectName("calculationErrorCount")
         self.reminder_count = QLabel("提醒：0", status_bar)
         self.reminder_count.setObjectName("calculationReminderCount")
-        self.calculation_status_hint = QLabel("填写完成后点击“计算排放量”，软件会集中检查并反馈问题。", status_bar)
+        self.calculation_status_hint = QLabel("填写完成后点击“核算并生成记录”，软件会集中检查并反馈问题。", status_bar)
         self.calculation_status_hint.setObjectName("calculationStatusHint")
         self.calculation_status_hint.setWordWrap(True)
         status_layout.addWidget(self.confirmed_source_count, 0, 0)
@@ -1268,6 +1284,10 @@ class CarbonMaterialAccountingPage(BasePage):
     def _apply_accounting_style(self) -> None:
         """Page-local visuals; exclude optional report fields and export controls."""
         self.setStyleSheet(f"""
+            QLabel[reportSectionHeading="true"] {{
+                font-size: 15px; font-weight: 600; color: {PRIMARY_BRAND};
+                padding: 10px 0 6px 0; border-bottom: 1px solid {BORDER}; background: transparent;
+            }}
             QFrame[dfActivityRegion="true"] QLabel,
             QFrame[dfActivityRegion="true"] QRadioButton,
             QFrame[dfActivityRegion="true"] QCheckBox {{ font-size: 14px; }}
@@ -3769,6 +3789,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 row.heat_special_toggle.setChecked(True)
         expanded = purchased_heat and row.heat_special_toggle.isChecked()
         row.heat_special_toggle.setVisible(purchased_heat)
+        row.heat_special_toggle.setText("特殊热源情况 −" if expanded else "特殊热源情况 +")
+        row.heat_special_toggle.setAccessibleDescription("已展开" if expanded else "已收起")
         row.heat_boundary_group.setVisible(expanded)
         row.heat_boundary_field.setVisible(expanded)
         row.heat_fuel_accounted_field.setVisible(expanded)
@@ -4759,6 +4781,7 @@ class CarbonMaterialAccountingPage(BasePage):
                         # Kept hidden under their historical object names so old
                         # Workspace form_state_json values remain readable.
                         group.hide()
+                        row.setdefault("legacy_field_groups", []).append(group)
             row["fields"] = widgets
             if prefix in _PROCESS_DEFAULT_PARAMETERS:
                 controls_key = f"{prefix}@{instance_id}"
@@ -4810,7 +4833,7 @@ class CarbonMaterialAccountingPage(BasePage):
                         self._add_material_line(row)
             flags: dict[str, QCheckBox] = {}
             if prefix in {"calcination", "baking"}:
-                checkbox = QCheckBox("高级检查：产品中的碳已在本过程重复计入", host)
+                checkbox = BusinessCheckBox("高级检查：产品中的碳已在本过程重复计入", host)
                 checkbox.setObjectName(f"{prefix}_carbonOutputIncludedInInput" if first else f"{prefix}_{instance_id}_carbonOutputIncludedInInput")
                 advanced_check = QWidget(host)
                 advanced_layout = QVBoxLayout(advanced_check)
@@ -4828,12 +4851,31 @@ class CarbonMaterialAccountingPage(BasePage):
                 flags["carbon_output_included_in_input"] = checkbox
                 self._wire_dirty_tracking(checkbox)
             elif prefix == "graphitization":
-                checkbox = QCheckBox("炉体炭质材料氧化烧损已计入本过程（标准禁止）", host)
+                checkbox = BusinessCheckBox("炉体炭质材料氧化烧损已计入本过程（标准禁止）", host)
                 checkbox.setObjectName(f"{prefix}_furnaceLossIncluded" if first else f"{prefix}_{instance_id}_furnaceLossIncluded")
                 host_layout.addWidget(checkbox)
                 flags["furnace_loss_included"] = checkbox
                 self._wire_dirty_tracking(checkbox)
             row["flags"] = flags
+        if prefix in _PROCESS_MATERIAL_ROLES:
+            legacy_editor = QWidget(host)
+            legacy_layout = QVBoxLayout(legacy_editor)
+            legacy_layout.setContentsMargins(0, 4, 0, 4)
+            for group in row.get("legacy_field_groups", ()):
+                host_layout.removeWidget(group)
+                legacy_layout.addWidget(group)
+                group.show()
+            legacy_toggle = QPushButton("旧项目汇总值：查看／修改", host)
+            legacy_toggle.setCheckable(True)
+            legacy_editor._disclosure_button = legacy_toggle
+            legacy_toggle.toggled.connect(legacy_editor.setVisible)
+            legacy_toggle.setToolTip("保留旧汇总字段及原值；不生成物料或改写采用规则。")
+            host_layout.addWidget(legacy_toggle, 0, Qt.AlignmentFlag.AlignLeft)
+            host_layout.addWidget(legacy_editor)
+            legacy_editor.hide()
+            legacy_toggle.hide()
+            row["legacy_editor"], row["legacy_toggle"] = legacy_editor, legacy_toggle
+            row["legacy_values_seen"] = False
         remove_button.setText("删除此监测段" if prefix == "fume" else "删除此脱硫剂" if prefix == "fgd" else "删除此工序")
         frame_entry(host, title_label, remove_button, toolbar=toolbar)
         self._process_rows_layout[prefix].addWidget(host)
@@ -5961,10 +6003,32 @@ class CarbonMaterialAccountingPage(BasePage):
         self._bind_process_aliases(prefix)
         self._refresh_source_cards()
 
+    def _refresh_legacy_material_presentation(self, row) -> None:
+        toggle, editor = row.get("legacy_toggle"), row.get("legacy_editor")
+        if not isinstance(toggle, QPushButton) or not isinstance(editor, QWidget):
+            return
+        signature = tuple((key, field.text()) for key, field in row.get("fields", {}).items() if isinstance(field, QLineEdit))
+        present = any(value.strip() for key, value in signature)
+        if row.get("legacy_summary_signature") != signature:
+            row["legacy_summary_signature"] = signature
+            self._refresh_material_summary(row)
+        toggle.setVisible(present)
+        if present and not row.get("legacy_values_seen"):
+            row["legacy_values_seen"] = True
+            toggle.setChecked(True)
+        elif not present:
+            row["legacy_values_seen"] = False
+            toggle.setChecked(False)
+
     def _refresh_entry_titles(self) -> None:
         def caption(label, text):
             if label.text() != text:
                 label.setText(text)
+            parent = label.parentWidget()
+            host = parent.parentWidget() if parent is not None else None
+            toggle = getattr(host, "_entry_toggle", None)
+            if isinstance(toggle, QPushButton):
+                toggle.setAccessibleName(text + "：展开或收起")
         for index, row in enumerate(self._fuel_rows, 1):
             caption(row.title_label, f"燃料 {index} · {row.fuel_type.currentText() or '待填写'}")
         for family, rows in self._energy_family_rows.items():
@@ -5974,6 +6038,7 @@ class CarbonMaterialAccountingPage(BasePage):
                 caption(row.title_label, f"{label} {index} · {row.kind.currentText()}" + (f" · {detail}" if detail else ""))
         for prefix, rows in self._process_rows.items():
             for index, row in enumerate(rows, 1):
+                self._refresh_legacy_material_presentation(row)
                 name = row.get("instance_name") or row.get("reagent_name")
                 detail = name.text() if isinstance(name, QLineEdit) else ""
                 if prefix == "fgd":
@@ -5987,18 +6052,23 @@ class CarbonMaterialAccountingPage(BasePage):
                     facts = [row[key].currentText() for key in ("source_selector", "boundary_selector") if key in row]
                     facts += [row[key].text() for key in ("segment_start", "segment_end") if key in row and row[key].text()]
                     detail = " · ".join(facts)
-                caption(row["title"], f"{row['display_title']} {index}" + (f" · {detail}" if detail else ""))
+                display_name = {"calcination": "煅烧工序", "baking": "焙烧工序", "graphitization": "石墨化工序", "fgd": "脱硫剂条目", "fume": "烟气监测段"}[prefix]
+                # Process names already have their editable field in this header.
+                if prefix in _PROCESS_MATERIAL_ROLES:
+                    detail = ""
+                caption(row["title"], f"{display_name} {index}" + (f" · {detail}" if detail else ""))
                 for number, material in enumerate(row.get("materials", ()), 1):
                     title = material.get("title")
                     if isinstance(title, QLabel):
-                        caption(title, f"物料 {number} · {material['role'].currentText()} · {material['name'].text() or '待命名'}")
+                        caption(title, f"{name.text() if isinstance(name, QLineEdit) and name.text() else row['display_title']} · 物料 {number} · {material['role'].currentText()} · {material['name'].text() or '待命名'}")
                 for number, component in enumerate(row.get("components", ()), 1):
                     title = component.get("title")
                     if isinstance(title, QLabel):
-                        caption(title, f"碳酸盐组分 {number} · {component['carbonate_type'].currentText()}")
+                        caption(title, f"{name.text() if isinstance(name, QLineEdit) and name.text() else '脱硫剂条目 ' + str(index)} · 组分 {number} · {component['carbonate_type'].currentText()}")
 
     def _add_and_reveal_entry(self, create, *args, **kwargs):
         entry = create(*args, **kwargs)
+        self._refresh_entry_titles()
         if entry is None and getattr(create, '__name__', '') == '_add_fuel_row':
             entry = self._fuel_rows[-1]
         widget = entry.get('widget') or entry.get('_widget') if isinstance(entry, dict) else entry
@@ -7593,7 +7663,7 @@ class CarbonMaterialAccountingPage(BasePage):
         elif self._calculation_has_result:
             self.calculation_status_hint.setText("结果已生成；如修改输入，请重新计算以形成新的记录。")
         else:
-            self.calculation_status_hint.setText("填写完成后点击“计算排放量”，软件会集中检查并反馈问题。")
+            self.calculation_status_hint.setText("填写完成后点击“核算并生成记录”，软件会集中检查并反馈问题。")
 
     def _fuel_row_uses_standard_defaults(self, row: _FuelRow) -> bool:
         # A supplied enterprise source is an explicit measured-data choice even
@@ -8520,7 +8590,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.result_line_details.setVisible(False)
         self.view_breakdown_button.setText("查看分项结果")
         self.parameter_snapshot_summary.setText("尚未计算，暂无参数快照。")
-        self.trace_output.setText("点击“计算排放量”后显示分项计算结果。")
+        self.trace_output.setText("点击“核算并生成记录”后显示分项计算结果。")
         self.trace_professional_details.clear()
         self.scope_exclusion_notice.hide()
         self._input_dirty = False

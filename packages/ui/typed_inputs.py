@@ -213,8 +213,8 @@ def create_enum_input(parent: QWidget, spec: FieldSpec, object_name: str) -> QCo
     return combo
 
 
-def create_boolean_input(parent: QWidget, spec: FieldSpec, object_name: str) -> QCheckBox:
-    checkbox = QCheckBox(parent)
+def create_boolean_input(parent: QWidget, spec: FieldSpec, object_name: str, *, checkbox_type: type[QCheckBox] = QCheckBox) -> QCheckBox:
+    checkbox = checkbox_type(parent)
     checkbox.setObjectName(object_name)
     checkbox.setProperty("fieldSpecKey", spec.internal_key)
     checkbox.setProperty("fieldDataType", spec.data_type.value)
@@ -243,6 +243,7 @@ def create_typed_input(
     spec: FieldSpec,
     object_name: str,
     placeholder: str = "",
+    *, checkbox_type: type[QCheckBox] = QCheckBox,
 ) -> QWidget:
     """Create the Qt control dictated by a :class:`FieldSpec`."""
 
@@ -257,7 +258,7 @@ def create_typed_input(
     if spec.data_type is FieldDataType.ENUM:
         return create_enum_input(parent, spec, object_name)
     if spec.data_type is FieldDataType.BOOLEAN:
-        return create_boolean_input(parent, spec, object_name)
+        return create_boolean_input(parent, spec, object_name, checkbox_type=checkbox_type)
     if spec.data_type is FieldDataType.READONLY_PARAMETER:
         return create_read_only_parameter(parent, spec, object_name)
     raise ValueError(f"不支持的 UI 字段类型：{spec.data_type}")
