@@ -1508,6 +1508,8 @@ class SettingsPage(BasePage):
             except Exception:
                 fallback_display = None
             self.export_directory_path.setText(str(fallback_display or ""))
+            self.export_directory_path.setToolTip(self.export_directory_path.text())
+            self.export_directory_path.setCursorPosition(0)
             can_save = self.export_location_service.settings_repository is not None
             self.choose_export_directory_button.setEnabled(can_save)
             self.export_directory_status.setText(
@@ -1518,6 +1520,9 @@ class SettingsPage(BasePage):
             return
 
         self.export_directory_path.setText(str(directory))
+        self.export_directory_path.setToolTip(str(directory))
+        self.export_directory_path.setAccessibleDescription(str(directory))
+        self.export_directory_path.setCursorPosition(0)
         can_save = self.export_location_service.settings_repository is not None
         self.choose_export_directory_button.setEnabled(can_save)
         if can_save:
@@ -1626,20 +1631,20 @@ class RecordLibraryPage(BasePage):
         self.record_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.record_list.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.record_list.setAlternatingRowColors(True)
-        self.record_list.setWordWrap(True)
-        self.record_list.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.record_list.setWordWrap(False)
+        self.record_list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.record_list.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.record_list.setTabKeyNavigation(True)
         self.record_list.verticalHeader().setVisible(False)
         self.record_list.verticalHeader().setMinimumSectionSize(64)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((200, 96, 168, 106, 132, 96, 96)):
+        for column, width in enumerate((220, 88, 190, 118, 116, 94, 72)):
             self.record_list.setColumnWidth(column, width)
         self.record_list.horizontalHeader().setStretchLastSection(False)
-        self.record_list.horizontalHeader().setMinimumSectionSize(96)
+        self.record_list.horizontalHeader().setMinimumSectionSize(64)
         self.record_list.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.record_list.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.record_list.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         self.record_list.setShowGrid(False)
         self.record_list.setMinimumHeight(340)
         self.record_list.cellActivated.connect(
@@ -1666,7 +1671,10 @@ class RecordLibraryPage(BasePage):
         self.detail_heading.setWordWrap(True)
         detail_header.addWidget(self.detail_heading, 1)
         detail_layout.addLayout(detail_header)
-        detail_card, detail_card_layout = _card("历史记录 · 只读", self.detail_view)
+        from .business_page_style import surface
+        detail_card, detail_card_layout = surface("", self.detail_view, "recordDetailSurface")
+        detail_card_layout.setContentsMargins(14, 12, 14, 12)
+        detail_card_layout.setSpacing(10)
         self.record_total_caption = QLabel("冻结排放总量", detail_card)
         self.record_total_caption.setObjectName("detailFieldLabel")
         self.record_total_value = QLabel("—", detail_card)
@@ -1676,9 +1684,17 @@ class RecordLibraryPage(BasePage):
         self.record_identity = QLabel("", detail_card)
         self.record_identity.setObjectName("recordFrozenIdentity")
         self.record_identity.setWordWrap(True)
-        detail_card_layout.addWidget(self.record_total_caption)
-        detail_card_layout.addWidget(self.record_total_value)
-        detail_card_layout.addWidget(self.record_identity)
+        result_header = QHBoxLayout()
+        result_header.setSpacing(18)
+        total_column = QVBoxLayout()
+        total_column.setSpacing(3)
+        total_column.addWidget(self.record_total_caption)
+        total_column.addWidget(self.record_total_value)
+        result_header.addLayout(total_column)
+        self.record_identity.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.record_identity.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        result_header.addWidget(self.record_identity, 1)
+        detail_card_layout.addLayout(result_header)
         self.detail_tabs = QTabWidget(detail_card)
         self.detail_tabs.setObjectName("recordDetailTabs")
         from .record_tables import RecordReportTab
@@ -1846,7 +1862,6 @@ class RecordLibraryPage(BasePage):
                     "",
                 )
                 tooltip_suffix = (
-                    f"记录编号：{summary.record_id}\n"
                     f"核算时间：{summary.created_at.isoformat(timespec='seconds')}"
                 )
                 for column, value in enumerate(values):
@@ -1856,7 +1871,7 @@ class RecordLibraryPage(BasePage):
                         item.setData(Qt.ItemDataRole.UserRole, summary.record_id)
                     item.setData(
                         Qt.ItemDataRole.AccessibleTextRole,
-                        f"{self.record_list.horizontalHeaderItem(column).text()}：{value or summary.record_id}",
+                        f"{self.record_list.horizontalHeaderItem(column).text()}：{value or '打开记录'}",
                     )
                     item.setTextAlignment((Qt.AlignmentFlag.AlignRight if column == 3 else Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter)
                     self.record_list.setItem(index, column, item)

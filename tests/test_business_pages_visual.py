@@ -310,7 +310,7 @@ class BusinessPageVisualTests(unittest.TestCase):
         self.assertIn("来源定位", "\n".join(label.text() for label in trace.findChildren(QLabel)))
         self.assertEqual(len(self.records.list_all()), 2)
 
-    def test_long_record_list_keeps_full_badges_and_wrapped_rows(self):
+    def test_long_record_list_keeps_full_badges_and_reachable_identity(self):
         sample = _record("ui.long-company", warning=True)
         self.records.create(replace(sample, input_snapshot=replace(sample.input_snapshot,
             enterprise_name="合成界面验证企业·长中文名称用于检查列表换行与完整历史身份")))
@@ -326,6 +326,11 @@ class BusinessPageVisualTests(unittest.TestCase):
                 self.assertLessEqual(badge.height(), 44)
                 self.assertGreaterEqual(badge.width(), badge.fontMetrics().horizontalAdvance(badge.text()) + 12)
                 self.assertTrue(page.record_list.item(row, 4).text())
+        for row in range(page.record_list.rowCount()):
+            item = page.record_list.item(row, 0)
+            self.assertIn(item.text(), item.toolTip())
+            self.assertNotIn("记录编号：", item.toolTip())
+            self.assertLessEqual(page.record_list.rowHeight(row), page.record_list.fontMetrics().lineSpacing() * 3 + 36)
         self.assertEqual(len(self.records.list_all()), 3)
 
     def test_frozen_report_header_displays_complete_enthalpy_unit(self):
@@ -345,5 +350,60 @@ class BusinessPageVisualTests(unittest.TestCase):
                         self.assertGreaterEqual(table.columnWidth(column), table.fontMetrics().horizontalAdvance(unit_line) + 32)
         self.assertTrue(found, "Frozen B.9 header must remain present")
         self.assertEqual(len(self.records.list_all()), 2)
+
+
+
+    def test_wide_frozen_table_scrolls_locally_without_widening_record_tabs(self):
+        page = self.page(AppRoute.RECORDS)
+        self.assertTrue(page.open_record("ui.sample.one"))
+        page.detail_tabs.setCurrentIndex(1)
+        self.flush()
+        pane = page.input_basis_view
+        self.assertEqual(pane.scroll_area.horizontalScrollBar().maximum(), 0)
+        wide = [card.table_widget for card in pane.report_table_cards
+                if card.table_widget.horizontalScrollBar().maximum() > 0]
+        self.assertTrue(wide)
+        table = max(wide, key=lambda value: value.columnCount())
+        frozen = tuple(tuple(table.item(row, column).text() if table.item(row, column) else ""
+                            for column in range(table.columnCount())) for row in range(table.rowCount()))
+        table.horizontalScrollBar().setValue(table.horizontalScrollBar().maximum())
+        self.flush()
+        self.assertLessEqual(table.columnViewportPosition(table.columnCount() - 1) + table.columnWidth(table.columnCount() - 1),
+                             table.viewport().width() + 2)
+        self.assertEqual(frozen, tuple(tuple(table.item(row, column).text() if table.item(row, column) else ""
+                                           for column in range(table.columnCount())) for row in range(table.rowCount())))
+        self.assertEqual(len(self.records.list_all()), 2)
+
+    def test_long_settings_path_starts_at_drive_and_remains_complete(self):
+        page = self.page(AppRoute.SETTINGS)
+        target = self.root / ("长路径辨认验证" * 12)
+        page.export_location_service.set_preferred_directory(target)
+        page._refresh_export_directory_display()
+        self.flush()
+        field = page.export_directory_path
+        self.assertTrue(field.isReadOnly())
+        self.assertEqual(field.cursorPosition(), 0)
+        self.assertEqual(field.toolTip(), field.text())
+        field.selectAll()
+        self.assertEqual(field.selectedText(), str(target))
+        self.assertEqual(page.export_location_service.display_directory(), target)
+
+    def test_full_source_names_wrap_and_short_search_gives_detail_space(self):
+        page = self.page(AppRoute.FACTORS)
+        page.view_mode_filter.setCurrentIndex(1)
+        self.flush()
+        self.assertTrue(page.search_source_list.wordWrap())
+        self.assertEqual(page.search_source_list.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        sources = {source.source_id: source for source in self.catalog.list_sources()}
+        for index in range(1, page.search_source_list.count()):
+            item = page.search_source_list.item(index)
+            source = sources[item.data(Qt.ItemDataRole.UserRole)]
+            self.assertIn(source.document_name, item.text())
+            self.assertIn(source.document_name, item.toolTip())
+        page.search_input.setText("没有对应的资料词条")
+        self.flush()
+        self.assertEqual(len(page._search_results), 0)
+        self.assertLessEqual(page.search_result_table.height(), 100)
+        self.assertGreaterEqual(page.factor_detail_scroll.height(), 280)
 
 if __name__ == "__main__":unittest.main()

@@ -882,6 +882,10 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_source_list.setAccessibleDescription("按资料来源筛选全库搜索结果。")
         self.search_source_list.setMinimumWidth(140)
         self.search_source_list.setMinimumHeight(260)
+        self.search_source_list.setWordWrap(True)
+        self.search_source_list.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.search_source_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.search_source_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         source_list_layout.addWidget(self.search_source_list)
 
         self.search_results_panel = QWidget(self.search_splitter)
@@ -999,7 +1003,7 @@ class ParameterFactorLibraryPage(BasePage):
                 f"{source.document_no} · {source.document_name}",
                 Qt.ItemDataRole.ToolTipRole,
             )
-            source_item = QListWidgetItem(source.document_no)
+            source_item = QListWidgetItem(f"{source.document_no}\n{source.document_name}")
             source_item.setData(Qt.ItemDataRole.UserRole, source.source_id)
             source_item.setToolTip(f"{source.document_no} · {source.document_name}")
             self.search_source_list.addItem(source_item)
@@ -1244,6 +1248,18 @@ class ParameterFactorLibraryPage(BasePage):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 self.search_result_table.setItem(row_number, column, item)
         self.search_result_table.resizeRowsToContents()
+        if len(self._search_results) <= 3:
+            natural_height = self.search_result_table.horizontalHeader().height() + 6 + sum(
+                max(self.search_result_table.rowHeight(row), self.search_result_table.sizeHintForRow(row)) + 12
+                for row in range(self.search_result_table.rowCount())
+            )
+            height = min(260, max(76, natural_height))
+            self.search_result_table.setMinimumHeight(height)
+            self.search_result_table.setMaximumHeight(height)
+            self.search_results_splitter.setSizes([height, max(280, self.search_results_splitter.height() - height)])
+        else:
+            self.search_result_table.setMaximumHeight(16777215)
+            self.search_result_table.setMinimumHeight(180)
         self.result_summary.setText(f"找到 {len(self._search_results)} 项资料或参数值")
         if self._search_results:
             self.search_result_table.selectRow(0)

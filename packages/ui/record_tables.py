@@ -252,10 +252,12 @@ class ReportTableCard(QFrame):
             width = max(width, min(240, header_width + 40))
             table.setColumnWidth(column, width)
             table_width += width
-        table.setMinimumWidth(table_width + 4)
+        table.setMinimumWidth(0)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         table.resizeRowsToContents()
         content_height = table.horizontalHeader().height() + table.verticalHeader().length() + 6
-        table.setMinimumHeight(max(90, content_height))
+        scrollbar_height = table.style().pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent)
+        table.setMinimumHeight(max(90, content_height + scrollbar_height))
         table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(table)
         self.table_widget = table
