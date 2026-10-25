@@ -107,11 +107,8 @@ def _record(record_id: str, *, warning: bool = False) -> AccountingRecord:
     )
 
 
-def _audit_text(page: RecordLibraryPage) -> str:
-    if not page.input_basis_view.audit_toggle.isChecked():
-        page.input_basis_view.audit_toggle.click()
-    assert page.input_basis_view.audit_text is not None
-    return page.input_basis_view.audit_text.toPlainText()
+def _business_basis_text(page: RecordLibraryPage) -> str:
+    return "\n".join(label.text() for label in page.input_basis_view.business_basis_labels)
 
 
 def _table_text(page: RecordLibraryPage, table_id: str, *, summary: bool = False) -> str:
@@ -316,7 +313,7 @@ class G07UiTests(unittest.TestCase):
         self.records_page.record_list.cellWidget(0, 6).click()
         self.assertTrue(self.records_page.input_basis_view.isReadOnly())
         self.assertIn("G07 示例企业", _table_text(self.records_page, "basic-info", summary=True))
-        self.assertIn("G07 测试选择理由", _audit_text(self.records_page))
+        self.assertIn("G07 测试选择理由", _business_basis_text(self.records_page))
         home_recent = self.home_page.findChild(QTableWidget, "homeRecentTable")
         self.assertIsNotNone(home_recent)
         assert home_recent is not None
@@ -385,7 +382,7 @@ class G07UiTests(unittest.TestCase):
         self.records_page.record_list.cellWidget(
             self.records_page.record_list.currentRow(), 6
         ).click()
-        detail = _audit_text(self.records_page)
+        detail = _business_basis_text(self.records_page)
         self.assertIn("核算标准：GB/T 32151.34—2024", detail)
         self.assertIn("标准版本：2024", detail)
         self.assertIn("【活动数据】", detail)
@@ -418,7 +415,7 @@ class G07UiTests(unittest.TestCase):
         self.records_page.record_list.cellWidget(
             self.records_page.record_list.currentRow(), 6
         ).click()
-        detail = _audit_text(self.records_page)
+        detail = _business_basis_text(self.records_page)
         self.assertIn("该记录生成时未保存完整计算过程快照。", detail)
         self.assertIn("历史记录未保存该信息。", detail)
         self.assertTrue(self.records_page.input_basis_view.isReadOnly())
@@ -459,7 +456,7 @@ class G07UiTests(unittest.TestCase):
             self.records_page.record_list.cellWidget(
                 self.records_page.record_list.currentRow(), 6
             ).click()
-            before = _audit_text(self.records_page)
+            before = _business_basis_text(self.records_page)
             self.assertIn("G07 测试选择理由", before)
             self.assertIn("12345.678", before)
 
@@ -482,7 +479,7 @@ class G07UiTests(unittest.TestCase):
 
             self.records_page.refresh_records()
             self.application.processEvents()
-            after = _audit_text(self.records_page)
+            after = _business_basis_text(self.records_page)
             self.assertEqual(after, before)
             self.assertIn("12345.678", after)
             self.assertNotIn("已变更的当前 Catalog 参数", after)
@@ -520,7 +517,7 @@ class G07UiTests(unittest.TestCase):
             self.assertIsInstance(second_shell.record_repository, SQLiteRecordRepository)
             self.assertEqual(second_records.record_list.rowCount(), 1)
             second_records.record_list.cellWidget(0, 6).click()
-            detail = _audit_text(second_records)
+            detail = _business_basis_text(second_records)
             self.assertIn("默认持久化企业", detail)
             self.assertIn("标准版本：2024", detail)
             second_window.close()

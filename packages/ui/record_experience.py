@@ -262,7 +262,7 @@ def _reporting_value(value: object) -> str:
 
 
 def build_activity_evidence_view(raw: object, reporting: object, reporting_state: SnapshotState) -> str:
-    output = ["活动数据与来源证据", "活动数据见本页 B.2—B.9；以下为本次记录固定的来源证据。"]
+    output = ["活动数据与来源证据", "以下为本次记录保存的活动数据来源证据。"]
     if reporting_state is SnapshotState.LEGACY:
         return "\n".join((*output, SNAPSHOT_STATE_LABELS[SnapshotState.LEGACY]))
     if reporting_state is SnapshotState.CORRUPT:
@@ -325,7 +325,7 @@ def build_parameter_view(record: AccountingRecord, evidence_names: Mapping[str, 
         return SNAPSHOT_STATE_LABELS[SnapshotState.CORRUPT]
     if not record.parameter_snapshots:
         return SNAPSHOT_STATE_LABELS[SnapshotState.EMPTY]
-    output = ["参数与因子来源（均为本 Record 冻结快照）"]
+    output = ["参数与因子来源（均为保存时采用值）"]
     for snapshot in record.parameter_snapshots:
         source_kind = SELECTION_LABELS.get(snapshot.selection_method.value, "已记录选择方式")
         lines = [f"- {snapshot.value_used} {snapshot.unit_used}；{source_kind}"]
@@ -372,63 +372,108 @@ def _business_warning(message: str) -> str:
     return re.sub(r"\b(?:CAR|GEN|STD)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b", "相关输入项", message)
 
 
+
+def business_choice_label(value: object, *, field_name: str | None = None) -> str:
+    """Translate saved choices for viewing; never alter their frozen values."""
+    from packages.application.reporting.carbon_material_model import _FUEL_NAMES, _SOURCE_NAMES
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    text = str(value.value if isinstance(value, Enum) else value)
+    if field_name == "fuel_type" and text in _FUEL_NAMES:
+        return _FUEL_NAMES[text]
+    names = {
+        **_FUEL_NAMES, **_SOURCE_NAMES, **SOURCE_KIND_LABELS, **SOURCE_TYPE_LABELS,
+        **SELECTION_LABELS,
+        "VOLUME": "体积计量", "MASS": "质量计量", "HEAT": "热量计量",
+        "HEAT_CONTENT": "按低位发热量和单位热值含碳量", "DIRECT": "直接采用含碳量",
+        "AUTO_SATURATED": "饱和蒸汽参考值", "USER_MANUAL": "独立已知焓值",
+        "SATURATED_TABLE": "饱和蒸汽参考表", "SUPERHEATED_IF97": "过热蒸汽物性计算",
+        "INSIDE_ENTERPRISE": "企业边界内热源", "OUTSIDE_ENTERPRISE": "企业边界外热源",
+        "calcination_feed": "待煅烧原料", "calcined_product": "煅后料",
+        "underburn_recovered": "欠煅烧料", "carbon_dust": "炭粉尘",
+        "baking_filler": "焙烧填充料", "green_baking_product": "待焙烧/炭化品",
+        "baked_product": "焙烧/炭化产品", "baking_byproduct": "焙烧副产品",
+        "graphitization_packing": "石墨化保温料和电阻料",
+        "green_graphitization_product": "待石墨化品", "graphitized_product": "石墨化产品",
+        "graphitization_byproduct": "石墨化副产品",
+    }
+    if text in names:
+        return names[text]
+    if re.fullmatch(r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+", text):
+        return "其他已保存选项"
+    return text
+
+
+def business_source_text(text: str) -> str:
+    """Keep values/source clauses while translating technical choice tokens."""
+    text = text.replace("gbt_32151_34_2024", "GB/T 32151.34—2024")
+    parts = re.split(r"(；|\n)", text)
+    for index, part in enumerate(parts):
+        # A document reference is business evidence, not a choice enum.
+        if re.match(r"\s*(?:来源定位|来源参考|来源说明|来源版本|因子年度|标准依据|依据|展示前完整值|采用说明)：", part):
+            continue
+        parts[index] = re.sub(r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b",
+                              lambda match: business_choice_label(match.group()), part)
+    return _business_warning("".join(parts))
+
+
+def build_frozen_activity_view(record: AccountingRecord) -> str:
+    output = ["核算标准：" + standard_label(record.standard_id),
+              "标准版本：" + (record.standard_version or "未记录")]
+    for index, activity in enumerate(record.input_snapshot.activities, 1):
+        output.append(f"活动数据 {index}：{activity.value} {activity.unit}；"
+                      f"{business_choice_label(activity.source_type.value)}")
+        if activity.source_reference:
+            output.append(f"  来源说明：{activity.source_reference}")
+    if not record.input_snapshot.activities:
+        output.append("未保存独立活动数据条目；已保存的业务输入见本页。")
+    return "\n".join(output)
+
+
 def build_calculation_basis_view(
     record: AccountingRecord, *, trace: object, provenance: object,
     states: Mapping[str, SnapshotState],
 ) -> str:
-    """Readable professional basis from frozen evidence; no audit-log UI."""
-    output = [
-        f"核算标准：{standard_label(record.standard_id)}",
-        f"标准版本：{record.standard_version or '未记录'}",
-        f"核算时间：{record.created_at.isoformat(timespec='seconds')}",
-        f"算法版本：{record.algorithm_version}",
-    ]
-    for name, title in (("Trace 快照", "计算过程"), ("Provenance 快照", "来源链")):
-        output.append(f"{title}：{SNAPSHOT_STATE_LABELS[states.get(name, SnapshotState.LEGACY)]}")
+    """Frozen business formulas/values/standard clauses, without technical audit."""
+    output = [f"企业：{record.input_snapshot.enterprise_name or '未填写'}",
+              f"核算标准：{standard_label(record.standard_id)}",
+              f"标准版本：{record.standard_version or '未记录'}"]
+    if states.get("Trace 快照") is SnapshotState.CORRUPT:
+        output.append("无法读取该历史信息。已保存的输入、结果及其他来源仍可查看。")
     for index, step in enumerate(_trace_steps(trace), 1):
-        output.append(f"\n计算步骤 {index} · {SOURCE_LABELS.get(str(step.get('emission_source_id')), '排放量汇总与换算')}")
-        for key, label in (("calculation_step", "冻结计算式"), ("standard_location", "标准依据"), ("mapping_location", "软件映射依据")):
-            if step.get(key):
-                output.append(f"{label}：{step[key]}")
+        output.append(f"\n计算依据 {index} · {SOURCE_LABELS.get(str(step.get('emission_source_id')), '排放量汇总与换算')}")
+        if step.get("calculation_step"):
+            output.append("冻结计算式：" + business_source_text(str(step["calculation_step"])))
+        if step.get("standard_location"):
+            output.append("标准依据：" + str(step["standard_location"]))
         if step.get("intermediate_result") is not None:
             output.append(f"冻结结果：{step['intermediate_result']} {step.get('unit') or ''}".strip())
-        for variable in step.get("input_variables") or ():
+        for number, variable in enumerate(step.get("input_variables") or (), 1):
             if isinstance(variable, Mapping):
-                name = str(variable.get("name") or "采用值")
-                label = REPORT_FIELD_LABELS.get(name.lower(), name)
-                output.append(f"  {label}：{variable.get('value', '未记录')} {variable.get('unit') or ''}".strip())
+                name = str(variable.get("name") or "").lower()
+                label = REPORT_FIELD_LABELS.get(name, f"采用值 {number}")
+                value = business_choice_label(variable.get("value", "未记录"))
+                output.append(f"  {label}：{value} {variable.get('unit') or ''}".strip())
         evidence = step.get("calculation_provenance")
-        if isinstance(evidence, Mapping) and evidence:
-            for key, label in (
-                ("enthalpy_used_kj_per_kg", "实际采用焓值（kJ/kg）"),
-                ("automatic_reference_enthalpy_kj_per_kg", "冻结自动参考焓值（kJ/kg）"),
-                ("table", "参考表"), ("method", "取值方法"),
-                ("standard_location", "来源定位"),
-            ):
+        if isinstance(evidence, Mapping):
+            for key, label in (("enthalpy_used_kj_per_kg", "采用焓值（kJ/kg）"),
+                               ("automatic_reference_enthalpy_kj_per_kg", "保存的参考焓值（kJ/kg）"),
+                               ("standard_location", "标准依据")):
                 if evidence.get(key) is not None:
                     output.append(f"  {label}：{evidence[key]}")
     if isinstance(provenance, Mapping):
         rule_set = provenance.get("effective_rule_set")
         rules = rule_set.get("rules", ()) if isinstance(rule_set, Mapping) else ()
-        output.append("\n冻结规则与来源依据")
         seen = set()
         for rule in rules:
             if not isinstance(rule, Mapping):
                 continue
-            text = "；".join(str(rule[key]) for key in ("description", "source_location") if rule.get(key))
-            if text and text not in seen:
-                output.append(f"- {text}")
-                seen.add(text)
-        if not seen:
-            output.append("该历史记录未保存可读的规则来源说明。")
-        mapping = provenance.get("mapping")
-        if isinstance(mapping, Mapping):
-            for key in ("mapping_version", "version"):
-                if mapping.get(key):
-                    output.append(f"映射版本：{mapping[key]}")
-        elif provenance.get("mapping_version"):
-            output.append(f"映射版本：{provenance['mapping_version']}")
-    output.append("\n上述内容来自该记录保存的快照；原始计算过程、来源链和审计证据继续保留。")
+            description = "；".join(str(rule[key]) for key in ("description", "source_location") if rule.get(key))
+            description = business_source_text(description)
+            if description and description not in seen:
+                output.append("标准与业务依据：" + description)
+                seen.add(description)
+    output.append("\n以上展示保存时的业务依据；历史记录不会重新核算。")
     return "\n".join(output)
 
 

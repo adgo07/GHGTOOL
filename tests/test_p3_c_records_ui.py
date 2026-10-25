@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTabWidget,
     QTableWidget,
+    QLabel,
+    QToolButton,
 )
 
 from packages.persistence import SQLiteRecordRepository
@@ -43,6 +45,10 @@ def _table_text(table: QTableWidget) -> str:
         for column in range(table.columnCount())
         if table.item(row, column) is not None
     )
+
+
+def _business_basis_text(page):
+    return "\n".join(label.text() for label in page.input_basis_view.business_basis_labels)
 
 
 class P3CRecordUiTests(unittest.TestCase):
@@ -171,18 +177,24 @@ class P3CRecordUiTests(unittest.TestCase):
         self.assertNotIn("来源定位：", _table_text(b2))
         evidence = _business_table(self.page, "evidence-register")
         self.assertIn("燃料计量台账-001", _table_text(evidence))
-        self.assertTrue(self.page.input_basis_view.audit_panel.isHidden())
-        self.assertNotIn("审计日志：", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertNotIn("'formula_steps':", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertNotIn("instance_id", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertIsNone(self.page.input_basis_view.audit_panel)
+        self.assertNotIn("审计日志：", _business_basis_text(self.page))
+        self.assertNotIn("'formula_steps':", _business_basis_text(self.page))
+        self.assertNotIn("instance_id", _business_basis_text(self.page))
         self.assertNotIn("其他信息（gtafc）", _table_text(_business_table(self.page, "b2")))
         first_tab_text = _table_text(_business_table(self.page, "b1", summary=True))
         self.assertIn("7.30", first_tab_text)
         self.assertIn("9.70", first_tab_text)
-        self.page.input_basis_view.audit_toggle.click()
-        self.assertFalse(self.page.input_basis_view.audit_panel.isHidden())
-        self.assertGreater(self.page.input_basis_view.audit_table.rowCount(), 0)
-        self.assertIn("来源定位：", _table_text(self.page.input_basis_view.audit_table))
+        self.assertIsNone(self.page.input_basis_view.audit_toggle)
+        source_details = "\n".join(
+            card.table_widget.item(row, column).toolTip()
+            for card in self.page.input_basis_view.report_table_cards
+            for row in range(card.table_widget.rowCount())
+            for column in range(card.table_widget.columnCount())
+            if card.table_widget.item(row, column) is not None
+        )
+        self.assertIn("来源定位：", source_details)
+        self.assertNotIn("SYSTEM_RECOMMENDED", source_details)
         after = (asdict(self.repo.get(record.record_id)), self.repo.get_raw_input_snapshot(record.record_id),
                  self.repo.get_trace_snapshot(record.record_id), self.repo.get_provenance_snapshot(record.record_id),
                  self.repo.list_audit(record.record_id))
@@ -191,8 +203,58 @@ class P3CRecordUiTests(unittest.TestCase):
     def test_corrupt_trace_is_explicit_and_does_not_prevent_saved_inputs(self):
         with patch.object(self.repo, "get_trace_snapshot", side_effect=ValueError("corrupt")):
             self.assertTrue(self.page.open_record("p3c.one"))
-        self.assertIn("无法读取该历史信息", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertIn("无法读取该历史信息", _business_basis_text(self.page))
+        self.assertIn("G07 测试选择理由", _business_basis_text(self.page))
+
+    def test_ordinary_details_keep_legacy_business_basis_without_audit_entry(self):
+        record = self.repo.get("p3c.one")
+        before = (asdict(record), self.repo.list_audit(record.record_id),
+                  self.repo.get_raw_input_snapshot(record.record_id))
+        with patch.object(self.repo, "list_audit", side_effect=AssertionError("No audit details")), patch(
+            "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
+            side_effect=AssertionError("No historical recalculation")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        self.assertIsNone(self.page.findChild(QToolButton, "recordReportAuditToggle"))
+        self.assertIsNone(self.page.input_basis_view.audit_panel)
+        text = "\n".join(label.text() for label in self.page.input_basis_view.findChildren(QLabel)
+                         if label.objectName() == "recordBusinessBasisText")
+        for value in ("10 MWh", "0.125", "测试来源第1条", "G07 测试选择理由", "GB/T 32151.34"):
+            self.assertIn(value, text)
+        for token in ("formula_steps", "instance_id", "CAR-SM01-G07-TEST", "HEAT_CONTENT", "Trace 快照"):
+            self.assertNotIn(token, text)
+        self.assertEqual(before, (asdict(self.repo.get(record.record_id)),
+                         self.repo.list_audit(record.record_id), self.repo.get_raw_input_snapshot(record.record_id)))
+
+    def test_record_without_business_tables_retains_result_input_and_source_basis(self):
+        record = self.repo.get("p3c.one")
+        before = asdict(record)
+        with patch("packages.ui.pages.build_record_report_model", side_effect=ValueError("no table layout")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        self.assertEqual(self.page.detail_tabs.count(), 2)
+        summary = "\n".join(label.text() for label in self.page.summary_view.findChildren(QLabel))
+        basis = "\n".join(label.text() for label in self.page.input_basis_view.findChildren(QLabel))
+        self.assertIn("1.25", summary)
+        self.assertIn("10 MWh", basis)
+        self.assertIn("0.125", basis)
+        self.assertIn("G07 测试选择理由", basis)
+        self.assertIsNone(self.page.findChild(QToolButton, "recordReportAuditToggle"))
+        self.assertEqual(asdict(self.repo.get(record.record_id)), before)
+
+    def test_business_source_choices_do_not_rewrite_document_references(self):
+        record = _record("p3c.business-source")
+        raw = {"fuel_inputs": [{"name": "历史燃料", "fuel_type": "OTHER", "path": "HEAT_CONTENT",
+                                "activity": {"value": "0", "unit": "t", "source_type": "METER",
+                                             "source_reference": "SOURCE_REPORT_X"}}]}
+        self.repo.create_with_details(record, raw_input=raw)
+        with patch("packages.ui.pages.build_record_report_model", side_effect=ValueError("legacy without tables")), patch(
+            "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
+            side_effect=AssertionError("No historical recalculation")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        text = _business_basis_text(self.page)
+        for value in ("其他燃料", "按低位发热量和单位热值含碳量", "SOURCE_REPORT_X", "0 t"):
+            self.assertIn(value, text)
+        self.assertNotIn("HEAT_CONTENT", text)
+        self.assertEqual(self.repo.get_raw_input_snapshot(record.record_id), raw)
 
     def test_export_is_bound_to_loaded_detail_and_uses_public_helper(self):
         self.assertTrue(self.page.open_record("p3c.one"))

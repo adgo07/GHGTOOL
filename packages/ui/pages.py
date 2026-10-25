@@ -74,6 +74,8 @@ from .record_experience import (
     SnapshotState,
     REPORT_FIELD_LABELS,
     build_activity_evidence_view,
+    build_frozen_activity_view,
+    business_choice_label,
     build_home_record_label,
     build_parameter_view,
     build_calculation_basis_view,
@@ -178,6 +180,10 @@ _SNAPSHOT_LABELS = {
     "amount": "数量",
     "electricity_unit": "用电量单位",
     "unit": "单位",
+    "activities": "已保存的活动数据",
+    "activity_id": "活动编号",
+    "included": "参与核算",
+    "fuel_type": "燃料种类",
     "acquisition_mode": "取得方式",
     "attribute": "电力属性",
     "proof_type": "证明类型",
@@ -318,7 +324,8 @@ _SNAPSHOT_PROOF_KEYS = frozenset(
 _SNAPSHOT_INTERNAL_EVIDENCE_KEYS = frozenset({
     "evidence_id", "source_ids", "evidence_ref_ids", "input_id", "enterprise_id",
     "instance_id", "detail_id", "line_id", "parameter_id", "factor_id",
-    "source_id", "ingress_provenance",
+    "source_id", "ingress_provenance", "activity_id", "boundary_component_ids",
+    "snapshot_id", "record_id", "result_id", "algorithm_version", "schema_version",
 })
 
 
@@ -329,12 +336,19 @@ def _snapshot_label(key: object) -> str:
     return _SNAPSHOT_LABELS.get(key_text, "其他已保存输入")
 
 
-def _snapshot_scalar(value: Any) -> str:
+def _snapshot_scalar(value: Any, field_name: str | None = None) -> str:
     if value is None:
         return "未填写"
     if isinstance(value, bool):
         return "是" if value else "否"
-    return _SNAPSHOT_VALUE_LABELS.get(str(value), str(value))
+    text = str(value)
+    free_text_fields = {"name", "enterprise_name", "source_reference", "source_location", "source_version",
+                        "selection_reason", "proof", "proof_reference", "evidence", "evidence_reference",
+                        "reason", "note", "boundary_description", "products_and_process",
+                        "emission_source_identification", "other_report_information"}
+    if field_name in free_text_fields:
+        return text
+    return _SNAPSHOT_VALUE_LABELS.get(text, business_choice_label(text, field_name=field_name))
 
 
 def _snapshot_measurement(value: dict[str, Any]) -> str:
@@ -353,7 +367,7 @@ def _snapshot_measurement(value: dict[str, Any]) -> str:
         "factor_year",
     ):
         if value.get(key) not in (None, "", [], {}):
-            extras.append(f"{_snapshot_label(key)}：{_snapshot_scalar(value[key])}")
+            extras.append(f"{_snapshot_label(key)}：{_snapshot_scalar(value[key], key)}")
     return "；".join((text, *extras))
 
 
@@ -385,7 +399,7 @@ def _snapshot_lines(
                 lines.append(f"{indent}{label}：")
                 lines.extend(_snapshot_lines(item, indent=indent + "  ", excluded_keys=excluded_keys))
             else:
-                lines.append(f"{indent}{label}：{_snapshot_scalar(item)}")
+                lines.append(f"{indent}{label}：{_snapshot_scalar(item, str(key))}")
         return lines or [f"{indent}未记录"]
     if isinstance(value, list):
         lines = []
@@ -1670,7 +1684,7 @@ class RecordLibraryPage(BasePage):
         from .record_tables import RecordReportTab
 
         self.summary_view = RecordReportTab("recordSummaryView", include_audit=False, parent=self.detail_tabs)
-        self.input_basis_view = RecordReportTab("recordInputBasisView", include_audit=True, parent=self.detail_tabs)
+        self.input_basis_view = RecordReportTab("recordInputBasisView", include_audit=False, parent=self.detail_tabs)
         self.detail_tabs.addTab(self.summary_view, "基本信息与结果")
         self.detail_tabs.addTab(self.input_basis_view, "输入数据与计算依据")
         detail_card_layout.addWidget(self.detail_tabs, 1)
@@ -2069,23 +2083,30 @@ class RecordLibraryPage(BasePage):
         )
         if states["trace"] is SnapshotState.LEGACY:
             professional += "\n\n该记录生成时未保存完整计算过程快照。"
-        professional += (
-            f"\n实际输入快照（业务视图）：\n{_format_business_snapshot(values['raw'])}"
-            f"\n报告信息与证据快照：\n{_format_reporting_snapshot(values['reporting'])}"
+        fallback_inputs = (
+            ("已保存的活动数据", build_frozen_activity_view(record)),
+            ("已保存的业务输入", _format_business_snapshot(values["raw"])),
+            ("已保存的报告资料", _format_reporting_snapshot(values["reporting"])),
         )
         sections = (
             ("标准报告数据", report_notice),
             ("活动数据与来源证据", activity_text),
             ("参数与因子来源", parameter_text),
             ("数据质量与提醒", quality_text),
-            ("计算过程与来源链", professional),
+            ("冻结计算依据", professional),
         )
         try:
             model=build_record_report_model(record,raw,trace,reporting,provenance=values["provenance"],qualification=values["qualification"])
         except ValueError:
-            fallback = "此标准尚未提供业务报告表式；可在核算结果与来源审计中查看已冻结的信息。"
-            self.summary_view.clear(fallback)
-            self.input_basis_view.set_sections((), audit_sections=(*sections[1:], ("标准报告数据", fallback)))
+            fallback = "此历史记录未提供业务报告表式；以下仍可查看保存时的业务结果、输入和依据。"
+            self.summary_view.set_sections((), notices=(fallback,), business_sections=((
+                "冻结核算结果",
+                f"企业：{record.input_snapshot.enterprise_name or '未填写'}\n"
+                f"核算标准：{standard_label(record.standard_id)}\n"
+                f"冻结排放总量：{format_amount(record.calculation_result.total_amount, record.calculation_result.total_unit)}",
+            ),))
+            self.input_basis_view.set_sections((), notices=(report_notice,) if report_notice else (),
+                                               business_sections=(*fallback_inputs, *sections[1:]))
         else:
             summary_sections = tuple(
                 section for section in model.sections
@@ -2108,8 +2129,10 @@ class RecordLibraryPage(BasePage):
             self.input_basis_view.set_sections(
                 detail_sections,
                 notices=detail_notices,
-                audit_sections=sections[1:],
-                audit_tables=all_tables,
+                business_sections=(
+                    *(fallback_inputs if states["raw"] is not SnapshotState.PRESENT or states["trace"] is not SnapshotState.PRESENT else ()),
+                    *sections[1:],
+                ),
             )
         self.detail_heading.setText(record.input_snapshot.enterprise_name or "核算记录详情")
 

@@ -108,7 +108,7 @@ class ReportTableCard(QFrame):
         table.setObjectName("recordBusinessTable")
         table.setProperty("reportTableId", report.table_id)
         table.setAccessibleName(report.title)
-        table.setAccessibleDescription("来自已保存核算记录的只读报告表。单元格来源明细可在下方来源审计中查看。")
+        table.setAccessibleDescription("来自已保存核算记录的只读报告表。来源类别和依据可通过单元格提示及本页业务依据查看。")
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -159,10 +159,11 @@ class ReportTableCard(QFrame):
                     accessible_text = f"{row_context}；{accessible_text}"
                 item.setData(Qt.ItemDataRole.AccessibleTextRole, accessible_text)
                 if cell.source_detail:
-                    item.setToolTip(cell.source_detail)
+                    from .record_experience import business_source_text
+                    item.setToolTip(business_source_text(cell.source_detail))
                     item.setData(
                         Qt.ItemDataRole.AccessibleDescriptionRole,
-                        "来源审计详情可在本页下方展开查看。",
+                        business_source_text(cell.source_detail),
                     )
                 table.setItem(header_count + row_index, column_index, item)
 
@@ -212,6 +213,7 @@ class RecordReportTab(QWidget):
         super().__init__(parent)
         self.include_audit = include_audit
         self.report_table_cards: list[ReportTableCard] = []
+        self.business_basis_labels: list[QLabel] = []
         self.setObjectName(object_name)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -243,8 +245,10 @@ class RecordReportTab(QWidget):
         while (item := self.content_layout.takeAt(0)) is not None:
             widget = item.widget()
             if widget is not None:
+                widget.hide()
                 widget.deleteLater()
         self.report_table_cards = []
+        self.business_basis_labels = []
         self.audit_text = None
         self.audit_table = None
         self.audit_panel = None
@@ -265,6 +269,7 @@ class RecordReportTab(QWidget):
         notices: Sequence[str] = (),
         audit_sections: Sequence[tuple[str, str]] = (),
         audit_tables: Sequence[ReportTable] = (),
+        business_sections: Sequence[tuple[str, str]] = (),
     ) -> None:
         self._clear_layout()
         sections = tuple(sections)
@@ -297,6 +302,23 @@ class RecordReportTab(QWidget):
                 note_label.setStyleSheet("color: #536A7B; font-size: 13px; padding: 1px 3px;")
                 self.content_layout.addWidget(note_label)
 
+        for title, content in business_sections:
+            if not content:
+                continue
+            heading = QLabel(title, self.content)
+            heading.setObjectName("recordBusinessBasisHeading")
+            heading.setWordWrap(True)
+            heading.setStyleSheet("font-size: 16px; font-weight: 600; color: #18364F; padding-top: 8px;")
+            self.content_layout.addWidget(heading)
+            label = QLabel(content, self.content)
+            label.setObjectName("recordBusinessBasisText")
+            label.setTextFormat(Qt.TextFormat.PlainText)
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+            label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+            label.setStyleSheet("font-size: 14px; color: #233749; padding: 3px;")
+            self.content_layout.addWidget(label)
+            self.business_basis_labels.append(label)
         if self.include_audit:
             self._add_audit_panel(all_tables, audit_sections)
         self.content_layout.addStretch(1)

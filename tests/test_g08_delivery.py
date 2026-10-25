@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox
 
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -606,8 +606,9 @@ class G08DeliveryTests(unittest.TestCase):
                 records_page = second_shell.pages[AppRoute.RECORDS]
                 self.assertEqual(records_page.record_list.rowCount(), 1)
                 records_page.record_list.cellWidget(0, 6).click()
-                records_page.input_basis_view.audit_toggle.click()
-                detail = records_page.input_basis_view.audit_text.toPlainText()
+                self.assertIsNone(records_page.input_basis_view.audit_toggle)
+                detail = "\n".join(label.text() for label in records_page.input_basis_view.findChildren(QLabel)
+                                   if label.objectName() == "recordBusinessBasisText")
                 self.assertIn("G08 集成企业", detail)
                 self.assertIn("标准版本：2024", detail)
                 second_window.close()
