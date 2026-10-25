@@ -377,7 +377,12 @@ class G03ShellTest(unittest.TestCase):
         self.assertIsNone(selector.currentData())
         retry = page.fuel_override_panel.findChild(QPushButton, "retryFuelPathPreviewButton")
         self.assertFalse(retry.isEnabled())
+        page._last_preview = SimpleNamespace(units=(SimpleNamespace(can_calculate=True, input_value=object()),))
+        page._preview_context_key = ("previous check",)
         selector.setCurrentIndex(selector.findData(FuelPath.MASS))
+        self.assertIsNone(page._last_preview)
+        self.assertFalse(page.save_project_button.isEnabled())
+        self.assertIn("重新预览", page.preview_panel.summary.text())
         self.assertIs(page._fuel_path_from_widget(selector.currentData()), FuelPath.MASS)
         self.assertTrue(retry.isEnabled())
 

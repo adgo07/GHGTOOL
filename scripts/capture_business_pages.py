@@ -186,6 +186,12 @@ def main():
                 assert not factor.search_input.isVisible()
                 grab("factor-browse")
                 factor.view_mode_filter.setCurrentIndex(1)
+                longest_source = max(range(factor.search_source_list.count()), key=lambda i: len(factor.search_source_list.item(i).text()))
+                factor.search_source_list.setCurrentRow(longest_source)
+                factor.search_source_list.scrollToItem(factor.search_source_list.item(longest_source))
+                grab("factor-long-source-name")
+                factor.search_source_list.setCurrentRow(0)
+                factor.view_mode_filter.setCurrentIndex(1)
                 factor.search_input.setText("0.11")
                 assert factor.search_result_table.rowCount() > 0
                 asset_row = next(i for i, item in enumerate(factor._search_results) if item.asset is not None)
@@ -257,6 +263,10 @@ def main():
                 flush()
                 assert len(projects.list_all()) == 1 and imported.calculate_button.isEnabled()
                 assert len(records.list_all()) == 3
+                grab("import-saved-context", target=imported.saved_context_label, kind="actual-saved-canonical-context")
+                imported.existing_project_toggle.setChecked(True)
+                grab("import-open-existing-project", kind="existing-project-secondary-entry")
+                imported.existing_project_toggle.setChecked(False)
                 grab("import-saved-project-bottom", target=imported.status_label, kind="actual-save-temporary-project-NO-formal-Record")
                 shell.navigate(AppRoute.RECORDS)
                 record_page = shell.pages[AppRoute.RECORDS]
@@ -285,17 +295,54 @@ def main():
                         grab("record-summary-bottom", target=record_page.detail_tabs, pane=record_page.summary_view)
                         record_page.detail_tabs.setCurrentIndex(1)
                         grab("record-basis-bottom", target=record_page.detail_tabs, pane=record_page.input_basis_view)
-                        if record_page.input_basis_view.audit_toggle is not None:
-                            record_page.input_basis_view.audit_toggle.setChecked(True)
-                            grab("record-basis-source-bottom", target=record_page.detail_tabs, pane=record_page.input_basis_view)
+                        assert record_page.input_basis_view.audit_toggle is None
+                        grab("record-business-source-basis", target=record_page.detail_tabs, pane=record_page.input_basis_view)
                     record_page._back_to_list()
                 assert record_page.open_record("ui.capture.legacy")
                 record_page.detail_tabs.setCurrentIndex(0)
                 grab("record-legacy-missing")
+                record_page.detail_tabs.setCurrentIndex(1)
+                grab("record-legacy-business-basis", target=record_page.detail_tabs, pane=record_page.input_basis_view)
+                record_page._back_to_list()
+                # Full frozen B2-B9 case inserted in isolated store, not user data.
+                from scripts.rpt02_acceptance_samples import build_acceptance_case
+                full_record, raw, trace, provenance, reporting, qualification = build_acceptance_case("GUI")
+                records.create_with_details(full_record, raw_input=raw, trace_snapshot=trace,
+                    provenance_snapshot=provenance, reporting_snapshot=reporting, report_qualification=qualification)
+                assert record_page.open_record(full_record.record_id)
+                record_page.detail_tabs.setCurrentIndex(1)
+                flush()
+                for card in record_page.input_basis_view.report_table_cards:
+                    if card.report.table_id in ("b2", "b8", "b9"):
+                        title = card.findChild(QLabel, "recordReportTableTitle")
+                        grab("record-"+card.report.table_id+"-left", target=record_page.detail_tabs,
+                             pane=record_page.input_basis_view, inner_target=title)
+                        bar = card.table_widget.horizontalScrollBar()
+                        bar.setValue(bar.maximum())
+                        grab("record-"+card.report.table_id+"-right", target=record_page.detail_tabs,
+                             pane=record_page.input_basis_view, inner_target=title)
+                        notes = card.findChildren(QLabel, "recordReportFootnote")
+                        if card.report.table_id in ("b8", "b9") and notes:
+                            grab("record-"+card.report.table_id+"-footnote", target=record_page.detail_tabs,
+                                 pane=record_page.input_basis_view, inner_target=notes[-1])
                 record_page._back_to_list()
                 shell.navigate(AppRoute.SETTINGS)
                 grab("settings-long-path")
-                assert len(records.list_all()) == 3
+                assert len(records.list_all()) == 4
+                shell.navigate(AppRoute.EXCEL_IMPORT)
+                imported.calculate_button.click()
+                flush()
+                imported.calculate_button.click()
+                flush()
+                assert len(records.list_all()) == 6
+                newest = imported._selected_unit().record_ids[-1]
+                assert imported.unit_record_selector.currentData() == newest
+                grab("import-two-calculations-success", target=imported.status_label,
+                     kind="actual-two-calculations-isolated-store")
+                imported.unit_record_selector.setCurrentIndex(0)
+                grab("import-history-selection", target=imported.status_label,
+                     kind="history-selection-NO-extra-Record")
+                assert len(records.list_all()) == 6
                 window.close()
                 window.deleteLater()
                 flush()
@@ -306,18 +353,22 @@ def main():
             from PySide6.QtCore import QBuffer, QIODevice
             from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStyle, QStyleOptionButton
             from packages.ui.design_tokens import application_stylesheet
-            from packages.ui.business_page_style import apply_business_page_style
+            from packages.ui.business_page_style import apply_business_page_style, BusinessCheckBox
             indicator_hashes = {}
             comparison_images = {}
-            for key in ("baseline", "business-page"):
+            for key in ("baseline", "business-page", "unchecked", "disabled-checked", "partial"):
                 probe = QWidget()
                 probe.setFont(QFont("Microsoft YaHei UI", 10))
                 probe.setStyleSheet(application_stylesheet())
-                if key == "business-page":
+                if key != "baseline":
                     apply_business_page_style(probe)
                 probe.resize(360, 70)
-                check = QCheckBox("已确认组织边界", probe)
-                check.setChecked(True)
+                check = (QCheckBox if key == "baseline" else BusinessCheckBox)("已确认组织边界", probe)
+                check.setChecked(key != "unchecked")
+                if key == "disabled-checked": check.setEnabled(False)
+                if key == "partial":
+                    check.setTristate(True)
+                    check.setCheckState(Qt.CheckState.PartiallyChecked)
                 QHBoxLayout(probe).addWidget(check)
                 probe.show()
                 flush()
@@ -339,9 +390,9 @@ def main():
             baseline_blob = git("rev-parse", "origin/main:packages/ui/design_tokens.py")
             current_blob = git("hash-object", "--path=packages/ui/design_tokens.py", "packages/ui/design_tokens.py")
             assert baseline_blob == current_blob
-            assert indicator_hashes["baseline"] == indicator_hashes["business-page"], indicator_hashes
+            assert indicator_hashes["baseline"] != indicator_hashes["business-page"], indicator_hashes
             summary["checkbox_comparison"] = {"images_sha256": comparison_images,
-                "indicator_sha256": indicator_hashes, "indicators_identical": True,
+                "indicator_sha256": indicator_hashes, "indicators_identical": False, "local_checked_mark_added": True,
                 "baseline_theme_blob": baseline_blob, "global_theme_unchanged": True}
             assert summary["source_sha256"] == sources(), "source changed during capture"
             summary["status"] = "CAPTURE_COMPLETED_NOT_RELEASE_ACCEPTANCE"

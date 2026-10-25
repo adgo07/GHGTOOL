@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 
     QTextEdit,
     QTabWidget,
+    QToolButton,
     QPushButton,
     QStackedWidget,
     QTableWidget,
@@ -2311,9 +2312,7 @@ class ExcelImportPage(BasePage):
         self.project_name.setText(path.stem)
         self.preview_panel.set_summary("已选择工作簿，请检查并预览。")
         self.preview_panel.set_units(())
-        self.preview_panel.set_details(
-            "尚未检查该工作簿。点击“检查并预览”后，会显示可保存单元、需修正项目和具体单元格位置。"
-        )
+        self.preview_panel.set_empty("已选择工作簿；请补充核算信息、确认边界后检查并预览。")
         self.status_label.setText("工作簿已选择；尚未导入预览，也未生成项目或正式记录。")
         self._update_controls()
 
@@ -2322,7 +2321,13 @@ class ExcelImportPage(BasePage):
             self.status_label.setText("请先选择 Excel 工作簿。")
             self.preview_panel.set_summary("尚未选择工作簿。", state="warning")
             return
-        self._preview_workbook(self._chosen_workbook_path)
+        if self._fuel_override_combos and all(
+            self._fuel_path_from_widget(combo.currentData()) is not None
+            for combo in self._fuel_override_combos.values()
+        ):
+            self._repreview_with_fuel_paths()
+        else:
+            self._preview_workbook(self._chosen_workbook_path)
 
     def _period_for_import(self) -> AccountingPeriod:
         period_value = self.import_period_type.currentData()
@@ -2420,7 +2425,7 @@ class ExcelImportPage(BasePage):
                 selector.addItem(display, fuel_path.value)
             selected = self._fuel_path_overrides.get(error.location)
             selector.setCurrentIndex(max(0, selector.findData(selected)))
-            selector.currentIndexChanged.connect(self._update_fuel_override_button)
+            selector.currentIndexChanged.connect(self._fuel_path_choice_changed)
             self._fuel_override_combos[error.location] = selector
             row.addWidget(selector)
             self.fuel_override_layout.addLayout(row)
@@ -2433,6 +2438,15 @@ class ExcelImportPage(BasePage):
         self.fuel_override_layout.addWidget(self.repreview_with_fuel_paths_button)
         self.fuel_override_panel.show()
         self._update_fuel_override_button()
+
+    def _fuel_path_choice_changed(self, *_args) -> None:
+        self._update_fuel_override_button()
+        if self._last_preview is not None:
+            self._last_preview = None
+            self._preview_context_key = None
+            self.preview_panel.set_summary("计量路径已修改，请按所选路径重新预览。", state="warning")
+            self.status_label.setText("计量路径已修改；重新预览前不能保存项目。")
+            self._update_controls()
 
     def _fuel_path_from_widget(self, value):
         return self.excel_adapter.parse_path(value)
@@ -2937,7 +2951,7 @@ class ExcelImportPage(BasePage):
         if isinstance(workbook, dict):
             lines.append(f"导入工作簿：{workbook.get('file_name') or '来源名称未记录'}")
             lines.append(f"已保留数值来源单元格：{len(provenance.get('numeric_cell_evidence', []))}")
-        self.preview_text.setPlainText("\n".join(lines))
+        self.preview_panel.set_details("\n".join(lines))
 
     def _update_controls(self) -> None:
         can_upgrade = getattr(self.excel_adapter, "can_upgrade_workspace", None)
@@ -2950,6 +2964,13 @@ class ExcelImportPage(BasePage):
             control.setEnabled(self._workspace is None)
         valid_import = self._last_preview is not None and any(unit.can_calculate for unit in self._last_preview.units)
         self.save_project_button.setEnabled(self.project_service is not None and valid_import)
+        self.preview_button.setVisible(self._workspace is None)
+        for button, primary in ((self.preview_button, not valid_import), (self.save_project_button, valid_import)):
+            role = "primary" if primary else "secondary"
+            if button.property("visualRole") != role:
+                button.setProperty("visualRole", role)
+                button.style().unpolish(button)
+                button.style().polish(button)
         unit = self._selected_unit()
         can_calculate = (
             self.calculation_use_case is not None
@@ -2958,7 +2979,44 @@ class ExcelImportPage(BasePage):
             and unit.canonical_input is not None
         )
         self.calculate_button.setEnabled(can_calculate)
-        self.open_record_button.setEnabled(self.record_repository is not None and self.unit_record_selector.count() > 0)
+        has_records = self.record_repository is not None and unit is not None and bool(unit.record_ids)
+        self.open_record_button.setEnabled(has_records)
+        created = getattr(self, "_created_record_by_unit", {})
+        is_current = bool(unit is not None and unit.record_ids and created.get(unit.unit_id) == unit.record_ids[-1])
+        self.open_record_button.setText("查看本次记录" if is_current else "查看最新记录")
+        self.open_history_record_button.setEnabled(has_records)
+        self.open_record_button.setVisible(bool(unit is not None and unit.record_ids))
+        self.import_context_panel.setVisible(self._workspace is None)
+        self.saved_context_label.setVisible(self._workspace is not None)
+        if unit is not None and unit.canonical_input is not None:
+            value = unit.canonical_input
+            power = (*value.electricity_details, *value.exported_electricity)
+            regions = tuple(dict.fromkeys(line.region or "未指定地区（沿用保存输入）" for line in power))
+            region_text = "、".join(regions) if regions else "未保存电力地区条目"
+            self.saved_context_label.setText(
+                f"当前项目：{self._workspace.name} · {unit.name}\n"
+                f"企业：{value.enterprise_name or '未填写'}\n"
+                f"保存期间：{value.period.start.isoformat()} 至 {value.period.end.isoformat()}\n"
+                f"保存的电力地区：{region_text}\n"
+                f"核算边界：{'已确认' if value.boundary_confirmed else '未确认'}（按项目保存值）"
+            )
+        self.calculate_button.setText("再次核算并新增记录" if unit is not None and unit.record_ids else "核算并生成记录")
+        self.unit_selector.setVisible(self._workspace is not None)
+        self.calculate_button.setVisible(self._workspace is not None)
+        self.unit_record_selector.setVisible(bool(unit is not None and unit.record_ids))
+        self.open_history_record_button.setVisible(bool(unit is not None and unit.record_ids))
+        for field, label in self._import_action_labels.items():
+            label.setVisible(self._workspace is None if field is self.project_name else not field.isHidden())
+        self.project_name.setVisible(self._workspace is None)
+        self.save_project_button.setVisible(self._workspace is None)
+        if self._last_preview is not None:
+            valid_count = sum(item.can_calculate and item.input_value is not None for item in self._last_preview.units)
+            excluded_count = len(self._last_preview.units) - valid_count
+            self.save_scope_label.setText(f"保存全部 {valid_count} 个有效单元；{excluded_count} 个需修正单元不保存。预览及保存项目均不生成正式记录。")
+        elif self._workspace is not None:
+            self.save_scope_label.setText("项目已保存。主动核算成功后，每次新增一条不可编辑记录。")
+        else:
+            self.save_scope_label.setText("完成检查后可保存全部有效单元，再主动核算。")
         self.open_project_button.setEnabled(self.project_service is not None and self.saved_projects.count() > 0)
         self.preview_button.setEnabled(
             self._chosen_workbook_path is not None and self._workspace is None
@@ -3012,6 +3070,9 @@ class ExcelImportPage(BasePage):
             self.status_label.setText(f"本次核算未通过校验，未生成正式记录。{messages}")
             return
         record = outcome.record
+        if not hasattr(self, "_created_record_by_unit"):
+            self._created_record_by_unit = {}
+        self._created_record_by_unit[unit.unit_id] = record.record_id
         if record is None:
             self.status_label.setText("计算结果未附带已保存的正式记录；请检查正式核算配置。")
             return
@@ -3063,6 +3124,11 @@ class ExcelImportPage(BasePage):
         self.status_label.setText("正式核算已完成并新增一条不可编辑记录；项目已保存该记录关联。")
         self._selected_unit_changed(preferred_record_id=record.record_id)
 
+    def _open_latest_record(self) -> None:
+        unit = self._selected_unit()
+        if unit is not None and unit.record_ids and self.record_repository is not None:
+            self.record_requested.emit(str(unit.record_ids[-1]))
+
     def _open_selected_record(self) -> None:
         record_id = self.unit_record_selector.currentData()
         if not record_id:
@@ -3108,12 +3174,21 @@ class ExcelImportPage(BasePage):
         self.preview_button.setObjectName("previewExcelWorkbookButton")
         self.preview_button.setProperty("visualRole", "primary")
         self.preview_button.clicked.connect(self._run_selected_workbook_preview)
-        file_row.addWidget(self.preview_button)
         file_layout.addLayout(file_row)
         note = QLabel("以下信息用于新工作簿导入；打开已保存项目时，以项目中保存的信息为准。", file_section)
         note.setObjectName("pageDescription")
         note.setWordWrap(True)
-        file_layout.addWidget(note)
+        self.import_context_panel = QWidget(file_section)
+        context_layout = QVBoxLayout(self.import_context_panel)
+        context_layout.setContentsMargins(0, 0, 0, 0)
+        context_layout.setSpacing(8)
+        context_layout.addWidget(note)
+        file_layout.addWidget(self.import_context_panel)
+        self.saved_context_label = QLabel(file_section)
+        self.saved_context_label.setObjectName("savedImportContext")
+        self.saved_context_label.setWordWrap(True)
+        self.saved_context_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        file_layout.addWidget(self.saved_context_label)
 
         self.import_enterprise_name = QLineEdit(file_section)
         self.import_enterprise_name.setObjectName("importEnterpriseName")
@@ -3150,16 +3225,29 @@ class ExcelImportPage(BasePage):
             grid.addWidget(widget, row + 1, column, 1, span)
         for column in range(3):
             grid.setColumnStretch(column, 1)
-        file_layout.addLayout(grid)
-        self.import_boundary_confirmed = QCheckBox("我已确认本次核算边界", file_section)
+        context_layout.addLayout(grid)
+        from .business_page_style import BusinessCheckBox
+        self.import_boundary_confirmed = BusinessCheckBox("我已确认本次核算边界", file_section)
         self.import_boundary_confirmed.setObjectName("importBoundaryConfirmed")
-        file_layout.addWidget(self.import_boundary_confirmed)
+        context_layout.addWidget(self.import_boundary_confirmed)
         self.fuel_override_panel = QFrame(file_section)
         self.fuel_override_panel.setObjectName("fuelPathOverridePanel")
         self.fuel_override_layout = QVBoxLayout(self.fuel_override_panel)
         self.fuel_override_layout.setContentsMargins(0, 0, 0, 0)
         self.fuel_override_panel.hide()
         file_layout.addWidget(self.fuel_override_panel)
+        check_row = QHBoxLayout()
+        check_row.addStretch(1)
+        check_row.addWidget(self.preview_button)
+        file_layout.addLayout(check_row)
+        QWidget.setTabOrder(self.selectFileButton, self.import_enterprise_name)
+        for before, after in zip(
+            (self.import_enterprise_name, self.import_period_type, self.import_period_start,
+             self.import_period_end, self.import_region, self.import_boundary_confirmed),
+            (self.import_period_type, self.import_period_start, self.import_period_end,
+             self.import_region, self.import_boundary_confirmed, self.preview_button),
+        ):
+            QWidget.setTabOrder(before, after)
         self.import_period_type.currentIndexChanged.connect(self._refresh_import_regions)
         self.import_period_type.currentIndexChanged.connect(self._import_context_changed)
         self.import_period_start.editingFinished.connect(self._refresh_import_regions)
@@ -3174,7 +3262,7 @@ class ExcelImportPage(BasePage):
         preview_section, preview_layout = surface("02 数据检查与预览", self, "excelImportCheckSection")
         self.preview_panel = ExcelImportPreviewPanel(preview_section)
         self.preview_panel.units.currentCellChanged.connect(self._preview_unit_selection_changed)
-        self.preview_panel.set_details("选择工作簿并检查后，这里会显示核算单元状态、需要修正的单元格位置和导入提醒。")
+        self.preview_panel.set_empty("选择工作簿、补充核算信息并确认边界后，点击“检查并预览”。")
         self.preview_text = self.preview_panel.details
         preview_layout.addWidget(self.preview_panel)
         self.body_layout.addWidget(preview_section)
@@ -3184,6 +3272,7 @@ class ExcelImportPage(BasePage):
         description.setObjectName("pageDescription")
         description.setWordWrap(True)
         project_layout.addWidget(description)
+        self._import_action_labels = {}
         actions = QGridLayout()
         actions.setHorizontalSpacing(12)
         actions.setVerticalSpacing(12)
@@ -3201,29 +3290,48 @@ class ExcelImportPage(BasePage):
         self.unit_selector = QComboBox(action_section)
         self.unit_selector.setObjectName("canonicalUnitSelector")
         self.unit_selector.currentIndexChanged.connect(self._selected_unit_changed)
-        self.calculate_button = QPushButton("正式计算排放量", action_section)
+        self.calculate_button = QPushButton("核算并生成记录", action_section)
         self.calculate_button.setObjectName("formalCalculateButton")
         self.calculate_button.setProperty("visualRole", "primary")
         self.calculate_button.clicked.connect(self._calculate_selected_unit)
         self.unit_record_selector = QComboBox(action_section)
         self.unit_record_selector.setObjectName("unitRecordSelector")
-        self.open_record_button = QPushButton("查看核算记录", action_section)
+        self.open_record_button = QPushButton("查看最新记录", action_section)
         self.open_record_button.setObjectName("openUnitRecordButton")
-        self.open_record_button.clicked.connect(self._open_selected_record)
+        self.open_record_button.clicked.connect(self._open_latest_record)
+        self.open_history_record_button = QPushButton("查看所选记录", action_section)
+        self.open_history_record_button.setObjectName("openHistoricalUnitRecordButton")
+        self.open_history_record_button.clicked.connect(self._open_selected_record)
+        self.existing_project_toggle = QToolButton(template_section)
+        self.existing_project_toggle.setText("打开已保存项目")
+        self.existing_project_toggle.setCheckable(True)
+        self.existing_project_panel = QWidget(template_section)
+        existing_row = QHBoxLayout(self.existing_project_panel)
+        existing_row.setContentsMargins(0, 0, 0, 0)
+        existing_row.addWidget(self.saved_projects, 1)
+        existing_row.addWidget(self.open_project_button)
+        self.existing_project_panel.hide()
+        self.existing_project_toggle.toggled.connect(self.existing_project_panel.setVisible)
+        template_layout.addWidget(self.existing_project_toggle, 0, Qt.AlignmentFlag.AlignLeft)
+        template_layout.addWidget(self.existing_project_panel)
         for row, (caption, field, button) in enumerate((
             ("项目名称", self.project_name, self.save_project_button),
-            ("已保存项目", self.saved_projects, self.open_project_button),
             ("核算单元", self.unit_selector, self.calculate_button),
-            ("本单元正式记录", self.unit_record_selector, self.open_record_button),
+            ("历史核算记录", self.unit_record_selector, self.open_history_record_button),
         )):
             label = QLabel(caption, action_section)
             label.setObjectName("detailFieldLabel")
             label.setBuddy(field)
+            self._import_action_labels[field] = label
             actions.addWidget(label, row, 0)
             actions.addWidget(field, row, 1)
             actions.addWidget(button, row, 2)
         actions.setColumnStretch(1, 1)
         project_layout.addLayout(actions)
+        self.save_scope_label = QLabel(action_section)
+        self.save_scope_label.setWordWrap(True)
+        project_layout.addWidget(self.save_scope_label)
+        project_layout.addWidget(self.open_record_button, 0, Qt.AlignmentFlag.AlignRight)
         upgrade_row = QHBoxLayout()
         upgrade_row.addStretch(1)
         self.material_upgrade_button = QPushButton("升级输入规则副本", action_section)

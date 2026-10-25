@@ -4,8 +4,9 @@ Not an application theme. Styles are applied once; table reflow stays local.
 No business state, timers, assets, dependencies, locale, or business policy.
 """
 from __future__ import annotations
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QFrame, QLabel, QStyle, QStyledItemDelegate,
+from PySide6.QtCore import Qt, QPointF
+from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
+from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QLabel, QStyle, QStyleOptionButton, QStyledItemDelegate,
     QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget)
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
 
@@ -126,3 +127,21 @@ def apply_business_page_style(page: QWidget) -> None:
         QToolButton {{ font-size:13px; }}
         QLabel#excelWorkflowStatus {{ font-size:13px; color:#526B7E; }}
     """)
+
+
+class BusinessCheckBox(QCheckBox):
+    """Locally reinforce the checked indicator; native focus and events remain intact."""
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self.isChecked():
+            return
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        box = self.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, self)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor("#FFFFFF"), 2.0,
+                            Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        points = ((.22, .50), (.78, .50)) if self.checkState() == Qt.CheckState.PartiallyChecked else ((.22, .50), (.43, .72), (.79, .28))
+        painter.drawPolyline(QPolygonF([QPointF(box.x()+box.width()*x, box.y()+box.height()*y) for x,y in points]))
+        painter.end()

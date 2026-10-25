@@ -126,6 +126,7 @@ class ExcelImportPreviewPanel(QFrame):
             if selectable
             else QAbstractItemView.SelectionMode.NoSelection
         )
+        self.units.setVisible(bool(values))
         self.units.setRowCount(len(values))
         for row_index, row_values in enumerate(values):
             for column_index, text in enumerate(row_values):
@@ -141,7 +142,14 @@ class ExcelImportPreviewPanel(QFrame):
         if values and selectable:
             self.units.selectRow(0)
 
+    def set_empty(self, message: str) -> None:
+        self.set_summary(message)
+        self.set_units(())
+        self.details.clear()
+        self.details.hide()
+
     def set_details(self, text: str) -> None:
+        self.details.setVisible(bool(text))
         self.details.setPlainText(text)
 
 
