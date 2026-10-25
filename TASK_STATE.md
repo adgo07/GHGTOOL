@@ -9,3 +9,5 @@
 首包已实现主动点击启用、第九入口及燃料标签。命令`python -B -m unittest tests.test_accounting_source_directory -v`：16/16，127.964s，本地Qt offscreen、合成数据与隔离临时库。覆盖主动启用一次、再次浏览不dirty、程序导航不启用、外部进入不勾选、草稿与首次错误定位等。原日志独立保留。未运行本批完整回归/CI/精确包，电力/热力/条目分组仍待实现；初版真实Qt图和astra复核待准备，不宣称整批完成。
 
 禁止原生CU/变通桌面、企业数据、用户脏工作簿、公式/Canonical/Schema/Word/模板/依赖/workflow/预算改动。小包提交，稳定批次再push；最终独立PR、源验收，不自动合并或发布。
+
+条目分组小包：已增加纯Presentation容器，外层/子项边界、标题、独立收起与标题右侧删除；原控件及底层身份保留，工序添加回所属列表，用户新增定位到新条目。新增模块命令 `python -B -m unittest tests.test_accounting_repeated_entries.RepeatedEntryTests -v`：3/3，16.858s。宽窄壳及错误展开既有专项2/2，32.821s。新模块首次误导入TestCase夹具导致意外收集原类，已中止并保留日志，不作为通过；改模块别名后仅3目标项通过。初版首包6图已在r1b独立保存并清洁退出，回调异常0；r1退出合成脏项目确认造成中断亦保留。电力/热力整理尚待实施，整批未完成。

@@ -137,6 +137,7 @@ from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState, SourceToggleButton, SourceHeaderSwitch
 from .compact_choices import SegmentedChoiceControl
 from .source_directory import SourceDirectory
+from .repeated_entries import frame_entry
 from .name_selector import NameSelector, normalized_name, chemical_label
 from .input_fields import labeled_field
 from .responsive_fields import ResponsiveFieldGrid, AdaptiveFieldLayout
@@ -608,6 +609,9 @@ class _UnifiedEnergyRow(QWidget):
         self.heat_source_field.hide()
         for control in self.findChildren(SegmentedChoiceControl):
             control.set_radio_style()
+        self.title_label = QLabel("电力来源" if family == "electricity" else "热力来源", self)
+        self.remove_button.setText("删除此来源")
+        frame_entry(self, self.title_label, self.remove_button)
 
 class _SearchableEnterpriseCombo(QComboBox):
     """Editable recent-name selector with the legacy line-edit convenience API."""
@@ -3383,7 +3387,7 @@ class CarbonMaterialAccountingPage(BasePage):
             layout.addWidget(host)
             add_row = QPushButton(add_label, card)
             add_row.setObjectName("addUnifiedElectricityRow" if family == "electricity" else "addUnifiedHeatRow")
-            add_row.clicked.connect(lambda _checked=False, _family=family: self._add_unified_energy_row(
+            add_row.clicked.connect(lambda _checked=False, _family=family: self._add_and_reveal_entry(self._add_unified_energy_row,
                 kind="purchased_electricity" if _family == "electricity" else "purchased_heat"
             ))
             layout.addWidget(add_row, 0, Qt.AlignmentFlag.AlignLeft)
@@ -3847,7 +3851,7 @@ class CarbonMaterialAccountingPage(BasePage):
         parent_layout.addWidget(self.fuel_rows_host)
         self.add_fuel_button = QPushButton("添加燃料", self)
         self.add_fuel_button.setObjectName("addFuelButton")
-        self.add_fuel_button.clicked.connect(self._add_fuel_row)
+        self.add_fuel_button.clicked.connect(lambda: self._add_and_reveal_entry(self._add_fuel_row))
         parent_layout.addWidget(self.add_fuel_button, 0, Qt.AlignmentFlag.AlignLeft)
         self._add_fuel_row()
 
@@ -4472,13 +4476,11 @@ class CarbonMaterialAccountingPage(BasePage):
         add_button = QPushButton("新增脱硫批次" if prefix == "fgd" else "新增烟气监测段" if prefix == "fume" else f"新增{title.split('（')[0]}", host)
         add_button.setObjectName(f"add_{prefix}_instance")
         add_button.clicked.connect(
-            lambda _checked=False, _prefix=prefix: self._add_process_row(
+            lambda _checked=False, _prefix=prefix: self._add_and_reveal_entry(self._add_process_row,
                 _prefix, default_material_categories=True
             )
         )
-        add_button.setVisible(prefix in {"fgd","fume"} or self.manage_process_button.isChecked())
-        if prefix not in {"fgd","fume"}:
-            self._advanced_process_buttons.append(add_button)
+        add_button.setVisible(True)  # Existing process creation belongs to its source list.
         buttons.addWidget(add_button)
         buttons.addStretch(1)
         parent_layout.addLayout(buttons)
@@ -4630,9 +4632,9 @@ class CarbonMaterialAccountingPage(BasePage):
             host_layout.addWidget(component_host)
             row["component_host"] = component_host
             row["component_layout"] = component_layout
-            add_component = QPushButton("新增碳酸盐组分", host)
+            add_component = QPushButton("为此脱硫剂添加组分", host)
             add_component.setObjectName(f"add_fgd_component_{instance_id}")
-            add_component.clicked.connect(lambda _checked=False, _row=row: self._add_fgd_component(_row))
+            add_component.clicked.connect(lambda _checked=False, _row=row: self._add_and_reveal_entry(self._add_fgd_component, _row))
             host_layout.addWidget(add_component, 0, Qt.AlignmentFlag.AlignLeft)
             for component_id in component_ids or ():
                 self._add_fgd_component(row, component_id=component_id)
@@ -4707,9 +4709,9 @@ class CarbonMaterialAccountingPage(BasePage):
                 summary.setObjectName(f"{prefix}_{instance_id}_materialSummary")
                 summary.setWordWrap(True)
                 material_layout.addWidget(summary)
-                add_material = QPushButton("新增物料", material_host)
+                add_material = QPushButton("为此工序添加物料", material_host)
                 add_material.setObjectName(f"add_{prefix}_material_{instance_id}")
-                add_material.clicked.connect(lambda _checked=False, _row=row: self._add_material_line(_row))
+                add_material.clicked.connect(lambda _checked=False, _row=row: self._add_and_reveal_entry(self._add_material_line, _row))
                 material_layout.addWidget(add_material, 0, Qt.AlignmentFlag.AlignLeft)
                 host_layout.addWidget(material_host)
                 row["materials_host"] = material_host
@@ -4754,6 +4756,8 @@ class CarbonMaterialAccountingPage(BasePage):
                 flags["furnace_loss_included"] = checkbox
                 self._wire_dirty_tracking(checkbox)
             row["flags"] = flags
+        remove_button.setText("删除此监测段" if prefix == "fume" else "删除此脱硫剂" if prefix == "fgd" else "删除此工序")
+        frame_entry(host, title_label, remove_button, toolbar=toolbar)
         self._process_rows_layout[prefix].addWidget(host)
         rows.append(row)
         if prefix == "fume":
@@ -4916,6 +4920,7 @@ class CarbonMaterialAccountingPage(BasePage):
             source.setProperty("materialDrafts", {})
         material = {
             "line_id": line_id,
+            "title": material_caption,
             "mass_basis": mass_basis, "composition_basis": composition_basis,
             "moisture_received_percent": moisture, "conversion_method": method,
             "widget": container,
@@ -4928,6 +4933,8 @@ class CarbonMaterialAccountingPage(BasePage):
             "volatile_matter": volatile,
             "volatile_matter_source": volatile_source,
         }
+        remove.setText("删除此物料")
+        frame_entry(container, material_caption, remove, toolbar=actions, inner=True)
         layout.addWidget(container)
         material_rows.append(material)
         remove.setVisible(True)
@@ -5777,6 +5784,10 @@ class CarbonMaterialAccountingPage(BasePage):
         remove.clicked.connect(lambda _checked=False, _unit=unit, _id=component_id: self._remove_fgd_component(_unit, _id))
         footer.addWidget(remove, 0, Qt.AlignmentFlag.AlignRight)
         outer.addLayout(footer)
+        component_title = QLabel(f"碳酸盐组分 {len(components) + 1}", container)
+        remove.setText("删除此组分")
+        frame_entry(container, component_title, remove, inner=True)
+        widgets["title"] = component_title
         component_layout.addWidget(container)
         widgets["_widget"] = container
         widgets["remove_button"] = remove
@@ -5871,6 +5882,40 @@ class CarbonMaterialAccountingPage(BasePage):
         self._refresh_repeat_delete_controls()
         self._bind_process_aliases(prefix)
         self._refresh_source_cards()
+
+    def _refresh_entry_titles(self) -> None:
+        def caption(label, text):
+            if label.text() != text:
+                label.setText(text)
+        for index, row in enumerate(self._fuel_rows, 1):
+            caption(row.title_label, f"燃料 {index} · {row.fuel_type.currentText() or '待填写'}")
+        for family, rows in self._energy_family_rows.items():
+            for index, row in enumerate(rows, 1):
+                label = "电力来源" if family == "electricity" else "热力来源"
+                detail = row.attribute.currentText() if family == "electricity" and row.kind.currentData() == "purchased_electricity" else ""
+                caption(row.title_label, f"{label} {index} · {row.kind.currentText()}" + (f" · {detail}" if detail else ""))
+        for prefix, rows in self._process_rows.items():
+            for index, row in enumerate(rows, 1):
+                name = row.get("instance_name") or row.get("reagent_name")
+                detail = name.text() if isinstance(name, QLineEdit) else ""
+                caption(row["title"], f"{row['display_title']} {index}" + (f" · {detail}" if detail else ""))
+                for number, material in enumerate(row.get("materials", ()), 1):
+                    title = material.get("title")
+                    if isinstance(title, QLabel):
+                        caption(title, f"物料 {number} · {material['role'].currentText()} · {material['name'].text() or '待命名'}")
+                for number, component in enumerate(row.get("components", ()), 1):
+                    title = component.get("title")
+                    if isinstance(title, QLabel):
+                        caption(title, f"碳酸盐组分 {number} · {component['carbonate_type'].currentText()}")
+
+    def _add_and_reveal_entry(self, create, *args, **kwargs):
+        entry = create(*args, **kwargs)
+        if entry is None and getattr(create, '__name__', '') == '_add_fuel_row':
+            entry = self._fuel_rows[-1]
+        widget = entry.get('widget') or entry.get('_widget') if isinstance(entry, dict) else entry
+        if isinstance(widget, QWidget):
+            self._scroll_to_widget(getattr(widget, '_entry_header', widget))
+        return entry
 
     def _refresh_repeat_delete_controls(self) -> None:
         for index, row in enumerate(getattr(self, "_fuel_rows", ())):
@@ -7425,6 +7470,7 @@ class CarbonMaterialAccountingPage(BasePage):
         if hasattr(self, "source_directory"):
             self.source_directory.refresh()
         self._refresh_source_toggle_buttons()
+        self._refresh_entry_titles()
         self._refresh_live_feedback()
         if visibility_changed:
             self._schedule_layout_refresh()
