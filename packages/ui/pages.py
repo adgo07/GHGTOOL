@@ -1640,7 +1640,7 @@ class RecordLibraryPage(BasePage):
         self.record_list.verticalHeader().setMinimumSectionSize(64)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((220, 88, 190, 118, 140, 118, 88)):
+        for column, width in enumerate((220, 88, 170, 110, 140, 104, 80)):
             self.record_list.setColumnWidth(column, width)
         self.record_list.horizontalHeader().setStretchLastSection(False)
         self.record_list.horizontalHeader().setMinimumSectionSize(64)
