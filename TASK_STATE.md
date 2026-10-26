@@ -1,3 +1,12 @@
+# UI 设计资料整理完成
+
+2026-10-26：按 Owner 明确指令合并 PR #60，合并提交 `6fc5909646b855494abee55cff6fd95f8d18b4be`。合并前精确 head 的两个 required Windows checks 均 success；合并不等于补做源独立验收或关闭原生/Release缺项。
+
+本次从最新 origin/main 创建 `codex/ui-reference-design`，完成 [碳排放软件 UI 设计参考](docs/ui/GHGTOOL_UI_DESIGN_REFERENCE.md)，供 ECQuota-Insight、EquipEffi 后续设计使用。范围为资料、来源和现状整理，不改变产品代码、计算口径、标准支持状态或中央 lock。新建核算后续整页改进未实施。原 PR60 实施报告保留在 [历史报告](docs/ui/reference-baseline/PR60_IMPLEMENTATION_REPORT.md)。本次检查见 IMPLEMENTATION_REPORT.md；资料送独立审阅后停止，不自动实施另外两个软件。
+
+下列为 PR60 合并前交接原文，保留待办与证据；其中“未合并”已被上述 Owner 操作取代，不代表当前 PR 状态。
+
+---
 # PR60五页收口候选：待源独立验收
 
 产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`，origin `adgo07/GHGTOOL`，分支 `codex/ui-five-business-pages-v2`。本地裸字体完整运行 **1121通过/1失败，5371.075s**，受控代码/测试/资源前后hash不变；astra r3限定视觉PASS（92图/29源、回调异常0、四项HOLD关闭）。证据及失败/中止记录见IMPLEMENTATION_REPORT和docs/ui/business-pages-v2/refinements-r3。字体环境复现与QA前置修正后21/21（119.918s）另列，测试断言与产品源码不变；旧完整结果不改标。原始大文件独立保留，旧版本不覆盖、不改标。
