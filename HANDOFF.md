@@ -1,15 +1,9 @@
-# PR-B：本地1074全绿，接续唯一PR与精确head交付
+# PR60五页收口实施交接
 
-继续既有codex/ui-business-layout及隔离工作树，不重做已认可UI、不创建替代分支或重置成果。用户要求通过后提交PR，由源会话最终验收；不自动合并，不原生CU。
+当前候选产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；仓库以 `https://github.com/adgo07/GHGTOOL.git` 与实际origin识别，不把历史绝对路径当当前checkout。复用 `codex/ui-five-business-pages-v2`；接续前实际核对root/origin/fetch/branch/HEAD/status，不覆盖其他工作区用户修改。
 
-当前正式本地证据：python -B -m unittest discover -s tests -t . -v，1074/1074 OK，0失败/错误、未列跳过，2741.635秒。源码/测试/资源开始结束SHA无变化，原始命令/子进程无探针；外部只采资源；未处理的已删除Qt对象错误0。原45/60秒和几何100ms都未改。integration/qt-lifecycle/full/identity.json和full-tests.log是本次权威身份，原log SHA bb87c7ac200458d16a6af08bbb7fdb7a84dc748f97f175702aeea8dbb4ee7302。
+产品及验证结论见IMPLEMENTATION_REPORT、TASK_STATE；字体QA增量仅class前置，原断言体不变，修后整组21/21（119.918s），本地原全量1项失败不改标。图集/源码与限定复核回执在docs/ui/business-pages-v2/refinements-r3。本地裸字体完整运行1121通过/1失败，5371.075s；astra限定视觉PASS。required CI、最新PR head、ZIP/manifest/原始job日志及实际包核验以PR60最终交付回执精确绑定，旧版本不冒用。源独立验收未完成，不自动合并或发布；本阶段交源验收后停止。
 
-生产收口：燃料适配器可见性guard（原combo、itemData、信号、来源资格、精度草稿与报告保留）以及shell/SourceCard两个QObject上下文。测试收口：11处close-only夹具正确销毁，派发正常已请求DeferredDelete；原100ms等待改稳定完整观测，不强制产品刷新；新增2个生命周期先红后绿用例。相对cd4既有test_* AST不变，不减输入数据或验证。算法、Canonical、DB、历史Record、标准解释/支持范围、其他页面业务/布局不变。
+必须保持：冻结业务记录只读，每次正式成功新增；项目状态独立projects.sqlite；预览/项目保存/历史查看不生成Record；主查看本次/最新真实Record且历史查看独立；关联失败原恢复提示不吞掉；显示修约不回流计算。普通详情无技术审计入口但底层审计、原完整业务值、来源与旧记录回退保留。Word/冻结表头/母版字节、Calculator/Canonical/DB、首页壳新建核算及中央锁不变。启动日志不能写仍安全拒绝启动，真实用户路径原因未确定。未执行原生桌面/Office/IME/人工DPI/企业样例/干净机。
 
-astra当前两张真实Qt宽窄展开图局部PASS、8/8源hash匹配，入口integration/qt-lifecycle/fuel-capture/review.html；旧53a独立13/13、151/8行和原42图均为历史，不重标当前源。新专项保留实际超时13前序的栈/进度、回收对照、两个回调红绿、几何正常两轮收敛证据和诊断限制。较早一份11项代表日志被同名后续运行覆盖，已有后续完整同故障重现日志及两个核心完整失败原件保留，详见README，不能冒称无此缺项。
-
-下一步：最新origin/main已fetch核仍0926046且为祖先；GitHub当前public/main，本分支无既有PR。先整理稳定本地提交，查询同head已有run，再正常非force push现分支、创建唯一PR并attach_artifact。沿现有Windows CI取得merge-ref完整测试和exact PR-head standalone/G08/audit/archive/provenance/smoke结果；原ZIP/manifest/hash/来源实际保全到独立新目录，再离屏本地审计/启动。不要无变化rerun、改费用或工作流；CI失败先读日志定位。不将旧CI或旧包重标新head。CI后用PR描述和本地回执记录实际身份，避免纯回执push再触发全量。
-
-不等待Owner再选A/B，不采用B；正式本地门禁已满足。先前跨聊天状态发送被拒，源会话明确主动wait/read，当前无需回传授权即可继续本地与已授权交付；不重试绕过。未执行原生Office/IME/DPI/真实企业样例，不宣称Windows正式Release或SUPPORTED升级。
-
-平台 / Contract预检查：业务仓受验父提交cd4d32d0f09b2e9f3f2a0e27146a20e750166900，实际worktree/origin/HEAD/status均已核；origin为adgo07/GHGTOOL，最新fetch后origin/main仍092604639cd5b2b61fef1523f87fcd711d8aefea且为当前分支祖先，默认main，不需合并调整。沿用codex/ui-business-layout，不重置成果。中央锁定ee5feb0cc34dbd99790500fadd0c4c932e202a20，已核中央origin、锁定Architecture V2.1及当前UI指南v0.2。适用MUST/MUST NOT：保持Presentation/Application/Domain/Infrastructure分层，Domain不依赖Qt/SQLite/Windows；展示不回流正式计算；UI State不冒充公共Workspace；不可变Record与参数快照不漂移。无公共Contract冲突或需分类的新增偏差，无中央修改或Frozen adoption。本任务不涉及中央公共 Contract。相关Standard Issue：有，既有004/016/018、017、020；本任务改变既有软件解释：否；无新标准问题。
+后续新建核算整页必须独立范围/分支，当前不实施。Owner明确决定：手动访问未启用8源卡启用并展示，已启用只浏览；程序/错误定位/恢复不启用。外部CO₂第九卡是软件补充，访问不自动同意范围声明；未来标准入口仅产品计划。含碳量改业务名称但路径与来源维度分开；电力因子值优先且保留五表/OTHER/零/冲突/无适用不回退。热力“常用入口简化，特殊情况可展开，旧值保留”已获Owner批准，非默认旧值可辨认，不将内部/输出强改外购，不改015防重复计碳和未知边界，不因折叠强写默认或改变dirty；需旧值/特殊/输出/重复计碳守卫，无需重问。不得自动扩标准、改正式结果或中央Frozen。

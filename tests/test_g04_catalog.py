@@ -398,7 +398,7 @@ class G04CatalogTests(unittest.TestCase):
             for label in page.detail_host.findChildren(QLabel, "cardTitle")
             if label.isVisible()
         ]
-        self.assertEqual(card_titles, ["GB/T 32151.34—2024", "基本信息", "适用范围", "标准要求"])
+        self.assertEqual(card_titles, ["基本信息", "适用范围", "标准要求"])
         detail_text = "\n".join(
             label.text()
             for label in page.detail_host.findChildren(QLabel)

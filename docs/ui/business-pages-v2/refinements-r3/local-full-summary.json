@@ -1,0 +1,66 @@
+{
+  "head_start": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "head_end": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "kind": "local Windows actual unittest; isolated stores; QT offscreen; not CI/native acceptance",
+  "exit_code": 1,
+  "wall_seconds": 5422.034,
+  "tests": 1122,
+  "unittest_seconds": 5371.075,
+  "successful": false,
+  "all_tracked_runtime_test_build_resources_unchanged_during_run": true,
+  "tracked_source_count": 338,
+  "changed_during_run": [],
+  "log": "refinement-full-fb56ad7.log",
+  "log_sha256": "6f618d0d52ae8b093c1374006dbae4c0200dc81f108f8990cba77f850c6bafbf",
+  "command": "python -B -m unittest discover -s tests -t . -v",
+  "source_map_sha256": "ace534444c9e77d88dda065d9ba734874e28fde2a5887aede415129dd2d77e5d",
+  "font_environment_reproduction": {
+    "kind": "same product/test code; host font registration only in isolated QA process",
+    "before": {
+      "families": 0,
+      "font": "Microsoft YaHei UI,-1,14,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0",
+      "raw_font_valid": true,
+      "supports_digit_zero": true,
+      "supports_cjk": true,
+      "date_advance": 140,
+      "date_column": 104,
+      "assertion": "FAIL",
+      "message": "104 not greater than or equal to 160"
+    },
+    "after": {
+      "families": 3,
+      "font": "Microsoft YaHei UI,-1,14,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0",
+      "raw_font_valid": true,
+      "supports_digit_zero": true,
+      "supports_cjk": true,
+      "date_advance": 76,
+      "date_column": 104,
+      "assertion": "PASS"
+    },
+    "fonts": [
+      {
+        "file": "msyh.ttc",
+        "sha256": "d79c55e68b1131eea0cc1c47be4f572d964f28c682e143db2ad09c1e4cb07a3f"
+      },
+      {
+        "file": "msyhbd.ttc",
+        "sha256": "4508821b3dffe01f0ef5e5326a3e60df705a44633858811f67b6982dce3f6ee6"
+      },
+      {
+        "file": "seguisym.ttf",
+        "sha256": "d2f8326a354456d93e78b0537c58793e7072c3617af7d9ee187f10d6d595f510"
+      }
+    ],
+    "product_source_changed": false,
+    "assertion_weakened": false
+  },
+  "qa_fixture": {
+    "head": "4cd2d09ba9595fdc8ff44b91a5f366adace6c525",
+    "tests": 21,
+    "seconds": 119.918,
+    "assertion_bodies_unchanged": true,
+    "scope_proof_sha256": "0d37b87049c28bcc16291158f10db9ca9fa66570b3d5942f909aff192ea0250f"
+  },
+  "qualification": "裸字体完整运行1121通过/1字体环境视觉失败；修复QA前置后原断言整组21/21，最终完整CI结果另列。",
+  "original_summary_sha256": "8fdb006ea4d8d06fc26759113e0718018731f0f9be822d90ef57e3765f8a1691"
+}

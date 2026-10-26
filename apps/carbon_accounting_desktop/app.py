@@ -102,7 +102,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     application = QApplication(qt_args)
     initialize_chinese(application)
     config = AppConfig()
-    logger = configure_logging(config.resolved_log_directory(), config.app_version)
+    try:
+        logger = configure_logging(config.resolved_log_directory(), config.app_version)
+    except OSError:
+        QMessageBox.critical(
+            None,
+            "应用日志无法打开",
+            "应用日志无法创建或写入。核算记录和项目数据尚未打开。\n\n"
+            "请检查日志文件夹是否可写，或关闭可能占用日志文件的程序后重试。",
+        )
+        return 1
     report_chinese_failure(application, logger)
     try:
         record_repository = SQLiteRecordRepository(

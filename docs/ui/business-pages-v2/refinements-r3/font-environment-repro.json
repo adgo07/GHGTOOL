@@ -1,0 +1,40 @@
+{
+  "kind": "same product/test code; host font registration only in isolated QA process",
+  "before": {
+    "families": 0,
+    "font": "Microsoft YaHei UI,-1,14,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0",
+    "raw_font_valid": true,
+    "supports_digit_zero": true,
+    "supports_cjk": true,
+    "date_advance": 140,
+    "date_column": 104,
+    "assertion": "FAIL",
+    "message": "104 not greater than or equal to 160"
+  },
+  "after": {
+    "families": 3,
+    "font": "Microsoft YaHei UI,-1,14,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0",
+    "raw_font_valid": true,
+    "supports_digit_zero": true,
+    "supports_cjk": true,
+    "date_advance": 76,
+    "date_column": 104,
+    "assertion": "PASS"
+  },
+  "fonts": [
+    {
+      "file": "msyh.ttc",
+      "sha256": "d79c55e68b1131eea0cc1c47be4f572d964f28c682e143db2ad09c1e4cb07a3f"
+    },
+    {
+      "file": "msyhbd.ttc",
+      "sha256": "4508821b3dffe01f0ef5e5326a3e60df705a44633858811f67b6982dce3f6ee6"
+    },
+    {
+      "file": "seguisym.ttf",
+      "sha256": "d2f8326a354456d93e78b0537c58793e7072c3617af7d9ee187f10d6d595f510"
+    }
+  ],
+  "product_source_changed": false,
+  "assertion_weakened": false
+}

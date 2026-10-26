@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTabWidget,
     QTableWidget,
+    QLabel,
+    QToolButton,
 )
 
 from packages.persistence import SQLiteRecordRepository
@@ -43,6 +45,10 @@ def _table_text(table: QTableWidget) -> str:
         for column in range(table.columnCount())
         if table.item(row, column) is not None
     )
+
+
+def _business_basis_text(page):
+    return "\n".join(label.text() for label in page.input_basis_view.business_basis_labels)
 
 
 class P3CRecordUiTests(unittest.TestCase):
@@ -147,6 +153,18 @@ class P3CRecordUiTests(unittest.TestCase):
             "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
             side_effect=AssertionError("No historical recalculation")):
             self.assertTrue(self.page.open_record(record.record_id))
+        basis_label = next(label for label in self.page.input_basis_view.business_basis_labels
+                           if "悬停本段" in label.text())
+        self.assertNotIn("采用值 1", basis_label.text())
+        self.assertNotIn("；实例 ", basis_label.text())
+        self.assertNotIn("按映射变量代入", basis_label.text())
+        self.assertIn("待煅烧原料总量", basis_label.text())
+        self.assertIn("烟气焚烧排放小计", basis_label.text())
+        for line in basis_label.text().splitlines():
+            if "保存的排放结果" in line:
+                self.assertNotRegex(line, r"\d+\.\d{13,}")
+        self.assertIn(str(trace["formula_steps"][0]["intermediate_result"]), basis_label.toolTip())
+        self.assertEqual(basis_label.accessibleDescription(), basis_label.toolTip())
         self.assertEqual(
             {card.table_widget.property("reportTableId") for card in self.page.summary_view.report_table_cards},
             {"basic-info", "b1"},
@@ -171,18 +189,24 @@ class P3CRecordUiTests(unittest.TestCase):
         self.assertNotIn("来源定位：", _table_text(b2))
         evidence = _business_table(self.page, "evidence-register")
         self.assertIn("燃料计量台账-001", _table_text(evidence))
-        self.assertTrue(self.page.input_basis_view.audit_panel.isHidden())
-        self.assertNotIn("审计日志：", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertNotIn("'formula_steps':", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertNotIn("instance_id", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertIsNone(self.page.input_basis_view.audit_panel)
+        self.assertNotIn("审计日志：", _business_basis_text(self.page))
+        self.assertNotIn("'formula_steps':", _business_basis_text(self.page))
+        self.assertNotIn("instance_id", _business_basis_text(self.page))
         self.assertNotIn("其他信息（gtafc）", _table_text(_business_table(self.page, "b2")))
         first_tab_text = _table_text(_business_table(self.page, "b1", summary=True))
         self.assertIn("7.30", first_tab_text)
         self.assertIn("9.70", first_tab_text)
-        self.page.input_basis_view.audit_toggle.click()
-        self.assertFalse(self.page.input_basis_view.audit_panel.isHidden())
-        self.assertGreater(self.page.input_basis_view.audit_table.rowCount(), 0)
-        self.assertIn("来源定位：", _table_text(self.page.input_basis_view.audit_table))
+        self.assertIsNone(self.page.input_basis_view.audit_toggle)
+        source_details = "\n".join(
+            card.table_widget.item(row, column).toolTip()
+            for card in self.page.input_basis_view.report_table_cards
+            for row in range(card.table_widget.rowCount())
+            for column in range(card.table_widget.columnCount())
+            if card.table_widget.item(row, column) is not None
+        )
+        self.assertIn("来源定位：", source_details)
+        self.assertNotIn("SYSTEM_RECOMMENDED", source_details)
         after = (asdict(self.repo.get(record.record_id)), self.repo.get_raw_input_snapshot(record.record_id),
                  self.repo.get_trace_snapshot(record.record_id), self.repo.get_provenance_snapshot(record.record_id),
                  self.repo.list_audit(record.record_id))
@@ -191,8 +215,58 @@ class P3CRecordUiTests(unittest.TestCase):
     def test_corrupt_trace_is_explicit_and_does_not_prevent_saved_inputs(self):
         with patch.object(self.repo, "get_trace_snapshot", side_effect=ValueError("corrupt")):
             self.assertTrue(self.page.open_record("p3c.one"))
-        self.assertIn("无法读取该历史信息", self.page.input_basis_view.audit_text.toPlainText())
-        self.assertIn("G07 测试选择理由", self.page.input_basis_view.audit_text.toPlainText())
+        self.assertIn("无法读取该历史信息", _business_basis_text(self.page))
+        self.assertIn("G07 测试选择理由", _business_basis_text(self.page))
+
+    def test_ordinary_details_keep_legacy_business_basis_without_audit_entry(self):
+        record = self.repo.get("p3c.one")
+        before = (asdict(record), self.repo.list_audit(record.record_id),
+                  self.repo.get_raw_input_snapshot(record.record_id))
+        with patch.object(self.repo, "list_audit", side_effect=AssertionError("No audit details")), patch(
+            "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
+            side_effect=AssertionError("No historical recalculation")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        self.assertIsNone(self.page.findChild(QToolButton, "recordReportAuditToggle"))
+        self.assertIsNone(self.page.input_basis_view.audit_panel)
+        text = "\n".join(label.text() for label in self.page.input_basis_view.findChildren(QLabel)
+                         if label.objectName() == "recordBusinessBasisText")
+        for value in ("10 MWh", "0.125", "测试来源第1条", "G07 测试选择理由", "GB/T 32151.34"):
+            self.assertIn(value, text)
+        for token in ("formula_steps", "instance_id", "CAR-SM01-G07-TEST", "HEAT_CONTENT", "Trace 快照"):
+            self.assertNotIn(token, text)
+        self.assertEqual(before, (asdict(self.repo.get(record.record_id)),
+                         self.repo.list_audit(record.record_id), self.repo.get_raw_input_snapshot(record.record_id)))
+
+    def test_record_without_business_tables_retains_result_input_and_source_basis(self):
+        record = self.repo.get("p3c.one")
+        before = asdict(record)
+        with patch("packages.ui.pages.build_record_report_model", side_effect=ValueError("no table layout")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        self.assertEqual(self.page.detail_tabs.count(), 2)
+        summary = "\n".join(label.text() for label in self.page.summary_view.findChildren(QLabel))
+        basis = "\n".join(label.text() for label in self.page.input_basis_view.findChildren(QLabel))
+        self.assertIn("1.25", summary)
+        self.assertIn("10 MWh", basis)
+        self.assertIn("0.125", basis)
+        self.assertIn("G07 测试选择理由", basis)
+        self.assertIsNone(self.page.findChild(QToolButton, "recordReportAuditToggle"))
+        self.assertEqual(asdict(self.repo.get(record.record_id)), before)
+
+    def test_business_source_choices_do_not_rewrite_document_references(self):
+        record = _record("p3c.business-source")
+        raw = {"fuel_inputs": [{"name": "历史燃料", "fuel_type": "OTHER", "path": "HEAT_CONTENT",
+                                "activity": {"value": "0", "unit": "t", "source_type": "METER",
+                                             "source_reference": "SOURCE_REPORT_X"}}]}
+        self.repo.create_with_details(record, raw_input=raw)
+        with patch("packages.ui.pages.build_record_report_model", side_effect=ValueError("legacy without tables")), patch(
+            "packages.standards.carbon_material.CarbonMaterialCalculator.calculate",
+            side_effect=AssertionError("No historical recalculation")):
+            self.assertTrue(self.page.open_record(record.record_id))
+        text = _business_basis_text(self.page)
+        for value in ("其他燃料", "按低位发热量和单位热值含碳量", "SOURCE_REPORT_X", "0 t"):
+            self.assertIn(value, text)
+        self.assertNotIn("HEAT_CONTENT", text)
+        self.assertEqual(self.repo.get_raw_input_snapshot(record.record_id), raw)
 
     def test_export_is_bound_to_loaded_detail_and_uses_public_helper(self):
         self.assertTrue(self.page.open_record("p3c.one"))
@@ -225,6 +299,43 @@ class P3CRecordUiTests(unittest.TestCase):
         self.page.refresh_records()
         self.assertIs(self.page.view_stack.currentWidget(), self.page.list_view)
         self.assertIsNone(self.page._detail_record_id)
+
+
+    def test_actual_power_record_shows_business_names_and_keeps_exact_saved_values(self):
+        from packages.application.carbon_accounting import CarbonAccountingUseCase, create_g06_parameter_resolver
+        from packages.persistence import SQLiteCatalogRepository, build_catalog_database
+        from packages.core.models import ElectricityAcquisitionMode, ElectricityAttribute
+        from packages.core.parameter_resolution import ElectricityConsumptionDetail
+        from packages.standards.carbon_material import CarbonMaterialCalculator, CarbonMaterialInput
+        from tests.test_pr46_baseline_integration import CASES, PERIOD, NOW, STANDARD_ID
+        catalog = SQLiteCatalogRepository(build_catalog_database(output_path=Path(self.directory.name) / "power-catalog.sqlite"))
+        calculator = CarbonMaterialCalculator(parameter_resolver=create_g06_parameter_resolver(catalog))
+        detail = ElectricityConsumptionDetail(
+            "power.business-view", "enterprise.business-view", STANDARD_ID, PERIOD,
+            "100.1234567890123456789", "MWh", ElectricityAcquisitionMode.PURCHASED,
+            ElectricityAttribute.ORDINARY, selected_factor_id=CASES[0][4], factor_selection_reason="显式采用既有全国因子",
+        )
+        input_value = CarbonMaterialInput("input.business-view", "enterprise.business-view", "保存值业务呈现", PERIOD,
+            boundary_confirmed=True, electricity_details=(detail,))
+        outcome = CarbonAccountingUseCase(calculator, self.repo).calculate(input_value, calculated_at=NOW)
+        self.assertTrue(outcome.successful, outcome.problems)
+        record_id = outcome.record.record_id
+        before = (asdict(self.repo.get(record_id)), self.repo.get_raw_input_snapshot(record_id),
+                  self.repo.get_trace_snapshot(record_id), self.repo.list_audit(record_id))
+        record_count = len(self.repo.list_all())
+        with patch.object(calculator, "calculate", side_effect=AssertionError("No record recalculation")):
+            self.assertTrue(self.page.open_record(record_id))
+        basis = next(label for label in self.page.input_basis_view.business_basis_labels if "悬停本段" in label.text())
+        self.assertIn("购入电量：100.12 MWh", basis.text())
+        self.assertIn("电力排放因子", basis.text())
+        self.assertNotIn("采用值 1", basis.text())
+        self.assertNotIn("100.1234567890123456789", basis.text())
+        self.assertIn("100.1234567890123456789", basis.toolTip())
+        exact_result = str(before[2]["formula_steps"][0]["intermediate_result"])
+        self.assertIn(exact_result, basis.toolTip())
+        self.assertEqual((asdict(self.repo.get(record_id)), self.repo.get_raw_input_snapshot(record_id),
+                          self.repo.get_trace_snapshot(record_id), self.repo.list_audit(record_id)), before)
+        self.assertEqual(len(self.repo.list_all()), record_count)
 
 
 if __name__ == "__main__":

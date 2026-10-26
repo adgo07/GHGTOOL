@@ -1,0 +1,45 @@
+{
+  "base": "092604639cd5b2b61fef1523f87fcd711d8aefea",
+  "package_sha256": {
+    "apply_all.py": "e52441f1311767faad0a4d13a44416303039925c11efbd18eda7b1866970da3a",
+    "payload/business_page_style.py": "e4965d1a1bb1d033baf1da7bf0ac6be3c23d79d5b44f0bf45a749c2a58187c3d",
+    "payload/capture_business_pages.py": "8e15a179dbb2c91dff5a8ca69431177512ce5e6fc1c4caf9ff5b29364742acb8",
+    "payload/factor_methods.py": "3fc52c5b349ea0ad76d760bebe33db7b87dd92ca04108296c584c5fbf6e421ad",
+    "payload/import_methods.py": "afda088c3ffd26f75c170c44cf0a17cfa384b8dde5a23b1787867223c751ec95",
+    "payload/settings_methods.py": "73dc8e3be13cffb7018ebc12600c6bef5ba2cc0ef20f8cf2e483885c996308c3",
+    "payload/standard_library_methods.py": "565ac9eeb7074fc3002f602bcdb4c7492e1a4df2ecc21cf3ff82d385e1570a4f",
+    "payload/test_business_pages_visual.py": "c1e7f682dcbbea3e3cad7c55851c026355a9a832a2279272b950f7436d53822f",
+    "payload/test_standard_library_pilot.py": "ca7e792819db173021bbbbc4c2762d5c3eaf98ab9fa8cc87da31db3dd44f74e8",
+    "presentation_edits.py": "aa6d90c719f7e7e0e97cbcca1597aa9a3b950831153f82113ed6e2a2c3c972ee",
+    "preview/01-standards.png": "312fe1b6aca8e581d6f14d950624dcdc13e55f71c789a87615c2f31c3700ae75",
+    "preview/02-standard-detail.png": "efc7d050543798bb61acc5c535d7bd99881512f2a384cc934cb4ae18af1b8ca3",
+    "preview/03-factor-browse.png": "48aa774bfe1814d57a1f1b6903683a6a539d05da92a6af53c1d9ab894ebee680",
+    "preview/04-factor-search.png": "e949837c1c7aed8ce2a57e6ea4bdcc757ecea830915874bbd744769f02d0d77d",
+    "preview/05-import.png": "2b4b25ad0abac03a8865e4561f56d327d16fe742b4705c993e70fc0527ba9645",
+    "preview/06-records.png": "abca2c287994592840cf4db55d096e5a43f6c71677805bc96ec0df604527b29f",
+    "preview/07-record-detail.png": "901b186a81ccaca3217c66acffa0f47961bc9196f1ad01086427162e2b6abd48",
+    "preview/08-settings.png": "47b283a5f6e99ff655a2b19997a07c68b17d2cc1a75a9911f52d52fb9e773682",
+    "preview/09-import-compact.png": "671761545e9844c121f49ba6ee10000e298929378b11d1f8c2770aed6c69d077",
+    "preview/index.html": "5fdb5bcdf0c01e04e2552471ceccf839a2188422cf30a5423cde97ae40999097",
+    "README.md": "722fdcf380bb81b73bed5a2f1637e5105746c943dd9c6c96dde281050728d607",
+    "standard_patch.py": "d909654d1beeba0cb51d48f523e1f8659d8d823fffc79bb17d17f5ac514bb6a9",
+    "tests/preview_checks.py": "5bdf0eb7977f1e1dd41b7032617153cbe468b614ed6711dbc504b87a57daa04a",
+    "tests/test_all_package.py": "f9c3bf38fc53f8832bb434eae4d34bf3b1f6523fd2e9893253f4f431675f40f7",
+    "tests/test_standard_patch_safety.py": "259a0d5674c55bcf6de74a40abd997422a14d6a34abc1e0461345d184fe3ad68",
+    "validation/preview-checks.json": "2b4a12684c131ef4ff8cde07a3b9e6f3a2ffa2be3b4afb7908daae5f1fadeaaf",
+    "validation/static-tests.txt": "7cf895fe1374a285ee43e6d67bbf04f829a4893a03c0afc6ff3b08468c000db1"
+  },
+  "protected_method_ast_unchanged": [
+    "packages/ui/catalog_pages.py",
+    "packages/ui/pages.py",
+    "packages/ui/excel_import_components.py",
+    "packages/ui/record_tables.py"
+  ],
+  "production_sha256": {
+    "packages/ui/catalog_pages.py": "aae78dfd9513441ba25af12e59891f7d06448251ce00f75c62dcac0577bce466",
+    "packages/ui/pages.py": "ebfdee4094e7cc871b640b7e9752fea36f2b2bb685cd83e0887ad36435e7fdf7",
+    "packages/ui/excel_import_components.py": "0b411506e8ec02a02b7a2b8d6401f13ec4d3ba2f0bdfab3789b7a7297c7920c7",
+    "packages/ui/record_tables.py": "d67599bccc29bbbe7652e2187a3587c65a253d3a1c27eada183846c74f52949a",
+    "packages/ui/business_page_style.py": "e4965d1a1bb1d033baf1da7bf0ac6be3c23d79d5b44f0bf45a749c2a58187c3d"
+  }
+}

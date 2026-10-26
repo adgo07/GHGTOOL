@@ -1,0 +1,8 @@
+{
+  "kind": "QA font precondition only; no product or assertion changes",
+  "product_code_head": "fb56ad737b6d0a676e5f594f689e08e88f14aaa3",
+  "test_path": "tests/test_business_pages_visual.py",
+  "test_sha256": "f872eec08603a8e710477809eff04d867f97a34fe45a64392816433df4a99277",
+  "all_test_assertion_bodies_unchanged": true,
+  "only_class_setup_and_font_database_import_changed": true
+}

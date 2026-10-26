@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from decimal import Decimal
 from enum import Enum
 
-from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal
+from PySide6.QtCore import QEvent, QTimer, QUrl, Qt, Signal, QRect, QSize
 from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -132,6 +132,31 @@ def _enum_data(value: object, enum_type: type[Enum]) -> Enum | None:
     return None
 
 
+class _WrappedSourceList(QListWidget):
+    """Size full source names at the settled viewport width, including paint insets."""
+    def _fit_items(self):
+        if getattr(self, "_fitting_items", False):
+            return
+        self._fitting_items = True
+        try:
+            width = max(24, self.viewport().width() - 24)
+            for row in range(self.count()):
+                item = self.item(row)
+                bounds = self.fontMetrics().boundingRect(
+                    QRect(0, 0, width, 10000), Qt.TextFlag.TextWordWrap, item.text())
+                item.setSizeHint(QSize(0, max(40, bounds.height() + 20)))
+        finally:
+            self._fitting_items = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_items()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_items()
+
+
 class StandardLibraryPage(BasePage):
     """Searchable standard list and independent, read-only detail view."""
 
@@ -154,32 +179,35 @@ class StandardLibraryPage(BasePage):
         self._refresh()
 
     def _build_page(self) -> None:
+        from .business_page_style import ReadableTable
         self.add_header("标准库", "查看已登记标准、适用范围与核算要求")
         self.page_title = self.findChild(QLabel, "pageTitle")
         self.page_description = self.findChild(QLabel, "pageDescription")
+        self._apply_standard_library_style()
 
         self.view_stack = QStackedWidget(self)
         self.view_stack.setObjectName("standardViewStack")
-
         self.list_view = QWidget(self.view_stack)
         self.list_view.setObjectName("standardListView")
         list_layout = QVBoxLayout(self.list_view)
         list_layout.setContentsMargins(0, 0, 0, 0)
         list_layout.setSpacing(16)
 
-        filters, filters_layout = _card("搜索和筛选", self.list_view)
-        filters_layout.setContentsMargins(16, 10, 16, 10)
-        filters_layout.setSpacing(7)
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(10)
-        search = QLineEdit(filters)
-        search.setObjectName("standardSearch")
-        search.setPlaceholderText("按标准编号、名称或适用对象搜索")
-        filter_row.addWidget(search, 1)
-        self.search_input = search
-
-        self.status_filter = QComboBox(filters)
+        # A single task toolbar, not another titled card above the actual list.
+        toolbar = QWidget(self.list_view)
+        toolbar.setObjectName("standardSearchToolbar")
+        toolbar_layout = QHBoxLayout(toolbar)
+        toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        toolbar_layout.setSpacing(12)
+        self.search_input = QLineEdit(toolbar)
+        self.search_input.setObjectName("standardSearch")
+        self.search_input.setPlaceholderText("按标准编号、名称或适用对象搜索")
+        self.search_input.setAccessibleName("搜索已登记标准")
+        self.search_input.setClearButtonEnabled(True)
+        toolbar_layout.addWidget(self.search_input, 1)
+        self.status_filter = QComboBox(toolbar)
         self.status_filter.setObjectName("standardStatusFilter")
+        self.status_filter.setAccessibleName("标准状态筛选")
         for status, label in (
             (CatalogStatus.ALL, "全部状态"),
             (CatalogStatus.CURRENT, "现行"),
@@ -188,52 +216,55 @@ class StandardLibraryPage(BasePage):
             (CatalogStatus.UNKNOWN, "待核对"),
         ):
             self.status_filter.addItem(label, status)
-        filter_row.addWidget(self.status_filter)
-        filters_layout.addLayout(filter_row)
-        list_layout.addWidget(filters)
+        self.status_filter.setMinimumWidth(136)
+        toolbar_layout.addWidget(self.status_filter)
+        list_layout.addWidget(toolbar)
 
-        list_card, list_card_layout = _card("标准列表", self.list_view)
+        list_card = QFrame(self.list_view)
+        list_card.setObjectName("standardListSurface")
+        list_card_layout = QVBoxLayout(list_card)
+        list_card_layout.setContentsMargins(16, 16, 16, 12)
+        list_card_layout.setSpacing(12)
+        summary_row = QHBoxLayout()
+        list_heading = QLabel("已登记标准", list_card)
+        list_heading.setObjectName("standardListHeading")
+        summary_row.addWidget(list_heading)
+        summary_row.addStretch(1)
         self.result_summary = QLabel(list_card)
         self.result_summary.setObjectName("secondaryText")
-        list_card_layout.addWidget(self.result_summary)
-        self.standard_table = QTableWidget(list_card)
-        _configure_table(
-            self.standard_table,
-            ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"),
-        )
+        summary_row.addWidget(self.result_summary)
+        list_card_layout.addLayout(summary_row)
+
+        self.standard_table = ReadableTable(list_card)
+        _configure_table(self.standard_table,
+            ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"))
         self.standard_table.setObjectName("standardLibraryTable")
         self.standard_table.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self.standard_table.verticalHeader().setDefaultSectionSize(46)
-        self.standard_table.setStyleSheet(f"""
-            QTableWidget#standardLibraryTable {{
-                color: {PRIMARY_TEXT}; font-size: 13px;
-                background: {CARD_BACKGROUND};
-                border: 1px solid {BORDER};
-                selection-background-color: #E6F4FB;
-                selection-color: {PRIMARY_TEXT};
-            }}
-            QTableWidget#standardLibraryTable::item {{ padding: 7px 9px; }}
-            QTableWidget#standardLibraryTable::item:hover {{ background: #F4FAFE; }}
-            QTableWidget#standardLibraryTable QHeaderView::section {{
-                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
-                border: none; border-bottom: 1px solid {BORDER};
-                padding: 10px 9px; font-size: 12px; font-weight: 650;
-            }}
+        self.standard_table.setShowGrid(False)
+        self.standard_table.verticalHeader().setDefaultSectionSize(54)
+        self.standard_table.verticalHeader().setMinimumSectionSize(54)
+        # Keep the table's visual contract explicit for existing geometry tests.
+        self.standard_table.setStyleSheet("""
+            QTableWidget#standardLibraryTable { font-size: 14px; }
         """)
-        standard_header = self.standard_table.horizontalHeader()
-        standard_header.setStretchLastSection(False)
-        for column, width in enumerate((180, 540, 96, 112, 104)):
-            standard_header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+        header = self.standard_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        for column, width in enumerate((180, 400, 104, 120, 124)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
             self.standard_table.setColumnWidth(column, width)
-        standard_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.standard_table.setMouseTracking(True)
         self.standard_table.viewport().setMouseTracking(True)
         self.standard_table.viewport().installEventFilter(self)
         self.standard_table.setAccessibleName("标准列表")
         self.standard_table.setAccessibleDescription("选择标准编号或名称，再按 Enter 键打开标准详情。")
         self.standard_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.standard_table.setMinimumHeight(250)
-        list_card_layout.addWidget(self.standard_table)
+        self.standard_table.setMinimumHeight(300)
+        list_card_layout.addWidget(self.standard_table, 1)
+        hint = QLabel("点击标准编号或名称查看详情；也可选中后按 Enter。", list_card)
+        hint.setObjectName("standardListHint")
+        hint.setWordWrap(True)
+        list_card_layout.addWidget(hint)
         list_layout.addWidget(list_card)
         list_layout.addStretch(1)
         self.view_stack.addWidget(self.list_view)
@@ -248,7 +279,7 @@ class StandardLibraryPage(BasePage):
         self.body_layout.addWidget(self.view_stack)
         self.body_layout.addStretch(1)
 
-        search.textChanged.connect(self._refresh)
+        self.search_input.textChanged.connect(self._refresh)
         self.status_filter.currentIndexChanged.connect(self._refresh)
         self.standard_table.cellClicked.connect(self._open_detail_from_cell)
         self.standard_table.cellActivated.connect(self._open_detail_from_cell)
@@ -267,6 +298,7 @@ class StandardLibraryPage(BasePage):
         return "核算未开放"
 
     def _refresh(self) -> None:
+        from PySide6.QtGui import QFontMetrics
         status = _enum_data(self.status_filter.currentData(), CatalogStatus)
         results = self._service.search_standards(
             self.search_input.text(),
@@ -277,6 +309,7 @@ class StandardLibraryPage(BasePage):
         }
         self.selected_standard_id = None
         self.standard_table.setRowCount(0)
+        self._hovered_standard_cell = None
         for row_number, (standard, visible_status, _) in enumerate(results):
             self.standard_table.insertRow(row_number)
             values = (
@@ -287,56 +320,37 @@ class StandardLibraryPage(BasePage):
                 self._software_support_label(standard),
             )
             for column, value in enumerate(values):
-                if column == 2:
-                    badge = QLabel(value, self.standard_table)
-                    badge.setObjectName("standardStatusBadge")
-                    badge.setAccessibleName(f"标准状态：{value}")
-                    badge.setAlignment(
-                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-                    )
-                    colors = {
-                        CatalogStatus.CURRENT: ("#e7f6f0", "#168268"),
-                        CatalogStatus.UPCOMING: ("#fff5e1", "#956420"),
-                        CatalogStatus.ABOLISHED: ("#f0f3f6", "#647788"),
-                        CatalogStatus.UNKNOWN: ("#f0f3f6", "#647788"),
-                    }
-                    background, foreground = colors.get(
-                        visible_status, ("#f0f3f6", "#647788")
-                    )
-                    badge.setStyleSheet(
-                        "QLabel#standardStatusBadge {"
-                        f"background: {background}; color: {foreground};"
-                        "border-radius: 7px; padding: 3px 8px; font-size: 11px;"
-                        "}"
-                    )
-                    self.standard_table.setCellWidget(row_number, column, badge)
-                    continue
                 item = QTableWidgetItem(value)
+                item.setToolTip(value)
                 if column in (0, 1):
                     item.setData(Qt.ItemDataRole.UserRole, standard.standard_id)
-                    item.setData(
-                        Qt.ItemDataRole.AccessibleTextRole,
-                        f"{value}，按 Enter 键打开标准详情",
-                    )
+                    item.setData(Qt.ItemDataRole.AccessibleTextRole,
+                                 f"{value}，按 Enter 键打开标准详情")
                     font = item.font()
                     font.setUnderline(False)
-                    font.setWeight(QFont.Weight.DemiBold)
+                    font.setWeight(QFont.Weight.DemiBold if column == 0 else QFont.Weight.Normal)
                     item.setFont(font)
                     item.setForeground(QColor("#12618D"))
                     item.setToolTip(f"{value}\n点击打开标准详情")
                 self.standard_table.setItem(row_number, column, item)
-                if column == 4 and value == "已实现核算":
-                    badge = QLabel(value,self.standard_table)
-                    badge.setObjectName("standardCalculationBadge")
-                    badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if column == 2:
+                    tone = {CatalogStatus.CURRENT: "current", CatalogStatus.UPCOMING: "upcoming"}.get(visible_status, "muted")
+                    badge = self._standard_badge(value, "standardStatusBadge", tone, self.standard_table)
+                    badge.setAccessibleName(f"标准状态：{value}")
+                    self.standard_table.setCellWidget(row_number, column, badge)
+                elif column == 4 and value == "已实现核算":
+                    badge = self._standard_badge(value, "standardCalculationBadge", "implemented", self.standard_table)
                     badge.setAccessibleName("软件支持：已实现核算；未改变正式支持状态")
-                    badge.setStyleSheet("QLabel { background:#E7F6F0; color:#168268; border-radius:7px; padding:4px 7px; font-size:11px; }")
-                    self.standard_table.setCellWidget(row_number,column,badge)
-
+                    self.standard_table.setCellWidget(row_number, column, badge)
+        self.standard_table.ensurePolished()
+        number_width = max((QFontMetrics(self.standard_table.item(row, 0).font().resolve(
+            self.standard_table.font())).horizontalAdvance(self.standard_table.item(row, 0).text())
+            for row in range(len(results))), default=150)
+        self.standard_table.setColumnWidth(0, number_width + 36)
         self.standard_table.resizeRowsToContents()
-        self.result_summary.setText(
-            f"共 {len(results)} 项标准" if results else "没有找到匹配的标准。"
-        )
+        content_height = self.standard_table.horizontalHeader().height() + self.standard_table.verticalHeader().length() + 6
+        self.standard_table.setMinimumHeight(min(560, max(260, content_height)))
+        self.result_summary.setText(f"共 {len(results)} 项标准" if results else "没有找到匹配的标准。")
         self.standard_table.clearSelection()
 
     def _set_standard_hover(self, row: int, column: int) -> None:
@@ -444,33 +458,40 @@ class StandardLibraryPage(BasePage):
         )
 
     def _add_basic_information(self, detail: StandardDetail) -> None:
+        # The hero already contains number/name/status/support: do not repeat them.
         standard = detail.standard
         card, layout = _card("基本信息", self.detail_host)
+        layout.setContentsMargins(20, 16, 20, 18)
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(12)
         rows = (
-            ("标准编号", standard.standard_number, "standardDetailNumber"),
-            ("标准名称", standard.standard_name, "standardDetailName"),
             ("版本", standard.version, "standardDetailVersion"),
-            ("标准状态", self._service.status_label(detail.status), "standardDetailStatus"),
             ("发布日期", _date_text(standard.publication_date), "standardPublicationDate"),
             ("实施日期", _date_text(standard.implementation_date), "standardImplementationDate"),
             ("废止日期", _date_text(standard.abolition_date), "standardAbolitionDate"),
-            ("软件支持", self._software_support_label(standard), "standardSoftwareSupport"),
         )
-        for label_text, value_text, object_name in rows:
-            row = QWidget(card)
-            row_layout = QGridLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setHorizontalSpacing(20)
-            row_layout.setVerticalSpacing(8)
-            label = QLabel(label_text, row)
-            label.setObjectName("detailFieldLabel")
-            value = QLabel(value_text or "—", row)
+        for index, (label_text, value_text, object_name) in enumerate(rows):
+            cell = QWidget(card)
+            cell_layout = QHBoxLayout(cell)
+            cell_layout.setContentsMargins(0, 0, 0, 0)
+            cell_layout.setSpacing(16)
+            caption = QLabel(label_text, cell)
+            caption.setObjectName("standardMetaCaption")
+            caption.setMinimumWidth(64)
+            value = QLabel(value_text or "—", cell)
             value.setObjectName(object_name)
+            value.setProperty("standardMetaValue", True)
             value.setWordWrap(True)
-            row_layout.addWidget(label, 0, 0)
-            row_layout.addWidget(value, 0, 1)
-            row_layout.setColumnStretch(1, 1)
-            layout.addWidget(row)
+            value.setTextFormat(Qt.TextFormat.PlainText)
+            value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            cell_layout.addWidget(caption)
+            cell_layout.addWidget(value, 1)
+            grid.addWidget(cell, index // 2, index % 2)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        layout.addLayout(grid)
         self.detail_layout.addWidget(card)
 
     def _render_detail(self, detail: StandardDetail) -> None:
@@ -483,24 +504,19 @@ class StandardLibraryPage(BasePage):
         if self.page_title is not None:
             self.page_title.setText("标准详情")
         if self.page_description is not None:
-            self.page_description.setText(
-                "单页连续呈现基本信息、适用范围和标准要求，不设置详情页签。"
-            )
+            self.page_description.setText("查看标准信息与适用范围，核对当前核算入口是否开放。")
 
-        navigation_host = QWidget(self.detail_host)
-        navigation_host.setObjectName("standardDetailActions")
-        navigation_row = QHBoxLayout(navigation_host)
-        navigation_row.setContentsMargins(0, 0, 0, 0)
-        back_button = QPushButton("返回标准列表", navigation_host)
+        actions = QWidget(self.detail_host)
+        actions.setObjectName("standardDetailActions")
+        actions_layout = QHBoxLayout(actions)
+        actions_layout.setContentsMargins(0, 0, 0, 0)
+        actions_layout.setSpacing(12)
+        back_button = QPushButton("返回标准列表", actions)
         back_button.setObjectName("backToStandardListButton")
-        back_button.setMinimumHeight(36)
-        back_button.setStyleSheet(
-            "QPushButton#backToStandardListButton { border: 1px solid #C8D3DB; border-radius: 8px; padding: 7px 14px; background: #FFFFFF; color: #17445D; }"
-            "QPushButton#backToStandardListButton:hover { background: #F2F7FA; }"
-            "QPushButton#backToStandardListButton:focus { border: 2px solid #12618D; }"
-        )
         back_button.clicked.connect(self._return_to_list)
-        navigation_row.addWidget(back_button)
+        actions_layout.addWidget(back_button)
+        actions_layout.addStretch(1)
+        # Preserve the existing start-accounting gate, not a new UI policy.
         can_start = (
             self._standard_registry.supports(standard.standard_id, standard.version)
             and detail.status is CatalogStatus.CURRENT
@@ -520,7 +536,7 @@ class StandardLibraryPage(BasePage):
         else:
             accounting_label = "核算模块待开发"
             accounting_tooltip = "当前版本尚未开放该标准的核算模块。"
-        accounting_button = QPushButton(accounting_label, navigation_host)
+        accounting_button = QPushButton(accounting_label, actions)
         accounting_button.setObjectName("startAccountingButton")
         accounting_button.setEnabled(can_start)
         accounting_button.setProperty("standardId", standard.standard_id)
@@ -530,32 +546,49 @@ class StandardLibraryPage(BasePage):
             )
         else:
             accounting_button.setToolTip(accounting_tooltip)
-        navigation_row.addStretch(1)
-        self.detail_layout.addWidget(navigation_host)
+        actions_layout.addWidget(accounting_button)
+        self.detail_layout.addWidget(actions)
 
-        summary_card, summary_layout = _card(standard.standard_number, self.detail_host)
-        summary_row = QWidget(summary_card)
-        summary_layout_row = QHBoxLayout(summary_row)
-        summary_layout_row.setContentsMargins(0, 0, 0, 0)
-        summary_layout_row.setSpacing(14)
-        name = QLabel(standard.standard_name, summary_row)
-        name.setObjectName("standardSummaryName")
+        hero = QFrame(self.detail_host)
+        hero.setObjectName("standardDetailHero")
+        hero_layout = QVBoxLayout(hero)
+        hero_layout.setContentsMargins(22, 20, 22, 20)
+        hero_layout.setSpacing(12)
+        number = QLabel(standard.standard_number, hero)
+        number.setObjectName("standardDetailNumber")
+        number.setTextFormat(Qt.TextFormat.PlainText)
+        number.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        hero_layout.addWidget(number)
+        name = QLabel(standard.standard_name, hero)
+        name.setObjectName("standardDetailName")
         name.setWordWrap(True)
-        summary_layout_row.addWidget(name, 1)
-        status = QLabel(self._service.status_label(detail.status), summary_row)
-        status.setObjectName("statusBadge")
-        status.setProperty("catalogStatus", detail.status.value)
-        summary_layout_row.addWidget(status, 0, Qt.AlignmentFlag.AlignVCenter)
-        support_text = self._software_support_label(standard)
-        support = QLabel(support_text, summary_row)
-        support.setObjectName("standardSupportBadge")
-        support.setProperty("implemented", supported)
-        summary_layout_row.addWidget(support, 0, Qt.AlignmentFlag.AlignVCenter)
-        accounting_button.setParent(summary_row)
-        accounting_button.setMinimumHeight(37)
-        summary_layout_row.addWidget(accounting_button, 0, Qt.AlignmentFlag.AlignVCenter)
-        summary_layout.addWidget(summary_row)
-        self.detail_layout.addWidget(summary_card)
+        name.setTextFormat(Qt.TextFormat.PlainText)
+        name.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        hero_layout.addWidget(name)
+        badges = QHBoxLayout()
+        badges.setSpacing(8)
+        status_caption = QLabel("标准状态", hero)
+        status_caption.setObjectName("standardMetaCaption")
+        badges.addWidget(status_caption)
+        status_text = self._service.status_label(detail.status)
+        status = QLabel(status_text, hero)
+        status.setObjectName("standardDetailStatus")
+        status.setProperty("standardBadge", True)
+        status.setProperty("tone", "current" if detail.status is CatalogStatus.CURRENT
+                           else "upcoming" if detail.status is CatalogStatus.UPCOMING else "muted")
+        badges.addWidget(status)
+        badges.addSpacing(16)
+        support_caption = QLabel("软件支持", hero)
+        support_caption.setObjectName("standardMetaCaption")
+        badges.addWidget(support_caption)
+        support = QLabel(self._software_support_label(standard), hero)
+        support.setObjectName("standardSoftwareSupport")
+        support.setProperty("standardBadge", True)
+        support.setProperty("tone", "implemented" if supported else "muted")
+        badges.addWidget(support)
+        badges.addStretch(1)
+        hero_layout.addLayout(badges)
+        self.detail_layout.addWidget(hero)
         self._add_basic_information(detail)
 
         scope_text = (
@@ -563,19 +596,16 @@ class StandardLibraryPage(BasePage):
             if standard.notes.strip().startswith("适用于")
             else "当前目录尚未录入可核验的适用范围信息。"
         )
-        self.detail_layout.addWidget(
-            _text_section(
-                "适用范围",
-                self.detail_host,
-                scope_text,
-            )
-        )
+        scope_card = _text_section("适用范围", self.detail_host, scope_text)
+        scope_card.layout().setContentsMargins(20, 16, 20, 18)
+        self.detail_layout.addWidget(scope_card)
         requirements, requirements_layout = _card("标准要求", self.detail_host)
-        requirement_cards = QWidget(requirements)
-        requirement_grid = QGridLayout(requirement_cards)
-        requirement_grid.setContentsMargins(0, 0, 0, 0)
-        requirement_grid.setHorizontalSpacing(14)
-        requirement_grid.setVerticalSpacing(14)
+        requirements_layout.setContentsMargins(20, 16, 20, 18)
+        requirements_layout.setSpacing(16)
+        implementation_note = QLabel("以下为软件实现说明，不是标准原文要求；标准要求请以官方原文及已批准映射为准。", requirements)
+        implementation_note.setObjectName("standardImplementationNote")
+        implementation_note.setWordWrap(True)
+        requirements_layout.addWidget(implementation_note)
         requirement_text = (
             (
                 "化石燃料、煅烧、焙烧／炭化、石墨化、烟气治理、购入／输出电力与热力。",
@@ -589,43 +619,30 @@ class StandardLibraryPage(BasePage):
                 "当前仅展示目录，不开放按此标准新建核算。",
             )
         )
-        for column, (title, body) in enumerate(
-            zip(("适用业务", "活动数据", "核算与报告"), requirement_text)
-        ):
-            mini = QFrame(requirement_cards)
-            mini.setObjectName("standardRequirementCard")
-            mini_layout = QVBoxLayout(mini)
-            mini_layout.setContentsMargins(14, 14, 14, 14)
-            mini_layout.setSpacing(8)
-            heading = QLabel(title, mini)
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(14)
+        for row, (title, body) in enumerate(zip(("适用业务", "活动数据", "核算与报告"), requirement_text)):
+            heading = QLabel(title, requirements)
             heading.setObjectName("standardRequirementTitle")
-            description = QLabel(body, mini)
+            heading.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            description = QLabel(body, requirements)
             description.setObjectName("standardRequirementText")
             description.setWordWrap(True)
-            mini_layout.addWidget(heading)
-            mini_layout.addWidget(description, 1)
-            requirement_grid.addWidget(mini, 0, column)
-        requirement_grid.setColumnStretch(0, 1)
-        requirement_grid.setColumnStretch(1, 1)
-        requirement_grid.setColumnStretch(2, 1)
-        requirements_layout.addWidget(requirement_cards)
+            grid.addWidget(heading, row, 0)
+            grid.addWidget(description, row, 1)
+        grid.setColumnStretch(1, 1)
+        requirements_layout.addLayout(grid)
 
-        source_row = QWidget(requirements)
-        source_layout = QHBoxLayout(source_row)
-        source_layout.setContentsMargins(0, 4, 0, 0)
+        # Official text remains an action; do not create a source-information area.
         has_official_url = bool(standard.official_source_url)
-        source_note = QLabel(
-            "标准原文入口仅使用已核验的官方来源。"
-            if has_official_url
-            else "当前目录未配置标准官方页面，暂不能打开原文。",
-            source_row,
-        )
-        source_note.setObjectName(
-            "standardSourceNote" if has_official_url else "officialSourceUnavailable"
-        )
-        source_note.setWordWrap(True)
-        source_layout.addWidget(source_note, 1)
-        source_button = QPushButton("查看标准原文", source_row)
+        if not has_official_url:
+            source_note = QLabel("当前目录未配置标准官方页面，暂不能打开原文。", actions)
+            source_note.setObjectName("officialSourceUnavailable")
+            source_note.setWordWrap(True)
+            actions_layout.insertWidget(1, source_note, 1)
+        source_button = QPushButton("查看标准原文", actions)
         source_button.setObjectName("viewOfficialSourceButton")
         source_button.setProperty("officialSourceUrl", standard.official_source_url or "")
         source_button.setEnabled(has_official_url)
@@ -635,10 +652,97 @@ class StandardLibraryPage(BasePage):
             )
         else:
             source_button.setToolTip("当前目录未配置标准官方页面，暂不能打开原文。")
-        source_layout.addWidget(source_button)
-        requirements_layout.addWidget(source_row)
+        actions_layout.insertWidget(actions_layout.count() - 1, source_button)
         self.detail_layout.addWidget(requirements)
         self.detail_layout.addStretch(1)
+
+
+    def _apply_standard_library_style(self) -> None:
+        """Page-local styles: no application, Home, factor-page or shell changes."""
+        self.setStyleSheet(f"""
+            QFrame#standardListSurface, QFrame#standardDetailHero,
+            QWidget#standardDetailHost QFrame#card {{
+                background: {CARD_BACKGROUND}; border: 1px solid {BORDER};
+                border-radius: 10px;
+            }}
+            QLabel#pageTitle {{ font-size: 24px; font-weight: 600; color: {PRIMARY_TEXT}; }}
+            QLabel#pageDescription {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
+            QLineEdit#standardSearch, QComboBox#standardStatusFilter {{
+                min-height: 20px; padding: 8px 12px; border: 1px solid {BORDER};
+                border-radius: 6px; background: white; font-size: 14px;
+            }}
+            QComboBox#standardStatusFilter {{ padding-right: 30px; }}
+            QLineEdit#standardSearch:focus, QComboBox#standardStatusFilter:focus {{
+                border-color: {PRIMARY_BRAND};
+            }}
+            QLabel#standardListHeading {{ font-size: 16px; font-weight: 600; color: {PRIMARY_TEXT}; }}
+            QLabel#secondaryText, QLabel#standardListHint {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
+            QTableWidget#standardLibraryTable {{
+                border: none; border-radius: 0; background: white;
+                color: {PRIMARY_TEXT}; selection-background-color: #EAF4FB;
+                selection-color: {PRIMARY_TEXT};
+            }}
+            QTableWidget#standardLibraryTable::item {{ padding: 10px 8px; border-bottom: 1px solid #EDF2F6; }}
+            QTableWidget#standardLibraryTable::item:hover {{ background: #F5FAFE; }}
+            QTableWidget#standardLibraryTable QHeaderView::section {{
+                background: {SURFACE_MUTED}; color: #526B7E; border: none;
+                border-bottom: 1px solid {BORDER}; padding: 10px 8px;
+                font-size: 13px; font-weight: 500;
+            }}
+            QWidget#standardBadgeCell {{ background: transparent; }}
+            QLabel[standardBadge="true"] {{
+                border: none; border-radius: 5px; padding: 3px 7px;
+                font-size: 12px; font-weight: 500; color: #607385; background: #F0F3F6;
+            }}
+            QLabel[standardBadge="true"][tone="current"] {{ color: #168268; background: #E7F6F0; }}
+            QLabel[standardBadge="true"][tone="upcoming"] {{ color: #956420; background: #FFF5E1; }}
+            QLabel[standardBadge="true"][tone="implemented"] {{ color: #166FA8; background: #E9F4FC; }}
+            QLabel#standardDetailNumber {{ font-size: 14px; font-weight: 600; color: {PRIMARY_BRAND}; }}
+            QLabel#standardDetailName {{ font-size: 22px; font-weight: 600; color: #18364F; }}
+            QLabel#standardMetaCaption {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
+            QLabel[standardMetaValue="true"] {{ font-size: 14px; color: {PRIMARY_TEXT}; }}
+            QWidget#standardDetailHost QLabel#cardTitle {{ font-size: 16px; font-weight: 600; }}
+            QWidget#standardDetailHost QLabel#detailParagraph {{ font-size: 14px; color: {PRIMARY_TEXT}; }}
+            QLabel#standardRequirementTitle {{ font-size: 14px; font-weight: 600; color: #28516E; }}
+            QLabel#standardRequirementText {{ font-size: 14px; color: {PRIMARY_TEXT}; }}
+            QLabel#standardSourceNote, QLabel#officialSourceUnavailable {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
+            QPushButton#backToStandardListButton, QPushButton#viewOfficialSourceButton,
+            QPushButton#startAccountingButton {{
+                min-height: 20px; padding: 8px 14px; font-size: 14px; font-weight: 500;
+                border: 1px solid {BORDER}; border-radius: 6px;
+                background: white; color: #28516E;
+            }}
+            QPushButton#backToStandardListButton:hover, QPushButton#viewOfficialSourceButton:hover {{
+                border-color: {PRIMARY_BRAND}; background: #F2F8FC;
+            }}
+            QPushButton#startAccountingButton:enabled {{
+                color: white; background: {PRIMARY_BRAND}; border-color: {PRIMARY_BRAND}; font-weight: 600;
+            }}
+            QPushButton#startAccountingButton:enabled:hover {{ background: #146DAA; }}
+            QPushButton#startAccountingButton:disabled, QPushButton#viewOfficialSourceButton:disabled {{
+                background: #F3F6F8; color: #8192A1; border-color: #E0E7ED;
+            }}
+            QPushButton#backToStandardListButton:focus, QPushButton#viewOfficialSourceButton:focus,
+            QPushButton#startAccountingButton:focus {{ border: 2px solid #17445D; padding: 7px 13px; }}
+        """)
+
+    def _standard_badge(self, text: str, name: str, tone: str,
+                        parent: QWidget) -> QWidget:
+        """A compact text badge inside a cell, not a full-cell colored block."""
+        host = QWidget(parent)
+        host.setObjectName("standardBadgeCell")
+        layout = QHBoxLayout(host)
+        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setSpacing(0)
+        badge = QLabel(text, host)
+        badge.setObjectName(name)
+        badge.setProperty("standardBadge", True)
+        badge.setProperty("tone", tone)
+        badge.setAccessibleName(text)
+        badge.setTextFormat(Qt.TextFormat.PlainText)
+        layout.addWidget(badge, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addStretch(1)
+        return host
 
 
 class ParameterFactorLibraryPage(BasePage):
@@ -659,13 +763,16 @@ class ParameterFactorLibraryPage(BasePage):
         self._refresh_tables()
 
     def _build_page(self) -> None:
+        from .business_page_style import ReadableTable
+        from .business_page_style import surface
         self.body_layout.setSpacing(16)
         self.add_header(
             "参数与因子库",
             "全库检索与按来源浏览使用同一份只读登记数据，切换后显示不同视图。",
         )
 
-        mode_card, mode_layout = _card("查询方式", self)
+        mode_card, mode_layout = surface("", self, "referenceLibraryModeBar")
+        mode_layout.setContentsMargins(0, 0, 0, 0)
         mode_row = QHBoxLayout()
         mode_row.setContentsMargins(0, 0, 0, 0)
         mode_row.setSpacing(10)
@@ -688,15 +795,22 @@ class ParameterFactorLibraryPage(BasePage):
         mode_buttons_layout.addWidget(self.search_mode_button)
         mode_buttons_layout.addWidget(self.browse_mode_button)
         mode_row.addWidget(mode_buttons, 0)
+        mode_row.addStretch(1)
+        mode_layout.addLayout(mode_row)
+        self.search_tools = QWidget(mode_card)
+        self.search_tools.setObjectName("referenceSearchTools")
+        search_tools_layout = QHBoxLayout(self.search_tools)
+        search_tools_layout.setContentsMargins(0, 0, 0, 0)
+        search_tools_layout.setSpacing(12)
 
-        self.search_input = QLineEdit(mode_card)
+        self.search_input = QLineEdit(self.search_tools)
         self.search_input.setObjectName("referenceLibrarySearch")
-        self.search_input.setPlaceholderText("点击查看全部参数，输入即时筛选")
+        self.search_input.setPlaceholderText("搜索参数名称、适用对象或来源资料")
         self.search_input.setAccessibleName("参数与因子搜索")
         self.search_input.setClearButtonEnabled(True)
-        self.search_input.setMinimumWidth(280)
-        mode_row.addWidget(self.search_input, 1)
-        self.search_category_filter = QComboBox(mode_card)
+        self.search_input.setMinimumWidth(180)
+        search_tools_layout.addWidget(self.search_input, 1)
+        self.search_category_filter = QComboBox(self.search_tools)
         self.search_category_filter.setObjectName("referenceLibraryCategoryFilter")
         self.search_category_filter.setAccessibleName("数据类别")
         for label, value in (
@@ -706,9 +820,9 @@ class ParameterFactorLibraryPage(BasePage):
             ("参考数据", "reference"),
         ):
             self.search_category_filter.addItem(label, value)
-        self.search_category_filter.setMinimumWidth(150)
-        mode_row.addWidget(self.search_category_filter, 0)
-        mode_layout.addLayout(mode_row)
+        self.search_category_filter.setMinimumWidth(112)
+        search_tools_layout.addWidget(self.search_category_filter, 0)
+        mode_layout.addWidget(self.search_tools)
         self.view_mode_filter = QComboBox(self)
         self.view_mode_filter.setObjectName("referenceLibraryMode")
         self.view_mode_filter.addItem("按标准/文件查看", "browse")
@@ -717,7 +831,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.view_mode_filter.hide()
         self.body_layout.addWidget(mode_card)
 
-        self.browse_card, browse_layout = _card("按来源浏览登记资料", self)
+        self.browse_card, browse_layout = surface("按来源浏览登记资料", self, "referenceBrowseSurface")
         browse_layout.setSpacing(10)
         browse_notice = QLabel(
             "此模式按资料文件、表格顺序浏览，完整展示原始登记信息；不同于全库搜索结果视图。",
@@ -734,14 +848,14 @@ class ParameterFactorLibraryPage(BasePage):
         self.source_filter.setObjectName("sourceDocumentFilter")
         self.source_filter.setAccessibleName("来源资料")
         self.source_filter.setMinimumContentsLength(18)
-        self.source_filter.setMinimumWidth(250)
+        self.source_filter.setMinimumWidth(160)
         browse_filters.addWidget(self.source_filter, 2)
         browse_filters.addWidget(QLabel("表格", self.browse_card))
         self.table_filter = QComboBox(self.browse_card)
         self.table_filter.setObjectName("sourceTableFilter")
         self.table_filter.setAccessibleName("资料表格")
         self.table_filter.setMinimumContentsLength(18)
-        self.table_filter.setMinimumWidth(250)
+        self.table_filter.setMinimumWidth(160)
         browse_filters.addWidget(self.table_filter, 2)
         browse_layout.addLayout(browse_filters)
         self.browse_table_title = QLabel("", self.browse_card)
@@ -769,7 +883,7 @@ class ParameterFactorLibraryPage(BasePage):
         browse_layout.addWidget(self.factor_table)
         self.body_layout.addWidget(self.browse_card)
 
-        self.search_card, search_layout = _card("全库搜索", self)
+        self.search_card, search_layout = surface("", self, "referenceSearchSurface")
         search_layout.setSpacing(10)
         self.search_source_filter = QComboBox(self)
         self.search_source_filter.setObjectName("searchSourceDocumentFilter")
@@ -783,13 +897,20 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_splitter = QSplitter(Qt.Orientation.Horizontal, self.search_card)
         self.search_splitter.setObjectName("referenceLibrarySplitter")
         self.search_splitter.setChildrenCollapsible(False)
-        self.search_source_panel, source_list_layout = _card("来源筛选", self.search_splitter)
-        self.search_source_list = QListWidget(self.search_source_panel)
+        self.search_source_panel, source_list_layout = surface("来源筛选", self.search_splitter, "referenceSourceSurface")
+        source_list_layout.setContentsMargins(8, 10, 8, 10)
+        self.search_source_panel.setMinimumWidth(164)
+        self.search_source_panel.setMaximumWidth(210)
+        self.search_source_list = _WrappedSourceList(self.search_source_panel)
         self.search_source_list.setObjectName("referenceLibrarySourceList")
         self.search_source_list.setAccessibleName("来源筛选")
         self.search_source_list.setAccessibleDescription("按资料来源筛选全库搜索结果。")
-        self.search_source_list.setMinimumWidth(190)
-        self.search_source_list.setMinimumHeight(320)
+        self.search_source_list.setMinimumWidth(140)
+        self.search_source_list.setMinimumHeight(260)
+        self.search_source_list.setWordWrap(True)
+        self.search_source_list.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.search_source_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.search_source_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         source_list_layout.addWidget(self.search_source_list)
 
         self.search_results_panel = QWidget(self.search_splitter)
@@ -799,7 +920,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_results_splitter = QSplitter(Qt.Orientation.Vertical, self.search_results_panel)
         self.search_results_splitter.setObjectName("referenceLibraryResultsSplitter")
         self.search_results_splitter.setChildrenCollapsible(False)
-        self.search_result_table = QTableWidget(self.search_results_splitter)
+        self.search_result_table = ReadableTable(self.search_results_splitter, row_padding=12)
         _configure_table(
             self.search_result_table,
             ("参数名称", "数值", "单位", "类别"),
@@ -812,8 +933,11 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.search_result_table.setMinimumHeight(260)
         self.search_result_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        for column, width in enumerate((340, 145, 125, 130)):
+        for column, width in enumerate((280, 150, 112, 96)):
             self.search_result_table.setColumnWidth(column, width)
+        self.search_result_table.horizontalHeader().setStretchLastSection(False)
+        self.search_result_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.search_result_table.verticalHeader().setMinimumSectionSize(42)
         self.factor_detail_host = QWidget(self.search_results_splitter)
         self.factor_detail_host.setObjectName("parameterDetailHost")
         self.factor_detail_layout = QVBoxLayout(self.factor_detail_host)
@@ -821,7 +945,8 @@ class ParameterFactorLibraryPage(BasePage):
         self.factor_detail_layout.setSpacing(12)
         self.factor_detail_scroll = QScrollArea(self.search_results_splitter)
         self.factor_detail_scroll.setObjectName("parameterDetailScroll")
-        self.factor_detail_scroll.setMinimumWidth(320)
+        self.factor_detail_scroll.setMinimumWidth(240)
+        self.factor_detail_scroll.setMinimumHeight(280)
         self.factor_detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.factor_detail_scroll.setWidgetResizable(True)
         self.factor_detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -836,7 +961,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_splitter.addWidget(self.search_results_panel)
         self.search_splitter.setStretchFactor(0, 0)
         self.search_splitter.setStretchFactor(1, 1)
-        self.search_splitter.setSizes([210, 1100])
+        self.search_splitter.setSizes([180, 1000])
         search_layout.addWidget(self.search_splitter)
         self.body_layout.addWidget(self.search_card)
         self.body_layout.addStretch(1)
@@ -855,141 +980,32 @@ class ParameterFactorLibraryPage(BasePage):
         self._change_mode()
 
     def _apply_library_style(self) -> None:
-        self.setStyleSheet(
-            f"""
-            QWidget#referenceLibraryModeBar {{
-                background: transparent;
-            }}
-            QLabel#referenceLibraryModeLabel {{
-                color: {SECONDARY_TEXT};
-                font-size: 13px;
-            }}
-            QLineEdit#referenceLibrarySearch,
-            QComboBox#referenceLibraryCategoryFilter,
-            QComboBox#referenceLibraryMode,
-            QComboBox#sourceDocumentFilter,
-            QComboBox#sourceTableFilter,
-            QComboBox#searchSourceDocumentFilter {{
-                min-height: 36px;
-                border: 1px solid {BORDER};
-                border-radius: 6px;
-                padding: 0 10px;
-                background: {CARD_BACKGROUND};
-                color: {PRIMARY_TEXT};
-            }}
-            QLineEdit#referenceLibrarySearch:focus,
-            QComboBox#referenceLibraryCategoryFilter:focus,
-            QComboBox#referenceLibraryMode:focus,
-            QComboBox#sourceDocumentFilter:focus,
-            QComboBox#sourceTableFilter:focus,
-            QComboBox#searchSourceDocumentFilter:focus {{
-                border: 1px solid {PRIMARY_BRAND};
-                padding: 0 10px;
-            }}
-            QPushButton#referenceLibraryModeButton {{
-                min-height: 36px;
-                border: 1px solid {BORDER};
-                border-radius: 8px;
-                padding: 0 14px;
-                background: {CARD_BACKGROUND};
-                color: {SECONDARY_TEXT};
-                font-weight: 600;
-            }}
-            QPushButton#referenceLibraryModeButton:hover {{
-                border-color: {PRIMARY_BRAND};
-                color: {PRIMARY_BRAND};
-                background: #F4FAFE;
-            }}
-            QPushButton#referenceLibraryModeButton:checked {{
-                border-color: {PRIMARY_BRAND};
-                background: #E6F4FB;
-                color: {PRIMARY_BRAND};
-                font-weight: 700;
-            }}
-            QListWidget#referenceLibrarySourceList {{
-                border: none;
-                background: transparent;
-                outline: none;
-                color: {SECONDARY_TEXT};
-                font-size: 13px;
-            }}
-            QListWidget#referenceLibrarySourceList::item {{
-                min-height: 34px;
-                padding: 4px 10px;
-                border-radius: 7px;
-            }}
-            QListWidget#referenceLibrarySourceList::item:hover {{
-                background: #F3F8FC;
-                color: {PRIMARY_BRAND};
-            }}
-            QListWidget#referenceLibrarySourceList::item:selected {{
-                background: #E6F4FB;
-                color: {PRIMARY_BRAND};
-                font-weight: 700;
-            }}
-            QTableWidget#sourceTableView {{
-                background: {CARD_BACKGROUND};
-                border: 1px solid {BORDER};
-                gridline-color: {BORDER};
-                selection-background-color: #E6F4FB;
-                selection-color: {PRIMARY_TEXT};
-            }}
-            QTableWidget#sourceTableView QHeaderView::section {{
-                background: {SURFACE_MUTED};
-                color: {SECONDARY_TEXT};
-                border: none;
-                border-bottom: 1px solid {BORDER};
-                padding: 8px;
-                font-weight: 600;
-            }}
-            QTableWidget#catalogTable {{
-                background: {CARD_BACKGROUND};
-                border: 1px solid {BORDER};
-                selection-background-color: #E6F4FB;
-                selection-color: {PRIMARY_TEXT};
-            }}
-            QTableWidget#catalogTable QHeaderView::section {{
-                background: {SURFACE_MUTED};
-                color: {SECONDARY_TEXT};
-                border: none;
-                border-bottom: 1px solid {BORDER};
-                padding: 9px 10px;
-                font-weight: 650;
-            }}
-            QScrollArea#parameterDetailScroll {{
-                border: 1px solid {BORDER};
-                background: {CARD_BACKGROUND};
-            }}
-            QToolButton#parameterDetailTraceToggle {{
-                min-height: 34px;
-                border: 1px solid {BORDER};
-                border-radius: 6px;
-                padding: 0 12px;
-                color: {PRIMARY_BRAND};
-                background: {CARD_BACKGROUND};
-                text-align: left;
-            }}
-            QToolButton#parameterDetailTraceToggle:hover {{
-                background: {SURFACE_MUTED};
-                border-color: {PRIMARY_BRAND};
-            }}
-            QLabel#referenceLibrarySummary,
-            QLabel#sourceTableTitle,
-            QLabel#sourceTableNote {{
-                color: {SECONDARY_TEXT};
-                font-size: 13px;
-            }}
-            QLabel#sourceBrowseNotice {{
-                color: #47697F;
-                background: #EFF7FD;
-                border-left: 3px solid #4299C5;
-                border-top-right-radius: 8px;
-                border-bottom-right-radius: 8px;
-                padding: 9px 11px;
-                font-size: 12px;
-            }}
-            """
-        )
+        from .business_page_style import apply_business_page_style
+        apply_business_page_style(self)
+        self.setStyleSheet(self.styleSheet() + f"""
+            QFrame#referenceLibraryModeBar {{ background:transparent; border:none; }}
+            QPushButton#referenceLibraryModeButton {{ min-height:20px; padding:8px 14px;
+                border:0; border-bottom:2px solid transparent; border-radius:0; font-size:14px; font-weight:400; background:transparent; }}
+            QPushButton#referenceLibraryModeButton:checked {{ color:{PRIMARY_BRAND};
+                background:transparent; border-bottom-color:{PRIMARY_BRAND}; font-weight:600; }}
+            QPushButton#referenceLibraryModeButton:focus {{ border-color:{PRIMARY_BRAND}; }}
+            QListWidget#referenceLibrarySourceList {{ background:transparent; border:none;
+                font-size:13px; color:{SECONDARY_TEXT}; }}
+            QListWidget#referenceLibrarySourceList::item {{ min-height:28px; padding:6px 8px; border-radius:5px; }}
+            QListWidget#referenceLibrarySourceList::item:selected {{ background:#EAF4FC; color:{PRIMARY_BRAND}; }}
+            QListWidget#referenceLibrarySourceList:focus {{ border:1px solid {PRIMARY_BRAND}; }}
+            QLabel#sourceBrowseNotice {{ font-size:13px; color:{SECONDARY_TEXT}; }}
+            QLabel#referenceLibrarySummary, QLabel#sourceTableNote {{ font-size:13px; color:{SECONDARY_TEXT}; }}
+            QLabel#sourceTableTitle {{ font-size:16px; font-weight:600; color:{PRIMARY_TEXT}; }}
+            QLabel#parameterReferenceValue {{ font-size:24px; font-weight:600; color:{PRIMARY_TEXT}; }}
+            QLabel#parameterReferenceUnit {{ font-size:14px; color:{SECONDARY_TEXT}; }}
+            QLabel#parameterDetailName {{ font-size:18px; font-weight:600; color:{PRIMARY_TEXT}; }}
+            QScrollArea#parameterDetailScroll {{ border:1px solid {BORDER}; background:white; border-radius:6px; }}
+            QToolButton#parameterDetailTraceToggle {{ min-height:20px; padding:6px 10px;
+                border:1px solid {BORDER}; border-radius:6px; background:{SURFACE_MUTED};
+                color:{PRIMARY_BRAND}; font-size:13px; text-align:left; }}
+            QToolButton#parameterDetailTraceToggle:focus {{ border-color:{PRIMARY_BRAND}; }}
+        """)
 
     def _refresh_sources(self) -> None:
         sources = self._service.list_sources()
@@ -1012,7 +1028,7 @@ class ParameterFactorLibraryPage(BasePage):
                 f"{source.document_no} · {source.document_name}",
                 Qt.ItemDataRole.ToolTipRole,
             )
-            source_item = QListWidgetItem(source.document_no)
+            source_item = QListWidgetItem(f"{source.document_no}\n{source.document_name}")
             source_item.setData(Qt.ItemDataRole.UserRole, source.source_id)
             source_item.setToolTip(f"{source.document_no} · {source.document_name}")
             self.search_source_list.addItem(source_item)
@@ -1029,6 +1045,7 @@ class ParameterFactorLibraryPage(BasePage):
         self.search_source_filter.blockSignals(False)
         self.search_source_list.setCurrentRow(0)
         self.search_source_list.blockSignals(False)
+        self.search_source_list._fit_items()
         preferred = next(
             (index for index in range(self.source_filter.count())
              if "32151.34" in self.source_filter.itemText(index)),
@@ -1043,6 +1060,11 @@ class ParameterFactorLibraryPage(BasePage):
         is_browse = self.view_mode_filter.currentData() != "search"
         self.browse_mode_button.setChecked(is_browse)
         self.search_mode_button.setChecked(not is_browse)
+        # The search edits never imply filtering the currently displayed source table.
+        # Values are retained when hidden; browsing itself does not clear the search.
+        self.search_tools.setVisible(not is_browse)
+        self.search_input.setVisible(not is_browse)
+        self.search_category_filter.setVisible(not is_browse)
         self.browse_card.setVisible(is_browse)
         self.search_card.setVisible(not is_browse)
         if not is_browse:
@@ -1248,8 +1270,22 @@ class ParameterFactorLibraryPage(BasePage):
                     Qt.ItemDataRole.AccessibleTextRole,
                     f"{self.search_result_table.horizontalHeaderItem(column).text()}：{text}",
                 )
+                if column == 1:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 self.search_result_table.setItem(row_number, column, item)
         self.search_result_table.resizeRowsToContents()
+        if len(self._search_results) <= 3:
+            natural_height = self.search_result_table.horizontalHeader().height() + 6 + sum(
+                max(self.search_result_table.rowHeight(row), self.search_result_table.sizeHintForRow(row)) + 12
+                for row in range(self.search_result_table.rowCount())
+            )
+            height = min(260, max(76, natural_height))
+            self.search_result_table.setMinimumHeight(height)
+            self.search_result_table.setMaximumHeight(height)
+            self.search_results_splitter.setSizes([height, max(280, self.search_results_splitter.height() - height)])
+        else:
+            self.search_result_table.setMaximumHeight(16777215)
+            self.search_result_table.setMinimumHeight(180)
         self.result_summary.setText(f"找到 {len(self._search_results)} 项资料或参数值")
         if self._search_results:
             self.search_result_table.selectRow(0)
@@ -1287,8 +1323,8 @@ class ParameterFactorLibraryPage(BasePage):
                 ("标准名称", standard.standard_name),
                 ("状态", self._service.status_label(self._service.standard_status(standard))),
                 ("实施日期", _date_text(standard.implementation_date)),
-                ("發布部門", standard.issuing_authority or "—"),
-                ("官方資料", source.document_no if source else "—"),
+                ("发布部门", standard.issuing_authority or "—"),
+                ("官方资料", source.document_no if source else "—"),
             )
             self.factor_detail_layout.addWidget(_detail_section("标准信息", self.factor_detail_host, rows))
             url = standard.official_source_url or (source.official_url if source else None)
@@ -1350,12 +1386,28 @@ class ParameterFactorLibraryPage(BasePage):
             parameter = next((item for item in self._service.repository.list_parameters() if item.parameter_id == asset.parameter_id), None)
             subject = next((item for item in self._service.repository.list_subjects() if item.subject_id == asset.subject_id), None)
             asset_notes = asset.notes or (parameter.notes if parameter else "") or ""
+            value_line = QWidget(self.factor_detail_host)
+            value_layout = QHBoxLayout(value_line)
+            value_layout.setContentsMargins(0, 0, 0, 0)
+            value_layout.setSpacing(10)
+            value_caption = QLabel("数值", value_line)
+            value_caption.setObjectName("detailFieldLabel")
+            value_label = QLabel(format(asset.value, "f"), value_line)
+            value_label.setObjectName("parameterReferenceValue")
+            value_label.setWordWrap(True)
+            value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            unit_label = QLabel(asset.unit, value_line)
+            unit_label.setObjectName("parameterReferenceUnit")
+            unit_label.setWordWrap(True)
+            value_layout.addWidget(value_caption)
+            value_layout.addWidget(value_label)
+            value_layout.addWidget(unit_label)
+            value_layout.addStretch(1)
+            self.factor_detail_layout.addWidget(value_line)
             rows = (
                 ("参数", parameter.name if parameter else "—"),
                 ("适用对象", subject.name if subject else "—"),
                 *((("地区", "、".join(dict.fromkeys(binding.region for binding in result.bindings if binding.region))),) if any(binding.region for binding in result.bindings) else ()),
-                ("数值", format(asset.value, "f")),
-                ("单位", asset.unit),
                 ("适用条件", self._asset_condition_text(result)),
                 ("数据类型", self._service.value_type_label(asset.value_type)),
                 ("说明", strip_source_page_numbers(asset_notes) or "—", asset_notes),
@@ -1364,6 +1416,7 @@ class ParameterFactorLibraryPage(BasePage):
 
             trace_toggle = QToolButton(self.factor_detail_host)
             trace_toggle.setObjectName("parameterDetailTraceToggle")
+            trace_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
             trace_toggle.setCheckable(True)
             trace_toggle.setChecked(False)
             trace_toggle.setArrowType(Qt.ArrowType.RightArrow)

@@ -218,11 +218,20 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
 
         requested_record_ids = []
         self.page.record_requested.connect(requested_record_ids.append)
+        self.assertEqual(self.page.unit_record_selector.currentData(), created_record_ids[-1])
+        self.page.open_record_button.click()
+        self.assertEqual(requested_record_ids, [created_record_ids[-1]])
+        self.assertEqual(self.page.open_record_button.property("visualRole"), "primary")
+        self.assertEqual(self.page.calculate_button.property("visualRole"), "secondary")
+        self.assertEqual(len(self.records.list_all()), 2)
         selected_record_index = self.page.unit_record_selector.findData(records[1].record_id)
         self.assertGreaterEqual(selected_record_index, 0)
         self.page.unit_record_selector.setCurrentIndex(selected_record_index)
+        self.page.open_history_record_button.click()
+        self.assertEqual(requested_record_ids, [created_record_ids[-1], records[1].record_id])
         self.page.open_record_button.click()
-        self.assertEqual(requested_record_ids, [records[1].record_id])
+        self.assertEqual(requested_record_ids[-1], created_record_ids[-1])
+        self.assertEqual(len(self.records.list_all()), 2)
 
         for record in records:
             raw = self.records.get_raw_input_snapshot(record.record_id)
@@ -352,6 +361,45 @@ class Rs03ExcelProjectWorkflowTests(unittest.TestCase):
         self.assertFalse(unconfigured.calculate_button.isEnabled())
         self.assertFalse(unconfigured.save_project_button.isEnabled())
         self.assertIn("正式核算尚未配置", unconfigured.status_label.text())
+
+
+    def test_saved_context_never_displays_new_import_draft_or_writes_defaults(self) -> None:
+        project_id, _ = self._preview_and_save()
+        saved_before = self.projects.get(project_id)
+        canonical_before = encode_canonical_input(saved_before.units[0].canonical_input)
+        self.page._select_workbook(self.workbook_path)
+        self._set_import_context(enterprise_name="仅属于新导入草稿的企业")
+        self.assertTrue(self.page.open_project(project_id))
+        self.app.processEvents()
+        self.assertTrue(self.page.import_context_panel.isHidden())
+        self.assertFalse(self.page.saved_context_label.isHidden())
+        self.assertIn("RS03 项目工作流企业", self.page.saved_context_label.text())
+        self.assertNotIn("仅属于新导入草稿的企业", self.page.saved_context_label.text())
+        self.assertIn("2025-01-01", self.page.saved_context_label.text())
+        self.assertIn("未保存电力地区条目", self.page.saved_context_label.text())
+        self.assertEqual(encode_canonical_input(self.projects.get(project_id).units[0].canonical_input), canonical_before)
+        self.assertEqual(len(self.records.list_all()), 0)
+        self.page._select_workbook(self.workbook_path)
+        self.assertFalse(self.page.import_context_panel.isHidden())
+        self.assertEqual(self.page.import_enterprise_name.text(), "仅属于新导入草稿的企业")
+        self.assertTrue(self.page.preview_panel.details.isHidden())
+        self.assertTrue(self.page.preview_panel.units.isHidden())
+        self.assertFalse(self.page.save_project_button.isEnabled())
+        self.assertFalse(self.page.calculate_button.isEnabled())
+
+    def test_context_edit_requires_recheck_before_saving_any_project(self) -> None:
+        self.page._preview_workbook(self.workbook_path)
+        self.assertTrue(self.page.save_project_button.isEnabled())
+        self.page.import_enterprise_name.setText("修改后的企业")
+        self.assertIsNone(self.page._last_preview)
+        self.assertFalse(self.page.save_project_button.isEnabled())
+        self.assertFalse(self.page.calculate_button.isEnabled())
+        self.assertEqual(len(self.projects.list_all()), 0)
+        self.assertEqual(len(self.records.list_all()), 0)
+        self.page.preview_button.click()
+        self.assertTrue(self.page.save_project_button.isEnabled())
+        self.assertEqual(self.page._last_preview.units[0].input_value.enterprise_name, "修改后的企业")
+        self.assertEqual(len(self.records.list_all()), 0)
 
 
 if __name__ == "__main__":

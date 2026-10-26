@@ -1,0 +1,50 @@
+{
+  "base_head": "45a8178fa92ef88eed8988c9d8dd671db93d32cb",
+  "kind": "local startup control-flow regressions; dialog/application event loop mocked",
+  "change": "Catch logging initialization OSError before any business repository opens; fixed Chinese prompt and return 1",
+  "production_sha256": {
+    "apps/carbon_accounting_desktop/app.py": "ee3246ae695baeab149c7192e2d68c762dcd07b6aebd931eb4363a46f2dd7dc8",
+    "tests/test_startup_logging.py": "ab873254430e67b0d85f88595a36ffe9d4ce2eaf0cc13b0932310c7dd9a3858e",
+    "apps/carbon_accounting_desktop/logging_config.py": "4cffe8440b117c484a258173fee0b1ce5d272023a5a8da882c3900b00c5fd602"
+  },
+  "scope_ast_equal_after_unwrapping_only_logging_guard": true,
+  "logging_implementation_unchanged": true,
+  "all_29_r9_ui_source_hashes_still_match": true,
+  "logs": {
+    "startup-logging-before.log": {
+      "tests": 6,
+      "seconds": 2.556,
+      "sha256": "4f2079cf50b9b2dd33ed5236bc0a28d4ef924bce77aa4761ff94b7efce977d6e",
+      "summary": "FAILED (errors=5)"
+    },
+    "startup-logging-after-targeted.log": {
+      "tests": 29,
+      "seconds": 88.703,
+      "sha256": "7c2d8c67a5dd40f137287cdd690d654b4cce3b005c24cd7ca1b314371d5a2e5f",
+      "summary": "OK"
+    },
+    "startup-logging-final-guards.log": {
+      "tests": 36,
+      "seconds": 86.057,
+      "sha256": "590aaebd445ab9b7f3f0ec41b2e82cee2240a8728e8160992a1545c9e3984094",
+      "summary": "OK"
+    }
+  },
+  "real_isolated_negatives": [
+    "directory path is an existing file",
+    "application.jsonl is an existing directory",
+    "Windows read-only file",
+    "Windows share-deny file handle"
+  ],
+  "injected_negative": "PermissionError from RotatingFileHandler; arbitrary exception text not shown",
+  "record_safety": "Failure exits before records/projects/settings repositories; normal isolated stores work; mandatory audit rollback/delete tests passed",
+  "privacy": "Existing operational token/field allow-list unchanged; no arbitrary exception text logged or shown",
+  "limits": [
+    "No live user log/path accessed or changed",
+    "No ACL or administrator workaround",
+    "No native desktop started",
+    "Actual user launch method/file locking/security-policy cause remains unconfirmed",
+    "Unwritable logging still causes safe refusal to start, not fallback or silent audit disablement",
+    "Old CI308 and isolated LOCALAPPDATA smoke do not cover this defect or real user path access"
+  ]
+}

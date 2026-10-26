@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from html import escape
+from math import ceil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QAbstractTextDocumentLayout, QTextDocument, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -12,6 +15,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QScrollArea,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -71,30 +77,99 @@ def _column_labels(report: ReportTable) -> tuple[str, ...]:
     return tuple(labels)
 
 
+
+_FOOTNOTE_MARKERS = {"ᵃ": "a", "ᵇ": "b"}
+
+def _footnote_html(text: str) -> str:
+    """Draw the existing footnote markers with ordinary Latin glyphs, not a new font."""
+    text = text.replace("\u2028", "\n").replace("\u2029", "\n")
+    rendered = escape(text).replace("\n", "<br>")
+    for marker, letter in _FOOTNOTE_MARKERS.items():
+        rendered = rendered.replace(marker, f"<sup>{letter}</sup>")
+    return rendered
+
+
+def _set_frozen_label(label: QLabel, text: str) -> None:
+    label.setProperty("frozenText", text)
+    label.setTextFormat(Qt.TextFormat.RichText if any(marker in text for marker in _FOOTNOTE_MARKERS) else Qt.TextFormat.PlainText)
+    label.setText(_footnote_html(text) if any(marker in text for marker in _FOOTNOTE_MARKERS) else text)
+    accessible = text
+    for marker, letter in _FOOTNOTE_MARKERS.items():
+        accessible = accessible.replace(marker, f"，脚注 {letter}")
+    label.setAccessibleName(accessible)
+
+
+class FrozenFootnoteDelegate(QStyledItemDelegate):
+    """Keep the frozen model text; paint its footnote markers as a typographic superscript."""
+    def _document(self, option):
+        document = QTextDocument()
+        document.setDocumentMargin(0)
+        document.setDefaultFont(option.font)
+        document.setHtml('<div align="center">' + _footnote_html(option.text) + '</div>')
+        return document
+
+    def paint(self, painter, option, index):
+        cell = QStyleOptionViewItem(option)
+        self.initStyleOption(cell, index)
+        if not any(marker in cell.text for marker in _FOOTNOTE_MARKERS):
+            return super().paint(painter, option, index)
+        widget = cell.widget if cell.widget is not None else self.parent()
+        style = widget.style()
+        region = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, cell, widget)
+        document = self._document(cell)
+        document.setTextWidth(max(1, region.width()))
+        cell.text = ""
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, cell, painter, widget)
+        context = QAbstractTextDocumentLayout.PaintContext()
+        context.palette = cell.palette
+        if cell.state & QStyle.StateFlag.State_Selected:
+            context.palette.setColor(QPalette.ColorRole.Text, cell.palette.color(QPalette.ColorRole.HighlightedText))
+        painter.save()
+        painter.setClipRect(region)
+        painter.translate(region.x(), region.y() + max(0, (region.height() - document.size().height()) / 2))
+        document.documentLayout().draw(painter, context)
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        native = super().sizeHint(option, index)
+        cell = QStyleOptionViewItem(option)
+        self.initStyleOption(cell, index)
+        if not any(marker in cell.text for marker in _FOOTNOTE_MARKERS):
+            return native
+        document = self._document(cell)
+        table = self.parent()
+        span = table.columnSpan(index.row(), index.column())
+        width = sum(table.columnWidth(column) for column in range(index.column(), index.column() + span))
+        document.setTextWidth(max(1, width - 16))
+        return QSize(native.width(), max(native.height(), ceil(document.size().height()) + 16))
+
+
 class ReportTableCard(QFrame):
     """A report table rendered with its frozen headings, merges, and notes."""
 
     def __init__(self, report: ReportTable, parent: QWidget | None = None) -> None:
+        from PySide6.QtGui import QColor
         super().__init__(parent)
         self.report = report
         self.setObjectName("recordReportTableCard")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(
             "QFrame#recordReportTableCard { border: 1px solid #DCE7EF; border-radius: 7px; background: white; }"
-            "QLabel#recordReportTableTitle { color: #18364F; font-size: 13px; font-weight: 650; }"
-            "QLabel#recordReportContext { color: #5B7287; font-size: 11px; }"
-            "QLabel#recordReportFootnote { color: #5B6874; font-size: 11px; }"
+            "QLabel#recordReportTableTitle { color: #18364F; font-size: 16px; font-weight: 600; }"
+            "QLabel#recordReportContext { color: #5B7287; font-size: 13px; }"
+            "QLabel#recordReportFootnote { color: #5B6874; font-size: 13px; }"
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(9, 8, 9, 8)
-        layout.setSpacing(5)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(8)
 
         if report.context_label:
             context = QLabel(report.context_label, self)
             context.setObjectName("recordReportContext")
             context.setWordWrap(True)
             layout.addWidget(context)
-        title = QLabel(report.title, self)
+        title = QLabel(self)
+        _set_frozen_label(title, report.title)
         title.setObjectName("recordReportTableTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
@@ -105,9 +180,10 @@ class ReportTableCard(QFrame):
         column_count = len(report.columns)
         table = QTableWidget(row_count, column_count, self)
         table.setObjectName("recordBusinessTable")
+        table.setItemDelegate(FrozenFootnoteDelegate(table))
         table.setProperty("reportTableId", report.table_id)
         table.setAccessibleName(report.title)
-        table.setAccessibleDescription("来自已保存核算记录的只读报告表。单元格来源明细可在下方来源审计中查看。")
+        table.setAccessibleDescription("来自已保存核算记录的只读报告表。来源类别和依据可通过单元格提示及本页业务依据查看。")
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -122,8 +198,8 @@ class ReportTableCard(QFrame):
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         table.setStyleSheet(
-            "QTableWidget#recordBusinessTable { gridline-color: #DCE5EC; border: 1px solid #DCE5EC; }"
-            "QTableWidget#recordBusinessTable::item { padding: 4px 6px; }"
+            "QTableWidget#recordBusinessTable { font-size: 14px; gridline-color: #DCE5EC; border: 1px solid #DCE5EC; }"
+            "QTableWidget#recordBusinessTable::item { padding: 7px 8px; }"
             "QTableWidget#recordBusinessTable::item:selected { background: #EDF5FA; color: #18364F; }"
         )
 
@@ -136,7 +212,7 @@ class ReportTableCard(QFrame):
                 item = QTableWidgetItem(_cell_text(cell))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                item.setBackground(Qt.GlobalColor.lightGray)
+                item.setBackground(QColor("#F2F7FB"))
                 table.setItem(row_index, column_index, item)
 
         hidden_body_cells = _covered_cells(report.body_merges)
@@ -158,10 +234,11 @@ class ReportTableCard(QFrame):
                     accessible_text = f"{row_context}；{accessible_text}"
                 item.setData(Qt.ItemDataRole.AccessibleTextRole, accessible_text)
                 if cell.source_detail:
-                    item.setToolTip(cell.source_detail)
+                    from .record_experience import business_source_text
+                    item.setToolTip(business_source_text(cell.source_detail))
                     item.setData(
                         Qt.ItemDataRole.AccessibleDescriptionRole,
-                        "来源审计详情可在本页下方展开查看。",
+                        business_source_text(cell.source_detail),
                     )
                 table.setItem(header_count + row_index, column_index, item)
 
@@ -171,20 +248,31 @@ class ReportTableCard(QFrame):
         total_weight = sum(max(0.1, value) for value in weights)
         target_width = max(620, min(1280, 92 * column_count))
         table_width = 0
+        table.ensurePolished()
+        metrics = table.fontMetrics()
         for column, weight in enumerate(weights):
             width = max(66, min(240, round(target_width * max(0.1, weight) / total_weight)))
+            # Preserve frozen header text and merges; size only the visual cell.
+            header_width = max((metrics.horizontalAdvance(line)
+                for row in range(header_count)
+                if table.item(row, column) is not None and table.columnSpan(row, column) == 1
+                for line in table.item(row, column).text().splitlines()), default=0)
+            width = max(width, min(240, header_width + 40))
             table.setColumnWidth(column, width)
             table_width += width
-        table.setMinimumWidth(table_width + 4)
+        table.setMinimumWidth(0)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         table.resizeRowsToContents()
         content_height = table.horizontalHeader().height() + table.verticalHeader().length() + 6
-        table.setMinimumHeight(max(90, content_height))
+        scrollbar_height = table.style().pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent)
+        table.setMinimumHeight(max(90, content_height + scrollbar_height))
         table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(table)
         self.table_widget = table
 
         for footnote in (*report.footnotes, *(row.note for row in report.rows if row.note)):
-            label = QLabel(footnote, self)
+            label = QLabel(self)
+            _set_frozen_label(label, footnote)
             label.setObjectName("recordReportFootnote")
             label.setWordWrap(True)
             layout.addWidget(label)
@@ -203,6 +291,7 @@ class RecordReportTab(QWidget):
         super().__init__(parent)
         self.include_audit = include_audit
         self.report_table_cards: list[ReportTableCard] = []
+        self.business_basis_labels: list[QLabel] = []
         self.setObjectName(object_name)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -234,8 +323,10 @@ class RecordReportTab(QWidget):
         while (item := self.content_layout.takeAt(0)) is not None:
             widget = item.widget()
             if widget is not None:
+                widget.hide()
                 widget.deleteLater()
         self.report_table_cards = []
+        self.business_basis_labels = []
         self.audit_text = None
         self.audit_table = None
         self.audit_panel = None
@@ -256,6 +347,7 @@ class RecordReportTab(QWidget):
         notices: Sequence[str] = (),
         audit_sections: Sequence[tuple[str, str]] = (),
         audit_tables: Sequence[ReportTable] = (),
+        business_sections: Sequence[tuple[str, str]] = (),
     ) -> None:
         self._clear_layout()
         sections = tuple(sections)
@@ -275,7 +367,7 @@ class RecordReportTab(QWidget):
                 heading = QLabel(section.title, self.content)
                 heading.setObjectName("recordReportSectionTitle")
                 heading.setWordWrap(True)
-                heading.setStyleSheet("font-size: 14px; font-weight: 700; color: #18364F; padding-top: 3px;")
+                heading.setStyleSheet("font-size: 17px; font-weight: 600; color: #18364F; padding-top: 3px;")
                 self.content_layout.addWidget(heading)
             for report in section.tables:
                 card = ReportTableCard(report, self.content)
@@ -285,9 +377,26 @@ class RecordReportTab(QWidget):
                 note_label = QLabel(note, self.content)
                 note_label.setObjectName("recordReportSectionNote")
                 note_label.setWordWrap(True)
-                note_label.setStyleSheet("color: #536A7B; font-size: 11px; padding: 1px 3px;")
+                note_label.setStyleSheet("color: #536A7B; font-size: 13px; padding: 1px 3px;")
                 self.content_layout.addWidget(note_label)
 
+        for title, content in business_sections:
+            if not content:
+                continue
+            heading = QLabel(title, self.content)
+            heading.setObjectName("recordBusinessBasisHeading")
+            heading.setWordWrap(True)
+            heading.setStyleSheet("font-size: 16px; font-weight: 600; color: #18364F; padding-top: 8px;")
+            self.content_layout.addWidget(heading)
+            label = QLabel(content, self.content)
+            label.setObjectName("recordBusinessBasisText")
+            label.setTextFormat(Qt.TextFormat.PlainText)
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+            label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+            label.setStyleSheet("font-size: 14px; color: #233749; padding: 3px;")
+            self.content_layout.addWidget(label)
+            self.business_basis_labels.append(label)
         if self.include_audit:
             self._add_audit_panel(all_tables, audit_sections)
         self.content_layout.addStretch(1)
