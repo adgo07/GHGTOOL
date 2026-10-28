@@ -1,4 +1,4 @@
-# 家族 UI 统一候选：待协调者独立验收
+# 家族 UI 统一：源码有限范围验收通过，准备PR
 
 2026-10-28；Owner 本轮统一设计为实施依据。分支 `codex/ghg-family-ui-unify`，基线 `origin/main@6fc5909646b855494abee55cff6fd95f8d18b4be`。原 checkout 的用户修改未触碰；managed worktree 隔离实施。未创建 Goal、未建 PR、未自动合并。
 
@@ -12,3 +12,6 @@
 
 
 2026-10-28 Python3.12补验：产品head `7bc2ff238faf45ab3b4652fdea767a2e2f4d8b68`，Python3.12.14 / PySide6 6.11.2，`python -u -m unittest tests.test_family_ui -v` **8通过/0失败/0错误，52.857s，exit0**。require_escalated命令将TEMP/TMP指向本轮隔离目录，解决此前默认临时目录访问问题；未改ACL、产品代码或真实数据。先前3.13结果及生产入口限制不改标；桌面验收仍由根协调者负责，暂不PR。完整命令见IMPLEMENTATION_REPORT末节。
+
+
+2026-10-28 根协调者最终结论：对 `768a667de878ce680a29b627a14de728a8171063` 的本轮源码UI有限范围验收通过，明确授权push、创建并attach PR，不合并。证据包括核心diff、最终四页离屏图、执行者3.13定向40项、根独立8项及执行者3.12新增8项通过。桌面CU接口两次读取挂起，未完成GHG真实交互；生产main全启动、跨屏、EXE仍未验。此前“等待源码验收”是历史状态，以本段为当前结论；不称全量桌面通过。
