@@ -66,3 +66,22 @@ $env:LOCALAPPDATA = "$env:TEMP/ghg-family-ui-production-20261028"
 生产入口应检查首次首页、1280×800/工作区限制、关后恢复及最大化恢复；不要使用真实用户数据目录。真实桌面结果由协调者补充，不由离屏结果代替。
 
 候选本地提交后停止；等待明确验收意见，再按指令创建并attach PR；不自动合并。
+
+
+## Python 3.12 定向补验（2026-10-28）
+
+按协调者要求，仅补跑 `tests.test_family_ui`，被测产品head为 `7bc2ff238faf45ab3b4652fdea767a2e2f4d8b68`。本地实际环境：Python **3.12.14** / PySide6 **6.11.2** / Qt offscreen。命令以 `require_escalated` 执行，TEMP/TMP指向本轮单独可写目录，未改ACL、真实业务数据或测试范围。
+
+```powershell
+$testTempRoot = 'G:/Python Project/GHGTOOL/.accept-tmp/family-ui-python312-20261028'
+New-Item -ItemType Directory -Path $testTempRoot -Force | Out-Null
+$env:TEMP = $testTempRoot
+$env:TMP = $testTempRoot
+$env:QT_QPA_PLATFORM = 'offscreen'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+& 'G:/Python Project/GHGTOOL/.venv/Scripts/python.exe' -u -m unittest tests.test_family_ui -v
+```
+
+结果：**8通过 / 0失败 / 0错误，52.857s，exit0**。坏JSON偏好用例的预期回退日志已出现，对应用例通过。此前默认临时目录的8项初始化错误仍作为历史尝试保留；该限制已通过本轮隔离TEMP/TMP解决，不再是这8项Python3.12测试的阻塞。
+
+本次仅更新报告与状态，没有产品代码变化；不将这8项结果扩大为31项既有UI、记录保护、生产main、真实桌面、EXE或CI的Python3.12通过。继续等待根协调者最终验收，未创建PR。

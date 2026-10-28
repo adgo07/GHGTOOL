@@ -9,3 +9,6 @@
 四个代表视图和一个DPR2抽查已做离屏检查，不等于真实桌面验收。等待协调者用Astra串行检查生产入口及QA入口；EXE、CI、全量回归未执行。收到明确验收通过后才创建并attach PR。
 
 本任务不涉及中央公共 Contract 语义修改；锁定central SHA仍为 `ee5feb0cc34dbd99790500fadd0c4c932e202a20`。中央UI设计候选 `e1486fb20c1dda33b7344ca860ff8f303c2183ee` 未声称已发布。无标准解释、标准支持范围、算法、Canonical、迁移、项目保存、正式Record或审计语义变化。先前PR60收口状态可从Git历史追溯，本轮不重新验收其全范围。
+
+
+2026-10-28 Python3.12补验：产品head `7bc2ff238faf45ab3b4652fdea767a2e2f4d8b68`，Python3.12.14 / PySide6 6.11.2，`python -u -m unittest tests.test_family_ui -v` **8通过/0失败/0错误，52.857s，exit0**。require_escalated命令将TEMP/TMP指向本轮隔离目录，解决此前默认临时目录访问问题；未改ACL、产品代码或真实数据。先前3.13结果及生产入口限制不改标；桌面验收仍由根协调者负责，暂不PR。完整命令见IMPLEMENTATION_REPORT末节。
