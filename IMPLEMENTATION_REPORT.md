@@ -113,3 +113,23 @@ GitHub Actions证据：[run40668806658](https://github.com/adgo07/GHGTOOL/action
 - compileall与`git diff --check`：exit0；未重复14项、全量回归或扩展其他业务。
 
 最终图片当前环境位置：`G:/Python Project/GHGTOOL/.accept-tmp/family-ui-python312-20261028/ci313-small-fuel-final.png`。这是本次临时证据位置，不是仓库固定路径。源代码修复不涉及公共Contract、算法、标准支持、正式记录/项目保存或审计规则。更新同一PR后等待新head实际CI；此前源码有限验收不外推本轮真实桌面或EXE通过。
+
+
+## CI314超时定位与事件过滤器生命周期修复（2026-10-28）
+
+GitHub Actions [run40672239566](https://github.com/adgo07/GHGTOOL/actions/runs/40672239566)，job122761662456，head `8d0ed1f815986d2bece4ae125d142a2c0c0cf8e1`。check annotations明确为“The job has exceeded the maximum execution time of 40m0s”，不是手动取消。前置manual及125%/150%探针均通过，全量unittest运行中超时；Standalone Audit依赖该job因而skipped，没有Standalone通过证据。
+
+比较[基线CI311](https://github.com/adgo07/GHGTOOL/actions/runs/40302567376)：main `6fc5909646b855494abee55cff6fd95f8d18b4be`的同一workflow全量1122项用时2107.461s并成功。CI314全量从10:30:31 UTC开始，到40分钟job预算取消时只取得176条测试记录。相邻日志时间差显示后段FGD场景从基线约7～18秒增长到60～158秒，且随GUI窗口数量增长；这些是日志间隔估计，不冒充精确测试计时。不能按既有预算不足处理。
+
+本地同进程隔离窗口探针定位到本轮引入的`CarbonAccountingMainWindow`应用级滚轮过滤器：创建即安装，隐藏/关闭后仍留在QApplication。已有测试会显式`deleteLater()`后调用`processEvents()`；DeferredDelete未派发时旧QObject还存在，后续所有窗口事件继续经过旧过滤器。旧版前6轮每轮过滤回调数为314371、628742、943112、1257484、1571851、1886228，呈线性增长；已取得证据后只停止本轮该探针的两级Python进程，没有终止其他会话进程。
+
+修复仅在窗口显示时安装、隐藏时移除，取消关闭时仍保持保护，重新显示时恢复。初始化隐藏窗口不再监听全局事件；项目关闭确认及几何保存流程不变。不修改业务算法、测试夹具销毁方式、测试范围、原断言或CI40分钟配置，不盲目重跑旧head。
+
+本地Python3.12.14 / PySide6 6.11.2、offscreen、既有隔离TEMP/TMP验证：
+
+- 同负载新进程5轮窗口创建/关闭探针：每轮回调311871、311869、311871、311869、311870；每轮14.879、14.729、13.319、16.039、15.759秒。保留了同样未派发DeferredDelete的条件，回调不再随已关闭窗口累积。这是带回调计数的定向探针，不外推CI全量用时。
+- `python -m unittest tests.test_family_ui.FamilyUiTests.test_closed_window_stops_observing_global_events_and_reopen_restores_it tests.test_family_ui.FamilyUiTests.test_shared_input_outer_size_precision_focus_and_wheel -v`：**2通过/0失败，26.572s**。新增行为测试实际向外部widget发送事件，确认显示/重开接收、隐藏/关闭不再接收；原Decimal、空值、最终40高度、焦点与滚轮保护断言保持。
+- 用unittest.TestSuite在同进程连续运行原`tests.test_b_fgd_chain.FGDChainTests.test_explicit_source_on_unfinished_row_is_not_hidden`三次，业务断言不变：**3通过/0失败，60.514s**，独立计时19.782、25.738、14.981秒；未出现随轮数持续增长。
+- `compileall`（修改的app与测试）及`git diff --check`：exit0。未重复全量或额外页面/DPI矩阵。GitHub新head全量/Standalone仍需实际完成，不能以本地定向证据替代。
+
+本修复提交并推送同一PR62，等待根复核与新CI；真实桌面、生产main全启动、跨屏及EXE未验边界保持。

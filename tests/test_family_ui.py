@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
-from PySide6.QtCore import QPointF, QPoint, QRect, QSize, Qt
+from PySide6.QtCore import QPointF, QPoint, QRect, QSize, Qt, QEvent
 from PySide6.QtGui import QFontDatabase, QWheelEvent
 from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QPushButton, QTableWidgetItem
 from apps.carbon_accounting_desktop.app import create_main_window
@@ -43,6 +43,25 @@ class FamilyUiTests(unittest.TestCase):
         self.window.deleteLater()
         self.app.processEvents()
         self.directory.cleanup()
+
+    def test_closed_window_stops_observing_global_events_and_reopen_restores_it(self):
+        from types import SimpleNamespace
+        from PySide6.QtWidgets import QWidget
+        from apps.carbon_accounting_desktop.app import CarbonAccountingMainWindow
+        class ObservedWindow(CarbonAccountingMainWindow):
+            calls = 0
+            def eventFilter(self, watched, event):
+                self.calls += 1
+                return super().eventFilter(watched, event)
+        window = ObservedWindow()
+        window.window_geometry = SimpleNamespace(shown=lambda:None, save=lambda:None)
+        sink = QWidget()
+        for action, active in ((window.show,True),(window.hide,False),(window.show,True),(window.close,False)):
+            action(); self.app.processEvents()
+            before = window.calls
+            QApplication.sendEvent(sink,QEvent(QEvent.Type.User))
+            self.assertEqual(window.calls > before,active)
+        window.deleteLater(); sink.deleteLater()
 
     def test_small_screen_and_missing_screen_fit_including_frame(self):
         for area in (QRect(0,0,1920,1040), QRect(0,0,1024,768), QRect(-800,0,800,560)):

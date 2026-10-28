@@ -41,6 +41,10 @@ from packages.ui.chinese import initialize_chinese, report_chinese_failure
 class CarbonAccountingMainWindow(QMainWindow):
     """Main window that asks how to handle unsaved project state before closing."""
 
+    def __init__(self):
+        super().__init__()
+        self._wheel_filter_installed = False
+
     def eventFilter(self, watched, event):
         if event.type() == QEvent.Type.Wheel and isinstance(watched, (QComboBox, QAbstractSpinBox)) and self.isAncestorOf(watched):
             if not isinstance(watched, QComboBox) or not watched.view().isVisible():
@@ -59,7 +63,18 @@ class CarbonAccountingMainWindow(QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
+        application = QApplication.instance()
+        if application is not None and not self._wheel_filter_installed:
+            application.installEventFilter(self)
+            self._wheel_filter_installed = True
         self.window_geometry.shown()
+
+    def hideEvent(self, event):
+        application = QApplication.instance()
+        if application is not None and self._wheel_filter_installed:
+            application.removeEventFilter(self)
+            self._wheel_filter_installed = False
+        super().hideEvent(event)
 
 
 def create_main_window(
@@ -90,8 +105,6 @@ def create_main_window(
 
     window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
-    if application is not None:
-        application.installEventFilter(window)
     window.setWindowTitle(app_config.app_name)
     window.setStyleSheet(application_stylesheet())
     window.setFont(QFont("Microsoft YaHei UI", 10))
