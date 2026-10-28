@@ -190,8 +190,7 @@ class G03ShellTest(unittest.TestCase):
             icon = button.findChild(QLabel, "homeEntryIcon")
             self.assertIsNotNone(icon)
             assert icon is not None
-            self.assertIsNotNone(icon.pixmap())
-            self.assertFalse(icon.pixmap().isNull())
+            self.assertFalse(icon._icon.isNull())
 
     def test_shell_uses_light_v4_sidebar_styling(self) -> None:
         shell_source = Path(shell_module.__file__).read_text(encoding="utf-8")
@@ -272,9 +271,9 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(template.findChild(QLabel, "pageDescription").text(),
                          page.excel_adapter.template_description)
         for section_name, title in (
-            ("excelImportFileSection", "01 选择文件与核算信息"),
-            ("excelImportCheckSection", "02 数据检查与预览"),
-            ("excelImportActionSection", "03 保存项目与正式核算"),
+            ("excelImportFileSection", "文件选择"),
+            ("excelImportCheckSection", "数据预览与检查"),
+            ("excelImportActionSection", "处理结果"),
         ):
             section = page.findChild(QFrame, section_name)
             self.assertEqual(section.findChild(QLabel, "cardTitle").text(), title)
@@ -404,8 +403,8 @@ class G03ShellTest(unittest.TestCase):
         self.assertLessEqual(pixmap.height(), 52)
         self.assertAlmostEqual(pixmap.width() / pixmap.height(), 4.03, delta=0.15)
         self.assertEqual(shell.main_scroll_area.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.assertGreaterEqual(self.window.minimumWidth(), 1180)
-        self.assertGreaterEqual(self.window.minimumHeight(), 720)
+        self.assertLessEqual(self.window.minimumWidth(), 960)
+        self.assertLessEqual(self.window.minimumHeight(), 600)
 
         self.window.resize(1180, 720)
         self.application.processEvents()

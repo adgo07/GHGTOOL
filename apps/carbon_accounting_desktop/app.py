@@ -7,8 +7,9 @@ from packages.ui.dialogs import MessageBox as QMessageBox
 import sys
 from collections.abc import Sequence
 
+from PySide6.QtCore import QEvent
 from PySide6.QtGui import QCloseEvent, QFont
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QComboBox, QAbstractSpinBox
 
 from packages.application import (
     CarbonAccountingUseCase,
@@ -32,6 +33,7 @@ from .config import AppConfig
 from .logging_config import configure_logging
 from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
+from packages.ui.window_geometry import WindowGeometry
 from packages.ui.export_location import ExportLocationService
 from packages.ui.chinese import initialize_chinese, report_chinese_failure
 
@@ -39,13 +41,25 @@ from packages.ui.chinese import initialize_chinese, report_chinese_failure
 class CarbonAccountingMainWindow(QMainWindow):
     """Main window that asks how to handle unsaved project state before closing."""
 
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Type.Wheel and isinstance(watched, (QComboBox, QAbstractSpinBox)) and self.isAncestorOf(watched):
+            if not isinstance(watched, QComboBox) or not watched.view().isVisible():
+                event.ignore()
+                return True
+        return super().eventFilter(watched, event)
+
     def closeEvent(self, event: QCloseEvent) -> None:  # type: ignore[override]
         shell = self.centralWidget()
         confirm = getattr(shell, "confirm_before_close", None)
         if callable(confirm) and not confirm():
             event.ignore()
             return
+        self.window_geometry.save()
         event.accept()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.window_geometry.shown()
 
 
 def create_main_window(
@@ -76,13 +90,14 @@ def create_main_window(
 
     window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
+    if application is not None:
+        application.installEventFilter(window)
     window.setWindowTitle(app_config.app_name)
-    window.setMinimumSize(1180, 720)
-    window.resize(1280, 800)
     window.setStyleSheet(application_stylesheet())
     window.setFont(QFont("Microsoft YaHei UI", 10))
     shared_export_location = export_location_service or ExportLocationService()
     window.export_location_service = shared_export_location
+    window.window_geometry = WindowGeometry(window, shared_export_location.settings_repository)
     window.setCentralWidget(create_shell(
         app_config,
         catalog_service=catalog,

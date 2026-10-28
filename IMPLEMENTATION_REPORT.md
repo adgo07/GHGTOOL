@@ -1,49 +1,68 @@
-# PR60 五页 V2 与验收问题收口报告
+# 家族 UI 统一实施候选
 
-本轮在已批准五页 V2 上收口普通记录业务依据、脚注字形、导入项目/记录操作和可读性问题，并完整保留此前启动日志失败的安全退出修复。产品代码固定于 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；本地裸字体完整运行 **1121通过/1失败，5371.075s**，受控运行代码/测试/构建/资源 338 项前后哈希不变。astra r3 对两尺寸实际 Qt 离屏图及相关源码给出限定视觉 PASS。源会话正式独立验收另行进行，PR60未合并。
+日期：2026-10-28。Owner 本轮统一设计为实施依据；候选完成后停止，等待协调者独立验收，初次不建 PR。
 
-## 本轮范围与行为
+## 平台 / Contract 预检查
 
-- 记录详情保持两个页签。普通层撤除技术审计入口，直接提供已冻结业务输入、参数来源、计算依据和标准定位；旧记录、无表式或局部快照损坏仍保留可读原值与缺项说明。内部枚举改为业务名称，来源文档编号原文保留；完整数值以业务内容 tooltip/无障碍说明保留，普通数值显示修约不回流历史数据或正式判定。
-- B.1/B.2/B.7/B.8/B.9既有脚注 a/b 在 Qt 呈现层使用普通拉丁字形上标绘制，明确保留单位换行。原冻结表头、合并单元格、脚注、共享报告模型及Word分页逐字不改；不增加或打包字体。
-- 导入顺序为工作簿→核算信息/边界→检查预览→保存全部有效单元→主动正式核算。空态隐藏空表/空详情；已保存项目独立次级入口，展示 Canonical 保存的企业、期间、地区与边界，隐藏新导入草稿而不覆盖草稿或写默认。信息/计量路径变化后须重检才能保存。
-- 正式核算成功仍每次新增不可编辑 Record。本次/最新查看绑定本单元最后实际生成记录，历史选择有独立查看动作；关联保存失败保留原恢复提示，不冒称成功。成功后主操作为查看本次记录，再次核算降为次级，明确其追加效果。
-- 来源长名完整换行并按实际宽度保留末行，少量搜索结果让详情获得空间；记录列表压缩行高且保留状态/日期，详情头紧凑、宽表仅在表内横滚；设置路径从盘符起显示并可完整复制/访问。勾选、半选、禁用及焦点只在导入局部强化，全局主题、首页/壳/新建核算未改。
+- 业务仓origin已实际确认为 `https://github.com/adgo07/GHGTOOL.git`；远端默认分支main，fetch后基线 `6fc5909646b855494abee55cff6fd95f8d18b4be`。原工作区有无关修改，全部保留。
+- locked central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；读取其Architecture V2.1 Frozen。适用MUST：Presentation与Application/Domain分离；显示不得改变正式计算；历史Record不得漂移；Presentation State不得成为跨平台Workspace。全部保持。
+- 本任务不涉及中央公共 Contract 语义修改，不修改platform-lock、baseline、Calculator、Canonical、数据库迁移或标准支持范围；无Frozen冲突，无需改中央Contract。
+- 读取已验证中央origin/main的GUIDE_INDEX、现行UI指南v0.2、产品家族规格及轻量验收清单；v0.1按仓规则读取但识别为历史。Owner本轮设计及中央候选 `e1486fb20c1dda33b7344ca860ff8f303c2183ee` 是本轮实施输入，不声称候选已发布。Qt高DPI参考：https://doc.qt.io/qt-6/highdpi.html 。
+- Standard Issue相关：否；既有8项台账已读，本任务不改变任何既有软件解释。
 
-## 代码与证据身份
+## 改动
 
-Canonical repository 为 `adgo07/GHGTOOL`，实际 origin/fetch 已核对；复用 `codex/ui-five-business-pages-v2`，入口 `e33624ed98c1ceb2e6445917b6e12cee0bd02a8a`，main `d7159f77ddb103376f5ca6bdd3a9532c101433e3`。不依据机器绝对路径识别仓库，不覆盖另一工作区的用户修改。
+- `design_tokens.py`为共享字体、输入、按钮、页签、表格样式唯一来源；`business_page_style.py`保留表格换行/表面组件与兼容入口，移除重复控件QSS；新建、标准详情、记录局部覆盖同步清理。输入内容高36+两侧2px边框=最终40；focus只改边框颜色，不跳尺寸。导航局部规则为内容44+两侧1=46。
+- 正文最大1440不含外边距；margin按未施加边距的业务可用宽clamp计算。页头提供actions槽；首页设置右上；由首页打开设置保留无侧栏并可回首页，由业务打开设置保留侧栏。
+- 窗口首次1280×800客户区目标，非最大化，含系统边框收进当前工作区并居中。以后从现有user.sqlite的独立产品偏好key恢复正常几何/最大化；损坏偏好安全回退，掉屏/工作区变更收回。没有修改项目恢复。
+- 已有Logo资源本身与指定3060×759 RGBA原图hash相同，无需制造资产diff；BrandLogo每次按当前DPR从原图缩放，不放大缩略图。统一图标保留中央phase2的24×24/1.7几何；原生QIcon SVG engine读取随包调色SVG，不固定18物理像素。首页装饰图标直接矢量绘制。资源加入setuptools与现有严格打包白名单。
+- 表格默认48、最低44，长文动态增高；标准/记录改完整换行，计数在列表底部。导入四区改为模板与说明/文件选择/数据预览与检查/处理结果，真实项目保存与正式核算能力不变。
+- 主按钮#116FAE、hover#0D6097，次文字#526A7D；主/次/轻量/危险角色状态统一。下拉/步进框折叠状态滚轮不改业务值。Decimal保持文本与空值，不切换QDoubleSpinBox。
+- 标准生命周期、软件支持与配套通则角色未批量替换；保留有依据的“已实现核算”“核算未开放”等现词，不声称正式验收已完成。
 
-本轮是 Owner 新授权的 PR60 增量，不再冒用原 UI package 的初始白名单。显式方法保护证明覆盖6个UI文件；Canonical项目保存/来源证据方法、正式calculate与save_after_record调用不变，Application/Core/Calculator/Adapter/DB/迁移/资源/受控母版/Word模型/依赖/workflow与启动修后入口基线无差异，8个受保护UI源逐项不变。证明见[scope-proof.json](docs/ui/business-pages-v2/refinements-r3/scope-proof.json)。产品代码、证据文档head及最终PR/CI/制品身份分列；正式最新head及CI/ZIP/manifest以PR60最终交付回执锁定，不把旧CI309或旧包改标新版本。
+## 实际验证
 
-## 本地执行与失败记录
+最终本地环境：Python **3.13.3**、PySide6 **6.11.1**、Qt offscreen；不冒充要求的Python3.12或原生桌面/EXE。
 
-主命令 `python -B -m unittest discover -s tests -t . -v`；本地裸字体完整运行实际为 **1121通过/1失败，5371.075s**。运行前后全部受控运行代码/测试/构建/资源哈希一致，原始全量日志SHA256 `6f618d0d52ae8b093c1374006dbae4c0200dc81f108f8990cba77f850c6bafbf`。见[完整摘要](docs/ui/business-pages-v2/refinements-r3/local-full-summary.json)。Windows/Python3.12.14，Qt6.11.2，离屏与隔离合成库；不等同原生交互。
+| 命令 | 最终结果 |
+|---|---|
+| `python -m unittest tests.test_g03_shell tests.test_p3_c_records_ui tests.test_uir01_field_semantics -v` | 31通过/0失败，28.944s |
+| `python -m unittest tests.test_family_ui -q` | 8通过/0失败，26.084s |
+| `python -m unittest tests.test_main_integration_ui.MainIntegrationUiTests.test_repeated_success_appends_and_failed_input_preserves_saved_records -v` | 1通过/0失败，14.071s |
+| `python -m compileall -q packages/ui apps/carbon_accounting_desktop scripts/run_family_ui_review.py` | exit0 |
+| `python -c "from scripts.build_standalone import _validate_approved_template_inputs; _validate_approved_template_inputs()"` | 资源白名单/原模板hash检查通过 |
+| `git diff --check` | exit0 |
 
-定向组有重叠，不累计：记录绑定2/2（40.441s）；A-11修后34/34（129.090s）及真实旧记录/跨启动2/2（27.663s）；脚注及冻结Word守卫20/20（31.531s）；可读性九模块80/80（335.305s），来源行高修后同组80/80（442.401s）；导入/恢复/冻结报告24/24（244.685s），上下文与Shell15/15（42.472s）；astra首轮修后冻结详情/Word及核算31/31（121.197s）；真实电力正式Record呈现1/1（5.844s）；最终列表/字体2/2（26.627s）。命令/日志名/摘要见[定向索引](docs/ui/business-pages-v2/refinements-r3/local-directed-index.json)，完整原件独立保留。
+新用例覆盖：屏幕工作区含边框约束、首次非最大化与最大化恢复、坏偏好、设置上下文、40/46最终外框、Decimal长文本/空值、键盘焦点几何、滚轮、禁用主按钮、中文长行、Logo原图hash与DPR2、SVG透明与DPR。
 
-修前真实记录绑定1项失败、A-11修前1项失败均已复现并修复。第一次A-11组32/33通过，待删除QLabel被测试误读为重复当前内容；随后隐藏移除控件并维护当前业务标签列表。第一次可读性运行因新增测试插入位置错误未执行；原日志保留。新增业务名称守卫曾误要求无电量变量的表式夹具显示电量（2项1通过/1失败57.103s），改核实际保存业务项并新增真实Canonical电力→Record→只读界面场景；该新增场景初次目录引用错误（2项1通过/1错误13.618s）也保留，修正后独立重跑通过。两版完整运行因截图发现来源末行及窄窗列宽问题主动中止，均不计完整通过。所有失败/中止与修后日志不覆盖。另一次字体引导完整复验为固化可复现的QA前置而主动停止，未完成不计通过；最终同head完整required CI单独执行并记录。
+初次25项有1项旧1180×720最小尺寸断言失败，按本轮批准尺寸更新。新用例初次6通过/2失败（导航QSS将固定46压至38、QLabel.pixmap按当前屏幕DPR返回180），分别修正导航有效QSS和检查传给Qt的DPR2原图pixmap。后续自定义Python QIconEngine在回收时出现0xc0000374，已移除，改为原生SVG engine并重跑上述31+8通过。旧导入区标题/栅格pixmap断言按已批准UI改动同步，不删业务断言。
 
-Canonical校验9标准/12来源/102参数/138因子、compileall、pip check和diff检查均通过；数量仅为目录验证，不代表支持9项标准。未重复执行无变化的工作流，不修改费用预算、可见性或required checks。
+尝试现有`.venv` Python3.12.14/PySide6 6.11.2，8项均在创建临时目录时初始化错误；其进程对临时目录及本worktree文件写入被拒。没有调整系统ACL。生产main离屏检查使用3.13时中文翻译资源版本校验降级并等待提示，已终止；未把QA脚本可启动算成生产main通过。上述环境限制交协调者用真实桌面支持环境验证。
 
-## 本机离屏字体前置与QA修正
+离屏四图在`build/family-ui-views-native-svg/`（首页/标准库/新建/记录详情）；DPR2抽查在`build/family-ui-views-dpr2/`，1280×800 DIP输出2560×1600像素。只作参考；初期缺中文字体的调试图不作为证据。CI、全量业务回归、EXE构建/启动、真实多屏热插拔与桌面验收均未执行。
 
-上述完整运行唯一失败为日期列宽视觉断言。相同产品/断言在字体枚举0的进程测得日期140px（104px列宽不足）；仅QA进程注册已有系统字体后测得76px，同一断言通过。原失败不改标为完整通过。修复仅测试setUpClass与QFontDatabase导入：字体枚举为空时加载可用Windows系统字体，仍无字体则明确报错，不skip、不安装或打包字体、不放宽断言。修后普通命令 `python -B -m unittest -v tests.test_business_pages_visual`，21/21，119.918s。QA增量head `4cd2d09ba9595fdc8ff44b91a5f366adace6c525`；产品29源与astra的fb56逐项相同。断言体AST保护证明及字体复现另存，最终完整required CI独立记录，不能用定向相加冒充本地全量通过。
+## 协调者串行桌面验收入口
 
-## astra限定视觉复核
+当前执行环境worktree：`C:/Users/WANGWEI/.codex/worktrees/ghg-family-ui/GHGTOOL`；此绝对路径仅为本次环境记录，不是仓库身份。
 
-r3捕获于清洁产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；1180×800与1440×1000共86整窗图，另6张控件状态图，回调异常0。92/92图、29/29源hash由astra独立核对，复核turn `01a1719a-f04a-7890-9fba-288ecd0b361b`。r1四项HOLD（状态/日期、长小数与匿名用量、B2脚注、成功后按钮主次）全部关闭，无新增视觉阻断。完整快照清单SHA256 `5ee7e5e92f716f811d26371c1e95d844a64b3f66c5446ccc9bf0494103fd4dbc`。
+先进入该目录。两个入口都移除可能残留的`QT_QPA_PLATFORM`、`QT_SCALE_FACTOR`，使用支持的本机Python3.12；本次可用可执行文件为 `G:/Python Project/GHGTOOL/.venv/Scripts/python.exe`（若该环境仍被拒写，请由协调者使用其已验证桌面运行环境，不更改系统权限）。
 
-[精选图集](docs/ui/business-pages-v2/refinements-r3/review.html) · [限定回执](docs/ui/business-pages-v2/refinements-r3/astra-receipt.json)。astra确认完整业务依据绑定tooltip/无障碍说明，但未实测悬停或读屏；截图与定向属性检查不能替代原生行为验收。r1/r2/r3全部原图、脚注前后probe与哈希、原始日志独立归档，旧r9图集/早期CI与候选包保留原身份。
+```powershell
+Set-Location 'C:/Users/WANGWEI/.codex/worktrees/ghg-family-ui/GHGTOOL'
+Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
+Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
+# QA：明确的隔离目录，自动构建catalog，含一条synthetic G07示例记录。
+& 'G:/Python Project/GHGTOOL/.venv/Scripts/python.exe' scripts/run_family_ui_review.py --data-dir "$env:TEMP/ghg-family-ui-qa-20261028"
+```
 
-## 平台 / Contract预检查
+QA入口不等同生产main()全启动，导入测试夹具时恢复原QPA环境。四页步骤：首页→标准库→新建核算→核算记录打开“G07示例企业”。额外抽查：首页右上设置返回首页，业务侧栏设置保持侧栏；Tab焦点、项目展开/收起、输入小数、列表长中文、DPR Logo、无选择/无文件/取消态。
 
-业务仓产品代码SHA如上；中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，Architecture V2.1 / Numeric v1 / Numeric Profiles v1仍为FROZEN。已读中央当前正式UI v0.2及适用界面指南（ACTIVE/EVOLVING，不当Frozen）；本任务不涉及中央公共 Contract。适用MUST/MUST NOT：保持分层、显示与计算隔离、Carbon项目p40/HALF_UP Profile与完整值正式比较、冻结Record与独立projects.sqlite语义、旧记录与来源证据、正式审计、受控Excel及Word表式。无中央冲突、偏差、adoption或baseline升级。相关Standard Issue：无本轮新增标准解释问题，不改变已有软件解释或支持范围。
+```powershell
+# 生产入口：build/databases/catalog.sqlite已由本轮构建；不依赖测试夹具。
+$env:LOCALAPPDATA = "$env:TEMP/ghg-family-ui-production-20261028"
+& 'G:/Python Project/GHGTOOL/.venv/Scripts/python.exe' -m apps.carbon_accounting_desktop
+```
 
-## 工程交付与独立验收边界
+生产入口应检查首次首页、1280×800/工作区限制、关后恢复及最大化恢复；不要使用真实用户数据目录。真实桌面结果由协调者补充，不由离屏结果代替。
 
-既有启动日志OSError保护完整保留：业务仓库初始化前固定中文提示并return1，真实用户日志路径不可写时仍安全拒绝启动。实际访问失败原因仍未确定；不声称该环境阻塞消除。未修改用户实际日志/数据库、ACL或管理员策略。一次中止旧测试的筛选曾误匹配另一仓库两个测试进程，中止返回错误后已核实其仍运行；后续仅对解释器/完整命令/启动时间核实的本聊天固定PID操作，未修改其他仓库文件。
-
-本提交记录产品代码本地与视觉证据；同一PR的required CI、实际精确head ZIP/manifest、两个job原日志、本地包审计/两次隔离启动/启动后再审计及静态冻结模块绑定，按最终交付回执实际结果单列。旧e336/CI309仅为历史启动基线，不覆盖本轮。原生Windows桌面、实际用户目录负例、IME、Office、人工DPI、企业样例和干净机未执行；不以离屏或CI代替。PR60保持未合并、不发布，交源会话独立验收后停止。
-
-后续新建核算整页改进是独立范围，本PR不实施。Owner已批准热力“常用入口简化，特殊情况可展开，旧值保留”，015防重复计碳/未知边界/输出语义不改；无需重复询问。
+候选本地提交后停止；等待明确验收意见，再按指令创建并attach PR；不自动合并。
