@@ -92,3 +92,24 @@ $env:PYTHONDONTWRITEBYTECODE = '1'
 根协调者明确对head `768a667de878ce680a29b627a14de728a8171063` 给出本轮源码UI有限范围验收通过，并授权push、创建并attach PR，不合并。其已复核核心diff、最终四页离屏图、执行者Python3.13定向40项、根独立8项及执行者Python3.12新增8项通过；根独立结果来自协调者回执，不冒充本会话执行。
 
 桌面CU接口两次读取挂起，未完成GHG真实交互；生产main全启动、跨屏、EXE仍未验。不将此次源码验收写成全量桌面或发行验收。此文档提交仅同步验收状态，不更改已验产品代码；此前待验收描述作为历史记录保留。
+
+
+## PR62 / CI313 缩放探针修复（2026-10-28）
+
+GitHub Actions证据：[run40668806658](https://github.com/adgo07/GHGTOOL/actions/runs/40668806658)，job122750042242，head `0bb10a7362052db165a62c043cc39ee0e443f785`。失败发生在`uir04_scale_acceptance.py --scale 1.25/1.5`，其余业务manual五场景PASS；全量unittest步骤尚未执行，Standalone Audit因needs跳过，不称全量测试失败列表已取得或Standalone已审计。
+
+根因：Qt offscreen默认800×800物理屏，缩放后工作区只有640/533 DIP。新增窗口收回规则使旧探针要求的1366×768客户区被正确缩小，导航进一步挤压编辑区至106/53 DIP。根据[Qt6.11 offscreen源码配置接口](https://github.com/qt/qtbase/blob/6.11/src/plugins/platforms/offscreen/qoffscreenintegration.cpp)，探针显式配置2560×1600物理虚拟屏，并验证真实客户区1366×768及外框在配置工作区内。Windows平台参数的盘符冒号会被拆分，初始化时使用配置文件的相对路径并恢复cwd。测量前显式展示目标分区，避免读取隐藏页面旧几何。没有删除/降低原行数、最小尺寸、边界、重叠或删除断言，没有修改workflow/required checks。
+
+小工作区实际图片还暴露了字段裁剪，不能仅靠row host宽度断言宣布可用：排放源目录在窄宽下使用紧凑下拉，编辑区以420 DIP最小内容宽度及可达的局部滚动承载；普通宽度保留原目录。紧凑导航纯展示，排除于form_state和dirty tracking，原排放源状态与输入不变。small探针补充活动量输入垂直可见、左右端分别可达及编辑区右端可达断言；宽输入不要求在极窄视口同时显示两端。生产窗口工作区约束保持。
+
+本地实际Python3.12.14/PySide6 6.11.2，offscreen，沿用隔离TEMP/TMP：
+
+- `python scripts/uir04_scale_acceptance.py --scale 1.25`：PASS，client1366×768。
+- `python scripts/uir04_scale_acceptance.py --scale 1.5`：PASS，client1366×768。
+- `python -m unittest tests.test_family_ui -q`：9通过/0失败，52.796s（紧凑目录阶段）。
+- 初次目录组+新状态测试：14通过/1失败，152.617s，失败为既有source_adapters响应式列数集合仅{2}；局部滚动完成后保持原“两种列数”断言重新通过，未改该测试。
+- 最终`python -m unittest tests.test_accounting_source_directory.SourceDirectoryTests.test_fuel_source_adapters_stay_hidden_while_real_choices_change_original_data tests.test_family_ui.FamilyUiTests.test_compact_directory_navigation_preserves_business_source_state -q`：2通过/0失败，25.229s。新增状态测试同时确认完整form_state及dirty标记不变。
+- 最终`python scripts/uir04_scale_acceptance.py --scale 1.5 --work-area small --screenshot <本轮可写目录>/ci313-small-fuel-final.png`：PASS，client531×531；原几何断言及实际控件滚动可达断言全部执行。中间截图写本worktree被3.12进程拒绝，另一次新加“宽文本框需同时完整容纳于窄视口”的不适用检查失败；分别改用已验证可写G盘隔离目录和真实的左右端分别可达检查，不改原业务断言。最终只有这一张作为本修复的视觉参考，非真实桌面证据。
+- compileall与`git diff --check`：exit0；未重复14项、全量回归或扩展其他业务。
+
+最终图片当前环境位置：`G:/Python Project/GHGTOOL/.accept-tmp/family-ui-python312-20261028/ci313-small-fuel-final.png`。这是本次临时证据位置，不是仓库固定路径。源代码修复不涉及公共Contract、算法、标准支持、正式记录/项目保存或审计规则。更新同一PR后等待新head实际CI；此前源码有限验收不外推本轮真实桌面或EXE通过。

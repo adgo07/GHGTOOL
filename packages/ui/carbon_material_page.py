@@ -1715,7 +1715,7 @@ class CarbonMaterialAccountingPage(BasePage):
         values: dict[str, object] = {"external_state_recorded": self._external_state_recorded, "external_known_facts": dict(self._external_known_facts)}
         excluded = {
             "accountingProjectName", "savedAccountingProjects", "accountingUnitSelector",
-            "showProfessionalDetailsCheckBox", "accountingPeriodMonth", "accountingSourceNavigation",
+            "showProfessionalDetailsCheckBox", "accountingPeriodMonth", "accountingSourceNavigation", "compactSourceDirectory",
         }
         for widget in self.findChildren(QWidget):
             name = widget.objectName()
@@ -8186,7 +8186,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _install_dirty_tracking(self) -> None:
         for widget in self.findChildren(QWidget):
-            if widget.objectName() in {"showProfessionalDetailsCheckBox", "accountingSourceNavigation"}:
+            if widget.objectName() in {"showProfessionalDetailsCheckBox", "accountingSourceNavigation", "compactSourceDirectory"}:
                 continue
             self._wire_dirty_tracking(widget)
 

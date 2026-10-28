@@ -120,6 +120,27 @@ class FamilyUiTests(unittest.TestCase):
         self.assertGreaterEqual(table.rowHeight(0),table.sizeHintForRow(0))
         table.deleteLater()
 
+    def test_compact_directory_navigation_preserves_business_source_state(self):
+        shell=self.window.centralWidget(); shell.navigate(AppRoute.NEW_ACCOUNTING)
+        page=shell.pages[AppRoute.NEW_ACCOUNTING]
+        self.window.setMinimumWidth(0); self.window.resize(600,600)
+        for _ in range(4): self.app.processEvents()
+        directory=page.source_directory
+        self.assertTrue(directory.compact_selector.isVisible())
+        self.assertTrue(directory.navigation_panel.isHidden())
+        self.assertGreater(directory.editor_scroll.horizontalScrollBar().maximum(),0)
+        before={key:widget.currentIndex() for key,widget in page._source_statuses.items()}
+        saved_form=page._capture_form_state()
+        dirty=(page._project_dirty,page._input_dirty)
+        index=directory.compact_selector.findData('fume')
+        directory.compact_selector.activated.emit(index)
+        self.app.processEvents()
+        self.assertEqual(directory._selected,'fume')
+        self.assertEqual(before,{key:widget.currentIndex() for key,widget in page._source_statuses.items()})
+        self.assertEqual(saved_form,page._capture_form_state())
+        self.assertEqual(dirty,(page._project_dirty,page._input_dirty))
+        self.assertNotIn('compactSourceDirectory',saved_form)
+
     def test_logo_original_hash_and_vector_dpr(self):
         import hashlib
         logo_path=AppConfig().logo_path()

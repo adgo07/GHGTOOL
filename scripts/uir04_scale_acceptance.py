@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import tempfile
@@ -18,6 +19,8 @@ if str(PROJECT_ROOT) not in sys.path:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the UIR04 scaled Qt layout probe")
     parser.add_argument("--scale", choices=("1.0", "1.25", "1.5"), required=True)
+    parser.add_argument("--work-area", choices=("desktop", "small"), default="desktop")
+    parser.add_argument("--screenshot", type=Path)
     args = parser.parse_args()
 
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -38,8 +41,30 @@ def main() -> int:
     from packages.reference_data import DEFAULT_SOURCE_PATH
     from packages.ui.view_models import AppRoute
 
-    application = QApplication.instance() or QApplication([])
     with tempfile.TemporaryDirectory(prefix="uir04-scale-") as directory:
+        # Qt offscreen defaults to an 800x800 physical screen. Explicitly model
+        # the desktop intended by this 1366x768 probe; keep production fitting.
+        # Qt's configfile platform parameter retains actual QScreen geometry.
+        # https://github.com/qt/qtbase/blob/6.11/src/plugins/platforms/offscreen/qoffscreenintegration.cpp
+        screen_config = Path(directory) / "screen.json"
+        width, height = (2560, 1600) if args.work_area == "desktop" else (800, 800)
+        screen_config.write_text(json.dumps({"screens": [{"name": "UIR04 probe", "width": width,
+            "height": height, "logicalDpi": 96, "logicalBaseDpi": 96, "dpr": 1}]}), encoding="utf-8")
+        # The platform argument uses ':' as a delimiter, including a Windows
+        # drive colon. Resolve a relative config name while Qt reads the file.
+        previous_directory = Path.cwd()
+        try:
+            os.chdir(directory)
+            application = QApplication.instance() or QApplication([
+                "uir04-scale", "-platform", "offscreen:configfile=screen.json"])
+        finally:
+            os.chdir(previous_directory)
+
+        if args.screenshot:
+            from PySide6.QtGui import QFontDatabase
+            for name in ("msyh.ttc", "msyhbd.ttc", "seguisym.ttf"):
+                assert QFontDatabase.addApplicationFont(str(Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / name)) >= 0
+
         catalog_path = build_catalog_database(
             DEFAULT_SOURCE_PATH,
             Path(directory) / "catalog.sqlite",
@@ -64,6 +89,10 @@ def main() -> int:
         viewport = shell.main_scroll_area.viewport()
         status_bar = page.findChild(QFrame, "calculationStatusBar")
         failures: list[str] = []
+        if args.work_area == "desktop" and (window.width(), window.height()) != (1366, 768):
+            failures.append(f"desktop probe client is {window.width()}x{window.height()}, expected 1366x768")
+        if not window.screen().availableGeometry().contains(window.frameGeometry()):
+            failures.append("window frame exceeds configured work area")
         if shell.main_scroll_area.horizontalScrollBarPolicy() is not Qt.ScrollBarPolicy.ScrollBarAlwaysOff:
             failures.append("horizontal scrollbar policy is not AlwaysOff")
         if shell.main_scroll_area.horizontalScrollBar().isVisible():
@@ -103,6 +132,10 @@ def main() -> int:
         application.processEvents()
 
         def check_vertical_rows(name, host, rows) -> None:
+            # Only the selected source editor participates in the directory's
+            # layout. Select it before measuring, rather than stale hidden rects.
+            page.source_directory.reveal(host)
+            application.processEvents()
             parent = host
             while parent is not None:
                 if parent.layout() is not None:
@@ -133,6 +166,37 @@ def main() -> int:
         component_rows = [item["_widget"] for item in fgd_unit["components"]]
         check_vertical_rows("FGD components", fgd_unit["component_host"], component_rows)
 
+        if args.work_area == "small":
+            directory = page.source_directory
+            page.source_directory.select("fuel", restore_scroll=False)
+            application.processEvents()
+            editor = directory.editor_scroll
+            if not directory.compact_selector.isVisible() or not directory.navigation_panel.isHidden():
+                failures.append("small editor does not use compact navigation")
+            if editor.horizontalScrollBar().maximum() <= 0:
+                failures.append("small editor overflow has no horizontal scroll range")
+            control = page._fuel_rows[0].activity
+            editor.ensureWidgetVisible(control, 0, 0)
+            application.processEvents()
+            from PySide6.QtCore import QPoint, QRect
+            control_rect = QRect(control.mapTo(editor.viewport(), QPoint(0, 0)), control.size())
+            if control_rect.top() < 0 or control_rect.bottom() >= editor.viewport().height():
+                failures.append("fuel activity control cannot be reached vertically inside the small editor viewport")
+            # A text field may be wider than this tiny viewport. Its two ends
+            # must each be reachable, rather than demanding simultaneous fit.
+            position = control.mapTo(editor.widget(), QPoint(0, 0)).x()
+            editor.horizontalScrollBar().setValue(position)
+            application.processEvents()
+            if not 0 <= control.mapTo(editor.viewport(), QPoint(0, 0)).x() < editor.viewport().width():
+                failures.append("fuel activity left edge cannot be reached")
+            editor.horizontalScrollBar().setValue(position + control.width() - editor.viewport().width())
+            application.processEvents()
+            if not 0 < control.mapTo(editor.viewport(), QPoint(control.width(), 0)).x() <= editor.viewport().width():
+                failures.append("fuel activity right edge cannot be reached")
+            editor.horizontalScrollBar().setValue(editor.horizontalScrollBar().maximum())
+            application.processEvents()
+            if editor.widget().mapTo(editor.viewport(), QPoint(editor.widget().width(), 0)).x() > editor.viewport().width():
+                failures.append("small editor right edge cannot be reached")
         page._fuel_rows[-1].remove_button.click()
         for family in ("electricity", "heat"):
             page._remove_unified_energy_row(page._energy_family_rows[family][-1])
@@ -150,13 +214,27 @@ def main() -> int:
         ):
             if count != 4:
                 failures.append(f"{name}: deleting a row did not restore the four-row layout")
+        if args.screenshot:
+            from PySide6.QtCore import QPoint
+            page.source_directory.select("fuel", restore_scroll=False)
+            for _ in range(4): application.processEvents()
+            page.source_directory.editor_scroll.horizontalScrollBar().setValue(0)
+            page.source_directory.editor_scroll.verticalScrollBar().setValue(0)
+            scroll = shell.main_scroll_area
+            scroll.verticalScrollBar().setValue(page.source_directory.mapTo(scroll.widget(), QPoint(0, 0)).y() - 8)
+            for _ in range(2): application.processEvents()
+            args.screenshot.parent.mkdir(parents=True, exist_ok=True)
+            if args.screenshot.exists():
+                raise RuntimeError("do not overwrite existing screenshot")
+            assert window.grab().save(str(args.screenshot))
+        client_size = (window.width(), window.height())
         window.close()
         window.deleteLater()
         application.processEvents()
         if failures:
             print(f"scale={args.scale} FAIL: " + "; ".join(failures))
             return 1
-    print(f"scale={args.scale} PASS: 1366x768 controls and dynamic rows fit without overlap or horizontal scrolling")
+    print(f"scale={args.scale} work_area={args.work_area} PASS: client={client_size[0]}x{client_size[1]}, controls and dynamic rows fit without overlap or page-level horizontal scrolling")
     return 0
 
 
