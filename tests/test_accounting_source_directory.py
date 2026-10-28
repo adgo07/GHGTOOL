@@ -95,7 +95,11 @@ class SourceDirectoryTests(unittest.TestCase):
         expected = {group for group, _, _ in page._source_toggle_groups}
         self.assertEqual(set(page.source_directory.cards), expected)
         self.assertEqual(len(expected), 8)
-        self.assertFalse(page.source_directory.findChildren(QScrollArea))
+        # One outer page scroller remains; the approved compact editor has one
+        # explicit local viewport, not an unbounded second page scroller.
+        self.assertEqual(page.source_directory.findChildren(QScrollArea), [page.source_directory.editor_scroll])
+        self.assertEqual(page.source_directory.editor_scroll.objectName(), "sourceDirectoryEditorScroll")
+        self.assertEqual(page.source_directory.editor_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.assertTrue(page.source_toggle_host.isHidden())
         page._project_dirty = False
         page._input_dirty = False

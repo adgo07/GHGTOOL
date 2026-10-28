@@ -3060,6 +3060,13 @@ class CarbonMaterialAccountingPage(BasePage):
                 return
             # Revealing a long source/disclosure posts layout and shell-range work.
             # Recheck in bounded event turns, then verify once after focus changes.
+            # Compact source editors have their own clipped viewport. Reveal
+            # the target there first, then position it in the outer page.
+            ancestor = target.parentWidget()
+            while ancestor is not None and ancestor is not scroll:
+                if isinstance(ancestor, QScrollArea) and ancestor.widget() is not None:
+                    ancestor.ensureWidgetVisible(target, 8, 16)
+                ancestor = ancestor.parentWidget()
             scroll.ensureWidgetVisible(target, 16, 24)
             position = target.mapTo(scroll.widget(), target.rect().topLeft())
             viewport = scroll.viewport()

@@ -133,3 +133,21 @@ GitHub Actions [run40672239566](https://github.com/adgo07/GHGTOOL/actions/runs/4
 - `compileall`（修改的app与测试）及`git diff --check`：exit0。未重复全量或额外页面/DPI矩阵。GitHub新head全量/Standalone仍需实际完成，不能以本地定向证据替代。
 
 本修复提交并推送同一PR62，等待根复核与新CI；真实桌面、生产main全启动、跨屏及EXE未验边界保持。
+
+
+## CI315剩余失败与测试桌面条件收口（2026-10-28）
+
+[CI315 run40696760849](https://github.com/adgo07/GHGTOOL/actions/runs/40696760849)，job122845485486，head `3ef90556205558fdeb3349f4775ab44b16df5d09`，仍由40m预算取消。完整日志2569行，1113条顶层测试记录，最后在`test_nonfossil_electricity_needs_no_proof_to_complete`执行中被中断；不是测试结束后的退出挂起，也没有完整汇总。对比CI314仅176条、基线CI311全量1122项2107.461s：前次过滤器生命周期修复有效，但不能当作最终问题解决。CI315日志本地在`build/ci315-job.log`；GitHub连接器连续传输失败后才使用现有Git认证只向GitHub API读取，未输出凭据。
+
+取消时栈中仍有多次MainWindow全局filter（测试保留的可见窗口也会监听别的窗口事件），故最终取消该类应用级监听，改为实际QComboBox/QAbstractSpinBox上的本地guard；弹出选择/日历仍可正常处理滚轮。guard归属控件且幂等安装，不持有窗口、不访问业务值；动态核算字段保留原页面滚轮实现。
+
+日志中8个明确失败入口已单独复现：来源目录单滚动的旧限定、记录长文本三行上限、两个标准表54行高旧断言、两个20行动态布局入口、两个真实错误定位入口（含宽窄子场景）。后四项实测窗口都被默认800物理屏收回至796宽，原本1180/1680桌面测试意外转入紧凑内层滚动；不是放宽业务校验。测试包仅在`QT_QPA_PLATFORM`恰为裸`offscreen`时配置2560×1600虚拟工作区，显式small/scale配置或真实平台不覆盖。新增JSON仅为测试fixture，不打包运行，不改变产品窗口约束。动态行增删、范围收敛、真实错误项点击/焦点、旧值/状态/无Record断言均保留。
+
+按Owner当前视觉设计同步三处旧断言：54改48；固定三行高度上限改Qt完整换行hint+8有限留白（保留完整身份/徽标/来源/数量断言）；完全禁止局部滚动改为只允许唯一具名编辑视口并检查其滚动策略（保留导航不改变form_state与dirty）。没有删除测试或降低正式业务断言。另外修复实际960窄窗口定位：先将目标滚入内层编辑视口，再定位外层正文，验证实际第四物料字段在两个viewport完整可见且有焦点。
+
+本地Python3.12.14/PySide6 6.11.2、offscreen、既有隔离TEMP/TMP：
+
+- CI315八入口定向unittest：8通过/0失败，188.909s，命令及完整结果在`build/ci315-targeted-final.log`；涉及SourceDirectory、BusinessPageVisual、P3ABStandards、StandardLibraryPilot、UAT02Geometry、UAT02Usability、PR59CompatibilityNavigation的上述已知失败单项，不扩大其他测试。
+- `tests.test_family_ui.FamilyUiTests.test_windows_never_observe_unrelated_global_events` + `test_shared_input_outer_size_precision_focus_and_wheel`：2通过/0失败，79.985s。实际外部事件确认显示/隐藏/重开/关闭均没有窗口级全局监听；输入精度/空值/焦点/滚轮保护仍通过。
+- `tests.test_family_ui.FamilyUiTests.test_compact_target_navigation_reveals_inner_and_outer_viewports`：1通过/0失败，15.455s，实际960窗口/第四物料字段，不用合成不可见目标放宽检查。
+- compileall及`git diff --check`：exit0。当前没有修改workflow40分钟预算，未盲目重跑旧head、未重新截图矩阵或跑无关全量。上述分段验证不代替新head全量/Standalone CI；实际是否仍需合理预算调整须由新运行证据判断。

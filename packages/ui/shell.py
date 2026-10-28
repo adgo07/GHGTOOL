@@ -40,6 +40,7 @@ from .design_tokens import (
 )
 from .icons import load_tinted_icon
 from .branding import BrandLogo
+from .wheel_guard import protect_wheel_inputs
 from .pages import create_page
 from .export_location import ExportLocationService
 from .routing import PageRouter
@@ -230,6 +231,7 @@ class AppShell(QWidget):
         self._pages[route] = page
         if standard_id is not None:
             self._standard_pages[(route, standard_id)] = page
+        protect_wheel_inputs(page)
         self.page_stack.addWidget(page)
         accounting_requested = getattr(page, "accounting_requested", None)
         if accounting_requested is not None:

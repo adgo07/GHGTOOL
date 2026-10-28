@@ -44,7 +44,7 @@ class FamilyUiTests(unittest.TestCase):
         self.app.processEvents()
         self.directory.cleanup()
 
-    def test_closed_window_stops_observing_global_events_and_reopen_restores_it(self):
+    def test_windows_never_observe_unrelated_global_events(self):
         from types import SimpleNamespace
         from PySide6.QtWidgets import QWidget
         from apps.carbon_accounting_desktop.app import CarbonAccountingMainWindow
@@ -56,7 +56,7 @@ class FamilyUiTests(unittest.TestCase):
         window = ObservedWindow()
         window.window_geometry = SimpleNamespace(shown=lambda:None, save=lambda:None)
         sink = QWidget()
-        for action, active in ((window.show,True),(window.hide,False),(window.show,True),(window.close,False)):
+        for action, active in ((window.show,False),(window.hide,False),(window.show,False),(window.close,False)):
             action(); self.app.processEvents()
             before = window.calls
             QApplication.sendEvent(sink,QEvent(QEvent.Type.User))
@@ -159,6 +159,21 @@ class FamilyUiTests(unittest.TestCase):
         self.assertEqual(saved_form,page._capture_form_state())
         self.assertEqual(dirty,(page._project_dirty,page._input_dirty))
         self.assertNotIn('compactSourceDirectory',saved_form)
+
+    def test_compact_target_navigation_reveals_inner_and_outer_viewports(self):
+        shell=self.window.centralWidget(); shell.navigate(AppRoute.NEW_ACCOUNTING)
+        self.window.resize(960,600)
+        page=shell.pages[AppRoute.NEW_ACCOUNTING]
+        page._toggle_source_group('calcination')
+        target=page._process_rows['calcination'][0]['materials'][3]['mass']
+        page.source_directory.select('fuel')
+        page._scroll_to_widget(target,focus=True)
+        for _ in range(20): self.app.processEvents()
+        inner=page.source_directory.editor_scroll.viewport()
+        outer=shell.main_scroll_area.viewport()
+        for viewport in (inner,outer):
+            self.assertTrue(viewport.rect().contains(QRect(target.mapTo(viewport,QPoint(0,0)),target.size())))
+        self.assertIs(self.app.focusWidget(),target)
 
     def test_logo_original_hash_and_vector_dpr(self):
         import hashlib
