@@ -271,6 +271,7 @@ class G03ShellTest(unittest.TestCase):
         self.assertEqual(template.findChild(QLabel, "pageDescription").text(),
                          page.excel_adapter.template_description)
         for section_name, title in (
+            ("excelImportTemplateSection", "模板与说明"),
             ("excelImportFileSection", "文件选择"),
             ("excelImportCheckSection", "数据预览与检查"),
             ("excelImportActionSection", "处理结果"),
@@ -403,8 +404,20 @@ class G03ShellTest(unittest.TestCase):
         self.assertLessEqual(pixmap.height(), 52)
         self.assertAlmostEqual(pixmap.width() / pixmap.height(), 4.03, delta=0.15)
         self.assertEqual(shell.main_scroll_area.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.assertLessEqual(self.window.minimumWidth(), 960)
-        self.assertLessEqual(self.window.minimumHeight(), 600)
+        self.assertEqual(self.window.minimumWidth(), 960)
+        self.assertEqual(self.window.minimumHeight(), 600)
+        self.window.resize(960, 600)
+        shell.navigate(AppRoute.NEW_ACCOUNTING)
+        self.application.processEvents()
+        page = shell.pages[AppRoute.NEW_ACCOUNTING]
+        self.assertGreaterEqual(shell.main_scroll_area.viewport().width(), 700)
+        self.assertGreaterEqual(page.width(), 600)
+        margins = page.body_layout.contentsMargins()
+        self.assertGreaterEqual(page.width() - margins.left() - margins.right(), 600)
+        self.assertTrue(page.calculate_button.isVisible())
+        self.assertLessEqual(page.width(), shell.main_scroll_area.viewport().width())
+        self.assertFalse(shell.main_scroll_area.horizontalScrollBar().isVisible())
+        shell.navigate(AppRoute.HOME)
 
         self.window.resize(1180, 720)
         self.application.processEvents()

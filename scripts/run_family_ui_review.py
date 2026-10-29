@@ -60,6 +60,12 @@ def main():
             summary.append({'scene':name,'client':[window.width(),window.height()],'dpr':window.devicePixelRatioF(),'pixels':[pixmap.width(),pixmap.height()]})
         (target/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
         window.hide()
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from shiboken6 import isValid
+        window.deleteLater()
+        QCoreApplication.sendPostedEvents(window, QEvent.Type.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert not isValid(window)
         return 0
     return app.exec()
 

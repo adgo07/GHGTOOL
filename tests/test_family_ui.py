@@ -21,6 +21,7 @@ from packages.ui.export_location import ExportLocationService
 from packages.ui.icons import load_tinted_icon
 from packages.ui.view_models import AppRoute
 from packages.ui.window_geometry import KEY, WindowGeometry, bounded_geometry
+from tests.ui_tree_helpers import dispose_test_widget
 
 class FamilyUiTests(unittest.TestCase):
     @classmethod
@@ -40,7 +41,7 @@ class FamilyUiTests(unittest.TestCase):
 
     def tearDown(self):
         self.window.hide()
-        self.window.deleteLater()
+        dispose_test_widget(self.window)
         self.app.processEvents()
         self.directory.cleanup()
 
@@ -61,11 +62,14 @@ class FamilyUiTests(unittest.TestCase):
             before = window.calls
             QApplication.sendEvent(sink,QEvent(QEvent.Type.User))
             self.assertEqual(window.calls > before,active)
-        window.deleteLater(); sink.deleteLater()
+        dispose_test_widget(window); dispose_test_widget(sink)
 
     def test_small_screen_and_missing_screen_fit_including_frame(self):
         for area in (QRect(0,0,1920,1040), QRect(0,0,1024,768), QRect(-800,0,800,560)):
             rect=bounded_geometry(QRect(9000,5000,1280,800),area,16,39)
+            self.assertEqual(rect.size(), QSize(min(1280,area.width()-16),min(800,area.height()-39)))
+            self.assertGreater(rect.width(),0)
+            self.assertGreater(rect.height(),0)
             self.assertTrue(area.contains(QRect(rect.topLeft(), QSize(rect.width()+16,rect.height()+39))))
 
     def test_first_launch_and_restore_normal_and_maximized(self):
@@ -83,7 +87,7 @@ class FamilyUiTests(unittest.TestCase):
         controller=WindowGeometry(restored,self.repo)
         restored.show(); controller.shown(); self.app.processEvents()
         self.assertTrue(restored.isMaximized())
-        restored.hide(); restored.deleteLater()
+        restored.hide(); dispose_test_widget(restored)
 
     def test_corrupt_preferences_never_break_window_startup(self):
         for raw in ('[1,2]', '1', '"text"', '{"normal":null}', '{"normal":[0,0,1e90,4]}', 'broken'):

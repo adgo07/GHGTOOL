@@ -1,0 +1,150 @@
+{
+  "product_source_head": "2d555e165c41c30bdec8c075ff813f47061cc0f8",
+  "product_trees": {
+    "apps": "121d9c25c4282982851eae33b8724e808105cc46",
+    "packages": "5da85fa928559437ce76ba672b446e2f8ebbd477",
+    "resources": "51525755f16565844fc7c9359f2afe00d6435cb0"
+  },
+  "product_sources_unchanged_from_head": true,
+  "capture_environment": {
+    "python": "3.12.14",
+    "PySide6": "6.11.2",
+    "platform": "offscreen",
+    "fonts": [
+      "msyh.ttc",
+      "msyhbd.ttc",
+      "seguisym.ttf"
+    ]
+  },
+  "source_files_sha256": {
+    "apps/carbon_accounting_desktop/app.py": "39ce3f5ce0cee23d9a65587b756599e9eebaa5fe0747ba864e114c7b09443d3f",
+    "packages/ui/design_tokens.py": "2cd557bde1866aba08c87b02642915baa2becb711ba5c61726ced6160bce9d6c",
+    "packages/ui/window_geometry.py": "9c47845f2af71cc9e5f166209d504140b40115fce64d1715d0851cf8dc1fe836",
+    "packages/ui/wheel_guard.py": "1aab29a8f29407886a91ab151ea82fbe5c15dc531d554b3233f2bad5688f4327",
+    "packages/ui/icons.py": "79b2233c6255371591aa4bc579e4bd9296e7b43d6739143e06f59849eea2fabc",
+    "packages/ui/branding.py": "af74d5492b6452dece6ea5e2cfcea671b12075cf46bdcd9801a481a9ca52976e",
+    "packages/ui/shell.py": "af3d76800c5c7ab47f95d9a37cae06f105381d33925a5491a9b372a296b1b5e8",
+    "packages/ui/source_directory.py": "f8305d650a88642cf6d0151bd4192c252bcf39a5390dc507e8995ad90186056f",
+    "packages/ui/carbon_material_page.py": "59383dec09a0a6b52fe51d244cfbb049cb868ca851ff38ea1f364cc47dea77e5",
+    "packages/ui/pages.py": "93f59638a7276a4c2091db2eaa68e66f578f967320abe4ea2574020ee4efaf6b",
+    "resources/branding/qingzhou_logo.png": "db557a6374a928b46bd3ab499c0a295ef147e87d79a273d1fde1f2d61f8bc24d"
+  },
+  "capture_scripts": {
+    "desktop": {
+      "path": "scripts/run_family_ui_review.py",
+      "git_source_blob": "74a288738d44e79e1a6d1778856c619ad99802ee",
+      "note": "Loaded before subsequent cleanup-only change; all product source identical to product_source_head."
+    },
+    "dpr2": {
+      "path": "scripts/run_family_ui_review.py",
+      "sha256": "ab6b8d93482942567b6066c38f906fc2aa9735b2add98c0a252efa133f12725b",
+      "normalized_lf_sha256": "d7017adcc4761e63ba69ae44d706abd535832dcf7fe100ffee38a0c9c7e6fcc4"
+    },
+    "small": {
+      "path": "scripts/uir04_scale_acceptance.py",
+      "sha256": "3534dfbca3c631045cd3d73dec4cdc7a87f8a7969bc41f65e868861d97e76735",
+      "normalized_lf_sha256": "b8cb33c188c6a7acf262d4adcba38dc08819f99baa81fe5720fc02c6cadbb01f",
+      "subsequent_change_note": "After this capture, the script added CONFIG diagnostics and actual DPR assertions/result only; image rendering/product sources unchanged. Stored capture hash intentionally identifies the executed pre-diagnostic version."
+    }
+  },
+  "images": [
+    {
+      "path": "home-dpr2.png",
+      "sha256": "3c0957c7b76d39c1e9c21174b38410b4698a057179146ac150ef0b2c6ea7e33f",
+      "bytes": 222017,
+      "pixels": [
+        2560,
+        1600
+      ],
+      "dpr": 2.0,
+      "client": [
+        1280,
+        800
+      ]
+    },
+    {
+      "path": "home.png",
+      "sha256": "fc73dcb87f95737a0577661984453fe638c15c6344ed7a2ae08c7553d3bf2f37",
+      "bytes": 90172,
+      "pixels": [
+        1280,
+        800
+      ],
+      "dpr": 1.0,
+      "client": [
+        1280,
+        800
+      ]
+    },
+    {
+      "path": "new-accounting.png",
+      "sha256": "f143c29dec34c21af9d2ffa2f9db4b70452e5399518f5e1ea1a1af15d22d6601",
+      "bytes": 99048,
+      "pixels": [
+        1280,
+        800
+      ],
+      "dpr": 1.0,
+      "client": [
+        1280,
+        800
+      ]
+    },
+    {
+      "path": "record-detail.png",
+      "sha256": "9c9cd32422c6bb5c150a4284063cb409e8e097b977fe33446efc419eaa985112",
+      "bytes": 103037,
+      "pixels": [
+        1280,
+        800
+      ],
+      "dpr": 1.0,
+      "client": [
+        1280,
+        800
+      ]
+    },
+    {
+      "path": "small-150.png",
+      "sha256": "7e473d12c59803e8f4fa61b08ea570235c971b6d466d3e762e2510aa4f14f3d6",
+      "bytes": 84778,
+      "pixels": [
+        797,
+        797
+      ],
+      "dpr": 1.5,
+      "client": [
+        531,
+        531
+      ]
+    },
+    {
+      "path": "standards.png",
+      "sha256": "0384ad90098029f4a9464863eb848e5bafa10206e3c0b5f7fa63b92713db6fbb",
+      "bytes": 161817,
+      "pixels": [
+        1280,
+        800
+      ],
+      "dpr": 1.0,
+      "client": [
+        1280,
+        800
+      ]
+    }
+  ],
+  "source_files_hash_note": "source_files_sha256 hashes actual captured Windows worktree bytes (CRLF); git_source_files_sha256 hashes authoritative LF Git blobs for portable verification.",
+  "git_source_files_sha256": {
+    "apps/carbon_accounting_desktop/app.py": "316106006b4efba64f705bc0e1678c18d59503d19ad5037a3836b13d0a9a66c7",
+    "packages/ui/design_tokens.py": "67a54dd50bba360cd70ecb959bbe24e98d5d83caa5d0d3da30e7e2872e7ea867",
+    "packages/ui/window_geometry.py": "f4d9fa193bc238a96ebae51f2ab1eda09dac5264191c7b9e3eca0b3bdc3ce45a",
+    "packages/ui/wheel_guard.py": "f30ae28da9c6f3173e4da704f279160409d891e60f986e3d66325277ca431927",
+    "packages/ui/icons.py": "a18a3bd35417fb2d05b503c691d990121958e08ef087d2345b5521f3af8cb7ef",
+    "packages/ui/branding.py": "12a1a628b50be6c257d2d35a1024d7628fd34cf66fed8292219a5548915b542a",
+    "packages/ui/shell.py": "ff09935c370a027f378cb0f6746df2103ccc4bafbb70ef3564dbf473f11a7622",
+    "packages/ui/source_directory.py": "6dc50e58229d60f33874640ce6deda94bc789d4f65d407fa7344492c34a4a511",
+    "packages/ui/carbon_material_page.py": "b5ae57de2ae06a8078a7b9d527d8406df092058c071e1759398ab92d29981bba",
+    "packages/ui/pages.py": "f06054301bc634ad6167770b45d8899c8792838f3ff1ebfdbfe714135ccdf0b2",
+    "resources/branding/qingzhou_logo.png": "db557a6374a928b46bd3ab499c0a295ef147e87d79a273d1fde1f2d61f8bc24d"
+  }
+}

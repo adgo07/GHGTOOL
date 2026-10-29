@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 from datetime import date
 from pathlib import Path
 
@@ -22,12 +23,28 @@ def main() -> int:
     parser.add_argument("--work-area", choices=("desktop", "small"), default="desktop")
     parser.add_argument("--screenshot", type=Path)
     args = parser.parse_args()
+    started = time.perf_counter()
+    stages = {}
+    previous = started
+
+    def stage(name):
+        nonlocal previous
+        now = time.perf_counter()
+        stages[name] = round(now - previous, 3)
+        previous = now
+        print("UIR04_SCALE_STAGE " + json.dumps({
+            "scale": args.scale, "work_area": args.work_area,
+            "phase": name, "elapsed_s": round(now - started, 3),
+            "phase_s": stages[name],
+        }), file=sys.stderr, flush=True)
+
+    stage("start")
 
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "0")
     os.environ["QT_SCALE_FACTOR"] = args.scale
 
-    from PySide6.QtCore import Qt
+    from PySide6.QtCore import Qt, QCoreApplication, QEvent
     from PySide6.QtWidgets import QApplication, QFrame
 
     from apps.carbon_accounting_desktop.app import create_main_window
@@ -40,6 +57,9 @@ def main() -> int:
     )
     from packages.reference_data import DEFAULT_SOURCE_PATH
     from packages.ui.view_models import AppRoute
+    from shiboken6 import isValid
+
+    stage("imports")
 
     with tempfile.TemporaryDirectory(prefix="uir04-scale-") as directory:
         # Qt offscreen defaults to an 800x800 physical screen. Explicitly model
@@ -50,6 +70,8 @@ def main() -> int:
         width, height = (2560, 1600) if args.work_area == "desktop" else (800, 800)
         screen_config.write_text(json.dumps({"screens": [{"name": "UIR04 probe", "width": width,
             "height": height, "logicalDpi": 96, "logicalBaseDpi": 96, "dpr": 1}]}), encoding="utf-8")
+        print("UIR04_SCALE_CONFIG " + screen_config.read_text(encoding="utf-8"),
+              file=sys.stderr, flush=True)
         # The platform argument uses ':' as a delimiter, including a Windows
         # drive colon. Resolve a relative config name while Qt reads the file.
         previous_directory = Path.cwd()
@@ -59,6 +81,7 @@ def main() -> int:
                 "uir04-scale", "-platform", "offscreen:configfile=screen.json"])
         finally:
             os.chdir(previous_directory)
+        stage("qt_ready")
 
         if args.screenshot:
             from PySide6.QtGui import QFontDatabase
@@ -74,6 +97,7 @@ def main() -> int:
             SQLiteCatalogRepository(catalog_path),
             as_of=date(2026, 9, 12),
         )
+        stage("catalog_ready")
         window = create_main_window(
             AppConfig(catalog_database=catalog_path),
             catalog_service=service,
@@ -86,9 +110,13 @@ def main() -> int:
         shell.navigate(AppRoute.NEW_ACCOUNTING)
         application.processEvents()
         page = shell.pages[AppRoute.NEW_ACCOUNTING]
+        stage("window_and_accounting_ready")
         viewport = shell.main_scroll_area.viewport()
         status_bar = page.findChild(QFrame, "calculationStatusBar")
         failures: list[str] = []
+        actual_dpr = window.devicePixelRatioF()
+        if actual_dpr != float(args.scale):
+            failures.append(f"actual window DPR {actual_dpr} differs from requested scale {args.scale}")
         if args.work_area == "desktop" and (window.width(), window.height()) != (1366, 768):
             failures.append(f"desktop probe client is {window.width()}x{window.height()}, expected 1366x768")
         if not window.screen().availableGeometry().contains(window.frameGeometry()):
@@ -155,6 +183,7 @@ def main() -> int:
                 if index and rects[index - 1].bottom() >= rect.top():
                     failures.append(f"{name}: rows {index} and {index + 1} overlap")
 
+        stage("dynamic_rows_ready")
         check_vertical_rows("fuel", page.fuel_rows_host, list(page._fuel_rows))
         for family in ("electricity", "heat"):
             host = page._unified_energy_rows_layouts[family].parentWidget()
@@ -165,6 +194,7 @@ def main() -> int:
         fgd_unit = page._process_rows["fgd"][0]
         component_rows = [item["_widget"] for item in fgd_unit["components"]]
         check_vertical_rows("FGD components", fgd_unit["component_host"], component_rows)
+        stage("geometry_checked")
 
         if args.work_area == "small":
             directory = page.source_directory
@@ -214,6 +244,7 @@ def main() -> int:
         ):
             if count != 4:
                 failures.append(f"{name}: deleting a row did not restore the four-row layout")
+        stage("accessibility_and_deletion_checked")
         if args.screenshot:
             from PySide6.QtCore import QPoint
             page.source_directory.select("fuel", restore_scroll=False)
@@ -230,11 +261,24 @@ def main() -> int:
         client_size = (window.width(), window.height())
         window.close()
         window.deleteLater()
+        QCoreApplication.sendPostedEvents(window, QEvent.Type.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        if isValid(window):
+            failures.append("owned window was not destroyed")
         application.processEvents()
+        stage("cleanup_complete")
+        status = "FAIL" if failures else "PASS"
+        print("UIR04_SCALE_RESULT " + json.dumps({
+            "protocol_version": 1, "scale": args.scale,
+            "work_area": args.work_area, "status": status,
+            "client": client_size, "dpr": actual_dpr, "stages_s": stages,
+            "elapsed_s": round(time.perf_counter() - started, 3),
+            "failures": failures,
+        }), flush=True)
         if failures:
             print(f"scale={args.scale} FAIL: " + "; ".join(failures))
             return 1
-    print(f"scale={args.scale} work_area={args.work_area} PASS: client={client_size[0]}x{client_size[1]}, controls and dynamic rows fit without overlap or page-level horizontal scrolling")
+    print(f"scale={args.scale} PASS: work_area={args.work_area}, client={client_size[0]}x{client_size[1]}, controls and dynamic rows fit without overlap or page-level horizontal scrolling")
     return 0
 
 
