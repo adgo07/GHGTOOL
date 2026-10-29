@@ -29,7 +29,8 @@ class ReadableTable(QTableWidget):
         super().__init__(parent)
         self._row_padding = row_padding
         self._fitting_rows = False
-        self.verticalHeader().setMinimumSectionSize(40)
+        self.verticalHeader().setMinimumSectionSize(44)
+        self.verticalHeader().setDefaultSectionSize(48)
         self.setItemDelegate(_CellWidgetDelegate(self))
         self.horizontalHeader().sectionResized.connect(
             self._fit_rows, Qt.ConnectionType.QueuedConnection)
@@ -48,7 +49,7 @@ class ReadableTable(QTableWidget):
             for row in range(self.rowCount()):
                 # Stretch headers can settle during the native resize pass.
                 # Include the hint at the final width before adding paint space.
-                height = max(self.rowHeight(row), self.sizeHintForRow(row))
+                height = max(48, self.rowHeight(row), self.sizeHintForRow(row))
                 self.setRowHeight(row, height + self._row_padding)
         finally:
             self._fitting_rows = False
@@ -82,57 +83,7 @@ def apply_business_page_style(page: QWidget) -> None:
     if page.property("businessVisualApplied"):
         return
     page.setProperty("businessVisualApplied", True)
-    page.setStyleSheet(page.styleSheet() + f"""
-        QLabel#pageTitle {{ font-size:24px; font-weight:600; color:{PRIMARY_TEXT}; }}
-        QLabel#pageDescription, QLabel#secondaryText,
-        QLabel#recordResultCount, QLabel#exportDirectoryStatus {{ font-size:13px; color:{SECONDARY_TEXT}; }}
-        QFrame[businessSurface="true"] {{ background:{CARD_BACKGROUND}; border:1px solid {BORDER}; border-radius:10px; }}
-        QLabel#cardTitle {{ font-size:16px; font-weight:600; }}
-        QLabel#detailFieldLabel {{ font-size:13px; color:{SECONDARY_TEXT}; }}
-        QLabel#detailFieldValue, QLabel#detailParagraph {{ font-size:14px; color:{PRIMARY_TEXT}; }}
-        QLineEdit, QComboBox {{ min-height:20px; padding:8px 10px;
-            border:1px solid {BORDER}; border-radius:6px; background:white; font-size:14px; }}
-        QComboBox {{ padding-right:30px; }}
-        QLineEdit:focus, QComboBox:focus {{ border:1px solid {PRIMARY_BRAND}; }}
-        QLineEdit[readOnly="true"] {{ background:{SURFACE_MUTED}; color:{PRIMARY_TEXT}; }}
-        QLineEdit:disabled, QComboBox:disabled {{ background:#F3F5F7; color:#778B9B; border-color:#E1E7EC; }}
-        QPushButton {{ min-height:20px; padding:8px 14px; border:1px solid {BORDER};
-            border-radius:6px; background:white; font-size:14px; font-weight:400; }}
-        QPushButton:focus {{ border:1px solid {PRIMARY_BRAND}; }}
-        QPushButton[visualRole="primary"], QPushButton#exportWordReportButton {{
-            background:{PRIMARY_BRAND}; border-color:{PRIMARY_BRAND}; color:white; font-weight:600; }}
-        QPushButton[visualRole="primary"]:hover, QPushButton#exportWordReportButton:hover {{ background:#126BA9; }}
-        QPushButton#deleteRecordButton {{ color:#B42318; background:white; }}
-        QPushButton#openRecordRowButton {{ min-height:20px; padding:4px 6px; font-size:13px;
-            color:{PRIMARY_BRAND}; border:1px solid transparent; background:transparent; font-weight:400; }}
-        QPushButton#openRecordRowButton:hover {{ background:#EAF4FC; border-color:#D1E6F3; }}
-        QPushButton#openRecordRowButton:focus {{ border-color:{PRIMARY_BRAND}; }}
-        QPushButton:disabled, QPushButton[visualRole="primary"]:disabled,
-        QPushButton#exportWordReportButton:disabled {{ background:#F3F5F7; color:#778B9B; border-color:#E1E7EC; }}
-        QTableWidget {{ font-size:14px; background:white; border:1px solid {BORDER};
-            gridline-color:#EAF0F5; selection-background-color:#EAF4FB; selection-color:{PRIMARY_TEXT}; }}
-        QTableWidget QHeaderView::section {{ font-size:13px; font-weight:500; padding:9px 10px;
-            color:#526B7E; background:{SURFACE_MUTED}; border:none; border-bottom:1px solid {BORDER}; }}
-        QTableWidget::item {{ padding:8px 10px; }}
-        QTableWidget:focus {{ border:1px solid {PRIMARY_BRAND}; }}
-        QLabel#recordFrozenTotal {{ font-size:26px; font-weight:600; color:{PRIMARY_TEXT}; }}
-        QLabel#recordFrozenIdentity {{ font-size:13px; color:{SECONDARY_TEXT}; }}
-        QLabel#recordDetailHeading {{ font-size:18px; font-weight:600; }}
-        QLabel#recordStatusBadge {{ border-radius:5px; padding:4px 7px; font-size:12px;
-            font-weight:400; background:#E7F6F0; color:#168268; }}
-        QLabel#recordStatusBadge[warning="true"] {{ background:#FFF5E1; color:#956420; }}
-        QTabWidget#recordDetailTabs::pane {{ border:1px solid {BORDER}; border-radius:8px; }}
-        QTabBar::tab {{ min-height:22px; padding:8px 16px; font-size:14px; font-weight:500; }}
-        QCheckBox {{ font-size:14px; spacing:8px; }}
-        QToolButton {{ font-size:13px; }}
-        QToolButton#openExistingExcelProjectToggle {{ padding:5px 0; border:none;
-            color:{PRIMARY_BRAND}; background:transparent; font-size:13px; }}
-        QToolButton#openExistingExcelProjectToggle:focus {{ border:1px solid {PRIMARY_BRAND}; }}
-        QLabel#savedImportContext {{ font-size:14px; color:{PRIMARY_TEXT}; padding:8px;
-            background:{SURFACE_MUTED}; border-radius:6px; }}
-        QCheckBox:disabled {{ color:#778B9B; }}
-        QLabel#excelWorkflowStatus {{ font-size:13px; color:#526B7E; }}
-    """)
+
 
 
 class BusinessCheckBox(QCheckBox):

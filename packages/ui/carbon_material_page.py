@@ -1077,7 +1077,7 @@ class CarbonMaterialAccountingPage(BasePage):
         external_toggle.setCheckable(True)
         external_details._disclosure_button = external_toggle
         external_toggle.toggled.connect(external_details.setVisible)
-        external_toggle.setStyleSheet("QPushButton {border:none;background:transparent;color:#126DAA;text-align:left;padding:4px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:1px solid #197CC2;}")
+        external_toggle.setStyleSheet("QPushButton {border:2px solid transparent;background:transparent;color:#116FAE;text-align:left;padding:0px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:2px solid #197CC2;}")
         external_layout.addWidget(external_toggle, 0, Qt.AlignmentFlag.AlignLeft)
         external_details.hide()
         self.external_amount = QLineEdit(external_card)
@@ -1232,35 +1232,6 @@ class CarbonMaterialAccountingPage(BasePage):
             QFrame[dfActivityRegion="true"] QLabel,
             QFrame[dfActivityRegion="true"] QRadioButton,
             QFrame[dfActivityRegion="true"] QCheckBox {{ font-size: 14px; }}
-            QFrame[dfActivityRegion="true"] QLineEdit,
-            QFrame[dfActivityRegion="true"] QComboBox,
-            QComboBox#enterpriseNameInput, QComboBox#accountingPeriodType,
-            QSpinBox#accountingPeriodYear, QDateEdit#accountingPeriodStart,
-            QDateEdit#accountingPeriodEnd {{
-                min-height: 28px; padding: 3px 8px;
-                border: 1px solid {BORDER}; border-radius: 6px;
-                background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
-            }}
-            QComboBox#enterpriseNameInput QLineEdit {{
-                border: none; padding: 0; background: transparent;
-            }}
-            QFrame[dfActivityRegion="true"] QLineEdit:focus,
-            QFrame[dfActivityRegion="true"] QComboBox:focus,
-            QComboBox#enterpriseNameInput:focus, QComboBox#accountingPeriodType:focus,
-            QSpinBox#accountingPeriodYear:focus, QDateEdit#accountingPeriodStart:focus,
-            QDateEdit#accountingPeriodEnd:focus {{ border-color: {PRIMARY_BRAND}; }}
-            QFrame[dfActivityRegion="true"] QLineEdit:read-only {{
-                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
-            }}
-            QFrame[dfActivityRegion="true"] QLineEdit:disabled,
-            QFrame[dfActivityRegion="true"] QComboBox:disabled {{
-                background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
-            }}
-            QFrame[dfActivityRegion="true"] QPushButton {{
-                min-height: 32px; padding: 2px 12px;
-                border: 1px solid {BORDER}; border-radius: 6px;
-                background: {CARD_BACKGROUND}; color: {PRIMARY_TEXT}; font-size: 14px;
-            }}
             QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
                 min-height: 62px; padding: 10px 12px;
                 border: 1px solid #DBE8F0; border-radius: 10px;
@@ -1271,19 +1242,12 @@ class CarbonMaterialAccountingPage(BasePage):
             QFrame[dfActivityRegion="true"] QPushButton[sourceState="部分启用"] {{
                 border-color: #9DCCE8; background: #ECF7FF; color: #155C88;
             }}
-            QFrame[dfActivityRegion="true"] QPushButton:hover,
-            QFrame[dfActivityRegion="true"] QPushButton:focus {{
-                border-color: {PRIMARY_BRAND}; background: {SURFACE_MUTED};
-            }}
             QFrame[dfActivityRegion="true"] QPushButton[sourceState="已启用"] {{
                 border-color: {PRIMARY_BRAND}; background: #E6F4FB;
                 color: #075985; font-weight: 600;
             }}
             QFrame[dfActivityRegion="true"] QPushButton[sourceState="部分启用"] {{
                 border-color: #B54708; background: #FFFAEB; color: #92400E;
-            }}
-            QFrame[dfActivityRegion="true"] QPushButton:disabled {{
-                color: {SECONDARY_TEXT}; background: {SURFACE_MUTED};
             }}
             QPushButton#quickCalculateAccountingButton {{
                 border-color: {PRIMARY_BRAND}; color: {PRIMARY_BRAND}; font-weight: 600;
@@ -1751,7 +1715,7 @@ class CarbonMaterialAccountingPage(BasePage):
         values: dict[str, object] = {"external_state_recorded": self._external_state_recorded, "external_known_facts": dict(self._external_known_facts)}
         excluded = {
             "accountingProjectName", "savedAccountingProjects", "accountingUnitSelector",
-            "showProfessionalDetailsCheckBox", "accountingPeriodMonth", "accountingSourceNavigation",
+            "showProfessionalDetailsCheckBox", "accountingPeriodMonth", "accountingSourceNavigation", "compactSourceDirectory",
         }
         for widget in self.findChildren(QWidget):
             name = widget.objectName()
@@ -3096,6 +3060,13 @@ class CarbonMaterialAccountingPage(BasePage):
                 return
             # Revealing a long source/disclosure posts layout and shell-range work.
             # Recheck in bounded event turns, then verify once after focus changes.
+            # Compact source editors have their own clipped viewport. Reveal
+            # the target there first, then position it in the outer page.
+            ancestor = target.parentWidget()
+            while ancestor is not None and ancestor is not scroll:
+                if isinstance(ancestor, QScrollArea) and ancestor.widget() is not None:
+                    ancestor.ensureWidgetVisible(target, 8, 16)
+                ancestor = ancestor.parentWidget()
             scroll.ensureWidgetVisible(target, 16, 24)
             position = target.mapTo(scroll.widget(), target.rect().topLeft())
             viewport = scroll.viewport()
@@ -4879,7 +4850,7 @@ class CarbonMaterialAccountingPage(BasePage):
             (("质量基准", mass_basis), ("含量基准", composition_basis),
              ("收到基水分（%）", moisture), ("换算方法", method))])
         conversion_button = QPushButton("数据基准与换算 +", container)
-        conversion_button.setStyleSheet("QPushButton {border:none;background:transparent;color:#126DAA;text-align:left;padding:4px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:1px solid #197CC2;}")
+        conversion_button.setStyleSheet("QPushButton {border:2px solid transparent;background:transparent;color:#116FAE;text-align:left;padding:0px 0;} QPushButton:hover {background:#E6F4FB;} QPushButton:focus {border:2px solid #197CC2;}")
         conversion_button.setToolTip("展开数据基准与换算 +；仅查看不改变输入。")
         conversion_button.setCheckable(True)
         conversion._disclosure_button = conversion_button
@@ -8222,7 +8193,7 @@ class CarbonMaterialAccountingPage(BasePage):
 
     def _install_dirty_tracking(self) -> None:
         for widget in self.findChildren(QWidget):
-            if widget.objectName() in {"showProfessionalDetailsCheckBox", "accountingSourceNavigation"}:
+            if widget.objectName() in {"showProfessionalDetailsCheckBox", "accountingSourceNavigation", "compactSourceDirectory"}:
                 continue
             self._wire_dirty_tracking(widget)
 

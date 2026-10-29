@@ -9,7 +9,13 @@ from tests import test_accounting_projects_ui as project_fixture
 class SourceDirectoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.application = QApplication.instance() or QApplication([])
+        # This class borrows the project fixture's per-case lifecycle below;
+        # initialize and release its own immutable catalog as one fixture too.
+        project_fixture.AccountingProjectUiTests.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        project_fixture.AccountingProjectUiTests.tearDownClass.__func__(cls)
 
     setUp = project_fixture.AccountingProjectUiTests.setUp
     tearDown = project_fixture.AccountingProjectUiTests.tearDown
@@ -95,7 +101,11 @@ class SourceDirectoryTests(unittest.TestCase):
         expected = {group for group, _, _ in page._source_toggle_groups}
         self.assertEqual(set(page.source_directory.cards), expected)
         self.assertEqual(len(expected), 8)
-        self.assertFalse(page.source_directory.findChildren(QScrollArea))
+        # One outer page scroller remains; the approved compact editor has one
+        # explicit local viewport, not an unbounded second page scroller.
+        self.assertEqual(page.source_directory.findChildren(QScrollArea), [page.source_directory.editor_scroll])
+        self.assertEqual(page.source_directory.editor_scroll.objectName(), "sourceDirectoryEditorScroll")
+        self.assertEqual(page.source_directory.editor_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.assertTrue(page.source_toggle_host.isHidden())
         page._project_dirty = False
         page._input_dirty = False

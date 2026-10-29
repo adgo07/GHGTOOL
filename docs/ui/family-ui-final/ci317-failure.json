@@ -1,0 +1,29 @@
+{
+  "run_id": 40806310497,
+  "head": "bb9c8040785897d1fcae5a5106fad596c7f2f803",
+  "merge_job_id": 123225981911,
+  "tests": 1133,
+  "seconds": 1139.059,
+  "failures": 0,
+  "errors": 14,
+  "error_type": "AttributeError: SourceDirectoryTests has no attribute catalog_path",
+  "cause": "Borrowed setUp/tearDown omitted new class-level immutable catalog fixture lifecycle",
+  "test_ids": [
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_all_eight_groups_use_single_scroll_and_navigation_is_not_input",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_browse_does_not_enable_and_enable_remains_explicit",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_directory_switches_preserve_complete_state_and_real_controls",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_fuel_source_adapters_stay_hidden_while_real_choices_change_original_data",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_heat_edit_commit_refreshes_only_existing_readonly_preview",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_hidden_long_page_does_not_impose_editor_minimum",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_keyboard_browse_and_four_state_switch_are_separate_from_input",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_new_rows_and_conversion_keep_scoped_layout",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_other_electricity_hides_catalog_fields_without_losing_drafts",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_responsive_materials_keep_values_sources_and_ownership",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_shell_reflow_contains_fields_after_resize_disclosure_and_source_switch",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_unconfirmed_status_and_disclosure_preserve_input",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_opens_conversion_and_external_disclosures_without_input_changes",
+    "tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_reveals_directory_without_changing_state"
+  ],
+  "standalone": "skipped",
+  "performance_claim": "Not a complete passing run; 14 setup errors omitted bodies, so do not claim the 30-minute goal achieved."
+}

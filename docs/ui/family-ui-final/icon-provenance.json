@@ -1,0 +1,71 @@
+{
+  "source_repository": "https://github.com/adgo07/Qingzhou-contracts",
+  "design_candidate_commit": "e1486fb20c1dda33b7344ca860ff8f303c2183ee",
+  "status": "Owner-approved UI candidate; not a Frozen Contract",
+  "geometry": "24x24, stroke-width 1.7; local approved base SVGs are the controlled generation inputs; variants change only currentColor",
+  "generator": "scripts/generate_family_icon_variants.py",
+  "icons": {
+    "excel": {
+      "source_sha256": "0889315ed4a8302f3afe76074856737df1da50eb1686a02411711ea30cf44bd5",
+      "colors": [
+        "116fae",
+        "197cc2",
+        "516f86"
+      ]
+    },
+    "factors": {
+      "source_sha256": "9592728821dad747a30cd9ab0374d2195e9ffbafff714b08ccf213bede32b9cb",
+      "colors": [
+        "116fae",
+        "197cc2",
+        "516f86"
+      ]
+    },
+    "home": {
+      "source_sha256": "17d3348d92af3119e2b3742530aa4e2d598fdac7731202bfd6dfadd1687789d6",
+      "colors": [
+        "116fae",
+        "516f86"
+      ]
+    },
+    "new": {
+      "source_sha256": "19cdc23190b2f5f6b895950e3daa15bb11b29c4272296c729e61d26b1dcc8302",
+      "colors": [
+        "116fae",
+        "168268",
+        "18364f",
+        "197cc2",
+        "516f86"
+      ]
+    },
+    "records": {
+      "source_sha256": "e08558d8aa43bc10a6024deb59c188dafb2d8ecb9901bdc197ffda916d09e67d",
+      "colors": [
+        "116fae",
+        "18364f",
+        "197cc2",
+        "516f86"
+      ]
+    },
+    "settings": {
+      "source_sha256": "6d189736befed8dea76a33b9d53c673d55ccdb441ea79f0f368014d2a4feb8fa",
+      "colors": [
+        "116fae",
+        "197cc2",
+        "516f86"
+      ]
+    },
+    "standards": {
+      "source_sha256": "87afae477037eea7b2292b452542b20fb29512223e36b67f9cc3014fdd2b45ad",
+      "colors": [
+        "116fae",
+        "516f86",
+        "ffffff"
+      ]
+    }
+  },
+  "upstream_asset": "docs/ui/phase2/prototype/assets/icons.svg",
+  "upstream_asset_sha256": "f78b7a6249ffe88eedcdf52c71c24299e306e73b067c191b5fb02ea901764712",
+  "base_asset_directory": "resources/icons",
+  "source_hash_normalization": "SHA256 of authoritative Git LF bytes; variant rendering preserves local base SVG line endings and changes only currentColor"
+}

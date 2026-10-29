@@ -32,6 +32,7 @@ from .config import AppConfig
 from .logging_config import configure_logging
 from .product import create_shell
 from packages.ui.design_tokens import application_stylesheet
+from packages.ui.window_geometry import WindowGeometry
 from packages.ui.export_location import ExportLocationService
 from packages.ui.chinese import initialize_chinese, report_chinese_failure
 
@@ -45,7 +46,12 @@ class CarbonAccountingMainWindow(QMainWindow):
         if callable(confirm) and not confirm():
             event.ignore()
             return
+        self.window_geometry.save()
         event.accept()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.window_geometry.shown()
 
 
 def create_main_window(
@@ -77,12 +83,11 @@ def create_main_window(
     window = CarbonAccountingMainWindow()
     window.setObjectName("mainWindow")
     window.setWindowTitle(app_config.app_name)
-    window.setMinimumSize(1180, 720)
-    window.resize(1280, 800)
     window.setStyleSheet(application_stylesheet())
     window.setFont(QFont("Microsoft YaHei UI", 10))
     shared_export_location = export_location_service or ExportLocationService()
     window.export_location_service = shared_export_location
+    window.window_geometry = WindowGeometry(window, shared_export_location.settings_repository)
     window.setCentralWidget(create_shell(
         app_config,
         catalog_service=catalog,

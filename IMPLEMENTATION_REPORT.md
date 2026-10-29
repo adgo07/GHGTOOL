@@ -1,49 +1,59 @@
-# PR60 五页 V2 与验收问题收口报告
+# PR62 家族 UI 统一与 CI 返修实施报告
 
-本轮在已批准五页 V2 上收口普通记录业务依据、脚注字形、导入项目/记录操作和可读性问题，并完整保留此前启动日志失败的安全退出修复。产品代码固定于 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；本地裸字体完整运行 **1121通过/1失败，5371.075s**，受控运行代码/测试/构建/资源 338 项前后哈希不变。astra r3 对两尺寸实际 Qt 离屏图及相关源码给出限定视觉 PASS。源会话正式独立验收另行进行，PR60未合并。
+2026-10-29。PR：[GHGTOOL #62](https://github.com/adgo07/GHGTOOL/pull/62)，分支 `codex/ghg-family-ui-unify`。本报告是稳定批次提交前快照，最终PR head、两required检查和精确包回执以PR最新交付记录为准；不得把此前运行冒用为新head证据。未合并，最终由源独立验收后通知Owner。
 
-## 本轮范围与行为
+## 平台 / Contract 预检查
 
-- 记录详情保持两个页签。普通层撤除技术审计入口，直接提供已冻结业务输入、参数来源、计算依据和标准定位；旧记录、无表式或局部快照损坏仍保留可读原值与缺项说明。内部枚举改为业务名称，来源文档编号原文保留；完整数值以业务内容 tooltip/无障碍说明保留，普通数值显示修约不回流历史数据或正式判定。
-- B.1/B.2/B.7/B.8/B.9既有脚注 a/b 在 Qt 呈现层使用普通拉丁字形上标绘制，明确保留单位换行。原冻结表头、合并单元格、脚注、共享报告模型及Word分页逐字不改；不增加或打包字体。
-- 导入顺序为工作簿→核算信息/边界→检查预览→保存全部有效单元→主动正式核算。空态隐藏空表/空详情；已保存项目独立次级入口，展示 Canonical 保存的企业、期间、地区与边界，隐藏新导入草稿而不覆盖草稿或写默认。信息/计量路径变化后须重检才能保存。
-- 正式核算成功仍每次新增不可编辑 Record。本次/最新查看绑定本单元最后实际生成记录，历史选择有独立查看动作；关联保存失败保留原恢复提示，不冒称成功。成功后主操作为查看本次记录，再次核算降为次级，明确其追加效果。
-- 来源长名完整换行并按实际宽度保留末行，少量搜索结果让详情获得空间；记录列表压缩行高且保留状态/日期，详情头紧凑、宽表仅在表内横滚；设置路径从盘符起显示并可完整复制/访问。勾选、半选、禁用及焦点只在导入局部强化，全局主题、首页/壳/新建核算未改。
+实际root、origin、fetch、branch、head、status已核对；origin为 `https://github.com/adgo07/GHGTOOL.git`，默认main。基线 `6fc5909646b855494abee55cff6fd95f8d18b4be`；本批开始业务仓head `2d555e165c41c30bdec8c075ff813f47061cc0f8`；CI317退修起点 `bb9c8040785897d1fcae5a5106fad596c7f2f803`。隔离worktree复用原任务分支，原checkout用户数据/修改未触碰，未创建Goal。
 
-## 代码与证据身份
+locked central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 未变。Architecture V2.1、Numeric v1/Profile v1冻结权威不升级；本任务不涉及中央公共 Contract。适用MUST/MUST NOT：维持Presentation/Application/Domain/Infrastructure分层；窗口偏好只用既有独立user设置；UI显示与内部标识处理不得回流计算；不得改变Canonical、项目/Record、标准解释或来源绑定。均满足，无Contract冲突、无中央缺口或adoption。中央当前适用UI指南为ACTIVE/EVOLVING，读取已验证origin的中央仓；家族设计候选 `e1486fb20c1dda33b7344ca860ff8f303c2183ee` 是Owner批准的本轮视觉依据，不称Frozen或已发布平台基线。
 
-Canonical repository 为 `adgo07/GHGTOOL`，实际 origin/fetch 已核对；复用 `codex/ui-five-business-pages-v2`，入口 `e33624ed98c1ceb2e6445917b6e12cee0bd02a8a`，main `d7159f77ddb103376f5ca6bdd3a9532c101433e3`。不依据机器绝对路径识别仓库，不覆盖另一工作区的用户修改。
+Standard Issue：已读台账；本任务不存在需改变的相关解释问题，无新问题编号，不改变既有软件解释/支持范围。算法、参数、单位/Numeric Profile、Excel母版/算法、Word报告、数据库迁移、项目保存/恢复和不可变正式Record语义不变。
 
-本轮是 Owner 新授权的 PR60 增量，不再冒用原 UI package 的初始白名单。显式方法保护证明覆盖6个UI文件；Canonical项目保存/来源证据方法、正式calculate与save_after_record调用不变，Application/Core/Calculator/Adapter/DB/迁移/资源/受控母版/Word模型/依赖/workflow与启动修后入口基线无差异，8个受保护UI源逐项不变。证明见[scope-proof.json](docs/ui/business-pages-v2/refinements-r3/scope-proof.json)。产品代码、证据文档head及最终PR/CI/制品身份分列；正式最新head及CI/ZIP/manifest以PR60最终交付回执锁定，不把旧CI309或旧包改标新版本。
+## 产品结果与本批返修
 
-## 本地执行与失败记录
+- 共享样式集中化，迁移进行中：design_tokens集中字体/输入/按钮/页签/表格；页面和壳仍有局部QSS，不宣称唯一来源。普通输入/按钮外框40 DIP、导航46 DIP；焦点与禁用态完整，正文最大1440不含外边距。
+- 首次窗口1280×800居中非最大化，后续独立user偏好恢复普通/最大化；按实际工作区收回，正常最小960×600，小屏含边框适配。普通正文窄屏不出现页面级横滚，复杂源编辑区允许有边界的局部滚动，实际左右端可达。
+- 原图Logo按DPR取样；SVG原生渲染，保留23个预着色变体。本批补[来源/色板清单](docs/ui/family-ui-final/icon-provenance.json)与生成器；`--check`逐字节校验，不另建图标体系、不增加运行时资源。
+- 首页右上设置、业务页设置上下文与返回保留；表格默认48/最小44、中文完整换行与底部计数、页头actions和导入四区标题保留。导入专门文案断言覆盖“模板与说明 / 文件选择 / 数据预览与检查 / 处理结果”，其他交互继续按对象和业务行为检查。
+- CI316唯一失败是缩放stdout位置不匹配。本批恢复兼容人读前缀，并增加版本化JSON结果，严格验证scale/真实DPR/work_area/PASS/空failures/client/cleanup/exit0；保留三档完整几何/动态行/重叠/删除断言。加入flush分段计时，60秒超时报告命令、Qt配置、stdout和最后阶段stderr，不提高上限。
+- 缩放父例取消无断言用途的重复窗口初始化；项目恢复只共享只读catalog，服务、projects库、records和页面逐例隔离，类结束哈希校验。项目/FGD/Excel入口夹具使用已有可靠销毁助手，保留原close检查后再销毁。无新增全局缓存、跳过测试、工作流拆分或预算修改。
 
-主命令 `python -B -m unittest discover -s tests -t . -v`；本地裸字体完整运行实际为 **1121通过/1失败，5371.075s**。运行前后全部受控运行代码/测试/构建/资源哈希一致，原始全量日志SHA256 `6f618d0d52ae8b093c1374006dbae4c0200dc81f108f8990cba77f850c6bafbf`。见[完整摘要](docs/ui/business-pages-v2/refinements-r3/local-full-summary.json)。Windows/Python3.12.14，Qt6.11.2，离屏与隔离合成库；不等同原生交互。
+## 耗时与覆盖证据
 
-定向组有重叠，不累计：记录绑定2/2（40.441s）；A-11修后34/34（129.090s）及真实旧记录/跨启动2/2（27.663s）；脚注及冻结Word守卫20/20（31.531s）；可读性九模块80/80（335.305s），来源行高修后同组80/80（442.401s）；导入/恢复/冻结报告24/24（244.685s），上下文与Shell15/15（42.472s）；astra首轮修后冻结详情/Word及核算31/31（121.197s）；真实电力正式Record呈现1/1（5.844s）；最终列表/字体2/2（26.627s）。命令/日志名/摘要见[定向索引](docs/ui/business-pages-v2/refinements-r3/local-directed-index.json)，完整原件独立保留。
+完整分析、重复覆盖对应与口径见[测试成本核对](docs/ui/family-ui-final/TEST_COST_REVIEW.md)。AST核对7个修改模块原88个test_*方法名全部保留，未删业务/来源/Record/几何断言。
 
-修前真实记录绑定1项失败、A-11修前1项失败均已复现并修复。第一次A-11组32/33通过，待删除QLabel被测试误读为重复当前内容；随后隐藏移除控件并维护当前业务标签列表。第一次可读性运行因新增测试插入位置错误未执行；原日志保留。新增业务名称守卫曾误要求无电量变量的表式夹具显示电量（2项1通过/1失败57.103s），改核实际保存业务项并新增真实Canonical电力→Record→只读界面场景；该新增场景初次目录引用错误（2项1通过/1错误13.618s）也保留，修正后独立重跑通过。两版完整运行因截图发现来源末行及窄窗列宽问题主动中止，均不计完整通过。所有失败/中止与修后日志不覆盖。另一次字体引导完整复验为固化可复现的QA前置而主动停止，未完成不计通过；最终同head完整required CI单独执行并记录。
+改前项目页两轮setup22.338/17.444秒，teardown后对象仍活；FGD窗口39.453秒，结束后仍活。改后共享catalog一次11.363秒；两轮setup50.060/12.248秒、销毁1.504/0.070秒；FGD ready27.775秒、总28.010秒，全部结束即失效。本机其他测试并行且SQLite I/O波动明显，不能从上述非独占样本宣称净提速。确认的收益是可靠销毁、重复目录构建减少和可诊断性；全量是否接近30分钟由新headCI实际判定。
 
-Canonical校验9标准/12来源/102参数/138因子、compileall、pip check和diff检查均通过；数量仅为目录验证，不代表支持9项标准。未重复执行无变化的工作流，不修改费用预算、可见性或required checks。
+## 本地验证（本批及CI317退修）
 
-## 本机离屏字体前置与QA修正
+环境Windows，Python3.12.14 / PySide6 6.11.2；只运行offscreen。TEMP/TMP指向本轮隔离临时目录，PYTHONDONTWRITEBYTECODE=1、QT_QPA_PLATFORM=offscreen。3.12对C盘worktree新输出目录仍有WinError5，抓图改用已授权隔离临时目录后复制6张，不改ACL或真实用户库。
 
-上述完整运行唯一失败为日期列宽视觉断言。相同产品/断言在字体枚举0的进程测得日期140px（104px列宽不足）；仅QA进程注册已有系统字体后测得76px，同一断言通过。原失败不改标为完整通过。修复仅测试setUpClass与QFontDatabase导入：字体枚举为空时加载可用Windows系统字体，仍无字体则明确报错，不skip、不安装或打包字体、不放宽断言。修后普通命令 `python -B -m unittest -v tests.test_business_pages_visual`，21/21，119.918s。QA增量head `4cd2d09ba9595fdc8ff44b91a5f366adace6c525`；产品29源与astra的fb56逐项相同。断言体AST保护证明及字体复现另存，最终完整required CI独立记录，不能用定向相加冒充本地全量通过。
+| 命令 | 结果 |
+|---|---|
+| `python -u -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible -v` | **最终1通过/0失败，149.765秒**；真实DPR为1.0/1.25/1.5，各探针52.535/44.296/40.829秒，均exit0。此前诊断版1项132.485秒通过；诊断runner每30秒堆栈是观测，不是60秒保护失败。 |
+| `python -u -m unittest tests.test_family_ui tests.test_g03_shell -v` | **24通过/0失败，224.698秒**；包含正常最小窗口可用正文和四标题断言。补强扣除边距后600 DIP正文断言后，该入口再验1/1通过，15.138秒。 |
+| `python -u -m unittest tests.test_accounting_projects_ui tests.test_b_fgd_acceptance_fixes tests.test_rs03_excel_entrypoints -v` | **41通过/0失败/0错误，974.358秒，exit0**；项目21、FGD10、Excel入口10。 |
+| `python -u -m unittest tests.test_accounting_source_directory tests.test_accounting_projects_ui.AccountingProjectUiTests.test_project_unit_controls_expand_and_expose_save_and_unit_management -v` | **15通过/0失败/0错误，288.347秒，exit0**；CI317真实失败14入口+原项目夹具1项同进程，两个class catalog哈希与清理均通过。 |
+| `python scripts/uir04_scale_acceptance.py --scale 1.0` | PASS / exit0，40.636秒；catalog6.418、窗口6.285、动态行24.483、几何1.075、可达/删除1.019、清理0.576秒。 |
+| `python scripts/uir04_scale_acceptance.py --scale 1.5 --work-area small --screenshot <隔离路径>` | PASS / exit0，client531×531，71.492秒；含抓图，导入27.793秒。**不是60秒子进程测试**，未增加任何保护预算。 |
+| `python scripts/run_family_ui_review.py --data-dir <隔离目录> --capture-dir <隔离目录>`及DPR2 `--only-home` | 四页+DPR2离屏抓图成功，合成数据。 |
+| `python scripts/generate_family_icon_variants.py --check` | 23个SVG PASS。 |
+| `python -c "from scripts.build_standalone import _validate_approved_template_inputs; _validate_approved_template_inputs()"` | 资源白名单/模板hash PASS；此静态检查用本机Python3.13.3，不冒称3.12实包构建。 |
+| `python -m compileall -q scripts tests`；`git diff --check` | PASS；compileall为本机3.13.3静态检查，3.12实际导入由上列回归覆盖。 |
 
-## astra限定视觉复核
+图标来源首次跨检发现旧Windows工作区CRLF与Git权威LF字节不同，已明确来源hash按Git LF、变体按本地基础文件原换行逐字节比对；当前CRLF与全新LF检出模拟均23/23通过，未改资源。曾主动停止无输出及重复诊断进程，不计通过；初次C盘抓图PermissionError记为环境失败，后改隔离路径成功。没有反复运行全量取绿。
 
-r3捕获于清洁产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；1180×800与1440×1000共86整窗图，另6张控件状态图，回调异常0。92/92图、29/29源hash由astra独立核对，复核turn `01a1719a-f04a-7890-9fba-288ecd0b361b`。r1四项HOLD（状态/日期、长小数与匿名用量、B2脚注、成功后按钮主次）全部关闭，无新增视觉阻断。完整快照清单SHA256 `5ee7e5e92f716f811d26371c1e95d844a64b3f66c5446ccc9bf0494103fd4dbc`。
+## GitHub Actions证据与交付边界（含CI317退修）
 
-[精选图集](docs/ui/business-pages-v2/refinements-r3/review.html) · [限定回执](docs/ui/business-pages-v2/refinements-r3/astra-receipt.json)。astra确认完整业务依据绑定tooltip/无障碍说明，但未实测悬停或读屏；截图与定向属性检查不能替代原生行为验收。r1/r2/r3全部原图、脚注前后probe与哈希、原始日志独立归档，旧r9图集/早期CI与候选包保留原身份。
+已推送head `bb9c8040785897d1fcae5a5106fad596c7f2f803` 的CI317 / run40806310497：独立GUI15秒、两档scale28秒通过；全量1133项1139.059秒，14 errors/0 failures。14项均为本轮复用夹具时遗漏SourceDirectoryTests的class catalog生命周期，借用setUp时缺catalog_path，业务体未执行。该遗漏应在修改前搜索消费者时发现，不能把此19分钟失败运行当作性能达标。Standalone依赖跳过，无可用精确head包；[失败入口与原因](docs/ui/family-ui-final/ci317-failure.json)已记录，原始日志外部归档。
 
-## 平台 / Contract预检查
+原协议修复已在CI三档实际DPR全部通过，14.130/14.409/14.451秒，无需提高60秒保护。现SourceDirectoryTests借用完整class初始化/结束哈希校验/清理，各类拥有独立只读catalog；14个原测试体不改。已搜索所有借用者；追加14项+原项目夹具1项同进程验证已15/15通过（288.347秒）；代码只改该消费者class生命周期、测试体不变，准备稳定修复push。不是重跑旧head取绿。
 
-业务仓产品代码SHA如上；中央锁定 `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 不变，Architecture V2.1 / Numeric v1 / Numeric Profiles v1仍为FROZEN。已读中央当前正式UI v0.2及适用界面指南（ACTIVE/EVOLVING，不当Frozen）；本任务不涉及中央公共 Contract。适用MUST/MUST NOT：保持分层、显示与计算隔离、Carbon项目p40/HALF_UP Profile与完整值正式比较、冻结Record与独立projects.sqlite语义、旧记录与来源证据、正式审计、受控Excel及Word表式。无中央冲突、偏差、adoption或baseline升级。相关Standard Issue：无本轮新增标准解释问题，不改变已有软件解释或支持范围。
+CI316为此前1133项1587.264秒1失败；旧main CI311全量1122项2107.461秒；CI314/315的超时仅属历史，不冒用。新修复head仍待Merge-ref与精确PR-head Standalone两required及build/audit/archive/provenance/smoke/upload、artifact ID/名称/大小/digest回执。工作流、40分钟预算、required范围不变；最终回执在PR最新交付记录。
 
-## 工程交付与独立验收边界
+## 代表图与未执行项
 
-既有启动日志OSError保护完整保留：业务仓库初始化前固定中文提示并return1，真实用户日志路径不可写时仍安全拒绝启动。实际访问失败原因仍未确定；不声称该环境阻塞消除。未修改用户实际日志/数据库、ACL或管理员策略。一次中止旧测试的筛选曾误匹配另一仓库两个测试进程，中止返回错误后已核实其仍运行；后续仅对解释器/完整命令/启动时间核实的本聊天固定PID操作，未修改其他仓库文件。
+[最终图集](docs/ui/family-ui-final/README.md)恰好6张、760869字节，已看图；[源码/图像清单](docs/ui/family-ui-final/capture-manifest.json)绑定产品源head与Git树、哈希、DPR、尺寸和脚本版本。本批不改产品源码apps/packages/resources，图像源绑定有效；外部原始抓图和隔离QA数据库不打包。
 
-本提交记录产品代码本地与视觉证据；同一PR的required CI、实际精确head ZIP/manifest、两个job原日志、本地包审计/两次隔离启动/启动后再审计及静态冻结模块绑定，按最终交付回执实际结果单列。旧e336/CI309仅为历史启动基线，不覆盖本轮。原生Windows桌面、实际用户目录负例、IME、Office、人工DPI、企业样例和干净机未执行；不以离屏或CI代替。PR60保持未合并、不发布，交源会话独立验收后停止。
-
-后续新建核算整页改进是独立范围，本PR不实施。Owner已批准热力“常用入口简化，特殊情况可展开，旧值保留”，015防重复计碳/未知边界/输出语义不改；无需重复询问。
+未执行本轮本地全量、真实桌面交互、多屏/DPI切换、Office/IME、干净机/企业样例；源独立最终验收未完成。本报告不宣布正式标准SUPPORTED、不自动合并或发布；源验收通过后通知Owner。

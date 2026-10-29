@@ -39,6 +39,8 @@ from .design_tokens import (
     responsive_page_margin,
 )
 from .icons import load_tinted_icon
+from .branding import BrandLogo
+from .wheel_guard import protect_wheel_inputs
 from .pages import create_page
 from .export_location import ExportLocationService
 from .routing import PageRouter
@@ -176,6 +178,7 @@ class AppShell(QWidget):
         self._navigation_icon_cache: dict[tuple[AppRoute, bool], QIcon] = {}
         self._scroll_positions: dict[AppRoute, int] = {}
         self._visible_route: AppRoute | None = None
+        self._settings_from_home = False
         self._pages: dict[AppRoute, QWidget] = {}
         self._standard_pages: dict[tuple[AppRoute, str], QWidget] = {}
         self._content_geometry_refresh_pending = False
@@ -228,6 +231,7 @@ class AppShell(QWidget):
         self._pages[route] = page
         if standard_id is not None:
             self._standard_pages[(route, standard_id)] = page
+        protect_wheel_inputs(page)
         self.page_stack.addWidget(page)
         accounting_requested = getattr(page, "accounting_requested", None)
         if accounting_requested is not None:
@@ -362,7 +366,7 @@ class AppShell(QWidget):
             QWidget#brandArea, QLabel#brandLogo, QLabel#sidebarProductName {{ background: transparent; }}
             QLabel#sidebarProductName {{ color: #537891; font-size: 11px; font-weight: 650; }}
             QPushButton#navButton {{
-                background: transparent; border: 1px solid transparent; border-radius: {NAV_ITEM_RADIUS}px;
+                background: transparent; min-height:44px; max-height:44px; border:1px solid transparent; border-radius: {NAV_ITEM_RADIUS}px;
                 color: {_SIDEBAR_MUTED_TEXT}; font-size: 13px; font-weight: 600;
                 padding: 0 13px; text-align: left;
             }}
@@ -387,21 +391,8 @@ class AppShell(QWidget):
         brand_layout.setContentsMargins(7, 10, 7, 19)
         brand_layout.setSpacing(6)
 
-        logo_label = QLabel(brand_area)
+        logo_label = BrandLogo(self._logo_path, brand_area)
         logo_label.setObjectName("brandLogo")
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        logo_label.setFixedSize(180, 46)
-        logo = QPixmap(str(self._logo_path))
-        if not logo.isNull():
-            logo_label.setPixmap(
-                logo.scaled(
-                    QSize(180, 46),
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            )
-        else:
-            logo_label.setText("青舟节能")
         brand_layout.addWidget(logo_label)
 
         product_label = QLabel(self.view_model.product_name, brand_area)
@@ -437,7 +428,8 @@ class AppShell(QWidget):
                 else Qt.CursorShape.PointingHandCursor
             )
             if item.reserved:
-                button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+                button.setEnabled(False)
+                button.setToolTip("当前暂未开放")
             button.clicked.connect(lambda _checked=False, route=item.route: self._navigation_clicked(route))
             navigation_layout.addWidget(button)
             self._navigation_buttons[item.route] = button
@@ -522,7 +514,14 @@ class AppShell(QWidget):
         page = self._ensure_page(route)
         background = HOME_CANVAS_GRADIENT if route is AppRoute.HOME else PAGE_BACKGROUND
         self.scroll_host.set_background(background)
-        self._sidebar.setVisible(route is not AppRoute.HOME)
+        if route is AppRoute.SETTINGS and previous_route is not AppRoute.SETTINGS:
+            self._settings_from_home = previous_route is AppRoute.HOME
+        self._sidebar.setVisible(route is not AppRoute.HOME and not (
+            route is AppRoute.SETTINGS and self._settings_from_home))
+        if route is AppRoute.SETTINGS:
+            back = getattr(page, "home_back_button", None)
+            if back is not None:
+                back.setVisible(self._settings_from_home)
         self.page_stack.setCurrentWidget(page)
         self._visible_route = route
         for item_route, button in self._navigation_buttons.items():
@@ -575,7 +574,7 @@ class AppShell(QWidget):
         content_max_width = (
             HOME_CONTENT_MAX_WIDTH
             if current_route is AppRoute.HOME
-            else MAIN_CONTENT_MAX_WIDTH
+            else MAIN_CONTENT_MAX_WIDTH + 2 * responsive_page_margin(available_width)
         )
         content_width = min(content_max_width, available_width)
         self.page_stack.setFixedWidth(content_width)
@@ -590,7 +589,7 @@ class AppShell(QWidget):
                     else HOME_PAGE_SIDE_MARGIN
                 )
             else:
-                margin = responsive_page_margin(self.width())
+                margin = responsive_page_margin(available_width)
             setter(margin)
         available_height = max(0, self.main_scroll_area.viewport().height())
         self.page_stack.setMinimumHeight(available_height)
