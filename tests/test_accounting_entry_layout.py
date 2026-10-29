@@ -5,7 +5,7 @@ from pathlib import Path
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtCore import QPoint,QCoreApplication,QEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication,QLineEdit,QPushButton,QWidget
+from PySide6.QtWidgets import QApplication,QLabel,QLineEdit,QPushButton,QWidget
 from tests import test_accounting_projects_ui as fixture
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
@@ -53,6 +53,9 @@ class AccountingEntryLayoutTests(unittest.TestCase):
             unit=page._process_rows['fgd'][0]
             unit['reagent_name'].setText('合成脱硫剂批次的较长身份名称')
             page._add_and_reveal_entry(page._add_fgd_component,unit)
+            captions = [label for label in unit['widget'].findChildren(QLabel)
+                        if label.text() == '所属脱硫设施' and label.isVisibleTo(unit['widget'])]
+            self.assertEqual(len(captions), 1, 'a detached legacy caption must not float above the field')
             for width,height in ((1440,1000),(1180,800),(1440,1000)):
                 window.resize(width,height);self.pump()
                 for component in unit['components']:self.assert_body_contains_fields_and_separates_sections(component['_widget'])

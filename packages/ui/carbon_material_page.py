@@ -4655,8 +4655,6 @@ class CarbonMaterialAccountingPage(BasePage):
             name_layout.addWidget(reagent_name, 1)
             self._wire_dirty_tracking(reagent_name)
 
-            facility_row = QHBoxLayout()
-            facility_row.addWidget(QLabel("所属脱硫设施", group_fields))
             facility_selector = QComboBox(group_fields)
             facility_selector.setObjectName(f"fgd_{instance_id}_facility")
             seen_facilities = set()
@@ -4669,7 +4667,6 @@ class CarbonMaterialAccountingPage(BasePage):
             facility_selector.currentIndexChanged.connect(lambda _index, _row=row, _combo=facility_selector: _row.update(facility_id=_combo.currentData(), facility_name=_combo.currentText() or None) if not self._restoring_workspace else None)
             row["facility_selector"] = facility_selector
             self._wire_dirty_tracking(facility_selector)
-            facility_row.addWidget(facility_selector, 1)
 
             upgrade_button = QPushButton("确认采用脱硫批次输入", group_fields)
             upgrade_button.setObjectName(f"fgd_{instance_id}_upgrade")
