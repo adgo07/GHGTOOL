@@ -4,7 +4,7 @@
 
 ## 平台 / Contract 预检查
 
-实际root、origin、fetch、branch、head、status已核对；origin为 `https://github.com/adgo07/GHGTOOL.git`，默认main。基线 `6fc5909646b855494abee55cff6fd95f8d18b4be`；本批开始业务仓head `2d555e165c41c30bdec8c075ff813f47061cc0f8`。隔离worktree复用原任务分支，原checkout用户数据/修改未触碰，未创建Goal。
+实际root、origin、fetch、branch、head、status已核对；origin为 `https://github.com/adgo07/GHGTOOL.git`，默认main。基线 `6fc5909646b855494abee55cff6fd95f8d18b4be`；本批开始业务仓head `2d555e165c41c30bdec8c075ff813f47061cc0f8`；CI317退修起点 `bb9c8040785897d1fcae5a5106fad596c7f2f803`。隔离worktree复用原任务分支，原checkout用户数据/修改未触碰，未创建Goal。
 
 locked central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20` 未变。Architecture V2.1、Numeric v1/Profile v1冻结权威不升级；本任务不涉及中央公共 Contract。适用MUST/MUST NOT：维持Presentation/Application/Domain/Infrastructure分层；窗口偏好只用既有独立user设置；UI显示与内部标识处理不得回流计算；不得改变Canonical、项目/Record、标准解释或来源绑定。均满足，无Contract冲突、无中央缺口或adoption。中央当前适用UI指南为ACTIVE/EVOLVING，读取已验证origin的中央仓；家族设计候选 `e1486fb20c1dda33b7344ca860ff8f303c2183ee` 是Owner批准的本轮视觉依据，不称Frozen或已发布平台基线。
 
@@ -21,11 +21,11 @@ Standard Issue：已读台账；本任务不存在需改变的相关解释问题
 
 ## 耗时与覆盖证据
 
-完整分析、重复覆盖对应与口径见[测试成本核对](docs/ui/family-ui-final/TEST_COST_REVIEW.md)。AST核对6个修改模块原74个test_*方法名全部保留，未删业务/来源/Record/几何断言。
+完整分析、重复覆盖对应与口径见[测试成本核对](docs/ui/family-ui-final/TEST_COST_REVIEW.md)。AST核对7个修改模块原88个test_*方法名全部保留，未删业务/来源/Record/几何断言。
 
 改前项目页两轮setup22.338/17.444秒，teardown后对象仍活；FGD窗口39.453秒，结束后仍活。改后共享catalog一次11.363秒；两轮setup50.060/12.248秒、销毁1.504/0.070秒；FGD ready27.775秒、总28.010秒，全部结束即失效。本机其他测试并行且SQLite I/O波动明显，不能从上述非独占样本宣称净提速。确认的收益是可靠销毁、重复目录构建减少和可诊断性；全量是否接近30分钟由新headCI实际判定。
 
-## 本地验证（本批）
+## 本地验证（本批及CI317退修）
 
 环境Windows，Python3.12.14 / PySide6 6.11.2；只运行offscreen。TEMP/TMP指向本轮隔离临时目录，PYTHONDONTWRITEBYTECODE=1、QT_QPA_PLATFORM=offscreen。3.12对C盘worktree新输出目录仍有WinError5，抓图改用已授权隔离临时目录后复制6张，不改ACL或真实用户库。
 
@@ -34,6 +34,7 @@ Standard Issue：已读台账；本任务不存在需改变的相关解释问题
 | `python -u -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible -v` | **最终1通过/0失败，149.765秒**；真实DPR为1.0/1.25/1.5，各探针52.535/44.296/40.829秒，均exit0。此前诊断版1项132.485秒通过；诊断runner每30秒堆栈是观测，不是60秒保护失败。 |
 | `python -u -m unittest tests.test_family_ui tests.test_g03_shell -v` | **24通过/0失败，224.698秒**；包含正常最小窗口可用正文和四标题断言。补强扣除边距后600 DIP正文断言后，该入口再验1/1通过，15.138秒。 |
 | `python -u -m unittest tests.test_accounting_projects_ui tests.test_b_fgd_acceptance_fixes tests.test_rs03_excel_entrypoints -v` | **41通过/0失败/0错误，974.358秒，exit0**；项目21、FGD10、Excel入口10。 |
+| `python -u -m unittest tests.test_accounting_source_directory tests.test_accounting_projects_ui.AccountingProjectUiTests.test_project_unit_controls_expand_and_expose_save_and_unit_management -v` | **15通过/0失败/0错误，288.347秒，exit0**；CI317真实失败14入口+原项目夹具1项同进程，两个class catalog哈希与清理均通过。 |
 | `python scripts/uir04_scale_acceptance.py --scale 1.0` | PASS / exit0，40.636秒；catalog6.418、窗口6.285、动态行24.483、几何1.075、可达/删除1.019、清理0.576秒。 |
 | `python scripts/uir04_scale_acceptance.py --scale 1.5 --work-area small --screenshot <隔离路径>` | PASS / exit0，client531×531，71.492秒；含抓图，导入27.793秒。**不是60秒子进程测试**，未增加任何保护预算。 |
 | `python scripts/run_family_ui_review.py --data-dir <隔离目录> --capture-dir <隔离目录>`及DPR2 `--only-home` | 四页+DPR2离屏抓图成功，合成数据。 |
@@ -43,9 +44,13 @@ Standard Issue：已读台账；本任务不存在需改变的相关解释问题
 
 图标来源首次跨检发现旧Windows工作区CRLF与Git权威LF字节不同，已明确来源hash按Git LF、变体按本地基础文件原换行逐字节比对；当前CRLF与全新LF检出模拟均23/23通过，未改资源。曾主动停止无输出及重复诊断进程，不计通过；初次C盘抓图PermissionError记为环境失败，后改隔离路径成功。没有反复运行全量取绿。
 
-## GitHub Actions证据与交付边界
+## GitHub Actions证据与交付边界（含CI317退修）
 
-提交前最新CI316 / run40725201083：全量1133项1587.264秒，1失败；Standalone依赖跳过。旧CI311为main1122项2107.461秒成功，CI314/315的40分钟超时仅属历史；不能作为当前head验收。新批次完成本地验证后一次push；复用同head运行，核验完整Merge-ref与精确PR-head Standalone两required，及build/audit/archive/provenance/smoke/upload全部步骤、制品ID/名称/大小/digest。此处提交前尚无新head成功证据，不称已全绿或已交付EXE。
+已推送head `bb9c8040785897d1fcae5a5106fad596c7f2f803` 的CI317 / run40806310497：独立GUI15秒、两档scale28秒通过；全量1133项1139.059秒，14 errors/0 failures。14项均为本轮复用夹具时遗漏SourceDirectoryTests的class catalog生命周期，借用setUp时缺catalog_path，业务体未执行。该遗漏应在修改前搜索消费者时发现，不能把此19分钟失败运行当作性能达标。Standalone依赖跳过，无可用精确head包；[失败入口与原因](docs/ui/family-ui-final/ci317-failure.json)已记录，原始日志外部归档。
+
+原协议修复已在CI三档实际DPR全部通过，14.130/14.409/14.451秒，无需提高60秒保护。现SourceDirectoryTests借用完整class初始化/结束哈希校验/清理，各类拥有独立只读catalog；14个原测试体不改。已搜索所有借用者；追加14项+原项目夹具1项同进程验证已15/15通过（288.347秒）；代码只改该消费者class生命周期、测试体不变，准备稳定修复push。不是重跑旧head取绿。
+
+CI316为此前1133项1587.264秒1失败；旧main CI311全量1122项2107.461秒；CI314/315的超时仅属历史，不冒用。新修复head仍待Merge-ref与精确PR-head Standalone两required及build/audit/archive/provenance/smoke/upload、artifact ID/名称/大小/digest回执。工作流、40分钟预算、required范围不变；最终回执在PR最新交付记录。
 
 ## 代表图与未执行项
 

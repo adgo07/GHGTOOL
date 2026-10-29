@@ -9,7 +9,13 @@ from tests import test_accounting_projects_ui as project_fixture
 class SourceDirectoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.application = QApplication.instance() or QApplication([])
+        # This class borrows the project fixture's per-case lifecycle below;
+        # initialize and release its own immutable catalog as one fixture too.
+        project_fixture.AccountingProjectUiTests.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        project_fixture.AccountingProjectUiTests.tearDownClass.__func__(cls)
 
     setUp = project_fixture.AccountingProjectUiTests.setUp
     tearDown = project_fixture.AccountingProjectUiTests.tearDown

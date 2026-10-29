@@ -49,16 +49,26 @@
       "errors": 0,
       "seconds": 974.358,
       "exit_code": 0
+    },
+    {
+      "command": "python -u -m unittest tests.test_accounting_source_directory tests.test_accounting_projects_ui.AccountingProjectUiTests.test_project_unit_controls_expand_and_expose_save_and_unit_management -v",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 288.347,
+      "exit_code": 0,
+      "reason": "CI317 omitted class-fixture consumer lifecycle repair; both class catalog hashes/cleanup checked in same process"
     }
   ],
-  "unique_targeted_cases": 66,
+  "unique_targeted_cases": 80,
   "preserved_test_methods": {
     "test_accounting_projects_ui": 21,
     "test_b_fgd_acceptance_fixes": 10,
     "test_rs03_excel_entrypoints": 10,
     "test_family_ui": 11,
     "test_g03_shell": 13,
-    "test_uir04_finalization": 9
+    "test_uir04_finalization": 9,
+    "test_accounting_source_directory": 14
   },
   "local_full_suite_executed": false,
   "native_desktop_executed": false

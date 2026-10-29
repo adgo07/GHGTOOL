@@ -1,20 +1,21 @@
-# PR62 家族 UI 统一：本地返修完成，交同 head CI
+# PR62 家族 UI 统一：CI317夹具退修15项通过，待新headCI
 
-2026-10-29。PR：[GHGTOOL #62](https://github.com/adgo07/GHGTOOL/pull/62)，分支 `codex/ghg-family-ui-unify`。本批开始时已推送 head `2d555e165c41c30bdec8c075ff813f47061cc0f8`。本文件为稳定批次提交前快照，新head与后续CI/包回执以PR最新交付记录为准。未合并；Owner 已授权同一 PR 内修复、低风险测试瘦身及稳定批次 push，完成后交源独立验收。
+2026-10-29。PR：[GHGTOOL #62](https://github.com/adgo07/GHGTOOL/pull/62)，分支 `codex/ghg-family-ui-unify`；修复起点已推送head `bb9c8040785897d1fcae5a5106fad596c7f2f803`。本文件为稳定修复提交前快照，新head及完整CI/包回执以PR最新交付记录为准。未合并。Owner授权同一PR修复、低风险测试瘦身及稳定批次push；最后交源独立验收，通过后通知Owner。
 
 ## 当前事实
 
-- 最新 CI316 / run40725201083：Merge-ref 全量 **1133 项，1587.264 秒，1 失败**；唯一失败是缩放探针输出协议与旧字符串断言不一致。Standalone Audit 因 needs 跳过。本次不能称 required 全绿或精确 head 包已验证。
-- 本批完成：结构化缩放协议及阶段计时/超时诊断；正常与小工作区几何断言；导入四区中文标题；Qt 夹具可靠销毁与经测量支持的只读夹具复用。全部几何/动态行/业务/来源/Record 断言保留，工作流和预算不变。
-- 本地 Python3.12.14 / PySide6 6.11.2：三档缩放父测试 **最终1项通过，149.765秒**（实际DPR 1.0/1.25/1.5，三档均exit0）；直接 100% 探针 PASS，40.636 秒。家族UI+壳24项通过（224.698秒）；项目/FGD/Excel入口41项通过（974.358秒），扣边距正文断言补验1项通过（15.138秒），0失败/0错误。
-- 图标23个既有预着色SVG加入可重复生成/来源哈希检查；资源不变。报告准确表述为“共享样式集中化，迁移进行中”。最终6张代表图（760869字节）、源码/Git树/图像哈希与来源已入仓；本地必要验证完成，准备一次稳定push。
+- 最新CI317 / run40806310497：独立GUI15秒、两档scale28秒通过；全量1133项1139.059秒，**14 errors / 0 failures**，均为SourceDirectoryTests缺catalog_path的setup错误。Standalone依赖跳过，无精确head包。14项业务体未执行，不能把19分钟误称完整性能目标达成。
+- 原输出协议问题已在CI三档100%/125%/150%实际DPR全部通过，各14.130/14.409/14.451秒；60秒保护未提高。
+- 本轮夹具复用遗漏了借用setUp的SourceDirectoryTests。现补齐该类独立catalog的class初始化/结束校验与清理，所有14个原测试体不变；同进程14项+原项目夹具1项已15/15通过，288.347秒，0失败/0错误；两类catalog哈希校验与清理通过。已搜索全部借用者，无其他消费者。
+- 前一稳定批次本地Python3.12.14/PySide6 6.11.2：66个不同定向用例通过；项目/FGD/Excel组41/41（974.358秒），家族/壳24/24（224.698秒），最终三档父例1/1（149.765秒），扣边距正文补验1/1（15.138秒）。未冒称覆盖遗漏的14项。
+- 最终6张Qt图760869字节及源/Git树/图像hash已入仓；全尺寸图、执行脚本快照、CI317原始失败日志在外部持久归档。23个预着色SVG保留，受控生成/来源hash在CRLF和Git LF检出均通过。共享样式集中化，迁移进行中。
 
-## 边界与后续
+## 边界与下一步
 
-不改标准范围/解释、Calculator、Canonical、项目保存、正式 Record、迁移或中央 Frozen。锁定 central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；本任务不涉及中央公共 Contract。无新 Standard Issue，无既有软件解释变化。原 checkout 用户修改未触碰，无 Goal，无桌面 CU 授权。
+不改标准范围/解释、Calculator、Canonical、项目保存、正式Record、迁移、中央Frozen或产品源码apps/packages/resources。锁定central SHA `ee5feb0cc34dbd99790500fadd0c4c932e202a20`；本任务不涉及中央公共Contract，无新Standard Issue。未触碰用户已有数据/修改，无Goal，无桌面CU。
 
-本地必要验证已完成；只做稳定批次 push；复用同 head CI。核实两 required 检查、精确 head 构建/审计/归档/provenance/smoke/upload 的制品 ID、名称、大小及 digest，再交源独立验收；不自动合并。未执行项：本轮本地全量、原生桌面/多屏/IME/Office/干净机。30分钟全量是优化目标，不是完成承诺。
+真实失败入口本地验证已完成；再一次稳定修复push；不直接重跑旧head取绿，不提高40分钟预算、不改required范围。后续核实两required、精确head build/audit/archive/provenance/smoke/upload及artifact ID/name/size/digest。最终回执以PR最新交付记录为准。本轮本地全量、真实桌面/多屏/IME/Office/干净机未验；源独立验收未完成，不自动合并。
 
 ## 历史定位
 
-此前 CI313 为缩放工作区配置失败；CI314/315 为40分钟超时，期间修复应用级滚轮事件过滤器累积，最终改为控件本地 guard。CI315 的8项视觉/导航失败已在此前定向验证通过。历史执行报告与中间状态由 Git history 恢复；本文件以上述当前事实为准。此前源码有限范围验收不等于本轮 CI 或桌面验收。
+CI313缩放工作区配置失败；CI314/315超时，已移除MainWindow应用全局滚轮过滤器；CI316全量1133项1587.264秒唯一失败为输出协议。本轮CI317的新夹具错误独立记录，不用旧CI或19分钟失败运行充当成功。历史实施详单从Git恢复，本文件以上述当前事实为准。
