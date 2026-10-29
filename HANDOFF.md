@@ -1,17 +1,11 @@
-# R6接续断点（2026-10-29）
+# 新建核算第二批交接（2026-10-29）
 
-R5 astra已完成92/92图复核，仅燃料宽转窄内部剪裁HOLD，灰块非阻断。新候选已修局部ScrollArea自然高度通知（649/539实测根因），R24几何2/2 37.773s；已将重复样式集中页面并批量迁移、non-wheel快速放行但show/hide配对及wheel保留。R26原三档/原60秒保护1/1 171.652s，实际55.946/56.274/56.461各档通过；R20/R22/R25失败和R21慢剖析保留。下一步受影响回归、新清洁head的R6 70+22图与astra唯一HOLD复验，仍未full/push/PR/CI/包。不再用R5图片改标当前源码；全部原件和视觉历史ZIP保留。
+沿用codex/new-accounting-page-v2，非破坏性整合PR60/PR62合并main224442530fcc61d8224c45e486688b2c27ec9324。产品源a0dabc8ca49e744ef73704a126c2eaae2fc314dc；当前25图/源码清单、预检查与真实测试见IMPLEMENTATION_REPORT。批准附件SHA256=4922b39e0a3052ba956c54ad64951932e5535c60685f8c8ab1fb4bceacb89d73，仅本批新建核算全页。
 
-# 新建核算第二批实施交接（2026-10-29）
+Owner直接授权本批全部后续astra复核，R8门禁已通过：本轮18图+R5全92图+R6燃料复核，新图/源/脚本hash通过。旧原件/失败不覆盖。R24/R26/R27/R28对应回归通过，原60秒和40min预算/原断言/原测试方法保留。
 
-唯一实施分支codex/new-accounting-page-v2，继续e8776de原成果，非破坏性整合已合并PR60/PR62 main224442530fcc61d8224c45e486688b2c27ec9324。当前产品源4552afada1c43db5038056b2869e9ad4e1c07bb4。不得重置、整文件覆盖主线；根用户工作簿不碰。不自动合并/发布/进入下一范围。
+Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，本任务不涉及中央公共Contract，不改Issue015/016/017/020解释。家族统一、配对/wheel及17正式方法保护，可变项目/不可变Record/Word链不变。
 
-完整批准附件SHA256为4922b39e0a3052ba956c54ad64951932e5535c60685f8c8ab1fb4bceacb89d73；本批仅新建核算全页，不重做已合并五页。九入口、电力、热力常用简化/特殊展开/旧值保留、全部重复条目与上下文/报告已按批准实现，细项见IMPLEMENTATION_REPORT。未来各标准补充只为现有路线产品意图，无新算法或SUPPORTED。
+接着冻结清洁提交完整本地回归（新鲜输出、隔离LOCALAPPDATA/TEMP、源码hash/退出码/log/footer保全）；尚未full/push/新PR/CI/包。通过后稳定push/new PR、同head required和精确包ZIP/manifest/rawlogs/audit/两次离屏启动/静态绑定交源验收，不自动合并/发布。GitHub与本地分列，不沿用旧CI/包。阶段完成重写当前报告，最终交付回执登记实际身份。
 
-中央Frozen ee5feb0cc34dbd99790500fadd0c4c932e202a20保持；本任务不涉及中央公共Contract，Issue015/016/017/020解释不变。家族tokens/40DIP/窗口+DPI品牌/小屏/wheel_guard/核算页show-hide配对过滤器、只读catalog生命周期及40min CI预算全部保留。17个正式方法AST与最新main一致、7UI允许范围之外生产文件保护。
-
-R5综合70+旧项目22整窗图均完成，绑定4552afa。两份summary/全部原图在本批证据目录保全，23图原样入库。comprehensive171源工作文件=Git blob，Record0；legacy共享结果1条合成Record，其余0。R3 legacy及R4综合失败保留，不覆盖。R15焦点失败已诊断并修，原断言R18通过；当前所有本地实际命令/计数/耗时与未执行项见实施报告。
-
-Owner直接授权本批后续astra路径/hash/测试摘要发送原复核会话，不需再次确认。R5两包已发，先处理反馈；视觉关闭后冻结源码完整回归，再稳定push/new PR与必要required CI/精确包，交源验收。现在未完成本批全量、CI、包或独立验收，不沿用主线CI318或PR60制品。
-
-仅真实Qt offscreen和合成隔离库，禁止原生CU/变通桌面/Office/IME/人工DPI/企业数据。保留所有失败中断原件；证据与产品源码SHA分别绑定。
+仅Qt offscreen合成隔离库，根用户工作簿不动，无原生CU/变通桌面/Office/IME/人工DPI/企业数据。

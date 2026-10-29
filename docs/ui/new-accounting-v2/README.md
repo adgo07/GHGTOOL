@@ -1,6 +1,6 @@
 # 新建核算第二批代表图
 
-源码候选`4552afada1c43db5038056b2869e9ad4e1c07bb4`，已整合PR62家族UI基线。原样选取23张整窗图；完整70+22张及全部失败/历史日志在本次交付证据包保全。图片没有裁剪、重绘或拼接，见[源码与图像清单](capture-manifest.json)。视觉复核的实际结论见本阶段IMPLEMENTATION_REPORT，图集本身不等于验收通过。
+源码候选`a0dabc8ca49e744ef73704a126c2eaae2fc314dc`，已整合PR62家族UI基线。原样选取25张整窗图；完整70+22张及全部失败/历史日志在本次交付证据包保全。图片没有裁剪、重绘或拼接，见[源码与图像清单](capture-manifest.json)。视觉复核的实际结论见本阶段IMPLEMENTATION_REPORT，图集本身不等于验收通过。
 
 全部是Qt offscreen、合成输入和隔离数据库；不代表原生桌面或正式发布。外部补充显式声明图与结束未勾选状态分列。旧项目汇总不创建替代物料，旧脱硫10/2保留，不重算历史Record。
 
@@ -11,6 +11,14 @@
 ## fuel-narrow
 
 ![fuel-narrow](fuel-narrow.png)
+
+## fuel-reflow-wide
+
+![fuel-reflow-wide](fuel-reflow-wide.png)
+
+## fuel-reflow-narrow
+
+![fuel-reflow-narrow](fuel-reflow-narrow.png)
 
 ## calcination-narrow
 
