@@ -1,3 +1,13 @@
+# 新建核算第二批整合交接（2026-10-29）
+
+当前基线为已合并PR60/PR62的origin/main 224442530fcc61d8224c45e486688b2c27ec9324。继续既有codex/new-accounting-page-v2和e8776de成果，非重开任务。PR60未合并的旧句仅作为历史记录，现已失效。不回退家族统一样式、40DIP、品牌/DPI/窗口几何、小屏、控件wheel_guard和核算页show/hide配对过滤器。
+
+整合核算页、目录、compact选项和目录测试；新增借用项目夹具同步只读catalog的class初始化/结束hash校验/清理。小屏目录明确激活走activate，程序setCurrentIndex/select不启用；第九补充加入下拉且访问不等于声明。当前R15定向回归运行中，未宣称整合通过；旧legacy R3实际viewport断言失败，保留待修。R4脚本准备，未抓新图。视觉通过后全量，再新PR与少量必要CI和精确包，交源验收不自动合并。
+
+中央Frozen锁不变；本任务不涉及中央公共Contract。当前中央正式main a389ac1de63c4f331f3b04e5e7b7a17ef02ed111，UI指南v0.2与家族规格已复读；原标准问题决定和普通UI/正式计算分层边界保持。Owner对本批所有后续astra复核的直接授权继续有效。
+
+## 已批准范围与前序证据（历史）
+
 # 新建核算全页第二批实施交接
 
 受验依赖PR60 ac06ca7e9d508b3956fef15fdad3d08d4b955f0a，尚未合并。任务分支codex/new-accounting-page-v2；不得移动原PR60分支。仅使用实际origin识别仓库，复用本任务checkout，根工作簿不动。

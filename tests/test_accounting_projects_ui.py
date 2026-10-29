@@ -7,6 +7,7 @@ import unittest
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
+from hashlib import sha256
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -38,7 +39,7 @@ from packages.standards.carbon_material import (
 )
 from packages.standards.carbon_material_normalization import MaterialDataSource, MaterialRole
 from packages.ui.carbon_material_page import CarbonMaterialAccountingPage
-from tests.ui_tree_helpers import tree_texts
+from tests.ui_tree_helpers import dispose_test_widget, tree_texts
 
 
 F01 = "CAR-SRC-FUEL-001"
@@ -48,14 +49,28 @@ class AccountingProjectUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.application = QApplication.instance() or QApplication([])
+        # Only immutable catalog data is shared. Projects, records, services and
+        # widgets are freshly constructed for every test, including reopen tests.
+        cls.catalog_directory = tempfile.TemporaryDirectory()
+        cls.catalog_path = build_catalog_database(
+            DEFAULT_SOURCE_PATH, Path(cls.catalog_directory.name) / "catalog.sqlite"
+        )
+        cls.catalog_hash = sha256(cls.catalog_path.read_bytes()).hexdigest()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if sha256(cls.catalog_path.read_bytes()).hexdigest() != cls.catalog_hash:
+                raise AssertionError("共享只读目录夹具被修改")
+        finally:
+            cls.catalog_directory.cleanup()
 
     def setUp(self) -> None:
         self.temp_directory = tempfile.TemporaryDirectory()
         root = Path(self.temp_directory.name)
         self.root = root
-        catalog_path = build_catalog_database(DEFAULT_SOURCE_PATH, root / "catalog.sqlite")
         self.catalog_service = CatalogQueryService(
-            SQLiteCatalogRepository(catalog_path), as_of=date(2026, 9, 23)
+            SQLiteCatalogRepository(self.catalog_path), as_of=date(2026, 9, 23)
         )
         self.project_service = ProjectWorkspaceService(
             SQLiteProjectWorkspaceRepository(root / "projects.sqlite")
@@ -65,7 +80,7 @@ class AccountingProjectUiTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.temp_directory.cleanup()
 
@@ -156,7 +171,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.project_service.save(legacy_workspace)
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(workspace.project_id)
@@ -343,7 +358,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertTrue(self.page._save_project())
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         self.page._open_selected_project()
@@ -442,7 +457,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         )
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(project_id)
@@ -532,7 +547,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(saved_state[controls["evidence_reference"].objectName()], "旧项目水分及换算依据记录")
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(project_id)
@@ -654,7 +669,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(saved_material_ids, expected_material_ids)
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(project_id)
@@ -688,7 +703,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         project_id = self.page._workspace.project_id
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(project_id)
@@ -745,7 +760,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         project_id = workspace.project_id
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         saved_index = self.page.saved_projects.findData(project_id)
@@ -774,7 +789,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(saved.units[0].form_state.get("enterpriseNameInput"), "")
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         self.page.saved_projects.setCurrentIndex(self.page.saved_projects.findData(project_id))
@@ -806,7 +821,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertTrue(self.page._save_project())
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         self.page._open_selected_project()
@@ -849,7 +864,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertTrue(self.page._save_project())
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         self.page = self._new_page()
         self.page._open_selected_project()
@@ -941,7 +956,7 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertIn("打开项目失败", self.page.project_save_status.text())
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         with patch("packages.ui.carbon_material_page.QMessageBox.critical") as critical:
             self.page = self._new_page()
@@ -1038,10 +1053,10 @@ class AccountingProjectUiTests(unittest.TestCase):
         self.assertEqual(len(first_saved.form_state["fuel_rows"]), 2)
 
         self.page.close()
-        self.page.deleteLater()
+        dispose_test_widget(self.page)
         self.application.processEvents()
         reopened = self._new_page()
-        self.addCleanup(reopened.deleteLater)
+        self.addCleanup(dispose_test_widget, reopened)
         self.page = reopened
         self.assertEqual(self.page.saved_projects.count(), 1)
         self.page._open_selected_project()

@@ -11,7 +11,12 @@ from packages.ui.view_models import AppRoute
 
 class AccountingEntryLayoutTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):cls.application=QApplication.instance() or QApplication([])
+    def setUpClass(cls):
+        fixture.AccountingProjectUiTests.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        fixture.AccountingProjectUiTests.tearDownClass.__func__(cls)
     setUp=fixture.AccountingProjectUiTests.setUp
     tearDown=fixture.AccountingProjectUiTests.tearDown
     _new_page=fixture.AccountingProjectUiTests._new_page

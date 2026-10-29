@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tests.ui_tree_helpers import dispose_test_widget
+
 from contextlib import closing
 from dataclasses import asdict
 from datetime import date, datetime, timezone
@@ -90,7 +92,7 @@ class Rs03ExcelEntrypointTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.window.close()
-        self.window.deleteLater()
+        dispose_test_widget(self.window)
         self.app.processEvents()
         self.directory.cleanup()
 

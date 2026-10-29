@@ -70,7 +70,7 @@ class StandardLibraryPilotTests(unittest.TestCase):
         table = self.page.standard_table
         self.assertEqual(table.columnCount(), 5)
         self.assertEqual(self.page.status_filter.count(), 5)
-        self.assertEqual(table.verticalHeader().defaultSectionSize(), 54)
+        self.assertEqual(table.verticalHeader().defaultSectionSize(), 48)
         self.assertEqual(table.columnWidth(4), 124)
         self.assertIn("font-size: 14px", table.styleSheet())
         for row in range(table.rowCount()):

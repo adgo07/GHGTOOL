@@ -7,7 +7,11 @@ from tests import test_accounting_projects_ui as project_fixture
 class RepeatedEntryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.application = QApplication.instance() or QApplication([])
+        project_fixture.AccountingProjectUiTests.setUpClass.__func__(cls)
+
+    @classmethod
+    def tearDownClass(cls):
+        project_fixture.AccountingProjectUiTests.tearDownClass.__func__(cls)
     setUp = project_fixture.AccountingProjectUiTests.setUp
     tearDown = project_fixture.AccountingProjectUiTests.tearDown
     _new_page = project_fixture.AccountingProjectUiTests._new_page

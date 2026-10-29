@@ -232,17 +232,16 @@ class StandardLibraryPage(BasePage):
         summary_row.addStretch(1)
         self.result_summary = QLabel(list_card)
         self.result_summary.setObjectName("secondaryText")
-        summary_row.addWidget(self.result_summary)
         list_card_layout.addLayout(summary_row)
 
         self.standard_table = ReadableTable(list_card)
         _configure_table(self.standard_table,
             ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"))
         self.standard_table.setObjectName("standardLibraryTable")
-        self.standard_table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.standard_table.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.standard_table.setShowGrid(False)
-        self.standard_table.verticalHeader().setDefaultSectionSize(54)
-        self.standard_table.verticalHeader().setMinimumSectionSize(54)
+        self.standard_table.verticalHeader().setDefaultSectionSize(48)
+        self.standard_table.verticalHeader().setMinimumSectionSize(44)
         # Keep the table's visual contract explicit for existing geometry tests.
         self.standard_table.setStyleSheet("""
             QTableWidget#standardLibraryTable { font-size: 14px; }
@@ -265,6 +264,7 @@ class StandardLibraryPage(BasePage):
         hint.setObjectName("standardListHint")
         hint.setWordWrap(True)
         list_card_layout.addWidget(hint)
+        list_card_layout.addWidget(self.result_summary)
         list_layout.addWidget(list_card)
         list_layout.addStretch(1)
         self.view_stack.addWidget(self.list_view)
@@ -667,14 +667,6 @@ class StandardLibraryPage(BasePage):
             }}
             QLabel#pageTitle {{ font-size: 24px; font-weight: 600; color: {PRIMARY_TEXT}; }}
             QLabel#pageDescription {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
-            QLineEdit#standardSearch, QComboBox#standardStatusFilter {{
-                min-height: 20px; padding: 8px 12px; border: 1px solid {BORDER};
-                border-radius: 6px; background: white; font-size: 14px;
-            }}
-            QComboBox#standardStatusFilter {{ padding-right: 30px; }}
-            QLineEdit#standardSearch:focus, QComboBox#standardStatusFilter:focus {{
-                border-color: {PRIMARY_BRAND};
-            }}
             QLabel#standardListHeading {{ font-size: 16px; font-weight: 600; color: {PRIMARY_TEXT}; }}
             QLabel#secondaryText, QLabel#standardListHint {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
             QTableWidget#standardLibraryTable {{
@@ -687,12 +679,12 @@ class StandardLibraryPage(BasePage):
             QTableWidget#standardLibraryTable QHeaderView::section {{
                 background: {SURFACE_MUTED}; color: #526B7E; border: none;
                 border-bottom: 1px solid {BORDER}; padding: 10px 8px;
-                font-size: 13px; font-weight: 500;
+                font-size: 13px; font-weight: 600;
             }}
             QWidget#standardBadgeCell {{ background: transparent; }}
             QLabel[standardBadge="true"] {{
                 border: none; border-radius: 5px; padding: 3px 7px;
-                font-size: 12px; font-weight: 500; color: #607385; background: #F0F3F6;
+                font-size: 12px; font-weight: 600; color: #607385; background: #F0F3F6;
             }}
             QLabel[standardBadge="true"][tone="current"] {{ color: #168268; background: #E7F6F0; }}
             QLabel[standardBadge="true"][tone="upcoming"] {{ color: #956420; background: #FFF5E1; }}
@@ -706,24 +698,6 @@ class StandardLibraryPage(BasePage):
             QLabel#standardRequirementTitle {{ font-size: 14px; font-weight: 600; color: #28516E; }}
             QLabel#standardRequirementText {{ font-size: 14px; color: {PRIMARY_TEXT}; }}
             QLabel#standardSourceNote, QLabel#officialSourceUnavailable {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
-            QPushButton#backToStandardListButton, QPushButton#viewOfficialSourceButton,
-            QPushButton#startAccountingButton {{
-                min-height: 20px; padding: 8px 14px; font-size: 14px; font-weight: 500;
-                border: 1px solid {BORDER}; border-radius: 6px;
-                background: white; color: #28516E;
-            }}
-            QPushButton#backToStandardListButton:hover, QPushButton#viewOfficialSourceButton:hover {{
-                border-color: {PRIMARY_BRAND}; background: #F2F8FC;
-            }}
-            QPushButton#startAccountingButton:enabled {{
-                color: white; background: {PRIMARY_BRAND}; border-color: {PRIMARY_BRAND}; font-weight: 600;
-            }}
-            QPushButton#startAccountingButton:enabled:hover {{ background: #146DAA; }}
-            QPushButton#startAccountingButton:disabled, QPushButton#viewOfficialSourceButton:disabled {{
-                background: #F3F6F8; color: #8192A1; border-color: #E0E7ED;
-            }}
-            QPushButton#backToStandardListButton:focus, QPushButton#viewOfficialSourceButton:focus,
-            QPushButton#startAccountingButton:focus {{ border: 2px solid #17445D; padding: 7px 13px; }}
         """)
 
     def _standard_badge(self, text: str, name: str, tone: str,

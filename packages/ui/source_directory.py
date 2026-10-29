@@ -1,8 +1,8 @@
 """Explicit source activation and presentation-only programmatic navigation."""
 from .design_tokens import ACCOUNTING_COLORS
-from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent
+from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent, QSize
 from .source_cards import SourceHeaderSwitch
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea, QComboBox, QBoxLayout
 
 
 class ContentStack(QWidget):
@@ -34,6 +34,22 @@ class ContentStack(QWidget):
         self.updateGeometry()
 
 
+class EditorScrollArea(QScrollArea):
+    """Keep narrow controls reachable in a bounded viewport; wide pages scroll outside."""
+    def sizeHint(self):
+        child = self.widget()
+        height = max(child.sizeHint().height(), child.minimumSizeHint().height()) if child else 0
+        extra = self.horizontalScrollBar().sizeHint().height() if child and child.minimumWidth() > self.viewport().width() else 0
+        return QSize(0, height + extra)
+
+    def minimumSizeHint(self):
+        return QSize(0, 0)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.updateGeometry()
+
+
 class SourceDirectory(QWidget):
     activated = Signal(str)
     enable_requested = Signal(str)
@@ -50,12 +66,26 @@ class SourceDirectory(QWidget):
         self._selected = None
         self._selection_revision = 0
         self.titles = {key: title for key, title, card in entries}
-        layout = QHBoxLayout(self)
+        layout = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
+        self._directory_layout = layout
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(18)
         nav = QFrame(self)
         nav.setObjectName("sourceDirectoryNavigation")
         nav.setFixedWidth(170)
+        self.navigation_panel = nav
+        self.compact_selector = QComboBox(self)
+        self.compact_selector.setObjectName("compactSourceDirectory")
+        self.compact_selector.setAccessibleName("选择排放源分区")
+        self.compact_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.compact_selector.setMinimumContentsLength(6)
+        self.compact_selector.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        for key, title, card in entries:
+            self.compact_selector.addItem(title, key)
+        self.compact_selector.activated.connect(
+            lambda index: self.activate(self.compact_selector.itemData(index)))
+        self.compact_selector.hide()
+        layout.addWidget(self.compact_selector)
         nav.setStyleSheet(f"QFrame#sourceDirectoryNavigation {{background:{ACCOUNTING_COLORS['directory_surface']};border:1px solid {ACCOUNTING_COLORS['directory_border']};border-radius:9px;}}")
         links = QVBoxLayout(nav)
         self._navigation = nav
@@ -109,8 +139,34 @@ class SourceDirectory(QWidget):
         tip.setWordWrap(True)
         links.addWidget(tip)
         layout.addWidget(nav, 0, Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.stack, 1, Qt.AlignmentFlag.AlignTop)
+        self.editor_scroll = EditorScrollArea(self)
+        self.editor_scroll.setObjectName("sourceDirectoryEditorScroll")
+        self.editor_scroll.setWidgetResizable(True)
+        self.editor_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.editor_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.editor_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.editor_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.editor_scroll.setWidget(self.stack)
+        layout.addWidget(self.editor_scroll, 1, Qt.AlignmentFlag.AlignTop)
         self.select(entries[0][0])
+        self._adapt_width()
+
+    def _adapt_width(self):
+        compact = self.width() < 640
+        self.navigation_panel.setVisible(not compact)
+        self.compact_selector.setVisible(compact)
+        self.stack.setMinimumWidth(420 if compact else 0)
+        self.editor_scroll.setMaximumHeight(max(240, self.window().height() - 120) if compact else 16777215)
+        self.editor_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded if compact else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
+        if self._directory_layout.direction() != direction:
+            self._directory_layout.setDirection(direction)
+            self.updateGeometry()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._adapt_width()
 
     def activate(self, key):
         """Only a deliberate button action requests participation."""
@@ -120,6 +176,7 @@ class SourceDirectory(QWidget):
     def add_supplement(self, key, title, card):
         """A ninth software entry; visiting never accepts its declaration."""
         self.cards[key], self.titles[key] = card, title
+        self.compact_selector.addItem(title, key)
         button = QPushButton(title, self._navigation)
         button.setObjectName("sourceDirectory_" + key)
         button.setCheckable(True)
@@ -156,9 +213,11 @@ class SourceDirectory(QWidget):
                 self._scroll_positions[self._selected] = max(0, scroll.verticalScrollBar().value() - top)
         self.stack.setCurrentIndex(self.indices[key])
         self._selected = key
+        self.compact_selector.setCurrentIndex(self.compact_selector.findData(key))
         for group, button in self.buttons.items():
             button.setChecked(group == key)
         self.stack.updateGeometry()
+        self.editor_scroll.updateGeometry()
         self.updateGeometry()
         if scroll is not None and reading_editor and restore_scroll:
             def restore():
@@ -192,6 +251,7 @@ class SourceDirectory(QWidget):
     def set_state(self, group, state):
         self.buttons[group].setText(self.titles[group] + "\n" + state)
         self.buttons[group].setAccessibleDescription(state)
+        self.compact_selector.setItemText(self.compact_selector.findData(group), self.titles[group] + " · " + state)
         self.enable_buttons[group].set_source_state(state)
         self.placeholder_labels[group].setText(self.titles[group] + "：" + state + "，已有输入仍保留。")
 
@@ -200,4 +260,5 @@ class SourceDirectory(QWidget):
             if group in self.placeholders:
                 self.placeholders[group].setVisible(card.isHidden())
         self.stack.updateGeometry()
+        self.editor_scroll.updateGeometry()
         self.updateGeometry()

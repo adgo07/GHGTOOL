@@ -33,7 +33,7 @@ SIDEBAR_ICON_INACTIVE = "#516F86"
 PAGE_BACKGROUND = "#F5F8FC"
 CARD_BACKGROUND = "#FFFFFF"
 PRIMARY_TEXT = "#213A4F"
-SECONDARY_TEXT = "#698198"
+SECONDARY_TEXT = "#526A7D"
 BORDER = "#DAE7F1"
 CARD_BORDER = "#DAE7F1"
 SURFACE_MUTED = "#F7FAFD"
@@ -89,244 +89,84 @@ def responsive_page_margin(viewport_width: int) -> int:
 
 
 def application_stylesheet() -> str:
-    """Return the single stylesheet shared by the desktop shell and pages."""
+    """Single source for shared desktop dimensions and interaction states.
 
+    QSS heights are content boxes: 36 + two 2-DIP borders = 40 DIP.
+    """
     return f"""
-        QWidget {{
-            font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
-            color: {PRIMARY_TEXT};
+        QWidget {{ font-family:"Microsoft YaHei UI", "Microsoft YaHei", sans-serif; color:#213A4F; font-size:14px; }}
+        QFrame#mainContent, QScrollArea#mainScrollArea {{ background:#F5F8FC; }}
+        QScrollArea#mainScrollArea {{ border:none; }}
+        QFrame#card, QFrame#settingsSurface, QFrame#standardRequirementCard {{ background:#FFFFFF; border:1px solid #DAE7F1; border-radius:10px; }}
+        QLabel#pageTitle {{ color:#18364F; font-size:24px; font-weight:600; }}
+        QLabel#cardTitle, QLabel#sectionTitle {{ color:#18364F; font-size:16px; font-weight:600; }}
+        QLabel#pageDescription, QLabel#secondaryText, QLabel#emptyStateDescription,
+        QLabel#detailFieldLabel, QLabel#fieldUnitHint {{ color:#526A7D; font-size:13px; }}
+        QLabel#detailFieldValue, QLabel#bodyText {{ color:#213A4F; font-size:14px; }}
+        QLabel#emptyStateTitle {{ font-size:16px; font-weight:600; }}
+        QLabel#standardDetailNumber {{ color:#116FAE; font-size:14px; font-weight:600; }}
+        QLabel#standardDetailName, QLabel#parameterDetailName {{ color:#18364F; font-size:20px; font-weight:600; }}
+        QScrollBar:vertical {{ width:10px; margin:0; background:transparent; }}
+        QScrollBar::handle:vertical {{ min-height:26px; border-radius:5px; background:#C7D7E2; }}
+        QScrollBar::handle:vertical:hover {{ background:#A9C1D1; }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}
+        QScrollBar:horizontal {{ height:10px; margin:0; background:transparent; }}
+        QScrollBar::handle:horizontal {{ min-width:26px; border-radius:5px; background:#C7D7E2; }}
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width:0; }}
+        QPushButton[sourceState] {{ min-height:62px; padding:10px 12px; border-radius:10px; text-align:left; font-size:13px; font-weight:600; }}
+        QPushButton[sourceState="已启用"], QPushButton[sourceState="部分启用"] {{ border-color:#9DCCE8; background:#ECF7FF; color:#155C88; }}
+        QTableWidget {{ background:#FFFFFF; border:1px solid #DAE7F1; border-radius:10px; gridline-color:#EDF2F6; selection-color:#213A4F; font-size:14px; selection-background-color:#D6EBF9; }}
+        QTableWidget QHeaderView::section {{ background:#F7FAFD; border:none; border-bottom:1px solid #DAE7F1; font-size:13px; font-weight:600; padding:8px 10px; color:#526A7D; }}
+        QTabWidget::pane {{ border:1px solid #DAE7F1; border-radius:10px; background:#FFFFFF; }}
+        QCheckBox, QRadioButton {{ font-size:14px; spacing:8px; }}
+        QCheckBox:disabled, QRadioButton:disabled {{ color:#8798A6; }}
+        QToolButton {{ font-size:13px; }}
+        QFrame[businessSurface="true"] {{ background:#FFFFFF; border:1px solid #DAE7F1; border-radius:10px; }}
+        QLineEdit, QComboBox, QAbstractSpinBox {{
+            min-height:36px; max-height:36px; padding:0 10px;
+            border:2px solid #DAE7F1; border-radius:6px; background:#FFFFFF; color:#213A4F; font-size:14px;
+            selection-background-color:#D6EBF9;
         }}
-        QFrame#sidebar {{ background: {SIDEBAR_BACKGROUND}; }}
-        QFrame#mainContent, QScrollArea#mainScrollArea {{ background: {PAGE_BACKGROUND}; }}
-        QScrollArea#mainScrollArea {{ border: none; }}
-        QLabel#brandLogo, QLabel#sidebarProductName {{ background: transparent; }}
-        QLabel#sidebarProductName {{ color: #537891; font-size: 11px; font-weight: 650; }}
-        QPushButton#navButton {{
-            background: transparent; border: none; border-radius: {NAV_ITEM_RADIUS}px;
-            color: #516F86; font-size: 13px; font-weight: 600;
-            padding: 0 13px; text-align: left;
-        }}
-        QPushButton#navButton:hover {{ background: rgba(255, 255, 255, 0.78); color: #0F6DA7; }}
-        QPushButton#navButton:checked {{
-            background: #D6EBF9; border-left: 3px solid #298CCB;
-            color: #116FAE; font-weight: 700; padding-left: 10px;
-        }}
-        QPushButton#navButton[reserved="true"] {{ color: #91A3B2; }}
-        QPushButton#navButton[reserved="true"]:hover {{ background: rgba(255, 255, 255, 0.45); color: #91A3B2; }}
-        QPushButton#navButton[reserved="true"]:checked {{ color: #698198; }}
-        QPushButton#primaryButton, QPushButton#secondaryButton, QPushButton#reservedButton {{
-            min-height: 36px; border-radius: 6px; padding: 0 16px; font-size: 14px;
-        }}
-        QPushButton#primaryButton {{ min-height: 40px; background: {PRIMARY_BRAND}; border: 1px solid {PRIMARY_BRAND}; color: #FFFFFF; font-weight: 600; }}
-        QPushButton#primaryButton:hover {{ background: #076C9F; border-color: #076C9F; }}
-        QPushButton#secondaryButton {{ background: #FFFFFF; border: 1px solid {BORDER}; color: {PRIMARY_TEXT}; }}
-        QPushButton#secondaryButton:hover {{ background: #F8FAFC; border-color: {PRIMARY_BRAND}; }}
-        QPushButton#reservedButton {{ background: #F8FAFC; border: 1px dashed {BORDER}; color: {SECONDARY_TEXT}; }}
-        QPushButton#reservedButton:hover {{ background: #F8FAFC; border-color: {BORDER}; color: {SECONDARY_TEXT}; }}
-        QFrame#card {{ background: {CARD_BACKGROUND}; border: 1px solid {CARD_BORDER}; border-radius: 14px; }}
-        QFrame#settingsSurface, QFrame#standardRequirementCard {{
-            background: #F7FBFE; border: 1px solid #E4EEF5; border-radius: 10px;
-        }}
-        QLineEdit, QComboBox, QDateEdit, QDateTimeEdit, QSpinBox, QDoubleSpinBox,
-        QTextEdit, QPlainTextEdit {{
-            min-height: 38px; border: 1px solid #D6E4EE; border-radius: 8px;
-            padding: 8px 11px; background: #FFFFFF; color: #213A4F; font-size: 13px;
-            selection-background-color: #DCEFFC;
-        }}
-        QLineEdit:hover, QComboBox:hover, QDateEdit:hover, QDateTimeEdit:hover,
-        QSpinBox:hover, QDoubleSpinBox:hover, QTextEdit:hover, QPlainTextEdit:hover {{
-            border-color: #A9CDE5;
-        }}
-        QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDateTimeEdit:focus,
-        QSpinBox:focus, QDoubleSpinBox:focus, QTextEdit:focus, QPlainTextEdit:focus {{
-            border: 1px solid #4A9FD5; background: #FFFFFF;
-        }}
-        QComboBox {{ padding-right: 30px; }}
-        QComboBox::drop-down {{
-            subcontrol-origin: padding; subcontrol-position: right center;
-            width: 28px; border-left: 1px solid #E5EDF3;
-            border-top-right-radius: 8px; border-bottom-right-radius: 8px;
-            background: #F8FBFD;
-        }}
-        QComboBox::down-arrow {{
-            image: url("{_COMBOBOX_ARROW}"); width: 12px; height: 12px;
-        }}
-        QPushButton {{
-            min-height: 37px; border: 1px solid #D4E4F0; border-radius: 8px;
-            padding: 8px 13px; background: #FFFFFF; color: #3C617B;
-            font-size: 12px; font-weight: 700;
-        }}
-        QPushButton:hover {{ background: #F3F9FE; border-color: #8CBDDD; }}
-        QPushButton:focus {{ border: 2px solid #4A9FD5; }}
-        QPushButton:disabled {{ background: #F5F7F9; border-color: #E4E7EC; color: #98A2B3; }}
-        QPushButton[sourceState] {{
-            min-height: 62px; border: 1px solid #DBE8F0; border-radius: 10px;
-            padding: 10px 12px; background: #FFFFFF; color: #697E91;
-            text-align: left; font-size: 13px; font-weight: 650;
-        }}
-        QPushButton[sourceState]:hover {{ border-color: #9DCBE7; background: #F7FBFE; }}
-        QPushButton[sourceState="已启用"], QPushButton[sourceState="部分启用"] {{
-            border-color: #9DCCE8; background: #ECF7FF; color: #155C88;
-        }}
-        QPushButton[sourceState="已启用"]:hover,
-        QPushButton[sourceState="部分启用"]:hover {{ background: #E5F3FC; }}
-        QTableWidget {{
-            background: #FFFFFF; border: 1px solid #DAE7F1; border-radius: 10px;
-            gridline-color: #EDF2F6; alternate-background-color: #FBFDFF;
-            selection-background-color: #E8F4FB; selection-color: #213A4F;
-        }}
-        QTableWidget QHeaderView::section {{
-            background: #F4F8FC; color: #597187; border: none;
-            border-bottom: 1px solid #DAE7F1; padding: 12px 13px;
-            font-size: 12px; font-weight: 700;
-        }}
-        QTableWidget::item {{ padding: 12px 13px; border-bottom: 1px solid #E8F0F6; }}
-        QTableWidget::item:selected {{ background: #E8F4FB; color: #213A4F; }}
-        QTabWidget::pane {{ border: 1px solid #DAE7F1; border-radius: 9px; background: #FFFFFF; }}
-        QTabBar::tab {{
-            min-height: 38px; padding: 10px 16px; border: 1px solid transparent;
-            border-bottom: 2px solid transparent; color: #698198; background: transparent;
-            font-size: 13px; font-weight: 600;
-        }}
-        QTabBar::tab:hover {{ color: #12649A; background: #F1F8FC; }}
-        QTabBar::tab:selected {{ color: #12649A; border-bottom-color: #197CC2; background: #FFFFFF; }}
-        QCheckBox {{ spacing: 8px; color: #425F74; font-size: 13px; }}
-        QCheckBox::indicator {{ width: 17px; height: 17px; border: 1px solid #B8CBD9; border-radius: 4px; background: #FFFFFF; }}
-        QCheckBox::indicator:hover {{ border-color: #4A9FD5; }}
-        QCheckBox::indicator:checked {{ background: #197CC2; border-color: #197CC2; }}
-        QScrollBar:vertical {{ width: 10px; margin: 3px 2px; background: transparent; }}
-        QScrollBar::handle:vertical {{ min-height: 26px; border-radius: 5px; background: #C7D7E2; }}
-        QScrollBar::handle:vertical:hover {{ background: #A9C1D1; }}
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
-        QScrollBar:horizontal {{ height: 10px; margin: 2px 3px; background: transparent; }}
-        QScrollBar::handle:horizontal {{ min-width: 26px; border-radius: 5px; background: #C7D7E2; }}
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
-        QLineEdit#standardSearch, QLineEdit#parameterSearch,
-        QComboBox#standardStatusFilter, QComboBox#standardIndustryFilter,
-        QComboBox#standardYearFilter, QComboBox#parameterViewModeFilter,
-        QComboBox#parameterSubjectFilter, QComboBox#parameterSourceFilter,
-        QComboBox#parameterTypeFilter, QComboBox#parameterReviewFilter,
-        QComboBox#parameterYearFilter {{
-            min-height: 38px; border: 1px solid {BORDER}; border-radius: 8px;
-            padding: 8px 11px; background: {CARD_BACKGROUND};
-        }}
-        QTableWidget#catalogTable {{
-            background: {CARD_BACKGROUND}; border: 1px solid {BORDER};
-            gridline-color: {BORDER}; selection-background-color: #E6F4FB;
-            selection-color: {PRIMARY_TEXT};
-        }}
-        QTableWidget#catalogTable QHeaderView::section {{
-            background: {SURFACE_MUTED}; color: {SECONDARY_TEXT};
-            border: none; border-bottom: 1px solid {BORDER};
-            padding: 8px; font-weight: 600;
-        }}
-        QLabel#detailFieldLabel {{ color: {SECONDARY_TEXT}; font-size: 12px; }}
-        QLabel#detailFieldValue {{ color: {PRIMARY_TEXT}; font-size: 12px; }}
-        QLabel#standardDetailNumber {{ color: {PRIMARY_BRAND}; font-size: 14px; font-weight: 600; }}
-        QLabel#standardDetailName, QLabel#parameterDetailName {{ color: {PRIMARY_TEXT}; font-size: 20px; font-weight: 600; }}
-        QLabel#standardSummaryName {{ color: #18364F; font-size: 20px; font-weight: 700; }}
-        QLabel#standardRequirementTitle {{ color: #28516E; font-size: 13px; font-weight: 700; }}
-        QLabel#standardRequirementText {{ color: #5E7A90; font-size: 12px; }}
-        QLabel#standardSourceNote {{ color: #637F92; font-size: 11px; }}
-        QLabel#standardSupportBadge {{
-            background: #F4F8FC; color: #698198; border-radius: 8px;
-            padding: 3px 8px; font-size: 11px; font-weight: 650;
-        }}
-        QLabel#standardSupportBadge[implemented="true"] {{ background: #E7F6F0; color: #168268; }}
-        QLabel#statusBadge {{
-            background: {STATUS_UNKNOWN}; color: #FFFFFF; border-radius: 10px;
-            padding: 3px 10px; font-size: 12px; font-weight: 600;
-        }}
-        QLabel#statusBadge[catalogStatus="CURRENT"] {{ background: {STATUS_CURRENT}; }}
-        QLabel#statusBadge[catalogStatus="UPCOMING"] {{ background: {STATUS_UPCOMING}; }}
-        QLabel#statusBadge[catalogStatus="ABOLISHED"] {{ background: {STATUS_ABOLISHED}; }}
-        QPushButton#viewOfficialSourceButton, QPushButton#viewFactorSourceButton,
-        QPushButton#viewFactorsButton {{
-            min-height: 34px; border: 1px solid {BORDER}; border-radius: 6px;
-            padding: 0 14px; color: {PRIMARY_BRAND}; background: {CARD_BACKGROUND};
-        }}
-        QPushButton#viewOfficialSourceButton:hover, QPushButton#viewFactorSourceButton:hover,
-        QPushButton#viewFactorsButton:hover {{
-            background: {SURFACE_MUTED}; border-color: {PRIMARY_BRAND};
-        }}
-        QPushButton#startAccountingButton {{
-            min-height: 34px; border: 1px solid {PRIMARY_BRAND}; border-radius: 6px;
-            padding: 0 14px; color: #FFFFFF; background: {PRIMARY_BRAND};
-        }}
-        QPushButton#startAccountingButton:disabled {{
-            color: {DISABLED_TEXT}; background: #F2F4F7; border-color: #E4E7EC;
-        }}
-        QLabel#pageTitle {{ color: #18364F; font-size: 25px; font-weight: 700; }}
-        QLabel#pageDescription {{ color: {SECONDARY_TEXT}; font-size: 13px; }}
-        QLabel#sectionTitle {{ color: #18364F; font-size: 16px; font-weight: 700; }}
-        QLabel#cardTitle {{ color: #18364F; font-size: 16px; font-weight: 700; }}
-        QLabel#bodyText {{ color: {PRIMARY_TEXT}; font-size: 14px; }}
-        QLabel#secondaryText, QLabel#emptyStateDescription {{ color: {SECONDARY_TEXT}; font-size: 13px; }}
-        QLabel#emptyStateTitle {{ color: {PRIMARY_TEXT}; font-size: 16px; font-weight: 600; }}
-        QLineEdit#reservedInput, QComboBox#reservedInput {{ min-height: 36px; border: 1px solid {BORDER}; border-radius: 6px; padding: 0 10px; background: #FFFFFF; }}
-        QLineEdit#reservedInput:disabled, QComboBox#reservedInput:disabled, QPushButton#reservedControl:disabled {{ color: #98A2B3; background: #F2F4F7; border-color: #E4E7EC; }}
-        QPushButton#reservedControl {{ min-height: 36px; border: 1px solid {BORDER}; border-radius: 6px; padding: 0 16px; color: {SECONDARY_TEXT}; background: #FFFFFF; }}
-        QFrame#calculationStatusBar {{
-            background: {SURFACE_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;
-        }}
-        QLabel#confirmedSourceCount, QLabel#calculationErrorCount,
-        QLabel#calculationReminderCount, QLabel#calculationStatusHint {{
-            color: {SECONDARY_TEXT}; font-size: 13px;
-        }}
-        QLabel#calculationStatus {{
-            color: {PRIMARY_TEXT}; font-size: 14px; font-weight: 600;
-        }}
-        QPushButton#calculateAccountingButton {{
-            min-height: 38px; border: 1px solid {PRIMARY_BRAND}; border-radius: 6px;
-            padding: 0 18px; color: #FFFFFF; background: {PRIMARY_BRAND}; font-weight: 600;
-        }}
-        QPushButton#calculateAccountingButton:hover {{
-            background: #076C9F; border-color: #076C9F;
-        }}
-        QPushButton#viewBreakdownButton, QPushButton#viewProcessButton {{
-            min-height: 32px; border: 1px solid {BORDER}; border-radius: 6px;
-            padding: 0 12px; color: {PRIMARY_BRAND}; background: {CARD_BACKGROUND};
-        }}
+        QComboBox {{ padding-right:30px; }}
+        QComboBox::drop-down {{ subcontrol-origin:padding; subcontrol-position:right center; width:26px; border:none; }}
+        QComboBox::down-arrow {{ image:url("{_COMBOBOX_ARROW}"); width:12px; height:12px; }}
+        QComboBox QLineEdit, QAbstractSpinBox QLineEdit {{ min-height:0; max-height:16777215px; padding:0; border:none; background:transparent; }}
+        QTextEdit, QPlainTextEdit {{ padding:8px 10px; border:2px solid #DAE7F1; border-radius:6px; background:#FFFFFF; font-size:14px; }}
+        QLineEdit:hover, QComboBox:hover, QAbstractSpinBox:hover {{ border-color:#A9CDE5; }}
+        QLineEdit:focus, QComboBox:focus, QAbstractSpinBox:focus, QTextEdit:focus, QPlainTextEdit:focus {{ border-color:#197CC2; }}
+        QLineEdit[readOnly="true"] {{ background:#F7FAFD; color:#213A4F; }}
+        QLineEdit:disabled, QComboBox:disabled, QAbstractSpinBox:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {{ background:#F3F5F7; color:#8798A6; border-color:#DAE7F1; }}
+        QPushButton {{ min-height:36px; padding:0 14px; border:2px solid #DAE7F1; border-radius:6px; background:#FFFFFF; color:#213A4F; font-size:14px; font-weight:400; }}
+        QPushButton:hover {{ background:#EDF6FD; border-color:#A9CDE5; }}
+        QPushButton:pressed {{ background:#D6EBF9; }}
+        QPushButton[visualRole="primary"], QPushButton#primaryButton, QPushButton#exportWordReportButton, QPushButton#startAccountingButton, QPushButton#calculateAccountingButton, QPushButton#saveAccountingProjectButton {{ background:#116FAE; border-color:#116FAE; color:#FFFFFF; font-weight:600; }}
+        QPushButton[visualRole="primary"]:hover, QPushButton#primaryButton:hover, QPushButton#exportWordReportButton:hover, QPushButton#startAccountingButton:hover, QPushButton#calculateAccountingButton:hover, QPushButton#saveAccountingProjectButton:hover {{ background:#0D6097; border-color:#0D6097; }}
+        QPushButton[visualRole="primary"]:pressed, QPushButton#primaryButton:pressed, QPushButton#exportWordReportButton:pressed, QPushButton#startAccountingButton:pressed, QPushButton#calculateAccountingButton:pressed, QPushButton#saveAccountingProjectButton:pressed {{ background:#0A527F; border-color:#0A527F; }}
+        QPushButton[visualRole="danger"], QPushButton#deleteRecordButton, QPushButton#deleteAccountingProjectButton, QPushButton#deleteAccountingUnitButton {{ color:#B9484A; }}
+        QPushButton[visualRole="danger"]:hover, QPushButton#deleteRecordButton:hover, QPushButton#deleteAccountingProjectButton:hover, QPushButton#deleteAccountingUnitButton:hover {{ background:#FFF1F1; border-color:#B9484A; }}
+        QPushButton[visualRole="light"], QPushButton#openRecordRowButton {{ min-height:24px; padding:0 6px; background:transparent; border-color:transparent; color:#116FAE; font-size:13px; }}
+        QPushButton[visualRole="light"]:hover, QPushButton#openRecordRowButton:hover {{ background:#EDF6FD; }}
+        QPushButton:focus, QPushButton[visualRole="primary"]:focus, QPushButton#primaryButton:focus, QPushButton#exportWordReportButton:focus, QPushButton#startAccountingButton:focus, QPushButton#calculateAccountingButton:focus, QPushButton#saveAccountingProjectButton:focus, QPushButton[visualRole="danger"]:focus, QPushButton#deleteRecordButton:focus, QPushButton#deleteAccountingProjectButton:focus, QPushButton#deleteAccountingUnitButton:focus, QPushButton#openRecordRowButton:focus {{ border-color:#197CC2; }}
+        QPushButton:disabled, QPushButton[visualRole="primary"]:disabled, QPushButton#primaryButton:disabled, QPushButton#exportWordReportButton:disabled, QPushButton#startAccountingButton:disabled, QPushButton#calculateAccountingButton:disabled, QPushButton#saveAccountingProjectButton:disabled, QPushButton[visualRole="danger"]:disabled, QPushButton#deleteRecordButton:disabled, QPushButton#deleteAccountingProjectButton:disabled, QPushButton#deleteAccountingUnitButton:disabled, QPushButton[busy="true"] {{ background:#F3F5F7; color:#8798A6; border-color:#DAE7F1; }}
+        QTabBar::tab {{ min-height:33px; max-height:33px; padding:0 16px; border:0; border-bottom:3px solid transparent; font-size:13px; font-weight:600; color:#526A7D; }}
+        QTabBar::tab:selected {{ color:#116FAE; border-bottom:2px solid #197CC2; padding-bottom:1px; }}
+        QTabBar::tab:hover {{ background:#EDF6FD; }}
+        QTableWidget::item {{ padding:8px 10px; }}
+        QLabel#recordFrozenTotal {{ font-size:26px; font-weight:600; }}
+        QLabel#recordFrozenIdentity, QLabel#recordResultCount, QLabel#exportDirectoryStatus {{ font-size:13px; color:#526A7D; }}
+        QLabel#recordDetailHeading {{ font-size:16px; font-weight:600; }}
+        QLabel#recordStatusBadge {{ border-radius:5px; padding:4px 7px; font-size:12px; background:#E7F6F0; color:#168268; }}
+        QLabel#recordStatusBadge[warning="true"] {{ background:#FFF5E1; color:#956420; }}
+        QLabel#detailParagraph {{ font-size:14px; }}
+        QLabel#savedImportContext {{ padding:8px; background:#F7FAFD; border-radius:6px; }}
+
     """
 
 
 def message_button_stylesheet() -> str:
-    """Instance-only message buttons; retain native default/focus feedback."""
-    return "QMessageBox QPushButton { font-size: 14px; font-weight: normal; min-height: 24px; min-width: 72px; padding: 5px 10px; }"
+    return "QMessageBox QPushButton { min-height:36px; padding:0 14px; border:2px solid #DAE7F1; border-radius:6px; font-size:14px; } QMessageBox QPushButton:focus { border-color:#197CC2; }"
 
 
 def accounting_sample_stylesheet() -> str:
-    """PR-B sample roles, applied once by the accounting page only."""
-    return f"""
-        QFrame#projectUnitControlsCard {{ background: {CARD_BACKGROUND}; border: 1px solid {BORDER}; border-radius: 12px; }}
-        QWidget[layoutSample="true"] QLabel {{ font-size: 14px; }}
-        QWidget[layoutSample="true"] QLabel#cardTitle {{ font-size: 18px; font-weight: 600; }}
-        QWidget[layoutSample="true"] QLineEdit,
-        QWidget[layoutSample="true"] QComboBox,
-        QWidget[layoutSample="true"] QSpinBox,
-        QWidget[layoutSample="true"] QDateEdit {{
-            min-height: 28px; padding: 4px 8px; border: 1px solid {BORDER};
-            border-radius: 6px; font-size: 14px; font-weight: normal;
-        }}
-        QWidget[layoutSample="true"] QComboBox QLineEdit,
-        QWidget[layoutSample="true"] QAbstractSpinBox QLineEdit {{
-            min-height: 0px; padding: 0px; border: none; background: transparent;
-        }}
-        QWidget[layoutSample="true"] QPushButton {{
-            min-height: 28px; padding: 4px 12px; font-size: 14px; font-weight: normal;
-        }}
-        QPushButton#projectUnitControlsToggle {{
-            min-height: 28px; padding: 4px 12px; text-align: left;
-            font-size: 14px; font-weight: 600;
-        }}
-        QWidget[layoutSample="true"] QPushButton#saveAccountingProjectButton {{
-            background: {PRIMARY_BRAND}; color: white; border-color: {PRIMARY_BRAND};
-        }}
-        QWidget[layoutSample="true"] QPushButton#deleteAccountingProjectButton,
-        QWidget[layoutSample="true"] QPushButton#deleteAccountingUnitButton {{
-            color: {SECONDARY_TEXT}; background: transparent;
-        }}
-        QFrame[dfActivityRegion="true"] QPushButton[sourceState] {{
-            min-height: 54px; padding: 0px; font-weight: normal;
-        }}
-    """
+    """Only structural accounting styles; shared controls inherit the application theme."""
+    return "QFrame#projectUnitControlsCard { background:white; border:1px solid #DAE7F1; border-radius:10px; } QPushButton#projectUnitControlsToggle { text-align:left; font-weight:600; }"

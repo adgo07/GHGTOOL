@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import subprocess
 import sys
 import tempfile
@@ -53,6 +54,11 @@ class UIR04FinalizationTests(unittest.TestCase):
         cls.temp_directory.cleanup()
 
     def setUp(self) -> None:
+        # The scale cases create isolated child processes. A parent accounting
+        # window supplies no assertion and only repeats expensive Qt setup.
+        self.window = None
+        if self._testMethodName == "test_common_windows_scale_factors_keep_controls_visible":
+            return
         self.window = create_main_window(
             AppConfig(catalog_database=self.catalog_path),
             catalog_service=self.catalog_service,
@@ -69,6 +75,8 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.shell = shell
 
     def tearDown(self) -> None:
+        if self.window is None:
+            return
         self.window.close()
         dispose_test_widget(self.window)
         self.application.processEvents()
@@ -316,26 +324,46 @@ class UIR04FinalizationTests(unittest.TestCase):
                     "QT_SCALE_FACTOR": scale,
                 }
             )
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    str(PROJECT_ROOT / "scripts" / "uir04_scale_acceptance.py"),
-                    "--scale",
-                    scale,
-                ],
-                cwd=PROJECT_ROOT,
-                env=environment,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                check=False,
-            )
+            command = [sys.executable,
+                       str(PROJECT_ROOT / "scripts" / "uir04_scale_acceptance.py"),
+                       "--scale", scale, "--work-area", "desktop"]
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=PROJECT_ROOT,
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as error:
+                self.fail(
+                    f"scale={scale} work_area=desktop timeout=60s; "
+                    f"command={command!r}; env="
+                    f"{ {key: environment[key] for key in ('QT_QPA_PLATFORM', 'QT_AUTO_SCREEN_SCALE_FACTOR', 'QT_SCALE_FACTOR')}!r}\n"
+                    f"stdout={error.stdout!r}\nstderr (last completed phase)={error.stderr!r}"
+                )
             self.assertEqual(
                 completed.returncode,
                 0,
                 f"scale={scale} failed\nstdout={completed.stdout}\nstderr={completed.stderr}",
             )
             self.assertIn(f"scale={scale} PASS", completed.stdout)
+            lines = [line.removeprefix("UIR04_SCALE_RESULT ")
+                     for line in completed.stdout.splitlines()
+                     if line.startswith("UIR04_SCALE_RESULT ")]
+            self.assertEqual(len(lines), 1, completed.stdout)
+            result = json.loads(lines[0])
+            self.assertEqual(result["protocol_version"], 1)
+            self.assertEqual(result["scale"], scale)
+            self.assertEqual(result["work_area"], "desktop")
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(result["failures"], [])
+            self.assertEqual(result["client"], [1366, 768])
+            self.assertEqual(result["dpr"], float(scale))
+            self.assertIn("cleanup_complete", result["stages_s"])
+            print("UIR04_SCALE_TIMING " + json.dumps(result), flush=True)
 
 
 if __name__ == "__main__":

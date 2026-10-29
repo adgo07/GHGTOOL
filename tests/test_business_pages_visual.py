@@ -342,7 +342,9 @@ class BusinessPageVisualTests(unittest.TestCase):
             item = page.record_list.item(row, 0)
             self.assertIn(item.text(), item.toolTip())
             self.assertNotIn("记录编号：", item.toolTip())
-            self.assertLessEqual(page.record_list.rowHeight(row), page.record_list.fontMetrics().lineSpacing() * 3 + 36)
+            # Full Chinese identity now wraps to all required lines. Keep a
+            # bounded paint allowance over Qt's native wrapped-content hint.
+            self.assertLessEqual(page.record_list.rowHeight(row), max(48, page.record_list.sizeHintForRow(row) + 8))
         self.assertEqual(len(self.records.list_all()), 3)
 
         for row in range(page.record_list.rowCount()):

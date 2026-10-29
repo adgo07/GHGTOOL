@@ -149,7 +149,7 @@ class P3ABStandardsTests(unittest.TestCase):
         )
         self.assertEqual(table.columnWidth(4), 124)
         self.assertIn("font-size: 14px", table.styleSheet())
-        self.assertEqual(table.verticalHeader().defaultSectionSize(), 54)
+        self.assertEqual(table.verticalHeader().defaultSectionSize(), 48)
 
         page.search_input.setText("炭素材料生产企业")
         self._process_events()

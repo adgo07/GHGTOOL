@@ -1,0 +1,75 @@
+{
+  "environment": {
+    "python": "3.12.14",
+    "PySide6": "6.11.2",
+    "qt_platform": "offscreen",
+    "temporary_data": "isolated",
+    "timing_caveat": "Other repository tests were active; not an exclusive performance benchmark."
+  },
+  "runs": [
+    {
+      "command": "python -u -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.test_common_windows_scale_factors_keep_controls_visible -v",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 149.765,
+      "exit_code": 0,
+      "actual_dprs": [
+        1.0,
+        1.25,
+        1.5
+      ],
+      "probe_seconds": [
+        52.535,
+        44.296,
+        40.829
+      ]
+    },
+    {
+      "command": "python -u -m unittest tests.test_family_ui tests.test_g03_shell -v",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 224.698,
+      "exit_code": 0
+    },
+    {
+      "command": "python -u -m unittest tests.test_g03_shell.G03ShellTest.test_logo_and_main_content_resize_rules -v",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 15.138,
+      "exit_code": 0,
+      "reason": "Additional assertion of usable width excluding body margins"
+    },
+    {
+      "command": "python -u -m unittest tests.test_accounting_projects_ui tests.test_b_fgd_acceptance_fixes tests.test_rs03_excel_entrypoints -v",
+      "tests": 41,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 974.358,
+      "exit_code": 0
+    },
+    {
+      "command": "python -u -m unittest tests.test_accounting_source_directory tests.test_accounting_projects_ui.AccountingProjectUiTests.test_project_unit_controls_expand_and_expose_save_and_unit_management -v",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 288.347,
+      "exit_code": 0,
+      "reason": "CI317 omitted class-fixture consumer lifecycle repair; both class catalog hashes/cleanup checked in same process"
+    }
+  ],
+  "unique_targeted_cases": 80,
+  "preserved_test_methods": {
+    "test_accounting_projects_ui": 21,
+    "test_b_fgd_acceptance_fixes": 10,
+    "test_rs03_excel_entrypoints": 10,
+    "test_family_ui": 11,
+    "test_g03_shell": 13,
+    "test_uir04_finalization": 9,
+    "test_accounting_source_directory": 14
+  },
+  "local_full_suite_executed": false,
+  "native_desktop_executed": false
+}

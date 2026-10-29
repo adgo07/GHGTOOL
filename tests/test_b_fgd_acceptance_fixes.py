@@ -19,6 +19,7 @@ from packages.reference_data import DEFAULT_SOURCE_PATH
 from packages.excel.templates import ExcelTemplateService
 from packages.ui.view_models import AppRoute
 import tests.test_b_fgd_chain as fgd_fixtures
+from tests.ui_tree_helpers import dispose_test_widget
 
 class FGDAcceptanceFixTests(unittest.TestCase):
     @classmethod
@@ -41,7 +42,7 @@ class FGDAcceptanceFixTests(unittest.TestCase):
         try:yield shell.pages[AppRoute.NEW_ACCOUNTING],projects,records,shell
         finally:
             with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.No):window.close()
-            window.deleteLater();self.app.processEvents()
+            dispose_test_widget(window);self.app.processEvents()
     def prepare_valid(self,gui):
         fgd_fixtures.FGDChainTests.prepare(gui)
         batch=gui._process_rows['fgd'][0]

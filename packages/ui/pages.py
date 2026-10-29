@@ -18,7 +18,7 @@ from typing import Any
 from uuid import uuid4
 
 from PySide6.QtCore import QSignalBlocker, QPointF, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPixmap, QPolygonF
+from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -97,7 +97,7 @@ from .design_tokens import (
     WIDE_PAGE_MARGIN,
 )
 from .excel_import_components import ExcelImportPreviewPanel, create_excel_import_section
-from .icons import load_tinted_icon
+from .icons import load_tinted_icon, VectorIconLabel
 from .view_models import AppRoute, ShellViewModel
 
 
@@ -475,7 +475,7 @@ def _record_summary_markup(summary: str) -> str:
         if separator:
             info_rows.append(
                 "<tr>"
-                f'<td style="padding:5px 12px 5px 0;color:#698198;white-space:nowrap">{html_escape(label)}</td>'
+                f'<td style="padding:5px 12px 5px 0;color:#526A7D;white-space:nowrap">{html_escape(label)}</td>'
                 f'<td style="padding:5px 0;color:#213A4F">{html_escape(value)}</td>'
                 "</tr>"
             )
@@ -527,6 +527,9 @@ def _record_summary_markup(summary: str) -> str:
     )
 
 
+from .branding import BrandLogo
+
+
 class BasePage(QWidget):
     """Page base with the common title/body layout and responsive margin hook."""
 
@@ -549,20 +552,28 @@ class BasePage(QWidget):
     def add_header(self, title: str, description: str) -> None:
         header = QWidget(self)
         header.setObjectName("pageHeader")
-        header_layout = QVBoxLayout(header)
+        header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(8)
-
+        header_layout.setSpacing(16)
+        heading = QVBoxLayout()
+        heading.setContentsMargins(0, 0, 0, 0)
+        heading.setSpacing(8)
         title_label = QLabel(title, header)
         title_label.setObjectName("pageTitle")
         title_label.setWordWrap(True)
-        header_layout.addWidget(title_label)
-
-        description_label = QLabel(description, header)
-        description_label.setObjectName("pageDescription")
-        description_label.setWordWrap(True)
-        header_layout.addWidget(description_label)
+        heading.addWidget(title_label)
+        if description:
+            description_label = QLabel(description, header)
+            description_label.setObjectName("pageDescription")
+            description_label.setWordWrap(True)
+            heading.addWidget(description_label)
+        header_layout.addLayout(heading, 1)
+        self.header_actions = QHBoxLayout()
+        self.header_actions.setContentsMargins(0, 0, 0, 0)
+        self.header_actions.setSpacing(12)
+        header_layout.addLayout(self.header_actions)
         self.body_layout.addWidget(header)
+
 
 
 def _card(title: str, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
@@ -673,6 +684,7 @@ class HomePage(BasePage):
         self._loaded_record_token: object | None = None
 
     def set_page_margin(self, margin: int) -> None:
+        self.home_decoration.setVisible(self.width() >= 1100)
         compact = margin == COMPACT_HOME_PAGE_SIDE_MARGIN
         self.body_layout.setContentsMargins(
             margin,
@@ -688,17 +700,8 @@ class HomePage(BasePage):
         size: int,
         parent: QWidget,
     ) -> QLabel:
-        label = QLabel(parent)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        if self._icon_directory is not None:
-            icon = load_tinted_icon(
-                self._icon_directory / f"{name}.svg",
-                color,
-                size=size,
-            )
-            label.setPixmap(icon.pixmap(QSize(size, size)))
-        return label
+        icon = load_tinted_icon(self._icon_directory / f"{name}.svg", color, size) if self._icon_directory else QIcon()
+        return VectorIconLabel(icon, size, parent)
 
     @staticmethod
     def _apply_home_shadow(widget: QWidget, alpha: int = 14) -> None:
@@ -727,23 +730,8 @@ class HomePage(BasePage):
         title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(21)
 
-        logo_label = QLabel(title_row)
+        logo_label = BrandLogo(logo_path, title_row)
         logo_label.setObjectName("homeLogo")
-        logo_label.setAccessibleName("青舟节能")
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        logo_label.setFixedSize(186, 52)
-        if logo_path is not None:
-            logo = QPixmap(str(logo_path))
-            if not logo.isNull():
-                logo_label.setPixmap(
-                    logo.scaled(
-                        QSize(186, 52),
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-        if logo_label.pixmap() is None or logo_label.pixmap().isNull():
-            logo_label.setText("青舟节能")
         title_layout.addWidget(logo_label)
 
         divider = QFrame(title_row)
@@ -768,16 +756,17 @@ class HomePage(BasePage):
         description = QLabel(view_model.home_description, title_group)
         description.setObjectName("homeDescription")
         description.setWordWrap(True)
-        description.setStyleSheet("color: #698198; font-size: 13px;")
+        description.setStyleSheet("color: #526A7D; font-size: 13px;")
         title_group_layout.addWidget(description)
         title_group.setFixedHeight(66)
         title_layout.addWidget(title_group, 1)
         header_layout.addWidget(title_row, 1)
-        header_layout.addWidget(
-            _HomeHillsDecoration(header),
-            0,
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-        )
+        self.home_header_actions = QVBoxLayout()
+        self.home_header_actions.setContentsMargins(0, 0, 0, 0)
+        self.home_header_actions.setSpacing(0)
+        self.home_decoration = _HomeHillsDecoration(header)
+        self.home_header_actions.addWidget(self.home_decoration, 0, Qt.AlignmentFlag.AlignRight)
+        header_layout.addLayout(self.home_header_actions)
         return header
 
     def _build_entry_cards(
@@ -852,7 +841,7 @@ class HomePage(BasePage):
 
             button.setStyleSheet("""
                 QPushButton#homeEntryButton {
-                    background: #FFFFFF; border: 1px solid #dae7f1; border-radius: 14px;
+                    background: #FFFFFF; border: 2px solid #dae7f1; border-radius: 14px;
                     color: transparent; text-align: left; min-height: 180px;
                 }
                 QPushButton#homeEntryButton:hover {
@@ -866,8 +855,8 @@ class HomePage(BasePage):
                 }
                 QPushButton#homeEntryButton[primary="true"] {
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                        stop:0 #1679bf, stop:1 #3a97d0);
-                    border: 1px solid #1679bf;
+                        stop:0 #116FAE, stop:1 #116FAE);
+                    border: 2px solid #116FAE;
                 }
                 QPushButton#homeEntryButton[primary="true"]:hover {
                     border-color: #348fc2;
@@ -876,7 +865,7 @@ class HomePage(BasePage):
                     color: #18364f; font-size: 17px; font-weight: 700;
                 }
                 QLabel#homeEntryDescription {
-                    color: #698198; font-size: 12px;
+                    color: #526A7D; font-size: 12px;
                 }
                 QLabel#homeEntryArrow {
                     color: #83abc8; font-size: 23px; padding-right: 1px;
@@ -954,7 +943,7 @@ class HomePage(BasePage):
         card_layout.addWidget(content, 1)
         card.setStyleSheet("""
             QFrame#recentProjectsCard, QFrame#recentRecordsCard {
-                background: #FFFFFF; border: 1px solid #dae7f1; border-radius: 14px;
+                background: #FFFFFF; border: 2px solid #dae7f1; border-radius: 14px;
             }
             QLabel#homeCardTitle {
                 color: #18364f; font-size: 17px; font-weight: 700;
@@ -1027,21 +1016,12 @@ class HomePage(BasePage):
                     size=16,
                 )
             )
-        settings_button.setIconSize(QSize(16, 16))
-        settings_button.setStyleSheet("""
-            QPushButton#homeSettingsButton {
-                border: none; background: transparent; color: #12649a;
-                padding: 2px 0; font-size: 12px; font-weight: 600; text-align: left;
-            }
-            QPushButton#homeSettingsButton:hover { text-decoration: underline; }
-            QPushButton#homeSettingsButton:focus {
-                border: 2px solid #4a9fd5; border-radius: 4px;
-            }
-        """)
+        settings_button.setIconSize(QSize(18, 18))
+
         settings_button.clicked.connect(
             lambda _checked=False: navigate(AppRoute.SETTINGS)
         )
-        layout.addWidget(settings_button)
+        self.home_header_actions.insertWidget(0, settings_button, 0, Qt.AlignmentFlag.AlignRight)
         layout.addStretch(1)
 
         brand = QLabel(view_model.product_name, footer)
@@ -1069,7 +1049,7 @@ class HomePage(BasePage):
         description_label.setObjectName("projectRecentStateDescription")
         description_label.setWordWrap(True)
         description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description_label.setStyleSheet("color: #698198; font-size: 12px;")
+        description_label.setStyleSheet("color: #526A7D; font-size: 12px;")
         self.project_layout.addStretch(1)
         self.project_layout.addWidget(title_label)
         self.project_layout.addSpacing(4)
@@ -1087,7 +1067,7 @@ class HomePage(BasePage):
         description_label.setObjectName("recordRecentStateDescription")
         description_label.setWordWrap(True)
         description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description_label.setStyleSheet("color: #698198; font-size: 12px;")
+        description_label.setStyleSheet("color: #526A7D; font-size: 12px;")
         self.recent_layout.addStretch(1)
         self.recent_layout.addWidget(title_label)
         self.recent_layout.addSpacing(4)
@@ -1112,7 +1092,7 @@ class HomePage(BasePage):
                 color: #213a4f; font-size: 14px; font-weight: 700;
             }
             QLabel#homeProjectUpdated, QLabel#homeProjectDescription {
-                color: #698198; font-size: 12px;
+                color: #526A7D; font-size: 12px;
             }
             QLabel#homeProjectBadge {
                 background: #eaf3fc; color: #287ab4; border-radius: 7px;
@@ -1442,6 +1422,11 @@ class SettingsPage(BasePage):
         super().__init__(AppRoute.SETTINGS, parent)
         self.export_location_service = service_for_parent(self)
         self.add_header("设置", "设置报告与输入模板的导出位置，查看软件信息。")
+        self.home_back_button = QPushButton("返回首页", self)
+        self.home_back_button.setObjectName("settingsBackHomeButton")
+        self.home_back_button.clicked.connect(lambda: self.window().centralWidget().navigate(AppRoute.HOME))
+        self.header_actions.addWidget(self.home_back_button)
+        self.home_back_button.hide()
         columns = QWidget(self)
         columns.setObjectName("settingsColumns")
         layout = QVBoxLayout(columns)
@@ -1617,7 +1602,6 @@ class RecordLibraryPage(BasePage):
         records_card, records_layout = _card("记录列表", self.list_view)
         self.result_count = QLabel(records_card)
         self.result_count.setObjectName("recordResultCount")
-        records_layout.addWidget(self.result_count)
         self.record_list = ReadableTable(records_card)
         self.record_list.setObjectName("recordTable")
         self.record_list.setAccessibleName("核算记录列表")
@@ -1632,12 +1616,13 @@ class RecordLibraryPage(BasePage):
         self.record_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.record_list.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.record_list.setAlternatingRowColors(True)
-        self.record_list.setWordWrap(False)
-        self.record_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.record_list.setWordWrap(True)
+        self.record_list.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.record_list.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.record_list.setTabKeyNavigation(True)
         self.record_list.verticalHeader().setVisible(False)
-        self.record_list.verticalHeader().setMinimumSectionSize(64)
+        self.record_list.verticalHeader().setMinimumSectionSize(44)
+        self.record_list.verticalHeader().setDefaultSectionSize(48)
         self.record_list.horizontalHeader().setStretchLastSection(True)
         self.record_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         for column, width in enumerate((220, 88, 170, 110, 140, 104, 80)):
@@ -1655,6 +1640,7 @@ class RecordLibraryPage(BasePage):
             lambda row, _column: self._open_record_row(row)
         )
         records_layout.addWidget(self.record_list, 1)
+        records_layout.addWidget(self.result_count)
         list_layout.addWidget(records_card, 1)
         self.view_stack.addWidget(self.list_view)
 
@@ -1720,33 +1706,7 @@ class RecordLibraryPage(BasePage):
         detail_layout.addWidget(detail_card, 1)
         self.view_stack.addWidget(self.detail_view)
         self.body_layout.addWidget(self.view_stack, 1)
-        self.setStyleSheet("""
-            QPushButton#backToRecordListButton,
-            QPushButton#deleteRecordButton, QPushButton#exportWordReportButton {
-                min-height: 36px; padding: 0 16px; border-radius: 8px;
-                border: 1px solid #D4E4F0; background: white; font-size: 13px;
-            }
-            QPushButton#exportWordReportButton { background: #197CC2; border-color: #197CC2; color: white; }
-            QPushButton#deleteRecordButton { color: #B42318; }
-            QLabel#recordDetailHeading { font-size: 18px; font-weight: 700; color: #18364F; }
-            QLabel#recordResultCount { color: #698198; font-size: 12px; }
-            QTextEdit#recordAuditText {
-                border: 1px solid #DCE7EF; padding: 8px; background: white; font-size: 12px;
-            }
-            QLabel#recordStatusBadge {
-                border-radius: 8px; padding: 4px 9px; font-size: 11px;
-                font-weight: 650; background: #E7F6F0; color: #168268;
-            }
-            QLabel#recordStatusBadge[warning="true"] { background: #FFF5E1; color: #956420; }
-            QPushButton#openRecordRowButton {
-                min-height: 30px; padding: 0 10px; border-radius: 7px;
-                background: transparent; border: 1px solid transparent;
-                color: #12649A; font-size: 12px; font-weight: 650;
-            }
-            QPushButton#openRecordRowButton:hover { background: #EAF4FC; border-color: #D1E6F3; }
-            QTabWidget#recordDetailTabs::pane { border: 1px solid #DAE7F1; border-radius: 9px; }
-            QTabWidget#recordDetailTabs QTabBar::tab { padding: 0 18px; font-size: 13px; }
-        """)
+
         apply_business_page_style(self)
         self.refresh_records(force_reload=True)
 
@@ -1899,12 +1859,12 @@ class RecordLibraryPage(BasePage):
                     lambda _checked=False, selected=index: self._open_record_row(selected)
                 )
                 self.record_list.setCellWidget(index, 6, open_button)
-                self.record_list.setRowHeight(index, 62)
+                self.record_list.setRowHeight(index, 48)
                 if summary.record_id == selected_before:
                     selected_row = index
             self.record_list.resizeRowsToContents()
             for row in range(len(self._records)):
-                self.record_list.setRowHeight(row, max(64, self.record_list.rowHeight(row)))
+                self.record_list.setRowHeight(row, max(48, self.record_list.rowHeight(row)))
             self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
             self.delete_button.setEnabled(bool(self._records))
             self.export_word_button.setEnabled(bool(self._records))
@@ -3160,7 +3120,7 @@ class ExcelImportPage(BasePage):
         from .business_page_style import apply_business_page_style, surface
         self.body_layout.setSpacing(16)
         # Existing template region/identity retained; no new download implementation.
-        template_section, template_layout = surface("", self, "excelImportTemplateSection")
+        template_section, template_layout = surface("模板与说明", self, "excelImportTemplateSection")
         template_layout.setContentsMargins(16, 12, 16, 12)
         template_row = QHBoxLayout()
         template_note = QLabel(self.excel_adapter.template_description, template_section)
@@ -3174,7 +3134,7 @@ class ExcelImportPage(BasePage):
         template_layout.addLayout(template_row)
         self.body_layout.addWidget(template_section)
 
-        file_section, file_layout = surface("01 选择文件与核算信息", self, "excelImportFileSection")
+        file_section, file_layout = surface("文件选择", self, "excelImportFileSection")
         file_row = QHBoxLayout()
         file_row.setSpacing(12)
         self.selectFileButton = QPushButton("选择 Excel 文件", file_section)
@@ -3275,7 +3235,7 @@ class ExcelImportPage(BasePage):
         self.import_boundary_confirmed.stateChanged.connect(self._import_context_changed)
         self.body_layout.addWidget(file_section)
 
-        preview_section, preview_layout = surface("02 数据检查与预览", self, "excelImportCheckSection")
+        preview_section, preview_layout = surface("数据预览与检查", self, "excelImportCheckSection")
         self.preview_panel = ExcelImportPreviewPanel(preview_section)
         self.preview_panel.units.currentCellChanged.connect(self._preview_unit_selection_changed)
         self.preview_panel.set_empty("选择工作簿、补充核算信息并确认边界后，点击“检查并预览”。")
@@ -3283,7 +3243,7 @@ class ExcelImportPage(BasePage):
         preview_layout.addWidget(self.preview_panel)
         self.body_layout.addWidget(preview_section)
 
-        action_section, project_layout = surface("03 保存项目与正式核算", self, "excelImportActionSection")
+        action_section, project_layout = surface("处理结果", self, "excelImportActionSection")
         description = QLabel("预览不会生成正式记录。先保存有效核算单元为项目，再主动执行正式核算。", action_section)
         description.setObjectName("pageDescription")
         description.setWordWrap(True)

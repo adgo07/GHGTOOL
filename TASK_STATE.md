@@ -1,3 +1,15 @@
+# 新建核算第二批：整合家族 UI 主线中
+
+2026-10-29 实核 canonical origin，fetch 后 main 为224442530fcc61d8224c45e486688b2c27ec9324。PR60、PR62均已合并，旧文未合并依赖表述仅代表历史时点，现不适用。保留e8776de及双方Git历史，不重置、不覆盖主线源码。主线家族图集和CI318证据保持原件；它们不证明本批整合通过。
+
+合并代码自动协调；人工核对核算页、compact choices、来源目录、目录测试。保留共享design_tokens、40DIP、窗口/DPI/小屏、控件wheel_guard及show/hide配对过滤器、只读catalog生命周期和40分钟CI预算。第二批新增借用夹具同步完整class生命周期；小屏目录主动选择也应启用，程序选择仍只浏览，外部补充必须独立同意。
+
+中央Frozen ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。本任务不涉及中央公共 Contract；分层和显示不回流正式计算的MUST继续适用。已复读正式中央UI v0.2（2026-10-26视觉默认值）和家族规格；本地UI整合属LOCAL DEFECT协调，不改标准解释、计算、来源资格或数据格式。Issue015/016/017/020沿用。
+
+旧r3 comprehensive有完整summary，旧legacy r3 exit1：折叠换算目标(289,937,538,36)超出800高viewport，未通过。失败日志和已产出图片保留。整合后的定向、截图/astra、全量、新CI/精确包尚未执行，不沿用旧结果冒PASS。
+
+## 前序第二批断点（历史证据，当前状态以上文为准）
+
 # 新建核算全页第二批：候选视觉复验前断点
 
 本仓origin已实核为adgo07/GHGTOOL；任务分支codex/new-accounting-page-v2复用已有工作树，依赖受验PR60 ac06ca7e9d508b3956fef15fdad3d08d4b955f0a，PR60仍open且原分支保持ac06，不声称main已合并。开工fetch后origin/main为d7159f77ddb103376f5ca6bdd3a9532c101433e3。中央Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；相关Architecture V2.1要求分层、显示不回流正式计算。已读正式中央main c5fc6d438c9200060649e47c016b9b48218de72c的ACTIVE UI v0.2/产品家族规格，中央用户脏分支不作为权威。本任务不涉及中央公共Contract，无新标准解释，Issue015/016/017/020保持；Carbon p40/HALF_UP仍是项目Profile，不是平台默认。
