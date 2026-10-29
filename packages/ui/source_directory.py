@@ -2,7 +2,7 @@
 from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent, QSize
 from .source_cards import SourceHeaderSwitch
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea, QComboBox, QBoxLayout
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea, QComboBox, QBoxLayout, QApplication
 
 
 class ContentStack(QWidget):
@@ -152,17 +152,34 @@ class SourceDirectory(QWidget):
         self._adapt_width()
 
     def _adapt_width(self):
+        # Visibility and layout-direction changes synchronously resize children.
+        # Finish one mode transition before handling the resulting resize.
+        if getattr(self, "_adapting_width", False):
+            return
+        self._adapting_width = True
+        focused = QApplication.focusWidget()
+        navigation_focus = focused is self.compact_selector or (
+            focused is not None and self.navigation_panel.isAncestorOf(focused))
         compact = self.width() < 640
-        self.navigation_panel.setVisible(not compact)
-        self.compact_selector.setVisible(compact)
-        self.stack.setMinimumWidth(420 if compact else 0)
-        self.editor_scroll.setMaximumHeight(max(240, self.window().height() - 120) if compact else 16777215)
-        self.editor_scroll.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded if compact else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
-        if self._directory_layout.direction() != direction:
-            self._directory_layout.setDirection(direction)
-            self.updateGeometry()
+        try:
+            self.navigation_panel.setVisible(not compact)
+            self.compact_selector.setVisible(compact)
+            self.stack.setMinimumWidth(420 if compact else 0)
+            self.editor_scroll.setMaximumHeight(max(240, self.window().height() - 120) if compact else 16777215)
+            self.editor_scroll.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAsNeeded if compact else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
+            if self._directory_layout.direction() != direction:
+                self._directory_layout.setDirection(direction)
+                self.updateGeometry()
+        finally:
+            self._adapting_width = False
+        if navigation_focus:
+            target = self.compact_selector if compact else self.buttons.get(self._selected)
+            if target is not None:
+                target.setFocus(Qt.FocusReason.OtherFocusReason)
+        if (self.width() < 640) != compact:
+            QTimer.singleShot(0, self, self._adapt_width)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

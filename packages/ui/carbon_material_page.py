@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QPushButton,
     QSpinBox,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
     QFrame,
@@ -514,6 +515,11 @@ class _UnifiedEnergyRow(QWidget):
         self.factor_mode_field = labeled_field("因子获取方式", self.factor_mode_choices)
         self.factor_selector = QComboBox(self.electricity_details)
         self.factor_selector.setObjectName(f"energyElectricityFactor{index}")
+        # The full value and provenance remain in wrapping labels below.
+        # Long catalog titles must not set the whole editor's minimum width.
+        self.factor_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.factor_selector.setMinimumContentsLength(14)
+        self.factor_selector.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.factor_selector_field = labeled_field("排放因子", self.factor_selector)
         self.factor_value = QLabel(self.electricity_details)
         self.factor_value.setWordWrap(True)

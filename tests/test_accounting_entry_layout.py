@@ -59,5 +59,16 @@ class AccountingEntryLayoutTests(unittest.TestCase):
             toggle.setChecked(True)
             for width,height in ((1180,800),(1440,1000)):
                 window.resize(width,height);self.pump();self.assert_body_contains_fields_and_separates_sections(material['widget'])
+            page.source_directory.buttons['electricity'].click()
+            row = page._energy_family_rows['electricity'][0]
+            for width, height in ((1180, 800), (1440, 1000)):
+                window.resize(width, height)
+                self.pump()
+                viewport = page.source_directory.editor_scroll.viewport()
+                for field in (row._entry_header, row.factor_selector, row.factor_value, row.factor_explanation):
+                    self.assertTrue(field.isVisibleTo(viewport))
+                    rect = field.rect().translated(field.mapTo(viewport, QPoint()))
+                    self.assertGreaterEqual(rect.left(), 0, (field.objectName(), rect.getRect()))
+                    self.assertLess(rect.right(), viewport.width(), (field.objectName(), rect.getRect(), viewport.size().toTuple()))
             self.assertEqual(len(self.records.list_all()),0)
         finally:window.hide();window.deleteLater();self.pump()

@@ -27,6 +27,7 @@ class CompactActivationTests(unittest.TestCase):
         directory = page.source_directory
         self.assertTrue(directory.compact_selector.isVisible())
         combo = directory.compact_selector
+        self.assertFalse(directory.navigation_panel.isVisible())
         self.assertEqual(combo.count(), 9)
         page._fuel_rows[0].activity.setText('17.25')
         before = page._capture_form_state()
@@ -49,4 +50,9 @@ class CompactActivationTests(unittest.TestCase):
         self.assertEqual(combo.currentData(), 'external')
         self.assertFalse(page.external_included.isChecked())
         self.assertEqual(page._capture_form_state(), saved)
+        page.resize(1200, 800)
+        for _ in range(16):
+            self.application.processEvents()
+        self.assertTrue(directory.navigation_panel.isVisible())
+        self.assertFalse(combo.isVisible())
         self.assertFalse(self.records.list_all())
