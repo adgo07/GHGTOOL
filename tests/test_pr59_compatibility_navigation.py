@@ -269,7 +269,7 @@ class PR59CompatibilityNavigationTests(unittest.TestCase):
         return process, material
 
     def test_actual_folded_conversion_error_enters_narrow_and_wide_viewport(self):
-        for size in ((1180, 850), (1680, 1000)):
+        for size in ((1180, 800), (1180, 850), (1680, 1000)):
             with self.subTest(size=size), self.page("conversion-" + str(size[0]), size) as (page, projects, records, shell):
                 process, material = self.material_failure(page, conversion=True)
                 toggle = next(button for button in material["widget"].findChildren(QPushButton)
