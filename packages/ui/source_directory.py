@@ -117,7 +117,10 @@ class SourceDirectory(QWidget):
             links.addWidget(button)
             self.buttons[key], self.indices[key] = button, i
             panel = QWidget(self.stack)
-            panel.setStyleSheet("background:white;")
+            panel.setObjectName("sourceDirectoryPanel")
+            # Limit the surface to this panel so descendants keep the page's
+            # shared repeated-entry header/body colors.
+            panel.setStyleSheet(f"QWidget#sourceDirectoryPanel {{background:{ACCOUNTING_COLORS['white']};}}")
             contents = QVBoxLayout(panel)
             contents.setContentsMargins(0, 0, 0, 0)
             contents.setAlignment(Qt.AlignmentFlag.AlignTop)
