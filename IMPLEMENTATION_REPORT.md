@@ -1,37 +1,43 @@
-# 新建核算第二批：整合家族 UI 主线中
+# 新建核算第二批实施报告（视觉复核中，2026-10-29）
 
-2026-10-29 实核 canonical origin，fetch 后 main 为224442530fcc61d8224c45e486688b2c27ec9324。PR60、PR62均已合并，旧文未合并依赖表述仅代表历史时点，现不适用。保留e8776de及双方Git历史，不重置、不覆盖主线源码。主线家族图集和CI318证据保持原件；它们不证明本批整合通过。
+## 平台 / Contract 预检查
 
-合并代码自动协调；人工核对核算页、compact choices、来源目录、目录测试。保留共享design_tokens、40DIP、窗口/DPI/小屏、控件wheel_guard及show/hide配对过滤器、只读catalog生命周期和40分钟CI预算。第二批新增借用夹具同步完整class生命周期；小屏目录主动选择也应启用，程序选择仍只浏览，外部补充必须独立同意。
+业务仓canonical origin已实核为`adgo07/GHGTOOL`；沿用`codex/new-accounting-page-v2`工作树，保留e8776de既有成果，非破坏性合并最新main `224442530fcc61d8224c45e486688b2c27ec9324`。PR60、PR62均已合并，原未合并依赖假设失效。中央Frozen锁`ee5feb0cc34dbd99790500fadd0c4c932e202a20`不变；当前正式中央main `a389ac1de63c4f331f3b04e5e7b7a17ef02ed111`的ACTIVE UI v0.2（2026-10-26视觉默认值）与产品家族规格已读取。相关Architecture V2.1要求Presentation/Application/Domain分层、显示不回流正式计算；Qt控件状态不能成为未来跨平台Workspace Contract。本任务不涉及中央公共 Contract，不需修改中央Frozen；整合缺陷属于LOCAL DEFECT。Carbon p40/HALF_UP为本项目Profile，不是平台默认。
 
-中央Frozen ee5feb0cc34dbd99790500fadd0c4c932e202a20不变。本任务不涉及中央公共 Contract；分层和显示不回流正式计算的MUST继续适用。已复读正式中央UI v0.2（2026-10-26视觉默认值）和家族规格；本地UI整合属LOCAL DEFECT协调，不改标准解释、计算、来源资格或数据格式。Issue015/016/017/020沿用。
+相关Standard Issue015/016/017/020存在，本任务不改变既有软件解释、公式、正式结果、标准范围或SUPPORTED状态。母版、Word、Canonical、Schema、迁移及不可变Record语义保持。不得据本次UI优化宣称正式Windows发布。
 
-旧r3 comprehensive有完整summary，旧legacy r3 exit1：折叠换算目标(289,937,538,36)超出800高viewport，未通过。失败日志和已产出图片保留。整合后的定向、截图/astra、全量、新CI/精确包尚未执行，不沿用旧结果冒PASS。
+## 本批范围与家族兼容
 
-## 前序第二批断点（历史证据，当前状态以上文为准）
+- 八类源由用户明确点击目录启用；已启用再点击仅浏览。程序切换、恢复、错误定位不启用。小屏原生下拉同样区分activated与setCurrentIndex。
+- 外部CO₂为第九独立软件补充入口；访问不勾选同边界/同期/未重复计入声明，不并入标准ES/EI/ET。
+- 燃料“含碳量数据来源”保留HEAT_CONTENT/DIRECT路径与参数来源维度。电力地区紧邻、精确所选候选值与年份/来源分别显示；保留五表/OTHER/真实零/冲突/无适用阻断，不隐式回退。
+- 热力采用Owner批准的“常用外购入口简化，特殊情况可展开，旧值保留”；新行外购/未计燃料默认不覆盖旧未知、内部、输出草稿，不改变Issue015消重。
+- 重复父对象/明细有独立标题、父对象名、边界、所属增删及折叠；不克隆原输入。新增定位、实际问题树首次定位与取消过期请求；旧烟气时长/升级、旧FGD不同用量10/2、旧材料汇总100/80继续可读/可编辑且不创建替代物料。
+- 当前项目/单元/保存上下文前置，管理渐进展开；报告三小节分组，核算动作统一“核算并生成记录”。未来各标准补充入口仅记既有路线产品意图，不新增规则。
 
-# 新建核算全页第二批实施报告（候选，未交付）
+本批相对main仅改7个UI生产文件；17项正式输入/保存/恢复/期间/核算方法AST相同。保护Application/Core/标准/持久化/Excel/资源/模板/Word/工作流/依赖/中央锁及原五页/Shell，保留PR62共享design_tokens、40DIP、窗口几何/高DPI品牌、小屏、控件wheel_guard、核算页show/hide配对过滤器及40分钟CI预算。新增借用项目夹具完整接入只读catalog class生命周期与结束hash校验，逐例可变库/Records/控件仍独立。
 
-## 平台 / Contract预检查
+## 当前本地验证与失败保全
 
-本仓origin已实核为adgo07/GHGTOOL；任务分支codex/new-accounting-page-v2复用已有工作树，依赖受验PR60 ac06ca7e9d508b3956fef15fdad3d08d4b955f0a，PR60仍open且原分支保持ac06，不声称main已合并。开工fetch后origin/main为d7159f77ddb103376f5ca6bdd3a9532c101433e3。中央Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变；相关Architecture V2.1要求分层、显示不回流正式计算。已读正式中央main c5fc6d438c9200060649e47c016b9b48218de72c的ACTIVE UI v0.2/产品家族规格，中央用户脏分支不作为权威。本任务不涉及中央公共Contract，无新标准解释，Issue015/016/017/020保持；Carbon p40/HALF_UP仍是项目Profile，不是平台默认。
+Python3.12.14、PySide6/Qt6.11.2、Windows Qt offscreen、隔离合成数据库。以下组有重叠，不累计为全量；全部为本地执行，不是GitHub Actions。
 
-## 本批实现与边界
+| 原始日志后缀 / 命令模块 | 实际结果 |
+|---|---|
+| main-integration-r15 / controls、entry_layout、repeated_entries、energy_presentation、source_directory、PR59 navigation | `python -B -m unittest <6模块> -v`，37项36通过/1焦点失败，508.654s |
+| compact-r16 / compact_activation | 原生popup/Return、程序导航及外部补充，1/1，11.374s |
+| conversion-800-r17 / PR59实际折叠换算方法 | 1180×800、1180×850、1680×1000真实问题树点击，1/1，56.900s |
+| reentrant-width-r18 / entry_layout、compact_activation、PR59主动启用取消旧焦点 | 3/3，54.539s；原焦点断言保留，新增电力完整标签横向边界与目录互斥 |
+| Canonical / compileall / pip check，4552afa | `python scripts/validate_canonical.py`：9标准/12来源/102参数/138因子；`python -m compileall -q apps packages resources scripts tests`：0；`python -m pip check`：0，无破损依赖 |
+| scope-4552afa | 17方法AST及受保护层相对main一致，7个UI文件允许范围内 |
 
-八源主动点击启用，已启用只浏览，程序/错误/恢复不启用；外部CO₂第九入口访问不勾选声明，ES/EI/ET独立不改。含碳量数据来源文案保留路径/来源区分。重复父子条目边框、当前名称/父对象、独立折叠、所属增删与新增定位；当前项目/单元/保存状态及报告三个小节，核算动作统一明确新增记录。电力地区相邻、完整候选值与单位/年份来源分列，五表/OTHER/零/冲突/无适用门禁不变。新热力行采用Owner批准的常用外购/燃料未计默认；特殊展开、旧未知/内部/输出保留、015消重不变。旧材料汇总原字段可查看/修改，保存重开不创建替代物料，折叠不写值/dirty；原格式化器同步摘要与清空状态。局部勾选复用已有绘制类，年/月箭头仅绘制，原生事件/范围保留；TypedInput只加可选checkbox绘制类，其他页面默认不变。
+R15焦点诊断发现宽818时导航与compact同时可见，适配同步resize重入后焦点落编辑滚动区；通过重入保护及导航焦点交接修复，未放宽原测试。电力长候选撑宽由下拉最小宽约束修复，完整值/出处仍在原换行标签显示。前序R7～R10布局失败、R11/12/13/14通过及所有中断日志均保全；原控件迁移删除旧QWidgetItem才创建新布局项，失败的通用高度监听已全部移除。详见前序Git断点及最终证据索引，不能把旧局部组改标当前全量。
 
-17项正式输入、保存、恢复、期间和核算方法保持AST相同；Application/Core/标准/持久化/Excel Adapter/资源/Word/模板/依赖/workflow及原五页/Shell未改。UI共享TypedInput可选绘制类保留FieldSpec元数据及默认构造，局部重绘不改键鼠行为。完整附件按已批准第二批落实，不建立第二路线；其摘要及SHA见本阶段HANDOFF和Git历史。
+## 视觉证据及未完成交付
 
-## 本地证据（组间重叠，不累计）
+产品源候选`4552afada1c43db5038056b2869e9ad4e1c07bb4`：R5综合70张、完整171项apps/packages/resources工作文件与Git blob SHA全部原始字节一致，Qt回调0、合成Record0；R5旧项目22张、回调0、源hash稳定，`13-shared-result`实际1条合成Record，其余场景为0，不能统称全0。显式外部补充勾选图与最后未勾选状态分列。两档1180×800/1440×1000，包含报告勾选/未勾选/年焦点、三小节、源状态、重复对象及旧值。直接reveal图不是问题树点击证明，实际树点击由R17及旧项目图覆盖。
 
-- 目录16/16，127.964s；重复条目3/3，16.858s；宽窄/错误2/2，32.821s；能源新增4/4，32.878s；电热既有门禁24/24，83.299s。
-- 兼容26项23通过/3失败，300.192s：旧提醒文案、旧未启用点击夹具、真实旧时长字段顶边-4px。保留原日志；修正整字段范围及夹具后5项4通过/1夹具旧问题列表失效失败130.624s，按既有规则重建问题列表后1/1，14.737s；原viewport/状态/零记录断言保留且加强父子展开。
-- 标题/父子计数与定位6/6，135.348s。R7控件/布局3项2通过/1遮挡失败32.434s；R8/R9/诊断/R10各1布局失败（21.443/22.843/20.304/14.444s）。最终移除失败的额外高度监听，原控件迁移先删除旧QWidgetItem再创建新布局项，原严格几何断言1/1，13.962s。
-- 当前HOLD修正相关5模块21/21，303.870s（控件2、布局1、重复5、能源4、真实导航9）。旧汇总摘要保存重开1/1，11.389s；增加清空显示守卫后1/1，13.416s。
-- 命令均为本地`python -B -m unittest <对应模块/方法> -v`，Qt offscreen与隔离合成数据。原始命令/日志/失败/中断及源码身份将随最终证据索引保全，各组重叠不累计；不是GitHub结果。17项正式输入/保存/恢复/期间/核算方法AST与ac06相同，非UI生产层、原五页/Shell/模板/Word/依赖/workflow/中央锁未改。
+[代表图集](docs/ui/new-accounting-v2/README.md)原样选23图、3080014字节，[图像/源码清单](docs/ui/new-accounting-v2/capture-manifest.json)绑定源head、原始图和两份summary摘要。完整92图、脚本、日志及所有失败原件在本次私有证据目录保全；不上传用户库或标准全文。R3 legacy真实viewport失败保留；R4综合exit1、仅14图且异常hook未留下确切主异常，截图可见横向裁切，不能凭推断宣称退出原因已证实；R4旧项目22图成功仅为前一候选历史证据。
 
-## 视觉和交付状态
+Owner已直接授权本批及后续迭代发送原astra会话。R5两包均已发送，视觉结论待返回；不得因已发图宣称通过。当前本批完整回归、新required CI、精确候选包及源独立验收尚未完成；未push、未建新PR、不自动合并或发布。后续先关闭视觉HOLD，再冻结源码执行完整回归，通过后稳定批次push/new PR、复用同head必要CI与精确包交源验收。
 
-astra已读首包6图，r2全页60图及旧项目14图，当前HOLD尚待修后图复验。r2图片/源/脚本身份和记录数按实际来源分别保留，r2-legacy原清单无图片hash，不冒称已验；后续补。工作文件CRLF与Git LF的首包差异单列，不能说原始字节一致；后续工作文件/提交blob hash分别记录。
-
-本批完整回归、必要GitHub CI、精确新候选包及源独立验收均未完成。未执行原生桌面/真实用户路径负例/Office/IME/人工DPI/企业样例/干净机；原用户日志路径原因仍未确定，原安全拒绝启动保持。保持PR60未合并；后续独立PR明确依赖ac06，不自动合并或发布。
+未执行原生桌面、Office/IME、人工多屏DPI切换、企业样例、干净机。仅Qt offscreen，不使用变通桌面控制。根用户工作簿未动；不把主线CI318或PR60旧包当成本批结果。
