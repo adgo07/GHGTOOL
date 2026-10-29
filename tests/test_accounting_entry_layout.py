@@ -1,5 +1,8 @@
 """Nested FGD/material fields must remain inside their actual allocated bodies."""
 import unittest
+import os
+from pathlib import Path
+from PySide6.QtGui import QFontDatabase
 from PySide6.QtCore import QPoint,QCoreApplication,QEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication,QLineEdit,QPushButton,QWidget
@@ -13,6 +16,9 @@ class AccountingEntryLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         fixture.AccountingProjectUiTests.setUpClass.__func__(cls)
+        if not QFontDatabase.families():
+            for name in ('msyh.ttc', 'msyhbd.ttc', 'seguisym.ttf'):
+                QFontDatabase.addApplicationFont(str(Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / name))
 
     @classmethod
     def tearDownClass(cls):
@@ -72,3 +78,37 @@ class AccountingEntryLayoutTests(unittest.TestCase):
                     self.assertLess(rect.right(), viewport.width(), (field.objectName(), rect.getRect(), viewport.size().toTuple()))
             self.assertEqual(len(self.records.list_all()),0)
         finally:window.hide();window.deleteLater();self.pump()
+
+    def test_natural_gas_wide_to_narrow_reflow_never_clips_controls_inside_editor(self):
+        from packages.standards.carbon_material import FuelType
+        window = create_main_window(AppConfig(log_directory=self.root/'fuel-logs'), catalog_service=self.catalog_service, record_repository=self.records, project_service=self.project_service, calculation_use_case=self.page.calculation_use_case)
+        try:
+            window.show()
+            shell = window.centralWidget()
+            shell.navigate(AppRoute.NEW_ACCOUNTING)
+            page = shell.pages[AppRoute.NEW_ACCOUNTING]
+            page.source_directory.buttons['fuel'].click()
+            row = page._fuel_rows[0]
+            row.fuel_type.setCurrentIndex(row.fuel_type.findData(FuelType.NATURAL_GAS))
+            row.fuel_type.confirm_name(force=True)
+            row.activity.setText('123.45')
+            before = page._capture_form_state()
+            for width, height in ((1440, 1000), (1180, 800), (1440, 1000)):
+                window.resize(width, height)
+                self.pump()
+                directory = page.source_directory
+                viewport = directory.editor_scroll.viewport()
+                self.assertFalse(directory.navigation_panel.isHidden())
+                for field in (row.oxidation_control, row.calculated_carbon_label):
+                    rect = field.rect().translated(field.mapTo(viewport, QPoint()))
+                    self.assertTrue(viewport.rect().contains(rect), (width, field.objectName(), rect.getRect(), viewport.size().toTuple(), directory.editor_scroll.sizeHint().toTuple()))
+                buttons = [b for b in page.fuel_rows_host.parentWidget().findChildren(QPushButton) if b.text() == '添加燃料']
+                self.assertEqual(len(buttons), 1)
+                rect = buttons[0].rect().translated(buttons[0].mapTo(viewport, QPoint()))
+                self.assertTrue(viewport.rect().contains(rect), ('add', width, rect.getRect(), viewport.size().toTuple()))
+            self.assertEqual(before, page._capture_form_state())
+            self.assertFalse(self.records.list_all())
+        finally:
+            window.hide()
+            window.deleteLater()
+            self.pump()

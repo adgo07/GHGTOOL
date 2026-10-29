@@ -32,6 +32,8 @@ from shiboken6 import isValid
 
 from PySide6.QtCore import QDate, QEvent, QSignalBlocker, QTimer, Qt, Signal
 from PySide6.QtCore import QLocale
+
+_ACCOUNTING_WHEEL_EVENT = QEvent.Type.Wheel
 from PySide6.QtGui import QDoubleValidator
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -138,7 +140,7 @@ from .field_specs import SOURCE_LABELS, get_field_spec, ui_to_domain_value
 from .source_cards import SourceCard, SourceCardPresentationState, SourceToggleButton, SourceHeaderSwitch
 from .compact_choices import SegmentedChoiceControl
 from .source_directory import SourceDirectory
-from .repeated_entries import frame_entry
+from .repeated_entries import frame_entry, repeat_entry_stylesheet
 from .business_page_style import BusinessCheckBox
 from .accounting_controls import AccountingSpinBox
 from .name_selector import NameSelector, normalized_name, chemical_label
@@ -797,10 +799,13 @@ class CarbonMaterialAccountingPage(BasePage):
     def eventFilter(self, watched: object, event: QEvent) -> bool:  # type: ignore[override]
         """Open selectors from their input area and keep the page wheel-scrollable."""
 
+        # QWidget's default filter returns False. Avoid ancestry traversal and
+        # a Python/C++ delegate round trip for the many unrelated layout/paint
+        # events; this filter handles only wheel events while the page is shown.
+        if event.type() != _ACCOUNTING_WHEEL_EVENT:
+            return False
         if not isinstance(watched, QWidget) or not self.isAncestorOf(watched):
-            return super().eventFilter(watched, event)
-        if event.type() != QEvent.Type.Wheel:
-            return super().eventFilter(watched, event)
+            return False
         control = watched
         while control is not None and control is not self:
             if isinstance(control, (QComboBox, QAbstractSpinBox)):
@@ -1335,7 +1340,7 @@ class CarbonMaterialAccountingPage(BasePage):
             }}
             QLabel#calculationTotal {{ font-size: 24px; font-weight: 600; color: {PRIMARY_BRAND}; }}
             QLabel#calculationTrace, QLabel#calculationBreakdown {{ font-size: 14px; }}
-        """ + accounting_sample_stylesheet())
+        """ + accounting_sample_stylesheet() + repeat_entry_stylesheet())
 
     def _build_project_unit_controls(self) -> None:
         toggle = QPushButton("展开项目与核算单元", self)

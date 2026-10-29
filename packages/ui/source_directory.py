@@ -45,6 +45,18 @@ class EditorScrollArea(QScrollArea):
     def minimumSizeHint(self):
         return QSize(0, 0)
 
+    def eventFilter(self, watched, event):
+        result = super().eventFilter(watched, event)
+        if watched is self.widget() and event.type() in (QEvent.Type.Resize, QEvent.Type.LayoutRequest):
+            # QScrollArea normally changes only its internal scrollbar range.
+            # Wide layouts hide that scrollbar and need the new natural height
+            # propagated to the directory's layout after responsive reflow.
+            height = self.sizeHint().height()
+            if height != getattr(self, "_reported_content_height", None):
+                self._reported_content_height = height
+                self.updateGeometry()
+        return result
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.updateGeometry()
@@ -147,6 +159,10 @@ class SourceDirectory(QWidget):
         self.editor_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.editor_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.editor_scroll.setWidget(self.stack)
+        # QScrollArea enables auto-fill on its child. Keep the surrounding
+        # unused area on the existing business card instead of default gray.
+        self.stack.setAutoFillBackground(False)
+        self.editor_scroll.viewport().setAutoFillBackground(False)
         layout.addWidget(self.editor_scroll, 1, Qt.AlignmentFlag.AlignTop)
         self.select(entries[0][0])
         self._adapt_width()

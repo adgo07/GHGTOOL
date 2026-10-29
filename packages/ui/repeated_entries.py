@@ -7,6 +7,20 @@ from .design_tokens import ACCOUNTING_COLORS as C, STATUS_ABOLISHED
 def frame_entry(host, title, remove, *, toolbar=None, inner=False):
     """Move existing layout items into a disclosed body without copying inputs."""
     outer = host.layout()
+    layout_enabled, updates_enabled = outer.isEnabled(), host.updatesEnabled()
+    outer.setEnabled(False)
+    host.setUpdatesEnabled(False)
+    try:
+        return _frame_entry(host, title, remove, toolbar=toolbar, inner=inner)
+    finally:
+        outer.setEnabled(layout_enabled)
+        host.setUpdatesEnabled(updates_enabled)
+
+
+def _frame_entry(host, title, remove, *, toolbar=None, inner=False):
+    host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    host.setProperty('repeatEntryLevel', 'inner' if inner else 'outer')
+    outer = host.layout()
     body = QWidget(host)
     contents = QVBoxLayout(body)
     contents.setContentsMargins(10, 10, 10, 10)
@@ -62,19 +76,30 @@ def frame_entry(host, title, remove, *, toolbar=None, inner=False):
     toggle.toggled.connect(lambda expanded: toggle.setText('收起' if expanded else '展开'))
     body._disclosure_button = toggle
     host._entry_body, host._entry_toggle, host._entry_header = body, toggle, header
-    host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-    host.setProperty('repeatEntryLevel', 'inner' if inner else 'outer')
     outer.setContentsMargins(1, 1, 1, 1)
     outer.setSpacing(0)
     outer.addWidget(header)
     outer.addWidget(body)
-    host.setStyleSheet(f'''
+    remove.setProperty('danger', True)
+    remove.setProperty('repeatEntryDelete', True)
+    # Reuse the page stylesheet; recompiling a sheet for every nested object
+    # repolishes its entire subtree during bulk restore/add operations.
+    for widget in (host, remove):
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+    return body
+
+
+def repeat_entry_stylesheet():
+    """One page-local rule set for all repeated objects, using family tokens."""
+    return f"""
         QWidget[repeatEntryLevel="outer"] {{background:{C['white']};border:1px solid {C['choice_border']};border-radius:7px;}}
         QWidget[repeatEntryLevel="inner"] {{background:{C['directory_surface']};border:1px solid {C['directory_border']};border-radius:5px;}}
-        QWidget#repeatEntryBody {{background:{C['directory_surface'] if inner else C['white']};border:0;}}
-        QFrame#repeatEntryHeader {{background:{C['directory_surface'] if inner else C['source_active_surface']};border:0;border-radius:5px;}}
+        QWidget#repeatEntryBody {{background:{C['white']};border:0;}}
+        QWidget[repeatEntryLevel="inner"] > QWidget#repeatEntryBody {{background:{C['directory_surface']};}}
+        QFrame#repeatEntryHeader {{background:{C['source_active_surface']};border:0;border-radius:5px;}}
+        QWidget[repeatEntryLevel="inner"] > QFrame#repeatEntryHeader {{background:{C['directory_surface']};}}
         QFrame#repeatEntryHeader QLabel {{color:{C['primary_text']};font-weight:600;border:0;background:transparent;}}
-    ''')
-    remove.setProperty('danger', True)
-    remove.setStyleSheet(f'QPushButton {{color:{STATUS_ABOLISHED};background:transparent;border:0;padding:5px;}} QPushButton:focus {{border:1px solid {STATUS_ABOLISHED};}}')
-    return body
+        QPushButton[repeatEntryDelete="true"] {{color:{STATUS_ABOLISHED};background:transparent;border:0;padding:5px;}}
+        QPushButton[repeatEntryDelete="true"]:focus {{border:1px solid {STATUS_ABOLISHED};}}
+    """
