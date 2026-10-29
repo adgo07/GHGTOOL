@@ -27,6 +27,7 @@ Python3.12.14、PySide6/Qt6.11.2、Windows Qt offscreen、隔离合成数据库�
 | compact-r16 / compact_activation | 原生popup/Return、程序导航及外部补充，1/1，11.374s |
 | conversion-800-r17 / PR59实际折叠换算方法 | 1180×800、1180×850、1680×1000真实问题树点击，1/1，56.900s |
 | reentrant-width-r18 / entry_layout、compact_activation、PR59主动启用取消旧焦点 | 3/3，54.539s；原焦点断言保留，新增电力完整标签横向边界与目录互斥 |
+| family-integration-r19 / 旧文案、已启用源浏览、compact双视口、40DIP/精度/wheel、无无关全局事件 | 5/5，57.512s；只同步批准文案/已启用夹具，原业务和几何断言全部保留 |
 | Canonical / compileall / pip check，4552afa | `python scripts/validate_canonical.py`：9标准/12来源/102参数/138因子；`python -m compileall -q apps packages resources scripts tests`：0；`python -m pip check`：0，无破损依赖 |
 | scope-4552afa | 17方法AST及受保护层相对main一致，7个UI文件允许范围内 |
 

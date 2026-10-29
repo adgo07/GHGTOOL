@@ -130,7 +130,7 @@ class UIR04FinalizationTests(unittest.TestCase):
         self.assertIsNone(self.page.findChild(QWidget, "showProfessionalDetailsCheckBox"))
         self.assertIn("已确认排放源：0", self.page.confirmed_source_count.text())
         self.assertIn("错误：0", self.page.error_count.text())
-        self.assertIn("点击“计算排放量”", self.page.calculation_status_hint.text())
+        self.assertIn("点击“核算并生成记录”", self.page.calculation_status_hint.text())
 
     def test_error_count_comes_from_domain_validation_not_widget_heuristics(self) -> None:
         self.page.enterprise_name.setText("延后校验企业")
