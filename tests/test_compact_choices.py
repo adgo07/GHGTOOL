@@ -76,7 +76,7 @@ class CompactChoiceTests(unittest.TestCase):
         control.set_allowed_values((Source.CALCULATED,))
         self.app.processEvents()
         self.assertEqual(combo.currentData(), "USER_DEFINED")
-        self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
+        self.assertEqual(control.notice.text(), "历史来源不适用\n请确认")
         self.assertEqual(control.notice.toolTip(), "历史自定义")
         self.assertEqual(len(control.group.buttons()), 1)
         self.assertEqual(control.group.buttons()[0].text(), "计算值")

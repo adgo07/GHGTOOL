@@ -8226,9 +8226,11 @@ class CarbonMaterialAccountingPage(BasePage):
                     source_boundary="INSIDE_ENTERPRISE", fuel_emissions_accounted=True))
                 continue
             if amount is None:
+                boundary = (row.heat_boundary.currentData(), row.heat_fuel_accounted.currentData())
+                # Both the legacy blank row and the new common default are placeholders.
                 touched = (any(edit.text().strip() for edit in (row.enthalpy, row.pressure, row.temperature,
-                           row.measured_heat_factor, row.heat_source)) or row.heat_boundary.currentData() != "UNCONFIRMED"
-                           or row.heat_fuel_accounted.currentData() is not None
+                           row.measured_heat_factor, row.heat_source))
+                           or boundary not in (("UNCONFIRMED", None), ("OUTSIDE_ENTERPRISE", False))
                            or row.enthalpy_mode.currentData() == "MANUAL"
                            or _enum(row.heat_factor_mode.currentData(), HeatFactorMode) is HeatFactorMode.MEASURED)
                 if touched:

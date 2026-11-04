@@ -103,4 +103,3 @@
 ## shared-result
 
 ![shared-result](shared-result.png)
-

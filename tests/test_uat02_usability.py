@@ -186,9 +186,13 @@ class UAT02UsabilityTests(unittest.TestCase):
         self.assertTrue(component["_component_id"].isHidden())
         self.assertEqual(component["_component_id"].text(), component["component_id"])
         button = self.page.findChild(QWidget, "add_calcination_instance")
-        self.assertTrue(button.isHidden())
-        self.page.manage_process_button.click()
-        self.assertFalse(button.isHidden())
+        self.assertFalse(button.isVisible())
+        self.page._source_toggle_buttons["calcination"].click()
+        self.application.processEvents()
+        self.assertTrue(button.isVisible())
+        before = len(self.page._process_rows["calcination"])
+        button.click()
+        self.assertEqual(len(self.page._process_rows["calcination"]), before + 1)
 
     def test_blank_enterprise_factor_source_warns_but_missing_value_blocks(self) -> None:
         toggle = self.page.findChild(QPushButton, "sourceToggle_fuel")

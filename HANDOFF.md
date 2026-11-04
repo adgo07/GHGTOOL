@@ -6,6 +6,6 @@ Owner直接授权本批全部后续astra复核，R8门禁已通过：本轮18图
 
 Frozen锁ee5feb0cc34dbd99790500fadd0c4c932e202a20不变，本任务不涉及中央公共Contract，不改Issue015/016/017/020解释。家族统一、配对/wheel及17正式方法保护，可变项目/不可变Record/Word链不变。
 
-接着冻结清洁提交完整本地回归（新鲜输出、隔离LOCALAPPDATA/TEMP、源码hash/退出码/log/footer保全）；尚未full/push/新PR/CI/包。通过后稳定push/new PR、同head required和精确包ZIP/manifest/rawlogs/audit/两次离屏启动/静态绑定交源验收，不自动合并/发布。GitHub与本地分列，不沿用旧CI/包。阶段完成重写当前报告，最终交付回执登记实际身份。
+2026-11-04 本地首轮中断，第二轮 dd276bb 完整运行 1150 项，4 项失败、2 项报错。购热空白占位与 Qt 销毁期过滤器已修复，既有断言对齐视觉与工序入口，定向 10 项通过。完整复验使用独立目录保全源码哈希、退出码和日志。尚未推送。通过后推送独立 PR，取得同 head required CI 和精确包，交源验收。
 
 仅Qt offscreen合成隔离库，根用户工作簿不动，无原生CU/变通桌面/Office/IME/人工DPI/企业数据。

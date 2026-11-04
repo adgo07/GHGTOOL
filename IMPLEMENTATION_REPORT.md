@@ -1,4 +1,4 @@
-# 新建核算第二批实施报告（视觉通过，完整回归前）
+# 新建核算第二批实施报告（视觉通过，完整回归复验）
 
 2026-10-29。产品源a0dabc8ca49e744ef73704a126c2eaae2fc314dc；本报告冻结前本地证据与后续GitHub精确head证据分别记录，不预填CI通过。
 
@@ -45,6 +45,10 @@ astra R8视觉门禁通过，可以完整回归：本轮实际查看18张代表�
 
 [25张原样代表图](docs/ui/new-accounting-v2/README.md)共3342938字节，[清单](docs/ui/new-accounting-v2/capture-manifest.json)绑定R8原图及源a0dabc8，含原HOLD的燃料宽/窄两图。完整70+22图：全页Record0；legacy仅13-shared-result为1条合成Record，其余0。显式声明图True与结束False分列。直接reveal图不冒称树点击；真实树点击由PR59/R17及legacy覆盖。R1～R8原件/所有失败保留；早期视觉ZIP370文件38881505字节SHA256=79eaaddd1768f45eeccf0f7bd978c41e5c020a80424859e09794ea392c7922cb仅为历史快照，不冒称含后续全量/CI/制品。
 
-下一步冻结清洁提交运行python -B -m unittest discover -s tests -t . -v，完整回归尚未启动。通过后稳定push/独立PR、必要required CI/精确包交源验收；GitHub实际head/run/job/artifact/rawlogs/ZIP/manifest/audit/两次离屏启动回执另附，不用main CI318或旧PR60包冒本批。不自动合并或发布。
+本地 `python -B -m unittest discover -s tests -t . -v` 首轮在 f1b75ab 中断，缺少退出码和汇总。日志末尾热力用例单独复跑 1/1，5.959 秒。第二轮 dd276bb 完整运行 1150 项，4395.666 秒，4 项失败、2 项报错，退出码 1。原始日志和 375 项源码哈希已保全。
+
+复验前修复购热的默认空白占位行误判和 Qt 销毁期事件过滤异常。保留特殊热源未填写时的校验和已填行的转换规则。更新三项既有文案断言，工序新增用例检查来源启用后按钮可见且点击实际追加实例。`python -B -m unittest -v` 定向运行 `tests.test_compact_choices` 和另五个失败用例，10/10，58.930 秒，退出码 0。R8 图册继续对应 a0dabc8 的视觉证据。复验修复没有改动截图中的布局和文字。
+
+完整复验通过后推送独立 PR，required CI、精确包及独立验收待办。GitHub 实际 head、run、job、artifact、日志、ZIP、manifest 和离屏启动回执另附。本批停在送验。
 
 未执行原生桌面、Office/IME、人工DPI/多屏、企业样例、干净机；根用户工作簿不动。视觉门禁不替代完整回归或正式产品验收，不宣布SUPPORTED。

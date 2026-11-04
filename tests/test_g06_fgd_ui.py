@@ -213,7 +213,7 @@ class G06FgdUiTests(unittest.TestCase):
         self.assertEqual(saved["fgd_ratio_modes"][component_id], {"i": "STD", "tr": "CALC"})
         control = next(child for child in restored["_widget"].findChildren(SegmentedChoiceControl) if child.combo is restored["ef1_source"])
         self.assertEqual(control.values, frozenset({"STANDARD_DEFAULT"}))
-        self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
+        self.assertEqual(control.notice.text(), "历史来源不适用\n请确认")
         restored["ef1_source"].setCurrentIndex(restored["ef1_source"].findData("STANDARD_DEFAULT"))
         self.assertEqual(restored["ef1_source"].currentData(), "STANDARD_DEFAULT")
         restored["tr_source"].setCurrentIndex(restored["tr_source"].findData("MEASURED"))
