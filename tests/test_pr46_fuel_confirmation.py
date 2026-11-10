@@ -96,7 +96,7 @@ class FuelConfirmationTests(unittest.TestCase):
         control = next(item for item in self.row.direct_carbon_control.findChildren(SegmentedChoiceControl) if item.combo is self.row.direct_carbon_source)
         self.assertEqual(self.row.direct_carbon_source.currentData(), "PROJECT_SPECIFIED")
         self.assertEqual(self.page._fuel_source_mode(self.row, "direct_carbon"), "PROJECT_SPECIFIED")
-        self.assertEqual(control.notice.text(), "历史来源不适用，请确认")
+        self.assertEqual(control.notice.text(), "当前来源不适用\n请确认")
         self.assertEqual(control.values, frozenset({"CALCULATED", "MEASURED"}))
 
     def test_typing_chinese_does_not_change_parameters_or_open_popup(self):

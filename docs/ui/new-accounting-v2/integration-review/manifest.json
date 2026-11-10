@@ -1,0 +1,20 @@
+{
+  "baseline": "d7a053b8354b98ab5ea3ad53618cf7de657a8809",
+  "integrated_pr63": "f4ed05d3195ba5d5edfe4172e00dffbd96a691cf",
+  "source_sha256": {
+    "packages\\ui\\carbon_material_page.py": "10343312b0fdc32f39d9f6b571bf82961d3b112128b0868e376b08929684eaae",
+    "packages\\ui\\repeated_entries.py": "43a6198ceafcc5faaed7b94a20f09b3ef42432253c3148f637288399c7472af6",
+    "packages\\ui\\compact_choices.py": "74dd523e35bb8a3fd95cc08d1d0a37b3eef8b532b3cfcd55efef2852e4145f74",
+    "packages\\ui\\source_directory.py": "2445da35f70e2c877ccea7edabd661ecc77582f21274ad424ff16bea421bdc63"
+  },
+  "images_sha256": {
+    "04-electricity-info.jpg": "cc202c516070dbcd45e6ee8c0b3eded08fbae23e20b1bd0012f12d11d029a42b",
+    "07-heat-preview.jpg": "9bd666df2078006e45988a97b55025af8061bf1d1621856fa8e60239875619dd",
+    "19-final-material-narrow.jpg": "13307cbac7edabcf1d10869e72e4f2ba24b4b5c17c3a7a0830e766681eb802ed",
+    "20-final-material-wide.jpg": "466c540056bd5179051caf63fee0f599d031ed0ab71f0618bc44a94075802705",
+    "21-ci-navigation-offscreen.png": "398f36f548d46b6f28497a8de63184567bf6082141c2576a0a286b745ab6e670"
+  },
+  "ci_followup_source_sha256": {
+    "packages/ui/carbon_material_page.py": "a557ed82814433581e56d0ab53e84c210ea38d59e3e5a015654fc717b17cf407"
+  }
+}

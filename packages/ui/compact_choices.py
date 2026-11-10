@@ -132,7 +132,7 @@ class SegmentedChoiceControl(QWidget):
         current_value = self.combo.currentData()
         legacy = current_value is not None and not known
         self.notice.setVisible(legacy)
-        self.notice.setText("历史来源不适用，请确认" if legacy else "")
+        self.notice.setText("当前来源不适用\n请确认" if legacy else "")
         self.notice.setToolTip(self.combo.currentText() if legacy else "")
         self.notice.setAccessibleName(self.notice.text())
         if len(allowed) == 1 and self.combo.currentIndex() == allowed[0]:
@@ -165,14 +165,22 @@ class SegmentedChoiceControl(QWidget):
         else:self.setFocusProxy(None)
 
     def eventFilter(self, watched, event):
-        if watched is self.combo and event.type() == QEvent.Type.EnabledChange:self._sync()
-        if watched in self.group.buttons() and event.type() == QEvent.Type.KeyPress:
+        event_type = event.type()
+        if event_type not in (QEvent.Type.EnabledChange, QEvent.Type.KeyPress):
+            return False
+        combo = getattr(self, "combo", None)
+        group = getattr(self, "group", None)
+        if combo is None or group is None:
+            return False
+        if watched is combo and event_type == QEvent.Type.EnabledChange:
+            self._sync()
+        if event_type == QEvent.Type.KeyPress and watched in group.buttons():
             if event.key() in {Qt.Key.Key_Left, Qt.Key.Key_Right}:
-                buttons = [b for b in self.group.buttons() if b.isEnabled() and not b.isHidden()]
+                buttons = [b for b in group.buttons() if b.isEnabled() and not b.isHidden()]
                 if buttons:
                     current = buttons.index(watched) if watched in buttons else 0
                     target = buttons[(current + (1 if event.key()==Qt.Key.Key_Right else -1)) % len(buttons)]
-                    self.combo.setCurrentIndex(self.group.id(target))
+                    combo.setCurrentIndex(group.id(target))
                     target.setFocus()
                 return True
         return super().eventFilter(watched,event)

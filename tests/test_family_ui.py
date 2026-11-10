@@ -152,6 +152,10 @@ class FamilyUiTests(unittest.TestCase):
         self.assertTrue(directory.compact_selector.isVisible())
         self.assertTrue(directory.navigation_panel.isHidden())
         self.assertGreater(directory.editor_scroll.horizontalScrollBar().maximum(),0)
+        # An active source is browsed without changing input. Inactive user
+        # activation is covered separately by the approved second-batch case.
+        page._toggle_source_group('fume')
+        self.app.processEvents()
         before={key:widget.currentIndex() for key,widget in page._source_statuses.items()}
         saved_form=page._capture_form_state()
         dirty=(page._project_dirty,page._input_dirty)
@@ -176,7 +180,9 @@ class FamilyUiTests(unittest.TestCase):
         inner=page.source_directory.editor_scroll.viewport()
         outer=shell.main_scroll_area.viewport()
         for viewport in (inner,outer):
-            self.assertTrue(viewport.rect().contains(QRect(target.mapTo(viewport,QPoint(0,0)),target.size())))
+            rectangle = QRect(target.mapTo(viewport, QPoint(0, 0)), target.size())
+            self.assertTrue(viewport.rect().contains(rectangle),
+                f"target {rectangle.getRect()} outside {viewport.parentWidget().objectName()} {viewport.rect().getRect()}")
         self.assertIs(self.app.focusWidget(),target)
 
     def test_logo_original_hash_and_vector_dpr(self):

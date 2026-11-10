@@ -1,20 +1,41 @@
-# PR64 小屏布局FAIL已关闭：待修复head CI及字体确认
+# PR63：CI 失败已修复，待新 head 必需检查
 
-2026-11-10。分支 `codex/ui-guideline-closeout`，起点为已合并PR62的 `origin/main@224442530fcc61d8224c45e486688b2c27ec9324`。已核验canonical origin、fetch、默认main及工作区，独立worktree保留原用户未跟踪文件。无Goal；已由父代理push初始head `55ceff05cd76c672fe0fe40cbb691879db438a76` 并建立 [PR64](https://github.com/adgo07/GHGTOOL/pull/64)，未合并/发布。首轮已完成同PR测试断言同步；当前继续处理原生小屏FAIL，仅改标准库局部列宽策略，不改业务/标准源/UI框架或CI配置。
+2026-11-11。本轮GitHub Actions [42851736412](https://github.com/adgo07/GHGTOOL/actions/runs/42851736412/job/129953959407) 实际运行 head `5d1953f64fc988656ce71cb1ba9337d861be91d1` 的1156项：1153通过、3失败，2126.493s。全量已在原时限内完成；Standalone因依赖失败跳过，不能称此轮CI通过。
 
-完成5个UI生产文件的呈现增量：可选页头、40DIP/2DIP焦点的可访问ⓘ；首页及记录区分空态/读取失败并提供真实动作；标准支持词与通则角色分离；只读库、设置说明渐进展示；导入只删重复页头；新建3处纯文案明确生成记录。不改Calculator/标准解释/正式结果/DB/Canonical/模板/Word或Frozen lock。
+两项失败为FGD/燃料旧值测试仍断言旧“历史来源”文字，现只同步为“当前来源”，保留原始值、旧来源不冒充实测、显式确认等全部行为断言。第三项为960×600窄窗错误定位：数量输入框(38,445,528,40)超出内视口604×480，底部裁5像素；Qt ensureWidgetVisible只保证光标区域，现将原有整框校正同时应用于内外滚动区，不改输入/焦点取消规则或校验。
 
-本地已有回归按批28/28与18/18通过（重叠不累计）；标准/记录/设置24例原1旧列宽断言已在18例中精确修复复验。目录/pilot补查22例原1旧列宽断言失败，修后pilot6/6；新增最终copy5/5。父代理独立较早25/25，最终copy+settings9/9（重叠，不算34唯一用例）。全部命令/数量/失败和未执行项见[实施报告](IMPLEMENTATION_REPORT.md)。8张1280×800/DPR1 Qt离屏图及源码hash见[证据](docs/ui/guideline-closeout/README.md)。
+本地实际验证：
 
-父代理代码与范围内本地Qt独立检查已通过；原生桌面初次helper失败后已恢复，本次小屏局部布局/可达性复验通过；字体清晰度仍待用户肉眼确认，不宣称整体原生/EXE/全产品/正式发布验收通过。复杂核算灰底/原生SpinBox等未全面重做；通则独立支持等级与既有32151.5目录状态证据待核验。PR64首轮Actions已执行，真实失败见下；本次修复尚未push/CI/打包，未改CI预算/required。
+- `python -m unittest tests.test_family_ui tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -v`：32/32，131.791s（ci-fixes.log）。原失败几何断言保留，并增加失败矩形信息。
+- `python -m unittest tests.test_pr59_compatibility_navigation tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_opens_conversion_and_external_disclosures_without_input_changes -v`：10/10，103.667s（navigation-final.log）。覆盖连续定位、切换源取消、目标删除/销毁、旧项目恢复、内外折叠展开。
+- 复用原FamilyUi真实Qt测试场景另存离屏图：修后内框(38,424,528,40)完整位于604×480视口；外框(85,536,528,40)完整位于708×600视口，焦点仍是目标。见[定位修复图](docs/ui/new-accounting-v2/integration-review/21-ci-navigation-offscreen.png)。不是原生点击证据。
 
-PR63仍OPEN/未合并，head `f4ed05d3195ba5d5edfe4172e00dffbd96a691cf`，不自动合并。产品文件重叠仅carbon_material_page.py的3处文案（顶部按钮及两处hint）；后续逐处协调，勿覆盖其未合并布局。原有原生Office/IME/人工DPI/干净机/企业样例等Gate继续OPEN，标准仍非SUPPORTED。
+原生限定复验OPEN：两次明确选择GHG窗口，工具返回正确窗口元数据但截图为另一应用；Astra未发送任何输入并只关闭自有隔离实例。此前原生PASS不覆盖最后滚动定位修复；本次以实际Qt视口/焦点回归验证，未冒称原生复验通过。该工具限制不代表已知未修复产品失败。其他EXE/Office/系统多屏DPI等既有OPEN不变。
 
-PR64首轮Actions run42828012360/job129870308784：1138例1137通过/1失败，1615.429s，唯一失败为UIR04空态测试仍断言旧“点击计算排放量”提示。本次只将该文案断言改为批准的新“计算通过后自动新增正式记录。”，其他空区隐藏/状态/计数/入口断言保留；相同模块真实失败入口与相邻错误/成功状态3/3本地通过，17.797s，命令及原CI失败来源见实施报告。尚未复跑本地全量，不把GitHub结果写成本地执行。
+中央四份UI适用文件在本轮修复后再次在线核对，blob均与下方预检查一致；精简要求未回退。平台/Contract与Standard Issue预检查继续适用：仅Presentation滚动与测试断言，本任务不涉及中央公共Contract或标准解释变化。新head仍须全量及Standalone required checks通过后，按Owner授权合并；最终head/CI/合并状态以PR63回执为准。
 
-用户要求窗口验收通过后合并。初次UIA合取捕获阻塞后经仅截图恢复，最新局部布局结果见下；完整窗口结论以父代理PR回执和用户字体肉眼确认为准；新head required CI及精确包也待本次push后核实。交父代理审查本地修复提交并统一push；窗口/CI前置条件未满足前不得自动合并，不启动下一阶段。
+---
 
+# PR63 整合完成，待当前 head CI
 
-原生新发现FAIL：961×631整窗标准名称列被Stretch压至约40DIP，原图已读并持久保存。现仅标准库专属列宽策略：不足240DIP时固定名称240并表内横滚，宽时恢复Stretch；其余四列/支持160/页面宽与业务不改。新增真实Qt960→1440→960验证名称、行高、支持横滚可达、页面无横滚、编号/名称入口/筛选保留。作者pilot7/7（明确发现新用例，1.424s），最终补强单例1/1（0.475s）；父代理独立pilot+既有resize8/8（1.624s）。最初新函数误放__main__未被发现的问题及旧Stretch断言失败已在报告明确，不冒充通过。
+2026-11-11。在 main/已合并 PR64 `d7a053b8354b98ab5ea3ad53618cf7de657a8809` 上整合 PR63，冲突已解决，PR64 精简文案、标准库窄窗与空态行为保留。用户授权回归和 CI 全通过后合并。当前正式 head、CI与合并状态以 [PR63](https://github.com/adgo07/GHGTOOL/pull/63) 最终回执为准。
 
-原生Astra已实际复验：961×631名称正常两行、表内横滚支持/拖回编号/详情进退正常；最大化1280×672伸展且底部无横滚，再次961×631恢复横滚。父代理独立看图确认，原小屏布局FAIL关闭，范围内布局PASS；字体清晰度仍OPEN待用户肉眼答复，不算整体原生全PASS。f43308b的CI继续跑，不无脑rerun；本次小提交交父代理终审后一次推送。原8图仍只证明初始宽屏源码，manifest单列本轮差异，不以其替代小屏原生证据。
+已完成本地回归及范围内原生验收；初轮61项59通过/2失败（依赖/超时）均有后续修复复验。最终7/7条目布局、1/1三档缩放（每档原60s内）、10/10记录/输入/定位、补充25/25热力与旧值规则通过，重叠不累计。完整命令、失败与关闭证据见 IMPLEMENTATION_REPORT.md；本轮不把历史CI当作新head结果，1156项全量待required CI。没有扩大产品/标准范围或修改Frozen lock；旧项目、成功追加Record、模板/Word/业务规则保留。
+
+中央2026-11-10精简规则已核对：重复说明缩短、辅助说明ⓘ默认收起且可键盘访问；关键限制、错误、停用/生成记录影响仍直接可见。性能修复只减少布局与样式重复工作，原三档缩放/CI时限未放宽。
+
+下一步由父代理统一推送、核对同head全量及独立打包审计，全部通过后按用户授权合并；正式发布/Office/系统多屏DPI/真实企业样例等既有门禁仍OPEN，不启动下一产品阶段。原生原图见 docs/ui/new-accounting-v2/integration-review/。
+
+---
+
+## PR63 原实施记录（历史证据）
+
+# 新建核算第二批当前状态（2026-10-29）
+
+已整合PR60/PR62合并main2244425，产品源a0dabc8，Frozen锁ee5feb0不变。本任务不涉及中央公共Contract，17正式方法及show/hide配对AST与main相同；家族统一/40DIP/窗口品牌DPI/小屏/wheel、非UI层、原五页/模板/Word/依赖/workflow保护。
+
+R8 astra视觉门禁通过：本轮18张代表图，承接R5全92张及R6燃料复核；92图片/171全页源/148旧项目源/两脚本hash核对。当前25张原样图，源a0dabc8。全页Record0，legacy结果图1条合成Record，其余0。
+
+本地R24几何2/2 37.773s；R26原三档/原60秒保护1/1 171.652s，实际55.946/56.274/56.461；R27受影响40/40 478.760s；R28标签/几何2/2 34.274s。Canonical/compileall/pip check exit0。所有失败/剖析/中断保留，各组重叠不累计为全量。
+
+2026-11-04 本地完整清单复验通过。冻结提交 6036f11 的 unittest discover 清单分五段执行，1150 项全部通过，五段退出码均为 0，测试累计 3238.659 秒，375 项源码哈希前后一致。前序中断和失败日志已保留。交付断点为稳定推送并创建独立 PR，随后取得同一 PR head 的 required CI 和精确包交源验收。详见 IMPLEMENTATION_REPORT。
