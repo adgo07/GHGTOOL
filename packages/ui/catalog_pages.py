@@ -46,6 +46,7 @@ from packages.standards.catalog import (
 )
 
 from .pages import BasePage, Navigate, _card
+from .business_page_style import ReadableTable
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
 from .view_models import AppRoute
 
@@ -157,6 +158,30 @@ class _WrappedSourceList(QListWidget):
         self._fit_items()
 
 
+class _StandardLibraryTable(ReadableTable):
+    """Keep the name readable with local scrolling when five columns cannot fit."""
+    NAME_MIN_WIDTH = 240
+
+    def fit_name_column(self):
+        if self.columnCount() != 5 or getattr(self, "_fitting_name_column", False):
+            return
+        self._fitting_name_column = True
+        try:
+            remaining = self.viewport().width() - sum(self.columnWidth(i) for i in (0, 2, 3, 4))
+            header = self.horizontalHeader()
+            if remaining < self.NAME_MIN_WIDTH:
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+                self.setColumnWidth(1, self.NAME_MIN_WIDTH)
+            else:
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        finally:
+            self._fitting_name_column = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.fit_name_column()
+
+
 class StandardLibraryPage(BasePage):
     """Searchable standard list and independent, read-only detail view."""
 
@@ -180,7 +205,7 @@ class StandardLibraryPage(BasePage):
 
     def _build_page(self) -> None:
         from .business_page_style import ReadableTable
-        self.add_header("标准库", "查看已登记标准、适用范围与核算要求")
+        self.add_header("标准库")
         self.page_title = self.findChild(QLabel, "pageTitle")
         self.page_description = self.findChild(QLabel, "pageDescription")
         self._apply_standard_library_style()
@@ -234,7 +259,7 @@ class StandardLibraryPage(BasePage):
         self.result_summary.setObjectName("secondaryText")
         list_card_layout.addLayout(summary_row)
 
-        self.standard_table = ReadableTable(list_card)
+        self.standard_table = _StandardLibraryTable(list_card)
         _configure_table(self.standard_table,
             ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"))
         self.standard_table.setObjectName("standardLibraryTable")
@@ -248,7 +273,7 @@ class StandardLibraryPage(BasePage):
         """)
         header = self.standard_table.horizontalHeader()
         header.setStretchLastSection(False)
-        for column, width in enumerate((180, 400, 104, 120, 124)):
+        for column, width in enumerate((180, 400, 104, 120, 160)):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
             self.standard_table.setColumnWidth(column, width)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -260,10 +285,8 @@ class StandardLibraryPage(BasePage):
         self.standard_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.standard_table.setMinimumHeight(300)
         list_card_layout.addWidget(self.standard_table, 1)
-        hint = QLabel("点击标准编号或名称查看详情；也可选中后按 Enter。", list_card)
-        hint.setObjectName("standardListHint")
-        hint.setWordWrap(True)
-        list_card_layout.addWidget(hint)
+        from .business_page_style import InfoTip
+        self.header_actions.addWidget(InfoTip("标准列表使用说明", "点击标准编号或名称查看详情，也可选中后按 Enter。软件支持与标准状态分别展示；已实现不代表已完成正式验收。配套通则作为行业核算配套规则使用，不单独发起核算；“—”表示未单独给出支持等级。", self))
         list_card_layout.addWidget(self.result_summary)
         list_layout.addWidget(list_card)
         list_layout.addStretch(1)
@@ -289,13 +312,13 @@ class StandardLibraryPage(BasePage):
             self._standard_registry.supports(standard.standard_id, standard.version)
             and standard.calculation_status == "IMPLEMENTED"
         ):
-            return "已实现核算"
+            return "已实现，待验收"
         if (
             standard.calculation_status == "COMMON_RULES_ONLY"
             and standard.standard_type is CatalogStandardType.COMMON_RULES
         ):
-            return "配套通则"
-        return "核算未开放"
+            return "—"
+        return "未开放"
 
     def _refresh(self) -> None:
         from PySide6.QtGui import QFontMetrics
@@ -314,7 +337,7 @@ class StandardLibraryPage(BasePage):
             self.standard_table.insertRow(row_number)
             values = (
                 standard.standard_number,
-                standard.standard_name,
+                standard.standard_name + ("（配套通则）" if standard.standard_type is CatalogStandardType.COMMON_RULES else ""),
                 self._service.status_label(visible_status),
                 _date_text(standard.implementation_date),
                 self._software_support_label(standard),
@@ -338,15 +361,16 @@ class StandardLibraryPage(BasePage):
                     badge = self._standard_badge(value, "standardStatusBadge", tone, self.standard_table)
                     badge.setAccessibleName(f"标准状态：{value}")
                     self.standard_table.setCellWidget(row_number, column, badge)
-                elif column == 4 and value == "已实现核算":
+                elif column == 4 and value == "已实现，待验收":
                     badge = self._standard_badge(value, "standardCalculationBadge", "implemented", self.standard_table)
-                    badge.setAccessibleName("软件支持：已实现核算；未改变正式支持状态")
+                    badge.setAccessibleName("软件支持：已实现，待验收")
                     self.standard_table.setCellWidget(row_number, column, badge)
         self.standard_table.ensurePolished()
         number_width = max((QFontMetrics(self.standard_table.item(row, 0).font().resolve(
             self.standard_table.font())).horizontalAdvance(self.standard_table.item(row, 0).text())
             for row in range(len(results))), default=150)
         self.standard_table.setColumnWidth(0, number_width + 36)
+        self.standard_table.fit_name_column()
         self.standard_table.resizeRowsToContents()
         content_height = self.standard_table.horizontalHeader().height() + self.standard_table.verticalHeader().length() + 6
         self.standard_table.setMinimumHeight(min(560, max(260, content_height)))
@@ -559,7 +583,7 @@ class StandardLibraryPage(BasePage):
         number.setTextFormat(Qt.TextFormat.PlainText)
         number.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         hero_layout.addWidget(number)
-        name = QLabel(standard.standard_name, hero)
+        name = QLabel(standard.standard_name + ("（配套通则）" if standard.standard_type is CatalogStandardType.COMMON_RULES else ""), hero)
         name.setObjectName("standardDetailName")
         name.setWordWrap(True)
         name.setTextFormat(Qt.TextFormat.PlainText)
@@ -586,6 +610,9 @@ class StandardLibraryPage(BasePage):
         support.setProperty("standardBadge", True)
         support.setProperty("tone", "implemented" if supported else "muted")
         badges.addWidget(support)
+        if standard.standard_type is CatalogStandardType.COMMON_RULES:
+            from .business_page_style import InfoTip
+            badges.addWidget(InfoTip("配套通则支持说明", "作为行业核算配套规则使用，不单独发起核算；未单独给出支持等级。", hero))
         badges.addStretch(1)
         hero_layout.addLayout(badges)
         self.detail_layout.addWidget(hero)
@@ -608,6 +635,12 @@ class StandardLibraryPage(BasePage):
         requirements_layout.addWidget(implementation_note)
         requirement_text = (
             (
+                "配套通则，作为行业核算的通用规则依据。",
+                "已登记的通则参数供行业核算按适用条件采用。",
+                "不单独发起核算；报告使用行业核算的已保存记录。",
+            )
+            if standard.standard_type is CatalogStandardType.COMMON_RULES
+            else (
                 "化石燃料、煅烧、焙烧／炭化、石墨化、烟气治理、购入／输出电力与热力。",
                 "按正式行业标准及现有输入模型，区分活动量、实测数据与标准缺省值。",
                 "使用已实现的行业核算流程，并由冻结记录生成标准专属报告。",
@@ -690,7 +723,7 @@ class StandardLibraryPage(BasePage):
             QLabel[standardBadge="true"][tone="upcoming"] {{ color: #956420; background: #FFF5E1; }}
             QLabel[standardBadge="true"][tone="implemented"] {{ color: #166FA8; background: #E9F4FC; }}
             QLabel#standardDetailNumber {{ font-size: 14px; font-weight: 600; color: {PRIMARY_BRAND}; }}
-            QLabel#standardDetailName {{ font-size: 22px; font-weight: 600; color: #18364F; }}
+            QLabel#standardDetailName {{ font-size: 20px; font-weight: 600; color: #18364F; }}
             QLabel#standardMetaCaption {{ font-size: 13px; color: {SECONDARY_TEXT}; }}
             QLabel[standardMetaValue="true"] {{ font-size: 14px; color: {PRIMARY_TEXT}; }}
             QWidget#standardDetailHost QLabel#cardTitle {{ font-size: 16px; font-weight: 600; }}
@@ -740,10 +773,9 @@ class ParameterFactorLibraryPage(BasePage):
         from .business_page_style import ReadableTable
         from .business_page_style import surface
         self.body_layout.setSpacing(16)
-        self.add_header(
-            "参数与因子库",
-            "全库检索与按来源浏览使用同一份只读登记数据，切换后显示不同视图。",
-        )
+        self.add_header("参数与因子库", "只读")
+        from .business_page_style import InfoTip
+        self.header_actions.addWidget(InfoTip("参数与因子库说明", "全库搜索与按来源浏览使用同一份只读登记数据；来源资料可在详情中展开。", self))
 
         mode_card, mode_layout = surface("", self, "referenceLibraryModeBar")
         mode_layout.setContentsMargins(0, 0, 0, 0)
@@ -807,13 +839,6 @@ class ParameterFactorLibraryPage(BasePage):
 
         self.browse_card, browse_layout = surface("按来源浏览登记资料", self, "referenceBrowseSurface")
         browse_layout.setSpacing(10)
-        browse_notice = QLabel(
-            "此模式按资料文件、表格顺序浏览，完整展示原始登记信息；不同于全库搜索结果视图。",
-            self.browse_card,
-        )
-        browse_notice.setObjectName("sourceBrowseNotice")
-        browse_notice.setWordWrap(True)
-        browse_layout.addWidget(browse_notice)
         browse_filters = QHBoxLayout()
         browse_filters.setContentsMargins(0, 0, 0, 0)
         browse_filters.setSpacing(8)

@@ -1,0 +1,84 @@
+{
+  "baseline": "224442530fcc61d8224c45e486688b2c27ec9324",
+  "source": "Windows Python 3.12.14 / PySide6 6.11.2 / Qt offscreen",
+  "native_desktop": "OPEN: helper already has an active request after three attempts",
+  "client": [
+    1280,
+    800
+  ],
+  "dpr": 1.0,
+  "source_lf_sha256": {
+    "packages/ui/business_page_style.py": "d9477d3cab52bac6af2338b84d06614f02e59f1b02acd6aecb6a9b3efa86a9f5",
+    "packages/ui/carbon_material_page.py": "9390f9ae8adf969d2b583a8e9b62090e7914eee7d74e1e9bae1a1ada0b972c1e",
+    "packages/ui/catalog_pages.py": "e2882bfeae362d289632a715cd8126acd983a55feb57bb61c30b198d39c40dba",
+    "packages/ui/design_tokens.py": "e3d0a1d16997bd558c47c9acff9c2279a9eb459a95febfdc2d1bff860386cc98",
+    "packages/ui/pages.py": "b83a0e306ea161b31cf526070b95634a909eb656a1ab7741eed4168953345041",
+    "tests/test_g03_shell.py": "981e2d9c91d8cc47c975a67ee5e97a5d33b5b71be88d25602c5fd2526ca6c79b",
+    "tests/test_p3_ab_standards.py": "d722db3d0b54c48ce8af0931a51dbe94d9dca80c3f863fec979c47dab2d8e013",
+    "tests/test_ui_copy_presentation.py": "85cf837071525cae44b9e6cb3e68cf6b3837f9c2cdbb81bc9de15c1ab59aa58d",
+    "tests/test_g04_catalog.py": "b3065b7e5ff7533b4638e0079854b65779374ea92b05a164206cd0a52c378006",
+    "tests/test_standard_library_pilot.py": "1ba50ece5a27da7340d1f11e80a757ba38a6f6cf9fdfdf821768f4067f706bb8"
+  },
+  "captures_sha256": {
+    "factors.png": "31788e23c3fdfb45286b1fc0901e008058d4d893565f5840d6925feea9f5bd0c",
+    "home.png": "b778365b1b1ad1c20237272690daebd6056e00b7177023c0a4f2114fc87b290e",
+    "import.png": "165501436ab93d1d2e3fa9f55bb4fb9c818ee44dda85457b0ab27241926f7262",
+    "new-accounting.png": "46f88222f5098b1882283719fcdf044ce74b055b727bed4df5c8017bdd184c8d",
+    "record-detail.png": "ca72a7300975e3aae1ccba27ec52df8e6f0ac0a3cc5a30a63d7164230d332d2a",
+    "settings.png": "a2a5023c489bf72bd3cd7ed5ae020aa29814d54eef66bcf644c6c244328338f9",
+    "standard-detail.png": "8a7d4cacb1fe567fedd2671a7418cc253f1e1dbf80503e8901f22cc6f281e376",
+    "standards.png": "7e57db53daf3b8d4a609bdc138d70e9b739d748a6b1589988876e18950283706"
+  },
+  "capture_script_lf_sha256": "54774c7b5a1f1e6cd486d0b92f9ca0c184f21679e1c6c4910faabb0e29478a85",
+  "post_capture_test_only_updates": {
+    "reason": "PR64首轮CI旧文案断言同步；产品源与截图不变",
+    "source_commit_before_update": "55ceff05cd76c672fe0fe40cbb691879db438a76",
+    "lf_sha256": {
+      "tests/test_uir04_finalization.py": "406e57ea4acc306b034aa851f5b0e936a60611b5b0a9ac86e3e287c6eda7a55d"
+    }
+  },
+  "capture_product_baseline": "55ceff05cd76c672fe0fe40cbb691879db438a76; 原8图仅为初稿宽屏离屏证据，不代表后续小屏修复后的源码",
+  "post_capture_small_screen_fix": {
+    "reason": "原生961x631整窗发现名称列缩至约40DIP；仅标准库名称列不足240时局部横滚，宽时恢复Stretch",
+    "base_commit": "f43308bf3a37d5ea343f8c12851b67f82c0dda39",
+    "lf_sha256": {
+      "packages/ui/catalog_pages.py": "1713f52f18d65a1e65462373e33b659cfdbf86688a708884315c3b222f756e4e",
+      "tests/test_standard_library_pilot.py": "8eb9796d926bba30983453dd4d587c63bff46d3229b73fe5904930412b2f8027",
+      "tests/test_p3_ab_standards.py": "57a6c82e72c6e8d6322b89086d3acac6b16aa5a02af2ef6715ddd666c731db96"
+    },
+    "native_before": {
+      "path": "native/standards-small-before.jpg",
+      "sha256": "d9630d48c1fa159c8e63998fc1eba0f57d1ed4741b9a9ad9376abddedcb21de1",
+      "window_bounds": [
+        961,
+        631
+      ],
+      "status": "FAIL"
+    },
+    "native_after": {
+      "status": "PASS（仅标准库小屏布局/可达性与宽窄恢复）；字体清晰度仍OPEN待用户肉眼确认，不是整体原生PASS",
+      "reviewer": "指定Astra medium实际操作，父代理独立看图确认",
+      "captures": {
+        "standards-small-after.jpg": "e16a2e0db32ba65e88baf0bb3a837a06b39524f7646a4c477559d1f342f4320a",
+        "standards-small-restored.jpg": "8ab0e6a0b745e8d9417ea3c2cad1b517616e81f4e9002367b4015475d498605d",
+        "standards-small-support.jpg": "968938ba8de972b5b26c8d13774fe56d719d04ff7d33f00ecaf4a459f58f8980",
+        "standards-wide-restored.jpg": "2177acd83f660086869adc0d5371e0987a7d148815c96e681bbebbb9eaf0adda"
+      },
+      "window_bounds": {
+        "small": [
+          961,
+          631
+        ],
+        "wide_maximized": [
+          1280,
+          672
+        ]
+      },
+      "observations": [
+        "小窗名称正常换行，表内横滚可达软件支持，拖回可达编号",
+        "编号/名称打开详情和返回正常",
+        "宽窗名称分配余宽，表内底部无横滚；恢复小窗横滚恢复"
+      ]
+    }
+  }
+}

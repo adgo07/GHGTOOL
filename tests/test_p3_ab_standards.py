@@ -143,18 +143,17 @@ class P3ABStandardsTests(unittest.TestCase):
         self.assertIsNone(page.findChild(type(page.status_filter), "standardYearFilter"))
         self.assertEqual(page.status_filter.count(), 5)
         self.assertEqual(table.rowCount(), 9)
-        self.assertEqual(
-            table.horizontalHeader().sectionResizeMode(1),
-            QHeaderView.ResizeMode.Stretch,
-        )
-        self.assertEqual(table.columnWidth(4), 124)
+        # Compact views keep a readable name and scroll locally; the separate
+        # narrow/wide regression verifies Stretch returns when space permits.
+        self.assertGreaterEqual(table.columnWidth(1), 240)
+        self.assertEqual(table.columnWidth(4), 160)
         self.assertIn("font-size: 14px", table.styleSheet())
         self.assertEqual(table.verticalHeader().defaultSectionSize(), 48)
 
         page.search_input.setText("炭素材料生产企业")
         self._process_events()
         self.assertEqual(table.rowCount(), 1)
-        self.assertEqual(table.item(0, 4).text(), "已实现核算")
+        self.assertEqual(table.item(0, 4).text(), "已实现，待验收")
         for column in (0, 1):
             item = table.item(0, column)
             assert item is not None
@@ -351,7 +350,7 @@ class P3ABStandardsTests(unittest.TestCase):
         page.search_input.setText("32150")
         self._process_events()
         self._open_by_mouse(page, "gbt_32150_2025", 0)
-        self.assertEqual(page.standard_table.item(self._row_for_standard(page, "gbt_32150_2025"), 4).text(), "配套通则")
+        self.assertEqual(page.standard_table.item(self._row_for_standard(page, "gbt_32150_2025"), 4).text(), "—")
         accounting_button = page.findChild(QPushButton, "startAccountingButton")
         self.assertIsNotNone(accounting_button)
         assert accounting_button is not None
@@ -364,7 +363,7 @@ class P3ABStandardsTests(unittest.TestCase):
         self._process_events()
         self._open_by_keyboard(historical_page, "gbt_32151_34_2024", 0)
         historical_row = self._row_for_standard(historical_page, "gbt_32151_34_2024")
-        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现核算")
+        self.assertEqual(historical_page.standard_table.item(historical_row, 4).text(), "已实现，待验收")
         historical_accounting = historical_page.findChild(QPushButton, "startAccountingButton")
         self.assertIsNotNone(historical_accounting)
         assert historical_accounting is not None

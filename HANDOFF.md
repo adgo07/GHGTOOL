@@ -1,4 +1,18 @@
-# PR60五页收口实施交接
+# 当前交接：中央 UI 指南呈现收口
+
+2026-11-10。最新候选为 `codex/ui-guideline-closeout`，基于已合并PR62 / `224442530fcc61d8224c45e486688b2c27ec9324`。状态、逐项范围、测试与原生OPEN见TASK_STATE和IMPLEMENTATION_REPORT；8张源码离屏图及源hash在docs/ui/guideline-closeout。父代理代码与范围内Qt回归独立检查通过，已由父代理push初始head `55ceff05cd76c672fe0fe40cbb691879db438a76` 并建立PR64，未合并/发布。首轮CI真实失败/测试断言修复及后续原生小屏局部修复见下，不冒称正式发布。无Goal。
+
+PR64首轮CI run42828012360/job129870308784全量1138例，1137通过/1旧初始提示文案断言失败，1615.429s；不是全量PASS。本次只同步tests/test_uir04_finalization.py:133的新文案断言，其他空态/状态断言不变，同模块失败入口及相邻错误/成功3/3本地通过（17.797s）。修复未push，父代理审查后统一处理同head required CI与精确包。
+
+Owner要求窗口验收通过后合并。初次UIA合取捕获阻塞后经仅截图恢复，最新局部布局结果见下；完整窗口结论以父代理PR回执和用户字体肉眼确认为准，不能以离屏或前次局部验收替代；不自动合并。产品/UI/CI配置本次全部不动。
+
+原生验收新增确定FAIL：961×631整窗的标准名称列约40DIP/每字一行。现仅标准库专属名称列窄时固定240、表内横滚，宽时恢复Stretch；支持160及其他四列/业务不变。作者真实发现并执行的新窄宽回归通过，父代理独立8/8（1.624s）；原生修后Astra独占操作并由父代理独立看图确认：961×631正常换行/表内横滚可达支持/详情进退；最大化1280×672伸展无横滚，再恢复小窗横滚恢复。该局部布局FAIL已关闭；字体清晰度仍OPEN待用户肉眼答复，不算整体原生全PASS。本次小提交交父代理终审后一次推送。不重复跑当前f43308b CI；原图/manifest/失败与纠正记录见实施报告。
+
+保留既有核算/输入/项目/不可变Record/Word/官方母版和Frozen lock。本轮只有Presentation增量；PR63 `f4ed05d3195ba5d5edfe4172e00dffbd96a691cf` 仍未合并，carbon_material_page.py重叠为顶部按钮与两处hint共3项文案，不自动合并该分支。后续以实际Git核验，旧报告中的“未合并PR62”等是历史记录，不代表当前事实。
+
+---
+
+# 历史交接（PR60已合并，仅保留业务约束）
 
 当前候选产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；仓库以 `https://github.com/adgo07/GHGTOOL.git` 与实际origin识别，不把历史绝对路径当当前checkout。复用 `codex/ui-five-business-pages-v2`；接续前实际核对root/origin/fetch/branch/HEAD/status，不覆盖其他工作区用户修改。
 

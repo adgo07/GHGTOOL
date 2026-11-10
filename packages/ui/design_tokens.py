@@ -121,6 +121,10 @@ def application_stylesheet() -> str:
         QCheckBox, QRadioButton {{ font-size:14px; spacing:8px; }}
         QCheckBox:disabled, QRadioButton:disabled {{ color:#8798A6; }}
         QToolButton {{ font-size:13px; }}
+        QToolButton#informationTip {{ color:#116FAE; background:transparent; border:2px solid transparent; border-radius:6px; font-size:18px; }}
+        QToolButton#informationTip:hover, QToolButton#informationTip:pressed {{ background:#EDF6FD; }}
+        QToolButton#informationTip:focus {{ border-color:#197CC2; }}
+        QToolButton#informationTip:disabled {{ color:#8798A6; }}
         QFrame[businessSurface="true"] {{ background:#FFFFFF; border:1px solid #DAE7F1; border-radius:10px; }}
         QLineEdit, QComboBox, QAbstractSpinBox {{
             min-height:36px; max-height:36px; padding:0 10px;
