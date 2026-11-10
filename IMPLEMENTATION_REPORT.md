@@ -1,6 +1,6 @@
 # 中央 UI 指南呈现收口实施报告
 
-2026-11-10。基于已合并 PR62 / `origin/main@224442530fcc61d8224c45e486688b2c27ec9324`，分支 `codex/ui-guideline-closeout`。本轮完成有限呈现增量；父代理已完成代码与范围内 Qt 回归独立检查，原生桌面仍 OPEN。未 push、未创建PR、未合并、未发布；无 Goal。
+2026-11-10。基于已合并 PR62 / `origin/main@224442530fcc61d8224c45e486688b2c27ec9324`，分支 `codex/ui-guideline-closeout`。本轮完成有限呈现增量；父代理已完成代码与范围内 Qt 回归独立检查，原生桌面仍 OPEN。已由父代理推送并建立 [PR64](https://github.com/adgo07/GHGTOOL/pull/64)，初始head `55ceff05cd76c672fe0fe40cbb691879db438a76`；当前未合并、未发布，无Goal。本次追加仅修复CI遗留文案断言，不改产品/UI或CI配置。
 
 ## 平台 / Contract 预检查
 
@@ -11,6 +11,22 @@
 已读取本仓AGENTS、唯一路线、TASK_STATE/HANDOFF、STANDARD_ISSUES_REGISTER及platform-lock。Standard Issue：无本轮新增/需改变的问题；不改变既有软件解释、正式结果或支持范围。通则详情描述的是软件配套使用方式，不写成标准原文。
 
 中央当前已合并ACTIVE指南已读取（均2026-11-10适用，不是Frozen）：GUIDE_INDEX blob `b2e0ac8089d2ae3776255ca38b01cda243f3500e`；家族规格 `95859d52ce925e5ed42facdc86933412df9a6708`；指南v0.2 `6b32e91510718c07ab7d9a3cb14985b9095a56a3`；验收清单 `29cd984c29a71c665684ca8d707d59f9771bbf8a`。
+
+## PR64 首轮CI失败与最小修复
+
+GitHub Actions [run42828012360 / job129870308784](https://github.com/adgo07/GHGTOOL/actions/runs/42828012360/job/129870308784)（父代理读取并转交的job证据，**不是本地执行**）：全量1138例，1137通过/1失败，1615.429s。唯一失败为 `tests.test_uir04_finalization.UIR04FinalizationTests.test_uncomputed_page_uses_compact_status_and_hides_empty_sections`，原line133仍要求“点击‘计算排放量’”的旧操作复述，实际已按批准方案显示“计算通过后自动新增正式记录。”。其余1137例通过不冒充完整CI通过；没有用此失败运行声称精确包可交付。
+
+最小修复仅把该条文案断言同步为 `assertEqual(..., "计算通过后自动新增正式记录。")`，保持同例结果/过程/质量空区隐藏、状态栏与计算按钮可见、源计数、错误计数、无技术入口等其他断言全部原样。全库检索 `点击“计算排放量”|填写完成后点击|计算通过后自动新增正式记录|calculation_status_hint`，其余相关测试只验证错误提示或换行，无其他遗留初始提示断言。本次未改任何产品/UI、业务逻辑或CI配置。
+
+本地Windows/Python3.12.14/PySide6 6.11.2、offscreen、隔离TEMP/TMP，实际命令：
+
+```text
+python -B -u -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.test_uncomputed_page_uses_compact_status_and_hides_empty_sections tests.test_uir04_finalization.UIR04FinalizationTests.test_error_count_comes_from_domain_validation_not_widget_heuristics tests.test_uir04_finalization.UIR04FinalizationTests.test_success_shows_business_result_without_ordinary_trace_controls -v
+```
+
+**3通过/0失败/0错误，17.797s**。覆盖此次真实CI失败入口及相邻错误/成功状态；未重复本地全量及与纯断言同步无关的窗口尺寸/多scale用例，不扩大验证成本。当前原始日志位于本轮隔离临时目录 `tmp/ui-tests/pr64-uir04-fix.log`。本次变动的Python3.12语法编译、`git diff --check`通过；manifest只补充测试文件更新hash，原产品源与8张截图hash不变。
+
+用户要求“窗口验收通过后合并”。初次UIA合取捕获阻塞，经仅截图恢复，Astra窗口代理正在独占桌面进行原生操作验收；**尚无完整原生PASS，结论以父代理PR回执为准**。旧离屏证据不得替代该合并前置条件。此修复先交父代理审查再push，同新head的required CI、精确构建包及原生窗口结果仍待核实，不提高40分钟预算、不改required、不用旧CI替代。
 
 ## 批准范围逐项对照
 
@@ -57,4 +73,4 @@ Windows源码，Python3.12.14/PySide6 6.11.2，导入已核对来自本轮worktr
 
 既有目录32151.5行实施日期2026-10-01仍显示“即将实施”，需按权威目录证据另核验，未按系统时钟改源数据。本轮只核验支持文字与角色映射，不宣称全标准生命周期准确性通过。通则独立支持等级映射OPEN。
 
-本轮未执行GitHub Actions，未复用PR63 CI320超时/无包结果，不修改40分钟预算/required checks或付费配置。尚无精确head构建包。原生及正式发布验收不由本地呈现回归替代，不宣布标准SUPPORTED、不进入RS04/RS05/第二标准。代码/范围内本地Qt回归可供独立验收，父代理后续统一决定PR与CI。
+初次作者提交阶段未执行GitHub Actions；PR64随后首轮CI实际失败与修复已在上节独立登记。未复用PR63 CI320超时/无包结果，不修改40分钟预算/required checks或付费配置；本次修复的新head尚未push，尚无其精确head构建包。原生及正式发布验收不由本地呈现回归替代，不宣布标准SUPPORTED、不进入RS04/RS05/第二标准。代码/范围内本地Qt回归可供独立验收，父代理后续统一决定PR与CI。

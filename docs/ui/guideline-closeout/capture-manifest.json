@@ -29,5 +29,12 @@
     "standard-detail.png": "8a7d4cacb1fe567fedd2671a7418cc253f1e1dbf80503e8901f22cc6f281e376",
     "standards.png": "7e57db53daf3b8d4a609bdc138d70e9b739d748a6b1589988876e18950283706"
   },
-  "capture_script_lf_sha256": "54774c7b5a1f1e6cd486d0b92f9ca0c184f21679e1c6c4910faabb0e29478a85"
+  "capture_script_lf_sha256": "54774c7b5a1f1e6cd486d0b92f9ca0c184f21679e1c6c4910faabb0e29478a85",
+  "post_capture_test_only_updates": {
+    "reason": "PR64首轮CI旧文案断言同步；产品源与截图不变",
+    "source_commit_before_update": "55ceff05cd76c672fe0fe40cbb691879db438a76",
+    "lf_sha256": {
+      "tests/test_uir04_finalization.py": "406e57ea4acc306b034aa851f5b0e936a60611b5b0a9ac86e3e287c6eda7a55d"
+    }
+  }
 }

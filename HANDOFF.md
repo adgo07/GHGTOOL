@@ -1,6 +1,10 @@
 # 当前交接：中央 UI 指南呈现收口
 
-2026-11-10。最新候选为 `codex/ui-guideline-closeout`，基于已合并PR62 / `224442530fcc61d8224c45e486688b2c27ec9324`。状态、逐项范围、测试与原生OPEN见TASK_STATE和IMPLEMENTATION_REPORT；8张源码离屏图及源hash在docs/ui/guideline-closeout。父代理代码与范围内Qt回归独立检查通过，尚未push/PR/CI/打包，不冒称正式发布。无Goal。
+2026-11-10。最新候选为 `codex/ui-guideline-closeout`，基于已合并PR62 / `224442530fcc61d8224c45e486688b2c27ec9324`。状态、逐项范围、测试与原生OPEN见TASK_STATE和IMPLEMENTATION_REPORT；8张源码离屏图及源hash在docs/ui/guideline-closeout。父代理代码与范围内Qt回归独立检查通过，已由父代理push初始head `55ceff05cd76c672fe0fe40cbb691879db438a76` 并建立PR64，未合并/发布。首轮CI真实失败和本次仅测试断言修复见下，不冒称正式发布。无Goal。
+
+PR64首轮CI run42828012360/job129870308784全量1138例，1137通过/1旧初始提示文案断言失败，1615.429s；不是全量PASS。本次只同步tests/test_uir04_finalization.py:133的新文案断言，其他空态/状态断言不变，同模块失败入口及相邻错误/成功3/3本地通过（17.797s）。修复未push，父代理审查后统一处理同head required CI与精确包。
+
+Owner要求窗口验收通过后合并。初次UIA合取捕获阻塞，经仅截图恢复，Astra窗口代理独占桌面进行原生验收中，尚无完整PASS，结论以父代理PR回执为准，不能以离屏或前次局部验收替代；不自动合并。产品/UI/CI配置本次全部不动。
 
 保留既有核算/输入/项目/不可变Record/Word/官方母版和Frozen lock。本轮只有Presentation增量；PR63 `f4ed05d3195ba5d5edfe4172e00dffbd96a691cf` 仍未合并，carbon_material_page.py重叠为顶部按钮与两处hint共3项文案，不自动合并该分支。后续以实际Git核验，旧报告中的“未合并PR62”等是历史记录，不代表当前事实。
 
