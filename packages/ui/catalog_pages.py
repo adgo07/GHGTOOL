@@ -46,6 +46,7 @@ from packages.standards.catalog import (
 )
 
 from .pages import BasePage, Navigate, _card
+from .business_page_style import ReadableTable
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
 from .view_models import AppRoute
 
@@ -157,6 +158,30 @@ class _WrappedSourceList(QListWidget):
         self._fit_items()
 
 
+class _StandardLibraryTable(ReadableTable):
+    """Keep the name readable with local scrolling when five columns cannot fit."""
+    NAME_MIN_WIDTH = 240
+
+    def fit_name_column(self):
+        if self.columnCount() != 5 or getattr(self, "_fitting_name_column", False):
+            return
+        self._fitting_name_column = True
+        try:
+            remaining = self.viewport().width() - sum(self.columnWidth(i) for i in (0, 2, 3, 4))
+            header = self.horizontalHeader()
+            if remaining < self.NAME_MIN_WIDTH:
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+                self.setColumnWidth(1, self.NAME_MIN_WIDTH)
+            else:
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        finally:
+            self._fitting_name_column = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.fit_name_column()
+
+
 class StandardLibraryPage(BasePage):
     """Searchable standard list and independent, read-only detail view."""
 
@@ -234,7 +259,7 @@ class StandardLibraryPage(BasePage):
         self.result_summary.setObjectName("secondaryText")
         list_card_layout.addLayout(summary_row)
 
-        self.standard_table = ReadableTable(list_card)
+        self.standard_table = _StandardLibraryTable(list_card)
         _configure_table(self.standard_table,
             ("标准编号", "标准名称", "标准状态", "实施日期", "软件支持"))
         self.standard_table.setObjectName("standardLibraryTable")
@@ -345,6 +370,7 @@ class StandardLibraryPage(BasePage):
             self.standard_table.font())).horizontalAdvance(self.standard_table.item(row, 0).text())
             for row in range(len(results))), default=150)
         self.standard_table.setColumnWidth(0, number_width + 36)
+        self.standard_table.fit_name_column()
         self.standard_table.resizeRowsToContents()
         content_height = self.standard_table.horizontalHeader().height() + self.standard_table.verticalHeader().length() + 6
         self.standard_table.setMinimumHeight(min(560, max(260, content_height)))

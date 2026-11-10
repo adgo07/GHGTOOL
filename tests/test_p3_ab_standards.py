@@ -143,10 +143,9 @@ class P3ABStandardsTests(unittest.TestCase):
         self.assertIsNone(page.findChild(type(page.status_filter), "standardYearFilter"))
         self.assertEqual(page.status_filter.count(), 5)
         self.assertEqual(table.rowCount(), 9)
-        self.assertEqual(
-            table.horizontalHeader().sectionResizeMode(1),
-            QHeaderView.ResizeMode.Stretch,
-        )
+        # Compact views keep a readable name and scroll locally; the separate
+        # narrow/wide regression verifies Stretch returns when space permits.
+        self.assertGreaterEqual(table.columnWidth(1), 240)
         self.assertEqual(table.columnWidth(4), 160)
         self.assertIn("font-size: 14px", table.styleSheet())
         self.assertEqual(table.verticalHeader().defaultSectionSize(), 48)

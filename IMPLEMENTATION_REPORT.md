@@ -1,6 +1,6 @@
 # 中央 UI 指南呈现收口实施报告
 
-2026-11-10。基于已合并 PR62 / `origin/main@224442530fcc61d8224c45e486688b2c27ec9324`，分支 `codex/ui-guideline-closeout`。本轮完成有限呈现增量；父代理已完成代码与范围内 Qt 回归独立检查，原生桌面仍 OPEN。已由父代理推送并建立 [PR64](https://github.com/adgo07/GHGTOOL/pull/64)，初始head `55ceff05cd76c672fe0fe40cbb691879db438a76`；当前未合并、未发布，无Goal。本次追加仅修复CI遗留文案断言，不改产品/UI或CI配置。
+2026-11-10。基于已合并 PR62 / `origin/main@224442530fcc61d8224c45e486688b2c27ec9324`，分支 `codex/ui-guideline-closeout`。本轮完成有限呈现增量；父代理已完成代码与范围内 Qt 回归独立检查，原生桌面仍 OPEN。已由父代理推送并建立 [PR64](https://github.com/adgo07/GHGTOOL/pull/64)，初始head `55ceff05cd76c672fe0fe40cbb691879db438a76`；当前未合并、未发布，无Goal。第一轮已同步CI遗留文案断言；当前另处理实际原生小屏FAIL，仅改标准库局部列宽策略，不改业务/UI框架或CI配置。
 
 ## 平台 / Contract 预检查
 
@@ -26,7 +26,27 @@ python -B -u -m unittest tests.test_uir04_finalization.UIR04FinalizationTests.te
 
 **3通过/0失败/0错误，17.797s**。覆盖此次真实CI失败入口及相邻错误/成功状态；未重复本地全量及与纯断言同步无关的窗口尺寸/多scale用例，不扩大验证成本。当前原始日志位于本轮隔离临时目录 `tmp/ui-tests/pr64-uir04-fix.log`。本次变动的Python3.12语法编译、`git diff --check`通过；manifest只补充测试文件更新hash，原产品源与8张截图hash不变。
 
-用户要求“窗口验收通过后合并”。初次UIA合取捕获阻塞，经仅截图恢复，Astra窗口代理正在独占桌面进行原生操作验收；**尚无完整原生PASS，结论以父代理PR回执为准**。旧离屏证据不得替代该合并前置条件。此修复先交父代理审查再push，同新head的required CI、精确构建包及原生窗口结果仍待核实，不提高40分钟预算、不改required、不用旧CI替代。
+用户要求“窗口验收通过后合并”。第一轮返修时初次UIA合取捕获阻塞，随后经仅截图恢复；最新局部布局结果见下一节。**完整原生结论仍以父代理PR回执及用户字体肉眼确认为准**。旧离屏证据不得替代该合并前置条件。此修复先交父代理审查再push，同新head的required CI、精确构建包及原生窗口结果仍待核实，不提高40分钟预算、不改required、不用旧CI替代。
+
+## PR64 原生小屏FAIL与局部列宽修复
+
+父代理实际查看 `tmp/window-acceptance/16-small-standards-fail.jpg` 并确认：整窗961×631、约960×600客户区，名称列Stretch被挤至约40DIP，表头“标准名称”残缺、名称每字一行，首行约238DIP高。作者已读原图，[持久证据](docs/ui/guideline-closeout/native/standards-small-before.jpg)保留为**原生FAIL**。原8张宽屏离屏图没覆盖此缺陷，不能继续宣称小屏已通过。
+
+在 `f43308bf3a37d5ea343f8c12851b67f82c0dda39` 上仅新增标准库专属 `_StandardLibraryTable`：名称列剩余空间不足240DIP时，设置该列Fixed240，五列溢出由表内横滚承接；空间足够时恢复Stretch分配余宽。支持列160、标准编号和其余列宽、5列结构、详情/筛选/源数据不动；不设置全局header minimum，不增加页面最小宽/页面横滚，不改公共UI框架。
+
+新增真实Qt `test_narrow_name_width_scroll_and_wide_restore_preserve_standard_navigation`，960→1440→960验证名称宽≥240、表头文字空间、首行≤120、其余四列不变、支持160且横滚可达、页面无横滚、宽时恢复Stretch无横滚，以及编号/名称两入口点击、详情返回、筛选保持。原p3_ab“始终Stretch”断言同步为可读宽下限，宽时Stretch由新测试独立验证，其余目录门禁断言保留。
+
+验证（Windows/Python3.12.14/PySide6 6.11.2、offscreen、隔离TEMP/TMP）：
+
+- 作者 `python -B -u -m unittest tests.test_standard_library_pilot tests.test_p3_ab_standards -v`：14例13通过/1旧“始终Stretch”断言失败，7.497s。该次新增函数误放在__main__块，**未被发现/未执行**；父代理指出后移回类，此次14例不得当新增回归通过证据。
+- 作者修后精确p3_ab失败单例：1/1通过，0.287s。
+- 作者 `python -B -u -m unittest tests.test_standard_library_pilot -v`：输出明确含新增窄宽用例，**7/7通过，1.424s**。
+- 最终增加表头空间与行高上限后，作者新增窄宽单例再验 **1/1通过，0.475s**。
+- 父代理独立 `python -m unittest tests.test_standard_library_pilot tests.test_business_pages_visual.BusinessPageVisualTests.test_standard_numbers_and_wrapped_names_fit_after_window_resize -v`：**8/8通过，1.624s**，明确含新增用例。各批有重叠，不累计。
+
+原产品/截图hash保留为初始宽屏快照，manifest另列本次源码变更与原生FAIL图hash，不冒用旧图。修后原生实际由指定Astra medium独占桌面执行，父代理独立看图确认：961×631整窗名称正常两行，表内横滚到软件支持、拖回编号；名称/编号进详情与回退正常。最大化1280×672时名称伸展、表内底部无横滚，恢复961×631换行正常、表内横滚恢复。持久保存[名称修复](docs/ui/guideline-closeout/native/standards-small-after.jpg)、[支持列可达](docs/ui/guideline-closeout/native/standards-small-support.jpg)、[宽窗](docs/ui/guideline-closeout/native/standards-wide-restored.jpg)、[再次小窗](docs/ui/guideline-closeout/native/standards-small-restored.jpg)，hash见manifest。**原小窗布局FAIL关闭，范围内布局复验PASS；字体清晰度仍OPEN，待用户肉眼答复，不写整体原生全PASS。**
+
+当前f43308b的CI仍在跑，未重跑或改工作流；本轮修复单提交后交父代理终审，再一次推送新head核对required与包。不将旧head CI冒用为本次布局修复结果；未重跑无关本地全量。
 
 ## 批准范围逐项对照
 
@@ -69,7 +89,7 @@ Windows源码，Python3.12.14/PySide6 6.11.2，导入已核对来自本轮worktr
 
 [8张图、复现脚本与manifest](docs/ui/guideline-closeout/README.md)，均1280×800 / DPR1 **Qt离屏源码**，作者实际逐张看图；父代理已独立查看代表图。设置路径使用虚构值。不能据此宣布原生桌面或EXE通过。
 
-指定GPT-6 Astra medium代理完整读computer-use及必要文档，三次sky调用（含reset）都提示helper已有active request；未获得窗口、输入或截图，按技能停止。启动PID11652后续精确查询未发现，无其他进程被终止。原生鼠标/键盘桌面、IME、多屏/人工DPI、Office/干净机/企业真实样例、本轮打包EXE及全量回归继续OPEN/未执行；范围不要求本轮补齐这些门禁。
+指定GPT-6 Astra medium代理完整读computer-use及必要文档，三次sky调用（含reset）都提示helper已有active request；未获得窗口、输入或截图，按技能停止。启动PID11652后续精确查询未发现，无其他进程被终止。原生桌面已恢复并完成上述局部布局/可达性复验，初次工具失败仅作历史过程保留；字体清晰度待用户肉眼答复，IME、多屏/人工DPI、Office/干净机/企业真实样例、本轮修复打包EXE及本地全量回归继续OPEN/未执行；范围不要求本轮补齐这些门禁。
 
 既有目录32151.5行实施日期2026-10-01仍显示“即将实施”，需按权威目录证据另核验，未按系统时钟改源数据。本轮只核验支持文字与角色映射，不宣称全标准生命周期准确性通过。通则独立支持等级映射OPEN。
 

@@ -11,7 +11,8 @@ import unittest
 from datetime import date
 from pathlib import Path
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTabWidget
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTabWidget, QHeaderView
 from apps.carbon_accounting_desktop.app import create_main_window
 from apps.carbon_accounting_desktop.config import AppConfig
 from packages.application.catalog_queries import CatalogQueryService
@@ -141,6 +142,53 @@ class StandardLibraryPilotTests(unittest.TestCase):
             title = self.page.findChild(QLabel, "standardDetailName")
             self.assertTrue(title.wordWrap())
             self.assertLessEqual(title.geometry().right(), title.parentWidget().width())
+
+    def test_narrow_name_width_scroll_and_wide_restore_preserve_standard_navigation(self):
+        table = self.page.standard_table
+        self.page.search_input.setText("32151.34")
+        self.flush()
+        selected_status = self.page.status_filter.currentIndex()
+        fixed_widths = tuple(table.columnWidth(i) for i in (0, 2, 3, 4))
+        for width, height in ((960, 600), (1440, 900), (960, 600)):
+            self.window.resize(width, height)
+            self.flush()
+            with self.subTest(width=width):
+                self.assertEqual(table.columnCount(), 5)
+                self.assertGreaterEqual(table.columnWidth(1), 240)
+                self.assertGreaterEqual(table.columnWidth(1), table.fontMetrics().horizontalAdvance("标准名称") + 24)
+                self.assertLessEqual(table.rowHeight(0), 120)
+                self.assertEqual(tuple(table.columnWidth(i) for i in (0, 2, 3, 4)), fixed_widths)
+                self.assertEqual(table.columnWidth(4), 160)
+                self.assertEqual(self.page.search_input.text(), "32151.34")
+                self.assertEqual(self.page.status_filter.currentIndex(), selected_status)
+                self.assertEqual(table.rowCount(), 1)
+                self.assertEqual(self.shell.main_scroll_area.horizontalScrollBar().maximum(), 0)
+                if width == 960:
+                    self.assertEqual(table.horizontalHeader().sectionResizeMode(1), QHeaderView.ResizeMode.Fixed)
+                    bar = table.horizontalScrollBar()
+                    self.assertGreater(bar.maximum(), 0)
+                    bar.setValue(bar.maximum())
+                    self.flush()
+                    support_rect = table.visualItemRect(table.item(0, 4))
+                    self.assertTrue(table.viewport().rect().contains(support_rect.center()))
+                    self.assertEqual(table.item(0, 4).text(), "已实现，待验收")
+                    bar.setValue(0)
+                    self.flush()
+                else:
+                    self.assertEqual(table.horizontalHeader().sectionResizeMode(1), QHeaderView.ResizeMode.Stretch)
+                    self.assertEqual(table.horizontalScrollBar().maximum(), 0)
+                    self.assertGreater(table.columnWidth(1), 240)
+                # Both number and name remain real entry points after each resize.
+                for column in (0, 1):
+                    rect = table.visualItemRect(table.item(0, column))
+                    QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
+                    self.flush()
+                    self.assertIs(self.page.view_stack.currentWidget(), self.page.detail_host)
+                    self.assertEqual(self.page.selected_standard_id, "gbt_32151_34_2024")
+                    self.page.findChild(QPushButton, "backToStandardListButton").click()
+                    self.flush()
+                    self.assertEqual(self.page.search_input.text(), "32151.34")
+                    self.assertEqual(self.page.status_filter.currentIndex(), selected_status)
 
 
 if __name__ == "__main__":
