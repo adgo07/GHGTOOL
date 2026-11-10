@@ -71,7 +71,7 @@ class StandardLibraryPilotTests(unittest.TestCase):
         self.assertEqual(table.columnCount(), 5)
         self.assertEqual(self.page.status_filter.count(), 5)
         self.assertEqual(table.verticalHeader().defaultSectionSize(), 48)
-        self.assertEqual(table.columnWidth(4), 124)
+        self.assertEqual(table.columnWidth(4), 160)
         self.assertIn("font-size: 14px", table.styleSheet())
         for row in range(table.rowCount()):
             for column in range(5):
@@ -93,7 +93,7 @@ class StandardLibraryPilotTests(unittest.TestCase):
                             "standardSoftwareSupport", "standardDetailVersion", "standardPublicationDate",
                             "standardImplementationDate", "standardAbolitionDate"):
             self.assertIsNotNone(self.page.findChild(QLabel, object_name), object_name)
-        self.assertEqual(self.page.findChild(QLabel, "standardSoftwareSupport").text(), "已实现核算")
+        self.assertEqual(self.page.findChild(QLabel, "standardSoftwareSupport").text(), "已实现，待验收")
         self.assertIsNone(self.page.detail_host.findChild(QTabWidget))
         self.assertFalse(any("不设置详情页签" in text for text in visible))
 

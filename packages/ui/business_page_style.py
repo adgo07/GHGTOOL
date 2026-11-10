@@ -4,10 +4,10 @@ Not an application theme. Styles are applied once; table reflow stays local.
 No business state, timers, assets, dependencies, locale, or business policy.
 """
 from __future__ import annotations
-from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtCore import Qt, QPoint, QPointF, QRectF
 from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QLabel, QStyle, QStyleOptionButton, QStyledItemDelegate,
-    QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget)
+    QStyleOptionViewItem, QTableWidget, QVBoxLayout, QWidget, QToolButton, QMenu, QWidgetAction, QPushButton)
 from .design_tokens import BORDER, CARD_BACKGROUND, PRIMARY_BRAND, PRIMARY_TEXT, SECONDARY_TEXT, SURFACE_MUTED
 
 
@@ -112,3 +112,41 @@ class BusinessCheckBox(QCheckBox):
             painter.setPen(QPen(QColor(PRIMARY_BRAND), 1, Qt.PenStyle.DashLine))
             painter.drawRoundedRect(QRectF(self.rect()).adjusted(.5, .5, -.5, -.5), 3, 3)
         painter.end()
+
+
+class InfoTip(QToolButton):
+    """Nearby supplementary help with native popup and keyboard dismissal."""
+    def __init__(self, name: str, text: str, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setObjectName("informationTip")
+        self.setText("ⓘ")
+        self.setAccessibleName(name)
+        self.setToolTip(name)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFixedSize(40, 40)
+        self.popup = QMenu(self)
+        self.popup.setAccessibleName(name)
+        panel = QWidget(self.popup)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(16, 12, 16, 12)
+        content = QLabel(text, panel)
+        content.setTextFormat(Qt.TextFormat.PlainText)
+        content.setWordWrap(True)
+        content.setMaximumWidth(340)
+        content.setAccessibleName(text)
+        layout.addWidget(content)
+        self.close_button = QPushButton("关闭说明", panel)
+        self.close_button.clicked.connect(self.popup.close)
+        layout.addWidget(self.close_button, 0, Qt.AlignmentFlag.AlignRight)
+        action = QWidgetAction(self.popup)
+        action.setDefaultWidget(panel)
+        self.popup.addAction(action)
+        self.clicked.connect(self._toggle_popup)
+        self.popup.aboutToHide.connect(self.setFocus)
+
+    def _toggle_popup(self):
+        if self.popup.isVisible():
+            self.popup.close()
+        else:
+            self.popup.popup(self.mapToGlobal(QPoint(0, self.height())))
+            self.close_button.setFocus()

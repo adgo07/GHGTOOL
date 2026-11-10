@@ -1054,7 +1054,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.source_navigation.setObjectName("accountingSourceNavigation")
         self.source_navigation.addItem("快速定位排放源", None)
         self.source_navigation.hide()  # Legacy restore identity; pure navigation is not saved input.
-        self.quick_calculate_button = QPushButton("检查并计算", source_activity)
+        self.quick_calculate_button = QPushButton("计算并生成记录", source_activity)
         self.quick_calculate_button.setObjectName("quickCalculateAccountingButton")
         self.quick_calculate_button.clicked.connect(self._run_calculation)
         self.project_overview_layout.itemAt(0).layout().addWidget(self.quick_calculate_button)
@@ -1194,7 +1194,7 @@ class CarbonMaterialAccountingPage(BasePage):
         self.error_count.setObjectName("calculationErrorCount")
         self.reminder_count = QLabel("提醒：0", status_bar)
         self.reminder_count.setObjectName("calculationReminderCount")
-        self.calculation_status_hint = QLabel("填写完成后点击“计算排放量”，软件会集中检查并反馈问题。", status_bar)
+        self.calculation_status_hint = QLabel("计算通过后自动新增正式记录。", status_bar)
         self.calculation_status_hint.setObjectName("calculationStatusHint")
         self.calculation_status_hint.setWordWrap(True)
         status_layout.addWidget(self.confirmed_source_count, 0, 0)
@@ -7419,7 +7419,7 @@ class CarbonMaterialAccountingPage(BasePage):
         elif self._calculation_has_result:
             self.calculation_status_hint.setText("结果已生成；如修改输入，请重新计算以形成新的记录。")
         else:
-            self.calculation_status_hint.setText("填写完成后点击“计算排放量”，软件会集中检查并反馈问题。")
+            self.calculation_status_hint.setText("计算通过后自动新增正式记录。")
 
     def _fuel_row_uses_standard_defaults(self, row: _FuelRow) -> bool:
         # A supplied enterprise source is an explicit measured-data choice even

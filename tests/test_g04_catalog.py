@@ -344,7 +344,7 @@ class G04CatalogTests(unittest.TestCase):
         page.status_filter.setCurrentIndex(page.status_filter.findData(CatalogStatus.UPCOMING))
         self.application.processEvents()
         self.assertEqual(table.rowCount(), 1)
-        self.assertEqual(table.item(0, 4).text(), "核算未开放")
+        self.assertEqual(table.item(0, 4).text(), "未开放")
         table.setCurrentCell(0, 1)
         table.setFocus()
         QTest.keyClick(table, Qt.Key.Key_Return)
@@ -505,9 +505,11 @@ class G04CatalogTests(unittest.TestCase):
         self.assertEqual(page.search_mode_button.text(), "全库搜索")
         self.assertEqual(page.browse_mode_button.text(), "按来源浏览")
         browse_notice = page.findChild(QLabel, "sourceBrowseNotice")
-        self.assertIsNotNone(browse_notice)
-        assert browse_notice is not None
-        self.assertIn("完整展示原始登记信息", browse_notice.text())
+        self.assertIsNone(browse_notice)
+        from packages.ui.business_page_style import InfoTip
+        library_help = next(tip for tip in page.findChildren(InfoTip) if tip.accessibleName() == "参数与因子库说明")
+        self.assertFalse(library_help.popup.isVisible())
+        self.assertTrue(any("同一份只读登记数据" in label.text() for label in library_help.popup.findChildren(QLabel)))
         self.assertEqual(page.source_filter.currentData(), "SRC-32151-34-2024")
         self.assertEqual(page.factor_table.rowCount(), 26)
         self.assertEqual(page.factor_table.columnCount(), 5)

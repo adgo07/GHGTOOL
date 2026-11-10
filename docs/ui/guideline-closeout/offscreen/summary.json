@@ -1,0 +1,98 @@
+[
+  {
+    "scene": "home",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "standards",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "standard-detail",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "record-detail",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "factors",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "settings",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "new-accounting",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  },
+  {
+    "scene": "import",
+    "client": [
+      1280,
+      800
+    ],
+    "dpr": 1.0,
+    "pixels": [
+      1280,
+      800
+    ]
+  }
+]

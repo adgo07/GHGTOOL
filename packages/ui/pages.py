@@ -549,7 +549,7 @@ class BasePage(QWidget):
     def set_page_margin(self, margin: int) -> None:
         self.body_layout.setContentsMargins(margin, margin, margin, margin)
 
-    def add_header(self, title: str, description: str) -> None:
+    def add_header(self, title: str, description: str = "") -> None:
         header = QWidget(self)
         header.setObjectName("pageHeader")
         header_layout = QHBoxLayout(header)
@@ -1045,15 +1045,14 @@ class HomePage(BasePage):
         title_label.setWordWrap(True)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("color: #213a4f; font-size: 16px; font-weight: 700;")
-        description_label = QLabel(description)
-        description_label.setObjectName("projectRecentStateDescription")
-        description_label.setWordWrap(True)
-        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description_label.setStyleSheet("color: #526A7D; font-size: 12px;")
+        unavailable = "不可用" in title
+        title_label.setText(description if unavailable else title)
         self.project_layout.addStretch(1)
         self.project_layout.addWidget(title_label)
-        self.project_layout.addSpacing(4)
-        self.project_layout.addWidget(description_label)
+        action = QPushButton("重试" if unavailable else "新建核算", self)
+        action.setObjectName("projectRecentStateAction")
+        action.clicked.connect(lambda _checked=False: self.refresh_recent_records() if unavailable else self._navigate(AppRoute.NEW_ACCOUNTING))
+        self.project_layout.addWidget(action, 0, Qt.AlignmentFlag.AlignCenter)
         self.project_layout.addStretch(2)
 
     def _show_record_empty(self, title: str, description: str) -> None:
@@ -1063,15 +1062,14 @@ class HomePage(BasePage):
         title_label.setWordWrap(True)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("color: #213a4f; font-size: 16px; font-weight: 700;")
-        description_label = QLabel(description)
-        description_label.setObjectName("recordRecentStateDescription")
-        description_label.setWordWrap(True)
-        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description_label.setStyleSheet("color: #526A7D; font-size: 12px;")
+        unavailable = "不可用" in title
+        title_label.setText(description if unavailable else title)
         self.recent_layout.addStretch(1)
         self.recent_layout.addWidget(title_label)
-        self.recent_layout.addSpacing(4)
-        self.recent_layout.addWidget(description_label)
+        action = QPushButton("重试" if unavailable else "新建核算", self)
+        action.setObjectName("recordRecentStateAction")
+        action.clicked.connect(lambda _checked=False: self.refresh_recent_records() if unavailable else self._navigate(AppRoute.NEW_ACCOUNTING))
+        self.recent_layout.addWidget(action, 0, Qt.AlignmentFlag.AlignCenter)
         self.recent_layout.addStretch(2)
 
     def _build_project_resume_card(
@@ -1421,7 +1419,7 @@ class SettingsPage(BasePage):
         from .business_page_style import apply_business_page_style, surface
         super().__init__(AppRoute.SETTINGS, parent)
         self.export_location_service = service_for_parent(self)
-        self.add_header("设置", "设置报告与输入模板的导出位置，查看软件信息。")
+        self.add_header("设置")
         self.home_back_button = QPushButton("返回首页", self)
         self.home_back_button.setObjectName("settingsBackHomeButton")
         self.home_back_button.clicked.connect(lambda: self.window().centralWidget().navigate(AppRoute.HOME))
@@ -1434,10 +1432,13 @@ class SettingsPage(BasePage):
         layout.setSpacing(16)
 
         options, options_layout = surface("导出位置", columns, "settingsExportSurface")
-        description = QLabel("Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。", options)
-        description.setObjectName("pageDescription")
-        description.setWordWrap(True)
-        options_layout.addWidget(description)
+        from .business_page_style import InfoTip
+        export_help = InfoTip("导出位置说明", "Word 核算报告与 Excel 输入模板共用此文件夹。单次另存不会更改此设置。", options)
+        export_heading = options_layout.takeAt(0).widget()
+        export_heading_row = QHBoxLayout()
+        export_heading_row.addWidget(export_heading, 1)
+        export_heading_row.addWidget(export_help)
+        options_layout.insertLayout(0, export_heading_row)
         caption = QLabel("统一导出文件夹", options)
         caption.setObjectName("detailFieldLabel")
         options_layout.addWidget(caption)
@@ -1460,13 +1461,17 @@ class SettingsPage(BasePage):
         layout.addWidget(options)
 
         info, info_layout = surface("软件信息", columns, "settingsInformationSurface")
+        info_heading = info_layout.takeAt(0).widget()
+        info_heading_row = QHBoxLayout()
+        info_heading_row.addWidget(info_heading, 1)
+        info_heading_row.addWidget(InfoTip("软件技术信息", "界面技术：PySide6 · Qt Widgets。", info))
+        info_layout.insertLayout(0, info_heading_row)
         facts = QGridLayout()
         facts.setHorizontalSpacing(24)
         facts.setVerticalSpacing(12)
         for index, (caption, text) in enumerate((
             ("产品", view_model.product_name),
             ("运行平台", "Windows 桌面版"),
-            ("界面技术", "PySide6 · Qt Widgets"),
         )):
             label = QLabel(caption, info)
             label.setObjectName("detailFieldLabel")
@@ -1553,20 +1558,23 @@ class RecordLibraryPage(BasePage):
         record_repository: RecordRepository | None,
         parent: QWidget | None = None,
         project_service=None,
+        navigate: Navigate | None = None,
     ) -> None:
         from .business_page_style import ReadableTable, apply_business_page_style, surface
         super().__init__(AppRoute.RECORDS, parent)
         self.record_repository = record_repository
         self.project_service = project_service
+        self._navigate = navigate
         self._records: tuple[RecordSummary, ...] = ()
         self._all_summaries: tuple[RecordSummary, ...] = ()
         self._summaries_dirty = True
         self._loaded_record_token: object | None = None
         self._associations_dirty = True
         self._association_cache: dict[str, str] = {}
+        self._record_read_failed = False
         self._detail_record_id: str | None = None
         self._detail_record: AccountingRecord | None = None
-        self.add_header("核算记录", "搜索已保存的核算记录，查看历史结果和计算依据。")
+        self.add_header("核算记录")
         self.page_title = self.findChild(QLabel, "pageTitle")
         self.page_description = self.findChild(QLabel, "pageDescription")
         self.view_stack = QStackedWidget(self)
@@ -1641,6 +1649,11 @@ class RecordLibraryPage(BasePage):
         )
         records_layout.addWidget(self.record_list, 1)
         records_layout.addWidget(self.result_count)
+        self.empty_action = QPushButton("清除筛选", records_card)
+        self.empty_action.setObjectName("recordEmptyAction")
+        self.empty_action.clicked.connect(self._empty_action)
+        records_layout.addWidget(self.empty_action, 0, Qt.AlignmentFlag.AlignCenter)
+        self.empty_action.hide()
         list_layout.addWidget(records_card, 1)
         self.view_stack.addWidget(self.list_view)
 
@@ -1698,7 +1711,7 @@ class RecordLibraryPage(BasePage):
         self.delete_button.clicked.connect(self._delete_selected)
         actions.addWidget(self.delete_button)
         actions.addStretch(1)
-        self.export_word_button = QPushButton("导出 Word 核算报告", detail_card)
+        self.export_word_button = QPushButton("导出报告（Word）", detail_card)
         self.export_word_button.setObjectName("exportWordReportButton")
         self.export_word_button.clicked.connect(self._export_selected_report)
         detail_header.addWidget(self.export_word_button)
@@ -1744,16 +1757,22 @@ class RecordLibraryPage(BasePage):
             self._summaries_dirty = True
             self._associations_dirty = True
         if self._summaries_dirty:
-            summaries_reader = getattr(self.record_repository, "list_summaries", None)
-            if self.record_repository is None:
+            self._record_read_failed = False
+            try:
+                summaries_reader = getattr(self.record_repository, "list_summaries", None)
+                if self.record_repository is None:
+                    all_summaries = ()
+                elif callable(summaries_reader):
+                    all_summaries = tuple(summaries_reader())
+                else:
+                    all_summaries = tuple(
+                        _summary_from_record(record)
+                        for record in self.record_repository.list_all()
+                    )
+            except Exception:
+                _LOGGER.exception("Unable to read formal record summaries")
+                self._record_read_failed = True
                 all_summaries = ()
-            elif callable(summaries_reader):
-                all_summaries = tuple(summaries_reader())
-            else:
-                all_summaries = tuple(
-                    _summary_from_record(record)
-                    for record in self.record_repository.list_all()
-                )
             self._all_summaries = tuple(sorted(
                 all_summaries,
                 key=lambda record: (record.created_at, record.record_id),
@@ -1769,7 +1788,7 @@ class RecordLibraryPage(BasePage):
         select_record_id: str | None = None,
     ) -> None:
         change_token = _record_repository_change_token(self.record_repository)
-        if change_token is not None and change_token != self._loaded_record_token:
+        if not self._record_read_failed and change_token is not None and change_token != self._loaded_record_token:
             self._summaries_dirty = True
             self.refresh_records(force_reload=False, select_record_id=select_record_id)
             return
@@ -1865,16 +1884,18 @@ class RecordLibraryPage(BasePage):
             self.record_list.resizeRowsToContents()
             for row in range(len(self._records)):
                 self.record_list.setRowHeight(row, max(48, self.record_list.rowHeight(row)))
-            self.result_count.setText(f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
+            self.result_count.setText("记录数量暂不可用" if self._record_read_failed else f"{len(self._records)} 条记录 / 共 {len(self._all_summaries)} 条 · 历史记录只读")
             self.delete_button.setEnabled(bool(self._records))
             self.export_word_button.setEnabled(bool(self._records))
+            self.empty_action.setVisible(not self._records and (self._record_read_failed or bool(self._all_summaries) or self._navigate is not None))
+            self.empty_action.setText("重试" if self._record_read_failed else "清除筛选" if self._all_summaries else "新建核算")
             if self._records:
                 selected_row = selected_row if selected_row >= 0 else 0
                 self.record_list.setCurrentCell(selected_row, 0)
                 self.record_list.selectRow(selected_row)
             else:
                 self.record_list.insertRow(0)
-                empty = QTableWidgetItem("没有符合条件的记录；可修改关键词或状态筛选。")
+                empty = QTableWidgetItem("记录读取失败" if self._record_read_failed else "没有匹配的记录" if self._all_summaries else "暂无核算记录")
                 empty.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.record_list.setItem(0, 0, empty)
                 self.record_list.setSpan(0, 0, 1, self.record_list.columnCount())
@@ -1891,6 +1912,15 @@ class RecordLibraryPage(BasePage):
                 self._show_selected_record(detail_row)
             else:
                 self._back_to_list()
+
+    def _empty_action(self):
+        if self._record_read_failed:
+            self.refresh_records(force_reload=True)
+        elif not self._all_summaries and self._navigate is not None:
+            self._navigate(AppRoute.NEW_ACCOUNTING)
+        else:
+            self.search_input.clear()
+            self.status_filter.setCurrentIndex(0)
 
     def _workspace_associations(self) -> dict[str, str]:
         if not self._associations_dirty:
@@ -2203,10 +2233,7 @@ class ExcelImportPage(BasePage):
         self._fuel_override_combos: dict[str, QComboBox] = {}
         self._preview_context_key: tuple[object, ...] | None = None
 
-        self.add_header(
-            "表格导入",
-            "下载模板并选择工作簿，检查预览后保存为项目，再主动进行正式核算；预览不会生成正式记录。",
-        )
+        self.add_header("表格导入")
 
         self._build_import_workspace()
 
@@ -3377,7 +3404,7 @@ def create_page(
             catalog_service or CatalogQueryService.empty(), navigate, parent
         )
     if route is AppRoute.RECORDS:
-        return RecordLibraryPage(record_repository, parent, project_service=project_service)
+        return RecordLibraryPage(record_repository, parent, project_service=project_service, navigate=navigate)
     if route is AppRoute.NEW_ACCOUNTING:
         from .standard_editors import create_standard_editor
         catalog = catalog_service or CatalogQueryService.empty()

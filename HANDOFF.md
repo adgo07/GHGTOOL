@@ -1,4 +1,12 @@
-# PR60五页收口实施交接
+# 当前交接：中央 UI 指南呈现收口
+
+2026-11-10。最新候选为 `codex/ui-guideline-closeout`，基于已合并PR62 / `224442530fcc61d8224c45e486688b2c27ec9324`。状态、逐项范围、测试与原生OPEN见TASK_STATE和IMPLEMENTATION_REPORT；8张源码离屏图及源hash在docs/ui/guideline-closeout。父代理代码与范围内Qt回归独立检查通过，尚未push/PR/CI/打包，不冒称正式发布。无Goal。
+
+保留既有核算/输入/项目/不可变Record/Word/官方母版和Frozen lock。本轮只有Presentation增量；PR63 `f4ed05d3195ba5d5edfe4172e00dffbd96a691cf` 仍未合并，carbon_material_page.py重叠为顶部按钮与两处hint共3项文案，不自动合并该分支。后续以实际Git核验，旧报告中的“未合并PR62”等是历史记录，不代表当前事实。
+
+---
+
+# 历史交接（PR60已合并，仅保留业务约束）
 
 当前候选产品代码 `fb56ad737b6d0a676e5f594f689e08e88f14aaa3`；仓库以 `https://github.com/adgo07/GHGTOOL.git` 与实际origin识别，不把历史绝对路径当当前checkout。复用 `codex/ui-five-business-pages-v2`；接续前实际核对root/origin/fetch/branch/HEAD/status，不覆盖其他工作区用户修改。
 

@@ -1,0 +1,33 @@
+{
+  "baseline": "224442530fcc61d8224c45e486688b2c27ec9324",
+  "source": "Windows Python 3.12.14 / PySide6 6.11.2 / Qt offscreen",
+  "native_desktop": "OPEN: helper already has an active request after three attempts",
+  "client": [
+    1280,
+    800
+  ],
+  "dpr": 1.0,
+  "source_lf_sha256": {
+    "packages/ui/business_page_style.py": "d9477d3cab52bac6af2338b84d06614f02e59f1b02acd6aecb6a9b3efa86a9f5",
+    "packages/ui/carbon_material_page.py": "9390f9ae8adf969d2b583a8e9b62090e7914eee7d74e1e9bae1a1ada0b972c1e",
+    "packages/ui/catalog_pages.py": "e2882bfeae362d289632a715cd8126acd983a55feb57bb61c30b198d39c40dba",
+    "packages/ui/design_tokens.py": "e3d0a1d16997bd558c47c9acff9c2279a9eb459a95febfdc2d1bff860386cc98",
+    "packages/ui/pages.py": "b83a0e306ea161b31cf526070b95634a909eb656a1ab7741eed4168953345041",
+    "tests/test_g03_shell.py": "981e2d9c91d8cc47c975a67ee5e97a5d33b5b71be88d25602c5fd2526ca6c79b",
+    "tests/test_p3_ab_standards.py": "d722db3d0b54c48ce8af0931a51dbe94d9dca80c3f863fec979c47dab2d8e013",
+    "tests/test_ui_copy_presentation.py": "85cf837071525cae44b9e6cb3e68cf6b3837f9c2cdbb81bc9de15c1ab59aa58d",
+    "tests/test_g04_catalog.py": "b3065b7e5ff7533b4638e0079854b65779374ea92b05a164206cd0a52c378006",
+    "tests/test_standard_library_pilot.py": "1ba50ece5a27da7340d1f11e80a757ba38a6f6cf9fdfdf821768f4067f706bb8"
+  },
+  "captures_sha256": {
+    "factors.png": "31788e23c3fdfb45286b1fc0901e008058d4d893565f5840d6925feea9f5bd0c",
+    "home.png": "b778365b1b1ad1c20237272690daebd6056e00b7177023c0a4f2114fc87b290e",
+    "import.png": "165501436ab93d1d2e3fa9f55bb4fb9c818ee44dda85457b0ab27241926f7262",
+    "new-accounting.png": "46f88222f5098b1882283719fcdf044ce74b055b727bed4df5c8017bdd184c8d",
+    "record-detail.png": "ca72a7300975e3aae1ccba27ec52df8e6f0ac0a3cc5a30a63d7164230d332d2a",
+    "settings.png": "a2a5023c489bf72bd3cd7ed5ae020aa29814d54eef66bcf644c6c244328338f9",
+    "standard-detail.png": "8a7d4cacb1fe567fedd2671a7418cc253f1e1dbf80503e8901f22cc6f281e376",
+    "standards.png": "7e57db53daf3b8d4a609bdc138d70e9b739d748a6b1589988876e18950283706"
+  },
+  "capture_script_lf_sha256": "54774c7b5a1f1e6cd486d0b92f9ca0c184f21679e1c6c4910faabb0e29478a85"
+}
