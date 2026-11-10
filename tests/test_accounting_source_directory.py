@@ -49,6 +49,33 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertTrue(all(isinstance(b, QRadioButton) for b in fuel.path_choices.group.buttons()))
         self.assertTrue(all(isinstance(b, QRadioButton) for b in energy.direction_choices.group.buttons()))
 
+    def test_deliberate_card_click_enables_once_and_preserves_drafts(self):
+        page = self.page
+        fuel = page._fuel_rows[0]
+        fuel.activity.setText("17.25")
+        self.assertFalse(page._source_is_enabled("CAR-SRC-FUEL-001"))
+        page.source_directory.buttons["fuel"].click()
+        self.assertTrue(page._source_is_enabled("CAR-SRC-FUEL-001"))
+        self.assertEqual(fuel.activity.text(), "17.25")
+        page._project_dirty = page._input_dirty = False
+        state = page._capture_form_state()
+        page.source_directory.buttons["fuel"].click()
+        self.assertEqual(state, page._capture_form_state())
+        self.assertFalse(page._project_dirty)
+        self.assertFalse(page._input_dirty)
+
+    def test_ninth_supplement_navigation_never_accepts_declaration(self):
+        page = self.page
+        page.external_amount.setText("17.25")
+        before = page._capture_form_state()
+        page._project_dirty = page._input_dirty = False
+        page.source_directory.buttons["external"].click()
+        self.assertEqual(page.source_directory._selected, "external")
+        self.assertFalse(page.external_included.isChecked())
+        self.assertEqual(before, page._capture_form_state())
+        self.assertFalse(page._project_dirty)
+        self.assertFalse(page._input_dirty)
+
     def test_browse_does_not_enable_and_enable_remains_explicit(self):
         page = self.page
         initial = page._capture_form_state()
@@ -99,7 +126,7 @@ class SourceDirectoryTests(unittest.TestCase):
         from PySide6.QtWidgets import QScrollArea
         page = self.page
         expected = {group for group, _, _ in page._source_toggle_groups}
-        self.assertEqual(set(page.source_directory.cards), expected)
+        self.assertEqual(set(page.source_directory.cards), expected | {"external"})
         self.assertEqual(len(expected), 8)
         # One outer page scroller remains; the approved compact editor has one
         # explicit local viewport, not an unbounded second page scroller.

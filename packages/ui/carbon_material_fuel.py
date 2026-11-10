@@ -11,6 +11,9 @@ from .field_specs import get_field_spec
 from .typed_inputs import create_typed_input
 
 
+from .repeated_entries import frame_entry
+
+
 class FuelParameterDrafts:
     """Presentation drafts scoped to a confirmed identity and quantity path.
 
@@ -160,7 +163,7 @@ class _FuelRow(QWidget):
         self.fuel_type_label = QLabel("燃料种类", self)
         self.path_label = QLabel("计量方式", self)
         self.activity_label = QLabel("活动量", self)
-        self.carbon_basis_label = QLabel("含碳量方式", self)
+        self.carbon_basis_label = QLabel("含碳量数据来源", self)
 
         self.lower_heating_value = create_typed_input(self, get_field_spec("fuel_lhv"), f"fuelLhvInput{index}")
         self.carbon = create_typed_input(self, get_field_spec("fuel_carbon"), f"fuelCarbonInput{index}")
@@ -284,6 +287,8 @@ class _FuelRow(QWidget):
         self._parameter_source_drafts: dict[tuple[str, str], str] = {}
         self.parameter_drafts = FuelParameterDrafts()
         self.parameter_source = "AUTO"
+        self.remove_button.setText("删除此燃料")
+        frame_entry(self, self.title_label, self.remove_button, toolbar=header)
 
     def refresh_parameter_visibility(self):
         direct = self.carbon_basis.currentData() == "DIRECT"

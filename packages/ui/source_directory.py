@@ -1,8 +1,8 @@
-"""Presentation-only directory: navigation never changes source participation."""
+"""Explicit source activation and presentation-only programmatic navigation."""
 from .design_tokens import ACCOUNTING_COLORS
 from PySide6.QtCore import Qt, Signal, QTimer, QPoint, QEvent, QSize
 from .source_cards import SourceHeaderSwitch
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea, QComboBox, QBoxLayout
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, QScrollArea, QComboBox, QBoxLayout, QApplication
 
 
 class ContentStack(QWidget):
@@ -45,12 +45,25 @@ class EditorScrollArea(QScrollArea):
     def minimumSizeHint(self):
         return QSize(0, 0)
 
+    def eventFilter(self, watched, event):
+        result = super().eventFilter(watched, event)
+        if watched is self.widget() and event.type() in (QEvent.Type.Resize, QEvent.Type.LayoutRequest):
+            # QScrollArea normally changes only its internal scrollbar range.
+            # Wide layouts hide that scrollbar and need the new natural height
+            # propagated to the directory's layout after responsive reflow.
+            height = self.sizeHint().height()
+            if height != getattr(self, "_reported_content_height", None):
+                self._reported_content_height = height
+                self.updateGeometry()
+        return result
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.updateGeometry()
 
 
 class SourceDirectory(QWidget):
+    activated = Signal(str)
     enable_requested = Signal(str)
     results_requested = Signal()
 
@@ -82,11 +95,13 @@ class SourceDirectory(QWidget):
         for key, title, card in entries:
             self.compact_selector.addItem(title, key)
         self.compact_selector.activated.connect(
-            lambda index: self.select(self.compact_selector.itemData(index)))
+            lambda index: self.activate(self.compact_selector.itemData(index)))
         self.compact_selector.hide()
         layout.addWidget(self.compact_selector)
         nav.setStyleSheet(f"QFrame#sourceDirectoryNavigation {{background:{ACCOUNTING_COLORS['directory_surface']};border:1px solid {ACCOUNTING_COLORS['directory_border']};border-radius:9px;}}")
         links = QVBoxLayout(nav)
+        self._navigation = nav
+        self._links = links
         links.setContentsMargins(10, 16, 10, 16)
         links.addWidget(QLabel("排放源目录", nav))
         self.stack = ContentStack(self)
@@ -98,11 +113,14 @@ class SourceDirectory(QWidget):
             button.setCheckable(True)
             button.installEventFilter(self)
             button.setStyleSheet(f"QPushButton {{text-align:left;font-size:14px;padding:10px 8px;border:0;background:transparent;}} QPushButton:checked {{background:{ACCOUNTING_COLORS['source_selected']};color:{ACCOUNTING_COLORS['directory_selected_text']};font-weight:600;}} QPushButton:focus {{border:1px solid {ACCOUNTING_COLORS['brand']};}}")
-            button.clicked.connect(lambda checked=False, group=key: self.select(group))
+            button.clicked.connect(lambda checked=False, group=key: self.activate(group))
             links.addWidget(button)
             self.buttons[key], self.indices[key] = button, i
             panel = QWidget(self.stack)
-            panel.setStyleSheet("background:white;")
+            panel.setObjectName("sourceDirectoryPanel")
+            # Limit the surface to this panel so descendants keep the page's
+            # shared repeated-entry header/body colors.
+            panel.setStyleSheet(f"QWidget#sourceDirectoryPanel {{background:{ACCOUNTING_COLORS['white']};}}")
             contents = QVBoxLayout(panel)
             contents.setContentsMargins(0, 0, 0, 0)
             contents.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -128,10 +146,11 @@ class SourceDirectory(QWidget):
             self.placeholders[key] = placeholder
             self.stack.addWidget(panel)
         results = QPushButton("问题与结果 ↓", nav)
+        self._results_button = results
         results.clicked.connect(self.results_requested.emit)
         links.addWidget(results)
         links.addSpacing(12)
-        tip = QLabel("切换目录仅查看；启用状态与输入分别保留。", nav)
+        tip = QLabel("选择未启用的排放源会启用；停用保留输入。", nav)
         tip.setWordWrap(True)
         links.addWidget(tip)
         layout.addWidget(nav, 0, Qt.AlignmentFlag.AlignTop)
@@ -143,26 +162,70 @@ class SourceDirectory(QWidget):
         self.editor_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.editor_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.editor_scroll.setWidget(self.stack)
+        # QScrollArea enables auto-fill on its child. Keep the surrounding
+        # unused area on the existing business card instead of default gray.
+        self.stack.setAutoFillBackground(False)
+        self.editor_scroll.viewport().setAutoFillBackground(False)
         layout.addWidget(self.editor_scroll, 1, Qt.AlignmentFlag.AlignTop)
         self.select(entries[0][0])
         self._adapt_width()
 
     def _adapt_width(self):
+        # Visibility and layout-direction changes synchronously resize children.
+        # Finish one mode transition before handling the resulting resize.
+        if getattr(self, "_adapting_width", False):
+            return
+        self._adapting_width = True
+        focused = QApplication.focusWidget()
+        navigation_focus = focused is self.compact_selector or (
+            focused is not None and self.navigation_panel.isAncestorOf(focused))
         compact = self.width() < 640
-        self.navigation_panel.setVisible(not compact)
-        self.compact_selector.setVisible(compact)
-        self.stack.setMinimumWidth(420 if compact else 0)
-        self.editor_scroll.setMaximumHeight(max(240, self.window().height() - 120) if compact else 16777215)
-        self.editor_scroll.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded if compact else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
-        if self._directory_layout.direction() != direction:
-            self._directory_layout.setDirection(direction)
-            self.updateGeometry()
+        try:
+            self.navigation_panel.setVisible(not compact)
+            self.compact_selector.setVisible(compact)
+            self.stack.setMinimumWidth(420 if compact else 0)
+            self.editor_scroll.setMaximumHeight(max(240, self.window().height() - 120) if compact else 16777215)
+            self.editor_scroll.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAsNeeded if compact else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
+            if self._directory_layout.direction() != direction:
+                self._directory_layout.setDirection(direction)
+                self.updateGeometry()
+        finally:
+            self._adapting_width = False
+        if navigation_focus:
+            target = self.compact_selector if compact else self.buttons.get(self._selected)
+            if target is not None:
+                target.setFocus(Qt.FocusReason.OtherFocusReason)
+        if (self.width() < 640) != compact:
+            QTimer.singleShot(0, self, self._adapt_width)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._adapt_width()
+
+    def activate(self, key):
+        """Only a deliberate button action requests participation."""
+        self.select(key)
+        self.activated.emit(key)
+
+    def add_supplement(self, key, title, card):
+        """A ninth software entry; visiting never accepts its declaration."""
+        self.cards[key], self.titles[key] = card, title
+        self.compact_selector.addItem(title, key)
+        button = QPushButton(title, self._navigation)
+        button.setObjectName("sourceDirectory_" + key)
+        button.setCheckable(True)
+        button.installEventFilter(self)
+        button.setStyleSheet(next(iter(self.buttons.values())).styleSheet())
+        button.clicked.connect(lambda checked=False: self.activate(key))
+        self._links.insertWidget(self._links.indexOf(self._results_button), button)
+        self.buttons[key], self.indices[key] = button, len(self.indices)
+        panel = QWidget(self.stack)
+        contents = QVBoxLayout(panel)
+        contents.setContentsMargins(0, 0, 0, 0)
+        contents.addWidget(card)
+        self.stack.addWidget(panel)
 
     def _outer_scroll(self):
         ancestor = self.parentWidget()
@@ -230,7 +293,8 @@ class SourceDirectory(QWidget):
 
     def refresh(self):
         for group, card in self.cards.items():
-            self.placeholders[group].setVisible(card.isHidden())
+            if group in self.placeholders:
+                self.placeholders[group].setVisible(card.isHidden())
         self.stack.updateGeometry()
         self.editor_scroll.updateGeometry()
         self.updateGeometry()
