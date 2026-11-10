@@ -1,3 +1,21 @@
+# PR63：CI 失败已修复，待新 head 必需检查
+
+2026-11-11。本轮GitHub Actions [42851736412](https://github.com/adgo07/GHGTOOL/actions/runs/42851736412/job/129953959407) 实际运行 head `5d1953f64fc988656ce71cb1ba9337d861be91d1` 的1156项：1153通过、3失败，2126.493s。全量已在原时限内完成；Standalone因依赖失败跳过，不能称此轮CI通过。
+
+两项失败为FGD/燃料旧值测试仍断言旧“历史来源”文字，现只同步为“当前来源”，保留原始值、旧来源不冒充实测、显式确认等全部行为断言。第三项为960×600窄窗错误定位：数量输入框(38,445,528,40)超出内视口604×480，底部裁5像素；Qt ensureWidgetVisible只保证光标区域，现将原有整框校正同时应用于内外滚动区，不改输入/焦点取消规则或校验。
+
+本地实际验证：
+
+- `python -m unittest tests.test_family_ui tests.test_pr46_fuel_confirmation tests.test_g06_fgd_ui -v`：32/32，131.791s（ci-fixes.log）。原失败几何断言保留，并增加失败矩形信息。
+- `python -m unittest tests.test_pr59_compatibility_navigation tests.test_accounting_source_directory.SourceDirectoryTests.test_validation_opens_conversion_and_external_disclosures_without_input_changes -v`：10/10，103.667s（navigation-final.log）。覆盖连续定位、切换源取消、目标删除/销毁、旧项目恢复、内外折叠展开。
+- 复用原FamilyUi真实Qt测试场景另存离屏图：修后内框(38,424,528,40)完整位于604×480视口；外框(85,536,528,40)完整位于708×600视口，焦点仍是目标。见[定位修复图](docs/ui/new-accounting-v2/integration-review/21-ci-navigation-offscreen.png)。不是原生点击证据。
+
+原生限定复验OPEN：两次明确选择GHG窗口，工具返回正确窗口元数据但截图为另一应用；Astra未发送任何输入并只关闭自有隔离实例。此前原生PASS不覆盖最后滚动定位修复；本次以实际Qt视口/焦点回归验证，未冒称原生复验通过。该工具限制不代表已知未修复产品失败。其他EXE/Office/系统多屏DPI等既有OPEN不变。
+
+中央四份UI适用文件在本轮修复后再次在线核对，blob均与下方预检查一致；精简要求未回退。平台/Contract与Standard Issue预检查继续适用：仅Presentation滚动与测试断言，本任务不涉及中央公共Contract或标准解释变化。新head仍须全量及Standalone required checks通过后，按Owner授权合并；最终head/CI/合并状态以PR63回执为准。
+
+---
+
 # PR63 整合完成，待当前 head CI
 
 2026-11-11。在 main/已合并 PR64 `d7a053b8354b98ab5ea3ad53618cf7de657a8809` 上整合 PR63，冲突已解决，PR64 精简文案、标准库窄窗与空态行为保留。用户授权回归和 CI 全通过后合并。当前正式 head、CI与合并状态以 [PR63](https://github.com/adgo07/GHGTOOL/pull/63) 最终回执为准。

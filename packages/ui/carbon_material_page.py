@@ -3124,6 +3124,23 @@ class CarbonMaterialAccountingPage(BasePage):
         previous = None
         focused = False
 
+        def reveal_frame(area, target, horizontal_margin, vertical_margin):
+            area.ensureWidgetVisible(target, horizontal_margin, vertical_margin)
+            viewport = area.viewport()
+            rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
+            # Qt can expose only a line edit's cursor rectangle. Correct both
+            # nested and outer scroll areas so the entire input frame fits.
+            for bar, first, last, length, available, preferred in (
+                (area.verticalScrollBar(), rectangle.top(), rectangle.bottom(), rectangle.height(), viewport.height(), vertical_margin),
+                (area.horizontalScrollBar(), rectangle.left(), rectangle.right(), rectangle.width(), viewport.width(), horizontal_margin),
+            ):
+                if length <= available:
+                    margin = min(preferred, max(0, (available - length) // 2))
+                    if first < margin:
+                        bar.setValue(bar.value() + first - margin)
+                    elif last >= available - margin:
+                        bar.setValue(bar.value() + last - available + margin + 1)
+
         def settle(turn: int = 0) -> None:
             nonlocal previous, focused
             target, scroll = target_ref(), scroll_ref()
@@ -3142,27 +3159,14 @@ class CarbonMaterialAccountingPage(BasePage):
             ancestor = target.parentWidget()
             while ancestor is not None and ancestor is not scroll:
                 if isinstance(ancestor, QScrollArea) and ancestor.widget() is not None:
-                    ancestor.ensureWidgetVisible(target, 8, 16)
+                    reveal_frame(ancestor, target, 8, 16)
                 ancestor = ancestor.parentWidget()
-            scroll.ensureWidgetVisible(target, 16, 24)
+            reveal_frame(scroll, target, 16, 24)
             position = target.mapTo(scroll.widget(), target.rect().topLeft())
             viewport = scroll.viewport()
             geometry = (position.x(), position.y(), target.width(), target.height(),
                         scroll.verticalScrollBar().maximum(), scroll.widget().height(),
                         viewport.width(), viewport.height())
-            rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
-            # Qt may reveal an editor's cursor rectangle while leaving its frame
-            # outside the viewport. Keep the whole field visible after reflow.
-            for bar, start, end, length, available, preferred in (
-                (scroll.verticalScrollBar(), rectangle.top(), rectangle.bottom(), rectangle.height(), viewport.height(), 24),
-                (scroll.horizontalScrollBar(), rectangle.left(), rectangle.right(), rectangle.width(), viewport.width(), 16),
-            ):
-                if length <= available:
-                    margin = min(preferred, max(0, (available - length) // 2))
-                    if start < margin:
-                        bar.setValue(bar.value() + start - margin)
-                    elif end >= available - margin:
-                        bar.setValue(bar.value() + end - available + margin + 1)
             rectangle = target.rect().translated(target.mapTo(viewport, target.rect().topLeft()))
             fits = (viewport.rect().contains(rectangle) if rectangle.width() <= viewport.width()
                     and rectangle.height() <= viewport.height() else viewport.rect().intersects(rectangle))

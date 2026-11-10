@@ -180,7 +180,9 @@ class FamilyUiTests(unittest.TestCase):
         inner=page.source_directory.editor_scroll.viewport()
         outer=shell.main_scroll_area.viewport()
         for viewport in (inner,outer):
-            self.assertTrue(viewport.rect().contains(QRect(target.mapTo(viewport,QPoint(0,0)),target.size())))
+            rectangle = QRect(target.mapTo(viewport, QPoint(0, 0)), target.size())
+            self.assertTrue(viewport.rect().contains(rectangle),
+                f"target {rectangle.getRect()} outside {viewport.parentWidget().objectName()} {viewport.rect().getRect()}")
         self.assertIs(self.app.focusWidget(),target)
 
     def test_logo_original_hash_and_vector_dpr(self):
